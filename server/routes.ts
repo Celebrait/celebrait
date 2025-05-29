@@ -5,22 +5,18 @@ import { insertUserSchema, insertCardSchema, insertLovedOneSchema } from "@share
 import OpenAI from "openai";
 import Stripe from "stripe";
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('Missing required OpenAI API key: OPENAI_API_KEY');
-}
-
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
-}
+// Temporarily allow running without API keys for testing
+const hasOpenAI = !!process.env.OPENAI_API_KEY;
+const hasStripe = !!process.env.STRIPE_SECRET_KEY;
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ 
+const openai = hasOpenAI ? new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY 
-});
+}) : null;
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
-});
+const stripe = hasStripe ? new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2024-06-20",
+}) : null;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User registration
