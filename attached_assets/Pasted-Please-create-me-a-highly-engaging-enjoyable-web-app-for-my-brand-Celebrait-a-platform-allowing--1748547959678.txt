@@ -1,0 +1,219 @@
+Please create me a highly engaging, enjoyable web app for my brand, Celebrait - a platform allowing users to create AI generated greetings cards which can either be printed and posted, or shared digitally.  My on-boarding for creating greetings cards should be the following:
+
+Step one: 
+User inputs their name so we can refer to them throughout the journey to add personal touch. 
+
+Step two: 
+User selects printed + delivered or digital. Images as placeholders (find greetings card images online for free). Each option lists benefits and pricing. Pressing the option moves to next step (I.e) no continue button. 
+
+Step three: 
+If the user selects printed, they can choose whether they want to design the front of the card only, or the front of the card and the inside of the card. Each option should list features + pricing. It should be made clear here that selecting the front and inside of the card is typically used if the user is delivering the card direct to their loved one. If they only design the front, they will need to write their own message inside (so typically this would mean they have the card delivered to them). If the user selects digital, they don’t see this step as they can only design the front and inside.
+
+Step 4
+Now we know which card the user wants to create, we need to set clear expectations as to what kind of image they will be able to create with our AI assistant. Let’s use this step as a loading screen and make it seem as though the Celebrait AI is loading. On this screen we must tell the user that our AI will brainstorm with them to create their scene (and message inside the card if they chose this - or if they chose only digital). We need to make it clear that our AI is excellent at creating scenes, but if the user wants to include their loved one in the scene then they will only get a representation of the person based on the details around visual features provided to the AI. Let’s include some examples of what we mean here - so a carousel of example prompts and images depicting a person in a scene, highlighting how the AI got the scene perfect but could only create the person based on the features detailed (think age, race, skin tone, hair, build, distinctive features etc.) Once the AI has “loaded”, the user must click a “Got it” button to say they understand that if they want to see their loved one on the card it will not be an exact likeness. Then they can continue.
+
+Step 5
+Once the user has confirmed that they understand they may not get an exact likeness, we need to ask them if they want to include their loved one in the scene, or whether they just want to create a scene with a message. This will determine which AI brainstorm environment they go into.
+
+Step 6
+Now we enter the AI brainstorm environments. These will essentially be a chat bot where the user communicates with ChatGPT’s “gpt-image-1” model to craft their perfect greetings card. These environments should be designed to show one AI message at a time in the centre of the screen, presenting options to the user where possible. The vibe of this should be ethereal, simple, effortless.
+
+ Below is how the AI needs to behave in order to guide users through the process of creating their greetings card if they chose to include their loved one. If they chose not to, the AI should be trained differently - which will follow on below.  🔧 Backend Logic (Replit Dev)
+1. Fork the chatbot at Step 5 in onboarding:
+    * User chooses: a) “Yes, I want my loved one in the scene” → → character_scene_flow b) “No, just a scene and message” → → scene_only_flow
+2. Each flow uses a different system prompt and chat behavior — everything else (sign-up, checkout, sharing) stays the same.
+
+
+🧠 Greeting Card Workflow: “Custom Character + Scene”
+
+Purpose: Let users create print-ready, square-format greeting cards featuring someone they know as a character, rendered into a stylized scene with a personalized message on the front, and possibly a second image creating a personalised message inside the card if this option was chosen at the onboarding process.
+
+For all of the below steps that require thought from the user (I.e features of the person or how they want the scene to render/style of artwork; the AI should be extremely focussed on providing examples to the user - always giving the option of selecting to view more examples so that this process is as guided as possible). I don’t want my users to drop off because they can’t think of an answer!!
+
+🎯 System Prompt: Celebrait Conversational AI Card Designer
+
+You are Celebrait — a friendly, humorous, highly intuitive AI assistant that helps users create custom greeting cards featuring stylized scenes and characters. Your primary job is to guide users through a creative, emotionally engaging journey while maintaining a light, playful tone.
+
+Your style is conversational and personable — like a great creative collaborator. You ask one question at a time, always offering clear, concrete examples. You must always sound human — avoid robotic tone or overly short responses.
+
+You always:
+- React warmly to each input with encouragement or humor.
+- Use South African slang or casual tone if the user does.
+- Anticipate where users might feel unsure, and offer examples.
+- Provide fallback options if a user types “idk”, “not sure”, “skip” or gives vague input.
+- Keep the user moving forward without making them feel pressured.
+
+When gathering info for generating images:
+- Ask the user detailed questions one at a time (e.g. about appearance, scene, art style).
+- If the user gets stuck, offer suggestions or categories they can pick from.
+- Reframe confusing responses gently and respectfully (especially for sensitive topics like race or age).
+- Summarize creatively what you’ve collected so far to keep the user engaged.
+- Confirm and preview the final image plan before rendering.
+
+Always ensure the final prompt clearly captures the user’s vision — including character details, scene, and style — before calling `gpt-image-1`.
+
+Tone style: playful, localised, emotionally intelligent.
+
+
+🟢 STEP 1: WHO IS THE CARD FOR?
+
+“Who is this card for? (Name + your relationship to them)”
+(e.g. “my brother Liam”, “my wife Denise”)
+→ recipient_identity
+
+
+👤 STEP 2: RACE & SKIN TONE
+
+“How would you describe their race and skin tone? This helps make the artwork reflect them accurately.”
+(e.g. “Black with a deep brown tone”, “White Peruvian”, “Coloured with olive skin”)
+→ skin_tone_description
+
+👤 STEP 3: AGE
+
+“How old are they? This helps make the artwork reflect them accurately.”
+→ age_confirmation
+
+💇 STEP 4: HAIR
+
+“What does their hair look like? (Color, length, style)”
+→ hair_description
+
+👓 STEP 5: DISTINCT FEATURES
+
+“Do they have any standout features? (e.g. glasses, freckles, facial hair, jewelry, etc.)”
+→ distinct_features
+
+👕 STEP 6: CLOTHING STYLE
+
+“How do they usually dress? (e.g. casual builder gear, always in a hoodie, traditional dress, etc.)”
+→ clothing_style
+
+🎭 STEP 7: PERSONALITY OR VIBE
+
+“What’s their vibe? (e.g. chilled, fiery, mischievous, soft, chaotic)”
+→ personality_description
+
+🖼️ STEP 8: SCENE SETTING
+
+“Where do you imagine them? Pick a scene or I can suggest one!”
+→ If no idea, suggest scenes based on the vibe and occupation.
+
+Optional Prompts if User Asks for Suggestions:
+	•	“In a surreal twist of their job (e.g. laying bricks in the sky)”
+	•	“Hosting something wild (e.g. cooking for penguins)”
+	•	“Doing something epic (e.g. surfing a wave shaped like a football logo)”
+→ scene_description
+
+🎨 STEP 9: ART STYLE
+
+“What should the artwork look like?”
+(e.g. ‘dreamy and pastel’, ‘gritty vintage’, ‘comic book’, ‘groovy 70s’, ‘storybook’)
+→ art_style
+
+📝 STEP 10: FRONT MESSAGE
+
+“Want anything written on the front? (Or leave it blank)”
+→ front_text
+
+💌 STEP 11: INSIDE MESSAGE (only show if the user selected at the on boarding process)
+
+“What should the message inside read? (Styled to match the front of the card, text only)”
+→ save as inside_text
+
+🖼️ IMAGE GENERATION (if front only)
+
+Generate one images (square, full-bleed, print-ready):
+	1.	Image Prompt: Square greeting card in {art_style} style featuring {recipient_identity} ({skin_tone_description}, {age_confirmation}, {hair_description}, {distinct_features}, wearing {clothing_style}), in a scene: {scene_description}. Mood: {personality_description}. Text on front: "{front_text}".
+
+→ Output as full-bleed square.
+
+🖼️ IMAGE GENERATION (if front and rear)
+
+Generate two images (square, full-bleed, print-ready):
+	1.	Image Prompt: Square greeting card in {art_style} style featuring {recipient_identity} ({skin_tone_description}, {age_confirmation}, {hair_description}, {distinct_features}, wearing {clothing_style}), in a scene: {scene_description}. Mood: {personality_description}. Text on front: "{front_text}".
+
+→ Output as full-bleed square.
+
+2.	Inside Image Prompt (only if user gave inside text):
+
+Square print-ready card interior in the same {art_style} style, text-only: "{inside_text}". Match colors, mood, and typography with front.
+
+→ Output as separate square.   🧠 Greeting Card Workflow: “Scene-Only”
+Purpose: Let users create print-ready, square-format greeting cards based on a concept, feeling, or scene — no person is visually rendered. Cards are visual metaphors, jokes, vibes, abstract scenes, or creative moods.
+
+🟢 STEP 1: WHO IS THE CARD FOR?
+“Who is this card for? (Name + your relationship to them)” (e.g. “my brother Liam”, “my wife Denise”, “my cousin Kgosi”) → recipient_identity (Used later for messaging, marketing, and personalization.)
+
+🌈 STEP 2: VIBE OR MOOD
+“What’s the overall feeling or vibe of the card?” (e.g. “joyful and silly”, “calm and poetic”, “gritty and sarcastic”, “chaotic but hopeful”) → card_vibe
+
+🪄 STEP 3: WHAT SHOULD BE IN THE IMAGE?
+“What do you want to see on the front of the card?” (This can be a place, object, visual metaphor, joke, meme, surreal idea — anything.) (e.g. “a frog on a throne”, “Cape Town underwater”, “a burning teabag screaming into the void”)
+If user types “not sure” or “idk”, suggest categories:
+* 🐸 Animals doing strange things
+* 🌳 Nature scenes with emotion
+* 🌀 Visual metaphors (e.g. “confidence as a disco ball”)
+* 💬 Meme or internet culture
+* 💤 Dreamlike environments → visual_scene_description
+
+🎨 STEP 4: ART STYLE
+“What kind of artwork should this be?” (e.g. “dreamy pastel watercolor”, “comic book style”, “bold and graphic”, “retro 90s poster”, “street art”) → art_style
+
+📝 STEP 5: FRONT MESSAGE
+“Want anything written on the front of the card?” (e.g. “You absolute legend”, “Love you, loser”, “Float on”) → front_text
+
+💌 STEP 6: INSIDE MESSAGE
+(only shown if selected during onboarding)
+“What would you like written on the inside of the card?” (Text only. Styled to match the front, full-bleed format.) → inside_text
+
+🖼️ IMAGE GENERATION (Scene-Only)
+If front only: Square greeting card in {art_style} style. The scene is: {visual_scene_description}. Mood: {card_vibe}. Text on front: "{front_text}".
+
+If front and inside:
+1. Front Image Prompt: Square greeting card in {art_style} style. The scene is: {visual_scene_description}. Mood: {card_vibe}. Text on front: "{front_text}".
+  2. Inside Image Prompt: Square card interior, styled to match the front in {art_style}, with text-only message: "{inside_text}". Match color tone, typography, and emotion.
+
+  
+
+✅ Notes for Replit Developers
+	•	Store user inputs as key-value pairs.
+	•	Use conditional branching to offer suggestions if users are unsure (especially for scene + style).
+	•	Validate offensive/inappropriate input.
+	•	Support multi-turn completion (allow return to edit previous step).
+	•	Images must be square, full-bleed, and visually cohesive.
+
+
+Once we have all the information from the user, the AI must show the prompt to the user and ask if they are ready to generate their greetings card. Suggest making the final summary of user inputs editable inline (like a review screen). This reduces frustration from “oh wait I wanted to change her hair”.
+
+If they say yes, the AI gets to work generating the card. Whilst this is happening, new users are told that they must become part of the community in order to view their card, so here we present a sign up process whilst they wait. User signs up with their name and email address. We also offer a clever marketing promotion here whereby they can input the names and DOBs of up to 5 of their loved ones and get R5 off for each one given. We tell the user this is so that we can remind them of their birthdays so they can create custom AI greetings cards for them. 
+
+Once the user has signed up and their card is ready, we display their card to them with our watermark over it. The user can then proceed to the checkout to pay for their card.
+
+Remember that users may either have chosen to print and post their cards, or have it rendered digitally, so each outcome here is different once payment has been made. If they chose to post, we need a clear explanation of what they can expect in terms of delivery time etc. if they chose digital, then it’s a simple link (hosted on Celebrait), which they can send to their loved on. When clicked, this link should go into a dedicated page that tells the loved one that a customs greeting card has been made for them by the person who made it (reference the creators name name) - there is a button that allows the loved one to open the card. Once they click this button, they can see the card created for them. For now, just display the images created (if two images - I.e. front and inside - allow the user to flick between the two on a carousel style). This page should also include a link to “create your own greetings card”. Also allow the user to share their card with other people by clicking a button to generate a link “check out this amazing greetings card that Dave created for me using Celebrait”, then this link comes back this page.
+
+🛠️ Technical Suggestions for Replit Devs
+
+Image Rendering
+	•	Ensure square ratio enforcement at all image generation layers — even if OpenAI’s API defaults to landscape.
+
+Data Handling
+	•	Store user card inputs in a session-like object (e.g. cardBuildSession) until checkout is completed.
+
+After Checkout CTA
+	•	Prompt them to “Create another while you’re here” with a progress bar (e.g. 2 of 5 birthday credits used).
+	•	Great for maximizing value from that R5-off incentive.
+
+ 🛠️ Developer Implementation Tips for Replit
+	1.	Set the system prompt per chat session.
+	•	Most chatbot frameworks (including Replit’s AI SDK or chat-completion endpoints) allow a system role message.
+	•	You can persist this at the session level or inject on every thread.
+	2.	Mid-flow Reinforcement:
+	•	Reuse and repeat part of this system prompt during long sessions if user input becomes vague or stalled.
+	•	e.g., Reinject “You’re a conversational AI that gives examples when users feel stuck” behind the scenes after 3 vague responses.
+	3.	Fallback Handling
+	•	When input = empty / “skip” / “not sure” → auto-branch to "Here are some examples, pick one or type your own!".
+	4.	Replit Interface Notes
+	•	Use markdown-rich formatting in chat UI: bullet lists for examples, bold highlights, emojis if they fit the tone.
+	•	Allow a “Show Me More Examples” button in UI to cycle extra ideas for scenes, styles, messages.
+	5.	Logging & Session Review
+	•	Allow debug logging of session data (with opt-in) to refine tone and completion rates over time. You’ll quickly spot drop-off points
