@@ -9,10 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/header";
 import { ArrowLeft } from "lucide-react";
 
-if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
-  throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
-}
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+// Check if Stripe is configured for production use
+const hasStripeKey = !!import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+const stripePromise = hasStripeKey ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY) : null;
 
 const CheckoutForm = ({ cardData }: { cardData: any }) => {
   const stripe = useStripe();
@@ -22,6 +21,21 @@ const CheckoutForm = ({ cardData }: { cardData: any }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!hasStripeKey) {
+      // Demo mode - simulate payment
+      setIsProcessing(true);
+      setTimeout(() => {
+        toast({
+          title: "Demo Payment Completed",
+          description: "This is a demo. In production, provide your Stripe keys for real payments.",
+        });
+        setIsProcessing(false);
+        // Simulate successful payment
+        window.location.href = `${window.location.origin}?payment=success&cardId=${cardData.id}`;
+      }, 2000);
+      return;
+    }
 
     if (!stripe || !elements) {
       return;
@@ -52,6 +66,27 @@ const CheckoutForm = ({ cardData }: { cardData: any }) => {
     setIsProcessing(false);
   };
 
+  if (!hasStripeKey) {
+    return (
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6">
+          <h4 className="font-bold text-yellow-800 mb-2">Demo Mode</h4>
+          <p className="text-yellow-700 text-sm">
+            This is a demo payment form. Click below to simulate a successful payment.
+            To enable real payments, add your Stripe API keys.
+          </p>
+        </div>
+        <Button 
+          type="submit" 
+          className="w-full bg-gradient-celebrait hover:opacity-90 text-white py-6 text-lg font-semibold rounded-2xl"
+          disabled={isProcessing}
+        >
+          {isProcessing ? "Processing Demo Payment..." : `Demo Payment - R${(cardData.price / 100).toFixed(2)}`}
+        </Button>
+      </form>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <PaymentElement />
@@ -81,14 +116,20 @@ export default function Checkout() {
         const card = await cardResponse.json();
         setCardData(card);
 
-        // Create payment intent
-        const paymentResponse = await apiRequest("POST", "/api/create-payment-intent", { cardId: parseInt(cardId!) });
-        const { clientSecret } = await paymentResponse.json();
-        setClientSecret(clientSecret);
+        // Only create payment intent if Stripe is configured
+        if (hasStripeKey) {
+          try {
+            const paymentResponse = await apiRequest("POST", "/api/create-payment-intent", { cardId: parseInt(cardId!) });
+            const { clientSecret } = await paymentResponse.json();
+            setClientSecret(clientSecret);
+          } catch (error) {
+            console.log("Stripe not configured, using demo mode");
+          }
+        }
       } catch (error) {
         toast({
           title: "Error",
-          description: "Failed to initialize payment",
+          description: "Failed to load card data",
           variant: "destructive",
         });
       } finally {
@@ -112,7 +153,7 @@ export default function Checkout() {
     );
   }
 
-  if (!clientSecret || !cardData) {
+  if ((!clientSecret && hasStripeKey) || !cardData) {
     return (
       <div className="min-h-screen">
         <Header />
@@ -190,9 +231,13 @@ export default function Checkout() {
               <CardTitle>Payment Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <Elements stripe={stripePromise} options={{ clientSecret }}>
+              {hasStripeKey && clientSecret ? (
+                <Elements stripe={stripePromise} options={{ clientSecret }}>
+                  <CheckoutForm cardData={cardData} />
+                </Elements>
+              ) : (
                 <CheckoutForm cardData={cardData} />
-              </Elements>
+              )}
             </CardContent>
           </Card>
         </div>
