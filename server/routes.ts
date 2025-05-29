@@ -15,7 +15,7 @@ const openai = hasOpenAI ? new OpenAI({
 }) : null;
 
 const stripe = hasStripe ? new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
+  apiVersion: "2023-10-16",
 }) : null;
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -97,6 +97,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Card ID is required" });
       }
 
+      if (!openai) {
+        return res.status(503).json({ message: "AI service not available - API key required" });
+      }
+
       const card = await storage.getCard(cardId);
       if (!card) {
         return res.status(404).json({ message: "Card not found" });
@@ -118,9 +122,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const response = completion.choices[0].message.content;
 
       // Update card with conversation data
+      const conversationData = card.conversationData || {};
+      const existingMessages = (conversationData as any)?.messages || [];
       const updatedConversationData = {
-        ...card.conversationData,
-        messages: [...(card.conversationData?.messages || []), ...messages, {
+        ...conversationData,
+        messages: [...existingMessages, ...messages, {
           role: "assistant",
           content: response
         }]
@@ -143,6 +149,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!cardId || !frontPrompt) {
         return res.status(400).json({ message: "Card ID and front prompt are required" });
+      }
+
+      if (!openai) {
+        return res.status(503).json({ message: "AI service not available - API key required" });
       }
 
       const card = await storage.getCard(cardId);
@@ -170,12 +180,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           size: "1024x1024", 
           quality: "standard",
         });
-        insideImageUrl = insideImageResponse.data[0].url;
+        insideImageUrl = insideImageResponse.data?.[0]?.url || null;
       }
 
       // Update card with generated images
       const updatedCard = await storage.updateCard(cardId, {
-        frontImageUrl: frontImageResponse.data[0].url,
+        frontImageUrl: frontImageResponse.data?.[0]?.url || null,
         insideImageUrl,
         status: 'completed'
       });
@@ -193,6 +203,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!cardId) {
         return res.status(400).json({ message: "Card ID is required" });
+      }
+
+      if (!stripe) {
+        return res.status(503).json({ message: "Payment service not available - Stripe API key required" });
       }
 
       const card = await storage.getCard(cardId);

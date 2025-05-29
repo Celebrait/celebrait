@@ -56,6 +56,8 @@ export class MemStorage implements IStorage {
     const id = this.currentCardId++;
     const card: Card = {
       ...cardData,
+      printOption: cardData.printOption || null,
+      conversationData: cardData.conversationData || {},
       id,
       frontImageUrl: null,
       insideImageUrl: null,

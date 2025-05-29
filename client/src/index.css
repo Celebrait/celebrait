@@ -61,7 +61,8 @@
   }
 
   body {
-    @apply font-sans antialiased bg-gradient-to-br from-soft-white via-purple-50 to-pink-50 min-h-screen;
+    @apply font-sans antialiased min-h-screen;
+    background: linear-gradient(135deg, hsl(var(--soft-white)) 0%, #faf5ff 50%, #fdf2f8 100%);
     font-family: 'Inter', sans-serif;
   }
 }
