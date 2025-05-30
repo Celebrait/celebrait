@@ -38,6 +38,8 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
   const [showAgeRangeButtons, setShowAgeRangeButtons] = useState(false);
   const [showNameInput, setShowNameInput] = useState(false);
   const [showFeaturesSkip, setShowFeaturesSkip] = useState(false);
+  const [showPersonalityButtons, setShowPersonalityButtons] = useState(false);
+  const [showMorePersonalities, setShowMorePersonalities] = useState(false);
   const [tempName, setTempName] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -119,6 +121,21 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     { name: "Curvy", description: "Fuller figure", color: "bg-pink-500" },
     { name: "Stocky", description: "Broader build", color: "bg-orange-500" },
     { name: "Petite", description: "Small frame", color: "bg-yellow-500" }
+  ];
+
+  const mainPersonalities = [
+    { name: "Outgoing", description: "Life of the party", color: "bg-orange-500" },
+    { name: "Calm", description: "Peaceful and relaxed", color: "bg-blue-500" },
+    { name: "Funny", description: "Always making jokes", color: "bg-yellow-500" },
+    { name: "Caring", description: "Thoughtful and kind", color: "bg-green-500" },
+    { name: "Adventurous", description: "Loves new experiences", color: "bg-purple-500" },
+    { name: "Creative", description: "Artistic and imaginative", color: "bg-pink-500" }
+  ];
+
+  const additionalPersonalities = [
+    "Shy", "Confident", "Wise", "Energetic", "Romantic", "Practical",
+    "Dreamer", "Leader", "Gentle", "Bold", "Quirky", "Loyal",
+    "Spontaneous", "Organized", "Cheerful", "Thoughtful"
   ];
 
 
@@ -232,6 +249,20 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
                            lowerResponse.includes('body type') ||
                            lowerResponse.includes('physique') ||
                            (lowerResponse.includes('build') && !lowerResponse.includes('standout') && !lowerResponse.includes('features'));
+
+    const isFeaturesQuestion = (lowerResponse.includes('standout features') || 
+                              lowerResponse.includes('distinct features') ||
+                              lowerResponse.includes('any features') ||
+                              lowerResponse.includes('special features')) &&
+                              !lowerResponse.includes('build') &&
+                              !lowerResponse.includes('body type');
+
+    const isPersonalityQuestion = (lowerResponse.includes('personality') ||
+                                 lowerResponse.includes('describe his vibe') ||
+                                 lowerResponse.includes('describe her vibe') ||
+                                 lowerResponse.includes('what is he like') ||
+                                 lowerResponse.includes('what is she like') ||
+                                 (lowerResponse.includes('how would you describe') && lowerResponse.includes('vibe')));
     
     console.log('Hair color question check:', isHairColorQuestion);
     console.log('Hair style question check:', isHairStyleQuestion);
@@ -261,6 +292,9 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     } else if (lowerResponse.includes('standout features') || lowerResponse.includes('glasses') || lowerResponse.includes('freckles')) {
       console.log('Features question detected - showing skip option');
       setShowFeaturesSkip(true);
+    } else if (isPersonalityQuestion) {
+      console.log('Personality question detected - showing personality buttons');
+      setShowPersonalityButtons(true);
     } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
       setShowNameInput(true);
     } else if (lowerResponse.includes('age range') || lowerResponse.includes('what age range')) {
@@ -604,6 +638,45 @@ When you have all the information, confirm with the user and then say "GENERATE_
     setCollectedData({ ...collectedData, features: 'none' });
     
     const userMessage = "No special features to mention";
+    const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
+    setMessages(newMessages);
+    setIsLoading(true);
+
+    try {
+      const response = await apiRequest("POST", "/api/chat", {
+        messages: newMessages,
+        cardId,
+        systemPrompt: getSystemPrompt()
+      });
+
+      const { response: aiResponse } = await response.json();
+
+      if (aiResponse.includes("GENERATE_CARD")) {
+        await generateCard();
+      } else {
+        setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
+        handleAIResponseDetection(aiResponse);
+        setCurrentStepState(currentStep + 1);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process selection",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePersonalitySelect = async (personality: string, description?: string) => {
+    setShowPersonalityButtons(false);
+    setShowMorePersonalities(false);
+    setCollectedData({ ...collectedData, personality });
+    
+    const userMessage = description ? 
+      `They are ${personality.toLowerCase()} (${description.toLowerCase()})` :
+      `They are ${personality.toLowerCase()}`;
     const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
     setMessages(newMessages);
     setIsLoading(true);
@@ -1067,6 +1140,54 @@ When you have all the information, confirm with the user and then say "GENERATE_
             <div className="text-center">
               <p className="text-sm text-slate-gray">Or type any features below (glasses, freckles, etc.)</p>
             </div>
+          </div>
+        )}
+
+        {/* Personality Selection Buttons */}
+        {showPersonalityButtons && (
+          <div className="space-y-4">
+            {/* Main Personality Options */}
+            <div className="grid grid-cols-2 gap-3">
+              {mainPersonalities.map((personality) => (
+                <Button
+                  key={personality.name}
+                  onClick={() => handlePersonalitySelect(personality.name, personality.description)}
+                  className={`${personality.color} text-white border-0 px-4 py-3 rounded-2xl hover:opacity-90 transition-all duration-300 text-center`}
+                >
+                  <div>
+                    <div className="font-semibold">{personality.name}</div>
+                    <div className="text-xs opacity-90">{personality.description}</div>
+                  </div>
+                </Button>
+              ))}
+            </div>
+
+            {/* Show More Button */}
+            <div className="flex justify-center">
+              <Button
+                onClick={() => setShowMorePersonalities(!showMorePersonalities)}
+                variant="outline"
+                className="border-2 border-gray-300 text-gray-700 px-6 py-2 rounded-2xl hover:border-gray-400 hover:bg-gray-100 transition-all duration-300"
+              >
+                {showMorePersonalities ? "Show Less" : "Show More Options"}
+              </Button>
+            </div>
+
+            {/* Additional Personality Options */}
+            {showMorePersonalities && (
+              <div className="grid grid-cols-3 gap-2">
+                {additionalPersonalities.map((personality) => (
+                  <Button
+                    key={personality}
+                    onClick={() => handlePersonalitySelect(personality)}
+                    variant="outline"
+                    className="border-2 border-gray-300 text-gray-700 px-3 py-2 rounded-xl hover:border-gray-400 hover:bg-gray-100 transition-all duration-300"
+                  >
+                    {personality}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
