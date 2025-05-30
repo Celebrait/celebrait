@@ -254,7 +254,7 @@ Workflow steps:
 4. AGE RANGE - "What age range is [NAME] in?"
 5. APPEARANCE - "To create an authentic representation, what does [NAME] look like? Skin tone and features?"
 6. HAIR COLOR - "What color is [NAME]'s hair?" (ONLY ask if hairColor not collected)
-7. HAIR STYLE - "What does [NAME]'s hair look like? Length and style?" (ONLY ask if hairStyle not collected and hairColor is collected)
+7. HAIR STYLE - "What does [NAME]'s hair look like? Length and style?" (ALWAYS ask after hair color, ONLY skip if hairStyle already collected)
 8. DISTINCT FEATURES - "Any standout features like glasses or freckles?"
 9. CLOTHING STYLE - "How does [NAME] usually dress?"
 10. PERSONALITY/VIBE - "What's [NAME]'s personality like?"
