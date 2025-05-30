@@ -364,7 +364,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const buildImagePrompt = () => {
     const parts = [];
     
-    parts.push("Professional greeting card design, square format, no watermarks, clean design");
+    // Start with strong anti-watermark instructions
+    parts.push("Greeting card illustration, square format, absolutely no watermarks, no signatures, no logos, no branding");
     
     if (answers.name) {
       let personDescription = answers.name;
@@ -392,11 +393,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       parts.push(`${answers.art_style} art style`);
     }
     
+    // Make text rendering much more explicit and prominent
     if (answers.message) {
-      parts.push(`with clearly readable text that says "${answers.message}" prominently displayed on the card`);
+      parts.push(`IMPORTANT: Include bold, stylized text that reads exactly "${answers.message}" prominently placed on the card, text should be part of the artistic design and clearly readable`);
     }
     
-    parts.push('high quality, professional greeting card style, no watermarks, clean layout, readable text');
+    parts.push('professional greeting card quality, clean composition, no watermarks whatsoever, no artist signatures');
     
     return parts.join(', ');
   };
