@@ -338,7 +338,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     try {
       setIsLoading(true);
       
+      console.log('Generating card with answers:', answers);
+      
       const frontPrompt = buildImagePrompt();
+      console.log('Built front prompt:', frontPrompt);
+      
       const insidePrompt = onboarding.selectedPrintOption === 'front-and-inside' ? 
         buildInsidePrompt() : null;
 
@@ -393,12 +397,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       parts.push(`${answers.art_style} art style`);
     }
     
-    // Make text rendering much more explicit and prominent
-    if (answers.message) {
-      parts.push(`IMPORTANT: Include bold, stylized text that reads exactly "${answers.message}" prominently placed on the card, text should be part of the artistic design and clearly readable`);
+    // Text rendering approach that works better with DALL-E
+    if (answers.message && answers.message.trim()) {
+      parts.push(`greeting card with the words "${answers.message}" written in elegant typography as the main text element`);
+    } else {
+      parts.push(`greeting card with the words "Happy Birthday" written in elegant typography as the main text element`);
     }
     
-    parts.push('professional greeting card quality, clean composition, no watermarks whatsoever, no artist signatures');
+    parts.push('professional greeting card illustration, clean background, no watermarks, no artist signature, no logo');
+    
+    // Alternative approach: explicitly state what NOT to include
+    parts.push('remove any watermarks or signatures from final image');
     
     return parts.join(', ');
   };
