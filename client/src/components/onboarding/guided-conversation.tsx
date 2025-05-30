@@ -45,18 +45,18 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       aiMessage: `Hey ${onboarding.userName}! 🎉 I'm so excited to help you create something magical. Let's start by choosing what celebration this card is for!`,
       type: 'select',
       options: [
-        { value: 'birthday', label: 'My Birthday', description: 'Celebrate another year of life', color: 'bg-pink-500', icon: '🎂' },
-        { value: 'anniversary', label: 'My Anniversary', description: 'Mark a special milestone', color: 'bg-red-500', icon: '💕' },
-        { value: 'graduation', label: 'My Graduation', description: 'Honor academic achievement', color: 'bg-blue-500', icon: '🎓' },
-        { value: 'wedding', label: 'My Wedding', description: 'Celebrate love and union', color: 'bg-purple-500', icon: '💒' },
-        { value: 'baby_shower', label: 'My Baby Shower', description: 'Welcome a new arrival', color: 'bg-green-500', icon: '👶' },
-        { value: 'retirement', label: 'My Retirement', description: 'Honor years of dedication', color: 'bg-orange-500', icon: '🏖️' },
-        { value: 'mothers_day', label: "My Mother's Day", description: 'Honor mom', color: 'bg-pink-400', icon: '🌸' },
-        { value: 'fathers_day', label: "My Father's Day", description: 'Celebrate dad', color: 'bg-blue-400', icon: '👔' },
-        { value: 'valentines', label: "My Valentine's Day", description: 'Show your love', color: 'bg-red-400', icon: '💝' },
-        { value: 'christmas', label: 'My Christmas', description: 'Holiday celebration', color: 'bg-green-400', icon: '🎄' },
-        { value: 'new_year', label: 'My New Year', description: 'Fresh start celebration', color: 'bg-purple-400', icon: '🎆' },
-        { value: 'easter', label: 'My Easter', description: 'Spring celebration', color: 'bg-yellow-400', icon: '🐰' }
+        { value: 'birthday', label: 'Birthday', description: 'Celebrate another year of life', color: 'bg-pink-500', icon: 'cake' },
+        { value: 'anniversary', label: 'Anniversary', description: 'Mark a special milestone', color: 'bg-red-500', icon: 'heart' },
+        { value: 'graduation', label: 'Graduation', description: 'Honor academic achievement', color: 'bg-blue-500', icon: 'graduation-cap' },
+        { value: 'wedding', label: 'Wedding', description: 'Celebrate love and union', color: 'bg-purple-500', icon: 'rings' },
+        { value: 'baby_shower', label: 'Baby Shower', description: 'Welcome a new arrival', color: 'bg-green-500', icon: 'baby' },
+        { value: 'retirement', label: 'Retirement', description: 'Honor years of dedication', color: 'bg-orange-500', icon: 'palm-tree' },
+        { value: 'mothers_day', label: "Mother's Day", description: 'Honor mom', color: 'bg-pink-400', icon: 'flower' },
+        { value: 'fathers_day', label: "Father's Day", description: 'Celebrate dad', color: 'bg-blue-400', icon: 'necktie' },
+        { value: 'valentines', label: "Valentine's Day", description: 'Show your love', color: 'bg-red-400', icon: 'gift' },
+        { value: 'christmas', label: 'Christmas', description: 'Holiday celebration', color: 'bg-green-400', icon: 'tree' },
+        { value: 'new_year', label: 'New Year', description: 'Fresh start celebration', color: 'bg-purple-400', icon: 'sparkles' },
+        { value: 'easter', label: 'Easter', description: 'Spring celebration', color: 'bg-yellow-400', icon: 'egg' }
       ]
     },
     {
@@ -65,21 +65,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       aiMessage: `Perfect choice! Now, who is this special ${answers.celebration} card for?`,
       type: 'select',
       options: [
-        { value: 'partner', label: 'Partner', description: 'Spouse, boyfriend, girlfriend', color: 'bg-red-500' },
-        { value: 'mother', label: 'Mother', description: 'Mom, mother-in-law, stepmom', color: 'bg-pink-500' },
-        { value: 'father', label: 'Father', description: 'Dad, father-in-law, stepdad', color: 'bg-blue-500' },
-        { value: 'friend', label: 'Friend', description: 'Close friend or best friend', color: 'bg-green-500' },
-        { value: 'sibling', label: 'Sibling', description: 'Brother, sister, step-sibling', color: 'bg-purple-500' },
-        { value: 'child', label: 'Child', description: 'Son, daughter, stepchild', color: 'bg-yellow-500' },
-        { value: 'grandparent', label: 'Grandparent', description: 'Grandmother, grandfather', color: 'bg-orange-500' },
-        { value: 'grandchild', label: 'Grandchild', description: 'Grandson, granddaughter', color: 'bg-teal-500' },
-        { value: 'cousin', label: 'Cousin', description: 'Male or female cousin', color: 'bg-indigo-500' },
-        { value: 'aunt_uncle', label: 'Aunt/Uncle', description: 'Aunt, uncle, great-aunt/uncle', color: 'bg-rose-500' },
-        { value: 'niece_nephew', label: 'Niece/Nephew', description: 'Niece, nephew', color: 'bg-cyan-500' },
-        { value: 'colleague', label: 'Colleague', description: 'Coworker, boss, employee', color: 'bg-gray-500' },
-        { value: 'teacher', label: 'Teacher', description: 'Teacher, professor, mentor', color: 'bg-emerald-500' },
-        { value: 'neighbor', label: 'Neighbor', description: 'Next door, community friend', color: 'bg-lime-500' },
-        { value: 'acquaintance', label: 'Acquaintance', description: 'Someone you know casually', color: 'bg-amber-500' }
+        { value: 'partner', label: 'My Partner', description: 'Spouse, boyfriend, girlfriend', color: 'bg-red-500', icon: 'users' },
+        { value: 'mother', label: 'My Mother', description: 'Mom, mother-in-law, stepmom', color: 'bg-pink-500', icon: 'user-heart' },
+        { value: 'father', label: 'My Father', description: 'Dad, father-in-law, stepdad', color: 'bg-blue-500', icon: 'user-check' },
+        { value: 'friend', label: 'My Friend', description: 'Close friend or best friend', color: 'bg-green-500', icon: 'user-plus' },
+        { value: 'sibling', label: 'My Sibling', description: 'Brother, sister, step-sibling', color: 'bg-purple-500', icon: 'users-2' },
+        { value: 'child', label: 'My Child', description: 'Son, daughter, stepchild', color: 'bg-yellow-500', icon: 'baby' },
+        { value: 'grandparent', label: 'My Grandparent', description: 'Grandmother, grandfather', color: 'bg-orange-500', icon: 'user-round' },
+        { value: 'grandchild', label: 'My Grandchild', description: 'Grandson, granddaughter', color: 'bg-teal-500', icon: 'smile' },
+        { value: 'cousin', label: 'My Cousin', description: 'Male or female cousin', color: 'bg-indigo-500', icon: 'user-circle' },
+        { value: 'aunt_uncle', label: 'My Aunt/Uncle', description: 'Aunt, uncle, great-aunt/uncle', color: 'bg-rose-500', icon: 'user' },
+        { value: 'niece_nephew', label: 'My Niece/Nephew', description: 'Niece, nephew', color: 'bg-cyan-500', icon: 'smile' },
+        { value: 'colleague', label: 'My Colleague', description: 'Coworker, boss, employee', color: 'bg-gray-500', icon: 'briefcase' },
+        { value: 'teacher', label: 'My Teacher', description: 'Teacher, professor, mentor', color: 'bg-emerald-500', icon: 'book-open' },
+        { value: 'neighbor', label: 'My Neighbor', description: 'Next door, community friend', color: 'bg-lime-500', icon: 'home' },
+        { value: 'acquaintance', label: 'My Acquaintance', description: 'Someone you know casually', color: 'bg-amber-500', icon: 'user-question' }
       ]
     },
     {
@@ -96,8 +96,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       aiMessage: `Perfect! ${answers.name || 'They'} sound wonderful. To help me create an authentic representation, are they male or female?`,
       type: 'select',
       options: [
-        { value: 'female', label: 'Female', color: 'bg-pink-500', icon: '👩' },
-        { value: 'male', label: 'Male', color: 'bg-blue-500', icon: '👨' }
+        { value: 'female', label: 'Female', color: 'bg-pink-500', icon: 'user-female' },
+        { value: 'male', label: 'Male', color: 'bg-blue-500', icon: 'user-male' }
       ]
     },
     {
@@ -548,7 +548,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-blue-50">
       {/* Progress Bar */}
       <div className="p-4 bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10">
-        <div className="flex justify-end text-sm text-gray-500 mb-2">
+        <div className="flex justify-center text-sm text-gray-500 mb-2">
           <span>{Math.round(progress)}% Complete</span>
         </div>
         <Progress value={progress} className="h-2" />
@@ -592,7 +592,37 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                           className="h-auto p-3 text-center transition-all hover:scale-[1.02] hover:shadow-md bg-gradient-to-r from-purple-200 to-blue-200 text-purple-700 border-purple-200 hover:from-purple-300 hover:to-blue-300 hover:text-purple-800 active:from-purple-200 active:to-blue-200 rounded-lg text-sm font-medium"
                         >
                           <div className="flex items-center justify-center space-x-2">
-                            {option.icon && <span className="text-lg">{option.icon}</span>}
+                            {option.icon && (
+                              <svg className="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                {option.icon === 'cake' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8zm1-13h-2v3H8v2h3v3h2v-3h3v-2h-3V7z"/>}
+                                {option.icon === 'heart' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>}
+                                {option.icon === 'graduation-cap' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 2L22 7l-10 5L2 7l10-5zM2 17l10 5 10-5M6 13.5l6 3 6-3"/>}
+                                {option.icon === 'rings' && <><circle cx="9" cy="9" r="5" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/><circle cx="15" cy="15" r="5" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/></>}
+                                {option.icon === 'baby' && <><circle cx="12" cy="8" r="5" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/><path d="M20 21a8 8 0 1 0-16 0" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/></>}
+                                {option.icon === 'palm-tree' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 2s-4 2-4 8c0 4 4 6 4 6s4-2 4-6c0-6-4-8-4-8zM12 16v6"/>}
+                                {option.icon === 'flower' && <><circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/><path d="M12 1a3 3 0 0 1 3 3c0 1-1 1-1 1s1 0 1 1a3 3 0 0 1-3 3 3 3 0 0 1-3-3c0-1 1-1 1-1s-1 0-1-1a3 3 0 0 1 3-3" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/></>}
+                                {option.icon === 'necktie' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 2l-2 4v16l2-2 2 2V6l-2-4z"/>}
+                                {option.icon === 'gift' && <><rect x="3" y="8" width="18" height="4" rx="1" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/><path d="M12 8v13" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/></>}
+                                {option.icon === 'tree' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 22V12M8 6l4-4 4 4-4 2-4-2zM5 14l7-4 7 4-7 4-7-4z"/>}
+                                {option.icon === 'sparkles' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456z"/>}
+                                {option.icon === 'egg' && <ellipse cx="12" cy="12" rx="5" ry="8" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/>}
+                                {option.icon === 'users' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>}
+                                {option.icon === 'user-heart' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>}
+                                {option.icon === 'user-check' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>}
+                                {option.icon === 'user-plus' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>}
+                                {option.icon === 'users-2' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>}
+                                {option.icon === 'user-round' && <><circle cx="12" cy="8" r="5" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/><path d="M20 21a8 8 0 1 0-16 0" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/></>}
+                                {option.icon === 'smile' && <><circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/><path d="M8 14s1.5 2 4 2 4-2 4-2" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/><line x1="9" y1="9" x2="9.01" y2="9" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/><line x1="15" y1="9" x2="15.01" y2="9" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/></>}
+                                {option.icon === 'user' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>}
+                                {option.icon === 'user-circle' && <><circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/><circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/></>}
+                                {option.icon === 'briefcase' && <><rect x="2" y="7" width="20" height="14" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/></>}
+                                {option.icon === 'book-open' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>}
+                                {option.icon === 'home' && <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/></>}
+                                {option.icon === 'user-question' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>}
+                                {option.icon === 'user-female' && <><circle cx="12" cy="8" r="5" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/><path d="M20 21a8 8 0 1 0-16 0" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/></>}
+                                {option.icon === 'user-male' && <><circle cx="12" cy="8" r="5" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/><path d="M20 21a8 8 0 1 0-16 0" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}/></>}
+                              </svg>
+                            )}
                             <span>{option.label}</span>
                           </div>
                         </Button>
