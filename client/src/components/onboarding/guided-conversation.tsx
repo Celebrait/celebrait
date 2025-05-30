@@ -30,6 +30,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [cardId, setCardId] = useState<number | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [currentInput, setCurrentInput] = useState('');
+  const [showAllOptions, setShowAllOptions] = useState<Record<string, boolean>>({});
+  const [showCustomInput, setShowCustomInput] = useState<Record<string, boolean>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -401,24 +403,74 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
             {/* Answer Options */}
             {!isTyping && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {currentStep.type === 'select' && currentStep.options && (
-                  <div className="grid grid-cols-1 gap-3">
-                    {currentStep.options.map((option) => (
+                  <div className="space-y-3">
+                    {/* Compact Options Grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {(showAllOptions[currentStep.id] ? currentStep.options : currentStep.options.slice(0, 4)).map((option) => (
+                        <Button
+                          key={option.value}
+                          onClick={() => handleAnswer(option.value)}
+                          variant="outline"
+                          className={`h-auto p-3 text-center transition-all hover:scale-[1.02] hover:shadow-md ${option.color} text-white border-0 hover:opacity-90 rounded-lg text-sm font-medium`}
+                        >
+                          {option.label}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {currentStep.options.length > 4 && !showAllOptions[currentStep.id] && (
+                        <Button
+                          onClick={() => setShowAllOptions(prev => ({ ...prev, [currentStep.id]: true }))}
+                          variant="ghost"
+                          className="text-purple-600 hover:text-purple-700 text-sm"
+                        >
+                          Show More Options
+                        </Button>
+                      )}
+                      
+                      {showAllOptions[currentStep.id] && (
+                        <Button
+                          onClick={() => setShowAllOptions(prev => ({ ...prev, [currentStep.id]: false }))}
+                          variant="ghost"
+                          className="text-purple-600 hover:text-purple-700 text-sm"
+                        >
+                          Show Less
+                        </Button>
+                      )}
+
                       <Button
-                        key={option.value}
-                        onClick={() => handleAnswer(option.value)}
-                        variant="outline"
-                        className={`h-auto p-4 text-left justify-start transition-all hover:scale-[1.01] hover:shadow-md ${option.color} text-white border-0 hover:opacity-90 rounded-xl`}
+                        onClick={() => setShowCustomInput(prev => ({ ...prev, [currentStep.id]: true }))}
+                        variant="ghost"
+                        className="text-blue-600 hover:text-blue-700 text-sm"
                       >
-                        <div>
-                          <div className="font-semibold">{option.label}</div>
-                          {option.description && (
-                            <div className="text-sm opacity-90 mt-1">{option.description}</div>
-                          )}
-                        </div>
+                        Type My Own
                       </Button>
-                    ))}
+                    </div>
+
+                    {/* Custom Input Field */}
+                    {showCustomInput[currentStep.id] && (
+                      <div className="flex space-x-2">
+                        <Input
+                          value={currentInput}
+                          onChange={(e) => setCurrentInput(e.target.value)}
+                          placeholder="Type your answer..."
+                          className="text-lg p-3 rounded-lg border-purple-200 focus:border-purple-400"
+                          onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
+                          autoFocus
+                        />
+                        <Button 
+                          onClick={handleTextSubmit}
+                          disabled={!currentInput.trim()}
+                          className="px-4 py-3 rounded-lg bg-gradient-to-r from-purple-500 to-blue-500"
+                        >
+                          <ArrowRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
 
