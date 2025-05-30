@@ -63,10 +63,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       type: 'select',
       options: [
         { value: 'partner', label: 'Partner', description: 'Spouse, boyfriend, girlfriend', color: 'bg-red-500' },
-        { value: 'family', label: 'Family Member', description: 'Parent, sibling, child', color: 'bg-blue-500' },
+        { value: 'mother', label: 'Mother', description: 'Mom, mother-in-law, stepmom', color: 'bg-pink-500' },
+        { value: 'father', label: 'Father', description: 'Dad, father-in-law, stepdad', color: 'bg-blue-500' },
         { value: 'friend', label: 'Friend', description: 'Close friend or best friend', color: 'bg-green-500' },
-        { value: 'colleague', label: 'Colleague', description: 'Coworker or professional contact', color: 'bg-purple-500' },
-        { value: 'other', label: 'Someone Else', description: 'Neighbor, acquaintance, etc.', color: 'bg-orange-500' }
+        { value: 'sibling', label: 'Sibling', description: 'Brother, sister, step-sibling', color: 'bg-purple-500' },
+        { value: 'child', label: 'Child', description: 'Son, daughter, stepchild', color: 'bg-yellow-500' },
+        { value: 'grandparent', label: 'Grandparent', description: 'Grandmother, grandfather', color: 'bg-orange-500' },
+        { value: 'grandchild', label: 'Grandchild', description: 'Grandson, granddaughter', color: 'bg-teal-500' },
+        { value: 'cousin', label: 'Cousin', description: 'Male or female cousin', color: 'bg-indigo-500' },
+        { value: 'aunt_uncle', label: 'Aunt/Uncle', description: 'Aunt, uncle, great-aunt/uncle', color: 'bg-rose-500' },
+        { value: 'niece_nephew', label: 'Niece/Nephew', description: 'Niece, nephew', color: 'bg-cyan-500' },
+        { value: 'colleague', label: 'Colleague', description: 'Coworker, boss, employee', color: 'bg-gray-500' },
+        { value: 'teacher', label: 'Teacher', description: 'Teacher, professor, mentor', color: 'bg-emerald-500' },
+        { value: 'neighbor', label: 'Neighbor', description: 'Next door, community friend', color: 'bg-lime-500' },
+        { value: 'acquaintance', label: 'Acquaintance', description: 'Someone you know casually', color: 'bg-amber-500' }
       ]
     },
     {
