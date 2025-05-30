@@ -565,7 +565,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
         // Check what type of question is being asked and show appropriate buttons
         const lowerResponse = aiResponse.toLowerCase();
         console.log('Full AI Response:', aiResponse);
-        console.log('Processing for buttons...');
+        console.log('Lower response:', lowerResponse);
         
         // Reset all button states first
         setShowCelebrationButtons(false);
@@ -577,35 +577,31 @@ When you have all the information, confirm with the user and then say "GENERATE_
         setShowHairStyleButtons(false);
         setShowHairColorButtons(false);
         
-        // Check for hair questions specifically - using more comprehensive detection
-        if (lowerResponse.includes('hair color') || (lowerResponse.includes('hair') && lowerResponse.includes('color'))) {
-          console.log('Setting hair COLOR buttons');
-          setShowHairColorButtons(true);
-        } else if (lowerResponse.includes('hair')) {
-          console.log('Setting hair STYLE buttons');
-          setShowHairStyleButtons(true);
-        } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
-          console.log('Setting name input');
-          setShowNameInput(true);
-        } else if (lowerResponse.includes('age range') || lowerResponse.includes('what age range')) {
-          console.log('Setting age range buttons');
-          setShowAgeRangeButtons(true);
-        } else if (lowerResponse.includes('male') || lowerResponse.includes('female') || lowerResponse.includes('gender')) {
-          console.log('Setting gender buttons');
-          setShowGenderButtons(true);
-        } else if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
-          console.log('Setting skin tone buttons');
-          setShowSkinToneButtons(true);
-        } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for') || lowerResponse.includes('birthday card for')) {
-          console.log('Setting relationship buttons');
-          setShowRelationshipButtons(true);
-        }
-        
-        // Force detection for debugging - if response mentions hair, show buttons
-        if (lowerResponse.includes('hair') && !lowerResponse.includes('color')) {
-          console.log('FORCE: Setting hair style buttons due to hair mention');
-          setShowHairStyleButtons(true);
-        }
+        // Use setTimeout to ensure state changes happen in next tick
+        setTimeout(() => {
+          if (lowerResponse.includes('hair color') || (lowerResponse.includes('hair') && lowerResponse.includes('color'))) {
+            console.log('Setting hair COLOR buttons');
+            setShowHairColorButtons(true);
+          } else if (lowerResponse.includes('hair')) {
+            console.log('Setting hair STYLE buttons');
+            setShowHairStyleButtons(true);
+          } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
+            console.log('Setting name input');
+            setShowNameInput(true);
+          } else if (lowerResponse.includes('age range') || lowerResponse.includes('what age range')) {
+            console.log('Setting age range buttons');
+            setShowAgeRangeButtons(true);
+          } else if (lowerResponse.includes('male') || lowerResponse.includes('female') || lowerResponse.includes('gender')) {
+            console.log('Setting gender buttons');
+            setShowGenderButtons(true);
+          } else if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
+            console.log('Setting skin tone buttons');
+            setShowSkinToneButtons(true);
+          } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for') || lowerResponse.includes('birthday card for')) {
+            console.log('Setting relationship buttons');
+            setShowRelationshipButtons(true);
+          }
+        }, 50);
         
         setCurrentStepState(currentStep + 1);
       }
@@ -1119,17 +1115,6 @@ When you have all the information, confirm with the user and then say "GENERATE_
 
       {/* Chat Input */}
       <div className="p-6 border-t border-gray-200 bg-white/80">
-        {/* Test button for hair styles - REMOVE AFTER DEBUGGING */}
-        <div className="mb-4">
-          <Button
-            onClick={() => setShowHairStyleButtons(true)}
-            variant="outline"
-            className="border-red-500 text-red-500 hover:bg-red-50"
-          >
-            TEST: Show Hair Style Buttons
-          </Button>
-        </div>
-
         <div className="flex items-center space-x-3">
           <div className="flex-1 relative">
             <Input
