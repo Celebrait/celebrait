@@ -37,6 +37,7 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
   const [showGenderButtons, setShowGenderButtons] = useState(false);
   const [showAgeRangeButtons, setShowAgeRangeButtons] = useState(false);
   const [showNameInput, setShowNameInput] = useState(false);
+  const [showFeaturesSkip, setShowFeaturesSkip] = useState(false);
   const [tempName, setTempName] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -210,6 +211,7 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     setShowHairStyleButtons(false);
     setShowHairColorButtons(false);
     setShowBuildButtons(false);
+    setShowFeaturesSkip(false);
     
     // Detect what buttons to show
     const isHairColorQuestion = lowerResponse.includes('hair color') || 
@@ -224,10 +226,11 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
                                (lowerResponse.includes('what does') && lowerResponse.includes('hair') && lowerResponse.includes('look')) ||
                                (lowerResponse.includes('hair') && lowerResponse.includes('style') && lowerResponse.includes('length'));
     
-    const isBuildQuestion = lowerResponse.includes('build') || 
-                           lowerResponse.includes('body type') ||
+    const isBuildQuestion = (lowerResponse.includes('tell me about') && lowerResponse.includes('build')) ||
                            (lowerResponse.includes('what') && lowerResponse.includes('build')) ||
-                           lowerResponse.includes('physique');
+                           lowerResponse.includes('body type') ||
+                           lowerResponse.includes('physique') ||
+                           (lowerResponse.includes('build') && !lowerResponse.includes('standout') && !lowerResponse.includes('features'));
     
     console.log('Hair color question check:', isHairColorQuestion);
     console.log('Hair style question check:', isHairStyleQuestion);
@@ -251,6 +254,9 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     } else if (isBuildQuestion) {
       console.log('Build detected - showing build buttons');
       setShowBuildButtons(true);
+    } else if (lowerResponse.includes('standout features') || lowerResponse.includes('glasses') || lowerResponse.includes('freckles')) {
+      console.log('Features question detected - showing skip option');
+      setShowFeaturesSkip(true);
     } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
       setShowNameInput(true);
     } else if (lowerResponse.includes('age range') || lowerResponse.includes('what age range')) {
@@ -589,6 +595,42 @@ When you have all the information, confirm with the user and then say "GENERATE_
     }
   };
 
+  const handleSkipFeatures = async () => {
+    setShowFeaturesSkip(false);
+    setCollectedData({ ...collectedData, features: 'none' });
+    
+    const userMessage = "No special features to mention";
+    const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
+    setMessages(newMessages);
+    setIsLoading(true);
+
+    try {
+      const response = await apiRequest("POST", "/api/chat", {
+        messages: newMessages,
+        cardId,
+        systemPrompt: getSystemPrompt()
+      });
+
+      const { response: aiResponse } = await response.json();
+
+      if (aiResponse.includes("GENERATE_CARD")) {
+        await generateCard();
+      } else {
+        setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
+        handleAIResponseDetection(aiResponse);
+        setCurrentStepState(currentStep + 1);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process selection",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleHairColorSelect = async (hairColor: string) => {
     setShowHairColorButtons(false);
     setCollectedData({ ...collectedData, hairColor });
@@ -676,6 +718,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
     setShowGenderButtons(false);
     setShowAgeRangeButtons(false);
     setShowNameInput(false);
+    setShowFeaturesSkip(false);
 
     const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
     setMessages(newMessages);
@@ -997,6 +1040,31 @@ When you have all the information, confirm with the user and then say "GENERATE_
         )}
 
 
+
+        {/* Features Skip Option */}
+        {showFeaturesSkip && (
+          <div className="space-y-4 bg-gray-50 p-6 rounded-2xl border border-gray-200">
+            <div className="text-center mb-4">
+              <p className="text-sm text-slate-gray mb-3">
+                You can describe any standout features below, or skip this step if there aren't any special features to mention.
+              </p>
+            </div>
+
+            <div className="flex justify-center">
+              <Button
+                onClick={handleSkipFeatures}
+                variant="outline"
+                className="border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-2xl hover:border-gray-400 hover:bg-gray-100 transition-all duration-300"
+              >
+                Skip - No Special Features
+              </Button>
+            </div>
+
+            <div className="text-center">
+              <p className="text-sm text-slate-gray">Or type any features below (glasses, freckles, etc.)</p>
+            </div>
+          </div>
+        )}
 
         {/* Build Selection Buttons */}
         {showBuildButtons && (
