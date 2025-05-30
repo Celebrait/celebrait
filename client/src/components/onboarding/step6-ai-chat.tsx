@@ -394,7 +394,9 @@ When you have all the information, confirm with the user and then say "GENERATE_
       
       // Check what type of question is being asked and show appropriate buttons
       const lowerResponse = aiResponse.toLowerCase();
-      if (lowerResponse.includes('hair') && !lowerResponse.includes('color')) {
+      if (lowerResponse.includes('hair') && lowerResponse.includes('color')) {
+        setShowHairColorButtons(true);
+      } else if (lowerResponse.includes('hair')) {
         setShowHairStyleButtons(true);
       } else if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
         setShowSkinToneButtons(true);
