@@ -23,7 +23,7 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
   const [collectedData, setCollectedData] = useState<any>({});
   const [currentStep, setCurrentStepState] = useState(1);
   const [showAllCelebrations, setShowAllCelebrations] = useState(false);
-  const [showCelebrationButtons, setShowCelebrationButtons] = useState(false);
+  const [showCelebrationButtons, setShowCelebrationButtons] = useState(true);
   const [showSkinToneButtons, setShowSkinToneButtons] = useState(false);
   const [showMoreSkinTones, setShowMoreSkinTones] = useState(false);
   const [showRelationshipButtons, setShowRelationshipButtons] = useState(false);
@@ -577,8 +577,28 @@ When you have all the information, confirm with the user and then say "GENERATE_
         setShowHairStyleButtons(false);
         setShowHairColorButtons(false);
         
-        // Don't auto-show any preset buttons - let users type or choose to see options
-        // All preset buttons will be shown via "Show Options" buttons instead
+        // Determine what buttons to show based on current step
+        console.log('Current step:', currentStep);
+        console.log('Collected data so far:', collectedData);
+        
+        // Use step-based detection instead of text analysis
+        if (currentStep === 6 || (currentStep >= 6 && !collectedData.hairStyle)) {
+          console.log('Step 6: Showing hair style buttons');
+          setShowHairStyleButtons(true);
+        } else if (currentStep === 7 || (currentStep >= 7 && !collectedData.hairColor && collectedData.hairStyle)) {
+          console.log('Step 7: Showing hair color buttons');
+          setShowHairColorButtons(true);
+        } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
+          setShowNameInput(true);
+        } else if (lowerResponse.includes('age range') || lowerResponse.includes('what age range')) {
+          setShowAgeRangeButtons(true);
+        } else if (lowerResponse.includes('male') || lowerResponse.includes('female') || lowerResponse.includes('gender')) {
+          setShowGenderButtons(true);
+        } else if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
+          setShowSkinToneButtons(true);
+        } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for') || lowerResponse.includes('birthday card for')) {
+          setShowRelationshipButtons(true);
+        }
         
         setCurrentStepState(currentStep + 1);
       }
@@ -1092,93 +1112,11 @@ When you have all the information, confirm with the user and then say "GENERATE_
 
       {/* Chat Input */}
       <div className="p-6 border-t border-gray-200 bg-white/80">
-        {/* Context-aware preset option buttons */}
-        {messages.length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-2 justify-center">
-            {!showCelebrationButtons && messages[messages.length - 1]?.content.toLowerCase().includes('celebration') && (
-              <Button
-                onClick={() => setShowCelebrationButtons(true)}
-                variant="outline"
-                size="sm"
-                className="border-purple-300 text-purple-600 hover:bg-purple-50"
-              >
-                Show Celebration Options
-              </Button>
-            )}
-            
-            {!showRelationshipButtons && (messages[messages.length - 1]?.content.toLowerCase().includes('who is') || messages[messages.length - 1]?.content.toLowerCase().includes('relationship')) && (
-              <Button
-                onClick={() => setShowRelationshipButtons(true)}
-                variant="outline"
-                size="sm"
-                className="border-purple-300 text-purple-600 hover:bg-purple-50"
-              >
-                Show Relationship Options
-              </Button>
-            )}
-            
-            {!showGenderButtons && messages[messages.length - 1]?.content.toLowerCase().includes('gender') && (
-              <Button
-                onClick={() => setShowGenderButtons(true)}
-                variant="outline"
-                size="sm"
-                className="border-purple-300 text-purple-600 hover:bg-purple-50"
-              >
-                Show Gender Options
-              </Button>
-            )}
-            
-            {!showAgeRangeButtons && messages[messages.length - 1]?.content.toLowerCase().includes('age') && (
-              <Button
-                onClick={() => setShowAgeRangeButtons(true)}
-                variant="outline"
-                size="sm"
-                className="border-purple-300 text-purple-600 hover:bg-purple-50"
-              >
-                Show Age Options
-              </Button>
-            )}
-            
-            {!showSkinToneButtons && (messages[messages.length - 1]?.content.toLowerCase().includes('skin') || messages[messages.length - 1]?.content.toLowerCase().includes('appearance')) && (
-              <Button
-                onClick={() => setShowSkinToneButtons(true)}
-                variant="outline"
-                size="sm"
-                className="border-purple-300 text-purple-600 hover:bg-purple-50"
-              >
-                Show Appearance Options
-              </Button>
-            )}
-            
-            {!showHairStyleButtons && messages[messages.length - 1]?.content.toLowerCase().includes('hair') && !messages[messages.length - 1]?.content.toLowerCase().includes('color') && (
-              <Button
-                onClick={() => setShowHairStyleButtons(true)}
-                variant="outline"
-                size="sm"
-                className="border-purple-300 text-purple-600 hover:bg-purple-50"
-              >
-                Show Hair Style Options
-              </Button>
-            )}
-            
-            {!showHairColorButtons && messages[messages.length - 1]?.content.toLowerCase().includes('hair') && messages[messages.length - 1]?.content.toLowerCase().includes('color') && (
-              <Button
-                onClick={() => setShowHairColorButtons(true)}
-                variant="outline"
-                size="sm"
-                className="border-purple-300 text-purple-600 hover:bg-purple-50"
-              >
-                Show Hair Color Options
-              </Button>
-            )}
-          </div>
-        )}
-
         <div className="flex items-center space-x-3">
           <div className="flex-1 relative">
             <Input
               type="text"
-              placeholder="Type your response or use options above..."
+              placeholder="Type your response..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -1196,7 +1134,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
         </div>
         <p className="text-xs text-slate-gray mt-2 text-center flex items-center justify-center">
           <Shield className="w-3 h-3 mr-1" />
-          You can type freely or use quick options above
+          Your conversation is private and secure
         </p>
       </div>
     </div>
