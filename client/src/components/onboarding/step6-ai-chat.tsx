@@ -26,6 +26,8 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
   const [showCelebrationButtons, setShowCelebrationButtons] = useState(true);
   const [showSkinToneButtons, setShowSkinToneButtons] = useState(false);
   const [showMoreSkinTones, setShowMoreSkinTones] = useState(false);
+  const [showRelationshipButtons, setShowRelationshipButtons] = useState(false);
+  const [showMoreRelationships, setShowMoreRelationships] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -56,6 +58,20 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
   const culturalBackgrounds = [
     "African", "Afrikaner", "Coloured", "Indian", "European", 
     "Mixed Heritage", "Zulu", "Xhosa", "Sotho", "Tswana", "Other"
+  ];
+
+  const mainRelationships = [
+    { name: "Partner", icon: Heart, color: "bg-red-500" },
+    { name: "Family Member", icon: User, color: "bg-blue-500" },
+    { name: "Friend", icon: User, color: "bg-green-500" },
+    { name: "Child", icon: Baby, color: "bg-yellow-500" },
+    { name: "Colleague", icon: User, color: "bg-purple-500" }
+  ];
+
+  const additionalRelationships = [
+    "Parent", "Sibling", "Grandparent", "Aunt/Uncle", "Cousin",
+    "Best Friend", "Close Friend", "Neighbor", "Teacher", "Boss",
+    "Mentor", "Student", "Pet", "Myself", "Other"
   ];
 
   const scrollToBottom = () => {
