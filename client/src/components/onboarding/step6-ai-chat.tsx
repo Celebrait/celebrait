@@ -32,6 +32,8 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
   const [showMoreHairStyles, setShowMoreHairStyles] = useState(false);
   const [showHairColorButtons, setShowHairColorButtons] = useState(false);
   const [showMoreHairColors, setShowMoreHairColors] = useState(false);
+  const [showGenderButtons, setShowGenderButtons] = useState(false);
+  const [showAgeRangeButtons, setShowAgeRangeButtons] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -106,6 +108,19 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     "Copper", "Mahogany", "Golden Brown", "Ash Blonde", "Other"
   ];
 
+  const genderOptions = [
+    { name: "Male", icon: User, color: "bg-blue-500" },
+    { name: "Female", icon: User, color: "bg-pink-500" }
+  ];
+
+  const ageRangeOptions = [
+    { name: "Child (0-12)", color: "bg-yellow-500" },
+    { name: "Teen (13-19)", color: "bg-orange-500" },
+    { name: "Young Adult (20-35)", color: "bg-green-500" },
+    { name: "Adult (36-55)", color: "bg-blue-500" },
+    { name: "Senior (56+)", color: "bg-purple-500" }
+  ];
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -169,17 +184,18 @@ Current step: ${currentStep}`;
 
 Follow this exact workflow:
 1. WHO IS THE CARD FOR? (Just ask "who is this birthday card for?" - don't ask for their name unless user volunteers it)
-2. APPEARANCE - "South Africa's beautiful diversity is what makes our cards so special! To create the most authentic representation, could you help me understand what they look like? Their skin tone, features, and overall appearance?"
-3. AGE - "How old are they?"
-4. HAIR STYLE - "What does their hair look like? (length and style)"
-5. HAIR COLOR - "What color is their hair?"
-6. DISTINCT FEATURES - "Do they have any standout features? (glasses, freckles, etc.) The more specific you are, the better our AI can interpret and create your perfect card!"
-7. CLOTHING STYLE - "How do they usually dress?"
-8. PERSONALITY/VIBE - "What's their vibe? (chilled, fiery, etc.)"
-9. SCENE SETTING - "Where do you imagine them? Pick a scene or I can suggest one!"
-10. ART STYLE - "What should the artwork look like?"
-11. FRONT MESSAGE - "Want anything written on the front?"
-${onboarding.selectedPrintOption === 'front-and-inside' ? '12. INSIDE MESSAGE - "What should the message inside read?"' : ''}
+2. GENDER - "To help us represent them perfectly in your card, are they male or female?"
+3. AGE RANGE - "What age range are they in? This helps us create the most authentic representation for your special card!"
+4. APPEARANCE - "South Africa's beautiful diversity is what makes our cards so special! To create the most authentic representation, could you help me understand what they look like? Their skin tone, features, and overall appearance?"
+5. HAIR STYLE - "What does their hair look like? (length and style)"
+6. HAIR COLOR - "What color is their hair?"
+7. DISTINCT FEATURES - "Do they have any standout features? (glasses, freckles, etc.) The more specific you are, the better our AI can interpret and create your perfect card!"
+8. CLOTHING STYLE - "How do they usually dress?"
+9. PERSONALITY/VIBE - "What's their vibe? (chilled, fiery, etc.)"
+10. SCENE SETTING - "Where do you imagine them? Pick a scene or I can suggest one!"
+11. ART STYLE - "What should the artwork look like?"
+12. FRONT MESSAGE - "Want anything written on the front?"
+${onboarding.selectedPrintOption === 'front-and-inside' ? '13. INSIDE MESSAGE - "What should the message inside read?"' : ''}
 
 When you have all the information, confirm with the user and then say "GENERATE_CARD" to trigger image generation.`;
     } else {
@@ -255,8 +271,85 @@ When you have all the information, confirm with the user and then say "GENERATE_
       const { response: aiResponse } = await response.json();
       setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
       
-      // Check if this response is asking about skin tone/appearance
-      if (aiResponse.toLowerCase().includes('skin tone') || aiResponse.toLowerCase().includes('appearance') || aiResponse.toLowerCase().includes('look like')) {
+      // Check if this response is asking about gender
+      const lowerResponse = aiResponse.toLowerCase();
+      if (lowerResponse.includes('male') || lowerResponse.includes('female') || lowerResponse.includes('gender')) {
+        setShowGenderButtons(true);
+      } else if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
+        setShowSkinToneButtons(true);
+      }
+      
+      setCurrentStepState(currentStep + 1);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process selection",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGenderSelect = async (gender: string) => {
+    setShowGenderButtons(false);
+    setCollectedData({ ...collectedData, gender });
+    
+    const userMessage = `They are ${gender.toLowerCase()}`;
+    const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
+    setMessages(newMessages);
+    setIsLoading(true);
+
+    try {
+      const response = await apiRequest("POST", "/api/chat", {
+        messages: newMessages,
+        cardId,
+        systemPrompt: getSystemPrompt()
+      });
+
+      const { response: aiResponse } = await response.json();
+      setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
+      
+      // Check if this response is asking about age range
+      const lowerResponse = aiResponse.toLowerCase();
+      if (lowerResponse.includes('age range') || lowerResponse.includes('how old')) {
+        setShowAgeRangeButtons(true);
+      }
+      
+      setCurrentStepState(currentStep + 1);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process selection",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAgeRangeSelect = async (ageRange: string) => {
+    setShowAgeRangeButtons(false);
+    setCollectedData({ ...collectedData, ageRange });
+    
+    const userMessage = `They are in the ${ageRange.toLowerCase()} age range`;
+    const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
+    setMessages(newMessages);
+    setIsLoading(true);
+
+    try {
+      const response = await apiRequest("POST", "/api/chat", {
+        messages: newMessages,
+        cardId,
+        systemPrompt: getSystemPrompt()
+      });
+
+      const { response: aiResponse } = await response.json();
+      setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
+      
+      // Check if this response is asking about appearance
+      const lowerResponse = aiResponse.toLowerCase();
+      if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
         setShowSkinToneButtons(true);
       }
       
@@ -397,6 +490,8 @@ When you have all the information, confirm with the user and then say "GENERATE_
     setShowRelationshipButtons(false);
     setShowHairStyleButtons(false);
     setShowHairColorButtons(false);
+    setShowGenderButtons(false);
+    setShowAgeRangeButtons(false);
 
     const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
     setMessages(newMessages);
@@ -421,6 +516,10 @@ When you have all the information, confirm with the user and then say "GENERATE_
           setShowHairColorButtons(true);
         } else if (lowerResponse.includes('hair')) {
           setShowHairStyleButtons(true);
+        } else if (lowerResponse.includes('age range') || lowerResponse.includes('what age range')) {
+          setShowAgeRangeButtons(true);
+        } else if (lowerResponse.includes('male') || lowerResponse.includes('female') || lowerResponse.includes('gender')) {
+          setShowGenderButtons(true);
         } else if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
           setShowSkinToneButtons(true);
         } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for') || lowerResponse.includes('birthday card for')) {
@@ -636,6 +735,65 @@ When you have all the information, confirm with the user and then say "GENERATE_
             {/* Custom Input Hint */}
             <div className="text-center">
               <p className="text-sm text-slate-gray mb-2">Want to be more specific? Type below:</p>
+            </div>
+          </div>
+        )}
+
+        {/* Gender Selection Buttons */}
+        {showGenderButtons && (
+          <div className="space-y-4">
+            <div className="text-center mb-4">
+              <p className="text-sm text-slate-gray">
+                This helps us represent them perfectly in your card design!
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {genderOptions.map((gender) => {
+                const IconComponent = gender.icon;
+                return (
+                  <Button
+                    key={gender.name}
+                    onClick={() => handleGenderSelect(gender.name)}
+                    className={`${gender.color} hover:opacity-90 text-white p-4 rounded-2xl h-auto flex items-center space-x-3 transition-all duration-300 transform hover:scale-105`}
+                  >
+                    <IconComponent className="w-5 h-5" />
+                    <span className="font-medium">{gender.name}</span>
+                  </Button>
+                );
+              })}
+            </div>
+
+            <div className="text-center">
+              <p className="text-sm text-slate-gray">Prefer to specify differently? Type below:</p>
+            </div>
+          </div>
+        )}
+
+        {/* Age Range Selection Buttons */}
+        {showAgeRangeButtons && (
+          <div className="space-y-4">
+            <div className="text-center mb-4">
+              <p className="text-sm text-slate-gray">
+                Age helps us create the most authentic representation for your special card!
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {ageRangeOptions.map((ageRange) => (
+                <Button
+                  key={ageRange.name}
+                  onClick={() => handleAgeRangeSelect(ageRange.name)}
+                  className={`${ageRange.color} hover:opacity-90 text-white p-4 rounded-2xl h-auto flex items-center space-x-3 transition-all duration-300 transform hover:scale-105`}
+                >
+                  <div className="w-5 h-5 rounded-full bg-white/20" />
+                  <span className="font-medium">{ageRange.name}</span>
+                </Button>
+              ))}
+            </div>
+
+            <div className="text-center">
+              <p className="text-sm text-slate-gray">Need a specific age? Type below:</p>
             </div>
           </div>
         )}
