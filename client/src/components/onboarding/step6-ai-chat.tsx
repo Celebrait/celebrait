@@ -185,11 +185,11 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     setShowHairColorButtons(false);
     
     // Detect what buttons to show - hair color comes first now
-    if (lowerResponse.includes('hair color') || (lowerResponse.includes('hair') && lowerResponse.includes('color'))) {
+    if (lowerResponse.includes('hair color') || (lowerResponse.includes('hair') && lowerResponse.includes('color')) || (lowerResponse.includes('what color') && lowerResponse.includes('hair'))) {
       console.log('Hair color detected - showing hair color buttons');
       setShowHairColorButtons(true);
-    } else if (lowerResponse.includes('hair') && collectedData.hairColor && !collectedData.hairStyle) {
-      console.log('Hair style detected (after color collected) - showing hair style buttons');
+    } else if (lowerResponse.includes('hair') && (lowerResponse.includes('length') || lowerResponse.includes('style') || lowerResponse.includes('look like'))) {
+      console.log('Hair style detected - showing hair style buttons');
       setShowHairStyleButtons(true);
     } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
       setShowNameInput(true);
