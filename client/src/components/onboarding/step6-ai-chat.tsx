@@ -585,12 +585,20 @@ When you have all the information, confirm with the user and then say "GENERATE_
         console.log('Current step:', currentStep);
         console.log('Collected data so far:', collectedData);
         
-        // Clear and precise detection logic
+        // Clear and precise detection logic with comprehensive logging
+        console.log('Checking for hair mentions...');
+        console.log('Contains "hair"?', lowerResponse.includes('hair'));
+        console.log('Contains "color"?', lowerResponse.includes('color'));
+        console.log('Has hairStyle in collected data?', !!collectedData.hairStyle);
+        
         if (lowerResponse.includes('hair color') || (lowerResponse.includes('hair') && lowerResponse.includes('color'))) {
           console.log('Hair color question detected: Showing hair color buttons');
           setShowHairColorButtons(true);
         } else if (lowerResponse.includes('hair') && !collectedData.hairStyle) {
           console.log('First hair question detected: Showing hair style buttons');
+          setShowHairStyleButtons(true);
+        } else if (lowerResponse.includes('hair')) {
+          console.log('Hair mentioned but hairStyle already exists, forcing hair style buttons anyway');
           setShowHairStyleButtons(true);
         } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
           setShowNameInput(true);
