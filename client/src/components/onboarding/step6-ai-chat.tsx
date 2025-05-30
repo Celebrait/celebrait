@@ -577,8 +577,8 @@ When you have all the information, confirm with the user and then say "GENERATE_
         setShowHairStyleButtons(false);
         setShowHairColorButtons(false);
         
-        // Check for hair questions specifically
-        if (lowerResponse.includes('hair') && lowerResponse.includes('color')) {
+        // Check for hair questions specifically - using more comprehensive detection
+        if (lowerResponse.includes('hair color') || (lowerResponse.includes('hair') && lowerResponse.includes('color'))) {
           console.log('Setting hair COLOR buttons');
           setShowHairColorButtons(true);
         } else if (lowerResponse.includes('hair')) {
@@ -599,6 +599,12 @@ When you have all the information, confirm with the user and then say "GENERATE_
         } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for') || lowerResponse.includes('birthday card for')) {
           console.log('Setting relationship buttons');
           setShowRelationshipButtons(true);
+        }
+        
+        // Force detection for debugging - if response mentions hair, show buttons
+        if (lowerResponse.includes('hair') && !lowerResponse.includes('color')) {
+          console.log('FORCE: Setting hair style buttons due to hair mention');
+          setShowHairStyleButtons(true);
         }
         
         setCurrentStepState(currentStep + 1);
