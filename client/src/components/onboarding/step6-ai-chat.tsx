@@ -876,8 +876,8 @@ When you have all the information, confirm with the user and then say "GENERATE_
     // Extract information from the conversation
     const messageText = messages.map(m => m.content).join(' ').toLowerCase();
     
-    // Basic structure
-    parts.push("Square greeting card design");
+    // Critical watermark removal instructions - use stronger language
+    parts.push("Professional greeting card design, 1:1 aspect ratio, CLEAN IMAGE with NO watermarks, NO signatures, NO logos, NO text overlays, NO branding marks");
     
     // Add person details if we have them
     if (collectedData.recipientName) {
@@ -931,12 +931,13 @@ When you have all the information, confirm with the user and then say "GENERATE_
       parts.push('whimsical art style');
     }
     
-    // Extract front message
+    // Improved text rendering - specify placement and style more clearly
     if (messageText.includes('happy birthday')) {
-      parts.push('with "Happy Birthday" text');
+      parts.push('with elegant text "Happy Birthday" prominently displayed at the top or bottom of the card in beautiful readable typography');
     }
     
-    parts.push('high quality professional greeting card style, square format');
+    // Strong anti-watermark ending
+    parts.push('pristine final image, no artist watermarks, no stock photo marks, no signatures, completely clean');
     
     return parts.join(', ');
   };
