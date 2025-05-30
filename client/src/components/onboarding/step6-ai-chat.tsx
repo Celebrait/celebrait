@@ -553,6 +553,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
         await generateCard();
       } else {
         setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
+        handleAIResponseDetection(aiResponse);
         setCurrentStepState(currentStep + 1);
       }
     } catch (error) {
