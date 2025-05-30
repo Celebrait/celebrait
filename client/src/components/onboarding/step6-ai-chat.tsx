@@ -136,7 +136,7 @@ Current step: ${currentStep}`;
       return basePrompt + `
 
 Follow this exact workflow:
-1. WHO IS THE CARD FOR? (Name + relationship)
+1. WHO IS THE CARD FOR? (Just ask "who is this birthday card for?" - don't ask for their name unless user volunteers it)
 2. APPEARANCE - "South Africa's beautiful diversity is what makes our cards so special! To create the most authentic representation, could you help me understand what they look like? Their skin tone, features, and overall appearance?"
 3. AGE - "How old are they?"
 4. HAIR - "What does their hair look like? (Color, length, style)"
@@ -183,9 +183,12 @@ When you have all the information, confirm with the user and then say "GENERATE_
       const { response: aiResponse } = await response.json();
       setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
       
-      // Check if this response is asking about skin tone/appearance
-      if (aiResponse.toLowerCase().includes('skin tone') || aiResponse.toLowerCase().includes('appearance') || aiResponse.toLowerCase().includes('look like')) {
+      // Check what type of question is being asked and show appropriate buttons
+      const lowerResponse = aiResponse.toLowerCase();
+      if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
         setShowSkinToneButtons(true);
+      } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for') || lowerResponse.includes('birthday card for')) {
+        setShowRelationshipButtons(true);
       }
       
       setCurrentStepState(currentStep + 1);
@@ -302,7 +305,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
         const lowerResponse = aiResponse.toLowerCase();
         if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
           setShowSkinToneButtons(true);
-        } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for')) {
+        } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for') || lowerResponse.includes('birthday card for')) {
           setShowRelationshipButtons(true);
         }
         
