@@ -23,7 +23,7 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
   const [collectedData, setCollectedData] = useState<any>({});
   const [currentStep, setCurrentStepState] = useState(1);
   const [showAllCelebrations, setShowAllCelebrations] = useState(false);
-  const [showCelebrationButtons, setShowCelebrationButtons] = useState(true);
+  const [showCelebrationButtons, setShowCelebrationButtons] = useState(false);
   const [showSkinToneButtons, setShowSkinToneButtons] = useState(false);
   const [showMoreSkinTones, setShowMoreSkinTones] = useState(false);
   const [showRelationshipButtons, setShowRelationshipButtons] = useState(false);
