@@ -173,7 +173,7 @@ Follow this exact workflow:
 3. AGE - "How old are they?"
 4. HAIR STYLE - "What does their hair look like? (length and style)"
 5. HAIR COLOR - "What color is their hair?"
-6. DISTINCT FEATURES - "Do they have any standout features? (glasses, freckles, etc.)"
+6. DISTINCT FEATURES - "Do they have any standout features? (glasses, freckles, etc.) The more specific you are, the better our AI can interpret and create your perfect card!"
 7. CLOTHING STYLE - "How do they usually dress?"
 8. PERSONALITY/VIBE - "What's their vibe? (chilled, fiery, etc.)"
 9. SCENE SETTING - "Where do you imagine them? Pick a scene or I can suggest one!"
