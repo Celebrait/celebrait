@@ -17,7 +17,7 @@ interface ConversationStep {
   id: string;
   question: string;
   aiMessage: string;
-  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect';
+  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary';
   options?: Array<{ value: string; label: string; description?: string; color?: string; icon?: string }>;
   placeholder?: string;
   required?: boolean;
@@ -33,6 +33,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [currentInput, setCurrentInput] = useState('');
   const [showAllOptions, setShowAllOptions] = useState<Record<string, boolean>>({});
   const [showCustomInput, setShowCustomInput] = useState<Record<string, boolean>>({});
+  const [editingStep, setEditingStep] = useState<string | null>(null);
+  const [returnToSummary, setReturnToSummary] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -301,6 +303,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       aiMessage: `Almost there! This is your opportunity to get really personal! What heartfelt message should appear on the front of ${answers.name || 'their'} card? You can also leave this blank if you want no message at all - sometimes the image speaks for itself. Make it as meaningful and personal as you want!`,
       type: 'text',
       placeholder: 'e.g., Happy Birthday, Celebrating You, or leave blank for no message'
+    },
+    {
+      id: 'final_summary',
+      question: 'Perfect! Let\'s review everything before creating your card.',
+      aiMessage: `Wonderful! I have everything I need to create an amazing card for ${answers.name || 'them'}. Please review all the details below and make any changes you'd like. When you're happy with everything, we'll generate your personalized card!`,
+      type: 'final_summary',
+      placeholder: ''
     }
   ];
 
@@ -355,6 +364,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     setAnswers(prev => ({ ...prev, [currentStep.id]: value }));
     setCurrentInput('');
     
+    // If we're editing a step, return to summary after saving
+    if (editingStep && returnToSummary) {
+      setEditingStep(null);
+      setReturnToSummary(false);
+      const summaryStepIndex = steps.findIndex(step => step.id === 'final_summary');
+      setCurrentStepIndex(summaryStepIndex);
+      return;
+    }
+    
     // Move to next step after a brief delay for better UX
     setTimeout(() => {
       if (currentStepIndex < steps.length - 1) {
@@ -363,6 +381,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         generateCard();
       }
     }, 500);
+  };
+
+  const handleEditStep = (stepId: string) => {
+    const stepIndex = steps.findIndex(step => step.id === stepId);
+    if (stepIndex !== -1) {
+      setEditingStep(stepId);
+      setReturnToSummary(true);
+      setCurrentStepIndex(stepIndex);
+    }
+  };
+
+  const handleGenerateCard = () => {
+    generateCard();
   };
 
   const handlePersonalityToggle = (value: string) => {
@@ -496,8 +527,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       <div className="h-screen flex flex-col">
         {/* Progress Bar */}
         <div className="p-4 bg-white border-b">
-          <div className="flex justify-between text-sm text-gray-500 mb-2">
-            <span>Generating your card...</span>
+          <div className="flex justify-end text-sm text-gray-500 mb-2">
             <span>100% Complete</span>
           </div>
           <Progress value={100} className="h-2" />
@@ -518,8 +548,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-blue-50">
       {/* Progress Bar */}
       <div className="p-4 bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10">
-        <div className="flex justify-between text-sm text-gray-500 mb-2">
-          <span>Step {currentStepIndex + 1} of {steps.length}</span>
+        <div className="flex justify-end text-sm text-gray-500 mb-2">
           <span>{Math.round(progress)}% Complete</span>
         </div>
         <Progress value={progress} className="h-2" />
@@ -765,6 +794,173 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       >
                         Let's Create the Scene!
                         <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {currentStep.type === 'final_summary' && (
+                  <div className="space-y-6">
+                    {/* Complete Summary with Edit Options */}
+                    <div className="grid gap-4">
+                      {/* Celebration */}
+                      <div className="bg-white rounded-xl p-4 border border-purple-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold text-purple-700">Celebration</h4>
+                            <p className="text-gray-700">{answers.celebration?.replace('_', ' ') || 'Not specified'}</p>
+                          </div>
+                          <Button onClick={() => handleEditStep('celebration')} variant="outline" size="sm">
+                            Edit
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Recipient */}
+                      <div className="bg-white rounded-xl p-4 border border-purple-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold text-purple-700">Recipient</h4>
+                            <p className="text-gray-700">{answers.recipient || 'Not specified'}</p>
+                          </div>
+                          <Button onClick={() => handleEditStep('recipient')} variant="outline" size="sm">
+                            Edit
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Name */}
+                      <div className="bg-white rounded-xl p-4 border border-purple-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold text-purple-700">Name</h4>
+                            <p className="text-gray-700 font-medium">{answers.name || 'Not specified'}</p>
+                          </div>
+                          <Button onClick={() => handleEditStep('name')} variant="outline" size="sm">
+                            Edit
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Gender & Age */}
+                      <div className="bg-white rounded-xl p-4 border border-purple-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold text-purple-700">Basic Info</h4>
+                            <p className="text-gray-700">{answers.gender} • {answers.age?.replace('_', ' ')}</p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button onClick={() => handleEditStep('gender')} variant="outline" size="sm">
+                              Edit Gender
+                            </Button>
+                            <Button onClick={() => handleEditStep('age')} variant="outline" size="sm">
+                              Edit Age
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Heritage */}
+                      <div className="bg-white rounded-xl p-4 border border-purple-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold text-purple-700">Cultural Heritage</h4>
+                            <p className="text-gray-700 font-medium">{answers.heritage?.replace('_', ' ') || 'Not specified'}</p>
+                          </div>
+                          <Button onClick={() => handleEditStep('heritage')} variant="outline" size="sm">
+                            Edit
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Appearance */}
+                      <div className="bg-white rounded-xl p-4 border border-purple-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold text-purple-700">Appearance</h4>
+                            <p className="text-gray-700">
+                              <span className="font-medium">{answers.hair_color?.replace('_', ' ')} {answers.hair_style?.replace('_', ' ')} hair</span>
+                              <br />
+                              <span>{answers.build} build</span>
+                              {answers.features && answers.features !== 'skip' && (
+                                <><br /><span className="font-medium">Features: {answers.features}</span></>
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex flex-col space-y-1">
+                            <Button onClick={() => handleEditStep('hair_color')} variant="outline" size="sm">
+                              Edit Hair
+                            </Button>
+                            <Button onClick={() => handleEditStep('build')} variant="outline" size="sm">
+                              Edit Build
+                            </Button>
+                            <Button onClick={() => handleEditStep('features')} variant="outline" size="sm">
+                              Edit Features
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Personality */}
+                      <div className="bg-white rounded-xl p-4 border border-purple-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold text-purple-700">Personality</h4>
+                            <p className="text-gray-700 font-medium">{answers.personality || 'Not specified'}</p>
+                          </div>
+                          <Button onClick={() => handleEditStep('personality')} variant="outline" size="sm">
+                            Edit
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Scene */}
+                      <div className="bg-white rounded-xl p-4 border border-purple-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold text-purple-700">Scene Description</h4>
+                            <p className="text-gray-700">{answers.scene || 'Not specified'}</p>
+                          </div>
+                          <Button onClick={() => handleEditStep('scene')} variant="outline" size="sm">
+                            Edit
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Art Style */}
+                      <div className="bg-white rounded-xl p-4 border border-purple-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold text-purple-700">Art Style</h4>
+                            <p className="text-gray-700">{answers.art_style?.replace('_', ' ') || 'Not specified'}</p>
+                          </div>
+                          <Button onClick={() => handleEditStep('art_style')} variant="outline" size="sm">
+                            Edit
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Message */}
+                      <div className="bg-white rounded-xl p-4 border border-purple-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold text-purple-700">Card Message</h4>
+                            <p className="text-gray-700">{answers.message || 'No message'}</p>
+                          </div>
+                          <Button onClick={() => handleEditStep('message')} variant="outline" size="sm">
+                            Edit
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-center">
+                      <Button 
+                        onClick={handleGenerateCard}
+                        className="px-8 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-lg font-semibold"
+                      >
+                        Generate My Card!
+                        <Sparkles className="w-5 h-5 ml-2" />
                       </Button>
                     </div>
                   </div>
