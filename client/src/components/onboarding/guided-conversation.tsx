@@ -405,7 +405,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
             {!isTyping && (
               <div className="space-y-4">
                 {currentStep.type === 'select' && currentStep.options && (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {/* Compact Options Grid */}
                     <div className="grid grid-cols-2 gap-2">
                       {(showAllOptions[currentStep.id] ? currentStep.options : currentStep.options.slice(0, 4)).map((option) => (
@@ -420,39 +420,34 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       ))}
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      {currentStep.options.length > 4 && !showAllOptions[currentStep.id] && (
-                        <Button
-                          onClick={() => setShowAllOptions(prev => ({ ...prev, [currentStep.id]: true }))}
-                          variant="ghost"
-                          className="text-purple-600 hover:text-purple-700 text-sm"
-                        >
-                          Show More Options
-                        </Button>
-                      )}
-                      
-                      {showAllOptions[currentStep.id] && (
-                        <Button
-                          onClick={() => setShowAllOptions(prev => ({ ...prev, [currentStep.id]: false }))}
-                          variant="ghost"
-                          className="text-purple-600 hover:text-purple-700 text-sm"
-                        >
-                          Show Less
-                        </Button>
-                      )}
+                    {/* Show More/Less Button */}
+                    {currentStep.options.length > 4 && (
+                      <div className="flex justify-center">
+                        {!showAllOptions[currentStep.id] ? (
+                          <Button
+                            onClick={() => setShowAllOptions(prev => ({ ...prev, [currentStep.id]: true }))}
+                            variant="ghost"
+                            className="text-purple-600 hover:text-purple-700 text-sm"
+                          >
+                            Show More Options
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => setShowAllOptions(prev => ({ ...prev, [currentStep.id]: false }))}
+                            variant="ghost"
+                            className="text-purple-600 hover:text-purple-700 text-sm"
+                          >
+                            Show Less
+                          </Button>
+                        )}
+                      </div>
+                    )}
 
-                      <Button
-                        onClick={() => setShowCustomInput(prev => ({ ...prev, [currentStep.id]: true }))}
-                        variant="ghost"
-                        className="text-blue-600 hover:text-blue-700 text-sm"
-                      >
-                        Type My Own
-                      </Button>
-                    </div>
-
-                    {/* Custom Input Field */}
-                    {showCustomInput[currentStep.id] && (
+                    {/* Always Show Input Field */}
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-600 text-center">
+                        Don't see the option you're looking for? Type it below:
+                      </p>
                       <div className="flex space-x-2">
                         <Input
                           value={currentInput}
@@ -460,7 +455,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                           placeholder="Type your answer..."
                           className="text-lg p-3 rounded-lg border-purple-200 focus:border-purple-400"
                           onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
-                          autoFocus
                         />
                         <Button 
                           onClick={handleTextSubmit}
@@ -470,7 +464,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                           <ArrowRight className="w-4 h-4" />
                         </Button>
                       </div>
-                    )}
+                    </div>
                   </div>
                 )}
 
