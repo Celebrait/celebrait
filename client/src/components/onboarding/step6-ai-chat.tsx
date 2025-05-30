@@ -581,11 +581,14 @@ When you have all the information, confirm with the user and then say "GENERATE_
         console.log('Current step:', currentStep);
         console.log('Collected data so far:', collectedData);
         
-        // Use step-based detection with proper logic
-        if (lowerResponse.includes('hair') && lowerResponse.includes('color')) {
+        // Comprehensive hair detection
+        const isHairColorQuestion = lowerResponse.includes('hair color') || (lowerResponse.includes('hair') && lowerResponse.includes('color'));
+        const isHairStyleQuestion = lowerResponse.includes('hair') && !isHairColorQuestion;
+        
+        if (isHairColorQuestion) {
           console.log('Hair color question detected: Showing hair color buttons');
           setShowHairColorButtons(true);
-        } else if (lowerResponse.includes('hair') && !collectedData.hairStyle) {
+        } else if (isHairStyleQuestion) {
           console.log('Hair style question detected: Showing hair style buttons');
           setShowHairStyleButtons(true);
         } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
@@ -598,6 +601,12 @@ When you have all the information, confirm with the user and then say "GENERATE_
           setShowSkinToneButtons(true);
         } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for') || lowerResponse.includes('birthday card for')) {
           setShowRelationshipButtons(true);
+        }
+        
+        // Additional debugging and forced detection
+        if (lowerResponse.includes('hair')) {
+          console.log('Hair detected in response, forcing hair style buttons');
+          setShowHairStyleButtons(true);
         }
         
         setCurrentStepState(currentStep + 1);
