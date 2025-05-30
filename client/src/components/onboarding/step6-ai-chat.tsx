@@ -192,7 +192,8 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
                                lowerResponse.includes('what color is') && lowerResponse.includes('hair');
     
     const isHairStyleQuestion = lowerResponse.includes('hair') && 
-                               (lowerResponse.includes('length') || lowerResponse.includes('style') || lowerResponse.includes('look like'));
+                               (lowerResponse.includes('length') || lowerResponse.includes('style') || lowerResponse.includes('look like') || 
+                                lowerResponse.includes('what does') || lowerResponse.includes('how does'));
     
     console.log('Hair color question check:', isHairColorQuestion);
     console.log('Hair style question check:', isHairStyleQuestion);
