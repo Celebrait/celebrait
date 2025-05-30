@@ -364,7 +364,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const buildImagePrompt = () => {
     const parts = [];
     
-    parts.push("Square greeting card design");
+    parts.push("Professional greeting card design, square format, no watermarks, clean design");
     
     if (answers.name) {
       let personDescription = answers.name;
@@ -372,7 +372,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       if (answers.gender) personDescription += `, ${answers.gender}`;
       if (answers.age) personDescription += `, ${answers.age.replace('_', ' ')}`;
       if (answers.heritage) personDescription += `, ${answers.heritage} heritage`;
-      if (answers.hair_color) personDescription += `, ${answers.hair_color} hair`;
+      if (answers.hair_color) personDescription += `, ${answers.hair_color.replace('_', ' ')} hair`;
       if (answers.hair_style) personDescription += ` ${answers.hair_style.replace('_', ' ')}`;
       if (answers.build) personDescription += `, ${answers.build} build`;
       if (answers.features) personDescription += `, ${answers.features}`;
@@ -393,10 +393,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
     
     if (answers.message) {
-      parts.push(`with text "${answers.message}"`);
+      parts.push(`with clearly readable text that says "${answers.message}" prominently displayed on the card`);
     }
     
-    parts.push('high quality professional greeting card style, square format');
+    parts.push('high quality, professional greeting card style, no watermarks, clean layout, readable text');
     
     return parts.join(', ');
   };
