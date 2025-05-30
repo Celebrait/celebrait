@@ -17,7 +17,7 @@ interface ConversationStep {
   id: string;
   question: string;
   aiMessage: string;
-  type: 'text' | 'select' | 'textarea' | 'summary';
+  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect';
   options?: Array<{ value: string; label: string; description?: string; color?: string }>;
   placeholder?: string;
   required?: boolean;
@@ -26,6 +26,7 @@ interface ConversationStep {
 export default function GuidedConversation({ onboarding, onCardGenerated }: GuidedConversationProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [selectedPersonalities, setSelectedPersonalities] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [cardId, setCardId] = useState<number | null>(null);
   const [isTyping, setIsTyping] = useState(false);
@@ -219,33 +220,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'features',
-      question: `What makes ${answers.name || 'them'} uniquely recognizable?`,
-      aiMessage: `Perfect! Now let's capture what makes ${answers.name || 'them'} truly unique. The more specific details you share, the more authentic and recognizable the card will be. What distinctive features do they have?`,
-      type: 'select',
-      options: [
-        { value: 'glasses', label: 'Glasses', description: 'Prescription or reading glasses', color: 'bg-blue-500' },
-        { value: 'freckles', label: 'Freckles', description: 'Cute freckles on face', color: 'bg-orange-500' },
-        { value: 'dimples', label: 'Dimples', description: 'Charming dimples when smiling', color: 'bg-pink-500' },
-        { value: 'beard', label: 'Beard', description: 'Facial hair or beard', color: 'bg-amber-500' },
-        { value: 'mustache', label: 'Mustache', description: 'Distinctive mustache', color: 'bg-brown-500' },
-        { value: 'scar', label: 'Scar', description: 'Notable scar or mark', color: 'bg-gray-500' },
-        { value: 'tattoo', label: 'Tattoo', description: 'Visible tattoo', color: 'bg-purple-500' },
-        { value: 'piercing', label: 'Piercing', description: 'Ear, nose, or other piercing', color: 'bg-teal-500' },
-        { value: 'birthmark', label: 'Birthmark', description: 'Distinctive birthmark', color: 'bg-rose-500' },
-        { value: 'braces', label: 'Braces', description: 'Dental braces', color: 'bg-cyan-500' },
-        { value: 'gap_teeth', label: 'Gap in Teeth', description: 'Charming tooth gap', color: 'bg-lime-500' },
-        { value: 'crooked_smile', label: 'Crooked Smile', description: 'Endearing crooked smile', color: 'bg-indigo-500' },
-        { value: 'bushy_eyebrows', label: 'Bushy Eyebrows', description: 'Prominent eyebrows', color: 'bg-emerald-500' },
-        { value: 'long_eyelashes', label: 'Long Eyelashes', description: 'Beautiful long lashes', color: 'bg-fuchsia-500' },
-        { value: 'cleft_chin', label: 'Cleft Chin', description: 'Distinctive chin dimple', color: 'bg-violet-500' },
-        { value: 'skip', label: 'Skip', description: 'No distinctive features to mention', color: 'bg-gray-400' }
-      ]
+      question: `What distinctive features make ${answers.name || 'them'} uniquely recognizable?`,
+      aiMessage: `Now let's capture what makes ${answers.name || 'them'} truly unique! ${answers.gender === 'female' 
+        ? 'Think about distinctive features like glasses, freckles, dimples, birthmarks, scars, tattoos, piercings, braces, or unique facial characteristics.' 
+        : 'Consider features like glasses, facial hair (beard, mustache), scars, tattoos, piercings, birthmarks, or other distinctive characteristics.'} The more specific details you share, the more authentic the representation will be. You can skip this if you prefer.`,
+      type: 'text',
+      placeholder: answers.gender === 'female' 
+        ? 'e.g., glasses, freckles, dimples, birthmark on cheek, or leave blank to skip'
+        : 'e.g., beard, glasses, scar above eyebrow, tattoo on arm, or leave blank to skip'
     },
     {
       id: 'personality',
-      question: `What's ${answers.name || 'their'} personality like?`,
-      aiMessage: `Amazing! Now, what's ${answers.name || 'their'} personality like? This helps me capture their spirit in the card.`,
-      type: 'select',
+      question: `What personality traits best describe ${answers.name || 'them'}?`,
+      aiMessage: `Amazing! Now let's capture ${answers.name || 'their'} personality. You can select multiple traits that describe them - the more you choose, the better I can represent their unique spirit in the card!`,
+      type: 'multiselect',
       options: [
         { value: 'outgoing', label: 'Outgoing', description: 'Life of the party', color: 'bg-orange-500' },
         { value: 'calm', label: 'Calm', description: 'Peaceful and relaxed', color: 'bg-blue-500' },
@@ -276,10 +264,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'scene',
-      question: `Where should ${answers.name || 'they'} be in the scene?`,
-      aiMessage: `Now for the magic! Where should ${answers.name || 'they'} be? Think about their personality and what would make them smile. The more vivid your description, the more amazing the result!`,
+      question: `Where should ${answers.name || 'they'} be and what should they be doing?`,
+      aiMessage: `Now for the magic! Where should ${answers.name || 'they'} be and what should they be doing? Think about their personality and what would make them smile. Include details like the setting, their activity, what they're wearing, and any other important elements.`,
       type: 'textarea',
-      placeholder: 'Describe the setting or scene you envision...'
+      placeholder: 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...'
     },
     {
       id: 'art_style',
@@ -356,6 +344,32 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         generateCard();
       }
     }, 500);
+  };
+
+  const handlePersonalityToggle = (value: string) => {
+    setSelectedPersonalities(prev => {
+      const newSelection = prev.includes(value)
+        ? prev.filter(p => p !== value)
+        : [...prev, value];
+      
+      // Update answers with comma-separated personality list
+      setAnswers(prevAnswers => ({ 
+        ...prevAnswers, 
+        personality: newSelection.join(', ') 
+      }));
+      
+      return newSelection;
+    });
+  };
+
+  const handlePersonalityNext = () => {
+    if (selectedPersonalities.length > 0) {
+      setTimeout(() => {
+        if (currentStepIndex < steps.length - 1) {
+          setCurrentStepIndex(prev => prev + 1);
+        }
+      }, 500);
+    }
   };
 
   const handleSummaryNext = () => {
@@ -556,6 +570,90 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         )}
                       </div>
                     )}
+
+                    {/* Always Show Input Field */}
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-600 text-center">
+                        Don't see the option you're looking for? Type it below:
+                      </p>
+                      <div className="flex space-x-2">
+                        <Input
+                          value={currentInput}
+                          onChange={(e) => setCurrentInput(e.target.value)}
+                          placeholder="Type your answer..."
+                          className="text-lg p-3 rounded-lg border-purple-200 focus:border-purple-400"
+                          onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
+                        />
+                        <Button 
+                          onClick={handleTextSubmit}
+                          disabled={!currentInput.trim()}
+                          className="px-4 py-3 rounded-lg bg-gradient-to-r from-purple-500 to-blue-500"
+                        >
+                          <ArrowRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {currentStep.type === 'multiselect' && currentStep.options && (
+                  <div className="space-y-4">
+                    {/* Multi-select Options Grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {(showAllOptions[currentStep.id] ? currentStep.options : currentStep.options.slice(0, 6)).map((option) => (
+                        <Button
+                          key={option.value}
+                          onClick={() => handlePersonalityToggle(option.value)}
+                          variant="outline"
+                          className={`h-auto p-3 text-center transition-all hover:scale-[1.02] hover:shadow-md ${
+                            selectedPersonalities.includes(option.value) 
+                              ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white border-purple-500' 
+                              : 'bg-gradient-to-r from-purple-200 to-blue-200 text-purple-700 border-purple-200'
+                          } hover:opacity-90 rounded-lg text-sm font-medium`}
+                        >
+                          {option.label}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {/* Show More/Less Button */}
+                    {currentStep.options.length > 6 && (
+                      <div className="flex justify-center">
+                        {!showAllOptions[currentStep.id] ? (
+                          <Button
+                            onClick={() => setShowAllOptions(prev => ({ ...prev, [currentStep.id]: true }))}
+                            variant="outline"
+                            className="bg-white border-purple-300 text-purple-600 hover:bg-purple-50 hover:border-purple-400 hover:text-purple-700 px-6 py-2 rounded-full text-sm font-medium shadow-sm"
+                          >
+                            View More Options
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => setShowAllOptions(prev => ({ ...prev, [currentStep.id]: false }))}
+                            variant="outline"
+                            className="bg-white border-purple-300 text-purple-600 hover:bg-purple-50 hover:border-purple-400 hover:text-purple-700 px-6 py-2 rounded-full text-sm font-medium shadow-sm"
+                          >
+                            Show Less
+                          </Button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Selected count and continue button */}
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600 mb-3">
+                        {selectedPersonalities.length} trait{selectedPersonalities.length !== 1 ? 's' : ''} selected
+                      </p>
+                      {selectedPersonalities.length > 0 && (
+                        <Button 
+                          onClick={handlePersonalityNext}
+                          className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
+                        >
+                          Continue
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      )}
+                    </div>
 
                     {/* Always Show Input Field */}
                     <div className="space-y-2">
