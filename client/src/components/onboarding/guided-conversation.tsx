@@ -413,7 +413,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                           key={option.value}
                           onClick={() => handleAnswer(option.value)}
                           variant="outline"
-                          className={`h-auto p-3 text-center transition-all hover:scale-[1.02] hover:shadow-md ${option.color} text-white border-0 hover:opacity-90 rounded-lg text-sm font-medium`}
+                          className="h-auto p-3 text-center transition-all hover:scale-[1.02] hover:shadow-md bg-gradient-to-r from-purple-500 to-blue-500 text-white border-0 hover:from-purple-600 hover:to-blue-600 rounded-lg text-sm font-medium"
                         >
                           {option.label}
                         </Button>
