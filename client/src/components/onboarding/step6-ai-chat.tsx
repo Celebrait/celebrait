@@ -34,6 +34,8 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
   const [showMoreHairColors, setShowMoreHairColors] = useState(false);
   const [showGenderButtons, setShowGenderButtons] = useState(false);
   const [showAgeRangeButtons, setShowAgeRangeButtons] = useState(false);
+  const [showNameInput, setShowNameInput] = useState(false);
+  const [tempName, setTempName] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -184,18 +186,19 @@ Current step: ${currentStep}`;
 
 Follow this exact workflow:
 1. WHO IS THE CARD FOR? (Just ask "who is this birthday card for?" - don't ask for their name unless user volunteers it)
-2. GENDER - "To help us represent them perfectly in your card, are they male or female?"
-3. AGE RANGE - "What age range are they in? This helps us create the most authentic representation for your special card!"
-4. APPEARANCE - "South Africa's beautiful diversity is what makes our cards so special! To create the most authentic representation, could you help me understand what they look like? Their skin tone, features, and overall appearance?"
-5. HAIR STYLE - "What does their hair look like? (length and style)"
-6. HAIR COLOR - "What color is their hair?"
-7. DISTINCT FEATURES - "Do they have any standout features? (glasses, freckles, etc.) The more specific you are, the better our AI can interpret and create your perfect card!"
-8. CLOTHING STYLE - "How do they usually dress?"
-9. PERSONALITY/VIBE - "What's their vibe? (chilled, fiery, etc.)"
-10. SCENE SETTING - "Where do you imagine them? Pick a scene or I can suggest one!"
-11. ART STYLE - "What should the artwork look like?"
-12. FRONT MESSAGE - "Want anything written on the front?"
-${onboarding.selectedPrintOption === 'front-and-inside' ? '13. INSIDE MESSAGE - "What should the message inside read?"' : ''}
+2. NAME - "What's their name? I'd love to personalize our conversation about them!"
+3. GENDER - "To help us represent [NAME] perfectly in your card, are they male or female?"
+4. AGE RANGE - "What age range is [NAME] in? This helps us create the most authentic representation for your special card!"
+5. APPEARANCE - "South Africa's beautiful diversity is what makes our cards so special! To create the most authentic representation of [NAME], could you help me understand what they look like? Their skin tone, features, and overall appearance?"
+6. HAIR STYLE - "What does [NAME]'s hair look like? (length and style)"
+7. HAIR COLOR - "What color is [NAME]'s hair?"
+8. DISTINCT FEATURES - "Does [NAME] have any standout features? (glasses, freckles, etc.) The more specific you are, the better our AI can interpret and create your perfect card!"
+9. CLOTHING STYLE - "How does [NAME] usually dress?"
+10. PERSONALITY/VIBE - "What's [NAME]'s vibe? (chilled, fiery, etc.)"
+11. SCENE SETTING - "Where do you imagine [NAME]? Pick a scene or I can suggest one!"
+12. ART STYLE - "What should the artwork look like?"
+13. FRONT MESSAGE - "Want anything written on the front?"
+${onboarding.selectedPrintOption === 'front-and-inside' ? '14. INSIDE MESSAGE - "What should the message inside read?"' : ''}
 
 When you have all the information, confirm with the user and then say "GENERATE_CARD" to trigger image generation.`;
     } else {
@@ -271,9 +274,11 @@ When you have all the information, confirm with the user and then say "GENERATE_
       const { response: aiResponse } = await response.json();
       setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
       
-      // Check if this response is asking about gender
+      // Check if this response is asking for a name
       const lowerResponse = aiResponse.toLowerCase();
-      if (lowerResponse.includes('male') || lowerResponse.includes('female') || lowerResponse.includes('gender')) {
+      if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
+        setShowNameInput(true);
+      } else if (lowerResponse.includes('male') || lowerResponse.includes('female') || lowerResponse.includes('gender')) {
         setShowGenderButtons(true);
       } else if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
         setShowSkinToneButtons(true);
@@ -284,6 +289,46 @@ When you have all the information, confirm with the user and then say "GENERATE_
       toast({
         title: "Error",
         description: "Failed to process selection",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleNameSubmit = async () => {
+    if (!tempName.trim()) return;
+    
+    setShowNameInput(false);
+    setCollectedData({ ...collectedData, personName: tempName.trim() });
+    
+    const userMessage = `Their name is ${tempName.trim()}`;
+    const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
+    setMessages(newMessages);
+    setIsLoading(true);
+    setTempName("");
+
+    try {
+      const response = await apiRequest("POST", "/api/chat", {
+        messages: newMessages,
+        cardId,
+        systemPrompt: getSystemPrompt().replace(/\[NAME\]/g, tempName.trim())
+      });
+
+      const { response: aiResponse } = await response.json();
+      setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
+      
+      // Check if this response is asking about gender
+      const lowerResponse = aiResponse.toLowerCase();
+      if (lowerResponse.includes('male') || lowerResponse.includes('female') || lowerResponse.includes('gender')) {
+        setShowGenderButtons(true);
+      }
+      
+      setCurrentStepState(currentStep + 1);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process name",
         variant: "destructive",
       });
     } finally {
@@ -494,6 +539,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
     setShowHairColorButtons(false);
     setShowGenderButtons(false);
     setShowAgeRangeButtons(false);
+    setShowNameInput(false);
 
     const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
     setMessages(newMessages);
@@ -518,6 +564,8 @@ When you have all the information, confirm with the user and then say "GENERATE_
           setShowHairColorButtons(true);
         } else if (lowerResponse.includes('hair') && (lowerResponse.includes('look like') || lowerResponse.includes('length') || lowerResponse.includes('style'))) {
           setShowHairStyleButtons(true);
+        } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
+          setShowNameInput(true);
         } else if (lowerResponse.includes('age range') || lowerResponse.includes('what age range')) {
           setShowAgeRangeButtons(true);
         } else if (lowerResponse.includes('male') || lowerResponse.includes('female') || lowerResponse.includes('gender')) {
@@ -768,6 +816,36 @@ When you have all the information, confirm with the user and then say "GENERATE_
 
             <div className="text-center">
               <p className="text-sm text-slate-gray">Prefer to specify differently? Type below:</p>
+            </div>
+          </div>
+        )}
+
+        {/* Name Input */}
+        {showNameInput && (
+          <div className="space-y-4 bg-blue-50 p-6 rounded-2xl border border-blue-100">
+            <div className="text-center mb-4">
+              <p className="text-sm text-slate-gray">
+                This helps me personalize our conversation about them!
+              </p>
+            </div>
+            
+            <div className="flex space-x-3">
+              <input
+                type="text"
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleNameSubmit()}
+                placeholder="Enter their name..."
+                className="flex-1 px-4 py-3 border border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                autoFocus
+              />
+              <Button
+                onClick={handleNameSubmit}
+                disabled={!tempName.trim()}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl transition-all duration-300"
+              >
+                Continue
+              </Button>
             </div>
           </div>
         )}
