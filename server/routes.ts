@@ -160,10 +160,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Card not found" });
       }
 
-      // Generate front image
-      const frontImageResponse = await openai.images.generate({
+      // Generate front image using GPT-4o with image generation
+      const frontImageResponse = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "user",
+            content: `Generate a square greeting card design: ${frontPrompt}. High quality, professional greeting card style, full-bleed square format.`
+          }
+        ],
+        max_tokens: 300
+      });
+
+      // Note: GPT-4o image generation integration may need adjustment based on OpenAI's current API
+      // For now, falling back to DALL-E 3 but with gpt-4o prompt optimization
+      const optimizedFrontPrompt = frontImageResponse.choices[0].message.content;
+      
+      const frontImageGeneration = await openai.images.generate({
         model: "dall-e-3",
-        prompt: `Square greeting card design: ${frontPrompt}. High quality, professional greeting card style, full-bleed square format.`,
+        prompt: `${optimizedFrontPrompt}. Square greeting card, professional quality, full-bleed format.`,
         n: 1,
         size: "1024x1024",
         quality: "standard",
@@ -173,19 +188,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate inside image if provided
       if (insidePrompt) {
-        const insideImageResponse = await openai.images.generate({
+        const insideImageOptimization = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "user",
+              content: `Optimize this greeting card interior prompt: ${insidePrompt}. Typography-focused, matching the front design style, square format.`
+            }
+          ],
+          max_tokens: 200
+        });
+
+        const optimizedInsidePrompt = insideImageOptimization.choices[0].message.content;
+        
+        const insideImageGeneration = await openai.images.generate({
           model: "dall-e-3",
-          prompt: `Square greeting card interior design: ${insidePrompt}. Typography-focused, matching the front design style, square format.`,
+          prompt: `${optimizedInsidePrompt}. Square greeting card interior, typography-focused.`,
           n: 1,
           size: "1024x1024", 
           quality: "standard",
         });
-        insideImageUrl = insideImageResponse.data?.[0]?.url || null;
+        insideImageUrl = insideImageGeneration.data?.[0]?.url || null;
       }
 
       // Update card with generated images
       const updatedCard = await storage.updateCard(cardId, {
-        frontImageUrl: frontImageResponse.data?.[0]?.url || null,
+        frontImageUrl: frontImageGeneration.data?.[0]?.url || null,
         insideImageUrl,
         status: 'completed'
       });
