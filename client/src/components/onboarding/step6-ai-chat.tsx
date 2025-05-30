@@ -28,8 +28,7 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
   const [showMoreSkinTones, setShowMoreSkinTones] = useState(false);
   const [showRelationshipButtons, setShowRelationshipButtons] = useState(false);
   const [showMoreRelationships, setShowMoreRelationships] = useState(false);
-  const [showHairStyleButtons, setShowHairStyleButtons] = useState(false);
-  const [showMoreHairStyles, setShowMoreHairStyles] = useState(false);
+
   const [showHairColorButtons, setShowHairColorButtons] = useState(false);
   const [showMoreHairColors, setShowMoreHairColors] = useState(false);
   const [showGenderButtons, setShowGenderButtons] = useState(false);
@@ -82,19 +81,7 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     "Mentor", "Student", "Pet", "Myself", "Other"
   ];
 
-  const mainHairStyles = [
-    { name: "Short", description: "Above shoulders", color: "bg-blue-500" },
-    { name: "Medium", description: "Shoulder length", color: "bg-green-500" },
-    { name: "Long", description: "Below shoulders", color: "bg-purple-500" },
-    { name: "Curly", description: "Natural curls", color: "bg-orange-500" },
-    { name: "Straight", description: "Smooth and straight", color: "bg-pink-500" }
-  ];
 
-  const additionalHairStyles = [
-    "Afro", "Braids", "Locs", "Waves", "Buzz Cut", "Bald",
-    "Shoulder Length", "Wavy", "Kinky", "Relaxed", "Natural",
-    "Ponytail", "Bun", "Bangs", "Layered", "Bob Cut"
-  ];
 
   const mainHairColors = [
     { name: "Black", color: "#1a1a1a", textColor: "text-white" },
@@ -181,7 +168,6 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     setShowGenderButtons(false);
     setShowAgeRangeButtons(false);
     setShowSkinToneButtons(false);
-    setShowHairStyleButtons(false);
     setShowHairColorButtons(false);
     
     // Detect what buttons to show - hair color comes first now
@@ -191,12 +177,7 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
                                (lowerResponse.includes('color is') && lowerResponse.includes('hair')) ||
                                lowerResponse.includes('what color is') && lowerResponse.includes('hair');
     
-    const isHairStyleQuestion = lowerResponse.includes('hair') && 
-                               (lowerResponse.includes('length') || lowerResponse.includes('style') || lowerResponse.includes('look like') || 
-                                lowerResponse.includes('what does') || lowerResponse.includes('how does'));
-    
     console.log('Hair color question check:', isHairColorQuestion);
-    console.log('Hair style question check:', isHairStyleQuestion);
     console.log('Full check - contains "what color is":', lowerResponse.includes('what color is'));
     console.log('Full check - contains "hair":', lowerResponse.includes('hair'));
     
@@ -204,18 +185,9 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     if (lowerResponse.includes('what color is') && lowerResponse.includes('hair')) {
       console.log('FORCED: Hair color detected via "what color is" + "hair"');
       setShowHairColorButtons(true);
-    } else if ((lowerResponse.includes('what does') && lowerResponse.includes('hair')) || 
-               (lowerResponse.includes('now, what') && lowerResponse.includes('hair')) ||
-               (lowerResponse.includes('can you desc') && lowerResponse.includes('hair')) ||
-               (lowerResponse.includes('describe') && lowerResponse.includes('hair'))) {
-      console.log('FORCED: Hair style detected via hair style patterns');
-      setShowHairStyleButtons(true);
     } else if (isHairColorQuestion) {
       console.log('Hair color detected - showing hair color buttons');
       setShowHairColorButtons(true);
-    } else if (isHairStyleQuestion) {
-      console.log('Hair style detected - showing hair style buttons');
-      setShowHairStyleButtons(true);
     } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
       setShowNameInput(true);
     } else if (lowerResponse.includes('age range') || lowerResponse.includes('what age range')) {
@@ -480,43 +452,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
     }
   };
 
-  const handleHairStyleSelect = async (hairStyle: string, description?: string) => {
-    setShowHairStyleButtons(false);
-    setCollectedData({ ...collectedData, hairStyle });
-    
-    const userMessage = description ? 
-      `They have ${hairStyle.toLowerCase()} hair (${description.toLowerCase()})` :
-      `They have ${hairStyle.toLowerCase()} hair`;
-    const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
-    setMessages(newMessages);
-    setIsLoading(true);
 
-    try {
-      const response = await apiRequest("POST", "/api/chat", {
-        messages: newMessages,
-        cardId,
-        systemPrompt: getSystemPrompt()
-      });
-
-      const { response: aiResponse } = await response.json();
-
-      if (aiResponse.includes("GENERATE_CARD")) {
-        await generateCard();
-      } else {
-        setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
-        handleAIResponseDetection(aiResponse);
-        setCurrentStepState(currentStep + 1);
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to process selection",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleHairColorSelect = async (hairColor: string) => {
     setShowHairColorButtons(false);
@@ -923,62 +859,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
           </div>
         )}
 
-        {/* Hair Style Selection Buttons */}
-        {showHairStyleButtons && (
-          <div className="space-y-4">
-            {/* Main Hair Styles */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {mainHairStyles.map((hairStyle) => (
-                <Button
-                  key={hairStyle.name}
-                  onClick={() => handleHairStyleSelect(hairStyle.name, hairStyle.description)}
-                  className={`${hairStyle.color} hover:opacity-90 text-white p-4 rounded-2xl h-auto flex items-center space-x-3 transition-all duration-300 transform hover:scale-105`}
-                >
-                  <div className="w-5 h-5 rounded-full bg-white/20" />
-                  <div className="text-left">
-                    <div className="font-medium">{hairStyle.name}</div>
-                    <div className="text-xs text-white/80">{hairStyle.description}</div>
-                  </div>
-                </Button>
-              ))}
-            </div>
 
-            {/* Show More Button */}
-            {!showMoreHairStyles && (
-              <div className="text-center">
-                <Button
-                  onClick={() => setShowMoreHairStyles(true)}
-                  variant="outline"
-                  className="border-2 border-purple-200 text-gray-700 px-6 py-2 rounded-2xl hover:border-ethereal-purple transition-all duration-300"
-                >
-                  <ChevronDown className="w-4 h-4 mr-2" />
-                  Show More Hair Styles
-                </Button>
-              </div>
-            )}
-
-            {/* Additional Hair Styles */}
-            {showMoreHairStyles && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {additionalHairStyles.map((hairStyle) => (
-                  <Button
-                    key={hairStyle}
-                    onClick={() => handleHairStyleSelect(hairStyle)}
-                    variant="outline"
-                    className="border border-purple-200 text-gray-700 py-2 px-3 rounded-xl text-sm hover:border-ethereal-purple hover:bg-purple-50 transition-all duration-300"
-                  >
-                    {hairStyle}
-                  </Button>
-                ))}
-              </div>
-            )}
-
-            {/* Custom Input Hint */}
-            <div className="text-center">
-              <p className="text-sm text-slate-gray mb-2">Want to be more specific? Type below:</p>
-            </div>
-          </div>
-        )}
 
         {/* Hair Color Selection Buttons */}
         {showHairColorButtons && (
