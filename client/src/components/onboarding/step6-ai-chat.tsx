@@ -33,6 +33,7 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
   const [showMoreHairStyles, setShowMoreHairStyles] = useState(false);
   const [showHairColorButtons, setShowHairColorButtons] = useState(false);
   const [showMoreHairColors, setShowMoreHairColors] = useState(false);
+  const [showBuildButtons, setShowBuildButtons] = useState(false);
   const [showGenderButtons, setShowGenderButtons] = useState(false);
   const [showAgeRangeButtons, setShowAgeRangeButtons] = useState(false);
   const [showNameInput, setShowNameInput] = useState(false);
@@ -108,6 +109,15 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
   const getAdditionalFemaleHairStyles = () => [
     "Pixie Cut", "Lob", "Bangs", "Layered", "Straight", "Wavy",
     "Braids", "Ponytail", "Bun", "Beach Waves", "Afro", "Locs"
+  ];
+
+  const buildOptions = [
+    { name: "Slim", description: "Lean build", color: "bg-blue-500" },
+    { name: "Average", description: "Regular build", color: "bg-green-500" },
+    { name: "Athletic", description: "Fit and toned", color: "bg-purple-500" },
+    { name: "Curvy", description: "Fuller figure", color: "bg-pink-500" },
+    { name: "Stocky", description: "Broader build", color: "bg-orange-500" },
+    { name: "Petite", description: "Small frame", color: "bg-yellow-500" }
   ];
 
 
@@ -199,6 +209,7 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     setShowSkinToneButtons(false);
     setShowHairStyleButtons(false);
     setShowHairColorButtons(false);
+    setShowBuildButtons(false);
     
     // Detect what buttons to show
     const isHairColorQuestion = lowerResponse.includes('hair color') || 
@@ -213,8 +224,14 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
                                (lowerResponse.includes('what does') && lowerResponse.includes('hair') && lowerResponse.includes('look')) ||
                                (lowerResponse.includes('hair') && lowerResponse.includes('style') && lowerResponse.includes('length'));
     
+    const isBuildQuestion = lowerResponse.includes('build') || 
+                           lowerResponse.includes('body type') ||
+                           (lowerResponse.includes('what') && lowerResponse.includes('build')) ||
+                           lowerResponse.includes('physique');
+    
     console.log('Hair color question check:', isHairColorQuestion);
     console.log('Hair style question check:', isHairStyleQuestion);
+    console.log('Build question check:', isBuildQuestion);
     console.log('Full check - contains "what color is":', lowerResponse.includes('what color is'));
     console.log('Full check - contains "hair":', lowerResponse.includes('hair'));
     
@@ -231,6 +248,9 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     } else if (isHairStyleQuestion) {
       console.log('Hair style detected - showing hair style buttons');
       setShowHairStyleButtons(true);
+    } else if (isBuildQuestion) {
+      console.log('Build detected - showing build buttons');
+      setShowBuildButtons(true);
     } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
       setShowNameInput(true);
     } else if (lowerResponse.includes('age range') || lowerResponse.includes('what age range')) {
@@ -273,11 +293,12 @@ Workflow steps:
 5. CULTURAL HERITAGE - "To create an authentic representation, what's [NAME]'s cultural background or heritage?"
 6. HAIR COLOR - "What color is [NAME]'s hair?" (ONLY ask if hairColor not collected)
 7. HAIR STYLE - "How does [NAME]'s hair look? What's the style or length?" (ALWAYS ask after hair color, ONLY skip if hairStyle already collected)
-8. DISTINCT FEATURES - "Any standout features like glasses or freckles?"
-9. PERSONALITY/VIBE - "What's [NAME]'s personality like?"
-10. SCENE SETTING - "Where should [NAME] be in the scene?"
-11. ART STYLE - "What art style should we use?"
-12. FRONT MESSAGE - "Any message for the front?"
+8. BUILD - "What's [NAME]'s build or body type?" (Ask after hair style)
+9. DISTINCT FEATURES - "Any standout features like glasses or freckles?"
+10. PERSONALITY/VIBE - "What's [NAME]'s personality like?"
+11. SCENE SETTING - "Where should [NAME] be in the scene?"
+12. ART STYLE - "What art style should we use?"
+13. FRONT MESSAGE - "Any message for the front?"
 ${onboarding.selectedPrintOption === 'front-and-inside' ? '13. INSIDE MESSAGE - "What should the message inside read?"' : ''}
 
 When you have all the information, confirm with the user and then say "GENERATE_CARD" to trigger image generation.`;
@@ -499,6 +520,44 @@ When you have all the information, confirm with the user and then say "GENERATE_
     const userMessage = description ? 
       `They have ${hairStyle.toLowerCase()} hair (${description.toLowerCase()})` :
       `They have ${hairStyle.toLowerCase()} hair`;
+    const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
+    setMessages(newMessages);
+    setIsLoading(true);
+
+    try {
+      const response = await apiRequest("POST", "/api/chat", {
+        messages: newMessages,
+        cardId,
+        systemPrompt: getSystemPrompt()
+      });
+
+      const { response: aiResponse } = await response.json();
+
+      if (aiResponse.includes("GENERATE_CARD")) {
+        await generateCard();
+      } else {
+        setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
+        handleAIResponseDetection(aiResponse);
+        setCurrentStepState(currentStep + 1);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process selection",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBuildSelect = async (build: string, description?: string) => {
+    setShowBuildButtons(false);
+    setCollectedData({ ...collectedData, build });
+    
+    const userMessage = description ? 
+      `They have a ${build.toLowerCase()} build (${description.toLowerCase()})` :
+      `They have a ${build.toLowerCase()} build`;
     const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
     setMessages(newMessages);
     setIsLoading(true);
