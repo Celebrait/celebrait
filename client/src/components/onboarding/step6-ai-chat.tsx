@@ -55,18 +55,19 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     "Easter", "Thanksgiving", "Apology", "Just Because"
   ];
 
-  const skinToneOptions = [
-    { name: "Light", description: "Fair, pale complexion", color: "#FDB5A6" },
-    { name: "Medium Light", description: "Warm, peachy undertones", color: "#E8A882" },
-    { name: "Medium", description: "Golden, olive undertones", color: "#D4956C" },
-    { name: "Medium Deep", description: "Rich, warm brown", color: "#B8875A" },
-    { name: "Deep", description: "Rich, dark brown", color: "#8B6F4D" },
-    { name: "Very Deep", description: "Beautiful deep ebony", color: "#5D4E37" }
+  const culturalRepresentationOptions = [
+    { name: "Zulu", description: "South Africa's largest ethnic group", icon: "🇿🇦" },
+    { name: "Xhosa", description: "Predominantly Eastern Cape heritage", icon: "🇿🇦" },
+    { name: "Afrikaner", description: "Afrikaans-speaking European heritage", icon: "🇿🇦" },
+    { name: "Coloured", description: "Mixed-race South African heritage", icon: "🇿🇦" },
+    { name: "Indian", description: "South African Indian community", icon: "🇿🇦" },
+    { name: "Sotho", description: "Sesotho-speaking heritage", icon: "🇿🇦" }
   ];
 
-  const culturalBackgrounds = [
-    "African", "Afrikaner", "Coloured", "Indian", "European", 
-    "Mixed Heritage", "Zulu", "Xhosa", "Sotho", "Tswana", "Other"
+  const additionalCulturalGroups = [
+    "Tswana", "Pedi", "Venda", "Tsonga", "Ndebele", "Swazi",
+    "English South African", "Portuguese", "German", "Italian",
+    "Greek", "Jewish", "Chinese", "Lebanese", "Mixed Heritage", "Other"
   ];
 
   const mainRelationships = [
@@ -236,7 +237,7 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
       setShowAgeRangeButtons(true);
     } else if (lowerResponse.includes('male') || lowerResponse.includes('female') || lowerResponse.includes('gender')) {
       setShowGenderButtons(true);
-    } else if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
+    } else if (lowerResponse.includes('cultural') || lowerResponse.includes('heritage') || lowerResponse.includes('background')) {
       setShowSkinToneButtons(true);
     } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for')) {
       setShowRelationshipButtons(true);
@@ -269,7 +270,7 @@ Workflow steps:
 2. NAME - "What's their name?"
 3. GENDER - "To help represent [NAME], are they male or female?"
 4. AGE RANGE - "What age range is [NAME] in?"
-5. APPEARANCE - "To create an authentic representation, what does [NAME] look like? Skin tone and features?"
+5. CULTURAL HERITAGE - "To create an authentic representation, what's [NAME]'s cultural background or heritage?"
 6. HAIR COLOR - "What color is [NAME]'s hair?" (ONLY ask if hairColor not collected)
 7. HAIR STYLE - "How does [NAME]'s hair look? What's the style or length?" (ALWAYS ask after hair color, ONLY skip if hairStyle already collected)
 8. DISTINCT FEATURES - "Any standout features like glasses or freckles?"
@@ -475,7 +476,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
       const lowerResponse = aiResponse.toLowerCase();
       if (lowerResponse.includes('hair') && lowerResponse.includes('color')) {
         setShowHairColorButtons(true);
-      } else if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
+      } else if (lowerResponse.includes('cultural') || lowerResponse.includes('heritage') || lowerResponse.includes('background')) {
         setShowSkinToneButtons(true);
       }
       
@@ -1054,28 +1055,27 @@ When you have all the information, confirm with the user and then say "GENERATE_
           </div>
         )}
 
-        {/* Skin Tone Selection Buttons */}
+        {/* Cultural Heritage Selection Buttons */}
         {showSkinToneButtons && (
           <div className="space-y-4 bg-purple-50 p-6 rounded-2xl border border-purple-100">
             <div className="text-center mb-4">
               <p className="text-sm text-slate-gray mb-2">
                 🌍 South Africa's beautiful diversity is what makes our cards special! 
-                To create the most authentic representation, could you help us with their skin tone?
+                To create the most authentic representation, what's their cultural heritage?
               </p>
             </div>
 
-            {/* Skin Tone Options */}
+            {/* Main Cultural Groups */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {skinToneOptions.slice(0, showMoreSkinTones ? skinToneOptions.length : 4).map((option) => (
+              {culturalRepresentationOptions.map((option) => (
                 <Button
                   key={option.name}
                   onClick={() => handleSkinToneSelect(option.name, option.description)}
                   className="bg-white hover:bg-gray-50 text-gray-800 border-2 border-gray-200 hover:border-purple-300 p-4 rounded-2xl h-auto flex items-center space-x-3 transition-all duration-300 transform hover:scale-105"
                 >
-                  <div 
-                    className="w-6 h-6 rounded-full border-2 border-white shadow-md"
-                    style={{ backgroundColor: option.color }}
-                  />
+                  <div className="text-2xl">
+                    {option.icon}
+                  </div>
                   <div className="text-left">
                     <div className="font-medium">{option.name}</div>
                     <div className="text-xs text-gray-600">{option.description}</div>
@@ -1084,8 +1084,8 @@ When you have all the information, confirm with the user and then say "GENERATE_
               ))}
             </div>
 
-            {/* Show More Skin Tones */}
-            {!showMoreSkinTones && skinToneOptions.length > 4 && (
+            {/* Show More Cultural Groups */}
+            {!showMoreSkinTones && (
               <div className="text-center">
                 <Button
                   onClick={() => setShowMoreSkinTones(true)}
@@ -1093,22 +1093,22 @@ When you have all the information, confirm with the user and then say "GENERATE_
                   className="border-2 border-purple-200 text-gray-700 px-6 py-2 rounded-2xl hover:border-ethereal-purple transition-all duration-300"
                 >
                   <ChevronDown className="w-4 h-4 mr-2" />
-                  Show More Options
+                  Show More Cultural Groups
                 </Button>
               </div>
             )}
 
-            {/* Cultural Background Options */}
+            {/* Additional Cultural Groups */}
             {showMoreSkinTones && (
               <div className="border-t border-purple-200 pt-4">
                 <p className="text-sm text-slate-gray mb-3 text-center">
-                  Cultural background (optional - helps with authentic styling):
+                  Additional South African cultural groups:
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {culturalBackgrounds.map((background) => (
+                  {additionalCulturalGroups.map((background) => (
                     <Button
                       key={background}
-                      onClick={() => handleSkinToneSelect("Cultural background", background)}
+                      onClick={() => handleSkinToneSelect(background, `${background} heritage`)}
                       variant="outline"
                       className="border border-purple-200 text-gray-700 py-2 px-3 rounded-xl text-sm hover:border-ethereal-purple hover:bg-purple-100 transition-all duration-300"
                     >
