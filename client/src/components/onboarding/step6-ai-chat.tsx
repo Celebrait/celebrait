@@ -560,6 +560,9 @@ When you have all the information, confirm with the user and then say "GENERATE_
       } else {
         setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
         
+        // Check what type of question is being asked and show appropriate buttons
+        const lowerResponse = aiResponse.toLowerCase();
+        
         // Reset all button states first
         setShowCelebrationButtons(false);
         setShowRelationshipButtons(false);
@@ -570,24 +573,24 @@ When you have all the information, confirm with the user and then say "GENERATE_
         setShowHairStyleButtons(false);
         setShowHairColorButtons(false);
         
-        // Check what type of question is being asked and show appropriate buttons
-        const lowerResponse = aiResponse.toLowerCase();
-        
-        if (lowerResponse.includes('hair') && lowerResponse.includes('color')) {
-          setShowHairColorButtons(true);
-        } else if (lowerResponse.includes('hair')) {
-          setShowHairStyleButtons(true);
-        } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
-          setShowNameInput(true);
-        } else if (lowerResponse.includes('age range') || lowerResponse.includes('what age range')) {
-          setShowAgeRangeButtons(true);
-        } else if (lowerResponse.includes('male') || lowerResponse.includes('female') || lowerResponse.includes('gender')) {
-          setShowGenderButtons(true);
-        } else if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
-          setShowSkinToneButtons(true);
-        } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for') || lowerResponse.includes('birthday card for')) {
-          setShowRelationshipButtons(true);
-        }
+        // Use setTimeout to ensure state reset happens before setting new state
+        setTimeout(() => {
+          if (lowerResponse.includes('hair') && lowerResponse.includes('color')) {
+            setShowHairColorButtons(true);
+          } else if (lowerResponse.includes('hair')) {
+            setShowHairStyleButtons(true);
+          } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
+            setShowNameInput(true);
+          } else if (lowerResponse.includes('age range') || lowerResponse.includes('what age range')) {
+            setShowAgeRangeButtons(true);
+          } else if (lowerResponse.includes('male') || lowerResponse.includes('female') || lowerResponse.includes('gender')) {
+            setShowGenderButtons(true);
+          } else if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
+            setShowSkinToneButtons(true);
+          } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for') || lowerResponse.includes('birthday card for')) {
+            setShowRelationshipButtons(true);
+          }
+        }, 100);
         
         setCurrentStepState(currentStep + 1);
       }
