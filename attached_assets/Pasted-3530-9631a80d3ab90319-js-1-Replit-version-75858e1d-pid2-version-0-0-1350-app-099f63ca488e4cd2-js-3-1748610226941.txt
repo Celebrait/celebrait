@@ -1,0 +1,91 @@
+3530-9631a80d3ab90319.js:1 Replit version 75858e1d, pid2 version 0.0.1350
+_app-099f63ca488e4cd2.js:38 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+_app-099f63ca488e4cd2.js:38 [LaunchDarkly] LaunchDarkly client initialized
+analytics.tiktok.com/i18n/pixel/events.js?sdkid=D004GE3C77U8PIVDSDJG&lib=ttq:1 
+            
+            
+           Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+www.googletagmanager.com/gtag/js?id=AW-11411994397:1 
+            
+            
+           Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+www.google-analytics.com/analytics.js:1 
+            
+            
+           Failed to load resource: net::ERR_UNSAFE_REDIRECT
+CelebrationCompanion:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+framework-0d343b9123680bab.js:1 Unrecognized feature: 'ambient-light-sensor'.
+_ @ framework-0d343b9123680bab.js:1
+framework-0d343b9123680bab.js:1 Unrecognized feature: 'battery'.
+_ @ framework-0d343b9123680bab.js:1
+framework-0d343b9123680bab.js:1 Unrecognized feature: 'execution-while-not-rendered'.
+_ @ framework-0d343b9123680bab.js:1
+framework-0d343b9123680bab.js:1 Unrecognized feature: 'execution-while-out-of-viewport'.
+_ @ framework-0d343b9123680bab.js:1
+framework-0d343b9123680bab.js:1 Unrecognized feature: 'layout-animations'.
+_ @ framework-0d343b9123680bab.js:1
+framework-0d343b9123680bab.js:1 Unrecognized feature: 'legacy-image-formats'.
+_ @ framework-0d343b9123680bab.js:1
+framework-0d343b9123680bab.js:1 Unrecognized feature: 'navigation-override'.
+_ @ framework-0d343b9123680bab.js:1
+framework-0d343b9123680bab.js:1 Unrecognized feature: 'oversized-images'.
+_ @ framework-0d343b9123680bab.js:1
+framework-0d343b9123680bab.js:1 Unrecognized feature: 'publickey-credentials'.
+_ @ framework-0d343b9123680bab.js:1
+framework-0d343b9123680bab.js:1 Unrecognized feature: 'speaker-selection'.
+_ @ framework-0d343b9123680bab.js:1
+framework-0d343b9123680bab.js:1 Unrecognized feature: 'unoptimized-images'.
+_ @ framework-0d343b9123680bab.js:1
+framework-0d343b9123680bab.js:1 Unrecognized feature: 'unsized-media'.
+_ @ framework-0d343b9123680bab.js:1
+framework-0d343b9123680bab.js:1 Unrecognized feature: 'pointer-lock'.
+_ @ framework-0d343b9123680bab.js:1
+framework-0d343b9123680bab.js:1 Allow attribute will take precedence over 'allowfullscreen'.
+_ @ framework-0d343b9123680bab.js:1
+framework-0d343b9123680bab.js:1 Allow attribute will take precedence over 'allowpaymentrequest'.
+_ @ framework-0d343b9123680bab.js:1
+_app-099f63ca488e4cd2.js:38 task queue exceeded allotted deadline by 33ms
+(anonymous) @ _app-099f63ca488e4cd2.js:38
+workspace_iframe.html:32 Unrecognized feature: 'ambient-light-sensor'.
+workspace_iframe.html:32 Unrecognized feature: 'battery'.
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-not-rendered'.
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+workspace_iframe.html:32 Unrecognized feature: 'layout-animations'.
+workspace_iframe.html:32 Unrecognized feature: 'legacy-image-formats'.
+workspace_iframe.html:32 Unrecognized feature: 'navigation-override'.
+workspace_iframe.html:32 Unrecognized feature: 'oversized-images'.
+workspace_iframe.html:32 Unrecognized feature: 'publickey-credentials'.
+workspace_iframe.html:32 Unrecognized feature: 'speaker-selection'.
+workspace_iframe.html:32 Unrecognized feature: 'unoptimized-images'.
+workspace_iframe.html:32 Unrecognized feature: 'unsized-media'.
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowfullscreen'.
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowpaymentrequest'.

@@ -1113,6 +1113,17 @@ When you have all the information, confirm with the user and then say "GENERATE_
 
       {/* Chat Input */}
       <div className="p-6 border-t border-gray-200 bg-white/80">
+        {/* Test button for hair styles - REMOVE AFTER DEBUGGING */}
+        <div className="mb-4">
+          <Button
+            onClick={() => setShowHairStyleButtons(true)}
+            variant="outline"
+            className="border-red-500 text-red-500 hover:bg-red-50"
+          >
+            TEST: Show Hair Style Buttons
+          </Button>
+        </div>
+
         <div className="flex items-center space-x-3">
           <div className="flex-1 relative">
             <Input
