@@ -564,7 +564,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
         const lowerResponse = aiResponse.toLowerCase();
         if (lowerResponse.includes('hair') && lowerResponse.includes('color')) {
           setShowHairColorButtons(true);
-        } else if (lowerResponse.includes('hair') && (lowerResponse.includes('look like') || lowerResponse.includes('length') || lowerResponse.includes('style'))) {
+        } else if (lowerResponse.includes('hair')) {
           setShowHairStyleButtons(true);
         } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
           setShowNameInput(true);
