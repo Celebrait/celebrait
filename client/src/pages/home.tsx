@@ -7,7 +7,7 @@ import Step2DeliveryChoice from "@/components/onboarding/step2-delivery-choice";
 import Step3PrintedOptions from "@/components/onboarding/step3-printed-options";
 import Step4AILoading from "@/components/onboarding/step4-ai-loading";
 import Step5SceneChoice from "@/components/onboarding/step5-scene-choice";
-import Step6AIChat from "@/components/onboarding/step6-ai-chat";
+import GuidedConversation from "@/components/onboarding/guided-conversation";
 import CardPreview from "@/components/card-preview";
 import SignupModal from "@/components/signup-modal";
 import { useOnboarding } from "@/hooks/use-onboarding";
@@ -39,7 +39,7 @@ export default function Home() {
       case 5:
         return <Step5SceneChoice onboarding={onboarding} />;
       case 6:
-        return <Step6AIChat onboarding={onboarding} onCardGenerated={handleCardGenerated} />;
+        return <GuidedConversation onboarding={onboarding} onCardGenerated={handleCardGenerated} />;
       default:
         return <Step1NameInput onboarding={onboarding} />;
     }
