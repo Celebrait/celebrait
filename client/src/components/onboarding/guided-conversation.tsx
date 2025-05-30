@@ -562,7 +562,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                           variant="outline"
                           className="h-auto p-3 text-center transition-all hover:scale-[1.02] hover:shadow-md bg-gradient-to-r from-purple-200 to-blue-200 text-purple-700 border-purple-200 hover:from-purple-300 hover:to-blue-300 hover:text-purple-800 active:from-purple-200 active:to-blue-200 rounded-lg text-sm font-medium"
                         >
-                          {option.label}
+                          <div className="flex items-center justify-center space-x-2">
+                            {option.icon && <span className="text-lg">{option.icon}</span>}
+                            <span>{option.label}</span>
+                          </div>
                         </Button>
                       ))}
                     </div>
