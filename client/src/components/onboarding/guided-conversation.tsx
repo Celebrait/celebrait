@@ -18,7 +18,7 @@ interface ConversationStep {
   question: string;
   aiMessage: string;
   type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect';
-  options?: Array<{ value: string; label: string; description?: string; color?: string }>;
+  options?: Array<{ value: string; label: string; description?: string; color?: string; icon?: string }>;
   placeholder?: string;
   required?: boolean;
 }
@@ -43,18 +43,18 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       aiMessage: `Hey ${onboarding.userName}! 🎉 I'm so excited to help you create something magical. Let's start by choosing what celebration this card is for!`,
       type: 'select',
       options: [
-        { value: 'birthday', label: 'Birthday', description: 'Celebrate another year of life', color: 'bg-pink-500' },
-        { value: 'anniversary', label: 'Anniversary', description: 'Mark a special milestone', color: 'bg-red-500' },
-        { value: 'graduation', label: 'Graduation', description: 'Honor academic achievement', color: 'bg-blue-500' },
-        { value: 'wedding', label: 'Wedding', description: 'Celebrate love and union', color: 'bg-purple-500' },
-        { value: 'baby_shower', label: 'Baby Shower', description: 'Welcome a new arrival', color: 'bg-green-500' },
-        { value: 'retirement', label: 'Retirement', description: 'Honor years of dedication', color: 'bg-orange-500' },
-        { value: 'mothers_day', label: "Mother's Day", description: 'Honor mom', color: 'bg-pink-400' },
-        { value: 'fathers_day', label: "Father's Day", description: 'Celebrate dad', color: 'bg-blue-400' },
-        { value: 'valentines', label: "Valentine's Day", description: 'Show your love', color: 'bg-red-400' },
-        { value: 'christmas', label: 'Christmas', description: 'Holiday celebration', color: 'bg-green-400' },
-        { value: 'new_year', label: 'New Year', description: 'Fresh start celebration', color: 'bg-purple-400' },
-        { value: 'easter', label: 'Easter', description: 'Spring celebration', color: 'bg-yellow-400' }
+        { value: 'birthday', label: 'My Birthday', description: 'Celebrate another year of life', color: 'bg-pink-500', icon: '🎂' },
+        { value: 'anniversary', label: 'My Anniversary', description: 'Mark a special milestone', color: 'bg-red-500', icon: '💕' },
+        { value: 'graduation', label: 'My Graduation', description: 'Honor academic achievement', color: 'bg-blue-500', icon: '🎓' },
+        { value: 'wedding', label: 'My Wedding', description: 'Celebrate love and union', color: 'bg-purple-500', icon: '💒' },
+        { value: 'baby_shower', label: 'My Baby Shower', description: 'Welcome a new arrival', color: 'bg-green-500', icon: '👶' },
+        { value: 'retirement', label: 'My Retirement', description: 'Honor years of dedication', color: 'bg-orange-500', icon: '🏖️' },
+        { value: 'mothers_day', label: "My Mother's Day", description: 'Honor mom', color: 'bg-pink-400', icon: '🌸' },
+        { value: 'fathers_day', label: "My Father's Day", description: 'Celebrate dad', color: 'bg-blue-400', icon: '👔' },
+        { value: 'valentines', label: "My Valentine's Day", description: 'Show your love', color: 'bg-red-400', icon: '💝' },
+        { value: 'christmas', label: 'My Christmas', description: 'Holiday celebration', color: 'bg-green-400', icon: '🎄' },
+        { value: 'new_year', label: 'My New Year', description: 'Fresh start celebration', color: 'bg-purple-400', icon: '🎆' },
+        { value: 'easter', label: 'My Easter', description: 'Spring celebration', color: 'bg-yellow-400', icon: '🐰' }
       ]
     },
     {
@@ -94,8 +94,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       aiMessage: `Perfect! ${answers.name || 'They'} sound wonderful. To help me create an authentic representation, are they male or female?`,
       type: 'select',
       options: [
-        { value: 'female', label: 'Female', color: 'bg-pink-500' },
-        { value: 'male', label: 'Male', color: 'bg-blue-500' }
+        { value: 'female', label: 'Female', color: 'bg-pink-500', icon: '👩' },
+        { value: 'male', label: 'Male', color: 'bg-blue-500', icon: '👨' }
       ]
     },
     {
@@ -114,7 +114,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'heritage',
       question: `To create an authentic representation, what's ${answers.name || 'their'} cultural background?`,
-      aiMessage: `South Africa's beautiful diversity is something we celebrate! To create an authentic and respectful representation of ${answers.name || 'them'}, what's their cultural background? This helps me capture their unique heritage accurately.`,
+      aiMessage: `South Africa's beautiful diversity is something we celebrate! To create an authentic and respectful representation of ${answers.name || 'them'}, what's ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} cultural background? This helps me capture ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} unique heritage accurately.`,
       type: 'select',
       options: [
         { value: 'afrikaner', label: 'Afrikaner', description: 'Dutch-descended South African', color: 'bg-orange-500' },
@@ -138,7 +138,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'hair_color',
       question: `What color is ${answers.name || 'their'} hair?`,
-      aiMessage: `Excellent! Now let's capture their look. What color is ${answers.name || 'their'} hair?`,
+      aiMessage: `Excellent! Now let's capture ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} look. What color is ${answers.name || 'their'} hair?`,
       type: 'select',
       options: [
         { value: 'jet_black', label: 'Jet Black', color: 'bg-gray-900' },
@@ -166,7 +166,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'hair_style',
       question: `How does ${answers.name || 'they'} style their hair?`,
-      aiMessage: `Great choice! How does ${answers.name || 'they'} style their hair?`,
+      aiMessage: `Great choice! How does ${answers.gender === 'male' ? 'he' : answers.gender === 'female' ? 'she' : 'they'} style ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} hair?`,
       type: 'select',
       options: answers.gender === 'female' ? [
         { value: 'long_straight', label: 'Long & Straight', color: 'bg-purple-500' },
@@ -298,17 +298,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'message',
       question: 'What message should appear on the front of the card?',
-      aiMessage: `Almost there! This is your opportunity to get really personal! What heartfelt message should appear on the front of ${answers.name || 'their'} card? You can also choose to have no message at all - sometimes the image speaks for itself. Make it as meaningful and personal as you want!`,
-      type: 'select',
-      options: [
-        { value: 'happy_birthday', label: 'Happy Birthday', description: 'Classic birthday greeting', color: 'bg-pink-500' },
-        { value: 'happy_birthday_name', label: `Happy Birthday ${answers.name || '[Name]'}`, description: 'Personalized birthday greeting', color: 'bg-purple-500' },
-        { value: 'another_year_awesome', label: 'Another Year of Awesome', description: 'Celebratory message', color: 'bg-orange-500' },
-        { value: 'celebrate_you', label: 'Celebrating You', description: 'Personal celebration', color: 'bg-blue-500' },
-        { value: 'special_day', label: 'Hope Your Special Day is Amazing', description: 'Warm wishes', color: 'bg-green-500' },
-        { value: 'no_message', label: 'No Message', description: 'Let the image speak for itself', color: 'bg-gray-500' },
-        { value: 'custom', label: 'Custom Message', description: 'Write your own personal message', color: 'bg-red-500' }
-      ]
+      aiMessage: `Almost there! This is your opportunity to get really personal! What heartfelt message should appear on the front of ${answers.name || 'their'} card? You can also leave this blank if you want no message at all - sometimes the image speaks for itself. Make it as meaningful and personal as you want!`,
+      type: 'text',
+      placeholder: 'e.g., Happy Birthday, Celebrating You, or leave blank for no message'
     }
   ];
 
