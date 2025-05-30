@@ -186,20 +186,24 @@ Current step: ${currentStep}`;
     if (onboarding.selectedSceneType === 'with-person') {
       return basePrompt + `
 
-Follow this exact workflow:
-1. WHO IS THE CARD FOR? (Just ask "who is this ${celebrationType.toLowerCase()} card for?" - don't ask for their name unless user volunteers it)
-2. NAME - "What's their name? I'd love to personalize our conversation about them!"
-3. GENDER - "To help us represent [NAME] perfectly in your card, are they male or female?"
-4. AGE RANGE - "What age range is [NAME] in? This helps us create the most authentic representation for your special card!"
-5. APPEARANCE - "South Africa's beautiful diversity is what makes our cards so special! To create the most authentic representation of [NAME], could you help me understand what they look like? Their skin tone, features, and overall appearance?"
-6. HAIR STYLE - "What does [NAME]'s hair look like? (length and style)"
-7. HAIR COLOR - "What color is [NAME]'s hair?"
-8. DISTINCT FEATURES - "Does [NAME] have any standout features? (glasses, freckles, etc.) The more specific you are, the better our AI can interpret and create your perfect card!"
+Follow this exact workflow and NEVER repeat questions already answered:
+
+Current collected data: ${JSON.stringify(collectedData)}
+
+Workflow steps:
+1. WHO IS THE CARD FOR? (Ask "who is this ${celebrationType.toLowerCase()} card for?")
+2. NAME - "What's their name?"
+3. GENDER - "To help represent [NAME], are they male or female?"
+4. AGE RANGE - "What age range is [NAME] in?"
+5. APPEARANCE - "To create an authentic representation, what does [NAME] look like? Skin tone and features?"
+6. HAIR STYLE - "What does [NAME]'s hair look like? Length and style?" (ONLY ask if hairStyle not collected)
+7. HAIR COLOR - "What color is [NAME]'s hair?" (ONLY ask if hairColor not collected and hairStyle is collected)
+8. DISTINCT FEATURES - "Any standout features like glasses or freckles?"
 9. CLOTHING STYLE - "How does [NAME] usually dress?"
-10. PERSONALITY/VIBE - "What's [NAME]'s vibe? (chilled, fiery, etc.)"
-11. SCENE SETTING - "Where do you imagine [NAME]? Pick a scene or I can suggest one!"
-12. ART STYLE - "What should the artwork look like?"
-13. FRONT MESSAGE - "Want anything written on the front?"
+10. PERSONALITY/VIBE - "What's [NAME]'s personality like?"
+11. SCENE SETTING - "Where should [NAME] be in the scene?"
+12. ART STYLE - "What art style should we use?"
+13. FRONT MESSAGE - "Any message for the front?"
 ${onboarding.selectedPrintOption === 'front-and-inside' ? '14. INSIDE MESSAGE - "What should the message inside read?"' : ''}
 
 When you have all the information, confirm with the user and then say "GENERATE_CARD" to trigger image generation.`;
@@ -581,15 +585,12 @@ When you have all the information, confirm with the user and then say "GENERATE_
         console.log('Current step:', currentStep);
         console.log('Collected data so far:', collectedData);
         
-        // Comprehensive hair detection
-        const isHairColorQuestion = lowerResponse.includes('hair color') || (lowerResponse.includes('hair') && lowerResponse.includes('color'));
-        const isHairStyleQuestion = lowerResponse.includes('hair') && !isHairColorQuestion;
-        
-        if (isHairColorQuestion) {
+        // Clear and precise detection logic
+        if (lowerResponse.includes('hair color') || (lowerResponse.includes('hair') && lowerResponse.includes('color'))) {
           console.log('Hair color question detected: Showing hair color buttons');
           setShowHairColorButtons(true);
-        } else if (isHairStyleQuestion) {
-          console.log('Hair style question detected: Showing hair style buttons');
+        } else if (lowerResponse.includes('hair') && !collectedData.hairStyle) {
+          console.log('First hair question detected: Showing hair style buttons');
           setShowHairStyleButtons(true);
         } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
           setShowNameInput(true);
@@ -601,12 +602,6 @@ When you have all the information, confirm with the user and then say "GENERATE_
           setShowSkinToneButtons(true);
         } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for') || lowerResponse.includes('birthday card for')) {
           setShowRelationshipButtons(true);
-        }
-        
-        // Additional debugging and forced detection
-        if (lowerResponse.includes('hair')) {
-          console.log('Hair detected in response, forcing hair style buttons');
-          setShowHairStyleButtons(true);
         }
         
         setCurrentStepState(currentStep + 1);
