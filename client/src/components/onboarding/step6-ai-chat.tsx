@@ -24,6 +24,8 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
   const [currentStep, setCurrentStepState] = useState(1);
   const [showAllCelebrations, setShowAllCelebrations] = useState(false);
   const [showCelebrationButtons, setShowCelebrationButtons] = useState(true);
+  const [showSkinToneButtons, setShowSkinToneButtons] = useState(false);
+  const [showMoreSkinTones, setShowMoreSkinTones] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -40,6 +42,20 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     "New Job", "Retirement", "Housewarming", "Valentine's Day",
     "Mother's Day", "Father's Day", "Christmas", "New Year",
     "Easter", "Thanksgiving", "Apology", "Just Because"
+  ];
+
+  const skinToneOptions = [
+    { name: "Light", description: "Fair, pale complexion", color: "#FDB5A6" },
+    { name: "Medium Light", description: "Warm, peachy undertones", color: "#E8A882" },
+    { name: "Medium", description: "Golden, olive undertones", color: "#D4956C" },
+    { name: "Medium Deep", description: "Rich, warm brown", color: "#B8875A" },
+    { name: "Deep", description: "Rich, dark brown", color: "#8B6F4D" },
+    { name: "Very Deep", description: "Beautiful deep ebony", color: "#5D4E37" }
+  ];
+
+  const culturalBackgrounds = [
+    "African", "Afrikaner", "Coloured", "Indian", "European", 
+    "Mixed Heritage", "Zulu", "Xhosa", "Sotho", "Tswana", "Other"
   ];
 
   const scrollToBottom = () => {
@@ -105,7 +121,7 @@ Current step: ${currentStep}`;
 
 Follow this exact workflow:
 1. WHO IS THE CARD FOR? (Name + relationship)
-2. RACE & SKIN TONE - "How would you describe their race and skin tone?"
+2. APPEARANCE - "South Africa's beautiful diversity is what makes our cards so special! To create the most authentic representation, could you help me understand what they look like? Their skin tone, features, and overall appearance?"
 3. AGE - "How old are they?"
 4. HAIR - "What does their hair look like? (Color, length, style)"
 5. DISTINCT FEATURES - "Do they have any standout features? (glasses, freckles, etc.)"
@@ -150,7 +166,48 @@ When you have all the information, confirm with the user and then say "GENERATE_
 
       const { response: aiResponse } = await response.json();
       setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
+      
+      // Check if this response is asking about skin tone/appearance
+      if (aiResponse.toLowerCase().includes('skin tone') || aiResponse.toLowerCase().includes('appearance') || aiResponse.toLowerCase().includes('look like')) {
+        setShowSkinToneButtons(true);
+      }
+      
       setCurrentStepState(currentStep + 1);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process selection",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSkinToneSelect = async (skinTone: string, description: string) => {
+    setShowSkinToneButtons(false);
+    setCollectedData({ ...collectedData, skinTone: `${skinTone} - ${description}` });
+    
+    const userMessage = `They have ${skinTone.toLowerCase()} skin tone (${description.toLowerCase()})`;
+    const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
+    setMessages(newMessages);
+    setIsLoading(true);
+
+    try {
+      const response = await apiRequest("POST", "/api/chat", {
+        messages: newMessages,
+        cardId,
+        systemPrompt: getSystemPrompt()
+      });
+
+      const { response: aiResponse } = await response.json();
+
+      if (aiResponse.includes("GENERATE_CARD")) {
+        await generateCard();
+      } else {
+        setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
+        setCurrentStepState(currentStep + 1);
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -169,6 +226,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
     setInput("");
     setIsLoading(true);
     setShowCelebrationButtons(false);
+    setShowSkinToneButtons(false);
 
     const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
     setMessages(newMessages);
@@ -186,6 +244,12 @@ When you have all the information, confirm with the user and then say "GENERATE_
         await generateCard();
       } else {
         setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
+        
+        // Check if this response is asking about skin tone/appearance
+        if (aiResponse.toLowerCase().includes('skin tone') || aiResponse.toLowerCase().includes('appearance') || aiResponse.toLowerCase().includes('look like')) {
+          setShowSkinToneButtons(true);
+        }
+        
         setCurrentStepState(currentStep + 1);
       }
     } catch (error) {
@@ -338,6 +402,80 @@ When you have all the information, confirm with the user and then say "GENERATE_
             {/* Custom Input Hint */}
             <div className="text-center">
               <p className="text-sm text-slate-gray mb-2">Can't find your celebration? Type it below:</p>
+            </div>
+          </div>
+        )}
+
+        {/* Skin Tone Selection Buttons */}
+        {showSkinToneButtons && (
+          <div className="space-y-4 bg-purple-50 p-6 rounded-2xl border border-purple-100">
+            <div className="text-center mb-4">
+              <p className="text-sm text-slate-gray mb-2">
+                🌍 South Africa's beautiful diversity is what makes our cards special! 
+                To create the most authentic representation, could you help us with their skin tone?
+              </p>
+            </div>
+
+            {/* Skin Tone Options */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {skinToneOptions.slice(0, showMoreSkinTones ? skinToneOptions.length : 4).map((option) => (
+                <Button
+                  key={option.name}
+                  onClick={() => handleSkinToneSelect(option.name, option.description)}
+                  className="bg-white hover:bg-gray-50 text-gray-800 border-2 border-gray-200 hover:border-purple-300 p-4 rounded-2xl h-auto flex items-center space-x-3 transition-all duration-300 transform hover:scale-105"
+                >
+                  <div 
+                    className="w-6 h-6 rounded-full border-2 border-white shadow-md"
+                    style={{ backgroundColor: option.color }}
+                  />
+                  <div className="text-left">
+                    <div className="font-medium">{option.name}</div>
+                    <div className="text-xs text-gray-600">{option.description}</div>
+                  </div>
+                </Button>
+              ))}
+            </div>
+
+            {/* Show More Skin Tones */}
+            {!showMoreSkinTones && skinToneOptions.length > 4 && (
+              <div className="text-center">
+                <Button
+                  onClick={() => setShowMoreSkinTones(true)}
+                  variant="outline"
+                  className="border-2 border-purple-200 text-gray-700 px-6 py-2 rounded-2xl hover:border-ethereal-purple transition-all duration-300"
+                >
+                  <ChevronDown className="w-4 h-4 mr-2" />
+                  Show More Options
+                </Button>
+              </div>
+            )}
+
+            {/* Cultural Background Options */}
+            {showMoreSkinTones && (
+              <div className="border-t border-purple-200 pt-4">
+                <p className="text-sm text-slate-gray mb-3 text-center">
+                  Cultural background (optional - helps with authentic styling):
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {culturalBackgrounds.map((background) => (
+                    <Button
+                      key={background}
+                      onClick={() => handleSkinToneSelect("Cultural background", background)}
+                      variant="outline"
+                      className="border border-purple-200 text-gray-700 py-2 px-3 rounded-xl text-sm hover:border-ethereal-purple hover:bg-purple-100 transition-all duration-300"
+                    >
+                      {background}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Custom Input Hint */}
+            <div className="text-center">
+              <p className="text-xs text-slate-gray">
+                Prefer to describe it yourself? Type below instead.
+              </p>
             </div>
           </div>
         )}
