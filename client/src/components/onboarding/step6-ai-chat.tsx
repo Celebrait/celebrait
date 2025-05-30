@@ -184,12 +184,12 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     setShowHairStyleButtons(false);
     setShowHairColorButtons(false);
     
-    // Detect what buttons to show
+    // Detect what buttons to show - hair color comes first now
     if (lowerResponse.includes('hair color') || (lowerResponse.includes('hair') && lowerResponse.includes('color'))) {
       console.log('Hair color detected - showing hair color buttons');
       setShowHairColorButtons(true);
-    } else if (lowerResponse.includes('hair')) {
-      console.log('Hair style detected - showing hair style buttons');
+    } else if (lowerResponse.includes('hair') && collectedData.hairColor && !collectedData.hairStyle) {
+      console.log('Hair style detected (after color collected) - showing hair style buttons');
       setShowHairStyleButtons(true);
     } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
       setShowNameInput(true);
@@ -231,8 +231,8 @@ Workflow steps:
 3. GENDER - "To help represent [NAME], are they male or female?"
 4. AGE RANGE - "What age range is [NAME] in?"
 5. APPEARANCE - "To create an authentic representation, what does [NAME] look like? Skin tone and features?"
-6. HAIR STYLE - "What does [NAME]'s hair look like? Length and style?" (ONLY ask if hairStyle not collected)
-7. HAIR COLOR - "What color is [NAME]'s hair?" (ONLY ask if hairColor not collected and hairStyle is collected)
+6. HAIR COLOR - "What color is [NAME]'s hair?" (ONLY ask if hairColor not collected)
+7. HAIR STYLE - "What does [NAME]'s hair look like? Length and style?" (ONLY ask if hairStyle not collected and hairColor is collected)
 8. DISTINCT FEATURES - "Any standout features like glasses or freckles?"
 9. CLOTHING STYLE - "How does [NAME] usually dress?"
 10. PERSONALITY/VIBE - "What's [NAME]'s personality like?"
