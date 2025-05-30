@@ -347,9 +347,11 @@ When you have all the information, confirm with the user and then say "GENERATE_
       const { response: aiResponse } = await response.json();
       setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
       
-      // Check if this response is asking about appearance
+      // Check what type of question is being asked and show appropriate buttons
       const lowerResponse = aiResponse.toLowerCase();
-      if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
+      if (lowerResponse.includes('hair') && !lowerResponse.includes('color')) {
+        setShowHairStyleButtons(true);
+      } else if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
         setShowSkinToneButtons(true);
       }
       
@@ -514,7 +516,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
         const lowerResponse = aiResponse.toLowerCase();
         if (lowerResponse.includes('hair') && lowerResponse.includes('color')) {
           setShowHairColorButtons(true);
-        } else if (lowerResponse.includes('hair')) {
+        } else if (lowerResponse.includes('hair') && (lowerResponse.includes('look like') || lowerResponse.includes('length') || lowerResponse.includes('style'))) {
           setShowHairStyleButtons(true);
         } else if (lowerResponse.includes('age range') || lowerResponse.includes('what age range')) {
           setShowAgeRangeButtons(true);
