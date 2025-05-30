@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Bot, User, Send, Shield } from "lucide-react";
+import { Bot, User, Send, Shield, ChevronDown, Heart, Gift, PartyPopper, GraduationCap, Baby, Cake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -22,8 +22,25 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
   const [cardId, setCardId] = useState<number | null>(null);
   const [collectedData, setCollectedData] = useState<any>({});
   const [currentStep, setCurrentStepState] = useState(1);
+  const [showAllCelebrations, setShowAllCelebrations] = useState(false);
+  const [showCelebrationButtons, setShowCelebrationButtons] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const mainCelebrations = [
+    { name: "Birthday", icon: Cake, color: "bg-pink-500" },
+    { name: "Anniversary", icon: Heart, color: "bg-red-500" },
+    { name: "Wedding", icon: Gift, color: "bg-purple-500" },
+    { name: "Graduation", icon: GraduationCap, color: "bg-blue-500" },
+    { name: "New Baby", icon: Baby, color: "bg-green-500" }
+  ];
+
+  const additionalCelebrations = [
+    "Thank You", "Get Well Soon", "Congratulations", "Good Luck", 
+    "New Job", "Retirement", "Housewarming", "Valentine's Day",
+    "Mother's Day", "Father's Day", "Christmas", "New Year",
+    "Easter", "Thanksgiving", "Apology", "Just Because"
+  ];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -68,11 +85,7 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
   };
 
   const getWelcomeMessage = () => {
-    if (onboarding.selectedSceneType === 'with-person') {
-      return `Hey ${onboarding.userName}! 👋 I'm so excited to help you create something magical. Let's start - who is this special card for? Tell me their name and how you know them!`;
-    } else {
-      return `Hey ${onboarding.userName}! 👋 I'm thrilled to help you create an amazing card. Let's start - who is this card for? Tell me their name and your relationship to them!`;
-    }
+    return `Hey ${onboarding.userName}! 👋 I'm so excited to help you create something magical. Let's start by choosing what celebration this card is for!`;
   };
 
   const getSystemPrompt = () => {
@@ -119,12 +132,43 @@ When you have all the information, confirm with the user and then say "GENERATE_
     }
   };
 
+  const handleCelebrationSelect = async (celebration: string) => {
+    setShowCelebrationButtons(false);
+    setCollectedData({ ...collectedData, celebration });
+    
+    const userMessage = `I want to create a ${celebration} card`;
+    const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
+    setMessages(newMessages);
+    setIsLoading(true);
+
+    try {
+      const response = await apiRequest("POST", "/api/chat", {
+        messages: newMessages,
+        cardId,
+        systemPrompt: getSystemPrompt()
+      });
+
+      const { response: aiResponse } = await response.json();
+      setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
+      setCurrentStepState(currentStep + 1);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process selection",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading || !cardId) return;
 
     const userMessage = input.trim();
     setInput("");
     setIsLoading(true);
+    setShowCelebrationButtons(false);
 
     const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
     setMessages(newMessages);
@@ -139,7 +183,6 @@ When you have all the information, confirm with the user and then say "GENERATE_
       const { response: aiResponse } = await response.json();
 
       if (aiResponse.includes("GENERATE_CARD")) {
-        // Generate the card
         await generateCard();
       } else {
         setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
@@ -242,6 +285,63 @@ When you have all the information, confirm with the user and then say "GENERATE_
           </div>
         ))}
         
+        {/* Celebration Selection Buttons */}
+        {showCelebrationButtons && messages.length > 0 && (
+          <div className="space-y-4">
+            {/* Main Celebrations */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {mainCelebrations.map((celebration) => {
+                const IconComponent = celebration.icon;
+                return (
+                  <Button
+                    key={celebration.name}
+                    onClick={() => handleCelebrationSelect(celebration.name)}
+                    className={`${celebration.color} hover:opacity-90 text-white p-4 rounded-2xl h-auto flex items-center space-x-3 transition-all duration-300 transform hover:scale-105`}
+                  >
+                    <IconComponent className="w-5 h-5" />
+                    <span className="font-medium">{celebration.name}</span>
+                  </Button>
+                );
+              })}
+            </div>
+
+            {/* Show More Button */}
+            {!showAllCelebrations && (
+              <div className="text-center">
+                <Button
+                  onClick={() => setShowAllCelebrations(true)}
+                  variant="outline"
+                  className="border-2 border-purple-200 text-gray-700 px-6 py-2 rounded-2xl hover:border-ethereal-purple transition-all duration-300"
+                >
+                  <ChevronDown className="w-4 h-4 mr-2" />
+                  Show More Celebrations
+                </Button>
+              </div>
+            )}
+
+            {/* Additional Celebrations */}
+            {showAllCelebrations && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {additionalCelebrations.map((celebration) => (
+                  <Button
+                    key={celebration}
+                    onClick={() => handleCelebrationSelect(celebration)}
+                    variant="outline"
+                    className="border border-purple-200 text-gray-700 py-2 px-3 rounded-xl text-sm hover:border-ethereal-purple hover:bg-purple-50 transition-all duration-300"
+                  >
+                    {celebration}
+                  </Button>
+                ))}
+              </div>
+            )}
+
+            {/* Custom Input Hint */}
+            <div className="text-center">
+              <p className="text-sm text-slate-gray mb-2">Can't find your celebration? Type it below:</p>
+            </div>
+          </div>
+        )}
+
         {isLoading && (
           <div className="flex items-start space-x-3">
             <div className="w-10 h-10 bg-gradient-celebrait rounded-full flex items-center justify-center flex-shrink-0">
