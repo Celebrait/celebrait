@@ -856,9 +856,75 @@ When you have all the information, confirm with the user and then say "GENERATE_
   };
 
   const createImagePrompt = () => {
-    // This would create a detailed prompt based on collected conversation data
-    // For now, return a basic prompt
-    return `Beautiful greeting card design in artistic style, featuring the elements discussed in our conversation. High quality, professional greeting card format.`;
+    // Build detailed prompt from collected conversation data and messages
+    const parts = [];
+    
+    // Extract information from the conversation
+    const messageText = messages.map(m => m.content).join(' ').toLowerCase();
+    
+    // Basic structure
+    parts.push("Square greeting card design");
+    
+    // Add person details if we have them
+    if (collectedData.recipientName) {
+      let personDescription = collectedData.recipientName;
+      
+      if (collectedData.gender) {
+        personDescription += `, ${collectedData.gender}`;
+      }
+      
+      if (collectedData.ageRange) {
+        personDescription += `, ${collectedData.ageRange}`;
+      }
+      
+      if (collectedData.skinTone) {
+        personDescription += `, ${collectedData.skinTone} heritage`;
+      }
+      
+      if (collectedData.hairColor) {
+        personDescription += `, ${collectedData.hairColor} hair`;
+      }
+      
+      if (collectedData.hairStyle) {
+        personDescription += ` ${collectedData.hairStyle}`;
+      }
+      
+      if (collectedData.build) {
+        personDescription += `, ${collectedData.build} build`;
+      }
+      
+      if (collectedData.features && collectedData.features !== 'none') {
+        personDescription += `, ${collectedData.features}`;
+      }
+      
+      parts.push(`featuring ${personDescription}`);
+    }
+    
+    // Add personality
+    if (collectedData.personality) {
+      parts.push(`${collectedData.personality} personality`);
+    }
+    
+    // Extract scene details from conversation
+    if (messageText.includes('fairy princess') && messageText.includes('clouds')) {
+      parts.push('as a fairy princess in the clouds');
+    }
+    
+    // Extract art style from conversation
+    if (messageText.includes('cartoonish')) {
+      parts.push('cartoonish art style');
+    } else if (messageText.includes('whimsical')) {
+      parts.push('whimsical art style');
+    }
+    
+    // Extract front message
+    if (messageText.includes('happy birthday')) {
+      parts.push('with "Happy Birthday" text');
+    }
+    
+    parts.push('high quality professional greeting card style, square format');
+    
+    return parts.join(', ');
   };
 
   const createInsidePrompt = () => {

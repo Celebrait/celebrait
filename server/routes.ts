@@ -160,12 +160,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Card not found" });
       }
 
-      // Generate front image using GPT-4 with image generation
+      // Generate front image using DALL-E 3 with detailed prompt
       const frontImageGeneration = await openai.images.generate({
-        model: "gpt-4",
-        prompt: `Square greeting card design: ${frontPrompt}. High quality, professional greeting card style, full-bleed square format.`,
+        model: "dall-e-3",
+        prompt: `${frontPrompt}`,
         n: 1,
-        size: "1024x1024"
+        size: "1024x1024",
+        quality: "hd"
       });
 
       let insideImageUrl = null;
@@ -173,10 +174,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate inside image if provided
       if (insidePrompt) {
         const insideImageGeneration = await openai.images.generate({
-          model: "gpt-4",
-          prompt: `Square greeting card interior design: ${insidePrompt}. Typography-focused, matching the front design style, square format.`,
+          model: "dall-e-3", 
+          prompt: `${insidePrompt}`,
           n: 1,
-          size: "1024x1024"
+          size: "1024x1024",
+          quality: "hd"
         });
         insideImageUrl = insideImageGeneration.data?.[0]?.url || null;
       }
