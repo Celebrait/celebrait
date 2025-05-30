@@ -141,11 +141,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       type: 'select',
       options: [
         { value: 'black', label: 'Black', color: 'bg-gray-800' },
+        { value: 'dark_brown', label: 'Dark Brown', color: 'bg-amber-800' },
         { value: 'brown', label: 'Brown', color: 'bg-amber-700' },
+        { value: 'light_brown', label: 'Light Brown', color: 'bg-amber-600' },
         { value: 'blonde', label: 'Blonde', color: 'bg-yellow-500' },
+        { value: 'dirty_blonde', label: 'Dirty Blonde', color: 'bg-yellow-600' },
+        { value: 'strawberry_blonde', label: 'Strawberry Blonde', color: 'bg-orange-400' },
         { value: 'red', label: 'Red', color: 'bg-red-500' },
+        { value: 'auburn', label: 'Auburn', color: 'bg-red-700' },
         { value: 'gray', label: 'Gray', color: 'bg-gray-500' },
-        { value: 'white', label: 'White', color: 'bg-gray-300' }
+        { value: 'white', label: 'White', color: 'bg-gray-300' },
+        { value: 'salt_pepper', label: 'Salt & Pepper', color: 'bg-gray-400' }
       ]
     },
     {
