@@ -273,12 +273,11 @@ Workflow steps:
 6. HAIR COLOR - "What color is [NAME]'s hair?" (ONLY ask if hairColor not collected)
 7. HAIR STYLE - "How does [NAME]'s hair look? What's the style or length?" (ALWAYS ask after hair color, ONLY skip if hairStyle already collected)
 8. DISTINCT FEATURES - "Any standout features like glasses or freckles?"
-9. CLOTHING STYLE - "How does [NAME] usually dress?"
-10. PERSONALITY/VIBE - "What's [NAME]'s personality like?"
-11. SCENE SETTING - "Where should [NAME] be in the scene?"
-12. ART STYLE - "What art style should we use?"
-13. FRONT MESSAGE - "Any message for the front?"
-${onboarding.selectedPrintOption === 'front-and-inside' ? '14. INSIDE MESSAGE - "What should the message inside read?"' : ''}
+9. PERSONALITY/VIBE - "What's [NAME]'s personality like?"
+10. SCENE SETTING - "Where should [NAME] be in the scene?"
+11. ART STYLE - "What art style should we use?"
+12. FRONT MESSAGE - "Any message for the front?"
+${onboarding.selectedPrintOption === 'front-and-inside' ? '13. INSIDE MESSAGE - "What should the message inside read?"' : ''}
 
 When you have all the information, confirm with the user and then say "GENERATE_CARD" to trigger image generation.`;
     } else {
