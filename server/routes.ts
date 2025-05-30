@@ -147,6 +147,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { cardId, frontPrompt, insidePrompt } = req.body;
 
+      console.log('Image generation request:', { cardId, frontPrompt, insidePrompt });
+
       if (!cardId || !frontPrompt) {
         return res.status(400).json({ message: "Card ID and front prompt are required" });
       }
@@ -157,8 +159,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const card = await storage.getCard(cardId);
       if (!card) {
+        console.log('Card not found for ID:', cardId);
         return res.status(404).json({ message: "Card not found" });
       }
+
+      console.log('Found card:', card.id);
 
       // Generate front image using DALL-E 3 with detailed prompt
       const frontImageGeneration = await openai.images.generate({

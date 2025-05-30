@@ -841,6 +841,14 @@ When you have all the information, confirm with the user and then say "GENERATE_
       const insidePrompt = onboarding.selectedPrintOption === 'front-and-inside' ? 
         createInsidePrompt() : null;
 
+      console.log('Generating card with cardId:', cardId);
+      console.log('Front prompt:', frontPrompt);
+      console.log('Inside prompt:', insidePrompt);
+
+      if (!cardId) {
+        throw new Error('No card ID available');
+      }
+
       const response = await apiRequest("POST", "/api/generate-images", {
         cardId,
         frontPrompt,
@@ -849,10 +857,11 @@ When you have all the information, confirm with the user and then say "GENERATE_
 
       const card = await response.json();
       onCardGenerated(card);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Card generation error:', error);
       toast({
         title: "Error",
-        description: "Failed to generate card",
+        description: `Failed to generate card: ${error.message}`,
         variant: "destructive",
       });
     } finally {
