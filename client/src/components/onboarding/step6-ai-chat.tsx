@@ -562,9 +562,15 @@ When you have all the information, confirm with the user and then say "GENERATE_
         
         // Check what type of question is being asked and show appropriate buttons
         const lowerResponse = aiResponse.toLowerCase();
+        console.log('AI Response:', aiResponse);
+        console.log('Checking for hair:', lowerResponse.includes('hair'));
+        console.log('Checking for hair color:', lowerResponse.includes('hair') && lowerResponse.includes('color'));
+        
         if (lowerResponse.includes('hair') && lowerResponse.includes('color')) {
+          console.log('Showing hair color buttons');
           setShowHairColorButtons(true);
         } else if (lowerResponse.includes('hair')) {
+          console.log('Showing hair style buttons');
           setShowHairStyleButtons(true);
         } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
           setShowNameInput(true);
