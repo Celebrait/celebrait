@@ -224,6 +224,7 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
                                lowerResponse.includes('hair look')) ||
                                (lowerResponse.includes('how does') && lowerResponse.includes('hair') && lowerResponse.includes('look')) ||
                                (lowerResponse.includes('what does') && lowerResponse.includes('hair') && lowerResponse.includes('look')) ||
+                               (lowerResponse.includes('how does') && lowerResponse.includes('style') && lowerResponse.includes('hair')) ||
                                (lowerResponse.includes('hair') && lowerResponse.includes('style') && lowerResponse.includes('length'));
     
     const isBuildQuestion = (lowerResponse.includes('tell me about') && lowerResponse.includes('build')) ||
@@ -244,6 +245,9 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
       setShowHairColorButtons(true);
     } else if (lowerResponse.includes('how does') && lowerResponse.includes('hair') && lowerResponse.includes('look')) {
       console.log('FORCED: Hair style detected via "how does hair look"');
+      setShowHairStyleButtons(true);
+    } else if (lowerResponse.includes('how does') && lowerResponse.includes('style') && lowerResponse.includes('hair')) {
+      console.log('FORCED: Hair style detected via "how does style hair"');
       setShowHairStyleButtons(true);
     } else if (isHairColorQuestion) {
       console.log('Hair color detected - showing hair color buttons');
