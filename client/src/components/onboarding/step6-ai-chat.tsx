@@ -30,6 +30,8 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
   const [showMoreRelationships, setShowMoreRelationships] = useState(false);
   const [showHairStyleButtons, setShowHairStyleButtons] = useState(false);
   const [showMoreHairStyles, setShowMoreHairStyles] = useState(false);
+  const [showHairColorButtons, setShowHairColorButtons] = useState(false);
+  const [showMoreHairColors, setShowMoreHairColors] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -88,6 +90,20 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     "Afro", "Braids", "Locs", "Waves", "Buzz Cut", "Bald",
     "Shoulder Length", "Wavy", "Kinky", "Relaxed", "Natural",
     "Ponytail", "Bun", "Bangs", "Layered", "Bob Cut"
+  ];
+
+  const mainHairColors = [
+    { name: "Black", color: "#1a1a1a", textColor: "text-white" },
+    { name: "Brown", color: "#8B4513", textColor: "text-white" },
+    { name: "Blonde", color: "#F5DEB3", textColor: "text-gray-800" },
+    { name: "Red", color: "#B22222", textColor: "text-white" },
+    { name: "Gray", color: "#808080", textColor: "text-white" }
+  ];
+
+  const additionalHairColors = [
+    "Auburn", "Chestnut", "Honey Blonde", "Platinum Blonde", "Strawberry Blonde",
+    "Dark Brown", "Light Brown", "Silver", "White", "Salt & Pepper",
+    "Copper", "Mahogany", "Golden Brown", "Ash Blonde", "Other"
   ];
 
   const scrollToBottom = () => {
@@ -155,14 +171,15 @@ Follow this exact workflow:
 1. WHO IS THE CARD FOR? (Just ask "who is this birthday card for?" - don't ask for their name unless user volunteers it)
 2. APPEARANCE - "South Africa's beautiful diversity is what makes our cards so special! To create the most authentic representation, could you help me understand what they look like? Their skin tone, features, and overall appearance?"
 3. AGE - "How old are they?"
-4. HAIR - "What does their hair look like? (Color, length, style)"
-5. DISTINCT FEATURES - "Do they have any standout features? (glasses, freckles, etc.)"
-6. CLOTHING STYLE - "How do they usually dress?"
-7. PERSONALITY/VIBE - "What's their vibe? (chilled, fiery, etc.)"
-8. SCENE SETTING - "Where do you imagine them? Pick a scene or I can suggest one!"
-9. ART STYLE - "What should the artwork look like?"
-10. FRONT MESSAGE - "Want anything written on the front?"
-${onboarding.selectedPrintOption === 'front-and-inside' ? '11. INSIDE MESSAGE - "What should the message inside read?"' : ''}
+4. HAIR STYLE - "What does their hair look like? (length and style)"
+5. HAIR COLOR - "What color is their hair?"
+6. DISTINCT FEATURES - "Do they have any standout features? (glasses, freckles, etc.)"
+7. CLOTHING STYLE - "How do they usually dress?"
+8. PERSONALITY/VIBE - "What's their vibe? (chilled, fiery, etc.)"
+9. SCENE SETTING - "Where do you imagine them? Pick a scene or I can suggest one!"
+10. ART STYLE - "What should the artwork look like?"
+11. FRONT MESSAGE - "Want anything written on the front?"
+${onboarding.selectedPrintOption === 'front-and-inside' ? '12. INSIDE MESSAGE - "What should the message inside read?"' : ''}
 
 When you have all the information, confirm with the user and then say "GENERATE_CARD" to trigger image generation.`;
     } else {
@@ -279,6 +296,48 @@ When you have all the information, confirm with the user and then say "GENERATE_
         await generateCard();
       } else {
         setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
+        
+        // Check if next question is about hair color
+        const lowerResponse = aiResponse.toLowerCase();
+        if (lowerResponse.includes('hair') && lowerResponse.includes('color')) {
+          setShowHairColorButtons(true);
+        }
+        
+        setCurrentStepState(currentStep + 1);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process selection",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleHairColorSelect = async (hairColor: string) => {
+    setShowHairColorButtons(false);
+    setCollectedData({ ...collectedData, hairColor });
+    
+    const userMessage = `Their hair is ${hairColor.toLowerCase()}`;
+    const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
+    setMessages(newMessages);
+    setIsLoading(true);
+
+    try {
+      const response = await apiRequest("POST", "/api/chat", {
+        messages: newMessages,
+        cardId,
+        systemPrompt: getSystemPrompt()
+      });
+
+      const { response: aiResponse } = await response.json();
+
+      if (aiResponse.includes("GENERATE_CARD")) {
+        await generateCard();
+      } else {
+        setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
         setCurrentStepState(currentStep + 1);
       }
     } catch (error) {
@@ -337,6 +396,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
     setShowSkinToneButtons(false);
     setShowRelationshipButtons(false);
     setShowHairStyleButtons(false);
+    setShowHairColorButtons(false);
 
     const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
     setMessages(newMessages);
@@ -357,7 +417,9 @@ When you have all the information, confirm with the user and then say "GENERATE_
         
         // Check what type of question is being asked and show appropriate buttons
         const lowerResponse = aiResponse.toLowerCase();
-        if (lowerResponse.includes('hair')) {
+        if (lowerResponse.includes('hair') && lowerResponse.includes('color')) {
+          setShowHairColorButtons(true);
+        } else if (lowerResponse.includes('hair')) {
           setShowHairStyleButtons(true);
         } else if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
           setShowSkinToneButtons(true);
@@ -623,6 +685,66 @@ When you have all the information, confirm with the user and then say "GENERATE_
                     className="border border-purple-200 text-gray-700 py-2 px-3 rounded-xl text-sm hover:border-ethereal-purple hover:bg-purple-50 transition-all duration-300"
                   >
                     {hairStyle}
+                  </Button>
+                ))}
+              </div>
+            )}
+
+            {/* Custom Input Hint */}
+            <div className="text-center">
+              <p className="text-sm text-slate-gray mb-2">Want to be more specific? Type below:</p>
+            </div>
+          </div>
+        )}
+
+        {/* Hair Color Selection Buttons */}
+        {showHairColorButtons && (
+          <div className="space-y-4">
+            {/* Main Hair Colors */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {mainHairColors.map((hairColor) => (
+                <Button
+                  key={hairColor.name}
+                  onClick={() => handleHairColorSelect(hairColor.name)}
+                  className={`bg-white hover:bg-gray-50 border-2 border-gray-200 hover:border-purple-300 p-4 rounded-2xl h-auto flex items-center space-x-3 transition-all duration-300 transform hover:scale-105 ${hairColor.textColor}`}
+                  style={{ borderColor: hairColor.color }}
+                >
+                  <div 
+                    className="w-6 h-6 rounded-full border-2 border-white shadow-md"
+                    style={{ backgroundColor: hairColor.color }}
+                  />
+                  <div className="text-left">
+                    <div className="font-medium text-gray-800">{hairColor.name}</div>
+                  </div>
+                </Button>
+              ))}
+            </div>
+
+            {/* Show More Button */}
+            {!showMoreHairColors && (
+              <div className="text-center">
+                <Button
+                  onClick={() => setShowMoreHairColors(true)}
+                  variant="outline"
+                  className="border-2 border-purple-200 text-gray-700 px-6 py-2 rounded-2xl hover:border-ethereal-purple transition-all duration-300"
+                >
+                  <ChevronDown className="w-4 h-4 mr-2" />
+                  Show More Colors
+                </Button>
+              </div>
+            )}
+
+            {/* Additional Hair Colors */}
+            {showMoreHairColors && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {additionalHairColors.map((hairColor) => (
+                  <Button
+                    key={hairColor}
+                    onClick={() => handleHairColorSelect(hairColor)}
+                    variant="outline"
+                    className="border border-purple-200 text-gray-700 py-2 px-3 rounded-xl text-sm hover:border-ethereal-purple hover:bg-purple-50 transition-all duration-300"
+                  >
+                    {hairColor}
                   </Button>
                 ))}
               </div>
