@@ -229,14 +229,13 @@ Workflow steps:
 4. AGE RANGE - "What age range is [NAME] in?"
 5. APPEARANCE - "To create an authentic representation, what does [NAME] look like? Skin tone and features?"
 6. HAIR COLOR - "What color is [NAME]'s hair?" (ONLY ask if hairColor not collected)
-7. HAIR STYLE - "What does [NAME]'s hair look like? Length and style?" (ALWAYS ask after hair color, ONLY skip if hairStyle already collected)
-8. DISTINCT FEATURES - "Any standout features like glasses or freckles?"
-9. CLOTHING STYLE - "How does [NAME] usually dress?"
-10. PERSONALITY/VIBE - "What's [NAME]'s personality like?"
-11. SCENE SETTING - "Where should [NAME] be in the scene?"
-12. ART STYLE - "What art style should we use?"
-13. FRONT MESSAGE - "Any message for the front?"
-${onboarding.selectedPrintOption === 'front-and-inside' ? '14. INSIDE MESSAGE - "What should the message inside read?"' : ''}
+7. DISTINCT FEATURES - "Any standout features like glasses or freckles?"
+8. CLOTHING STYLE - "How does [NAME] usually dress?"
+9. PERSONALITY/VIBE - "What's [NAME]'s personality like?"
+10. SCENE SETTING - "Where should [NAME] be in the scene?"
+11. ART STYLE - "What art style should we use?"
+12. FRONT MESSAGE - "Any message for the front?"
+${onboarding.selectedPrintOption === 'front-and-inside' ? '13. INSIDE MESSAGE - "What should the message inside read?"' : ''}
 
 When you have all the information, confirm with the user and then say "GENERATE_CARD" to trigger image generation.`;
     } else {
@@ -434,8 +433,6 @@ When you have all the information, confirm with the user and then say "GENERATE_
       const lowerResponse = aiResponse.toLowerCase();
       if (lowerResponse.includes('hair') && lowerResponse.includes('color')) {
         setShowHairColorButtons(true);
-      } else if (lowerResponse.includes('hair')) {
-        setShowHairStyleButtons(true);
       } else if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
         setShowSkinToneButtons(true);
       }
@@ -534,7 +531,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
     setShowCelebrationButtons(false);
     setShowSkinToneButtons(false);
     setShowRelationshipButtons(false);
-    setShowHairStyleButtons(false);
+
     setShowHairColorButtons(false);
     setShowGenderButtons(false);
     setShowAgeRangeButtons(false);
