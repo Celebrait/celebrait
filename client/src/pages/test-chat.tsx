@@ -88,7 +88,9 @@ export default function TestChat() {
     try {
       const response = await apiRequest("POST", "/api/cards", {
         cardType: "printed",
-        printOption: "front-only"
+        printOption: "front-only",
+        price: 8900, // R89 in cents
+        userId: 1 // Test user ID for development
       });
 
       const { cardId } = await response.json();
@@ -99,6 +101,7 @@ export default function TestChat() {
         description: "Failed to initialize card",
         variant: "destructive",
       });
+      console.error("Card initialization error:", error);
     }
   };
 
