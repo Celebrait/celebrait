@@ -31,6 +31,7 @@ export default function TestChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [cardId, setCardId] = useState<number | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<TestScenario | null>(null);
+  const [cardReady, setCardReady] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -94,8 +95,12 @@ export default function TestChat() {
         userId: 1 // Test user ID for development
       });
 
-      const { cardId } = await response.json();
+      const responseData = await response.json();
+      console.log("Card creation response:", responseData);
+      const cardId = responseData.id || responseData.cardId;
       setCardId(cardId);
+      setCardReady(true);
+      console.log("Card initialized successfully:", cardId);
     } catch (error) {
       toast({
         title: "Error",
@@ -111,7 +116,16 @@ export default function TestChat() {
   }, []);
 
   const startTestScenario = async (scenario: TestScenario) => {
-    if (!cardId) return;
+    console.log("Starting test scenario:", scenario.name, "CardId:", cardId);
+    if (!cardId) {
+      console.error("No cardId available");
+      toast({
+        title: "Error", 
+        description: "Card not initialized yet, please wait",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSelectedScenario(scenario);
     setMessages([]);
@@ -238,6 +252,22 @@ Keep responses engaging and creative. When ready, say "GENERATE_CARD" to trigger
           {!selectedScenario && (
             <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
               <h2 className="text-xl font-semibold mb-6 text-center">Choose a Test Scenario</h2>
+              
+              {/* Card Status Indicator */}
+              <div className="text-center mb-6">
+                {cardReady ? (
+                  <div className="inline-flex items-center space-x-2 bg-green-100 text-green-800 px-4 py-2 rounded-full">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium">Ready to test</span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center space-x-2 bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium">Initializing...</span>
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {testScenarios.map((scenario) => {
                   const IconComponent = scenario.icon;
@@ -245,7 +275,8 @@ Keep responses engaging and creative. When ready, say "GENERATE_CARD" to trigger
                     <Button
                       key={scenario.name}
                       onClick={() => startTestScenario(scenario)}
-                      className={`${scenario.color} hover:opacity-90 text-white p-6 rounded-2xl h-auto flex flex-col items-center space-y-3 transition-all duration-300 transform hover:scale-105`}
+                      disabled={!cardReady}
+                      className={`${scenario.color} hover:opacity-90 text-white p-6 rounded-2xl h-auto flex flex-col items-center space-y-3 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none`}
                     >
                       <IconComponent className="w-8 h-8" />
                       <span className="font-medium text-center">{scenario.name}</span>
