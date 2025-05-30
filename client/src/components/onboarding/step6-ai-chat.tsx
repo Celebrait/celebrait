@@ -204,8 +204,9 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     if (lowerResponse.includes('what color is') && lowerResponse.includes('hair')) {
       console.log('FORCED: Hair color detected via "what color is" + "hair"');
       setShowHairColorButtons(true);
-    } else if (lowerResponse.includes('what does') && lowerResponse.includes('hair')) {
-      console.log('FORCED: Hair style detected via "what does" + "hair"');
+    } else if ((lowerResponse.includes('what does') && lowerResponse.includes('hair')) || 
+               (lowerResponse.includes('now, what') && lowerResponse.includes('hair'))) {
+      console.log('FORCED: Hair style detected via hair style patterns');
       setShowHairStyleButtons(true);
     } else if (isHairColorQuestion) {
       console.log('Hair color detected - showing hair color buttons');
