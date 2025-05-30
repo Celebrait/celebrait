@@ -581,13 +581,13 @@ When you have all the information, confirm with the user and then say "GENERATE_
         console.log('Current step:', currentStep);
         console.log('Collected data so far:', collectedData);
         
-        // Use step-based detection instead of text analysis
-        if (currentStep === 6 || (currentStep >= 6 && !collectedData.hairStyle)) {
-          console.log('Step 6: Showing hair style buttons');
-          setShowHairStyleButtons(true);
-        } else if (currentStep === 7 || (currentStep >= 7 && !collectedData.hairColor && collectedData.hairStyle)) {
-          console.log('Step 7: Showing hair color buttons');
+        // Use step-based detection with proper logic
+        if (lowerResponse.includes('hair') && lowerResponse.includes('color')) {
+          console.log('Hair color question detected: Showing hair color buttons');
           setShowHairColorButtons(true);
+        } else if (lowerResponse.includes('hair') && !collectedData.hairStyle) {
+          console.log('Hair style question detected: Showing hair style buttons');
+          setShowHairStyleButtons(true);
         } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
           setShowNameInput(true);
         } else if (lowerResponse.includes('age range') || lowerResponse.includes('what age range')) {
