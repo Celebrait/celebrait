@@ -47,7 +47,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         { value: 'graduation', label: 'Graduation', description: 'Honor academic achievement', color: 'bg-blue-500' },
         { value: 'wedding', label: 'Wedding', description: 'Celebrate love and union', color: 'bg-purple-500' },
         { value: 'baby_shower', label: 'Baby Shower', description: 'Welcome a new arrival', color: 'bg-green-500' },
-        { value: 'retirement', label: 'Retirement', description: 'Honor years of dedication', color: 'bg-orange-500' }
+        { value: 'retirement', label: 'Retirement', description: 'Honor years of dedication', color: 'bg-orange-500' },
+        { value: 'mothers_day', label: "Mother's Day", description: 'Honor mom', color: 'bg-pink-400' },
+        { value: 'fathers_day', label: "Father's Day", description: 'Celebrate dad', color: 'bg-blue-400' },
+        { value: 'valentines', label: "Valentine's Day", description: 'Show your love', color: 'bg-red-400' },
+        { value: 'christmas', label: 'Christmas', description: 'Holiday celebration', color: 'bg-green-400' },
+        { value: 'new_year', label: 'New Year', description: 'Fresh start celebration', color: 'bg-purple-400' },
+        { value: 'easter', label: 'Easter', description: 'Spring celebration', color: 'bg-yellow-400' }
       ]
     },
     {
@@ -426,16 +432,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         {!showAllOptions[currentStep.id] ? (
                           <Button
                             onClick={() => setShowAllOptions(prev => ({ ...prev, [currentStep.id]: true }))}
-                            variant="ghost"
-                            className="text-purple-600 hover:text-purple-700 text-sm"
+                            variant="outline"
+                            className="bg-white border-purple-300 text-purple-600 hover:bg-purple-50 hover:border-purple-400 hover:text-purple-700 px-6 py-2 rounded-full text-sm font-medium shadow-sm"
                           >
-                            Show More Options
+                            View More Options
                           </Button>
                         ) : (
                           <Button
                             onClick={() => setShowAllOptions(prev => ({ ...prev, [currentStep.id]: false }))}
-                            variant="ghost"
-                            className="text-purple-600 hover:text-purple-700 text-sm"
+                            variant="outline"
+                            className="bg-white border-purple-300 text-purple-600 hover:bg-purple-50 hover:border-purple-400 hover:text-purple-700 px-6 py-2 rounded-full text-sm font-medium shadow-sm"
                           >
                             Show Less
                           </Button>
