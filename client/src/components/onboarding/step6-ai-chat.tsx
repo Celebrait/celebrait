@@ -200,6 +200,42 @@ When you have all the information, confirm with the user and then say "GENERATE_
     }
   };
 
+  const handleRelationshipSelect = async (relationship: string) => {
+    setShowRelationshipButtons(false);
+    setCollectedData({ ...collectedData, relationship });
+    
+    const userMessage = `This card is for my ${relationship.toLowerCase()}`;
+    const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
+    setMessages(newMessages);
+    setIsLoading(true);
+
+    try {
+      const response = await apiRequest("POST", "/api/chat", {
+        messages: newMessages,
+        cardId,
+        systemPrompt: getSystemPrompt()
+      });
+
+      const { response: aiResponse } = await response.json();
+      setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
+      
+      // Check if this response is asking about skin tone/appearance
+      if (aiResponse.toLowerCase().includes('skin tone') || aiResponse.toLowerCase().includes('appearance') || aiResponse.toLowerCase().includes('look like')) {
+        setShowSkinToneButtons(true);
+      }
+      
+      setCurrentStepState(currentStep + 1);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process selection",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSkinToneSelect = async (skinTone: string, description: string) => {
     setShowSkinToneButtons(false);
     setCollectedData({ ...collectedData, skinTone: `${skinTone} - ${description}` });
@@ -243,6 +279,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
     setIsLoading(true);
     setShowCelebrationButtons(false);
     setShowSkinToneButtons(false);
+    setShowRelationshipButtons(false);
 
     const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
     setMessages(newMessages);
@@ -261,9 +298,12 @@ When you have all the information, confirm with the user and then say "GENERATE_
       } else {
         setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
         
-        // Check if this response is asking about skin tone/appearance
-        if (aiResponse.toLowerCase().includes('skin tone') || aiResponse.toLowerCase().includes('appearance') || aiResponse.toLowerCase().includes('look like')) {
+        // Check what type of question is being asked and show appropriate buttons
+        const lowerResponse = aiResponse.toLowerCase();
+        if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
           setShowSkinToneButtons(true);
+        } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for')) {
+          setShowRelationshipButtons(true);
         }
         
         setCurrentStepState(currentStep + 1);
@@ -418,6 +458,63 @@ When you have all the information, confirm with the user and then say "GENERATE_
             {/* Custom Input Hint */}
             <div className="text-center">
               <p className="text-sm text-slate-gray mb-2">Can't find your celebration? Type it below:</p>
+            </div>
+          </div>
+        )}
+
+        {/* Relationship Selection Buttons */}
+        {showRelationshipButtons && (
+          <div className="space-y-4">
+            {/* Main Relationships */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {mainRelationships.map((relationship) => {
+                const IconComponent = relationship.icon;
+                return (
+                  <Button
+                    key={relationship.name}
+                    onClick={() => handleRelationshipSelect(relationship.name)}
+                    className={`${relationship.color} hover:opacity-90 text-white p-4 rounded-2xl h-auto flex items-center space-x-3 transition-all duration-300 transform hover:scale-105`}
+                  >
+                    <IconComponent className="w-5 h-5" />
+                    <span className="font-medium">{relationship.name}</span>
+                  </Button>
+                );
+              })}
+            </div>
+
+            {/* Show More Button */}
+            {!showMoreRelationships && (
+              <div className="text-center">
+                <Button
+                  onClick={() => setShowMoreRelationships(true)}
+                  variant="outline"
+                  className="border-2 border-purple-200 text-gray-700 px-6 py-2 rounded-2xl hover:border-ethereal-purple transition-all duration-300"
+                >
+                  <ChevronDown className="w-4 h-4 mr-2" />
+                  Show More Options
+                </Button>
+              </div>
+            )}
+
+            {/* Additional Relationships */}
+            {showMoreRelationships && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {additionalRelationships.map((relationship) => (
+                  <Button
+                    key={relationship}
+                    onClick={() => handleRelationshipSelect(relationship)}
+                    variant="outline"
+                    className="border border-purple-200 text-gray-700 py-2 px-3 rounded-xl text-sm hover:border-ethereal-purple hover:bg-purple-50 transition-all duration-300"
+                  >
+                    {relationship}
+                  </Button>
+                ))}
+              </div>
+            )}
+
+            {/* Custom Input Hint */}
+            <div className="text-center">
+              <p className="text-sm text-slate-gray mb-2">Want to be more specific? Type below:</p>
             </div>
           </div>
         )}
