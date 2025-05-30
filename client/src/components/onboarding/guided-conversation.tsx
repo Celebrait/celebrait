@@ -278,16 +278,37 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'art_style',
       question: 'What art style should we use for the card?',
-      aiMessage: `Perfect! What art style should we use for the card? This sets the whole mood and feel.`,
-      type: 'textarea',
-      placeholder: 'e.g., cartoonish, realistic, watercolor, vintage...'
+      aiMessage: `Perfect! Now let's choose the art style for ${answers.name || 'their'} card. This sets the whole mood and feel - I want to make sure it matches ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} personality perfectly!`,
+      type: 'select',
+      options: [
+        { value: 'realistic', label: 'Realistic', description: 'Lifelike and detailed', color: 'bg-blue-500' },
+        { value: 'cartoon', label: 'Cartoon', description: 'Fun and playful', color: 'bg-orange-500' },
+        { value: 'watercolor', label: 'Watercolor', description: 'Soft and artistic', color: 'bg-purple-500' },
+        { value: 'minimalist', label: 'Minimalist', description: 'Clean and simple', color: 'bg-green-500' },
+        { value: 'oil_painting', label: 'Oil Painting', description: 'Classic and elegant', color: 'bg-amber-500' },
+        { value: 'digital_art', label: 'Digital Art', description: 'Modern and vibrant', color: 'bg-cyan-500' },
+        { value: 'vintage', label: 'Vintage', description: 'Retro and nostalgic', color: 'bg-rose-500' },
+        { value: 'anime', label: 'Anime', description: 'Japanese animation style', color: 'bg-pink-500' },
+        { value: 'sketch', label: 'Pencil Sketch', description: 'Hand-drawn and artistic', color: 'bg-gray-500' },
+        { value: 'pop_art', label: 'Pop Art', description: 'Bold and colorful', color: 'bg-red-500' },
+        { value: 'impressionist', label: 'Impressionist', description: 'Dreamy and painterly', color: 'bg-indigo-500' },
+        { value: 'geometric', label: 'Geometric', description: 'Abstract and modern', color: 'bg-teal-500' }
+      ]
     },
     {
       id: 'message',
       question: 'What message should appear on the front of the card?',
-      aiMessage: `Almost there! What message should appear on the front of the card?`,
-      type: 'textarea',
-      placeholder: 'Enter your message...'
+      aiMessage: `Almost there! This is your opportunity to get really personal! What heartfelt message should appear on the front of ${answers.name || 'their'} card? You can also choose to have no message at all - sometimes the image speaks for itself. Make it as meaningful and personal as you want!`,
+      type: 'select',
+      options: [
+        { value: 'happy_birthday', label: 'Happy Birthday', description: 'Classic birthday greeting', color: 'bg-pink-500' },
+        { value: 'happy_birthday_name', label: `Happy Birthday ${answers.name || '[Name]'}`, description: 'Personalized birthday greeting', color: 'bg-purple-500' },
+        { value: 'another_year_awesome', label: 'Another Year of Awesome', description: 'Celebratory message', color: 'bg-orange-500' },
+        { value: 'celebrate_you', label: 'Celebrating You', description: 'Personal celebration', color: 'bg-blue-500' },
+        { value: 'special_day', label: 'Hope Your Special Day is Amazing', description: 'Warm wishes', color: 'bg-green-500' },
+        { value: 'no_message', label: 'No Message', description: 'Let the image speak for itself', color: 'bg-gray-500' },
+        { value: 'custom', label: 'Custom Message', description: 'Write your own personal message', color: 'bg-red-500' }
+      ]
     }
   ];
 
@@ -688,18 +709,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
                 {currentStep.type === 'summary' && (
                   <div className="space-y-6">
-                    {/* Character Description */}
-                    <div className="bg-white rounded-xl p-6 border border-purple-200">
-                      <h3 className="text-lg font-semibold mb-4 text-purple-700">Meet {answers.name}!</h3>
-                      <p className="text-gray-700 leading-relaxed">
-                        {answers.name} is a {answers.age?.replace('_', ' ')?.toLowerCase()} {answers.gender} of {answers.heritage?.replace('_', ' ')} heritage. 
-                        {answers.hair_color && answers.hair_style && ` They have ${answers.hair_color.replace('_', ' ')} hair styled ${answers.hair_style.replace('_', ' ')}.`}
-                        {answers.build && ` They have a ${answers.build} build.`}
-                        {answers.features && answers.features !== 'skip' && ` Notable facial features include ${answers.features}.`}
-                        {answers.personality && ` Their personality can be described as ${answers.personality.toLowerCase()}.`}
-                      </p>
-                    </div>
-
                     {/* Inspiration Carousel */}
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-center text-purple-700">Card Inspiration Gallery</h3>
@@ -800,7 +809,29 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 )}
 
                 {currentStep.type === 'textarea' && (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
+                    {currentStep.id === 'scene' && (
+                      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-l-4 border-orange-400 p-4 rounded-lg">
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0">
+                            <svg className="w-5 h-5 text-orange-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-sm font-semibold text-orange-800">Top Tip for Best Results!</h3>
+                            <p className="text-sm text-orange-700 mt-1">
+                              The more details you provide, the better your card will be! Include information about:
+                              <br />• <strong>Clothing:</strong> What are they wearing? (colors, style, accessories)
+                              <br />• <strong>Activity:</strong> What exactly are they doing?
+                              <br />• <strong>Setting:</strong> Where are they? (time of day, weather, surroundings)
+                              <br />• <strong>Mood:</strong> How do they look? (happy, relaxed, excited)
+                              <br />• <strong>Extra details:</strong> Any props, animals, or special elements?
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <Textarea
                       value={currentInput}
                       onChange={(e) => setCurrentInput(e.target.value)}
