@@ -188,15 +188,22 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     const isHairColorQuestion = lowerResponse.includes('hair color') || 
                                (lowerResponse.includes('hair') && lowerResponse.includes('color')) || 
                                (lowerResponse.includes('what color') && lowerResponse.includes('hair')) ||
-                               (lowerResponse.includes('color is') && lowerResponse.includes('hair'));
+                               (lowerResponse.includes('color is') && lowerResponse.includes('hair')) ||
+                               lowerResponse.includes('what color is') && lowerResponse.includes('hair');
     
     const isHairStyleQuestion = lowerResponse.includes('hair') && 
                                (lowerResponse.includes('length') || lowerResponse.includes('style') || lowerResponse.includes('look like'));
     
     console.log('Hair color question check:', isHairColorQuestion);
     console.log('Hair style question check:', isHairStyleQuestion);
+    console.log('Full check - contains "what color is":', lowerResponse.includes('what color is'));
+    console.log('Full check - contains "hair":', lowerResponse.includes('hair'));
     
-    if (isHairColorQuestion) {
+    // Force hair color detection if we see the specific pattern
+    if (lowerResponse.includes('what color is') && lowerResponse.includes('hair')) {
+      console.log('FORCED: Hair color detected via "what color is" + "hair"');
+      setShowHairColorButtons(true);
+    } else if (isHairColorQuestion) {
       console.log('Hair color detected - showing hair color buttons');
       setShowHairColorButtons(true);
     } else if (isHairStyleQuestion) {
