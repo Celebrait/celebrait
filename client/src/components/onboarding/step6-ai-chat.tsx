@@ -672,6 +672,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
     setShowRelationshipButtons(false);
     setShowHairStyleButtons(false);
     setShowHairColorButtons(false);
+    setShowBuildButtons(false);
     setShowGenderButtons(false);
     setShowAgeRangeButtons(false);
     setShowNameInput(false);
@@ -996,6 +997,33 @@ When you have all the information, confirm with the user and then say "GENERATE_
         )}
 
 
+
+        {/* Build Selection Buttons */}
+        {showBuildButtons && (
+          <div className="space-y-4">
+            {/* Build Options */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {buildOptions.map((build) => (
+                <Button
+                  key={build.name}
+                  onClick={() => handleBuildSelect(build.name, build.description)}
+                  className={`${build.color} hover:opacity-90 text-white p-4 rounded-2xl h-auto flex items-center space-x-3 transition-all duration-300 transform hover:scale-105`}
+                >
+                  <div className="w-5 h-5 rounded-full bg-white/20" />
+                  <div className="text-left">
+                    <div className="font-medium">{build.name}</div>
+                    <div className="text-xs text-white/80">{build.description}</div>
+                  </div>
+                </Button>
+              ))}
+            </div>
+
+            {/* Custom Input Hint */}
+            <div className="text-center">
+              <p className="text-sm text-slate-gray mb-2">Want to be more specific? Type below:</p>
+            </div>
+          </div>
+        )}
 
         {/* Hair Style Selection Buttons */}
         {showHairStyleButtons && (
