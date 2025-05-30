@@ -206,12 +206,11 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
                                (lowerResponse.includes('color is') && lowerResponse.includes('hair')) ||
                                lowerResponse.includes('what color is') && lowerResponse.includes('hair');
     
-    const isHairStyleQuestion = lowerResponse.includes('hair style') || 
-                               lowerResponse.includes('hair look') ||
-                               (lowerResponse.includes('hair') && (lowerResponse.includes('style') || lowerResponse.includes('length') || lowerResponse.includes('look'))) ||
-                               (lowerResponse.includes('what does') && lowerResponse.includes('hair')) ||
-                               (lowerResponse.includes('how does') && lowerResponse.includes('hair')) ||
-                               (lowerResponse.includes('hair') && lowerResponse.includes('styled'));
+    const isHairStyleQuestion = (lowerResponse.includes('hair style') || 
+                               lowerResponse.includes('hair look')) ||
+                               (lowerResponse.includes('how does') && lowerResponse.includes('hair') && lowerResponse.includes('look')) ||
+                               (lowerResponse.includes('what does') && lowerResponse.includes('hair') && lowerResponse.includes('look')) ||
+                               (lowerResponse.includes('hair') && lowerResponse.includes('style') && lowerResponse.includes('length'));
     
     console.log('Hair color question check:', isHairColorQuestion);
     console.log('Hair style question check:', isHairStyleQuestion);
