@@ -366,9 +366,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-purple-50 to-blue-50">
       {/* Progress Bar */}
-      <div className="p-4 bg-white border-b">
+      <div className="p-4 bg-white/80 backdrop-blur-sm border-b">
         <div className="flex justify-between text-sm text-gray-500 mb-2">
           <span>Step {currentStepIndex + 1} of {steps.length}</span>
           <span>{Math.round(progress)}% Complete</span>
@@ -376,130 +376,108 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         <Progress value={progress} className="h-2" />
       </div>
 
-      {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {/* Previous Messages */}
-        {steps.slice(0, currentStepIndex).map((step, index) => (
-          <div key={step.id} className="space-y-4">
-            {/* AI Message */}
-            <div className="flex items-start space-x-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                <Bot className="w-5 h-5 text-purple-600" />
-              </div>
-              <div className="bg-gray-100 rounded-2xl rounded-tl-sm p-4 max-w-md">
-                <p className="text-gray-800">{step.aiMessage}</p>
-              </div>
+      {/* Centered Question Area */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-2xl space-y-8">
+          {/* AI Avatar and Message */}
+          <div className="text-center space-y-6">
+            <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
+              <Bot className="w-10 h-10 text-white" />
             </div>
             
-            {/* User Response */}
-            <div className="flex items-start space-x-3 justify-end">
-              <div className="bg-blue-500 text-white rounded-2xl rounded-tr-sm p-4 max-w-md">
-                <p>{answers[step.id]}</p>
-              </div>
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <User className="w-5 h-5 text-blue-600" />
-              </div>
+            <div className="bg-white rounded-3xl p-8 shadow-xl border border-purple-100">
+              {isTyping ? (
+                <div className="flex justify-center space-x-2">
+                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"></div>
+                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
+              ) : (
+                <p className="text-xl text-gray-800 leading-relaxed">{currentStep.aiMessage}</p>
+              )}
             </div>
           </div>
-        ))}
 
-        {/* Current AI Message */}
-        <div className="flex items-start space-x-3">
-          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-            <Bot className="w-5 h-5 text-purple-600" />
-          </div>
-          <div className="bg-gray-100 rounded-2xl rounded-tl-sm p-4 max-w-md">
-            {isTyping ? (
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-              </div>
-            ) : (
-              <p className="text-gray-800">{currentStep.aiMessage}</p>
-            )}
-          </div>
+          {/* Answer Options */}
+          {!isTyping && (
+            <div className="space-y-4">
+              {currentStep.type === 'select' && currentStep.options && (
+                <div className="grid grid-cols-1 gap-3">
+                  {currentStep.options.map((option) => (
+                    <Button
+                      key={option.value}
+                      onClick={() => handleAnswer(option.value)}
+                      variant="outline"
+                      className={`h-auto p-6 text-left justify-start transition-all hover:scale-[1.02] hover:shadow-lg ${option.color} text-white border-0 hover:opacity-90 rounded-2xl`}
+                    >
+                      <div>
+                        <div className="font-semibold text-lg">{option.label}</div>
+                        {option.description && (
+                          <div className="text-sm opacity-90 mt-1">{option.description}</div>
+                        )}
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              )}
+
+              {currentStep.type === 'text' && (
+                <div className="flex space-x-3">
+                  <Input
+                    value={currentInput}
+                    onChange={(e) => setCurrentInput(e.target.value)}
+                    placeholder={currentStep.placeholder}
+                    className="text-xl p-6 rounded-2xl border-purple-200 focus:border-purple-400"
+                    onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
+                    autoFocus
+                  />
+                  <Button 
+                    onClick={handleTextSubmit}
+                    disabled={!currentInput.trim()}
+                    className="px-8 py-6 rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500"
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                </div>
+              )}
+
+              {currentStep.type === 'textarea' && (
+                <div className="space-y-4">
+                  <Textarea
+                    value={currentInput}
+                    onChange={(e) => setCurrentInput(e.target.value)}
+                    placeholder={currentStep.placeholder}
+                    className="text-lg p-6 min-h-[140px] rounded-2xl border-purple-200 focus:border-purple-400"
+                    autoFocus
+                  />
+                  <div className="flex justify-end">
+                    <Button 
+                      onClick={handleTextSubmit}
+                      disabled={!currentInput.trim()}
+                      className="px-8 py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500"
+                    >
+                      <ArrowRight className="w-4 h-4 mr-2" />
+                      Continue
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      {!isTyping && (
-        <div className="p-4 bg-white border-t">
-          {currentStep.type === 'select' && currentStep.options && (
-            <div className="grid grid-cols-1 gap-2 max-w-2xl mx-auto">
-              {currentStep.options.map((option) => (
-                <Button
-                  key={option.value}
-                  onClick={() => handleAnswer(option.value)}
-                  variant="outline"
-                  className={`h-auto p-4 text-left justify-start transition-all hover:scale-[1.02] ${option.color} text-white border-0 hover:opacity-80`}
-                >
-                  <div>
-                    <div className="font-medium">{option.label}</div>
-                    {option.description && (
-                      <div className="text-sm opacity-90">{option.description}</div>
-                    )}
-                  </div>
-                </Button>
-              ))}
-            </div>
-          )}
-
-          {currentStep.type === 'text' && (
-            <div className="flex space-x-2 max-w-2xl mx-auto">
-              <Input
-                value={currentInput}
-                onChange={(e) => setCurrentInput(e.target.value)}
-                placeholder={currentStep.placeholder}
-                className="text-lg p-4"
-                onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
-              />
-              <Button 
-                onClick={handleTextSubmit}
-                disabled={!currentInput.trim()}
-                className="px-6"
-              >
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-
-          {currentStep.type === 'textarea' && (
-            <div className="max-w-2xl mx-auto">
-              <Textarea
-                value={currentInput}
-                onChange={(e) => setCurrentInput(e.target.value)}
-                placeholder={currentStep.placeholder}
-                className="text-lg p-4 min-h-[120px] mb-2"
-              />
-              <div className="flex justify-end">
-                <Button 
-                  onClick={handleTextSubmit}
-                  disabled={!currentInput.trim()}
-                  className="px-6"
-                >
-                  <ArrowRight className="w-4 h-4 mr-2" />
-                  Continue
-                </Button>
-              </div>
-            </div>
-          )}
-          
-          {/* Back Button */}
-          {currentStepIndex > 0 && (
-            <div className="flex justify-center mt-4">
-              <Button
-                onClick={handlePrevious}
-                variant="ghost"
-                size="sm"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Go Back
-              </Button>
-            </div>
-          )}
+      {/* Back Button */}
+      {currentStepIndex > 0 && !isTyping && (
+        <div className="p-4 flex justify-center">
+          <Button
+            onClick={handlePrevious}
+            variant="ghost"
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Go Back
+          </Button>
         </div>
       )}
     </div>
