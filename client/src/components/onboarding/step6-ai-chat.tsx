@@ -560,6 +560,16 @@ When you have all the information, confirm with the user and then say "GENERATE_
       } else {
         setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
         
+        // Reset all button states first
+        setShowCelebrationButtons(false);
+        setShowRelationshipButtons(false);
+        setShowNameInput(false);
+        setShowGenderButtons(false);
+        setShowAgeRangeButtons(false);
+        setShowSkinToneButtons(false);
+        setShowHairStyleButtons(false);
+        setShowHairColorButtons(false);
+        
         // Check what type of question is being asked and show appropriate buttons
         const lowerResponse = aiResponse.toLowerCase();
         
@@ -577,11 +587,6 @@ When you have all the information, confirm with the user and then say "GENERATE_
           setShowSkinToneButtons(true);
         } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for') || lowerResponse.includes('birthday card for')) {
           setShowRelationshipButtons(true);
-        }
-        
-        // Force show hair style buttons for testing - remove this after debugging
-        if (lowerResponse.includes('hair') && !lowerResponse.includes('color')) {
-          setTimeout(() => setShowHairStyleButtons(true), 100);
         }
         
         setCurrentStepState(currentStep + 1);
