@@ -89,6 +89,7 @@ export default function TestChat() {
       const response = await apiRequest("POST", "/api/cards", {
         cardType: "printed",
         printOption: "front-only",
+        sceneType: "with-person",
         price: 8900, // R89 in cents
         userId: 1 // Test user ID for development
       });
