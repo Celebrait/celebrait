@@ -220,20 +220,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'features',
-      question: `What distinctive features make ${answers.name || 'them'} uniquely recognizable?`,
+      question: `What distinctive facial features make ${answers.name || 'them'} uniquely recognizable?`,
       aiMessage: `Now let's capture what makes ${answers.name || 'them'} truly unique! ${answers.gender === 'female' 
-        ? 'Think about distinctive features like glasses, freckles, dimples, birthmarks, scars, tattoos, piercings, braces, or unique facial characteristics.' 
-        : 'Consider features like glasses, facial hair (beard, mustache), scars, tattoos, piercings, birthmarks, or other distinctive characteristics.'} The more specific details you share, the more authentic the representation will be. You can skip this if you prefer.`,
+        ? 'Think about distinctive facial features like glasses, freckles, dimples, beauty marks, scars, distinctive eyebrows, long eyelashes, or unique smile characteristics.' 
+        : 'Consider facial features like glasses, beard, mustache, goatee, sideburns, facial scars, distinctive eyebrows, cleft chin, or unique smile characteristics.'} The more specific details you share, the more authentic the representation will be.`,
       type: 'text',
       placeholder: answers.gender === 'female' 
-        ? 'e.g., glasses, freckles, dimples, birthmark on cheek, or leave blank to skip'
-        : 'e.g., beard, glasses, scar above eyebrow, tattoo on arm, or leave blank to skip'
+        ? 'e.g., round glasses, freckles across nose, dimpled smile'
+        : 'e.g., full beard, wire-rim glasses, bushy eyebrows'
     },
     {
       id: 'personality',
-      question: `What personality traits best describe ${answers.name || 'them'}?`,
-      aiMessage: `Amazing! Now let's capture ${answers.name || 'their'} personality. You can select multiple traits that describe them - the more you choose, the better I can represent their unique spirit in the card!`,
-      type: 'multiselect',
+      question: `What's ${answers.name || 'their'} main personality trait?`,
+      aiMessage: `Amazing! Now let's capture ${answers.name || 'their'} essence. What's their main, defining personality trait? This will help me represent their true spirit in the card.`,
+      type: 'select',
       options: [
         { value: 'outgoing', label: 'Outgoing', description: 'Life of the party', color: 'bg-orange-500' },
         { value: 'calm', label: 'Calm', description: 'Peaceful and relaxed', color: 'bg-blue-500' },
@@ -682,40 +682,68 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
                 {currentStep.type === 'summary' && (
                   <div className="space-y-6">
-                    {/* Character Summary */}
+                    {/* Character Description */}
                     <div className="bg-white rounded-xl p-6 border border-purple-200">
-                      <h3 className="text-lg font-semibold mb-4 text-purple-700">Character Summary</h3>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div><span className="font-medium">Name:</span> {answers.name || 'Not specified'}</div>
-                        <div><span className="font-medium">Gender:</span> {answers.gender || 'Not specified'}</div>
-                        <div><span className="font-medium">Age:</span> {answers.age?.replace('_', ' ') || 'Not specified'}</div>
-                        <div><span className="font-medium">Heritage:</span> {answers.heritage?.replace('_', ' ') || 'Not specified'}</div>
-                        <div><span className="font-medium">Hair:</span> {`${answers.hair_color?.replace('_', ' ') || ''} ${answers.hair_style?.replace('_', ' ') || ''}`.trim() || 'Not specified'}</div>
-                        <div><span className="font-medium">Build:</span> {answers.build || 'Not specified'}</div>
-                        <div><span className="font-medium">Features:</span> {answers.features === 'skip' ? 'None specified' : answers.features || 'Not specified'}</div>
-                        <div><span className="font-medium">Personality:</span> {answers.personality || 'Not specified'}</div>
-                      </div>
+                      <h3 className="text-lg font-semibold mb-4 text-purple-700">Meet {answers.name}!</h3>
+                      <p className="text-gray-700 leading-relaxed">
+                        {answers.name} is a {answers.age?.replace('_', ' ')?.toLowerCase()} {answers.gender} of {answers.heritage?.replace('_', ' ')} heritage. 
+                        {answers.hair_color && answers.hair_style && ` They have ${answers.hair_color.replace('_', ' ')} hair styled ${answers.hair_style.replace('_', ' ')}.`}
+                        {answers.build && ` They have a ${answers.build} build.`}
+                        {answers.features && answers.features !== 'skip' && ` Notable facial features include ${answers.features}.`}
+                        {answers.personality && ` Their personality can be described as ${answers.personality.toLowerCase()}.`}
+                      </p>
                     </div>
 
-                    {/* Inspiration Examples */}
+                    {/* Inspiration Carousel */}
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-center text-purple-700">Scene Inspiration</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg p-4 text-center">
-                          <div className="text-sm font-medium text-blue-800">Adventure Scene</div>
-                          <div className="text-xs text-blue-600 mt-1">"Hiking on a mountain trail with stunning views"</div>
-                        </div>
-                        <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-lg p-4 text-center">
-                          <div className="text-sm font-medium text-green-800">Cozy Scene</div>
-                          <div className="text-xs text-green-600 mt-1">"Reading by a fireplace with hot cocoa"</div>
-                        </div>
-                        <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg p-4 text-center">
-                          <div className="text-sm font-medium text-purple-800">Creative Scene</div>
-                          <div className="text-xs text-purple-600 mt-1">"Painting in an art studio surrounded by masterpieces"</div>
-                        </div>
-                        <div className="bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg p-4 text-center">
-                          <div className="text-sm font-medium text-orange-800">Fun Scene</div>
-                          <div className="text-xs text-orange-600 mt-1">"Having a picnic in a beautiful garden"</div>
+                      <h3 className="text-lg font-semibold text-center text-purple-700">Card Inspiration Gallery</h3>
+                      <div className="overflow-x-auto">
+                        <div className="flex space-x-4 pb-4">
+                          <div className="flex-shrink-0 w-64">
+                            <div className="bg-gradient-to-br from-blue-400 to-blue-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
+                              🏔️
+                            </div>
+                            <div className="mt-2 text-center">
+                              <div className="font-medium text-sm">Adventure Scene</div>
+                              <div className="text-xs text-gray-600 mt-1">"Standing on a mountain peak at sunrise, wearing hiking gear, with a triumphant expression and arms raised"</div>
+                            </div>
+                          </div>
+                          <div className="flex-shrink-0 w-64">
+                            <div className="bg-gradient-to-br from-green-400 to-green-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
+                              ☕
+                            </div>
+                            <div className="mt-2 text-center">
+                              <div className="font-medium text-sm">Cozy Café</div>
+                              <div className="text-xs text-gray-600 mt-1">"Sitting in a warm café, reading a book, wearing a cozy sweater, with steaming coffee and rain outside"</div>
+                            </div>
+                          </div>
+                          <div className="flex-shrink-0 w-64">
+                            <div className="bg-gradient-to-br from-purple-400 to-purple-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
+                              🎨
+                            </div>
+                            <div className="mt-2 text-center">
+                              <div className="font-medium text-sm">Art Studio</div>
+                              <div className="text-xs text-gray-600 mt-1">"Painting on a canvas in a bright studio, wearing an apron, surrounded by colorful artwork and brushes"</div>
+                            </div>
+                          </div>
+                          <div className="flex-shrink-0 w-64">
+                            <div className="bg-gradient-to-br from-orange-400 to-orange-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
+                              🌸
+                            </div>
+                            <div className="mt-2 text-center">
+                              <div className="font-medium text-sm">Garden Party</div>
+                              <div className="text-xs text-gray-600 mt-1">"Having a picnic in a beautiful flower garden, wearing summer clothes, with butterflies and sunshine"</div>
+                            </div>
+                          </div>
+                          <div className="flex-shrink-0 w-64">
+                            <div className="bg-gradient-to-br from-red-400 to-red-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
+                              🍳
+                            </div>
+                            <div className="mt-2 text-center">
+                              <div className="font-medium text-sm">Chef's Kitchen</div>
+                              <div className="text-xs text-gray-600 mt-1">"Cooking in a professional kitchen, wearing chef's whites, creating a masterpiece dish with passion"</div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -733,22 +761,35 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 )}
 
                 {currentStep.type === 'text' && (
-                  <div className="flex space-x-3">
-                    <Input
-                      value={currentInput}
-                      onChange={(e) => setCurrentInput(e.target.value)}
-                      placeholder={currentStep.placeholder}
-                      className="text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
-                      onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
-                      autoFocus
-                    />
-                    <Button 
-                      onClick={handleTextSubmit}
-                      disabled={!currentInput.trim()}
-                      className="px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
-                    >
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
+                  <div className="space-y-4">
+                    <div className="flex space-x-3">
+                      <Input
+                        value={currentInput}
+                        onChange={(e) => setCurrentInput(e.target.value)}
+                        placeholder={currentStep.placeholder}
+                        className="text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
+                        onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
+                        autoFocus
+                      />
+                      <Button 
+                        onClick={handleTextSubmit}
+                        disabled={!currentInput.trim()}
+                        className="px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    {currentStep.id === 'features' && (
+                      <div className="flex justify-center">
+                        <Button 
+                          onClick={() => handleAnswer('skip')}
+                          variant="outline"
+                          className="px-6 py-2 rounded-full border-gray-300 text-gray-600 hover:bg-gray-50"
+                        >
+                          Skip This Step
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
 
