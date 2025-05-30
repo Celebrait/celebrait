@@ -206,24 +206,30 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'build',
-      question: `What's ${answers.name || 'their'} build or body type?`,
-      aiMessage: `Perfect! What's ${answers.name || 'their'} build or body type?`,
+      question: `What's ${answers.name || 'their'} body type?`,
+      aiMessage: `Perfect! Now let's capture ${answers.name || 'their'} body type. This helps me create the most accurate representation of ${answers.gender === 'male' ? 'him' : answers.gender === 'female' ? 'her' : 'them'}. I want to make sure I get this just right!`,
       type: 'select',
       options: [
-        { value: 'slim', label: 'Slim', description: 'Lean build', color: 'bg-blue-500' },
-        { value: 'average', label: 'Average', description: 'Regular build', color: 'bg-green-500' },
-        { value: 'athletic', label: 'Athletic', description: 'Fit and toned', color: 'bg-orange-500' },
-        { value: 'curvy', label: 'Curvy', description: 'Fuller figure', color: 'bg-pink-500' },
-        { value: 'stocky', label: 'Stocky', description: 'Broader build', color: 'bg-purple-500' },
-        { value: 'petite', label: 'Petite', description: 'Small frame', color: 'bg-yellow-500' }
+        { value: 'slim', label: 'Slim', description: 'Lean and slender build', color: 'bg-green-500' },
+        { value: 'average', label: 'Average', description: 'Medium, balanced build', color: 'bg-blue-500' },
+        { value: 'athletic', label: 'Athletic', description: 'Toned and muscular', color: 'bg-red-500' },
+        { value: 'curvy', label: 'Curvy', description: 'Fuller, shapely figure', color: 'bg-pink-500' },
+        { value: 'stocky', label: 'Stocky', description: 'Broader, solid build', color: 'bg-purple-500' },
+        { value: 'petite', label: 'Petite', description: 'Small, delicate frame', color: 'bg-yellow-500' },
+        { value: 'tall', label: 'Tall', description: 'Tall and lanky build', color: 'bg-indigo-500' },
+        { value: 'plus_size', label: 'Plus Size', description: 'Fuller, larger frame', color: 'bg-orange-500' },
+        { value: 'muscular', label: 'Muscular', description: 'Well-built and strong', color: 'bg-emerald-500' },
+        { value: 'lean', label: 'Lean', description: 'Thin with little body fat', color: 'bg-teal-500' }
       ]
     },
     {
       id: 'features',
       question: `What distinctive facial features make ${answers.name || 'them'} uniquely recognizable?`,
-      aiMessage: `Now let's capture what makes ${answers.name || 'them'} truly unique! ${answers.gender === 'female' 
-        ? 'Think about distinctive facial features like glasses, freckles, dimples, beauty marks, scars, distinctive eyebrows, long eyelashes, or unique smile characteristics.' 
-        : 'Consider facial features like glasses, beard, mustache, goatee, sideburns, facial scars, distinctive eyebrows, cleft chin, or unique smile characteristics.'} The more specific details you share, the more authentic the representation will be.`,
+      aiMessage: `Now let's capture what makes ${answers.name || 'them'} truly unique! I'm thinking about ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} distinctive facial features. ${answers.gender === 'female' 
+        ? 'Does she have glasses, freckles, dimples, beauty marks, distinctive eyebrows, long eyelashes, or a unique smile that lights up the room?' 
+        : answers.gender === 'male' 
+        ? 'Does he have glasses, a beard, mustache, goatee, sideburns, distinctive eyebrows, a cleft chin, or a characteristic smile?'
+        : 'Do they have glasses, facial hair, freckles, dimples, distinctive eyebrows, or other unique facial characteristics?'} These details help me create something truly personal and authentic!`,
       type: 'text',
       placeholder: answers.gender === 'female' 
         ? 'e.g., round glasses, freckles across nose, dimpled smile'
@@ -232,7 +238,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'personality',
       question: `What's ${answers.name || 'their'} main personality trait?`,
-      aiMessage: `Amazing! Now let's capture ${answers.name || 'their'} essence. What's their main, defining personality trait? This will help me represent their true spirit in the card.`,
+      aiMessage: `Amazing! Now I want to capture ${answers.name || 'their'} essence - the heart of who ${answers.gender === 'male' ? 'he is' : answers.gender === 'female' ? 'she is' : 'they are'}. What's ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} main personality trait that everyone would recognize? This will help me represent ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} true spirit in the card.`,
       type: 'select',
       options: [
         { value: 'outgoing', label: 'Outgoing', description: 'Life of the party', color: 'bg-orange-500' },
@@ -258,14 +264,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'character_summary',
       question: 'Perfect! Let me show you what we have so far...',
-      aiMessage: `Fantastic! We've captured ${answers.name || 'their'} essence beautifully. Now comes the exciting part - creating the perfect scene! Look at these amazing examples of what's possible, then describe where you'd like ${answers.name || 'them'} to be.`,
+      aiMessage: `Fantastic! I've got a beautiful picture of ${answers.name || 'them'} in my mind. ${answers.name} is a ${answers.age?.replace('_', ' ')?.toLowerCase()} ${answers.gender} of ${answers.heritage?.replace('_', ' ')} heritage${answers.hair_color && answers.hair_style ? `, with ${answers.hair_color.replace('_', ' ')} hair styled ${answers.hair_style.replace('_', ' ')}` : ''}${answers.build ? `, ${answers.build} build` : ''}${answers.features && answers.features !== 'skip' ? `, with ${answers.features}` : ''}${answers.personality ? `, and a ${answers.personality.toLowerCase()} personality` : ''}. Now comes the exciting part - creating the perfect scene! Look at these amazing examples below for inspiration, then we'll move on to describe where you'd like ${answers.gender === 'male' ? 'him' : answers.gender === 'female' ? 'her' : 'them'} to be.`,
       type: 'summary',
       placeholder: ''
     },
     {
       id: 'scene',
       question: `Where should ${answers.name || 'they'} be and what should they be doing?`,
-      aiMessage: `Now for the magic! Where should ${answers.name || 'they'} be and what should they be doing? Think about their personality and what would make them smile. Include details like the setting, their activity, what they're wearing, and any other important elements.`,
+      aiMessage: `Now for the magic! This is where we place ${answers.name || 'them'} in the scene on the greeting card. I need to know where ${answers.gender === 'male' ? 'he' : answers.gender === 'female' ? 'she' : 'they'} should be and what ${answers.gender === 'male' ? 'he' : answers.gender === 'female' ? 'she' : 'they'} should be doing. Think about ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} personality and what would make ${answers.gender === 'male' ? 'him' : answers.gender === 'female' ? 'her' : 'them'} smile!`,
       type: 'textarea',
       placeholder: 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...'
     },
