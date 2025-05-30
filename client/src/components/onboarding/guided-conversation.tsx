@@ -17,7 +17,7 @@ interface ConversationStep {
   id: string;
   question: string;
   aiMessage: string;
-  type: 'text' | 'select' | 'textarea';
+  type: 'text' | 'select' | 'textarea' | 'summary';
   options?: Array<{ value: string; label: string; description?: string; color?: string }>;
   placeholder?: string;
   required?: boolean;
@@ -219,10 +219,27 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'features',
-      question: `Does ${answers.name || 'they'} have any standout features?`,
-      aiMessage: `Nice! Does ${answers.name || 'they'} have any standout features? Things like glasses, freckles, or dimples that make them unique?`,
-      type: 'text',
-      placeholder: 'e.g., glasses, freckles, beard, dimples (or leave blank)'
+      question: `What makes ${answers.name || 'them'} uniquely recognizable?`,
+      aiMessage: `Perfect! Now let's capture what makes ${answers.name || 'them'} truly unique. The more specific details you share, the more authentic and recognizable the card will be. What distinctive features do they have?`,
+      type: 'select',
+      options: [
+        { value: 'glasses', label: 'Glasses', description: 'Prescription or reading glasses', color: 'bg-blue-500' },
+        { value: 'freckles', label: 'Freckles', description: 'Cute freckles on face', color: 'bg-orange-500' },
+        { value: 'dimples', label: 'Dimples', description: 'Charming dimples when smiling', color: 'bg-pink-500' },
+        { value: 'beard', label: 'Beard', description: 'Facial hair or beard', color: 'bg-amber-500' },
+        { value: 'mustache', label: 'Mustache', description: 'Distinctive mustache', color: 'bg-brown-500' },
+        { value: 'scar', label: 'Scar', description: 'Notable scar or mark', color: 'bg-gray-500' },
+        { value: 'tattoo', label: 'Tattoo', description: 'Visible tattoo', color: 'bg-purple-500' },
+        { value: 'piercing', label: 'Piercing', description: 'Ear, nose, or other piercing', color: 'bg-teal-500' },
+        { value: 'birthmark', label: 'Birthmark', description: 'Distinctive birthmark', color: 'bg-rose-500' },
+        { value: 'braces', label: 'Braces', description: 'Dental braces', color: 'bg-cyan-500' },
+        { value: 'gap_teeth', label: 'Gap in Teeth', description: 'Charming tooth gap', color: 'bg-lime-500' },
+        { value: 'crooked_smile', label: 'Crooked Smile', description: 'Endearing crooked smile', color: 'bg-indigo-500' },
+        { value: 'bushy_eyebrows', label: 'Bushy Eyebrows', description: 'Prominent eyebrows', color: 'bg-emerald-500' },
+        { value: 'long_eyelashes', label: 'Long Eyelashes', description: 'Beautiful long lashes', color: 'bg-fuchsia-500' },
+        { value: 'cleft_chin', label: 'Cleft Chin', description: 'Distinctive chin dimple', color: 'bg-violet-500' },
+        { value: 'skip', label: 'Skip', description: 'No distinctive features to mention', color: 'bg-gray-400' }
+      ]
     },
     {
       id: 'personality',
@@ -235,13 +252,32 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         { value: 'funny', label: 'Funny', description: 'Always making jokes', color: 'bg-yellow-500' },
         { value: 'caring', label: 'Caring', description: 'Thoughtful and kind', color: 'bg-pink-500' },
         { value: 'adventurous', label: 'Adventurous', description: 'Loves new experiences', color: 'bg-green-500' },
-        { value: 'creative', label: 'Creative', description: 'Artistic and imaginative', color: 'bg-purple-500' }
+        { value: 'creative', label: 'Creative', description: 'Artistic and imaginative', color: 'bg-purple-500' },
+        { value: 'energetic', label: 'Energetic', description: 'High energy and enthusiastic', color: 'bg-red-500' },
+        { value: 'intellectual', label: 'Intellectual', description: 'Thoughtful and analytical', color: 'bg-indigo-500' },
+        { value: 'spontaneous', label: 'Spontaneous', description: 'Loves surprises and adventure', color: 'bg-teal-500' },
+        { value: 'gentle', label: 'Gentle', description: 'Soft-spoken and tender', color: 'bg-rose-500' },
+        { value: 'ambitious', label: 'Ambitious', description: 'Goal-oriented and driven', color: 'bg-emerald-500' },
+        { value: 'playful', label: 'Playful', description: 'Fun-loving and mischievous', color: 'bg-lime-500' },
+        { value: 'wise', label: 'Wise', description: 'Thoughtful and experienced', color: 'bg-amber-500' },
+        { value: 'quirky', label: 'Quirky', description: 'Unique and eccentric', color: 'bg-violet-500' },
+        { value: 'loyal', label: 'Loyal', description: 'Faithful and dependable', color: 'bg-cyan-500' },
+        { value: 'optimistic', label: 'Optimistic', description: 'Always sees the bright side', color: 'bg-yellow-400' },
+        { value: 'mysterious', label: 'Mysterious', description: 'Intriguing and enigmatic', color: 'bg-gray-700' },
+        { value: 'confident', label: 'Confident', description: 'Self-assured and bold', color: 'bg-orange-600' }
       ]
+    },
+    {
+      id: 'character_summary',
+      question: 'Perfect! Let me show you what we have so far...',
+      aiMessage: `Fantastic! We've captured ${answers.name || 'their'} essence beautifully. Now comes the exciting part - creating the perfect scene! Look at these amazing examples of what's possible, then describe where you'd like ${answers.name || 'them'} to be.`,
+      type: 'summary',
+      placeholder: ''
     },
     {
       id: 'scene',
       question: `Where should ${answers.name || 'they'} be in the scene?`,
-      aiMessage: `Wonderful! Now, where should ${answers.name || 'they'} be in the scene? Describe the setting you envision.`,
+      aiMessage: `Now for the magic! Where should ${answers.name || 'they'} be? Think about their personality and what would make them smile. The more vivid your description, the more amazing the result!`,
       type: 'textarea',
       placeholder: 'Describe the setting or scene you envision...'
     },
@@ -320,6 +356,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         generateCard();
       }
     }, 500);
+  };
+
+  const handleSummaryNext = () => {
+    if (currentStepIndex < steps.length - 1) {
+      setCurrentStepIndex(prev => prev + 1);
+    }
   };
 
   const handleTextSubmit = () => {
@@ -536,6 +578,58 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                           <ArrowRight className="w-4 h-4" />
                         </Button>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {currentStep.type === 'summary' && (
+                  <div className="space-y-6">
+                    {/* Character Summary */}
+                    <div className="bg-white rounded-xl p-6 border border-purple-200">
+                      <h3 className="text-lg font-semibold mb-4 text-purple-700">Character Summary</h3>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div><span className="font-medium">Name:</span> {answers.name || 'Not specified'}</div>
+                        <div><span className="font-medium">Gender:</span> {answers.gender || 'Not specified'}</div>
+                        <div><span className="font-medium">Age:</span> {answers.age?.replace('_', ' ') || 'Not specified'}</div>
+                        <div><span className="font-medium">Heritage:</span> {answers.heritage?.replace('_', ' ') || 'Not specified'}</div>
+                        <div><span className="font-medium">Hair:</span> {`${answers.hair_color?.replace('_', ' ') || ''} ${answers.hair_style?.replace('_', ' ') || ''}`.trim() || 'Not specified'}</div>
+                        <div><span className="font-medium">Build:</span> {answers.build || 'Not specified'}</div>
+                        <div><span className="font-medium">Features:</span> {answers.features === 'skip' ? 'None specified' : answers.features || 'Not specified'}</div>
+                        <div><span className="font-medium">Personality:</span> {answers.personality || 'Not specified'}</div>
+                      </div>
+                    </div>
+
+                    {/* Inspiration Examples */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-center text-purple-700">Scene Inspiration</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg p-4 text-center">
+                          <div className="text-sm font-medium text-blue-800">Adventure Scene</div>
+                          <div className="text-xs text-blue-600 mt-1">"Hiking on a mountain trail with stunning views"</div>
+                        </div>
+                        <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-lg p-4 text-center">
+                          <div className="text-sm font-medium text-green-800">Cozy Scene</div>
+                          <div className="text-xs text-green-600 mt-1">"Reading by a fireplace with hot cocoa"</div>
+                        </div>
+                        <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg p-4 text-center">
+                          <div className="text-sm font-medium text-purple-800">Creative Scene</div>
+                          <div className="text-xs text-purple-600 mt-1">"Painting in an art studio surrounded by masterpieces"</div>
+                        </div>
+                        <div className="bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg p-4 text-center">
+                          <div className="text-sm font-medium text-orange-800">Fun Scene</div>
+                          <div className="text-xs text-orange-600 mt-1">"Having a picnic in a beautiful garden"</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-center">
+                      <Button 
+                        onClick={handleSummaryNext}
+                        className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
+                      >
+                        Let's Create the Scene!
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
                     </div>
                   </div>
                 )}
