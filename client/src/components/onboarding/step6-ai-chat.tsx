@@ -169,6 +169,41 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
     return `Hey ${onboarding.userName}! 👋 I'm so excited to help you create something magical. Let's start by choosing what celebration this card is for!`;
   };
 
+  const handleAIResponseDetection = (aiResponse: string) => {
+    const lowerResponse = aiResponse.toLowerCase();
+    console.log('AI Response Detection - Full Response:', aiResponse);
+    console.log('AI Response Detection - Lower Response:', lowerResponse);
+    
+    // Reset all button states first
+    setShowCelebrationButtons(false);
+    setShowRelationshipButtons(false);
+    setShowNameInput(false);
+    setShowGenderButtons(false);
+    setShowAgeRangeButtons(false);
+    setShowSkinToneButtons(false);
+    setShowHairStyleButtons(false);
+    setShowHairColorButtons(false);
+    
+    // Detect what buttons to show
+    if (lowerResponse.includes('hair color') || (lowerResponse.includes('hair') && lowerResponse.includes('color'))) {
+      console.log('Hair color detected - showing hair color buttons');
+      setShowHairColorButtons(true);
+    } else if (lowerResponse.includes('hair')) {
+      console.log('Hair style detected - showing hair style buttons');
+      setShowHairStyleButtons(true);
+    } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
+      setShowNameInput(true);
+    } else if (lowerResponse.includes('age range') || lowerResponse.includes('what age range')) {
+      setShowAgeRangeButtons(true);
+    } else if (lowerResponse.includes('male') || lowerResponse.includes('female') || lowerResponse.includes('gender')) {
+      setShowGenderButtons(true);
+    } else if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
+      setShowSkinToneButtons(true);
+    } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for')) {
+      setShowRelationshipButtons(true);
+    }
+  };
+
   const getSystemPrompt = () => {
     const celebrationType = collectedData.celebration || 'celebration';
     const basePrompt = `You are Celebrait — a friendly, humorous, highly intuitive AI assistant that helps users create custom greeting cards. Your primary job is to guide users through a creative, emotionally engaging journey while maintaining a light, playful tone.
@@ -444,13 +479,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
         await generateCard();
       } else {
         setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
-        
-        // Check if next question is about hair color
-        const lowerResponse = aiResponse.toLowerCase();
-        if (lowerResponse.includes('hair') && lowerResponse.includes('color')) {
-          setShowHairColorButtons(true);
-        }
-        
+        handleAIResponseDetection(aiResponse);
         setCurrentStepState(currentStep + 1);
       }
     } catch (error) {
@@ -565,53 +594,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
         await generateCard();
       } else {
         setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
-        
-        // Check what type of question is being asked and show appropriate buttons
-        const lowerResponse = aiResponse.toLowerCase();
-        console.log('Full AI Response:', aiResponse);
-        console.log('Lower response:', lowerResponse);
-        
-        // Reset all button states first
-        setShowCelebrationButtons(false);
-        setShowRelationshipButtons(false);
-        setShowNameInput(false);
-        setShowGenderButtons(false);
-        setShowAgeRangeButtons(false);
-        setShowSkinToneButtons(false);
-        setShowHairStyleButtons(false);
-        setShowHairColorButtons(false);
-        
-        // Determine what buttons to show based on current step
-        console.log('Current step:', currentStep);
-        console.log('Collected data so far:', collectedData);
-        
-        // Clear and precise detection logic with comprehensive logging
-        console.log('Checking for hair mentions...');
-        console.log('Contains "hair"?', lowerResponse.includes('hair'));
-        console.log('Contains "color"?', lowerResponse.includes('color'));
-        console.log('Has hairStyle in collected data?', !!collectedData.hairStyle);
-        
-        if (lowerResponse.includes('hair color') || (lowerResponse.includes('hair') && lowerResponse.includes('color'))) {
-          console.log('Hair color question detected: Showing hair color buttons');
-          setShowHairColorButtons(true);
-        } else if (lowerResponse.includes('hair') && !collectedData.hairStyle) {
-          console.log('First hair question detected: Showing hair style buttons');
-          setShowHairStyleButtons(true);
-        } else if (lowerResponse.includes('hair')) {
-          console.log('Hair mentioned but hairStyle already exists, forcing hair style buttons anyway');
-          setShowHairStyleButtons(true);
-        } else if (lowerResponse.includes('name') || lowerResponse.includes("what's their") || lowerResponse.includes("what is their")) {
-          setShowNameInput(true);
-        } else if (lowerResponse.includes('age range') || lowerResponse.includes('what age range')) {
-          setShowAgeRangeButtons(true);
-        } else if (lowerResponse.includes('male') || lowerResponse.includes('female') || lowerResponse.includes('gender')) {
-          setShowGenderButtons(true);
-        } else if (lowerResponse.includes('skin tone') || lowerResponse.includes('appearance') || lowerResponse.includes('look like')) {
-          setShowSkinToneButtons(true);
-        } else if (lowerResponse.includes('who is') || lowerResponse.includes('relationship') || lowerResponse.includes('card for') || lowerResponse.includes('birthday card for')) {
-          setShowRelationshipButtons(true);
-        }
-        
+        handleAIResponseDetection(aiResponse);
         setCurrentStepState(currentStep + 1);
       }
     } catch (error) {
