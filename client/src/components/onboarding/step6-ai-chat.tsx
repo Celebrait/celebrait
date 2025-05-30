@@ -262,7 +262,12 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
                                  lowerResponse.includes('describe her vibe') ||
                                  lowerResponse.includes('what is he like') ||
                                  lowerResponse.includes('what is she like') ||
-                                 (lowerResponse.includes('how would you describe') && lowerResponse.includes('vibe')));
+                                 (lowerResponse.includes('how would you describe') && lowerResponse.includes('vibe'))) &&
+                                 !lowerResponse.includes('art style') &&
+                                 !lowerResponse.includes('setting') &&
+                                 !lowerResponse.includes('scene') &&
+                                 !lowerResponse.includes('message') &&
+                                 !lowerResponse.includes('front of the card');
     
     console.log('Hair color question check:', isHairColorQuestion);
     console.log('Hair style question check:', isHairStyleQuestion);
