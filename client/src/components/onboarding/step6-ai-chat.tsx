@@ -876,8 +876,8 @@ When you have all the information, confirm with the user and then say "GENERATE_
     // Extract information from the conversation
     const messageText = messages.map(m => m.content).join(' ').toLowerCase();
     
-    // Clear greeting card structure
-    parts.push("Professional greeting card illustration, square format");
+    // Critical: Force flat, full-bleed design
+    parts.push("Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame");
     
     // Add person details if we have them
     if (collectedData.recipientName) {
@@ -933,10 +933,11 @@ When you have all the information, confirm with the user and then say "GENERATE_
     
     // Focus on clear text rendering
     if (messageText.includes('happy birthday')) {
-      parts.push('with the text "Happy Birthday" displayed clearly on the card in elegant, readable typography');
+      parts.push('with the text "Happy Birthday" integrated into the design');
     }
     
-    parts.push('high quality greeting card design');
+    // Reinforce flat design requirements
+    parts.push('flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork');
     
     return parts.join(', ');
   };

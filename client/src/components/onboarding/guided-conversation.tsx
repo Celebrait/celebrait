@@ -474,8 +474,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const buildImagePrompt = () => {
     const parts = [];
     
-    // Clear greeting card structure
-    parts.push("Professional greeting card illustration, square format");
+    // Critical: Force flat, full-bleed design
+    parts.push("Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame");
     
     if (answers.name) {
       let personDescription = answers.name;
@@ -505,10 +505,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     
     // Focus on clear text rendering
     if (answers.message && answers.message.trim()) {
-      parts.push(`with the text "${answers.message}" displayed clearly on the card in elegant, readable typography`);
+      parts.push(`with the text "${answers.message}" integrated into the design`);
     }
     
-    parts.push('high quality greeting card design');
+    // Reinforce flat design requirements
+    parts.push('flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork');
     
     return parts.join(', ');
   };
