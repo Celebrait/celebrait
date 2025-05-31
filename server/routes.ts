@@ -171,8 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         prompt: frontPrompt,
         n: 1,
         size: "1024x1024",
-        quality: "hd",
-        style: "vivid"
+        quality: "standard"
       });
 
       let insideImageUrl = null;
@@ -184,8 +183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           prompt: insidePrompt,
           n: 1,
           size: "1024x1024",
-          quality: "hd",
-          style: "vivid"
+          quality: "standard"
         });
         insideImageUrl = insideImageGeneration.data?.[0]?.url || null;
       }

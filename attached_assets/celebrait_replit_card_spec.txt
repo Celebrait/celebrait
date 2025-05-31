@@ -1,0 +1,54 @@
+
+🎨 Celebrait Card Generation Spec (Replit Dev Cheatsheet)
+
+✅ Feature Requirements
+
+| Feature               | Requirement                                                                 |
+|-----------------------|-----------------------------------------------------------------------------|
+| **Model**             | `gpt-4o` for conversational flow, `dall-e-3` for image generation           |
+| **Temperature**       | `0.9` – for creative, natural tone in text generation                       |
+| **Prompt Flow**       | Use `messages[]` array: include `system`, `user`, and `assistant` roles     |
+| **Image Size**        | `1024x1024` — square, full-bleed, print-ready                               |
+| **Prompt Length**     | Be generous. DALL·E 3 accepts up to 4000 tokens                             |
+| **Inside + Outside**  | Generate in **two separate API calls**, matching style descriptors          |
+| **System Prompt**     | Always include. Defines tone and guidance logic for gpt-4o conversations    |
+| **Rate Limiting**     | Watch for `429` errors. Add delay or queue system when generating multiple  |
+
+🖼️ DALL·E 3 Image Generation (POST)
+
+Endpoint:
+POST https://api.openai.com/v1/images/generations
+
+Headers:
+{
+  "Authorization": "Bearer YOUR_OPENAI_API_KEY",
+  "Content-Type": "application/json"
+}
+
+Example 1: Front of Card (Scene + Message)
+
+{
+  "model": "dall-e-3",
+  "prompt": "Square greeting card in dreamy pastel watercolor style showing a cheerful young woman with curly red hair, wearing an apron, cooking a heart-shaped cake in a cozy mountain cabin. Text on front: 'Happy Birthday Chef Denise!'",
+  "size": "1024x1024",
+  "quality": "standard",
+  "n": 1
+}
+
+Example 2: Inside of Card (Text Message Only)
+
+{
+  "model": "dall-e-3",
+  "prompt": "Square greeting card interior in dreamy pastel watercolor style matching the front scene (cozy mountain cabin). Text centered: 'Hope your day is filled with sweetness and laughter. You’re the best, Chef D!'",
+  "size": "1024x1024",
+  "quality": "standard",
+  "n": 1
+}
+
+🟨 Important Notes
+
+- You cannot generate both front and inside images in one call.
+- Ensure stylistic consistency between front and inside by using:
+  - The same art style keyword
+  - References to the same scene environment (e.g., “cozy mountain cabin”)
+- Set consistent typography cues for text-based inside image prompts (e.g., “text centered”, “watercolor background”, etc.)
