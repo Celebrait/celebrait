@@ -180,16 +180,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         quality: "hd"
       });
       
-      // Try with a simple test prompt first to isolate the issue
-      const testPrompt = frontPrompt.length > 100 ? "A simple greeting card with happy birthday text" : frontPrompt;
-      console.log('Using prompt:', testPrompt);
+      // Test OpenAI API connectivity first
+      console.log('Testing OpenAI API access...');
+      
+      try {
+        // Test with a simple chat completion to verify API key works
+        const testChat = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: "Hello" }],
+          max_tokens: 10
+        });
+        console.log('Chat API test successful:', testChat.choices[0].message.content);
+      } catch (chatError) {
+        console.log('Chat API test failed:', chatError);
+        return res.status(500).json({ message: "OpenAI API key issue - chat test failed" });
+      }
       
       const frontImageGeneration = await openai.images.generate({
         model: "dall-e-3",
-        prompt: testPrompt,
-        n: 1,
-        size: "1024x1024",
-        quality: "standard"
+        prompt: "A birthday card",
+        size: "1024x1024"
       });
 
       let insideImageUrl = null;
