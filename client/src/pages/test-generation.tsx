@@ -13,28 +13,28 @@ const TEST_PROMPTS = [
     title: "Birthday - Watercolor Style",
     frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Sarah, female, adult, english_sa heritage, blonde hair long wavy, slim build, blue eyes, cheerful personality, in standing in a sunflower field at golden hour wearing a yellow sundress, watercolor art style, with the text \"Happy Birthday Sarah\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
     frontPromptNoText: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Sarah, female, adult, english_sa heritage, blonde hair long wavy, slim build, blue eyes, cheerful personality, in standing in a sunflower field at golden hour wearing a yellow sundress, watercolor art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
-    insideMessage: "Wishing you a day filled with happiness and sunshine!",
+    insideMessage: "Wishing you a day filled with happiness and sunshine! May this new year of life bring you endless joy, beautiful memories, and all the love your heart can hold.",
     artStyle: "watercolor"
   },
   {
     title: "Father's Day - Cartoon Style",
     frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Mike, male, adult, afrikaner heritage, brown hair short neat, athletic build, beard, caring personality, in sitting by a campfire under stars wearing casual outdoor clothes, cartoon art style, with the text \"Happy Father's Day\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
     frontPromptNoText: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Mike, male, adult, afrikaner heritage, brown hair short neat, athletic build, beard, caring personality, in sitting by a campfire under stars wearing casual outdoor clothes, cartoon art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
-    insideMessage: "Thank you for all the adventures and for being the best dad!",
+    insideMessage: "Thank you for all the adventures and for being the best dad! Your wisdom, strength, and love have shaped who I am today. Here's to many more memories together.",
     artStyle: "cartoon"
   },
   {
     title: "Valentine's Day - Oil Painting Style",
     frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Emma, female, teen, indian_sa heritage, black hair long curly, curvy build, dimples, romantic personality, in walking on a beach at sunset wearing a flowing dress, oil_painting art style, with the text \"Be My Valentine\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
     frontPromptNoText: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Emma, female, teen, indian_sa heritage, black hair long curly, curvy build, dimples, romantic personality, in walking on a beach at sunset wearing a flowing dress, oil_painting art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
-    insideMessage: "You make every day feel like a beautiful sunset.",
+    insideMessage: "You make every day feel like a beautiful sunset. Thank you for bringing such warmth and love into my life. I'm so grateful to have you by my side.",
     artStyle: "oil_painting"
   },
   {
     title: "Graduation - Realistic Style",
     frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Alex, male, young_adult, coloured_sa heritage, brown hair fade, slim build, glasses, ambitious personality, in standing in front of university buildings wearing graduation cap and gown, realistic art style, with the text \"Congratulations Graduate\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
     frontPromptNoText: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Alex, male, young_adult, coloured_sa heritage, brown hair fade, slim build, glasses, ambitious personality, in standing in front of university buildings wearing graduation cap and gown, realistic art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
-    insideMessage: "Your hard work and dedication have paid off. The future is bright!",
+    insideMessage: "Your hard work and dedication have paid off. The future is bright! We're so proud of all you've accomplished and excited to see where your journey takes you next.",
     artStyle: "realistic"
   }
 ];
@@ -79,7 +79,7 @@ export default function TestGeneration() {
 
       // Generate inside prompt for front-and-inside cards
       const insidePrompt = cardType === 'front-and-inside' ? 
-        `Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, greeting card interior background in ${preset.artStyle} art style matching the front design, with the text "${preset.insideMessage}" elegantly displayed with beautiful typography, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork` : 
+        `Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, greeting card interior design in ${preset?.artStyle || 'elegant'} art style with complementary background elements matching the front card aesthetic, featuring the heartfelt message "${preset?.insideMessage || 'Hope your special day brings you joy and happiness!'}" displayed in beautiful, readable typography that harmonizes with the overall design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork` : 
         null;
 
       const imageResponse = await apiRequest("POST", "/api/generate-images", {
