@@ -11,29 +11,29 @@ import { Loader2, Copy, RotateCcw } from 'lucide-react';
 const TEST_PROMPTS = [
   {
     title: "Birthday - Watercolor Style",
-    frontPrompt: "A 1:1 aspect ratio illustration of a cheerful adult woman named Sarah with blonde wavy hair, slim build, blue eyes, wearing a yellow sundress, standing in a sunflower field during golden hour. The art style is dreamy watercolor. Text overlay: 'Happy Birthday Sarah!'",
-    frontPromptNoText: "A 1:1 aspect ratio illustration of a cheerful adult woman named Sarah with blonde wavy hair, slim build, blue eyes, wearing a yellow sundress, standing in a sunflower field during golden hour. The art style is dreamy watercolor.",
+    frontPrompt: "Square greeting card in dreamy watercolor style showing a cheerful adult woman named Sarah with blonde wavy hair, slim build, blue eyes, wearing a yellow sundress, standing in a sunflower field during golden hour. Text on front: 'Happy Birthday Sarah!'",
+    frontPromptNoText: "Square greeting card in dreamy watercolor style showing a cheerful adult woman named Sarah with blonde wavy hair, slim build, blue eyes, wearing a yellow sundress, standing in a sunflower field during golden hour.",
     insideMessage: "Wishing you a day filled with happiness and sunshine! May this new year of life bring you endless joy, beautiful memories, and all the love your heart can hold.",
     artStyle: "watercolor"
   },
   {
     title: "Father's Day - Cartoon Style",
-    frontPrompt: "A 1:1 aspect ratio illustration of a caring adult man named Mike with brown short neat hair, athletic build, beard, sitting by campfire under stars wearing casual outdoor clothes. The art style is vibrant cartoon. Text overlay: 'Happy Father's Day!'",
-    frontPromptNoText: "A 1:1 aspect ratio illustration of a caring adult man named Mike with brown short neat hair, athletic build, beard, sitting by campfire under stars wearing casual outdoor clothes. The art style is vibrant cartoon.",
+    frontPrompt: "Square greeting card in vibrant cartoon style showing a caring adult man named Mike with brown short neat hair, athletic build, beard, sitting by campfire under stars wearing casual outdoor clothes. Text on front: 'Happy Father's Day!'",
+    frontPromptNoText: "Square greeting card in vibrant cartoon style showing a caring adult man named Mike with brown short neat hair, athletic build, beard, sitting by campfire under stars wearing casual outdoor clothes.",
     insideMessage: "Thank you for all the adventures and for being the best dad! Your wisdom, strength, and love have shaped who I am today. Here's to many more memories together.",
     artStyle: "cartoon"
   },
   {
     title: "Valentine's Day - Oil Painting Style",
-    frontPrompt: "A 1:1 aspect ratio illustration of a romantic teen girl named Emma with black curly hair, curvy build, dimples, walking on beach at sunset wearing a flowing dress. The art style is rich oil painting. Text overlay: 'Be My Valentine!'",
-    frontPromptNoText: "A 1:1 aspect ratio illustration of a romantic teen girl named Emma with black curly hair, curvy build, dimples, walking on beach at sunset wearing a flowing dress. The art style is rich oil painting.",
+    frontPrompt: "Square greeting card in rich oil painting style showing a romantic teen girl named Emma with black curly hair, curvy build, dimples, walking on beach at sunset wearing a flowing dress. Text on front: 'Be My Valentine!'",
+    frontPromptNoText: "Square greeting card in rich oil painting style showing a romantic teen girl named Emma with black curly hair, curvy build, dimples, walking on beach at sunset wearing a flowing dress.",
     insideMessage: "You make every day feel like a beautiful sunset. Thank you for bringing such warmth and love into my life. I'm so grateful to have you by my side.",
     artStyle: "oil_painting"
   },
   {
     title: "Graduation - Realistic Style",
-    frontPrompt: "A 1:1 aspect ratio illustration of an ambitious young adult man named Alex with brown fade hair, slim build, glasses, standing in front of university buildings wearing graduation cap and gown. The art style is realistic photography. Text overlay: 'Congratulations Graduate!'",
-    frontPromptNoText: "A 1:1 aspect ratio illustration of an ambitious young adult man named Alex with brown fade hair, slim build, glasses, standing in front of university buildings wearing graduation cap and gown. The art style is realistic photography.",
+    frontPrompt: "Square greeting card in realistic photography style showing an ambitious young adult man named Alex with brown fade hair, slim build, glasses, standing in front of university buildings wearing graduation cap and gown. Text on front: 'Congratulations Graduate!'",
+    frontPromptNoText: "Square greeting card in realistic photography style showing an ambitious young adult man named Alex with brown fade hair, slim build, glasses, standing in front of university buildings wearing graduation cap and gown.",
     insideMessage: "Your hard work and dedication have paid off. The future is bright! We're so proud of all you've accomplished and excited to see where your journey takes you next.",
     artStyle: "realistic"
   }
@@ -80,7 +80,7 @@ export default function TestGeneration() {
 
       // Generate inside prompt for front-and-inside cards
       const insidePrompt = cardType === 'front-and-inside' ? 
-        `A 1:1 aspect ratio image styled in ${preset?.artStyle === 'oil_painting' ? 'rich oil painting' : preset?.artStyle === 'watercolor' ? 'dreamy watercolor' : preset?.artStyle === 'cartoon' ? 'vibrant cartoon' : 'realistic photography'} to match the front card scene. The image is soft and centered around the following heartfelt text: '${preset?.insideMessage || 'Hope your special day brings you joy and happiness!'}'` : 
+        `Square greeting card interior in ${preset?.artStyle === 'oil_painting' ? 'rich oil painting' : preset?.artStyle === 'watercolor' ? 'dreamy watercolor' : preset?.artStyle === 'cartoon' ? 'vibrant cartoon' : 'realistic photography'} style matching the front scene. Text centered: '${preset?.insideMessage || 'Hope your special day brings you joy and happiness!'}'` : 
         null;
 
       console.log('Card type:', cardType);
