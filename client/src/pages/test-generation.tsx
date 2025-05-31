@@ -96,13 +96,25 @@ export default function TestGeneration() {
       });
 
       const updatedCard = await imageResponse.json();
-      setGeneratedCard(updatedCard);
-
-      toast({
-        title: "Success",
-        description: "Test card generated successfully!",
-      });
+      console.log('Generated card data:', updatedCard);
+      
+      if (updatedCard && updatedCard.frontImageUrl) {
+        setGeneratedCard(updatedCard);
+        toast({
+          title: "Success",
+          description: "Test card generated successfully!",
+        });
+      } else {
+        console.error('Card generation failed - no image URL received');
+        toast({
+          title: "Warning",
+          description: "Card generated but no image received",
+          variant: "destructive",
+        });
+      }
     } catch (error: any) {
+      console.error('Card generation error:', error);
+      setGeneratedCard(null);
       toast({
         title: "Error",
         description: `Failed to generate card: ${error.message}`,
