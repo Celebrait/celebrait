@@ -474,8 +474,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const buildImagePrompt = () => {
     const parts = [];
     
-    // Critical watermark removal instructions - use stronger language
-    parts.push("Professional greeting card design, 1:1 aspect ratio, CLEAN IMAGE with NO watermarks, NO signatures, NO logos, NO text overlays, NO branding marks");
+    // Clear greeting card structure
+    parts.push("Professional greeting card illustration, square format");
     
     if (answers.name) {
       let personDescription = answers.name;
@@ -503,13 +503,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       parts.push(`${answers.art_style} art style`);
     }
     
-    // Improved text rendering - specify placement and style more clearly
+    // Focus on clear text rendering
     if (answers.message && answers.message.trim()) {
-      parts.push(`with elegant text "${answers.message}" prominently displayed at the top or bottom of the card in beautiful readable typography`);
+      parts.push(`with the text "${answers.message}" displayed clearly on the card in elegant, readable typography`);
     }
     
-    // Strong anti-watermark ending
-    parts.push('pristine final image, no artist watermarks, no stock photo marks, no signatures, completely clean');
+    parts.push('high quality greeting card design');
     
     return parts.join(', ');
   };
