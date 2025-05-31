@@ -192,8 +192,18 @@ export default function TestGeneration() {
                           </Button>
                         </div>
                       </div>
-                      <div className="text-xs text-gray-600 mb-2">
-                        Inside: "{preset.insideMessage}"
+                      <div className="text-xs text-gray-600 mb-2 space-y-1">
+                        <div><strong>Text:</strong> {includeText ? "Included" : "No text"}</div>
+                        <div><strong>Type:</strong> {cardType === 'front-only' ? "Front only" : "Front & Inside"}</div>
+                        {cardType === 'front-and-inside' && (
+                          <div><strong>Inside:</strong> "{preset.insideMessage.substring(0, 50)}..."</div>
+                        )}
+                      </div>
+                      <div className="text-xs bg-gray-50 p-2 rounded mb-2">
+                        <div className="font-medium mb-1">Current prompt preview:</div>
+                        <div className="truncate">
+                          {(includeText ? preset.frontPrompt : preset.frontPromptNoText).substring(0, 100)}...
+                        </div>
                       </div>
                       <Button
                         size="sm"
