@@ -1,0 +1,67 @@
+{
+  "info": {
+    "_postman_id": "bd1eeb22-3f35-4d0f-9d3e-f97fba65f9b6",
+    "name": "Celebrait Card Creator API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Generate Front of Card (Image + Message)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer YOUR_OPENAI_API_KEY",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"dall-e-3\",\n  \"prompt\": \"A 1:1 aspect ratio illustration of a cheerful adult woman named Sarah with brown wavy hair and glasses, wearing a yellow sundress, standing in a sunflower field during golden hour. The art style is dreamy watercolor. Text overlay: 'Happy Birthday Sarah!'\",\n  \"n\": 1,\n  \"size\": \"1024x1024\"\n}"
+        },
+        "url": {
+          "raw": "https://api.openai.com/v1/images/generations",
+          "protocol": "https",
+          "host": ["api", "openai", "com"],
+          "path": ["v1", "images", "generations"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Generate Inside of Card (Message Only)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer YOUR_OPENAI_API_KEY",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"model\": \"dall-e-3\",\n  \"prompt\": \"A 1:1 aspect ratio image styled in dreamy watercolor to match a sunflower field scene. The image is soft and centered around the following heartfelt text: 'Wishing you endless joy and laughter on your special day. You light up every room — happy birthday!'\",\n  \"n\": 1,\n  \"size\": \"1024x1024\"\n}"
+        },
+        "url": {
+          "raw": "https://api.openai.com/v1/images/generations",
+          "protocol": "https",
+          "host": ["api", "openai", "com"],
+          "path": ["v1", "images", "generations"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

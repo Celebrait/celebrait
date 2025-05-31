@@ -11,29 +11,29 @@ import { Loader2, Copy, RotateCcw } from 'lucide-react';
 const TEST_PROMPTS = [
   {
     title: "Birthday - Watercolor Style",
-    frontPrompt: "Create a perfect square 1024x1024 watercolor artwork, no borders, no frame, edge-to-edge content only. Sarah an adult english_sa woman with blonde wavy hair, slim build, blue eyes, cheerful personality, standing in sunflower field at golden hour in yellow sundress. Large bold text \"Happy Birthday Sarah\" clearly readable across the image in elegant font. Watercolor painting style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
-    frontPromptNoText: "Create a perfect square 1024x1024 watercolor artwork, no borders, no frame, edge-to-edge content only. Sarah an adult english_sa woman with blonde wavy hair, slim build, blue eyes, cheerful personality, standing in sunflower field at golden hour in yellow sundress. Watercolor painting style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
+    frontPrompt: "A 1:1 aspect ratio illustration of a cheerful adult woman named Sarah with blonde wavy hair, slim build, blue eyes, wearing a yellow sundress, standing in a sunflower field during golden hour. The art style is dreamy watercolor. Text overlay: 'Happy Birthday Sarah!'",
+    frontPromptNoText: "A 1:1 aspect ratio illustration of a cheerful adult woman named Sarah with blonde wavy hair, slim build, blue eyes, wearing a yellow sundress, standing in a sunflower field during golden hour. The art style is dreamy watercolor.",
     insideMessage: "Wishing you a day filled with happiness and sunshine! May this new year of life bring you endless joy, beautiful memories, and all the love your heart can hold.",
     artStyle: "watercolor"
   },
   {
     title: "Father's Day - Cartoon Style",
-    frontPrompt: "Cartoon illustration of Mike, adult afrikaner man with brown hair, athletic build, beard, sitting by campfire under stars in outdoor clothes. Text overlay: \"Happy Father's Day\" in large bold letters. Square format, full bleed, cartoon style.",
-    frontPromptNoText: "Create a perfect square 1024x1024 cartoon artwork, no borders, no frame, edge-to-edge content only. Mike an adult afrikaner man with brown short neat hair, athletic build, beard, caring personality, sitting by campfire under stars in casual outdoor clothes. Cartoon art style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
+    frontPrompt: "A 1:1 aspect ratio illustration of a caring adult man named Mike with brown short neat hair, athletic build, beard, sitting by campfire under stars wearing casual outdoor clothes. The art style is vibrant cartoon. Text overlay: 'Happy Father's Day!'",
+    frontPromptNoText: "A 1:1 aspect ratio illustration of a caring adult man named Mike with brown short neat hair, athletic build, beard, sitting by campfire under stars wearing casual outdoor clothes. The art style is vibrant cartoon.",
     insideMessage: "Thank you for all the adventures and for being the best dad! Your wisdom, strength, and love have shaped who I am today. Here's to many more memories together.",
     artStyle: "cartoon"
   },
   {
     title: "Valentine's Day - Oil Painting Style",
-    frontPrompt: "Create a perfect square 1024x1024 oil painting artwork, no borders, no frame, edge-to-edge content only. Emma a teen indian_sa girl with black curly hair, curvy build, dimples, romantic personality, walking on beach at sunset in flowing dress. Large bold text \"Be My Valentine\" clearly readable across the image in elegant script font. Oil painting style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
-    frontPromptNoText: "Create a perfect square 1024x1024 oil painting artwork, no borders, no frame, edge-to-edge content only. Emma a teen indian_sa girl with black curly hair, curvy build, dimples, romantic personality, walking on beach at sunset in flowing dress. Oil painting style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
+    frontPrompt: "A 1:1 aspect ratio illustration of a romantic teen girl named Emma with black curly hair, curvy build, dimples, walking on beach at sunset wearing a flowing dress. The art style is rich oil painting. Text overlay: 'Be My Valentine!'",
+    frontPromptNoText: "A 1:1 aspect ratio illustration of a romantic teen girl named Emma with black curly hair, curvy build, dimples, walking on beach at sunset wearing a flowing dress. The art style is rich oil painting.",
     insideMessage: "You make every day feel like a beautiful sunset. Thank you for bringing such warmth and love into my life. I'm so grateful to have you by my side.",
     artStyle: "oil_painting"
   },
   {
     title: "Graduation - Realistic Style",
-    frontPrompt: "Create a perfect square 1024x1024 realistic artwork, no borders, no frame, edge-to-edge content only. Alex a young_adult coloured_sa man with brown fade hair, slim build, glasses, ambitious personality, standing in front of university buildings in graduation cap and gown. Large bold text \"Congratulations Graduate\" clearly readable across the image in bold sans-serif font. Realistic photography style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
-    frontPromptNoText: "Create a perfect square 1024x1024 realistic artwork, no borders, no frame, edge-to-edge content only. Alex a young_adult coloured_sa man with brown fade hair, slim build, glasses, ambitious personality, standing in front of university buildings in graduation cap and gown. Realistic photography style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
+    frontPrompt: "A 1:1 aspect ratio illustration of an ambitious young adult man named Alex with brown fade hair, slim build, glasses, standing in front of university buildings wearing graduation cap and gown. The art style is realistic photography. Text overlay: 'Congratulations Graduate!'",
+    frontPromptNoText: "A 1:1 aspect ratio illustration of an ambitious young adult man named Alex with brown fade hair, slim build, glasses, standing in front of university buildings wearing graduation cap and gown. The art style is realistic photography.",
     insideMessage: "Your hard work and dedication have paid off. The future is bright! We're so proud of all you've accomplished and excited to see where your journey takes you next.",
     artStyle: "realistic"
   }
@@ -80,7 +80,7 @@ export default function TestGeneration() {
 
       // Generate inside prompt for front-and-inside cards
       const insidePrompt = cardType === 'front-and-inside' ? 
-        `Greeting card interior design. ${preset?.artStyle || 'elegant'} style background with soft colors. Centered text: "${preset?.insideMessage || 'Hope your special day brings you joy and happiness!'}" in elegant typography. Square format, full bleed.` : 
+        `A 1:1 aspect ratio image styled in ${preset?.artStyle === 'oil_painting' ? 'rich oil painting' : preset?.artStyle === 'watercolor' ? 'dreamy watercolor' : preset?.artStyle === 'cartoon' ? 'vibrant cartoon' : 'realistic photography'} to match the front card scene. The image is soft and centered around the following heartfelt text: '${preset?.insideMessage || 'Hope your special day brings you joy and happiness!'}'` : 
         null;
 
       console.log('Card type:', cardType);
