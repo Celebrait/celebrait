@@ -943,7 +943,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
   };
 
   const createInsidePrompt = () => {
-    return `Greeting card interior with personalized message, matching the artistic style of the front design.`;
+    return `Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, greeting card interior design matching the artistic style of the front card, complementary color palette and visual elements, with elegant message text prominently displayed in beautiful readable typography, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork`;
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
