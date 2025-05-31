@@ -11,42 +11,50 @@ import { Loader2, Copy, RotateCcw } from 'lucide-react';
 const TEST_PROMPTS = [
   {
     title: "Birthday Card - With Text",
-    prompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Sarah, female, adult, english_sa heritage, blonde hair long wavy, slim build, blue eyes, cheerful personality, in standing in a sunflower field at golden hour wearing a yellow sundress, watercolor art style, with the text \"Happy Birthday Sarah\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Sarah, female, adult, english_sa heritage, blonde hair long wavy, slim build, blue eyes, cheerful personality, in standing in a sunflower field at golden hour wearing a yellow sundress, watercolor art style, with the text \"Happy Birthday Sarah\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    insidePrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, greeting card interior design matching watercolor art style, soft sunflower yellow and golden color palette, elegant floral border elements, with the text \"Hope your special day is filled with sunshine and joy!\" prominently displayed in beautiful script typography, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
     hasText: true
   },
   {
     title: "Birthday Card - No Text",
-    prompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Sarah, female, adult, english_sa heritage, blonde hair long wavy, slim build, blue eyes, cheerful personality, in standing in a sunflower field at golden hour wearing a yellow sundress, watercolor art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Sarah, female, adult, english_sa heritage, blonde hair long wavy, slim build, blue eyes, cheerful personality, in standing in a sunflower field at golden hour wearing a yellow sundress, watercolor art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    insidePrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, greeting card interior design matching watercolor art style, soft sunflower yellow and golden color palette, elegant floral border elements, minimalist design with subtle decorative elements, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
     hasText: false
   },
   {
     title: "Father's Day - With Text",
-    prompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Mike, male, adult, afrikaner heritage, brown hair short neat, athletic build, beard, caring personality, in sitting by a campfire under stars wearing casual outdoor clothes, cartoon art style, with the text \"Happy Father's Day\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Mike, male, adult, afrikaner heritage, brown hair short neat, athletic build, beard, caring personality, in sitting by a campfire under stars wearing casual outdoor clothes, cartoon art style, with the text \"Happy Father's Day\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    insidePrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, greeting card interior design matching cartoon art style, warm campfire orange and deep blue night colors, rustic outdoor themed decorative elements, with the text \"Thanks for all the adventures, Dad!\" prominently displayed in bold friendly typography, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
     hasText: true
   },
   {
     title: "Father's Day - No Text",
-    prompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Mike, male, adult, afrikaner heritage, brown hair short neat, athletic build, beard, caring personality, in sitting by a campfire under stars wearing casual outdoor clothes, cartoon art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Mike, male, adult, afrikaner heritage, brown hair short neat, athletic build, beard, caring personality, in sitting by a campfire under stars wearing casual outdoor clothes, cartoon art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    insidePrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, greeting card interior design matching cartoon art style, warm campfire orange and deep blue night colors, rustic outdoor themed decorative elements, minimalist design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
     hasText: false
   },
   {
     title: "Valentine's Day - With Text",
-    prompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Emma, female, teen, indian_sa heritage, black hair long curly, curvy build, dimples, romantic personality, in walking on a beach at sunset wearing a flowing dress, oil_painting art style, with the text \"Be My Valentine\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Emma, female, teen, indian_sa heritage, black hair long curly, curvy build, dimples, romantic personality, in walking on a beach at sunset wearing a flowing dress, oil_painting art style, with the text \"Be My Valentine\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    insidePrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, greeting card interior design matching oil painting art style, romantic sunset pink and coral color palette, elegant heart and wave motifs, with the text \"You make every day feel like a beautiful sunset\" prominently displayed in romantic calligraphy typography, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
     hasText: true
   },
   {
     title: "Valentine's Day - No Text",
-    prompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Emma, female, teen, indian_sa heritage, black hair long curly, curvy build, dimples, romantic personality, in walking on a beach at sunset wearing a flowing dress, oil_painting art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Emma, female, teen, indian_sa heritage, black hair long curly, curvy build, dimples, romantic personality, in walking on a beach at sunset wearing a flowing dress, oil_painting art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    insidePrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, greeting card interior design matching oil painting art style, romantic sunset pink and coral color palette, elegant heart and wave motifs, minimalist romantic design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
     hasText: false
   },
   {
     title: "Graduation - With Text",
-    prompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Alex, male, young_adult, coloured_sa heritage, brown hair fade, slim build, glasses, ambitious personality, in standing in front of university buildings wearing graduation cap and gown, realistic art style, with the text \"Congratulations Graduate\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Alex, male, young_adult, coloured_sa heritage, brown hair fade, slim build, glasses, ambitious personality, in standing in front of university buildings wearing graduation cap and gown, realistic art style, with the text \"Congratulations Graduate\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    insidePrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, greeting card interior design matching realistic art style, academic navy blue and gold color palette, sophisticated graduation themed elements like books and scrolls, with the text \"Your hard work has paid off - the future is bright!\" prominently displayed in elegant serif typography, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
     hasText: true
   },
   {
     title: "Graduation - No Text",
-    prompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Alex, male, young_adult, coloured_sa heritage, brown hair fade, slim build, glasses, ambitious personality, in standing in front of university buildings wearing graduation cap and gown, realistic art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Alex, male, young_adult, coloured_sa heritage, brown hair fade, slim build, glasses, ambitious personality, in standing in front of university buildings wearing graduation cap and gown, realistic art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    insidePrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, greeting card interior design matching realistic art style, academic navy blue and gold color palette, sophisticated graduation themed elements like books and scrolls, minimalist academic design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
     hasText: false
   }
 ];
@@ -58,7 +66,7 @@ export default function TestGeneration() {
   const [generatedCard, setGeneratedCard] = useState<any>(null);
   const { toast } = useToast();
 
-  const generateCard = async (prompt: string) => {
+  const generateCard = async (prompt: string | { frontPrompt: string; insidePrompt: string; title: string; hasText: boolean }) => {
     try {
       setIsGenerating(true);
       setGeneratedCard(null);
@@ -85,13 +93,23 @@ export default function TestGeneration() {
       const card = await cardResponse.json();
 
       // Generate images
-      const insidePrompt = cardType === 'front-and-inside' ? 
-        `Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, greeting card interior design matching the artistic style of the front card, complementary color palette and visual elements, with elegant text "Wishing you all the best on your special day!" prominently displayed in beautiful readable typography, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork` : 
-        null;
+      let frontPrompt, insidePrompt;
+      
+      if (typeof prompt === 'string') {
+        // Custom prompt case
+        frontPrompt = prompt;
+        insidePrompt = cardType === 'front-and-inside' ? 
+          `Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, greeting card interior design matching the artistic style of the front card, complementary color palette and visual elements, with elegant text "Wishing you all the best on your special day!" prominently displayed in beautiful readable typography, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork` : 
+          null;
+      } else {
+        // Preset prompt case with front and inside
+        frontPrompt = (prompt as any).frontPrompt;
+        insidePrompt = cardType === 'front-and-inside' ? (prompt as any).insidePrompt : null;
+      }
 
       const imageResponse = await apiRequest("POST", "/api/generate-images", {
         cardId: card.id,
-        frontPrompt: prompt,
+        frontPrompt,
         insidePrompt
       });
 
@@ -177,7 +195,7 @@ export default function TestGeneration() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => copyPrompt(preset.prompt)}
+                            onClick={() => copyPrompt(preset.frontPrompt)}
                           >
                             <Copy className="w-3 h-3" />
                           </Button>
@@ -185,7 +203,7 @@ export default function TestGeneration() {
                       </div>
                       <Button
                         size="sm"
-                        onClick={() => generateCard(preset.prompt)}
+                        onClick={() => generateCard(preset)}
                         disabled={isGenerating}
                         className="w-full"
                       >
