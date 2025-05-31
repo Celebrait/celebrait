@@ -23,7 +23,7 @@ const TEST_PROMPTS = [
   },
   {
     title: "Father's Day - With Text",
-    frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Mike, male, adult, afrikaner heritage, brown hair short neat, athletic build, beard, caring personality, in sitting by a campfire under stars wearing casual outdoor clothes, cartoon art style, with the text \"Happy Father's Day\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    frontPrompt: "Flat illustration design, square format, featuring a man with brown hair and beard, sitting outdoors with mountains in background, cartoon art style, with the text \"Happy Father's Day\" integrated into the design, print-ready artwork",
     insidePrompt: "Flat illustration design for the INSIDE of a greeting card, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, interior greeting card message design matching cartoon art style, warm campfire orange and deep blue night colors, rustic outdoor themed decorative elements as background, with the text \"Thanks for all the adventures, Dad!\" prominently displayed as the main message in bold friendly typography, greeting card interior layout, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
     hasText: true
   },

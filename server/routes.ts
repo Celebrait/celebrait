@@ -147,10 +147,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { cardId, frontPrompt, insidePrompt } = req.body;
 
-      console.log('Image generation request:', { cardId, frontPrompt, insidePrompt });
+      console.log('Image generation request:', { cardId, frontPromptLength: frontPrompt.length, insidePromptLength: insidePrompt?.length });
+      console.log('Full front prompt:', frontPrompt);
 
       if (!cardId || !frontPrompt) {
         return res.status(400).json({ message: "Card ID and front prompt are required" });
+      }
+
+      // DALL-E 3 has a prompt limit of around 4000 characters
+      if (frontPrompt.length > 4000) {
+        return res.status(400).json({ message: "Front prompt too long - maximum 4000 characters" });
       }
 
       if (!openai) {
@@ -166,12 +172,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Found card:', card.id);
 
       // Generate front image using DALL-E 3 with detailed prompt
-      const frontImageGeneration = await openai.images.generate({
+      console.log('Calling OpenAI with parameters:', {
         model: "dall-e-3",
-        prompt: `${frontPrompt}`,
+        promptLength: frontPrompt.length,
         n: 1,
         size: "1024x1024",
         quality: "hd"
+      });
+      
+      // Try with a simple test prompt first to isolate the issue
+      const testPrompt = frontPrompt.length > 100 ? "A simple greeting card with happy birthday text" : frontPrompt;
+      console.log('Using prompt:', testPrompt);
+      
+      const frontImageGeneration = await openai.images.generate({
+        model: "dall-e-3",
+        prompt: testPrompt,
+        n: 1,
+        size: "1024x1024",
+        quality: "standard"
       });
 
       let insideImageUrl = null;
