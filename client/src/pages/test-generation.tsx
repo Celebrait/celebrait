@@ -63,14 +63,23 @@ export default function TestGeneration() {
       setIsGenerating(true);
       setGeneratedCard(null);
 
-      // Create a card first
+      // Create a test user first
+      const userResponse = await apiRequest("POST", "/api/users", {
+        username: "Test User",
+        email: "test@example.com"
+      });
+
+      const user = await userResponse.json();
+
+      // Create a card
       const cardResponse = await apiRequest("POST", "/api/cards", {
         cardType: "printed",
         printOption: cardType,
         recipientName: "Test User",
         celebration: "birthday",
         sceneType: "with-person",
-        price: 25.00
+        price: 25.00,
+        userId: user.id
       });
 
       const card = await cardResponse.json();
