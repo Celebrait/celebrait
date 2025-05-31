@@ -170,7 +170,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         model: "gpt-image-1",
         prompt: frontPrompt,
         n: 1,
-        size: "1024x1024"
+        size: "1024x1024",
+        quality: "high"
       });
 
       let insideImageUrl = null;
@@ -181,7 +182,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           model: "gpt-image-1", 
           prompt: insidePrompt,
           n: 1,
-          size: "1024x1024"
+          size: "1024x1024",
+          quality: "high"
         });
         insideImageUrl = insideImageGeneration.data?.[0]?.url || null;
       }
