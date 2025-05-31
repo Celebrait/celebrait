@@ -168,10 +168,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate front image using DALL-E 3 with detailed prompt
       const frontImageGeneration = await openai.images.generate({
         model: "dall-e-3",
-        prompt: `${frontPrompt}`,
+        prompt: frontPrompt,
         n: 1,
         size: "1024x1024",
-        quality: "hd"
+        quality: "hd",
+        style: "vivid"
       });
 
       let insideImageUrl = null;
@@ -180,10 +181,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (insidePrompt) {
         const insideImageGeneration = await openai.images.generate({
           model: "dall-e-3", 
-          prompt: `${insidePrompt}`,
+          prompt: insidePrompt,
           n: 1,
           size: "1024x1024",
-          quality: "hd"
+          quality: "hd",
+          style: "vivid"
         });
         insideImageUrl = insideImageGeneration.data?.[0]?.url || null;
       }
