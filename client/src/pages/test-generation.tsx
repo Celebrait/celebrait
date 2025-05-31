@@ -80,7 +80,7 @@ export default function TestGeneration() {
 
       // Generate inside prompt for front-and-inside cards
       const insidePrompt = cardType === 'front-and-inside' ? 
-        `Create a perfect square 1024x1024 ${preset?.artStyle || 'elegant'} artwork, no borders, no frame, edge-to-edge content only. Interior greeting card design in matching ${preset?.artStyle || 'elegant'} art style with complementary background elements that harmonize with front card aesthetic. Large bold text "${preset?.insideMessage || 'Hope your special day brings you joy and happiness!'}" clearly readable across the image in elegant font, proper spelling required. ${preset?.artStyle || 'elegant'} style, complete coverage of square canvas, no empty spaces or white borders anywhere.` : 
+        `Create a perfect square 1024x1024 greeting card interior, no borders, no frame, edge-to-edge content only. Simple elegant background in ${preset?.artStyle || 'elegant'} style using complementary colors and mood from the front card, subtle decorative elements only. This is the INSIDE of a greeting card so focus entirely on the heartfelt message. Large perfectly spelled text "${preset?.insideMessage || 'Hope your special day brings you joy and happiness!'}" as the primary focal point, beautifully formatted typography, each word spelled correctly. Greeting card interior design, complete coverage of square canvas, no empty spaces or white borders anywhere.` : 
         null;
 
       console.log('Card type:', cardType);
