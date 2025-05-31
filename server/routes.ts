@@ -165,9 +165,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Found card:', card.id);
 
-      // Generate front image using GPT-Image-1 with detailed prompt
+      // Generate front image using DALL-E 3 with detailed prompt
       const frontImageGeneration = await openai.images.generate({
-        model: "gpt-image-1",
+        model: "dall-e-3",
         prompt: frontPrompt,
         n: 1,
         size: "1024x1024",
@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate inside image if provided
       if (insidePrompt) {
         const insideImageGeneration = await openai.images.generate({
-          model: "gpt-image-1", 
+          model: "dall-e-3", 
           prompt: insidePrompt,
           n: 1,
           size: "1024x1024",
