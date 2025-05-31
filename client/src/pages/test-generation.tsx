@@ -82,6 +82,10 @@ export default function TestGeneration() {
         `Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, greeting card interior design in ${preset?.artStyle || 'elegant'} art style with complementary background elements matching the front card aesthetic, featuring the heartfelt message "${preset?.insideMessage || 'Hope your special day brings you joy and happiness!'}" displayed in beautiful, readable typography that harmonizes with the overall design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork` : 
         null;
 
+      console.log('Card type:', cardType);
+      console.log('Front prompt:', frontPrompt.substring(0, 100) + '...');
+      console.log('Inside prompt:', insidePrompt ? insidePrompt.substring(0, 100) + '...' : 'null');
+
       const imageResponse = await apiRequest("POST", "/api/generate-images", {
         cardId: card.id,
         frontPrompt,
