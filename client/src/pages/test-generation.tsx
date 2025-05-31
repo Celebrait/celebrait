@@ -52,10 +52,11 @@ export default function TestGeneration() {
       setIsGenerating(true);
       setGeneratedCard(null);
 
-      // Create a test user first
+      // Create a test user first (with unique email to avoid conflicts)
+      const timestamp = Date.now();
       const userResponse = await apiRequest("POST", "/api/users", {
-        username: "Test User",
-        email: "test@example.com"
+        username: `Test User ${timestamp}`,
+        email: `test${timestamp}@example.com`
       });
 
       const user = await userResponse.json();
