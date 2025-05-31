@@ -10,55 +10,44 @@ import { Loader2, Copy, RotateCcw } from 'lucide-react';
 
 const TEST_PROMPTS = [
   {
-    title: "Birthday Card - With Text",
-    prompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Sarah, female, adult, english_sa heritage, blonde hair long wavy, slim build, blue eyes, cheerful personality, in standing in a sunflower field at golden hour wearing a yellow sundress, watercolor art style, with the text \"Happy Birthday Sarah\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
-    hasText: true
+    title: "Birthday - Watercolor Style",
+    frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Sarah, female, adult, english_sa heritage, blonde hair long wavy, slim build, blue eyes, cheerful personality, in standing in a sunflower field at golden hour wearing a yellow sundress, watercolor art style, with the text \"Happy Birthday Sarah\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    frontPromptNoText: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Sarah, female, adult, english_sa heritage, blonde hair long wavy, slim build, blue eyes, cheerful personality, in standing in a sunflower field at golden hour wearing a yellow sundress, watercolor art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    insideMessage: "Wishing you a day filled with happiness and sunshine!",
+    artStyle: "watercolor"
   },
   {
-    title: "Birthday Card - No Text",
-    prompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Sarah, female, adult, english_sa heritage, blonde hair long wavy, slim build, blue eyes, cheerful personality, in standing in a sunflower field at golden hour wearing a yellow sundress, watercolor art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
-    hasText: false
+    title: "Father's Day - Cartoon Style",
+    frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Mike, male, adult, afrikaner heritage, brown hair short neat, athletic build, beard, caring personality, in sitting by a campfire under stars wearing casual outdoor clothes, cartoon art style, with the text \"Happy Father's Day\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    frontPromptNoText: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Mike, male, adult, afrikaner heritage, brown hair short neat, athletic build, beard, caring personality, in sitting by a campfire under stars wearing casual outdoor clothes, cartoon art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    insideMessage: "Thank you for all the adventures and for being the best dad!",
+    artStyle: "cartoon"
   },
   {
-    title: "Father's Day - With Text",
-    prompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Mike, male, adult, afrikaner heritage, brown hair short neat, athletic build, beard, caring personality, in sitting by a campfire under stars wearing casual outdoor clothes, cartoon art style, with the text \"Happy Father's Day\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
-    hasText: true
+    title: "Valentine's Day - Oil Painting Style",
+    frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Emma, female, teen, indian_sa heritage, black hair long curly, curvy build, dimples, romantic personality, in walking on a beach at sunset wearing a flowing dress, oil_painting art style, with the text \"Be My Valentine\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    frontPromptNoText: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Emma, female, teen, indian_sa heritage, black hair long curly, curvy build, dimples, romantic personality, in walking on a beach at sunset wearing a flowing dress, oil_painting art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    insideMessage: "You make every day feel like a beautiful sunset.",
+    artStyle: "oil_painting"
   },
   {
-    title: "Father's Day - No Text",
-    prompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Mike, male, adult, afrikaner heritage, brown hair short neat, athletic build, beard, caring personality, in sitting by a campfire under stars wearing casual outdoor clothes, cartoon art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
-    hasText: false
-  },
-  {
-    title: "Valentine's Day - With Text",
-    prompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Emma, female, teen, indian_sa heritage, black hair long curly, curvy build, dimples, romantic personality, in walking on a beach at sunset wearing a flowing dress, oil_painting art style, with the text \"Be My Valentine\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
-    hasText: true
-  },
-  {
-    title: "Valentine's Day - No Text",
-    prompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Emma, female, teen, indian_sa heritage, black hair long curly, curvy build, dimples, romantic personality, in walking on a beach at sunset wearing a flowing dress, oil_painting art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
-    hasText: false
-  },
-  {
-    title: "Graduation - With Text",
-    prompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Alex, male, young_adult, coloured_sa heritage, brown hair fade, slim build, glasses, ambitious personality, in standing in front of university buildings wearing graduation cap and gown, realistic art style, with the text \"Congratulations Graduate\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
-    hasText: true
-  },
-  {
-    title: "Graduation - No Text",
-    prompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Alex, male, young_adult, coloured_sa heritage, brown hair fade, slim build, glasses, ambitious personality, in standing in front of university buildings wearing graduation cap and gown, realistic art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
-    hasText: false
+    title: "Graduation - Realistic Style",
+    frontPrompt: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Alex, male, young_adult, coloured_sa heritage, brown hair fade, slim build, glasses, ambitious personality, in standing in front of university buildings wearing graduation cap and gown, realistic art style, with the text \"Congratulations Graduate\" integrated into the design, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    frontPromptNoText: "Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, featuring Alex, male, young_adult, coloured_sa heritage, brown hair fade, slim build, glasses, ambitious personality, in standing in front of university buildings wearing graduation cap and gown, realistic art style, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork",
+    insideMessage: "Your hard work and dedication have paid off. The future is bright!",
+    artStyle: "realistic"
   }
 ];
 
 export default function TestGeneration() {
   const [customPrompt, setCustomPrompt] = useState('');
   const [cardType, setCardType] = useState<'front-only' | 'front-and-inside'>('front-only');
+  const [includeText, setIncludeText] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCard, setGeneratedCard] = useState<any>(null);
   const { toast } = useToast();
 
-  const generateCard = async (prompt: string) => {
+  const generateCard = async (preset: any, customPromptText?: string) => {
     try {
       setIsGenerating(true);
       setGeneratedCard(null);
@@ -84,14 +73,18 @@ export default function TestGeneration() {
 
       const card = await cardResponse.json();
 
-      // Generate images
+      // Determine front prompt
+      const frontPrompt = customPromptText || 
+        (includeText ? preset.frontPrompt : preset.frontPromptNoText);
+
+      // Generate inside prompt for front-and-inside cards
       const insidePrompt = cardType === 'front-and-inside' ? 
-        `Greeting card interior with personalized message, matching the artistic style of the front design, flat design, no card mockup, no dimensional effects, print-ready artwork` : 
+        `Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, greeting card interior background in ${preset.artStyle} art style matching the front design, with the text "${preset.insideMessage}" elegantly displayed with beautiful typography, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork` : 
         null;
 
       const imageResponse = await apiRequest("POST", "/api/generate-images", {
         cardId: card.id,
-        frontPrompt: prompt,
+        frontPrompt,
         insidePrompt
       });
 
@@ -125,7 +118,8 @@ export default function TestGeneration() {
     }
   };
 
-  const copyPrompt = (prompt: string) => {
+  const copyPrompt = (preset: any) => {
+    const prompt = includeText ? preset.frontPrompt : preset.frontPromptNoText;
     navigator.clipboard.writeText(prompt);
     toast({
       title: "Copied",
@@ -159,6 +153,21 @@ export default function TestGeneration() {
               </CardContent>
             </Card>
 
+            {/* Text Toggle */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Text Options</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Tabs value={includeText ? "with-text" : "no-text"} onValueChange={(value: any) => setIncludeText(value === "with-text")}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="with-text">With Text</TabsTrigger>
+                    <TabsTrigger value="no-text">No Text</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </CardContent>
+            </Card>
+
             {/* Preset Prompts */}
             <Card>
               <CardHeader>
@@ -171,21 +180,24 @@ export default function TestGeneration() {
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="font-medium text-sm">{preset.title}</h3>
                         <div className="flex items-center space-x-2">
-                          <Badge variant={preset.hasText ? "default" : "secondary"}>
-                            {preset.hasText ? "With Text" : "No Text"}
+                          <Badge variant="outline">
+                            {preset.artStyle}
                           </Badge>
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => copyPrompt(preset.prompt)}
+                            onClick={() => copyPrompt(preset)}
                           >
                             <Copy className="w-3 h-3" />
                           </Button>
                         </div>
                       </div>
+                      <div className="text-xs text-gray-600 mb-2">
+                        Inside: "{preset.insideMessage}"
+                      </div>
                       <Button
                         size="sm"
-                        onClick={() => generateCard(preset.prompt)}
+                        onClick={() => generateCard(preset)}
                         disabled={isGenerating}
                         className="w-full"
                       >
@@ -212,7 +224,7 @@ export default function TestGeneration() {
                     className="min-h-32"
                   />
                   <Button
-                    onClick={() => generateCard(customPrompt)}
+                    onClick={() => generateCard(null, customPrompt)}
                     disabled={isGenerating || !customPrompt.trim()}
                     className="w-full"
                   >
