@@ -203,11 +203,21 @@ export default function TestGeneration() {
                           <div><strong>Inside:</strong> "{preset.insideMessage.substring(0, 50)}..."</div>
                         )}
                       </div>
-                      <div className="text-xs bg-gray-50 p-2 rounded mb-2">
-                        <div className="font-medium mb-1">Current prompt preview:</div>
-                        <div className="truncate">
-                          {(includeText ? preset.frontPrompt : preset.frontPromptNoText).substring(0, 100)}...
+                      <div className="text-xs bg-gray-50 p-2 rounded mb-2 space-y-2">
+                        <div>
+                          <div className="font-medium mb-1">Front image prompt:</div>
+                          <div className="truncate text-blue-700">
+                            {(includeText ? preset.frontPrompt : preset.frontPromptNoText).substring(0, 80)}...
+                          </div>
                         </div>
+                        {cardType === 'front-and-inside' && (
+                          <div>
+                            <div className="font-medium mb-1">Inside image prompt:</div>
+                            <div className="truncate text-purple-700">
+                              Flat illustration design... greeting card interior design in {preset.artStyle} art style... featuring the heartfelt message "{preset.insideMessage.substring(0, 30)}..."
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <Button
                         size="sm"
