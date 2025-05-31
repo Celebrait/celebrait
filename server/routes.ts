@@ -197,6 +197,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(updatedCard);
     } catch (error: any) {
+      console.error('Image generation error details:', {
+        message: error.message,
+        status: error.status,
+        code: error.code,
+        type: error.type,
+        response: error.response?.data
+      });
       res.status(500).json({ message: "Error generating images: " + error.message });
     }
   });
