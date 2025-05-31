@@ -18,7 +18,7 @@ const TEST_PROMPTS = [
   },
   {
     title: "Father's Day - Cartoon Style",
-    frontPrompt: "Create a perfect square 1024x1024 cartoon artwork, no borders, no frame, edge-to-edge content only. Mike an adult afrikaner man with brown short neat hair, athletic build, beard, caring personality, sitting by campfire under stars in casual outdoor clothes. Large bold text \"Happy Father's Day\" clearly readable across the image in bold font. Cartoon art style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
+    frontPrompt: "Cartoon illustration of Mike, adult afrikaner man with brown hair, athletic build, beard, sitting by campfire under stars in outdoor clothes. Text overlay: \"Happy Father's Day\" in large bold letters. Square format, full bleed, cartoon style.",
     frontPromptNoText: "Create a perfect square 1024x1024 cartoon artwork, no borders, no frame, edge-to-edge content only. Mike an adult afrikaner man with brown short neat hair, athletic build, beard, caring personality, sitting by campfire under stars in casual outdoor clothes. Cartoon art style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
     insideMessage: "Thank you for all the adventures and for being the best dad! Your wisdom, strength, and love have shaped who I am today. Here's to many more memories together.",
     artStyle: "cartoon"
@@ -80,7 +80,7 @@ export default function TestGeneration() {
 
       // Generate inside prompt for front-and-inside cards
       const insidePrompt = cardType === 'front-and-inside' ? 
-        `Create a perfect square 1024x1024 greeting card interior, no borders, no frame, edge-to-edge content only. Simple elegant background in ${preset?.artStyle || 'elegant'} style using complementary colors and mood from the front card, subtle decorative elements only. This is the INSIDE of a greeting card so focus entirely on the heartfelt message. Large perfectly spelled text "${preset?.insideMessage || 'Hope your special day brings you joy and happiness!'}" as the primary focal point, beautifully formatted typography, each word spelled correctly. Greeting card interior design, complete coverage of square canvas, no empty spaces or white borders anywhere.` : 
+        `Greeting card interior design. ${preset?.artStyle || 'elegant'} style background with soft colors. Centered text: "${preset?.insideMessage || 'Hope your special day brings you joy and happiness!'}" in elegant typography. Square format, full bleed.` : 
         null;
 
       console.log('Card type:', cardType);
