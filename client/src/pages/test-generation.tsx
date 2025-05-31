@@ -11,29 +11,29 @@ import { Loader2, Copy, RotateCcw } from 'lucide-react';
 const TEST_PROMPTS = [
   {
     title: "Birthday - Watercolor Style",
-    frontPrompt: "Square 1:1 aspect ratio watercolor artwork covering entire canvas edge to edge, Sarah an adult english_sa woman with blonde wavy hair, slim build, blue eyes, cheerful personality, standing in sunflower field at golden hour in yellow sundress, watercolor style, text \"Happy Birthday Sarah\" prominently displayed across image, artwork fills complete square frame with no white space or borders",
-    frontPromptNoText: "Square 1:1 aspect ratio watercolor artwork covering entire canvas edge to edge, Sarah an adult english_sa woman with blonde wavy hair, slim build, blue eyes, cheerful personality, standing in sunflower field at golden hour in yellow sundress, watercolor style, artwork fills complete square frame with no white space or borders",
+    frontPrompt: "Create a perfect square 1024x1024 watercolor artwork, no borders, no frame, edge-to-edge content only. Sarah an adult english_sa woman with blonde wavy hair, slim build, blue eyes, cheerful personality, standing in sunflower field at golden hour in yellow sundress. Large bold text \"Happy Birthday Sarah\" clearly readable across the image in elegant font. Watercolor painting style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
+    frontPromptNoText: "Create a perfect square 1024x1024 watercolor artwork, no borders, no frame, edge-to-edge content only. Sarah an adult english_sa woman with blonde wavy hair, slim build, blue eyes, cheerful personality, standing in sunflower field at golden hour in yellow sundress. Watercolor painting style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
     insideMessage: "Wishing you a day filled with happiness and sunshine! May this new year of life bring you endless joy, beautiful memories, and all the love your heart can hold.",
     artStyle: "watercolor"
   },
   {
     title: "Father's Day - Cartoon Style",
-    frontPrompt: "Square 1:1 aspect ratio cartoon artwork covering entire canvas edge to edge, Mike an adult afrikaner man with brown short neat hair, athletic build, beard, caring personality, sitting by campfire under stars in casual outdoor clothes, cartoon style, text \"Happy Father's Day\" prominently displayed across image, artwork fills complete square frame with no white space or borders",
-    frontPromptNoText: "Square 1:1 aspect ratio cartoon artwork covering entire canvas edge to edge, Mike an adult afrikaner man with brown short neat hair, athletic build, beard, caring personality, sitting by campfire under stars in casual outdoor clothes, cartoon style, artwork fills complete square frame with no white space or borders",
+    frontPrompt: "Create a perfect square 1024x1024 cartoon artwork, no borders, no frame, edge-to-edge content only. Mike an adult afrikaner man with brown short neat hair, athletic build, beard, caring personality, sitting by campfire under stars in casual outdoor clothes. Large bold text \"Happy Father's Day\" clearly readable across the image in bold font. Cartoon art style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
+    frontPromptNoText: "Create a perfect square 1024x1024 cartoon artwork, no borders, no frame, edge-to-edge content only. Mike an adult afrikaner man with brown short neat hair, athletic build, beard, caring personality, sitting by campfire under stars in casual outdoor clothes. Cartoon art style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
     insideMessage: "Thank you for all the adventures and for being the best dad! Your wisdom, strength, and love have shaped who I am today. Here's to many more memories together.",
     artStyle: "cartoon"
   },
   {
     title: "Valentine's Day - Oil Painting Style",
-    frontPrompt: "Square 1:1 aspect ratio oil painting artwork covering entire canvas edge to edge, Emma a teen indian_sa girl with black curly hair, curvy build, dimples, romantic personality, walking on beach at sunset in flowing dress, oil painting style, text \"Be My Valentine\" prominently displayed across image, artwork fills complete square frame with no white space or borders",
-    frontPromptNoText: "Square 1:1 aspect ratio oil painting artwork covering entire canvas edge to edge, Emma a teen indian_sa girl with black curly hair, curvy build, dimples, romantic personality, walking on beach at sunset in flowing dress, oil painting style, artwork fills complete square frame with no white space or borders",
+    frontPrompt: "Create a perfect square 1024x1024 oil painting artwork, no borders, no frame, edge-to-edge content only. Emma a teen indian_sa girl with black curly hair, curvy build, dimples, romantic personality, walking on beach at sunset in flowing dress. Large bold text \"Be My Valentine\" clearly readable across the image in elegant script font. Oil painting style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
+    frontPromptNoText: "Create a perfect square 1024x1024 oil painting artwork, no borders, no frame, edge-to-edge content only. Emma a teen indian_sa girl with black curly hair, curvy build, dimples, romantic personality, walking on beach at sunset in flowing dress. Oil painting style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
     insideMessage: "You make every day feel like a beautiful sunset. Thank you for bringing such warmth and love into my life. I'm so grateful to have you by my side.",
     artStyle: "oil_painting"
   },
   {
     title: "Graduation - Realistic Style",
-    frontPrompt: "Square 1:1 aspect ratio realistic artwork covering entire canvas edge to edge, Alex a young_adult coloured_sa man with brown fade hair, slim build, glasses, ambitious personality, standing in front of university buildings in graduation cap and gown, realistic style, text \"Congratulations Graduate\" prominently displayed across image, artwork fills complete square frame with no white space or borders",
-    frontPromptNoText: "Square 1:1 aspect ratio realistic artwork covering entire canvas edge to edge, Alex a young_adult coloured_sa man with brown fade hair, slim build, glasses, ambitious personality, standing in front of university buildings in graduation cap and gown, realistic style, artwork fills complete square frame with no white space or borders",
+    frontPrompt: "Create a perfect square 1024x1024 realistic artwork, no borders, no frame, edge-to-edge content only. Alex a young_adult coloured_sa man with brown fade hair, slim build, glasses, ambitious personality, standing in front of university buildings in graduation cap and gown. Large bold text \"Congratulations Graduate\" clearly readable across the image in bold sans-serif font. Realistic photography style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
+    frontPromptNoText: "Create a perfect square 1024x1024 realistic artwork, no borders, no frame, edge-to-edge content only. Alex a young_adult coloured_sa man with brown fade hair, slim build, glasses, ambitious personality, standing in front of university buildings in graduation cap and gown. Realistic photography style, complete coverage of square canvas, no empty spaces or white borders anywhere.",
     insideMessage: "Your hard work and dedication have paid off. The future is bright! We're so proud of all you've accomplished and excited to see where your journey takes you next.",
     artStyle: "realistic"
   }
@@ -80,7 +80,7 @@ export default function TestGeneration() {
 
       // Generate inside prompt for front-and-inside cards
       const insidePrompt = cardType === 'front-and-inside' ? 
-        `Square 1:1 aspect ratio ${preset?.artStyle || 'elegant'} style artwork covering entire canvas edge to edge, elegant background with subtle decorative elements, text "${preset?.insideMessage || 'Hope your special day brings you joy and happiness!'}" prominently displayed in beautiful readable typography, artwork fills complete square frame with no white space or borders, interior greeting card design` : 
+        `Create a perfect square 1024x1024 interior card design, no borders, no frame, edge-to-edge content only. Elegant ${preset?.artStyle || 'elegant'} style background with subtle decorative elements. Large clear text "${preset?.insideMessage || 'Hope your special day brings you joy and happiness!'}" prominently displayed in beautiful readable typography, well-spaced and easy to read. Complete coverage of square canvas, no empty spaces or white borders anywhere.` : 
         null;
 
       console.log('Card type:', cardType);
