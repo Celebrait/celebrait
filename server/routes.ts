@@ -165,9 +165,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Found card:', card.id);
 
-      // Generate front image using DALL-E 3 with detailed prompt
+      // Generate front image using GPT-Image-1 with detailed prompt
       const frontImageGeneration = await openai.images.generate({
-        model: "dall-e-3",
+        model: "gpt-image-1",
         prompt: frontPrompt,
         n: 1,
         size: "1024x1024",
@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate inside image if provided
       if (insidePrompt) {
         const insideImageGeneration = await openai.images.generate({
-          model: "dall-e-3", 
+          model: "gpt-image-1", 
           prompt: insidePrompt,
           n: 1,
           size: "1024x1024",
@@ -250,6 +250,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedCard);
     } catch (error: any) {
       res.status(500).json({ message: "Error completing payment: " + error.message });
+    }
+  });
+
+  // Enhanced AI chat endpoint with improved conversation parameters
+  app.post("/api/chat", async (req, res) => {
+    try {
+      const { messages } = req.body;
+
+      if (!openai) {
+        return res.status(503).json({ message: "AI service not available - API key required" });
+      }
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are a friendly, emotionally intelligent AI assistant helping people create greetings cards using personal details and creative prompts. Guide the user step-by-step and ask only one question at a time. Always give examples, and speak casually with warmth and personality."
+          },
+          ...messages
+        ],
+        temperature: 0.9,
+        top_p: 1,
+        frequency_penalty: 0,
+        presence_penalty: 0.6,
+        max_tokens: 1000
+      });
+
+      res.json({ 
+        response: response.choices[0].message.content 
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error in chat: " + error.message });
     }
   });
 
