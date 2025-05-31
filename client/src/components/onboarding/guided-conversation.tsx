@@ -515,8 +515,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   };
 
   const buildInsidePrompt = () => {
-    const userMessage = answers.inside_message || "Wishing you all the best!";
-    return `Flat illustration design for the INSIDE of a greeting card, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame, interior greeting card message design matching the ${answers.art_style || 'artistic'} style of the front card, complementary color palette and visual elements as background, with the text "${userMessage}" prominently displayed as the main message in beautiful readable typography, greeting card interior layout, flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork`;
+    return `Greeting card interior with personalized message, matching the ${answers.art_style || 'artistic'} style of the front design.`;
   };
 
   if (isLoading) {

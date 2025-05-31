@@ -147,16 +147,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { cardId, frontPrompt, insidePrompt } = req.body;
 
-      console.log('Image generation request:', { cardId, frontPromptLength: frontPrompt.length, insidePromptLength: insidePrompt?.length });
-      console.log('Full front prompt:', frontPrompt);
+      console.log('Image generation request:', { cardId, frontPrompt, insidePrompt });
 
       if (!cardId || !frontPrompt) {
         return res.status(400).json({ message: "Card ID and front prompt are required" });
-      }
-
-      // DALL-E 3 has a prompt limit of around 4000 characters
-      if (frontPrompt.length > 4000) {
-        return res.status(400).json({ message: "Front prompt too long - maximum 4000 characters" });
       }
 
       if (!openai) {
@@ -172,34 +166,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Found card:', card.id);
 
       // Generate front image using DALL-E 3 with detailed prompt
-      console.log('Calling OpenAI with parameters:', {
+      const frontImageGeneration = await openai.images.generate({
         model: "dall-e-3",
-        promptLength: frontPrompt.length,
+        prompt: `${frontPrompt}`,
         n: 1,
         size: "1024x1024",
         quality: "hd"
-      });
-      
-      // Test OpenAI API connectivity first
-      console.log('Testing OpenAI API access...');
-      
-      try {
-        // Test with a simple chat completion to verify API key works
-        const testChat = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [{ role: "user", content: "Hello" }],
-          max_tokens: 10
-        });
-        console.log('Chat API test successful:', testChat.choices[0].message.content);
-      } catch (chatError) {
-        console.log('Chat API test failed:', chatError);
-        return res.status(500).json({ message: "OpenAI API key issue - chat test failed" });
-      }
-      
-      const frontImageGeneration = await openai.images.generate({
-        model: "dall-e-3",
-        prompt: "A birthday card",
-        size: "1024x1024"
       });
 
       let insideImageUrl = null;
@@ -225,13 +197,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(updatedCard);
     } catch (error: any) {
-      console.error('Image generation error details:', {
-        message: error.message,
-        status: error.status,
-        code: error.code,
-        type: error.type,
-        response: error.response?.data
-      });
       res.status(500).json({ message: "Error generating images: " + error.message });
     }
   });
