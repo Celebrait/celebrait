@@ -68,7 +68,9 @@ export default function TestGeneration() {
         cardType: "printed",
         printOption: cardType,
         recipientName: "Test User",
-        celebration: "birthday"
+        celebration: "birthday",
+        sceneType: "with-person",
+        price: 25.00
       });
 
       const card = await cardResponse.json();
