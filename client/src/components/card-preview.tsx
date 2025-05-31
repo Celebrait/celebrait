@@ -50,15 +50,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
             </div>
           )}
           
-          {/* Watermark Overlay */}
-          {card.status !== 'paid' && (
-            <div className="absolute inset-0 bg-black/20 rounded-2xl flex items-center justify-center">
-              <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 text-center">
-                <div className="text-2xl font-bold text-gray-800 mb-2">CELEBRAIT</div>
-                <div className="text-sm text-gray-600">Remove watermark after purchase</div>
-              </div>
-            </div>
-          )}
+
         </div>
 
         {/* Inside preview for front-and-inside cards */}
