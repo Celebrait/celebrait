@@ -165,13 +165,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Found card:', card.id);
 
-      // Generate front image using DALL-E 3 with detailed prompt
+      // Generate front image using GPT-Image-1 with detailed prompt
       const frontImageGeneration = await openai.images.generate({
-        model: "dall-e-3",
+        model: "gpt-image-1",
         prompt: frontPrompt,
         n: 1,
-        size: "1024x1024",
-        quality: "standard"
+        size: "1024x1024"
       });
 
       let insideImageUrl = null;
@@ -179,11 +178,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate inside image if provided
       if (insidePrompt) {
         const insideImageGeneration = await openai.images.generate({
-          model: "dall-e-3", 
+          model: "gpt-image-1", 
           prompt: insidePrompt,
           n: 1,
-          size: "1024x1024",
-          quality: "standard"
+          size: "1024x1024"
         });
         insideImageUrl = insideImageGeneration.data?.[0]?.url || null;
       }
