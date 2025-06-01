@@ -528,7 +528,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         photoData
       });
       
-      setPhotoAnalysis(response.analysis);
+      const data = await response.json() as { analysis: string };
+      setPhotoAnalysis(data.analysis);
       toast({
         title: "Photo analyzed successfully!",
         description: "You can review and edit the description below."

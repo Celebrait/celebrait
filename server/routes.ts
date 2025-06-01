@@ -152,6 +152,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Photo data is required" });
       }
 
+      if (!openai) {
+        return res.status(500).json({ message: "OpenAI API not configured" });
+      }
+
       const visionResponse = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
