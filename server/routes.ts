@@ -198,15 +198,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           size: "1024x1024"
         });
         
-        console.log('Inside image response:', JSON.stringify(insideImageGeneration, null, 2));
-        const insideImageData = (insideImageGeneration as any).images?.[0] || null;
-        insideImageUrl = insideImageData ? `data:image/png;base64,${insideImageData}` : null;
+        const insideResponse = insideImageGeneration as any;
+        if (insideResponse.images && Array.isArray(insideResponse.images) && insideResponse.images.length > 0) {
+          const imageData = insideResponse.images[0];
+          insideImageUrl = `data:image/png;base64,${imageData}`;
+          console.log('Successfully extracted inside image data');
+        } else {
+          console.log('Failed to find images array in insideResponse');
+        }
       }
 
       // Extract image data (gpt-image-1 returns base64 data, not URLs)
       const frontResponse = frontImageGeneration as any;
-      const frontImageData = frontResponse.images?.[0] || null;
-      const frontImageUrl = frontImageData ? `data:image/png;base64,${frontImageData}` : null;
+      console.log('Checking frontResponse.images:', !!frontResponse.images);
+      console.log('frontResponse.images type:', typeof frontResponse.images);
+      
+      // Try different extraction methods
+      let frontImageUrl = null;
+      if (frontResponse.images && Array.isArray(frontResponse.images) && frontResponse.images.length > 0) {
+        const imageData = frontResponse.images[0];
+        frontImageUrl = `data:image/png;base64,${imageData}`;
+        console.log('Successfully extracted front image data');
+      } else {
+        console.log('Failed to find images array in frontResponse');
+      }
       console.log('Extracted front image URL:', frontImageUrl ? 'Base64 data received' : 'No image data');
       console.log('Extracted inside image URL:', insideImageUrl ? 'Base64 data received' : 'No image data');
 
