@@ -43,6 +43,7 @@ export default function TestGeneration() {
   const [customPrompt, setCustomPrompt] = useState('');
   const [cardType, setCardType] = useState<'front-only' | 'front-and-inside'>('front-only');
   const [includeText, setIncludeText] = useState(true);
+  const [imageSize, setImageSize] = useState<'512x512' | '1024x1024'>('512x512');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCard, setGeneratedCard] = useState<any>(null);
   const { toast } = useToast();
@@ -90,7 +91,8 @@ export default function TestGeneration() {
       const imageResponse = await apiRequest("POST", "/api/generate-images", {
         cardId: card.id,
         frontPrompt,
-        insidePrompt
+        insidePrompt,
+        imageSize
       });
 
       const updatedCard = await imageResponse.json();
@@ -170,6 +172,24 @@ export default function TestGeneration() {
                     <TabsTrigger value="no-text">No Text</TabsTrigger>
                   </TabsList>
                 </Tabs>
+              </CardContent>
+            </Card>
+
+            {/* Image Size Toggle */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Image Size</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Tabs value={imageSize} onValueChange={(value: any) => setImageSize(value)}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="512x512">512x512 (Cheaper)</TabsTrigger>
+                    <TabsTrigger value="1024x1024">1024x1024 (Final)</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                <p className="text-xs text-gray-500 mt-2">
+                  Use 512x512 for cost-effective testing, 1024x1024 for final quality
+                </p>
               </CardContent>
             </Card>
 

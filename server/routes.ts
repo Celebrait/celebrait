@@ -145,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate card images
   app.post("/api/generate-images", async (req, res) => {
     try {
-      const { cardId, frontPrompt, insidePrompt } = req.body;
+      const { cardId, frontPrompt, insidePrompt, imageSize = "1024x1024" } = req.body;
 
       console.log('Image generation request:', { cardId, frontPrompt, insidePrompt });
 
@@ -171,7 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         model: "gpt-image-1",
         prompt: frontPrompt,
         n: 1,
-        size: "1024x1024"
+        size: imageSize
       });
       
       const responseData = frontImageGeneration as any;
@@ -197,7 +197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           model: "gpt-image-1", 
           prompt: enhancedInsidePrompt,
           n: 1,
-          size: "1024x1024"
+          size: imageSize
         });
         
         const insideResponse = insideImageGeneration as any;
