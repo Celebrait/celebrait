@@ -17,7 +17,7 @@ interface ConversationStep {
   id: string;
   question: string;
   aiMessage: string;
-  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary';
+  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload';
   options?: Array<{ value: string; label: string; description?: string; color?: string; icon?: string }>;
   placeholder?: string;
   required?: boolean;
@@ -35,6 +35,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [showCustomInput, setShowCustomInput] = useState<Record<string, boolean>>({});
   const [editingStep, setEditingStep] = useState<string | null>(null);
   const [returnToSummary, setReturnToSummary] = useState(false);
+  const [uploadedPhoto, setUploadedPhoto] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -88,6 +89,23 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       aiMessage: `Wonderful! What's their name? I want to make sure this card feels personal and special for them.`,
       type: 'text',
       placeholder: 'Enter their name',
+      required: true
+    },
+    {
+      id: 'photo_option',
+      question: `How would you like me to create ${answers.name || 'their'} image?`,
+      aiMessage: `Great! Now I can create ${answers.name || 'their'} image in two ways. Would you like to upload a photo of ${answers.name || 'them'} for me to use as reference, or shall I create it based on your description?`,
+      type: 'select',
+      options: [
+        { value: 'upload_photo', label: 'Upload Photo', description: 'I have a photo to upload', color: 'bg-green-500', icon: 'camera' },
+        { value: 'describe_person', label: 'Describe Person', description: 'I\'ll describe how they look', color: 'bg-blue-500', icon: 'edit' }
+      ]
+    },
+    {
+      id: 'photo_upload',
+      question: `Please upload a photo of ${answers.name || 'them'}`,
+      aiMessage: `Perfect! Please upload a clear photo of ${answers.name || 'them'}. I'll use this to create an artistic representation that captures their likeness while fitting the style you choose.`,
+      type: 'photo_upload',
       required: true
     },
     {
