@@ -201,8 +201,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Check if we got a valid description
           if (photoDescription && !photoDescription.toLowerCase().includes("can't provide") && !photoDescription.toLowerCase().includes("sorry")) {
-            // Restructure prompt to prioritize scene and style while including facial features
-            const enhancedPrompt = `${frontPrompt}. IMPORTANT: Use ${frontPrompt.includes('realistic') ? 'photorealistic' : frontPrompt.includes('cartoon') ? 'cartoon/animated' : frontPrompt.includes('digital_art') ? 'digital art' : 'artistic'} style. SETTING: Ensure the scene matches exactly as described. PERSON: The character should have these facial characteristics from the reference photo: ${photoDescription}`;
+            // Integrate facial features directly into the main prompt
+            const enhancedPrompt = frontPrompt.replace(
+              'Create an artistic representation of the person in the uploaded photo',
+              `Create an artistic representation of a person with these specific characteristics: ${photoDescription}`
+            );
             console.log('Using enhanced prompt with prioritized style and scene');
             
             frontImageGeneration = await openai.images.generate({
