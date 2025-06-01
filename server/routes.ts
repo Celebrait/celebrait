@@ -182,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 content: [
                   {
                     type: "text",
-                    text: "Analyze this person's complete physical appearance for artistic character creation. Describe in detail: face shape, eye color and shape, hair color/style/length, skin tone, body build/physique, height appearance, any accessories (glasses, jewelry, etc.), facial hair, age range, and distinctive features. Focus on observable physical characteristics that an artist would need to recreate this person accurately. This is for artwork creation, not identification."
+                    text: "Describe this person's exact physical appearance for creating accurate artwork. Include ALL visible details: 1) Face: shape, eye color/shape, nose, mouth, cheeks 2) Hair: exact color, style, length 3) ACCESSORIES: glasses (frame style/color), jewelry, hats, etc. 4) Body: build, posture, clothing visible 5) Skin: tone, any marks 6) Age appearance 7) Any other distinctive features. Be extremely detailed about accessories like glasses - include frame shape, color, thickness. This is for precise artistic recreation."
                   },
                   {
                     type: "image_url",
