@@ -182,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 content: [
                   {
                     type: "text",
-                    text: "You are helping create an artistic illustration. Describe only the person's facial features, hair characteristics, and general appearance for artistic reference. Do not describe clothing or accessories as those will be changed. Focus on: facial structure, eye color/shape, hair color/style, skin tone, age appearance, and distinctive facial features. Keep it brief and artistic."
+                    text: "Analyze this image for creating an artistic character illustration. Describe the physical appearance characteristics: face shape (oval, round, square), eye characteristics, hair description, skin tone, approximate age range, and any facial features like beard or glasses. This is for creating artwork, not identification. Provide artistic descriptive details only."
                   },
                   {
                     type: "image_url",
@@ -212,10 +212,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               size: "1024x1024"
             });
           } else {
-            console.log('Photo analysis was declined, using original prompt');
+            console.log('Photo analysis was declined, using fallback with photo reference');
+            const fallbackPrompt = `${frontPrompt}. Use the uploaded photo as reference for the person's appearance and facial features.`;
             frontImageGeneration = await openai.images.generate({
               model: "gpt-image-1",
-              prompt: frontPrompt,
+              prompt: fallbackPrompt,
               n: 1,
               size: "1024x1024"
             });
