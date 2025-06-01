@@ -460,14 +460,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         const base64String = e.target?.result as string;
         setUploadedPhoto(base64String);
         setAnswers(prev => ({ ...prev, photo_upload: base64String }));
-        
-        setTimeout(() => {
-          if (currentStepIndex < steps.length - 1) {
-            setCurrentStepIndex(prev => prev + 1);
-          }
-        }, 500);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePhotoUploadContinue = () => {
+    // Skip to scene question when user clicks continue after photo upload
+    const sceneStepIndex = steps.findIndex(step => step.id === 'scene');
+    if (sceneStepIndex !== -1) {
+      setCurrentStepIndex(sceneStepIndex);
     }
   };
 
