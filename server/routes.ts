@@ -183,7 +183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 content: [
                   {
                     type: "text",
-                    text: "Please describe the visual characteristics you observe in this image for artistic reference purposes. Include details about hair color and style, facial features, any eyewear or accessories visible, clothing, and overall appearance. Focus on artistic and visual elements that would help create an illustration in a similar style."
+                    text: "Describe the visual appearance in this image for creating artwork. List the hair color, hair style, eye characteristics, face shape, any glasses or eyewear details, skin tone, apparent age, body build, and clothing. Be specific about colors and styles. This description will help an artist recreate the visual elements accurately."
                   },
                   {
                     type: "image_url",
