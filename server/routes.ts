@@ -191,9 +191,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate inside image if provided
       if (insidePrompt) {
         console.log('Using model: gpt-image-1 for inside image');
+        // Enhance inside prompt with front style reference
+        const enhancedInsidePrompt = `${insidePrompt} Style reference from front card: ${frontPrompt}`;
         const insideImageGeneration = await openai.images.generate({
           model: "gpt-image-1", 
-          prompt: insidePrompt,
+          prompt: enhancedInsidePrompt,
           n: 1,
           size: "1024x1024"
         });

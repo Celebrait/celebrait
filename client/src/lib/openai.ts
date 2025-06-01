@@ -39,7 +39,7 @@ export function buildCharacterPrompt(characterData: any): string {
     frontText
   } = characterData;
 
-  return `Square greeting card in ${artStyle} style featuring ${recipientIdentity} (${skinToneDescription}, ${ageConfirmation}, ${hairDescription}, ${distinctFeatures}, wearing ${clothingStyle}), in a scene: ${sceneDescription}. Mood: ${personalityDescription}. Text on front: "${frontText}".`;
+  return `Full-bleed square greeting card design, no borders, no background, no card mockup. ${artStyle} style featuring ${recipientIdentity} (${skinToneDescription}, ${ageConfirmation}, ${hairDescription}, ${distinctFeatures}, wearing ${clothingStyle}), in a scene: ${sceneDescription}. Mood: ${personalityDescription}. Text overlay: "${frontText}". Print-ready artwork filling entire frame.`;
 }
 
 export function buildSceneOnlyPrompt(sceneData: any): string {
@@ -50,9 +50,10 @@ export function buildSceneOnlyPrompt(sceneData: any): string {
     frontText
   } = sceneData;
 
-  return `Square greeting card in ${artStyle} style. The scene is: ${visualSceneDescription}. Mood: ${cardVibe}. Text on front: "${frontText}".`;
+  return `Full-bleed square greeting card design, no borders, no background, no card mockup. ${artStyle} style. The scene is: ${visualSceneDescription}. Mood: ${cardVibe}. Text overlay: "${frontText}". Print-ready artwork filling entire frame.`;
 }
 
-export function buildInsidePrompt(insideText: string, artStyle: string): string {
-  return `Square card interior, styled to match the front in ${artStyle}, with text-only message: "${insideText}". Match color tone, typography, and emotion.`;
+export function buildInsidePrompt(insideText: string, artStyle: string, frontPrompt?: string): string {
+  const styleReference = frontPrompt ? `matching the exact style, colors, and mood from: ${frontPrompt}` : `in ${artStyle} style`;
+  return `Full-bleed square greeting card interior, no borders, no background, no card mockup. ${styleReference}. Clean typography layout with centered text: "${insideText}". Print-ready artwork filling entire frame with consistent visual theme.`;
 }
