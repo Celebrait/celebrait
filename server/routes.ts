@@ -174,9 +174,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         size: "1024x1024"
       });
       
-      console.log('Front image response keys:', Object.keys(frontImageGeneration));
-      console.log('Front image response images array length:', (frontImageGeneration as any).images?.length);
-      console.log('First image data length:', (frontImageGeneration as any).images?.[0]?.length);
+      const responseData = frontImageGeneration as any;
+      console.log('Response keys:', Object.keys(responseData));
+      console.log('Has images property:', 'images' in responseData);
+      if (responseData.images) {
+        console.log('Images array length:', responseData.images.length);
+        console.log('First image exists:', !!responseData.images[0]);
+        if (responseData.images[0]) {
+          console.log('First image data type:', typeof responseData.images[0]);
+          console.log('First image data length:', responseData.images[0].length);
+        }
+      }
 
       let insideImageUrl = null;
       
