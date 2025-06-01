@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Describe this person's appearance for creating an artistic illustration. Include: hair color and style, clothing, any glasses or accessories, general build, and facial features. This is for authorized artwork creation."
+                text: "This image will be used to help design a greeting card character. Please describe visual traits such as approximate age, race/skin tone, hairstyle, build, and any clothing or accessories visible. Do not mention identity or make assumptions beyond visual features."
               },
               {
                 type: "image_url",
