@@ -342,6 +342,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       placeholder: 'e.g., Happy Birthday, Celebrating You, or leave blank for no message'
     },
     {
+      id: 'inside_message',
+      question: `What heartfelt message would you like inside the card?`,
+      aiMessage: `Since you chose a front + inside card, let's create a beautiful message for the inside! This will be displayed with elegant typography matching the front design.`,
+      type: 'textarea',
+      placeholder: 'e.g., "Wishing you all the happiness in the world on your special day. You deserve all the joy and love life has to offer!"',
+      required: true
+    },
+    {
       id: 'final_summary',
       question: 'Perfect! Let\'s review everything before creating your card.',
       aiMessage: `Wonderful! I have everything I need to create an amazing card for ${answers.name || 'them'}. Please review all the details below and make any changes you'd like. When you're happy with everything, we'll generate your personalized card!`,
@@ -350,8 +358,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   ];
 
-  const currentStep = steps[currentStepIndex];
-  const progress = ((currentStepIndex + 1) / steps.length) * 100;
+  // Filter steps based on card type - only show inside message for front-and-inside cards
+  const filteredSteps = steps.filter(step => {
+    if (step.id === 'inside_message' && onboarding.selectedPrintOption !== 'front-and-inside') {
+      return false;
+    }
+    return true;
+  });
+
+  const currentStep = filteredSteps[currentStepIndex];
+  const progress = ((currentStepIndex + 1) / filteredSteps.length) * 100;
 
   useEffect(() => {
     initializeCard();
@@ -441,7 +457,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     
     // Move to next step after a brief delay for better UX
     setTimeout(() => {
-      if (currentStepIndex < steps.length - 1) {
+      if (currentStepIndex < filteredSteps.length - 1) {
         setCurrentStepIndex(prev => prev + 1);
       } else {
         generateCard();
@@ -627,7 +643,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   };
 
   const buildInsidePrompt = () => {
-    return `Greeting card interior with personalized message, matching the ${answers.art_style || 'artistic'} style of the front design.`;
+    const insideMessage = answers.inside_message || "Hope your special day brings you joy and happiness!";
+    return `Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame, Greeting card interior with elegant typography displaying the message: "${insideMessage}". ${answers.art_style || 'artistic'} art style matching the front design. Clean, readable text layout with beautiful background design, print-ready artwork, no card mockup visible`;
   };
 
   if (isLoading) {
