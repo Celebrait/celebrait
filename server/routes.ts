@@ -200,8 +200,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const photoDescription = visionResponse.choices[0].message.content;
           console.log('Photo analysis result:', photoDescription);
           
-          // Check if we got a valid description
-          if (photoDescription && !photoDescription.toLowerCase().includes("can't provide") && !photoDescription.toLowerCase().includes("sorry")) {
+          // Check if we got a valid description (allow responses that describe features even if they mention limitations)
+          if (photoDescription && photoDescription.toLowerCase().includes("hair") && photoDescription.toLowerCase().includes("eyes")) {
             // Integrate facial features and emphasize scene and text
             let enhancedPrompt = frontPrompt.replace(
               'Create an artistic representation of the person in the uploaded photo',
