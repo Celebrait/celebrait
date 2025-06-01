@@ -170,15 +170,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let frontImageGeneration;
       if (photoData) {
-        // Use multimodal generation with uploaded photo
-        console.log('Generating with uploaded photo reference');
+        // Use chat completion with vision to analyze photo, then generate image
+        console.log('Analyzing uploaded photo first');
+        
+        // Step 1: Analyze the photo to get description
+        const visionResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "Analyze this photo and describe the person's appearance in detail for creating an artistic representation. Focus on facial features, hair, clothing, pose, and overall appearance."
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: photoData
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 300
+        });
+        
+        const photoDescription = visionResponse.choices[0].message.content;
+        console.log('Photo analysis result:', photoDescription);
+        
+        // Step 2: Combine photo description with original prompt
+        const enhancedPrompt = `${frontPrompt}. Based on this photo description: ${photoDescription}`;
+        
         frontImageGeneration = await openai.images.generate({
           model: "gpt-image-1",
-          prompt: frontPrompt,
+          prompt: enhancedPrompt,
           n: 1,
-          size: "1024x1024",
-          // Include photo data as reference
-          image: photoData
+          size: "1024x1024"
         });
       } else {
         // Standard text-only generation

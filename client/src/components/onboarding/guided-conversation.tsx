@@ -891,6 +891,67 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   <div className="space-y-6">
                     {/* Complete Summary with Edit Options */}
                     <div className="grid gap-4">
+                      
+                      {/* Photo Upload Summary - Show simplified version for photo uploads */}
+                      {answers.photo_option === 'upload_photo' && answers.photo_upload && (
+                        <div className="bg-white rounded-xl p-4 border border-purple-200">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center space-x-4">
+                              <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-purple-300">
+                                <img 
+                                  src={answers.photo_upload} 
+                                  alt="Uploaded photo" 
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-purple-700">Photo Reference</h4>
+                                <p className="text-gray-700">Photo of {answers.name} uploaded successfully</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Manual Description Summary - Only show for manual descriptions */}
+                      {answers.photo_option === 'describe_person' && (
+                        <>
+                          {/* Name */}
+                          <div className="bg-white rounded-xl p-4 border border-purple-200">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <h4 className="font-semibold text-purple-700">Name</h4>
+                                <p className="text-gray-700 font-medium">{answers.name || 'Not specified'}</p>
+                              </div>
+                              <Button onClick={() => handleEditStep('name')} variant="outline" size="sm">
+                                Edit
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Physical Description Summary */}
+                          {(answers.gender || answers.age || answers.heritage || answers.hair_color || answers.hair_style || answers.build || answers.features) && (
+                            <div className="bg-white rounded-xl p-4 border border-purple-200">
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <h4 className="font-semibold text-purple-700">Physical Description</h4>
+                                  <div className="text-gray-700 space-y-1">
+                                    {answers.gender && <p><span className="font-medium">Gender:</span> {answers.gender}</p>}
+                                    {answers.age && <p><span className="font-medium">Age:</span> {answers.age.replace('_', ' ')}</p>}
+                                    {answers.heritage && <p><span className="font-medium">Heritage:</span> {answers.heritage}</p>}
+                                    {answers.hair_color && <p><span className="font-medium">Hair:</span> {answers.hair_color.replace('_', ' ')} {answers.hair_style?.replace('_', ' ')}</p>}
+                                    {answers.build && <p><span className="font-medium">Build:</span> {answers.build}</p>}
+                                    {answers.features && answers.features !== 'skip' && <p><span className="font-medium">Features:</span> {answers.features}</p>}
+                                  </div>
+                                </div>
+                                <Button onClick={() => handleEditStep('gender')} variant="outline" size="sm">
+                                  Edit
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
                       {/* Celebration */}
                       <div className="bg-white rounded-xl p-4 border border-purple-200">
                         <div className="flex justify-between items-center">
