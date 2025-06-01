@@ -167,12 +167,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate front image using GPT-Image-1 model
       console.log('Using model: gpt-image-1 for front image');
-      const frontImageGeneration = await openai.images.generate({
-        model: "gpt-image-1",
-        prompt: frontPrompt,
-        n: 1,
-        size: "1024x1024"
-      });
+      
+      let frontImageGeneration;
+      if (photoData) {
+        // Use multimodal generation with uploaded photo
+        console.log('Generating with uploaded photo reference');
+        frontImageGeneration = await openai.images.generate({
+          model: "gpt-image-1",
+          prompt: frontPrompt,
+          n: 1,
+          size: "1024x1024",
+          // Include photo data as reference
+          image: photoData
+        });
+      } else {
+        // Standard text-only generation
+        frontImageGeneration = await openai.images.generate({
+          model: "gpt-image-1",
+          prompt: frontPrompt,
+          n: 1,
+          size: "1024x1024"
+        });
+      }
       
       const responseData = frontImageGeneration as any;
       console.log('Response keys:', Object.keys(responseData));
