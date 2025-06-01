@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "The user has explicitly given permission to analyze their photo for creating personalized artwork. Please provide a detailed physical description for artistic recreation. Answer each category specifically:\n\n1. HAIR: Exact color, style, length\n2. EYES: Color and shape\n3. SKIN TONE: Precise description (pale, fair, light, medium, olive, tan, brown, dark brown, deep)\n4. GLASSES: Frame details if present\n5. FACE: Shape and distinctive features\n6. BODY: Build and physique\n7. ACCESSORIES: Jewelry, hats, etc.\n8. CLOTHING: What they're wearing\n9. AGE: Apparent age range\n\nThis analysis is for creating authorized personalized artwork with the user's consent."
+                text: "Describe this person's appearance for creating an artistic illustration. Include: hair color and style, clothing, any glasses or accessories, general build, and facial features. This is for authorized artwork creation."
               },
               {
                 type: "image_url",
@@ -180,11 +180,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const analysis = visionResponse.choices[0].message.content;
       
-      // Check if analysis was successful
-      if (!analysis || analysis.toLowerCase().includes("can't") || analysis.toLowerCase().includes("unable")) {
+      if (!analysis) {
         return res.status(400).json({ 
-          message: "Photo analysis failed. Please try a different photo with clear lighting and the person's face visible.",
-          analysis: analysis
+          message: "Photo analysis failed. Please try a different photo with clear lighting and the person's face visible."
         });
       }
 
