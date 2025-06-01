@@ -173,6 +173,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         n: 1,
         size: "1024x1024"
       });
+      
+      console.log('Front image response:', JSON.stringify(frontImageGeneration, null, 2));
 
       let insideImageUrl = null;
       
@@ -185,12 +187,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           n: 1,
           size: "1024x1024"
         });
+        
+        console.log('Inside image response:', JSON.stringify(insideImageGeneration, null, 2));
         insideImageUrl = insideImageGeneration.data?.[0]?.url || null;
       }
 
+      // Extract URLs and log them
+      const frontImageUrl = frontImageGeneration.data?.[0]?.url || null;
+      console.log('Extracted front image URL:', frontImageUrl);
+      console.log('Extracted inside image URL:', insideImageUrl);
+
       // Update card with generated images
       const updatedCard = await storage.updateCard(cardId, {
-        frontImageUrl: frontImageGeneration.data?.[0]?.url || null,
+        frontImageUrl,
         insideImageUrl,
         status: 'completed'
       });
