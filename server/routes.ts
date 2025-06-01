@@ -201,7 +201,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const insideResponse = insideImageGeneration as any;
         if (insideResponse.data && Array.isArray(insideResponse.data) && insideResponse.data.length > 0) {
           const imageData = insideResponse.data[0];
-          insideImageUrl = `data:image/png;base64,${imageData}`;
+          
+          // Handle object or string data
+          if (typeof imageData === 'string') {
+            insideImageUrl = `data:image/png;base64,${imageData}`;
+          } else if (imageData.b64_json) {
+            insideImageUrl = `data:image/png;base64,${imageData.b64_json}`;
+          } else if (imageData.url) {
+            insideImageUrl = imageData.url;
+          }
           console.log('Successfully extracted inside image data from data array');
         } else {
           console.log('Failed to find data array in insideResponse');
@@ -216,7 +224,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let frontImageUrl = null;
       if (frontResponse.data && Array.isArray(frontResponse.data) && frontResponse.data.length > 0) {
         const imageData = frontResponse.data[0];
-        frontImageUrl = `data:image/png;base64,${imageData}`;
+        console.log('Image data type:', typeof imageData);
+        console.log('Image data keys:', Object.keys(imageData));
+        
+        // The data might be in imageData.b64_json or imageData.url
+        if (typeof imageData === 'string') {
+          frontImageUrl = `data:image/png;base64,${imageData}`;
+        } else if (imageData.b64_json) {
+          frontImageUrl = `data:image/png;base64,${imageData.b64_json}`;
+        } else if (imageData.url) {
+          frontImageUrl = imageData.url;
+        }
         console.log('Successfully extracted front image data from data array');
       } else {
         console.log('Failed to find data array in frontResponse');
