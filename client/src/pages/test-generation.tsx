@@ -42,9 +42,7 @@ const TEST_PROMPTS = [
 export default function TestGeneration() {
   const [customPrompt, setCustomPrompt] = useState('');
   const [cardType, setCardType] = useState<'front-only' | 'front-and-inside'>('front-only');
-  const [testMode, setTestMode] = useState<'front-only-test' | 'full-generation'>('front-only-test');
   const [includeText, setIncludeText] = useState(true);
-  const [imageSize, setImageSize] = useState<'1024x1024' | '1024x1536' | '1536x1024' | 'auto'>('1024x1024');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCard, setGeneratedCard] = useState<any>(null);
   const { toast } = useToast();
@@ -92,8 +90,7 @@ export default function TestGeneration() {
       const imageResponse = await apiRequest("POST", "/api/generate-images", {
         cardId: card.id,
         frontPrompt,
-        insidePrompt,
-        imageSize
+        insidePrompt
       });
 
       const updatedCard = await imageResponse.json();
@@ -173,26 +170,6 @@ export default function TestGeneration() {
                     <TabsTrigger value="no-text">No Text</TabsTrigger>
                   </TabsList>
                 </Tabs>
-              </CardContent>
-            </Card>
-
-            {/* Image Size Toggle */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Image Size</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Tabs value={imageSize} onValueChange={(value: any) => setImageSize(value)}>
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="1024x1024">Square</TabsTrigger>
-                    <TabsTrigger value="1024x1536">Portrait</TabsTrigger>
-                    <TabsTrigger value="1536x1024">Landscape</TabsTrigger>
-                    <TabsTrigger value="auto">Auto</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-                <p className="text-xs text-gray-500 mt-2">
-                  Square format recommended for greeting cards
-                </p>
               </CardContent>
             </Card>
 
