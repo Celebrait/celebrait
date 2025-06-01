@@ -182,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 content: [
                   {
                     type: "text",
-                    text: "Analyze this image for creating an artistic character illustration. Describe the physical appearance characteristics: face shape (oval, round, square), eye characteristics, hair description, skin tone, approximate age range, and any facial features like beard or glasses. This is for creating artwork, not identification. Provide artistic descriptive details only."
+                    text: "Analyze this person's complete physical appearance for artistic character creation. Describe in detail: face shape, eye color and shape, hair color/style/length, skin tone, body build/physique, height appearance, any accessories (glasses, jewelry, etc.), facial hair, age range, and distinctive features. Focus on observable physical characteristics that an artist would need to recreate this person accurately. This is for artwork creation, not identification."
                   },
                   {
                     type: "image_url",
