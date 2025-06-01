@@ -232,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 content: [
                   {
                     type: "text",
-                    text: "The user has explicitly given permission to analyze their photo for creating personalized artwork. Please provide a detailed physical description for artistic recreation. Answer each category specifically:\n\n1. HAIR: Exact color, style, length\n2. EYES: Color and shape\n3. SKIN TONE: Precise description (pale, fair, light, medium, olive, tan, brown, dark brown, deep)\n4. GLASSES: Frame details if present\n5. FACE: Shape and distinctive features\n6. BODY: Build and physique\n7. ACCESSORIES: Jewelry, hats, etc.\n8. CLOTHING: What they're wearing\n9. AGE: Apparent age range\n\nThis analysis is for creating authorized personalized artwork with the user's consent."
+                    text: "This image will be used to help design a greeting card character. Please describe visual traits such as approximate age, race/skin tone, hairstyle, build, and any clothing or accessories visible. Do not mention identity or make assumptions beyond visual features."
                   },
                   {
                     type: "image_url",
@@ -250,7 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('Photo analysis result:', photoDescription);
           
           // Check if we got a valid description (allow responses that describe features even if they mention limitations)
-          if (photoDescription && photoDescription.toLowerCase().includes("hair") && photoDescription.toLowerCase().includes("eyes")) {
+          if (photoDescription && photoDescription.trim().length > 20) {
             // Integrate facial features and emphasize scene and text
             let enhancedPrompt = frontPrompt.replace(
               'Create an artistic representation of the person in the uploaded photo',
@@ -259,7 +259,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Add explicit instructions for scene and text prominence
             enhancedPrompt += '. CRITICAL REQUIREMENTS: 1) The scene/background must be clearly visible and match the described setting exactly. 2) Text must be large, bold, and clearly readable - positioned prominently in the foreground or on a clear background area.';
-            console.log('Using enhanced prompt with prioritized style and scene');
+            console.log('Using enhanced prompt with photo description:', enhancedPrompt);
             
             frontImageGeneration = await openai.images.generate({
               model: "gpt-image-1",
@@ -268,7 +268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               size: "1024x1024"
             });
           } else {
-            console.log('Photo analysis was declined, using original prompt without photo reference');
+            console.log('Photo analysis returned minimal content, using original prompt');
             // Remove photo reference from prompt since we can't analyze it
             const cleanedPrompt = frontPrompt.replace('Create an artistic representation of the person in the uploaded photo', 'Create an artistic representation of a person');
             frontImageGeneration = await openai.images.generate({
