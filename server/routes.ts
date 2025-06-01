@@ -194,7 +194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 ]
               }
             ],
-            max_tokens: 200
+            max_tokens: 500
           });
           
           const photoDescription = visionResponse.choices[0].message.content;
