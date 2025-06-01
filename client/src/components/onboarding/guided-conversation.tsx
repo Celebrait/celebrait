@@ -492,7 +492,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       const response = await apiRequest("POST", "/api/generate-images", {
         cardId,
         frontPrompt,
-        insidePrompt
+        insidePrompt,
+        photoData: answers.photo_upload || null
       });
 
       const card = await response.json();
@@ -514,7 +515,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     // Critical: Force flat, full-bleed design
     parts.push("Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame");
     
-    if (answers.name) {
+    // If photo was uploaded, use it as reference
+    if (answers.photo_upload) {
+      parts.push(`Create an artistic representation of the person in the uploaded photo, featuring ${answers.name || 'them'}`);
+    } else if (answers.name) {
       let personDescription = answers.name;
       
       if (answers.gender) personDescription += `, ${answers.gender}`;
@@ -1029,6 +1033,46 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   </div>
                 )}
 
+                {currentStep.type === 'photo_upload' && (
+                  <div className="space-y-6">
+                    <div className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center bg-purple-50 hover:bg-purple-100 transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                        id="photo-upload"
+                      />
+                      <label htmlFor="photo-upload" className="cursor-pointer">
+                        <div className="space-y-4">
+                          <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto">
+                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-purple-700">Upload a Photo</h3>
+                            <p className="text-gray-600 mt-2">Click here to select a clear photo. The AI will create an artistic representation while maintaining their likeness.</p>
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                    
+                    {uploadedPhoto && (
+                      <div className="text-center space-y-4">
+                        <div className="w-32 h-32 mx-auto rounded-xl overflow-hidden border-4 border-purple-300">
+                          <img 
+                            src={uploadedPhoto} 
+                            alt="Uploaded photo" 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <p className="text-green-600 font-medium">Photo uploaded successfully!</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {currentStep.type === 'text' && (
                   <div className="space-y-4">
                     <div className="flex space-x-3">
@@ -1057,6 +1101,46 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         >
                           Skip This Step
                         </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {currentStep.type === 'photo_upload' && (
+                  <div className="space-y-6">
+                    <div className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center bg-purple-50 hover:bg-purple-100 transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                        id="photo-upload"
+                      />
+                      <label htmlFor="photo-upload" className="cursor-pointer">
+                        <div className="space-y-4">
+                          <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto">
+                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-purple-700">Upload a Photo</h3>
+                            <p className="text-gray-600 mt-2">Click here to select a clear photo. The AI will create an artistic representation while maintaining their likeness.</p>
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                    
+                    {uploadedPhoto && (
+                      <div className="text-center space-y-4">
+                        <div className="w-32 h-32 mx-auto rounded-xl overflow-hidden border-4 border-purple-300">
+                          <img 
+                            src={uploadedPhoto} 
+                            alt="Uploaded photo" 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <p className="text-green-600 font-medium">Photo uploaded successfully!</p>
                       </div>
                     )}
                   </div>

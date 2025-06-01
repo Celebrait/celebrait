@@ -145,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate card images
   app.post("/api/generate-images", async (req, res) => {
     try {
-      const { cardId, frontPrompt, insidePrompt } = req.body;
+      const { cardId, frontPrompt, insidePrompt, photoData } = req.body;
 
       console.log('Image generation request:', { cardId, frontPrompt, insidePrompt });
 
