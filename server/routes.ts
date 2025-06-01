@@ -189,13 +189,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         console.log('Inside image response:', JSON.stringify(insideImageGeneration, null, 2));
-        insideImageUrl = insideImageGeneration.data?.[0]?.url || null;
+        const insideImageData = (insideImageGeneration as any).images?.[0] || null;
+        insideImageUrl = insideImageData ? `data:image/png;base64,${insideImageData}` : null;
       }
 
-      // Extract URLs and log them
-      const frontImageUrl = frontImageGeneration.data?.[0]?.url || null;
-      console.log('Extracted front image URL:', frontImageUrl);
-      console.log('Extracted inside image URL:', insideImageUrl);
+      // Extract image data (gpt-image-1 returns base64 data, not URLs)
+      const frontImageData = (frontImageGeneration as any).images?.[0] || null;
+      const frontImageUrl = frontImageData ? `data:image/png;base64,${frontImageData}` : null;
+      console.log('Extracted front image URL:', frontImageUrl ? 'Base64 data received' : 'No image data');
+      console.log('Extracted inside image URL:', insideImageUrl ? 'Base64 data received' : 'No image data');
 
       // Update card with generated images
       const updatedCard = await storage.updateCard(cardId, {
