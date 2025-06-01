@@ -174,7 +174,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         size: "1024x1024"
       });
       
-      console.log('Front image response:', JSON.stringify(frontImageGeneration, null, 2));
+      console.log('Front image response keys:', Object.keys(frontImageGeneration));
+      console.log('Front image response images array:', (frontImageGeneration as any).images);
 
       let insideImageUrl = null;
       
@@ -194,7 +195,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Extract image data (gpt-image-1 returns base64 data, not URLs)
-      const frontImageData = (frontImageGeneration as any).images?.[0] || null;
+      const frontResponse = frontImageGeneration as any;
+      const frontImageData = frontResponse.images?.[0] || null;
       const frontImageUrl = frontImageData ? `data:image/png;base64,${frontImageData}` : null;
       console.log('Extracted front image URL:', frontImageUrl ? 'Base64 data received' : 'No image data');
       console.log('Extracted inside image URL:', insideImageUrl ? 'Base64 data received' : 'No image data');
