@@ -182,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 content: [
                   {
                     type: "text",
-                    text: "Describe this person's exact physical appearance for creating accurate artwork. Include ALL visible details: 1) Face: shape, eye color/shape, nose, mouth, cheeks 2) Hair: exact color, style, length 3) ACCESSORIES: glasses (frame style/color), jewelry, hats, etc. 4) Body: build, posture, clothing visible 5) Skin: tone, any marks 6) Age appearance 7) Any other distinctive features. Be extremely detailed about accessories like glasses - include frame shape, color, thickness. This is for precise artistic recreation."
+                    text: "I need you to be a precise visual observer. Look at this image and describe EXACTLY what you see for each category. Answer each question specifically:\n\n1. HAIR: What is the exact hair color? What style/cut? Length?\n2. EYES: What color are the eyes? What shape?\n3. GLASSES: Are they wearing glasses? If yes, describe frame shape, color, and style in detail.\n4. FACE: What is the face shape? Describe facial features.\n5. BODY: What is their apparent build/physique?\n6. ACCESSORIES: List any jewelry, hats, or other accessories you can see.\n7. CLOTHING: Describe what they're wearing.\n8. AGE: How old do they appear?\n\nBe factual and specific about what you actually observe in the image."
                   },
                   {
                     type: "image_url",
