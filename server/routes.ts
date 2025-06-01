@@ -183,7 +183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 content: [
                   {
                     type: "text",
-                    text: "You are an art instructor helping a student create a character illustration. Describe the visual elements in this reference image: hair texture and color, clothing style, any accessories like glasses or jewelry, overall color palette, and artistic style elements. Focus only on the visual artistic details an illustrator would need."
+                    text: "I need you to be a precise visual observer. Look at this image and describe EXACTLY what you see for each category. Answer each question specifically:\n\n1. HAIR: What is the exact hair color? What style/cut? Length?\n2. EYES: What color are the eyes? What shape?\n3. GLASSES: Are they wearing glasses? If yes, describe frame shape, color, and style in detail.\n4. FACE: What is the face shape? Describe facial features.\n5. BODY: What is their apparent build/physique?\n6. ACCESSORIES: List any jewelry, hats, or other accessories you can see.\n7. CLOTHING: Describe what they're wearing.\n8. AGE: How old do they appear?\n\nBe factual and specific about what you actually observe in the image."
                   },
                   {
                     type: "image_url",
@@ -194,7 +194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 ]
               }
             ],
-            max_tokens: 500
+            max_tokens: 200
           });
           
           const photoDescription = visionResponse.choices[0].message.content;
