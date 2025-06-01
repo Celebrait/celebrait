@@ -182,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               content: [
                 {
                   type: "text",
-                  text: "Analyze this photo and describe the person's appearance in detail for creating an artistic representation. Focus on facial features, hair, clothing, pose, and overall appearance."
+                  text: "Analyze this photo and describe ONLY the person's facial features, hair, and body structure for creating an artistic representation. Do NOT describe their clothing, as that will be changed. Focus on: facial features (eyes, nose, mouth, jawline), hair color and style, skin tone, body build, and facial expressions. Ignore all clothing and accessories."
                 },
                 {
                   type: "image_url",
@@ -193,7 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ]
             }
           ],
-          max_tokens: 300
+          max_tokens: 200
         });
         
         const photoDescription = visionResponse.choices[0].message.content;

@@ -109,6 +109,25 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       required: true
     },
     {
+      id: 'character_costume',
+      question: `What should ${answers.name || 'they'} be wearing or dressed as?`,
+      aiMessage: `Great! Now let's decide what ${answers.name || 'they'} should be wearing in the card. I'll keep their face and appearance from the photo but change their outfit and character.`,
+      type: 'select',
+      options: [
+        { value: 'keep_original', label: 'Keep Original Outfit', description: 'Use the clothes from the photo', color: 'bg-gray-500', icon: 'user' },
+        { value: 'superhero', label: 'Superhero', description: 'Cape, mask, heroic costume', color: 'bg-red-500', icon: 'zap' },
+        { value: 'princess_prince', label: 'Princess/Prince', description: 'Royal gown or regal attire', color: 'bg-purple-500', icon: 'crown' },
+        { value: 'pirate', label: 'Pirate', description: 'Hat, eyepatch, swashbuckling outfit', color: 'bg-amber-600', icon: 'anchor' },
+        { value: 'astronaut', label: 'Astronaut', description: 'Space suit and helmet', color: 'bg-blue-600', icon: 'rocket' },
+        { value: 'wizard_witch', label: 'Wizard/Witch', description: 'Robes, hat, magical attire', color: 'bg-indigo-600', icon: 'wand' },
+        { value: 'chef', label: 'Chef', description: 'Chef hat, apron, cooking attire', color: 'bg-orange-500', icon: 'chef-hat' },
+        { value: 'detective', label: 'Detective', description: 'Trench coat, hat, magnifying glass', color: 'bg-slate-600', icon: 'search' },
+        { value: 'athlete', label: 'Athlete', description: 'Sports uniform or workout gear', color: 'bg-green-500', icon: 'trophy' },
+        { value: 'musician', label: 'Musician', description: 'Performance outfit with instrument', color: 'bg-pink-500', icon: 'music' },
+        { value: 'custom', label: 'Custom Outfit', description: 'Describe a specific costume', color: 'bg-teal-500', icon: 'edit' }
+      ]
+    },
+    {
       id: 'gender',
       question: `To help represent ${answers.name || 'them'}, are they male or female?`,
       aiMessage: `Perfect! ${answers.name || 'They'} sound wonderful. To help me create an authentic representation, are they male or female?`,
@@ -410,6 +429,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       }
     }
     
+    // Handle character/costume choice - go to scene after selection
+    if (currentStep.id === 'character_costume') {
+      // After selecting costume, go to scene
+      const sceneIndex = steps.findIndex(step => step.id === 'scene');
+      if (sceneIndex !== -1) {
+        setTimeout(() => setCurrentStepIndex(sceneIndex), 500);
+        return;
+      }
+    }
+    
     // Move to next step after a brief delay for better UX
     setTimeout(() => {
       if (currentStepIndex < steps.length - 1) {
@@ -485,10 +514,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   };
 
   const handlePhotoUploadContinue = () => {
-    // Skip to scene question when user clicks continue after photo upload
-    const sceneStepIndex = steps.findIndex(step => step.id === 'scene');
-    if (sceneStepIndex !== -1) {
-      setCurrentStepIndex(sceneStepIndex);
+    // Go to character/costume selection after photo upload
+    const characterStepIndex = steps.findIndex(step => step.id === 'character_costume');
+    if (characterStepIndex !== -1) {
+      setCurrentStepIndex(characterStepIndex);
     }
   };
 
@@ -539,6 +568,26 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     // If photo was uploaded, use it as reference
     if (answers.photo_upload) {
       parts.push(`Create an artistic representation of the person in the uploaded photo, featuring ${answers.name || 'them'}`);
+      
+      // Add character/costume specification
+      if (answers.character_costume && answers.character_costume !== 'keep_original') {
+        const costumeDescriptions = {
+          'superhero': 'dressed as a superhero with cape, mask, and heroic costume',
+          'princess_prince': 'dressed as royalty in a regal gown or princely attire with crown',
+          'pirate': 'dressed as a pirate with hat, eyepatch, and swashbuckling outfit',
+          'astronaut': 'wearing a space suit and helmet as an astronaut',
+          'wizard_witch': 'dressed as a wizard/witch with robes, hat, and magical attire',
+          'chef': 'dressed as a chef with chef hat, apron, and cooking attire',
+          'detective': 'dressed as a detective with trench coat, hat, and magnifying glass',
+          'athlete': 'wearing sports uniform or athletic gear',
+          'musician': 'dressed as a musician with performance outfit and instrument'
+        };
+        
+        const costumeDesc = costumeDescriptions[answers.character_costume];
+        if (costumeDesc) {
+          parts.push(costumeDesc);
+        }
+      }
     } else if (answers.name) {
       let personDescription = answers.name;
       
