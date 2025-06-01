@@ -43,7 +43,7 @@ export default function TestGeneration() {
   const [customPrompt, setCustomPrompt] = useState('');
   const [cardType, setCardType] = useState<'front-only' | 'front-and-inside'>('front-only');
   const [includeText, setIncludeText] = useState(true);
-  const [imageSize, setImageSize] = useState<'512x512' | '1024x1024'>('512x512');
+  const [imageSize, setImageSize] = useState<'1024x1024' | '1024x1536' | '1536x1024' | 'auto'>('1024x1024');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCard, setGeneratedCard] = useState<any>(null);
   const { toast } = useToast();
@@ -182,13 +182,15 @@ export default function TestGeneration() {
               </CardHeader>
               <CardContent>
                 <Tabs value={imageSize} onValueChange={(value: any) => setImageSize(value)}>
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="512x512">512x512 (Cheaper)</TabsTrigger>
-                    <TabsTrigger value="1024x1024">1024x1024 (Final)</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="1024x1024">Square</TabsTrigger>
+                    <TabsTrigger value="1024x1536">Portrait</TabsTrigger>
+                    <TabsTrigger value="1536x1024">Landscape</TabsTrigger>
+                    <TabsTrigger value="auto">Auto</TabsTrigger>
                   </TabsList>
                 </Tabs>
                 <p className="text-xs text-gray-500 mt-2">
-                  Use 512x512 for cost-effective testing, 1024x1024 for final quality
+                  Square format recommended for greeting cards
                 </p>
               </CardContent>
             </Card>
