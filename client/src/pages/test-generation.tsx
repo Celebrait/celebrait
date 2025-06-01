@@ -42,6 +42,7 @@ const TEST_PROMPTS = [
 export default function TestGeneration() {
   const [customPrompt, setCustomPrompt] = useState('');
   const [cardType, setCardType] = useState<'front-only' | 'front-and-inside'>('front-only');
+  const [testMode, setTestMode] = useState<'front-only-test' | 'full-generation'>('front-only-test');
   const [includeText, setIncludeText] = useState(true);
   const [imageSize, setImageSize] = useState<'1024x1024' | '1024x1536' | '1536x1024' | 'auto'>('1024x1024');
   const [isGenerating, setIsGenerating] = useState(false);
