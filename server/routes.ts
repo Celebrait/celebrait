@@ -168,15 +168,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate front image using GPT-Image-1 model
       console.log('Using model: gpt-image-1 for front image');
       
-      // For now, use standard generation since gpt-image-1 doesn't support direct photo references
-      // The prompt already includes instructions about using uploaded photo reference
-      console.log('Generating with gpt-image-1 model');
-      const frontImageGeneration = await openai.images.generate({
-        model: "gpt-image-1",
-        prompt: frontPrompt,
-        n: 1,
-        size: "1024x1024"
-      });
+      let frontImageGeneration;
+      if (photoData) {
+        // Use vision analysis to get facial features, then generate with gpt-image-1
+        console.log('Analyzing uploaded photo for facial features');
+        
+        try {
+          const visionResponse = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: "You are helping create an artistic illustration. Describe only the person's facial features, hair characteristics, and general appearance for artistic reference. Do not describe clothing or accessories as those will be changed. Focus on: facial structure, eye color/shape, hair color/style, skin tone, age appearance, and distinctive facial features. Keep it brief and artistic."
+                  },
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: photoData
+                    }
+                  }
+                ]
+              }
+            ],
+            max_tokens: 200
+          });
+          
+          const photoDescription = visionResponse.choices[0].message.content;
+          console.log('Photo analysis result:', photoDescription);
+          
+          // Check if we got a valid description
+          if (photoDescription && !photoDescription.toLowerCase().includes("can't provide") && !photoDescription.toLowerCase().includes("sorry")) {
+            // Combine photo facial features with the costume/scene prompt
+            const enhancedPrompt = `${frontPrompt}. The person has these facial characteristics: ${photoDescription}`;
+            console.log('Using enhanced prompt with facial features');
+            
+            frontImageGeneration = await openai.images.generate({
+              model: "gpt-image-1",
+              prompt: enhancedPrompt,
+              n: 1,
+              size: "1024x1024"
+            });
+          } else {
+            console.log('Photo analysis was declined, using original prompt');
+            frontImageGeneration = await openai.images.generate({
+              model: "gpt-image-1",
+              prompt: frontPrompt,
+              n: 1,
+              size: "1024x1024"
+            });
+          }
+        } catch (error: any) {
+          console.log('Vision analysis failed:', error.message);
+          frontImageGeneration = await openai.images.generate({
+            model: "gpt-image-1",
+            prompt: frontPrompt,
+            n: 1,
+            size: "1024x1024"
+          });
+        }
+      } else {
+        // Standard text-only generation
+        frontImageGeneration = await openai.images.generate({
+          model: "gpt-image-1",
+          prompt: frontPrompt,
+          n: 1,
+          size: "1024x1024"
+        });
+      }
       
       const responseData = frontImageGeneration as any;
       console.log('Response keys:', Object.keys(responseData));
