@@ -175,7 +175,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       console.log('Front image response keys:', Object.keys(frontImageGeneration));
-      console.log('Front image response images array:', (frontImageGeneration as any).images);
+      console.log('Front image response images array length:', (frontImageGeneration as any).images?.length);
+      console.log('First image data length:', (frontImageGeneration as any).images?.[0]?.length);
 
       let insideImageUrl = null;
       
