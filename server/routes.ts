@@ -168,55 +168,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate front image using GPT-Image-1 model
       console.log('Using model: gpt-image-1 for front image');
       
-      let frontImageGeneration;
-      if (photoData) {
-        // Use chat completion with vision to analyze photo, then generate image
-        console.log('Analyzing uploaded photo first');
-        
-        // Step 1: Analyze the photo to get description
-        const visionResponse = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: "Analyze this photo and describe ONLY the person's facial features, hair, and body structure for creating an artistic representation. Do NOT describe their clothing, as that will be changed. Focus on: facial features (eyes, nose, mouth, jawline), hair color and style, skin tone, body build, and facial expressions. Ignore all clothing and accessories."
-                },
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: photoData
-                  }
-                }
-              ]
-            }
-          ],
-          max_tokens: 200
-        });
-        
-        const photoDescription = visionResponse.choices[0].message.content;
-        console.log('Photo analysis result:', photoDescription);
-        
-        // Step 2: Combine photo description with original prompt
-        const enhancedPrompt = `${frontPrompt}. Based on this photo description: ${photoDescription}`;
-        
-        frontImageGeneration = await openai.images.generate({
-          model: "gpt-image-1",
-          prompt: enhancedPrompt,
-          n: 1,
-          size: "1024x1024"
-        });
-      } else {
-        // Standard text-only generation
-        frontImageGeneration = await openai.images.generate({
-          model: "gpt-image-1",
-          prompt: frontPrompt,
-          n: 1,
-          size: "1024x1024"
-        });
-      }
+      // For now, use standard generation since gpt-image-1 doesn't support direct photo references
+      // The prompt already includes instructions about using uploaded photo reference
+      console.log('Generating with gpt-image-1 model');
+      const frontImageGeneration = await openai.images.generate({
+        model: "gpt-image-1",
+        prompt: frontPrompt,
+        n: 1,
+        size: "1024x1024"
+      });
       
       const responseData = frontImageGeneration as any;
       console.log('Response keys:', Object.keys(responseData));
