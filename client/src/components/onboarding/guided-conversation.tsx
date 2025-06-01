@@ -562,8 +562,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const buildImagePrompt = () => {
     const parts = [];
     
-    // Critical: Force flat, full-bleed design
-    parts.push("Flat illustration design, completely flat 2D image, full bleed, no borders, no card edges visible, no 3D perspective, no depth, square 1:1 aspect ratio, fill entire frame");
+    // Critical: Card format requirements
+    parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
     
     // If photo was uploaded, use it as reference
     if (answers.photo_upload) {
@@ -619,8 +619,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       parts.push(`with the text "${answers.message}" integrated into the design`);
     }
     
-    // Reinforce flat design requirements
-    parts.push('flat design, no card mockup, no dimensional effects, direct top-down view, print-ready artwork');
+    // Final formatting requirements
+    parts.push('print-ready artwork, no card mockup visible');
     
     return parts.join(', ');
   };
