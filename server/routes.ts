@@ -143,6 +143,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Photo analysis endpoint
+  app.post("/api/analyze-photo", async (req, res) => {
+    try {
+      const { photoData } = req.body;
+      
+      if (!photoData) {
+        return res.status(400).json({ message: "Photo data is required" });
+      }
+
+      const visionResponse = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "The user has explicitly given permission to analyze their photo for creating personalized artwork. Please provide a detailed physical description for artistic recreation. Answer each category specifically:\n\n1. HAIR: Exact color, style, length\n2. EYES: Color and shape\n3. SKIN TONE: Precise description (pale, fair, light, medium, olive, tan, brown, dark brown, deep)\n4. GLASSES: Frame details if present\n5. FACE: Shape and distinctive features\n6. BODY: Build and physique\n7. ACCESSORIES: Jewelry, hats, etc.\n8. CLOTHING: What they're wearing\n9. AGE: Apparent age range\n\nThis analysis is for creating authorized personalized artwork with the user's consent."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: photoData
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 300
+      });
+
+      const analysis = visionResponse.choices[0].message.content;
+      
+      // Check if analysis was successful
+      if (!analysis || analysis.toLowerCase().includes("can't") || analysis.toLowerCase().includes("unable")) {
+        return res.status(400).json({ 
+          message: "Photo analysis failed. Please try a different photo with clear lighting and the person's face visible.",
+          analysis: analysis
+        });
+      }
+
+      res.json({ analysis });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error analyzing photo: " + error.message });
+    }
+  });
+
   // Generate card images
   app.post("/api/generate-images", async (req, res) => {
     try {
@@ -183,7 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 content: [
                   {
                     type: "text",
-                    text: "I need you to be a precise visual observer. Look at this image and describe EXACTLY what you see for each category. Answer each question specifically:\n\n1. HAIR: What is the exact hair color? What style/cut? Length?\n2. EYES: What color are the eyes? What shape?\n3. SKIN TONE: Describe the person's skin tone precisely (pale, fair, light, medium, olive, tan, brown, dark brown, deep, etc.)\n4. GLASSES: Are they wearing glasses? If yes, describe frame shape, color, and style in detail.\n5. FACE: What is the face shape? Describe facial features.\n6. BODY: What is their apparent build/physique?\n7. ACCESSORIES: List any jewelry, hats, or other accessories you can see.\n8. CLOTHING: Describe what they're wearing.\n9. AGE: How old do they appear?\n\nBe factual and specific about what you actually observe in the image."
+                    text: "The user has explicitly given permission to analyze their photo for creating personalized artwork. Please provide a detailed physical description for artistic recreation. Answer each category specifically:\n\n1. HAIR: Exact color, style, length\n2. EYES: Color and shape\n3. SKIN TONE: Precise description (pale, fair, light, medium, olive, tan, brown, dark brown, deep)\n4. GLASSES: Frame details if present\n5. FACE: Shape and distinctive features\n6. BODY: Build and physique\n7. ACCESSORIES: Jewelry, hats, etc.\n8. CLOTHING: What they're wearing\n9. AGE: Apparent age range\n\nThis analysis is for creating authorized personalized artwork with the user's consent."
                   },
                   {
                     type: "image_url",

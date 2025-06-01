@@ -36,6 +36,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [editingStep, setEditingStep] = useState<string | null>(null);
   const [returnToSummary, setReturnToSummary] = useState(false);
   const [uploadedPhoto, setUploadedPhoto] = useState<string | null>(null);
+  const [photoAnalysis, setPhotoAnalysis] = useState<string | null>(null);
+  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -516,6 +519,32 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   };
 
+  const analyzePhoto = async (photoData: string) => {
+    setIsAnalyzingPhoto(true);
+    setAnalysisError(null);
+    
+    try {
+      const response = await apiRequest("POST", "/api/analyze-photo", {
+        photoData
+      });
+      
+      setPhotoAnalysis(response.analysis);
+      toast({
+        title: "Photo analyzed successfully!",
+        description: "You can review and edit the description below."
+      });
+    } catch (error: any) {
+      setAnalysisError(error.message);
+      toast({
+        title: "Photo analysis failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzingPhoto(false);
+    }
+  };
+
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -524,6 +553,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         const base64String = e.target?.result as string;
         setUploadedPhoto(base64String);
         setAnswers(prev => ({ ...prev, photo_upload: base64String }));
+        // Immediately analyze the photo
+        analyzePhoto(base64String);
       };
       reader.readAsDataURL(file);
     }
@@ -1241,22 +1272,80 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         </label>
                       </div>
                     ) : (
-                      <div className="text-center space-y-4">
-                        <div className="w-32 h-32 mx-auto rounded-xl overflow-hidden border-4 border-purple-300">
-                          <img 
-                            src={uploadedPhoto} 
-                            alt="Uploaded photo" 
-                            className="w-full h-full object-cover"
-                          />
+                      <div className="space-y-6">
+                        <div className="text-center">
+                          <div className="w-32 h-32 mx-auto rounded-xl overflow-hidden border-4 border-purple-300">
+                            <img 
+                              src={uploadedPhoto} 
+                              alt="Uploaded photo" 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <p className="text-green-600 font-medium mt-2">Photo uploaded successfully!</p>
                         </div>
-                        <p className="text-green-600 font-medium">Photo uploaded successfully!</p>
-                        <Button 
-                          onClick={handlePhotoUploadContinue}
-                          className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
-                        >
-                          Continue to Scene
-                          <ArrowRight className="w-4 h-4 ml-2" />
-                        </Button>
+
+                        {isAnalyzingPhoto && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex items-center space-x-3">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                              <p className="text-blue-700">Analyzing your photo...</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {analysisError && (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <p className="text-red-700 font-medium">Analysis failed:</p>
+                            <p className="text-red-600 text-sm mt-1">{analysisError}</p>
+                            <Button 
+                              onClick={() => analyzePhoto(uploadedPhoto!)}
+                              className="mt-3 bg-red-600 hover:bg-red-700"
+                              size="sm"
+                            >
+                              Try Again
+                            </Button>
+                          </div>
+                        )}
+
+                        {photoAnalysis && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <h4 className="font-medium text-green-800 mb-2">AI Analysis Results:</h4>
+                            <div className="bg-white rounded p-3 border text-sm text-gray-700 mb-3">
+                              {photoAnalysis}
+                            </div>
+                            <p className="text-green-700 text-sm mb-3">
+                              This description will be used to create your card. You can edit it if needed:
+                            </p>
+                            <Textarea
+                              value={currentInput || photoAnalysis}
+                              onChange={(e) => setCurrentInput(e.target.value)}
+                              className="min-h-[100px]"
+                              placeholder="Edit the description if needed..."
+                            />
+                            <div className="flex space-x-2 mt-3">
+                              <Button 
+                                onClick={() => {
+                                  setAnswers(prev => ({ ...prev, character_description: currentInput || photoAnalysis }));
+                                  handlePhotoUploadContinue();
+                                }}
+                                className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500"
+                              >
+                                Continue with Description
+                                <ArrowRight className="w-4 h-4 ml-2" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {!isAnalyzingPhoto && !photoAnalysis && !analysisError && (
+                          <Button 
+                            onClick={handlePhotoUploadContinue}
+                            className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
+                          >
+                            Continue without Analysis
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
