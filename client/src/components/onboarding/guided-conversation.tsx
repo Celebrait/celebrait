@@ -583,7 +583,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           'musician': 'dressed as a musician with performance outfit and instrument'
         };
         
-        const costumeDesc = costumeDescriptions[answers.character_costume];
+        const costumeDesc = costumeDescriptions[answers.character_costume as keyof typeof costumeDescriptions];
+        console.log('Costume selection debug:', answers.character_costume, costumeDesc);
         if (costumeDesc) {
           parts.push(costumeDesc);
         }
