@@ -199,28 +199,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         const insideResponse = insideImageGeneration as any;
-        if (insideResponse.images && Array.isArray(insideResponse.images) && insideResponse.images.length > 0) {
-          const imageData = insideResponse.images[0];
+        if (insideResponse.data && Array.isArray(insideResponse.data) && insideResponse.data.length > 0) {
+          const imageData = insideResponse.data[0];
           insideImageUrl = `data:image/png;base64,${imageData}`;
-          console.log('Successfully extracted inside image data');
+          console.log('Successfully extracted inside image data from data array');
         } else {
-          console.log('Failed to find images array in insideResponse');
+          console.log('Failed to find data array in insideResponse');
         }
       }
 
-      // Extract image data (gpt-image-1 returns base64 data, not URLs)
+      // Extract image data (gpt-image-1 returns base64 data in 'data' array)
       const frontResponse = frontImageGeneration as any;
-      console.log('Checking frontResponse.images:', !!frontResponse.images);
-      console.log('frontResponse.images type:', typeof frontResponse.images);
+      console.log('Checking frontResponse.data:', !!frontResponse.data);
+      console.log('frontResponse.data type:', typeof frontResponse.data);
       
-      // Try different extraction methods
       let frontImageUrl = null;
-      if (frontResponse.images && Array.isArray(frontResponse.images) && frontResponse.images.length > 0) {
-        const imageData = frontResponse.images[0];
+      if (frontResponse.data && Array.isArray(frontResponse.data) && frontResponse.data.length > 0) {
+        const imageData = frontResponse.data[0];
         frontImageUrl = `data:image/png;base64,${imageData}`;
-        console.log('Successfully extracted front image data');
+        console.log('Successfully extracted front image data from data array');
       } else {
-        console.log('Failed to find images array in frontResponse');
+        console.log('Failed to find data array in frontResponse');
       }
       console.log('Extracted front image URL:', frontImageUrl ? 'Base64 data received' : 'No image data');
       console.log('Extracted inside image URL:', insideImageUrl ? 'Base64 data received' : 'No image data');
