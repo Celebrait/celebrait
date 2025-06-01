@@ -183,7 +183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 content: [
                   {
                     type: "text",
-                    text: "Study this photo carefully and describe every visible detail with precision. I need an extremely detailed analysis:\n\nHAIR: State the exact color (blonde, brunette, black, red, gray, etc.), texture (straight, wavy, curly), length, and style. Is it natural or dyed?\n\nFACE STRUCTURE: Describe face shape (oval, round, square, heart, etc.), jawline, cheekbones, forehead size.\n\nEYES: Exact color, size, shape, eyebrow thickness and shape.\n\nNOSE: Size, shape, bridge width.\n\nMOUTH: Lip thickness, smile, teeth visible.\n\nGLASSES: If present, describe frame material (plastic, metal), color, thickness, style (rectangular, round, etc.).\n\nBODY: Build (slim, average, heavy, muscular), height appearance, posture.\n\nSKIN: Tone, any visible marks, freckles, wrinkles.\n\nACCESSORIES: Any jewelry, hats, watches, etc.\n\nAGE: Specific age range.\n\nBe extremely accurate about colors and proportions. This description will be used to recreate this person's appearance."
+                    text: "Please describe the visual characteristics you observe in this image for artistic reference purposes. Include details about hair color and style, facial features, any eyewear or accessories visible, clothing, and overall appearance. Focus on artistic and visual elements that would help create an illustration in a similar style."
                   },
                   {
                     type: "image_url",
