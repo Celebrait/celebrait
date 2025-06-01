@@ -452,6 +452,25 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   };
 
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64String = e.target?.result as string;
+        setUploadedPhoto(base64String);
+        setAnswers(prev => ({ ...prev, photo_upload: base64String }));
+        
+        setTimeout(() => {
+          if (currentStepIndex < steps.length - 1) {
+            setCurrentStepIndex(prev => prev + 1);
+          }
+        }, 500);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handlePrevious = () => {
     if (currentStepIndex > 0) {
       setCurrentStepIndex(prev => prev - 1);
@@ -531,6 +550,28 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     
     return parts.join(', ');
   };
+
+  // Filter steps based on user choices
+  const getVisibleSteps = () => {
+    let visibleSteps = [...steps];
+    
+    // If user chose to upload photo, skip manual description steps
+    if (answers.photo_option === 'upload_photo') {
+      visibleSteps = visibleSteps.filter(step => 
+        !['gender', 'age', 'heritage', 'hair_color', 'hair_style', 'build', 'features'].includes(step.id)
+      );
+    }
+    
+    // If user chose to describe person, skip photo upload step
+    if (answers.photo_option === 'describe_person') {
+      visibleSteps = visibleSteps.filter(step => step.id !== 'photo_upload');
+    }
+    
+    return visibleSteps;
+  };
+
+  const currentVisibleSteps = getVisibleSteps();
+  const currentStep = currentVisibleSteps[currentStepIndex];
 
   const buildInsidePrompt = () => {
     return `Greeting card interior with personalized message, matching the ${answers.art_style || 'artistic'} style of the front design.`;
