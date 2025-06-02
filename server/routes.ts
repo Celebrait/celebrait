@@ -143,6 +143,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Analyze image composition endpoint for style transformation
+  app.post("/api/analyze-image-composition", async (req, res) => {
+    try {
+      const { photoData } = req.body;
+
+      if (!photoData) {
+        return res.status(400).json({ message: "Photo data is required" });
+      }
+
+      if (!openai) {
+        return res.status(500).json({ message: "OpenAI API not configured" });
+      }
+
+      const visionResponse = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Describe this entire image in detail for artistic recreation: composition, pose, setting, background elements, lighting, objects, clothing, colors, mood, and overall scene. Focus on all visual elements that would need to be recreated in a new artistic style."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: photoData
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 400
+      });
+
+      const analysis = visionResponse.choices[0].message.content;
+      res.json({ analysis });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error analyzing image: " + error.message });
+    }
+  });
+
   // Photo analysis endpoint
   app.post("/api/analyze-photo", async (req, res) => {
     try {
@@ -189,6 +231,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ analysis });
     } catch (error: any) {
       res.status(500).json({ message: "Error analyzing photo: " + error.message });
+    }
+  });
+
+  // Generate style-transformed images
+  app.post("/api/generate-style-transform", async (req, res) => {
+    try {
+      const { cardId, frontPrompt, insidePrompt, originalImage, imageAnalysis } = req.body;
+
+      console.log('Style transformation request:', { cardId, frontPrompt, insidePrompt });
+
+      if (!cardId || !frontPrompt) {
+        return res.status(400).json({ message: "Card ID and front prompt are required" });
+      }
+
+      if (!openai) {
+        return res.status(500).json({ message: "OpenAI API not configured" });
+      }
+
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      console.log('Found card:', card.id);
+      console.log('Using model: gpt-image-1 for style transformation');
+      
+      // Generate front image with style transformation
+      let enhancedFrontPrompt = frontPrompt;
+      if (originalImage && imageAnalysis) {
+        console.log('Using image analysis for style transformation:', imageAnalysis);
+        enhancedFrontPrompt += `. CRITICAL REQUIREMENTS: 1) Recreate the exact composition, pose, and scene described. 2) Text must be large, bold, and clearly readable - positioned prominently. 3) Maintain the essence of the original while transforming the artistic style completely.`;
+      }
+
+      const frontImageGeneration = await openai.images.generate({
+        model: "gpt-image-1",
+        prompt: enhancedFrontPrompt,
+        n: 1,
+        size: "1024x1024"
+      });
+
+      let insideImageUrl = null;
+      
+      // Generate inside image if provided
+      if (insidePrompt) {
+        console.log('Using model: gpt-image-1 for inside image');
+        
+        const enhancedInsidePrompt = `${insidePrompt}. STYLE MATCHING: Use exactly the same artistic style, color palette, and visual treatment as the front card. Create a cohesive design where the inside feels like the same artist created both cards with consistent visual language.`;
+        
+        const insideImageGeneration = await openai.images.generate({
+          model: "gpt-image-1", 
+          prompt: enhancedInsidePrompt,
+          n: 1,
+          size: "1024x1024"
+        });
+        
+        const insideResponse = insideImageGeneration as any;
+        if (insideResponse.data && Array.isArray(insideResponse.data) && insideResponse.data.length > 0) {
+          const imageData = insideResponse.data[0];
+          
+          if (typeof imageData === 'string') {
+            insideImageUrl = `data:image/png;base64,${imageData}`;
+          } else if (imageData.b64_json) {
+            insideImageUrl = `data:image/png;base64,${imageData.b64_json}`;
+          } else if (imageData.url) {
+            insideImageUrl = imageData.url;
+          }
+          console.log('Successfully extracted inside image data');
+        }
+      }
+
+      // Extract front image data
+      const frontResponse = frontImageGeneration as any;
+      let frontImageUrl = null;
+      if (frontResponse.data && Array.isArray(frontResponse.data) && frontResponse.data.length > 0) {
+        const imageData = frontResponse.data[0];
+        
+        if (typeof imageData === 'string') {
+          frontImageUrl = `data:image/png;base64,${imageData}`;
+        } else if (imageData.b64_json) {
+          frontImageUrl = `data:image/png;base64,${imageData.b64_json}`;
+        } else if (imageData.url) {
+          frontImageUrl = imageData.url;
+        }
+        console.log('Successfully extracted front image data');
+      }
+
+      console.log('Extracted front image URL:', frontImageUrl ? 'Base64 data received' : 'No image data');
+      console.log('Extracted inside image URL:', insideImageUrl ? 'Base64 data received' : 'No image data');
+
+      // Update card with generated images
+      const updatedCard = await storage.updateCard(cardId, {
+        frontImageUrl,
+        insideImageUrl,
+        status: 'completed'
+      });
+
+      res.json(updatedCard);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error generating style transformation: " + error.message });
     }
   });
 

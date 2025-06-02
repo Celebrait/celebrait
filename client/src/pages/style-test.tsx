@@ -55,20 +55,20 @@ export default function StyleTest() {
     setPhotoAnalysis(null);
     
     try {
-      const response = await apiRequest("POST", "/api/analyze-photo", {
+      const response = await apiRequest("POST", "/api/analyze-image-composition", {
         photoData
       });
       
       const data = await response.json() as { analysis: string };
       setPhotoAnalysis(data.analysis);
       toast({
-        title: "Photo analyzed successfully!",
+        title: "Image analyzed successfully!",
         description: "Ready for style transformation."
       });
     } catch (error: any) {
       setAnalysisError(error.message);
       toast({
-        title: "Photo analysis failed",
+        title: "Image analysis failed",
         description: error.message,
         variant: "destructive"
       });
@@ -101,12 +101,12 @@ export default function StyleTest() {
       const insidePrompt = cardOption === 'front-and-inside' ? buildInsidePrompt() : null;
 
       // Generate images
-      const imageResponse = await apiRequest("POST", "/api/generate-images", {
+      const imageResponse = await apiRequest("POST", "/api/generate-style-transform", {
         cardId: cardData.id,
         frontPrompt,
         insidePrompt,
-        photoData: uploadedPhoto,
-        photoAnalysis
+        originalImage: uploadedPhoto,
+        imageAnalysis: photoAnalysis
       });
 
       const generatedCard = await imageResponse.json();
@@ -133,13 +133,13 @@ export default function StyleTest() {
     parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
     
     if (photoAnalysis) {
-      parts.push(`Create an artistic representation of a person with these specific characteristics: ${photoAnalysis}`);
+      parts.push(`Recreate this exact image composition and scene in ${selectedStyle} art style: ${photoAnalysis}`);
     } else {
-      parts.push("Create an artistic representation of the person in the uploaded photo");
+      parts.push(`Transform the uploaded image into ${selectedStyle} art style while maintaining the same composition, pose, and scene`);
     }
     
-    parts.push(`${selectedStyle} art style`);
     parts.push(`with the text "${frontText}" integrated into the design`);
+    parts.push("maintain all elements of the original image but render them in the new artistic style");
     parts.push("print-ready artwork, no card mockup visible");
     
     return parts.join(', ');
