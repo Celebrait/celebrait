@@ -195,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate card images
   app.post("/api/generate-images", async (req, res) => {
     try {
-      const { cardId, frontPrompt, insidePrompt, photoData } = req.body;
+      const { cardId, frontPrompt, insidePrompt, photoData, photoAnalysis } = req.body;
 
       console.log('Image generation request:', { cardId, frontPrompt, insidePrompt });
 
@@ -219,9 +219,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Using model: gpt-image-1 for front image');
       
       let frontImageGeneration;
-      if (photoData) {
-        // Use vision analysis to get facial features, then generate with gpt-image-1
-        console.log('Analyzing uploaded photo for facial features');
+      if (photoData && photoAnalysis) {
+        // Use the photo analysis that was already captured during onboarding
+        console.log('Using pre-captured photo analysis:', photoAnalysis);
+        
+        // Integrate facial features from the successful onboarding analysis
+        let enhancedPrompt = frontPrompt.replace(
+          'Create an artistic representation of the person in the uploaded photo',
+          `Create an artistic representation of a person with these specific characteristics: ${photoAnalysis}`
+        );
+        
+        // Add explicit instructions for scene and text prominence
+        enhancedPrompt += '. CRITICAL REQUIREMENTS: 1) The scene/background must be clearly visible and match the described setting exactly. 2) Text must be large, bold, and clearly readable - positioned prominently in the foreground or on a clear background area.';
+        console.log('Using enhanced prompt with photo description:', enhancedPrompt);
+        
+        frontImageGeneration = await openai.images.generate({
+          model: "gpt-image-1",
+          prompt: enhancedPrompt,
+          n: 1,
+          size: "1024x1024"
+        });
+      } else if (photoData) {
+        // Fallback: try to analyze the photo again
+        console.log('Photo provided but no analysis - attempting analysis');
         
         try {
           const visionResponse = await openai.chat.completions.create({
@@ -249,17 +269,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const photoDescription = visionResponse.choices[0].message.content;
           console.log('Photo analysis result:', photoDescription);
           
-          // Check if we got a valid description (allow responses that describe features even if they mention limitations)
-          if (photoDescription && photoDescription.trim().length > 20) {
-            // Integrate facial features and emphasize scene and text
+          if (photoDescription && photoDescription.trim().length > 20 && !photoDescription.includes("can't identify")) {
             let enhancedPrompt = frontPrompt.replace(
               'Create an artistic representation of the person in the uploaded photo',
               `Create an artistic representation of a person with these specific characteristics: ${photoDescription}`
             );
             
-            // Add explicit instructions for scene and text prominence
             enhancedPrompt += '. CRITICAL REQUIREMENTS: 1) The scene/background must be clearly visible and match the described setting exactly. 2) Text must be large, bold, and clearly readable - positioned prominently in the foreground or on a clear background area.';
-            console.log('Using enhanced prompt with photo description:', enhancedPrompt);
             
             frontImageGeneration = await openai.images.generate({
               model: "gpt-image-1",
@@ -268,8 +284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               size: "1024x1024"
             });
           } else {
-            console.log('Photo analysis returned minimal content, using original prompt');
-            // Remove photo reference from prompt since we can't analyze it
+            console.log('Photo analysis failed, using original prompt without photo reference');
             const cleanedPrompt = frontPrompt.replace('Create an artistic representation of the person in the uploaded photo', 'Create an artistic representation of a person');
             frontImageGeneration = await openai.images.generate({
               model: "gpt-image-1",
@@ -280,9 +295,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         } catch (error: any) {
           console.log('Vision analysis failed:', error.message);
+          const cleanedPrompt = frontPrompt.replace('Create an artistic representation of the person in the uploaded photo', 'Create an artistic representation of a person');
           frontImageGeneration = await openai.images.generate({
             model: "gpt-image-1",
-            prompt: frontPrompt,
+            prompt: cleanedPrompt,
             n: 1,
             size: "1024x1024"
           });

@@ -625,7 +625,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         cardId,
         frontPrompt,
         insidePrompt,
-        photoData: answers.photo_upload || null
+        photoData: answers.photo_upload || null,
+        photoAnalysis: photoAnalysis || null
       });
 
       const card = await response.json();
