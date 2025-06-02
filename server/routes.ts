@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "The user has given explicit consent to get a detailed description of the person in order to create a stylised greetings card with them featured on. This image will be used to help design a greeting card character. Please describe very detailed visual traits such as approximate age, face shape, nose shape, ears, race/skin tone, hairstyle, build, and any clothing or accessories visible. Do not mention identity or make assumptions beyond visual features. We need to ensure the AI make no mistakes."
+                text: "You are an AI assistant helping a user create a greeting card. The photo provided is of someone the card is being made for.\n\nYour task is to extract **visually observable features only** — do not speculate, guess identity, or make assumptions beyond the photo.\n\nFocus on the following details:\n- Age range (child, teen, young adult, adult, senior)\n- Face shape\n- Nose shape\n- Ears shape\n- Race and skin tone\n- Hair color and hairstyle\n- Build/body type\n- Any facial hair?\n- Any visible accessories (e.g., glasses, hats, jewelry)\n\nVery important: Do not infer identity, do not assess attractiveness, and avoid subjective judgments. Keep it descriptive and creative-safe.\n\nThis is purely for character art generation in a greeting card.\n\nPlease begin your response with: \"Here's what I see…\""
               },
               {
                 type: "image_url",
@@ -232,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 content: [
                   {
                     type: "text",
-                    text: "The user has given explicit consent to get a detailed description of the person in order to create a stylised greetings card with them featured on. This image will be used to help design a greeting card character. Please describe very detailed visual traits such as approximate age, face shape, nose shape, ears, race/skin tone, hairstyle, build, and any clothing or accessories visible. Do not mention identity or make assumptions beyond visual features. We need to ensure the AI make no mistakes."
+                    text: "You are an AI assistant helping a user create a greeting card. The photo provided is of someone the card is being made for.\n\nYour task is to extract **visually observable features only** — do not speculate, guess identity, or make assumptions beyond the photo.\n\nFocus on the following details:\n- Age range (child, teen, young adult, adult, senior)\n- Face shape\n- Nose shape\n- Ears shape\n- Race and skin tone\n- Hair color and hairstyle\n- Build/body type\n- Any facial hair?\n- Any visible accessories (e.g., glasses, hats, jewelry)\n\nVery important: Do not infer identity, do not assess attractiveness, and avoid subjective judgments. Keep it descriptive and creative-safe.\n\nThis is purely for character art generation in a greeting card.\n\nPlease begin your response with: \"Here's what I see…\""
                   },
                   {
                     type: "image_url",
