@@ -273,64 +273,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let frontImageGeneration;
 
-      // Direct image-to-image transformation using Kandinsky 2.2
-      console.log('Using Kandinsky 2.2 for direct image-to-image transformation...');
+      // Try direct image-to-image transformation with available models
+      const styleType = frontPrompt.includes('pop_art') ? 'pop art' : 
+                       frontPrompt.includes('digital_art') ? 'digital art' : 
+                       frontPrompt.includes('watercolor') ? 'watercolor painting' : 
+                       frontPrompt.includes('cartoon') ? 'cartoon' : 'artistic';
+      
+      console.log(`Using Hugging Face for direct ${styleType} transformation...`);
       
       try {
-        const styleType = frontPrompt.includes('pop_art') ? 'pop art' : 
-                         frontPrompt.includes('digital_art') ? 'digital art' : 
-                         frontPrompt.includes('watercolor') ? 'watercolor painting' : 'artistic';
+        const transformPrompt = `${styleType} style, maintain composition, add text "${frontText || 'Happy Birthday'}"`;
         
-        const transformPrompt = `${styleType} style, add text "${frontText || 'Happy Birthday'}"`;
-        
+        // Try InstuctPix2Pix model
         const result = await hf.imageToImage({
-          model: "kandinsky-community/kandinsky-2-2-decoder-inpaint",
+          model: "timbrooks/instruct-pix2pix",
           inputs: imageBuffer,
           parameters: {
-            prompt: transformPrompt,
-            num_inference_steps: 50,
-            guidance_scale: 4.0,
-            strength: 0.8
+            prompt: `turn this into ${styleType} style`,
+            num_inference_steps: 20,
+            image_guidance_scale: 1.0,
+            guidance_scale: 7.5
           }
         });
 
-        // Convert result to base64
         const arrayBuffer = await result.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         
-        console.log('Kandinsky 2.2 transformation completed successfully');
+        console.log('Hugging Face image-to-image transformation completed successfully');
 
         frontImageGeneration = {
           data: [{ b64_json: buffer.toString('base64') }]
         };
-      } catch (kandinskyError: any) {
-        console.log('Kandinsky failed, trying alternative model:', kandinskyError.message);
+      } catch (hfError: any) {
+        console.log('Hugging Face image-to-image failed, using OpenAI fallback:', hfError.message);
         
-        try {
-          // Try alternative image-to-image model
-          const result = await hf.imageToImage({
-            model: "runwayml/stable-diffusion-v1-5",
-            inputs: imageBuffer,
-            parameters: {
-              prompt: `${styleType} style transformation, maintain composition, add text "${frontText || 'Happy Birthday'}"`,
-              num_inference_steps: 20,
-              guidance_scale: 7.5,
-              strength: 0.75
-            }
-          });
-
-          const arrayBuffer = await result.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          
-          console.log('Alternative model transformation completed');
-
-          frontImageGeneration = {
-            data: [{ b64_json: buffer.toString('base64') }]
-          };
-        } catch (altError: any) {
-          console.log('All image-to-image models failed:', altError.message);
-          throw new Error('Image-to-image transformation unavailable');
-        }
+        // Fallback to OpenAI with enhanced prompt
+        frontImageGeneration = await openai.images.generate({
+          model: "gpt-image-1", 
+          prompt: `${styleType} style greeting card design with text "${frontText || 'Happy Birthday'}", ${frontPrompt}`,
+          n: 1,
+          size: "1024x1024"
+        });
       }
 
       let insideImageUrl = null;
