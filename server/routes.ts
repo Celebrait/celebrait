@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Describe the facial features and physical characteristics: hair color and texture, hairstyle and length, eye color and shape, nose shape and size, ear shape and visibility, mouth and lip characteristics, facial structure and jawline, skin tone, approximate age, body build, eyewear details, and any distinctive facial features or marks."
+                text: "Describe the visual elements: hair color, hair style, approximate age range, any eyewear, and overall appearance."
               },
               {
                 type: "image_url",
@@ -232,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 content: [
                   {
                     type: "text",
-                    text: "Describe the facial features and physical characteristics: hair color and texture, hairstyle and length, eye color and shape, nose shape and size, ear shape and visibility, mouth and lip characteristics, facial structure and jawline, skin tone, approximate age, body build, eyewear details, and any distinctive facial features or marks."
+                    text: "Describe the visual elements: hair color, hair style, approximate age range, any eyewear, and overall appearance."
                   },
                   {
                     type: "image_url",
