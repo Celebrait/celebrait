@@ -143,7 +143,7 @@ export default function StyleTest() {
     parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
     
     if (photoAnalysis) {
-      parts.push(`RECREATE EXACTLY: ${photoAnalysis}. Transform this into ${selectedStyle} art style while preserving ALL visual elements - same person, pose, clothing, background, lighting, and composition. This should look like the identical scene rendered in ${selectedStyle} medium`);
+      parts.push(`Recreate this exact image composition and scene in ${selectedStyle} art style: ${photoAnalysis}`);
     } else {
       parts.push(`Transform the uploaded image into ${selectedStyle} art style while maintaining the same composition, pose, and scene`);
     }

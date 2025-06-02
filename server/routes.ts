@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Describe the visual characteristics for artistic reference in comprehensive detail: PERSON - hair color, texture, length, style; skin tone and complexion; facial features; age appearance; build and height; clothing (colors, patterns, textures, style); accessories; pose and body position; facial expression; hand positions. SCENE - exact setting and location; all background objects and their positions; lighting direction and quality; shadows and highlights; color palette; textures of surfaces; spatial relationships; mood and atmosphere; camera angle; foreground, middle ground, background elements. Important: Include skin tone as a key artistic detail for accurate recreation."
+                text: "Describe this entire image in detail for artistic recreation: composition, pose, setting, background elements, lighting, objects, clothing, colors, mood, and overall scene. Focus on all visual elements that would need to be recreated in a new artistic style."
               },
               {
                 type: "image_url",
@@ -175,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ]
           }
         ],
-        max_tokens: 800
+        max_tokens: 600
       });
 
       const analysis = visionResponse.choices[0].message.content;
@@ -261,7 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let enhancedFrontPrompt = frontPrompt;
       if (originalImage && imageAnalysis) {
         console.log('Using image analysis for style transformation:', imageAnalysis);
-        enhancedFrontPrompt += `. CRITICAL REQUIREMENTS: 1) Recreate the EXACT same pose, stance, clothing, and visual proportions as described. 2) Maintain identical composition, lighting, and scene elements. 3) Text must be large, bold, and clearly readable - positioned prominently. 4) This should be the IDENTICAL SCENE with same figure, just rendered in the new artistic style.`;
+        enhancedFrontPrompt += `. CRITICAL REQUIREMENTS: 1) Recreate the exact composition, pose, and scene described. 2) Text must be large, bold, and clearly readable - positioned prominently. 3) Maintain the essence of the original while transforming the artistic style completely.`;
       }
 
       const frontImageGeneration = await openai.images.generate({
