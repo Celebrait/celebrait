@@ -273,71 +273,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let frontImageGeneration;
 
-      // First analyze the image with OpenAI vision for detailed description
-      const visionResponse = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Describe this image in extremely detailed visual terms for perfect artistic recreation. Include every detail: exact poses, positions, clothing, colors, facial expressions, background elements, lighting, objects, spatial relationships. Be comprehensive and precise so the image can be recreated exactly in a different art style."
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: originalImage
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 800
-      });
-
-      const detailedDescription = visionResponse.choices[0].message.content;
-      console.log('Detailed image analysis for recreation:', detailedDescription);
-
-      // Try Hugging Face text-to-image with detailed description
+      // Try multiple Hugging Face image-to-image models
       try {
-        console.log('Attempting Hugging Face text-to-image generation...');
+        console.log('Attempting Hugging Face image-to-image transformation...');
         
         const styleType = frontPrompt.includes('pop_art') ? 'pop art' : 
                          frontPrompt.includes('digital_art') ? 'digital art' : 
                          frontPrompt.includes('watercolor') ? 'watercolor painting' : 'artistic';
         
-        const enhancedPrompt = `${styleType} style artwork: ${detailedDescription}. Add text "${frontText || 'Happy Birthday'}" integrated into the design. Maintain exact composition and all visual elements.`;
+        const transformPrompt = `Transform this image into ${styleType} style while maintaining the exact same composition, pose, and all visual elements. Add text "${frontText || 'Happy Birthday'}" to the image.`;
         
-        const result = await hf.textToImage({
-          model: "stabilityai/stable-diffusion-2-1",
-          inputs: enhancedPrompt,
-          parameters: {
-            num_inference_steps: 30,
-            guidance_scale: 7.5,
-            width: 1024,
-            height: 1024
-          }
-        });
+        let result;
+        
+        // Try different available models
+        try {
+          result = await hf.imageToImage({
+            model: "runwayml/stable-diffusion-v1-5",
+            inputs: imageBuffer,
+            parameters: {
+              prompt: transformPrompt,
+              num_inference_steps: 20,
+              guidance_scale: 7.5,
+              strength: 0.75
+            }
+          });
+        } catch (firstError) {
+          console.log('First model failed, trying alternative...');
+          result = await hf.imageToImage({
+            model: "stabilityai/stable-diffusion-2-1",
+            inputs: imageBuffer,
+            parameters: {
+              prompt: transformPrompt,
+              num_inference_steps: 20,
+              guidance_scale: 7.5,
+              strength: 0.75
+            }
+          });
+        }
 
         // Convert result to base64
         const arrayBuffer = await result.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         
-        console.log('Hugging Face generation completed successfully');
+        console.log('Hugging Face image-to-image transformation completed successfully');
 
         frontImageGeneration = {
           data: [{ b64_json: buffer.toString('base64') }]
         };
       } catch (hfError: any) {
-        console.log('Hugging Face failed, falling back to OpenAI:', hfError.message);
+        console.log('All Hugging Face models failed, falling back to OpenAI:', hfError.message);
         
-        // Enhanced OpenAI fallback with detailed description
-        const enhancedPrompt = `${frontPrompt}. EXACT RECREATION: ${detailedDescription}. Transform this exact scene into the specified artistic style while maintaining every detail perfectly.`;
-        
+        // Fallback to OpenAI
         frontImageGeneration = await openai.images.generate({
           model: "gpt-image-1", 
-          prompt: enhancedPrompt,
+          prompt: frontPrompt + ". Transform the uploaded image maintaining exact composition and elements.",
           n: 1,
           size: "1024x1024"
         });
