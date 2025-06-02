@@ -175,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ]
           }
         ],
-        max_tokens: 400
+        max_tokens: 600
       });
 
       const analysis = visionResponse.choices[0].message.content;
