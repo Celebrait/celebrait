@@ -342,14 +342,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
         }
         
-        // Create inside prompt that exactly matches the front style
+        // Extract color and style information from front prompt for consistency
         const artStyle = frontPrompt.includes('watercolor') ? 'watercolor' : 
                         frontPrompt.includes('cartoon') ? 'cartoon' :
                         frontPrompt.includes('realistic') ? 'realistic' :
+                        frontPrompt.includes('digital_art') ? 'digital art' :
                         frontPrompt.includes('pop_art') ? 'pop art' :
                         frontPrompt.includes('oil_painting') ? 'oil painting' : 'artistic';
         
-        const enhancedInsidePrompt = `${finalInsidePrompt}. STYLE MATCHING: Use exactly the same ${artStyle} artistic style, color palette, and visual treatment as a card front that features ${frontPrompt.includes('watercolor') ? 'soft watercolor washes and flowing colors' : frontPrompt.includes('cartoon') ? 'bright cartoon colors and bold outlines' : frontPrompt.includes('realistic') ? 'photorealistic rendering and natural colors' : 'artistic styling'}. Ensure visual consistency between front and inside designs.`;
+        // Extract text from front prompt to understand typography
+        const frontTextMatch = frontPrompt.match(/with the text "([^"]+)"/);
+        const frontText = frontTextMatch ? frontTextMatch[1] : '';
+        
+        const enhancedInsidePrompt = `${finalInsidePrompt}. REFERENCE FRONT CARD: The front card uses "${frontText}" in ${artStyle} style. EXACT MATCHING REQUIRED: Use identical typography style, font family, text weight, and color treatment as the front card. Match the exact color palette, mood, and artistic approach. Create a cohesive design where the inside feels like the same designer created both cards with consistent visual language.`;
         
         const insideImageGeneration = await openai.images.generate({
           model: "gpt-image-1", 
