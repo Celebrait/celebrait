@@ -3,20 +3,16 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertCardSchema, insertLovedOneSchema } from "@shared/schema";
 import OpenAI from "openai";
-import { HfInference } from "@huggingface/inference";
 import Stripe from "stripe";
 
 // Temporarily allow running without API keys for testing
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
 const hasStripe = !!process.env.STRIPE_SECRET_KEY;
-const hasHuggingFace = !!process.env.HUGGINGFACE_API_KEY;
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = hasOpenAI ? new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY 
 }) : null;
-
-const hf = hasHuggingFace ? new HfInference(process.env.HUGGINGFACE_API_KEY) : null;
 
 const stripe = hasStripe ? new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
@@ -241,12 +237,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate style-transformed images
   app.post("/api/generate-style-transform", async (req, res) => {
     try {
-      const { cardId, frontPrompt, insidePrompt, originalImage, frontText } = req.body;
+      const { cardId, frontPrompt, insidePrompt, originalImage, imageAnalysis } = req.body;
 
-      console.log('Direct image-to-image transformation request:', { cardId, frontPrompt, insidePrompt });
+      console.log('Style transformation request:', { cardId, frontPrompt, insidePrompt });
 
-      if (!cardId || !frontPrompt || !originalImage) {
-        return res.status(400).json({ message: "Card ID, front prompt, and original image are required" });
+      if (!cardId || !frontPrompt) {
+        return res.status(400).json({ message: "Card ID and front prompt are required" });
       }
 
       if (!openai) {
@@ -259,62 +255,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log('Found card:', card.id);
-      console.log('Using model: gpt-image-1 for direct image-to-image transformation');
+      console.log('Using model: gpt-image-1 for style transformation');
       
-      if (!hf) {
-        return res.status(500).json({ message: "Hugging Face API not configured" });
+      // Generate front image with style transformation
+      let enhancedFrontPrompt = frontPrompt;
+      if (originalImage && imageAnalysis) {
+        console.log('Using image analysis for style transformation:', imageAnalysis);
+        enhancedFrontPrompt += `. CRITICAL REQUIREMENTS: 1) Recreate the exact composition, pose, and scene described. 2) Text must be large, bold, and clearly readable - positioned prominently. 3) Maintain the essence of the original while transforming the artistic style completely.`;
       }
 
-      console.log('Using Hugging Face for direct image-to-image style transformation');
-
-      // Extract base64 data from data URL
-      const base64Data = originalImage.split(',')[1];
-      const imageBuffer = Buffer.from(base64Data, 'base64');
-
-      let frontImageGeneration;
-
-      // Try direct image-to-image transformation with available models
-      const styleType = frontPrompt.includes('pop_art') ? 'pop art' : 
-                       frontPrompt.includes('digital_art') ? 'digital art' : 
-                       frontPrompt.includes('watercolor') ? 'watercolor painting' : 
-                       frontPrompt.includes('cartoon') ? 'cartoon' : 'artistic';
-      
-      console.log(`Using Hugging Face for direct ${styleType} transformation...`);
-      
-      try {
-        const transformPrompt = `${styleType} style, maintain composition, add text "${frontText || 'Happy Birthday'}"`;
-        
-        // Try InstuctPix2Pix model
-        const result = await hf.imageToImage({
-          model: "timbrooks/instruct-pix2pix",
-          inputs: imageBuffer,
-          parameters: {
-            prompt: `turn this into ${styleType} style`,
-            num_inference_steps: 20,
-            image_guidance_scale: 1.0,
-            guidance_scale: 7.5
-          }
-        });
-
-        const arrayBuffer = await result.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        
-        console.log('Hugging Face image-to-image transformation completed successfully');
-
-        frontImageGeneration = {
-          data: [{ b64_json: buffer.toString('base64') }]
-        };
-      } catch (hfError: any) {
-        console.log('Hugging Face image-to-image failed, using OpenAI fallback:', hfError.message);
-        
-        // Fallback to OpenAI with enhanced prompt
-        frontImageGeneration = await openai.images.generate({
-          model: "gpt-image-1", 
-          prompt: `${styleType} style greeting card design with text "${frontText || 'Happy Birthday'}", ${frontPrompt}`,
-          n: 1,
-          size: "1024x1024"
-        });
-      }
+      const frontImageGeneration = await openai.images.generate({
+        model: "gpt-image-1",
+        prompt: enhancedFrontPrompt,
+        n: 1,
+        size: "1024x1024"
+      });
 
       let insideImageUrl = null;
       
