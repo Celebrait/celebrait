@@ -3,16 +3,20 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertCardSchema, insertLovedOneSchema } from "@shared/schema";
 import OpenAI from "openai";
+import { HfInference } from "@huggingface/inference";
 import Stripe from "stripe";
 
 // Temporarily allow running without API keys for testing
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
 const hasStripe = !!process.env.STRIPE_SECRET_KEY;
+const hasHuggingFace = !!process.env.HUGGINGFACE_API_KEY;
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = hasOpenAI ? new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY 
 }) : null;
+
+const hf = hasHuggingFace ? new HfInference(process.env.HUGGINGFACE_API_KEY) : null;
 
 const stripe = hasStripe ? new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
@@ -237,7 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate style-transformed images
   app.post("/api/generate-style-transform", async (req, res) => {
     try {
-      const { cardId, frontPrompt, insidePrompt, originalImage } = req.body;
+      const { cardId, frontPrompt, insidePrompt, originalImage, frontText } = req.body;
 
       console.log('Direct image-to-image transformation request:', { cardId, frontPrompt, insidePrompt });
 
@@ -257,41 +261,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Found card:', card.id);
       console.log('Using model: gpt-image-1 for direct image-to-image transformation');
       
-      // First, analyze the uploaded image with vision model for exact replication
-      const visionResponse = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Describe this image in extremely detailed visual terms for exact artistic recreation. Include: exact pose and position of every person/object, clothing details, facial expressions, background elements, lighting, colors, spatial relationships, composition, and every visual element that would be needed to recreate this image perfectly in a different art style. Be comprehensive and precise."
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: originalImage
-                }
-              }
-            ]
+      if (!hf) {
+        return res.status(500).json({ message: "Hugging Face API not configured" });
+      }
+
+      console.log('Using Hugging Face for direct image-to-image style transformation');
+
+      // Extract base64 data from data URL
+      const base64Data = originalImage.split(',')[1];
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+
+      let frontImageGeneration;
+
+      // Use Hugging Face image-to-image transformation
+      try {
+        // Create blob from buffer for Hugging Face API
+        const imageBlob = new Blob([imageBuffer], { type: 'image/png' });
+        
+        const result = await hf.imageToImage({
+          model: "timbrooks/instruct-pix2pix",
+          inputs: imageBlob,
+          parameters: {
+            prompt: `Transform this image into ${frontPrompt.includes('pop_art') ? 'pop art' : frontPrompt.includes('digital_art') ? 'digital art' : frontPrompt.includes('watercolor') ? 'watercolor painting' : 'artistic'} style while maintaining the exact same composition, pose, and all visual elements. Add text "${frontText || 'Happy Birthday'}" to the image.`,
+            num_inference_steps: 20,
+            image_guidance_scale: 1.5,
+            guidance_scale: 7.5
           }
-        ],
-        max_tokens: 800
-      });
+        });
 
-      const detailedAnalysis = visionResponse.choices[0].message.content;
-      console.log('Detailed image analysis for exact replication:', detailedAnalysis);
+        // Convert result to base64
+        const arrayBuffer = await result.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        console.log('Hugging Face transformation completed successfully');
 
-      // Generate with the detailed analysis for exact replication
-      const enhancedPrompt = `${frontPrompt}. EXACT VISUAL RECREATION: ${detailedAnalysis}. Transform this exact scene into the specified artistic style while maintaining every detail, position, pose, and element exactly as described.`;
-
-      const frontImageGeneration = await openai.images.generate({
-        model: "gpt-image-1",
-        prompt: enhancedPrompt,
-        n: 1,
-        size: "1024x1024"
-      });
+        frontImageGeneration = {
+          data: [{ b64_json: buffer.toString('base64') }]
+        };
+      } catch (hfError) {
+        console.log('Hugging Face failed, falling back to OpenAI:', hfError);
+        
+        // Fallback to OpenAI if Hugging Face fails
+        frontImageGeneration = await openai.images.generate({
+          model: "gpt-image-1",
+          prompt: frontPrompt + ". Recreate the uploaded image exactly with this artistic style transformation.",
+          n: 1,
+          size: "1024x1024"
+        });
+      }
 
       let insideImageUrl = null;
       
