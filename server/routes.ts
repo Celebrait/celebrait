@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Describe the visual elements: hair color, hair style, approximate age range, any eyewear, overall appearance, and skin tone."
+                text: "Describe the visual elements: hair color, hair style, approximate age range, any eyewear, overall appearance, skin tone, and build."
               },
               {
                 type: "image_url",
@@ -232,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 content: [
                   {
                     type: "text",
-                    text: "Describe the visual elements: hair color, hair style, approximate age range, any eyewear, overall appearance, and skin tone."
+                    text: "Describe the visual elements: hair color, hair style, approximate age range, any eyewear, overall appearance, skin tone, and build."
                   },
                   {
                     type: "image_url",
