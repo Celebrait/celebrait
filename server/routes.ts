@@ -273,47 +273,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let frontImageGeneration;
 
-      // Use OpenAI's vision to get extremely detailed description for exact recreation
-      console.log('Analyzing image for exact recreation...');
+      // Direct image-to-image transformation using Kandinsky 2.2
+      console.log('Using Kandinsky 2.2 for direct image-to-image transformation...');
       
-      const visionResponse = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "You are an expert image analyst. Describe this image in extreme detail for perfect artistic recreation. Include: every person's exact pose, position, facial expression, clothing, hair, accessories; every object's location, size, color; background elements, lighting direction, shadows, colors, textures, spatial relationships. Be so detailed that an artist could recreate this image exactly in a different style."
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: originalImage
-                }
-              }
-            ]
+      try {
+        const styleType = frontPrompt.includes('pop_art') ? 'pop art' : 
+                         frontPrompt.includes('digital_art') ? 'digital art' : 
+                         frontPrompt.includes('watercolor') ? 'watercolor painting' : 'artistic';
+        
+        const transformPrompt = `${styleType} style, add text "${frontText || 'Happy Birthday'}"`;
+        
+        const result = await hf.imageToImage({
+          model: "kandinsky-community/kandinsky-2-2-decoder-inpaint",
+          inputs: imageBuffer,
+          parameters: {
+            prompt: transformPrompt,
+            num_inference_steps: 50,
+            guidance_scale: 4.0,
+            strength: 0.8
           }
-        ],
-        max_tokens: 1000
-      });
+        });
 
-      const perfectDescription = visionResponse.choices[0].message.content;
-      console.log('Perfect image description obtained');
+        // Convert result to base64
+        const arrayBuffer = await result.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        console.log('Kandinsky 2.2 transformation completed successfully');
 
-      // Generate with maximum fidelity to original
-      const styleType = frontPrompt.includes('pop_art') ? 'pop art' : 
-                       frontPrompt.includes('digital_art') ? 'digital art' : 
-                       frontPrompt.includes('watercolor') ? 'watercolor painting' : 'artistic';
+        frontImageGeneration = {
+          data: [{ b64_json: buffer.toString('base64') }]
+        };
+      } catch (kandinskyError: any) {
+        console.log('Kandinsky failed, trying alternative model:', kandinskyError.message);
+        
+        try {
+          // Try alternative image-to-image model
+          const result = await hf.imageToImage({
+            model: "runwayml/stable-diffusion-v1-5",
+            inputs: imageBuffer,
+            parameters: {
+              prompt: `${styleType} style transformation, maintain composition, add text "${frontText || 'Happy Birthday'}"`,
+              num_inference_steps: 20,
+              guidance_scale: 7.5,
+              strength: 0.75
+            }
+          });
 
-      const perfectPrompt = `Create a ${styleType} version of this exact scene: ${perfectDescription}. CRITICAL: Maintain identical composition, poses, positions, objects, and layout. Add the text "${frontText || 'Happy Birthday'}" naturally integrated into the design. Every element must be in the exact same position as described.`;
+          const arrayBuffer = await result.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          
+          console.log('Alternative model transformation completed');
 
-      frontImageGeneration = await openai.images.generate({
-        model: "gpt-image-1", 
-        prompt: perfectPrompt,
-        n: 1,
-        size: "1024x1024"
-      });
+          frontImageGeneration = {
+            data: [{ b64_json: buffer.toString('base64') }]
+          };
+        } catch (altError: any) {
+          console.log('All image-to-image models failed:', altError.message);
+          throw new Error('Image-to-image transformation unavailable');
+        }
+      }
 
       let insideImageUrl = null;
       
