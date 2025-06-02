@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Describe this image for artistic style transformation, focusing on: 1) COMPOSITION: pose, positioning, stance, gestures, and body language. 2) VISUAL ELEMENTS: clothing colors/patterns, hairstyle silhouette, overall figure proportions. 3) SCENE: background, lighting, objects, setting, mood, colors, and atmosphere. 4) ARTISTIC DETAILS: textures, shadows, highlights, and spatial relationships. Describe all visual elements that an artist would need to recreate this exact scene in a different artistic medium."
+                text: "Describe the visual characteristics for artistic reference: hair color and texture, hairstyle, age appearance, skin tone, eyewear, facial structure, build, clothing details, pose, expression, setting, background elements, lighting, objects, colors, mood, and overall scene composition. Focus on artistic details only for recreating this scene in a different artistic style."
               },
               {
                 type: "image_url",
