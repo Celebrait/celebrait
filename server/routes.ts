@@ -161,14 +161,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         messages: [
           {
             role: "system",
-            content: "You are a professional art director working on commissioned artwork. The client has provided reference materials for creating their custom illustration. Analyze the visual elements present in the reference image to inform the artistic process."
+            content: "You are helping create personalized artwork. When a user uploads their own photo, describe the visual characteristics you observe to help create their custom illustration."
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "As an art director, I need you to catalog the visual elements in this reference image for our illustration team. Please note: hair color/style, approximate age category, overall build, any glasses/accessories, and skin tone. This is for commissioned artwork production."
+                text: "This is a photo of me. I need you to describe my visual characteristics for creating a personalized greeting card illustration. Please describe: my hair color and style, my approximate age, my build, any glasses or accessories I'm wearing, and my skin tone."
               },
               {
                 type: "image_url",
@@ -233,14 +233,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             messages: [
               {
                 role: "system",
-                content: "You are a professional art director working on commissioned artwork. The client has provided reference materials for creating their custom illustration. Analyze the visual elements present in the reference image to inform the artistic process."
+                content: "You are helping create personalized artwork. When a user uploads their own photo, describe the visual characteristics you observe to help create their custom illustration."
               },
               {
                 role: "user",
                 content: [
                   {
                     type: "text",
-                    text: "As an art director, I need you to catalog the visual elements in this reference image for our illustration team. Please note: hair color/style, approximate age category, overall build, any glasses/accessories, and skin tone. This is for commissioned artwork production."
+                    text: "This is a photo of me. I need you to describe my visual characteristics for creating a personalized greeting card illustration. Please describe: my hair color and style, my approximate age, my build, any glasses or accessories I'm wearing, and my skin tone."
                   },
                   {
                     type: "image_url",
