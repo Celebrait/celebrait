@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "This image will be used to help design a greeting card character. Please describe only these facial features: gender, approximate age, skin tone, hair color and style, eye color, facial hair if present, and glasses if worn. Focus solely on facial characteristics."
+                text: "Describe the artistic elements needed to create a cartoon character based on this reference: What is the person's gender? What age range? Hair color and style? Do they wear glasses? What is their skin tone? Focus only on visual artistic elements for illustration purposes."
               },
               {
                 type: "image_url",
@@ -232,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 content: [
                   {
                     type: "text",
-                    text: "This image will be used to help design a greeting card character. Please describe only these facial features: gender, approximate age, skin tone, hair color and style, eye color, facial hair if present, and glasses if worn. Focus solely on facial characteristics."
+                    text: "Describe the artistic elements needed to create a cartoon character based on this reference: What is the person's gender? What age range? Hair color and style? Do they wear glasses? What is their skin tone? Focus only on visual artistic elements for illustration purposes."
                   },
                   {
                     type: "image_url",
