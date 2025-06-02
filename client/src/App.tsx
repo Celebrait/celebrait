@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/home";
 import Checkout from "@/pages/checkout";
 import TestGeneration from "@/pages/test-generation";
+import StyleTest from "@/pages/style-test";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -14,6 +15,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/checkout/:cardId" component={Checkout} />
       <Route path="/test" component={TestGeneration} />
+      <Route path="/style-test" component={StyleTest} />
       <Route component={NotFound} />
     </Switch>
   );
