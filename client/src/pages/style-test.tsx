@@ -89,12 +89,20 @@ export default function StyleTest() {
 
     setIsGenerating(true);
     try {
+      // Create test user first
+      const userResponse = await apiRequest("POST", "/api/users", {
+        username: "StyleTestUser",
+        email: "test@styletest.com"
+      });
+      const userData = await userResponse.json();
+
       // Create card record
       const cardResponse = await apiRequest("POST", "/api/cards", {
         cardType: "printed",
         printOption: cardOption,
         sceneType: "style-transform",
-        price: 0
+        price: 0,
+        userId: userData.id
       });
       const cardData = await cardResponse.json();
 
