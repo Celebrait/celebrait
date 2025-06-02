@@ -160,15 +160,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         model: "gpt-4o",
         messages: [
           {
-            role: "system",
-            content: "You are helping create personalized artwork. When a user uploads their own photo, describe the visual characteristics you observe to help create their custom illustration."
-          },
-          {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "This is a photo of me. I need you to describe my visual characteristics for creating a personalized greeting card illustration. Please describe: my hair color and style, my approximate age, my build, any glasses or accessories I'm wearing, and my skin tone."
+                text: "Analyze this image and describe the visual elements: hair color, hair style, approximate age range, any eyewear, clothing style, and overall appearance. Focus on artistic details."
               },
               {
                 type: "image_url",
@@ -232,15 +228,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             model: "gpt-4o",
             messages: [
               {
-                role: "system",
-                content: "You are helping create personalized artwork. When a user uploads their own photo, describe the visual characteristics you observe to help create their custom illustration."
-              },
-              {
                 role: "user",
                 content: [
                   {
                     type: "text",
-                    text: "This is a photo of me. I need you to describe my visual characteristics for creating a personalized greeting card illustration. Please describe: my hair color and style, my approximate age, my build, any glasses or accessories I'm wearing, and my skin tone."
+                    text: "Analyze this image and describe the visual elements: hair color, hair style, approximate age range, any eyewear, clothing style, and overall appearance. Focus on artistic details."
                   },
                   {
                     type: "image_url",
