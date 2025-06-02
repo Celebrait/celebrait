@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Describe this entire image in detail for artistic recreation. Include: 1) PERSON DETAILS: gender, age appearance, hair color/style, skin tone, facial features, body type, clothing details, pose, expression. 2) SCENE DETAILS: composition, setting, background elements, lighting, objects, colors, mood, and overall scene. Focus on all visual elements that would need to be recreated exactly in a new artistic style, especially the person's appearance."
+                text: "Describe this image for artistic style transformation, focusing on: 1) COMPOSITION: pose, positioning, stance, gestures, and body language. 2) VISUAL ELEMENTS: clothing colors/patterns, hairstyle silhouette, overall figure proportions. 3) SCENE: background, lighting, objects, setting, mood, colors, and atmosphere. 4) ARTISTIC DETAILS: textures, shadows, highlights, and spatial relationships. Describe all visual elements that an artist would need to recreate this exact scene in a different artistic medium."
               },
               {
                 type: "image_url",
@@ -261,7 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let enhancedFrontPrompt = frontPrompt;
       if (originalImage && imageAnalysis) {
         console.log('Using image analysis for style transformation:', imageAnalysis);
-        enhancedFrontPrompt += `. CRITICAL REQUIREMENTS: 1) The person must have the EXACT same gender, age, hair color/style, skin tone, facial features, and body type as described. 2) Recreate the exact composition, pose, clothing, and scene described. 3) Text must be large, bold, and clearly readable - positioned prominently. 4) This should be the SAME PERSON in the SAME SCENE, just rendered in the new artistic style.`;
+        enhancedFrontPrompt += `. CRITICAL REQUIREMENTS: 1) Recreate the EXACT same pose, stance, clothing, and visual proportions as described. 2) Maintain identical composition, lighting, and scene elements. 3) Text must be large, bold, and clearly readable - positioned prominently. 4) This should be the IDENTICAL SCENE with same figure, just rendered in the new artistic style.`;
       }
 
       const frontImageGeneration = await openai.images.generate({
