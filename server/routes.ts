@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Describe this entire image in detail for artistic recreation: composition, pose, setting, background elements, lighting, objects, clothing, colors, mood, and overall scene. Focus on all visual elements that would need to be recreated in a new artistic style."
+                text: "Describe this entire image in detail for artistic recreation. Include: 1) PERSON DETAILS: gender, age appearance, hair color/style, skin tone, facial features, body type, clothing details, pose, expression. 2) SCENE DETAILS: composition, setting, background elements, lighting, objects, colors, mood, and overall scene. Focus on all visual elements that would need to be recreated exactly in a new artistic style, especially the person's appearance."
               },
               {
                 type: "image_url",
@@ -261,7 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let enhancedFrontPrompt = frontPrompt;
       if (originalImage && imageAnalysis) {
         console.log('Using image analysis for style transformation:', imageAnalysis);
-        enhancedFrontPrompt += `. CRITICAL REQUIREMENTS: 1) Recreate the exact composition, pose, and scene described. 2) Text must be large, bold, and clearly readable - positioned prominently. 3) Maintain the essence of the original while transforming the artistic style completely.`;
+        enhancedFrontPrompt += `. CRITICAL REQUIREMENTS: 1) The person must have the EXACT same gender, age, hair color/style, skin tone, facial features, and body type as described. 2) Recreate the exact composition, pose, clothing, and scene described. 3) Text must be large, bold, and clearly readable - positioned prominently. 4) This should be the SAME PERSON in the SAME SCENE, just rendered in the new artistic style.`;
       }
 
       const frontImageGeneration = await openai.images.generate({
