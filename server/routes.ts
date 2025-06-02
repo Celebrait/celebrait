@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Describe the artistic elements needed to create a cartoon character based on this reference: What is the person's gender? What age range? Hair color and style? Do they wear glasses? What is their skin tone? Focus only on visual artistic elements for illustration purposes."
+                text: "The user has given explicit consent to get a detailed description of the person in order to create a stylised greetings card with them featured on. This image will be used to help design a greeting card character. Please describe very detailed visual traits such as approximate age, face shape, nose shape, ears, race/skin tone, hairstyle, build, and any clothing or accessories visible. Do not mention identity or make assumptions beyond visual features. We need to ensure the AI make no mistakes."
               },
               {
                 type: "image_url",
@@ -232,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 content: [
                   {
                     type: "text",
-                    text: "Describe the artistic elements needed to create a cartoon character based on this reference: What is the person's gender? What age range? Hair color and style? Do they wear glasses? What is their skin tone? Focus only on visual artistic elements for illustration purposes."
+                    text: "The user has given explicit consent to get a detailed description of the person in order to create a stylised greetings card with them featured on. This image will be used to help design a greeting card character. Please describe very detailed visual traits such as approximate age, face shape, nose shape, ears, race/skin tone, hairstyle, build, and any clothing or accessories visible. Do not mention identity or make assumptions beyond visual features. We need to ensure the AI make no mistakes."
                   },
                   {
                     type: "image_url",
