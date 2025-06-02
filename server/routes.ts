@@ -330,6 +330,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate inside image if provided
       if (insidePrompt) {
         console.log('Using model: gpt-image-1 for inside image');
+        
+        let finalInsidePrompt = insidePrompt;
+        
+        // If we have photo analysis and the inside prompt mentions character elements, integrate the analysis
+        if (photoData && photoAnalysis && (insidePrompt.includes('character') || insidePrompt.includes('person'))) {
+          console.log('Integrating photo analysis into inside prompt');
+          finalInsidePrompt = insidePrompt.replace(
+            'person with these specific characteristics',
+            `person with these specific characteristics: ${photoAnalysis}`
+          );
+        }
+        
         // Create inside prompt that exactly matches the front style
         const artStyle = frontPrompt.includes('watercolor') ? 'watercolor' : 
                         frontPrompt.includes('cartoon') ? 'cartoon' :
@@ -337,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                         frontPrompt.includes('pop_art') ? 'pop art' :
                         frontPrompt.includes('oil_painting') ? 'oil painting' : 'artistic';
         
-        const enhancedInsidePrompt = `${insidePrompt}. STYLE MATCHING: Use exactly the same ${artStyle} artistic style, color palette, and visual treatment as a card front that features ${frontPrompt.includes('watercolor') ? 'soft watercolor washes and flowing colors' : frontPrompt.includes('cartoon') ? 'bright cartoon colors and bold outlines' : frontPrompt.includes('realistic') ? 'photorealistic rendering and natural colors' : 'artistic styling'}. Ensure visual consistency between front and inside designs.`;
+        const enhancedInsidePrompt = `${finalInsidePrompt}. STYLE MATCHING: Use exactly the same ${artStyle} artistic style, color palette, and visual treatment as a card front that features ${frontPrompt.includes('watercolor') ? 'soft watercolor washes and flowing colors' : frontPrompt.includes('cartoon') ? 'bright cartoon colors and bold outlines' : frontPrompt.includes('realistic') ? 'photorealistic rendering and natural colors' : 'artistic styling'}. Ensure visual consistency between front and inside designs.`;
         
         const insideImageGeneration = await openai.images.generate({
           model: "gpt-image-1", 

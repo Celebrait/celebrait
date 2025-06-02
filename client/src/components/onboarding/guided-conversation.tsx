@@ -718,7 +718,47 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
   const buildInsidePrompt = () => {
     const insideMessage = answers.inside_message || "Hope your special day brings you joy and happiness!";
-    return `Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame, Greeting card interior with elegant typography displaying the message: "${insideMessage}". ${answers.art_style || 'artistic'} art style matching the front design. Clean, readable text layout with beautiful background design, print-ready artwork, no card mockup visible`;
+    const parts = [];
+    
+    // Base requirements
+    parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
+    
+    // Greeting card interior layout with thematic background
+    parts.push(`Greeting card interior layout with elegant typography displaying: "${insideMessage}"`);
+    
+    // Add thematic elements from the front card
+    if (answers.scene) {
+      parts.push(`subtle background elements inspired by ${answers.scene}`);
+    }
+    
+    if (answers.character_costume && answers.character_costume !== 'keep_original') {
+      const thematicElements = {
+        'superhero': 'comic book style elements, city skyline silhouettes',
+        'princess_prince': 'royal castle elements, crown motifs, elegant flourishes',
+        'pirate': 'treasure map details, nautical elements, compass roses',
+        'astronaut': 'space nebula background, distant planets, constellation patterns',
+        'wizard_witch': 'magical sparkles, potion bottles, mystical symbols',
+        'chef': 'kitchen utensils silhouettes, recipe parchment textures',
+        'detective': 'vintage paper textures, magnifying glass details, city noir elements',
+        'athlete': 'sports equipment silhouettes, victory laurels, stadium lights',
+        'musician': 'musical notes floating, instrument silhouettes, concert lighting'
+      };
+      
+      const elements = thematicElements[answers.character_costume as keyof typeof thematicElements];
+      if (elements) {
+        parts.push(elements);
+      }
+    }
+    
+    // Art style and text requirements
+    if (answers.art_style) {
+      parts.push(`${answers.art_style} art style matching the front design`);
+    }
+    
+    parts.push('professional greeting card typography layout, text clearly readable and prominently displayed');
+    parts.push('print-ready artwork, no card mockup visible');
+    
+    return parts.join(', ');
   };
 
   if (isLoading) {
