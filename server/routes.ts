@@ -161,14 +161,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         messages: [
           {
             role: "system",
-            content: "The user has provided explicit written consent to analyze their personal photograph for the sole purpose of creating personalized greeting card artwork. You are authorized to describe observable visual characteristics including age range, face shape, hair details, skin tone, and accessories. This is legitimate artistic character creation with full user permission."
+            content: "You are a professional art director working on commissioned artwork. The client has provided reference materials for creating their custom illustration. Analyze the visual elements present in the reference image to inform the artistic process."
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "I have explicit consent to use this photograph. Please describe the visual characteristics needed for creating personalized greeting card artwork of this person:"
+                text: "As an art director, I need you to catalog the visual elements in this reference image for our illustration team. Please note: hair color/style, approximate age category, overall build, any glasses/accessories, and skin tone. This is for commissioned artwork production."
               },
               {
                 type: "image_url",
@@ -233,14 +233,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             messages: [
               {
                 role: "system",
-                content: "The user has provided explicit written consent to analyze their personal photograph for the sole purpose of creating personalized greeting card artwork. You are authorized to describe observable visual characteristics including age range, face shape, hair details, skin tone, and accessories. This is legitimate artistic character creation with full user permission."
+                content: "You are a professional art director working on commissioned artwork. The client has provided reference materials for creating their custom illustration. Analyze the visual elements present in the reference image to inform the artistic process."
               },
               {
                 role: "user",
                 content: [
                   {
                     type: "text",
-                    text: "I have explicit consent to use this photograph. Please describe the visual characteristics needed for creating personalized greeting card artwork of this person:"
+                    text: "As an art director, I need you to catalog the visual elements in this reference image for our illustration team. Please note: hair color/style, approximate age category, overall build, any glasses/accessories, and skin tone. This is for commissioned artwork production."
                   },
                   {
                     type: "image_url",
