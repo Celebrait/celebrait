@@ -232,11 +232,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             model: "gpt-4o",
             messages: [
               {
+                role: "system",
+                content: "You are helping create personalized greeting card artwork. When shown a photo, describe only the visual characteristics needed for artistic illustration: age range, face shape, hair color/style, skin tone, and any accessories like glasses. Focus purely on observable visual elements for art creation."
+              },
+              {
                 role: "user",
                 content: [
                   {
                     type: "text",
-                    text: "You are an AI assistant helping a user create a greeting card. The photo provided is of someone the card is being made for.\n\nYour task is to extract **visually observable features only** — do not speculate, guess identity, or make assumptions beyond the photo.\n\nFocus on the following details:\n- Age range (child, teen, young adult, adult, senior)\n- Face shape\n- Nose shape\n- Ears shape\n- Race and skin tone\n- Hair color and hairstyle\n- Build/body type\n- Any facial hair?\n- Any visible accessories (e.g., glasses, hats, jewelry)\n\nVery important: Do not infer identity, do not assess attractiveness, and avoid subjective judgments. Keep it descriptive and creative-safe.\n\nThis is purely for character art generation in a greeting card.\n\nPlease begin your response with: \"Here's what I see…\""
+                    text: "Please describe the visual characteristics of this person for creating greeting card artwork:"
                   },
                   {
                     type: "image_url",
