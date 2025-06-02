@@ -275,12 +275,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use Hugging Face image-to-image transformation
       try {
-        // Create blob from buffer for Hugging Face API
-        const imageBlob = new Blob([imageBuffer], { type: 'image/png' });
+        console.log('Attempting Hugging Face image transformation...');
         
         const result = await hf.imageToImage({
           model: "timbrooks/instruct-pix2pix",
-          inputs: imageBlob,
+          inputs: imageBuffer,
           parameters: {
             prompt: `Transform this image into ${frontPrompt.includes('pop_art') ? 'pop art' : frontPrompt.includes('digital_art') ? 'digital art' : frontPrompt.includes('watercolor') ? 'watercolor painting' : 'artistic'} style while maintaining the exact same composition, pose, and all visual elements. Add text "${frontText || 'Happy Birthday'}" to the image.`,
             num_inference_steps: 20,
@@ -299,11 +298,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           data: [{ b64_json: buffer.toString('base64') }]
         };
       } catch (hfError) {
-        console.log('Hugging Face failed, falling back to OpenAI:', hfError);
+        console.log('Hugging Face failed, falling back to OpenAI:', hfError.message);
         
         // Fallback to OpenAI if Hugging Face fails
         frontImageGeneration = await openai.images.generate({
-          model: "gpt-image-1",
+          model: "gpt-image-1", 
           prompt: frontPrompt + ". Recreate the uploaded image exactly with this artistic style transformation.",
           n: 1,
           size: "1024x1024"

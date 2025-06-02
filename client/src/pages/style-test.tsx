@@ -119,7 +119,8 @@ export default function StyleTest() {
         cardId: cardData.id,
         frontPrompt,
         insidePrompt,
-        originalImage: uploadedPhoto
+        originalImage: uploadedPhoto,
+        frontText: frontText
       });
 
       const generatedCard = await imageResponse.json();
