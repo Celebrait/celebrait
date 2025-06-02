@@ -257,13 +257,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Found card:', card.id);
       console.log('Using model: gpt-image-1 for direct image-to-image transformation');
       
-      // For now, fall back to text-based generation with enhanced prompts for image transformation
-      // Note: Direct image editing may require different API setup
-      console.log('Using enhanced text-based generation for image transformation');
+      // First, analyze the uploaded image with vision model for exact replication
+      const visionResponse = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Describe this image in extremely detailed visual terms for exact artistic recreation. Include: exact pose and position of every person/object, clothing details, facial expressions, background elements, lighting, colors, spatial relationships, composition, and every visual element that would be needed to recreate this image perfectly in a different art style. Be comprehensive and precise."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: originalImage
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 800
+      });
+
+      const detailedAnalysis = visionResponse.choices[0].message.content;
+      console.log('Detailed image analysis for exact replication:', detailedAnalysis);
+
+      // Generate with the detailed analysis for exact replication
+      const enhancedPrompt = `${frontPrompt}. EXACT VISUAL RECREATION: ${detailedAnalysis}. Transform this exact scene into the specified artistic style while maintaining every detail, position, pose, and element exactly as described.`;
 
       const frontImageGeneration = await openai.images.generate({
         model: "gpt-image-1",
-        prompt: frontPrompt + ". CRITICAL: This must look exactly like the uploaded photo but in the new artistic style, maintaining exact composition, poses, objects, and scene layout.",
+        prompt: enhancedPrompt,
         n: 1,
         size: "1024x1024"
       });
