@@ -92,7 +92,9 @@ export default function StyleTest() {
       // Create card record
       const cardResponse = await apiRequest("POST", "/api/cards", {
         cardType: "printed",
-        printOption: cardOption
+        printOption: cardOption,
+        sceneType: "style-transform",
+        price: 0
       });
       const cardData = await cardResponse.json();
 
