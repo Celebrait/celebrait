@@ -43,7 +43,11 @@ export default function StyleTest() {
       reader.onload = (e) => {
         const base64String = e.target?.result as string;
         setUploadedPhoto(base64String);
-        analyzePhoto(base64String);
+        // Skip analysis for direct image transformation
+        toast({
+          title: "Image uploaded successfully!",
+          description: "Ready for style transformation."
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -110,13 +114,12 @@ export default function StyleTest() {
       const frontPrompt = buildFrontPrompt();
       const insidePrompt = cardOption === 'front-and-inside' ? buildInsidePrompt() : null;
 
-      // Generate images
+      // Generate images with direct image transformation
       const imageResponse = await apiRequest("POST", "/api/generate-style-transform", {
         cardId: cardData.id,
         frontPrompt,
         insidePrompt,
-        originalImage: uploadedPhoto,
-        imageAnalysis: photoAnalysis
+        originalImage: uploadedPhoto
       });
 
       const generatedCard = await imageResponse.json();
@@ -142,11 +145,7 @@ export default function StyleTest() {
     
     parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
     
-    if (photoAnalysis) {
-      parts.push(`Recreate this exact image composition and scene in ${selectedStyle} art style: ${photoAnalysis}`);
-    } else {
-      parts.push(`Transform the uploaded image into ${selectedStyle} art style while maintaining the same composition, pose, and scene`);
-    }
+    parts.push(`Transform the uploaded image into ${selectedStyle} art style while maintaining the same composition, pose, and scene`);
     
     parts.push(`with the text "${frontText}" integrated into the design`);
     parts.push("maintain all elements of the original image but render them in the new artistic style");

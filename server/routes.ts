@@ -237,12 +237,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate style-transformed images
   app.post("/api/generate-style-transform", async (req, res) => {
     try {
-      const { cardId, frontPrompt, insidePrompt, originalImage, imageAnalysis } = req.body;
+      const { cardId, frontPrompt, insidePrompt, originalImage } = req.body;
 
-      console.log('Style transformation request:', { cardId, frontPrompt, insidePrompt });
+      console.log('Direct image-to-image transformation request:', { cardId, frontPrompt, insidePrompt });
 
-      if (!cardId || !frontPrompt) {
-        return res.status(400).json({ message: "Card ID and front prompt are required" });
+      if (!cardId || !frontPrompt || !originalImage) {
+        return res.status(400).json({ message: "Card ID, front prompt, and original image are required" });
       }
 
       if (!openai) {
@@ -255,20 +255,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log('Found card:', card.id);
-      console.log('Using model: gpt-image-1 for style transformation');
+      console.log('Using model: gpt-image-1 for direct image-to-image transformation');
       
-      // Generate front image with style transformation
-      let enhancedFrontPrompt = frontPrompt;
-      if (originalImage && imageAnalysis) {
-        console.log('Using image analysis for style transformation:', imageAnalysis);
-        enhancedFrontPrompt += `. CRITICAL REQUIREMENTS: 1) Recreate the exact composition, pose, and scene described. 2) Text must be large, bold, and clearly readable - positioned prominently. 3) Maintain the essence of the original while transforming the artistic style completely.`;
-      }
+      // Extract base64 data from data URL
+      const base64Data = originalImage.split(',')[1];
 
-      const frontImageGeneration = await openai.images.generate({
+      // Generate front image with direct image transformation
+      const frontImageGeneration = await openai.images.edit({
         model: "gpt-image-1",
-        prompt: enhancedFrontPrompt,
+        image: Buffer.from(base64Data, 'base64'),
+        prompt: frontPrompt,
         n: 1,
-        size: "1024x1024"
+        size: "1024x1024",
+        response_format: "b64_json"
       });
 
       let insideImageUrl = null;
