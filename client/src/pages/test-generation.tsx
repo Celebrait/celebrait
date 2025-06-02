@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Copy, RotateCcw } from 'lucide-react';
+import { Loader2, Copy, RotateCcw, Camera } from 'lucide-react';
 
 const TEST_PROMPTS = [
   {
@@ -45,7 +45,51 @@ export default function TestGeneration() {
   const [includeText, setIncludeText] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCard, setGeneratedCard] = useState<any>(null);
+  const [uploadedPhoto, setUploadedPhoto] = useState<string | null>(null);
+  const [photoAnalysis, setPhotoAnalysis] = useState<string | null>(null);
+  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const analyzePhoto = async (photoData: string) => {
+    setIsAnalyzingPhoto(true);
+    setAnalysisError(null);
+    
+    try {
+      const response = await apiRequest("POST", "/api/analyze-photo", {
+        photoData
+      });
+      
+      const data = await response.json() as { analysis: string };
+      setPhotoAnalysis(data.analysis);
+      toast({
+        title: "Photo analyzed successfully!",
+        description: "Analysis results ready for testing."
+      });
+    } catch (error: any) {
+      setAnalysisError(error.message);
+      toast({
+        title: "Photo analysis failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzingPhoto(false);
+    }
+  };
+
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64String = e.target?.result as string;
+        setUploadedPhoto(base64String);
+        analyzePhoto(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const generateCard = async (preset: any, customPromptText?: string) => {
     try {
@@ -90,7 +134,8 @@ export default function TestGeneration() {
       const imageResponse = await apiRequest("POST", "/api/generate-images", {
         cardId: card.id,
         frontPrompt,
-        insidePrompt
+        insidePrompt,
+        photoData: uploadedPhoto
       });
 
       const updatedCard = await imageResponse.json();
@@ -231,6 +276,87 @@ export default function TestGeneration() {
                       </Button>
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Photo Upload & Analysis */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Photo Analysis Testing</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {!uploadedPhoto ? (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                        id="photo-upload-test"
+                      />
+                      <label htmlFor="photo-upload-test" className="cursor-pointer">
+                        <Camera className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                        <p className="text-sm text-gray-600">Upload a photo to test analysis</p>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="w-24 h-24 mx-auto rounded-lg overflow-hidden border">
+                        <img 
+                          src={uploadedPhoto} 
+                          alt="Uploaded test photo" 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      
+                      {isAnalyzingPhoto && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <div className="flex items-center space-x-2">
+                            <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                            <p className="text-blue-700 text-sm">Analyzing photo...</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {analysisError && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                          <p className="text-red-700 font-medium text-sm">Analysis failed:</p>
+                          <p className="text-red-600 text-xs mt-1">{analysisError}</p>
+                          <Button 
+                            onClick={() => analyzePhoto(uploadedPhoto)}
+                            className="mt-2 bg-red-600 hover:bg-red-700"
+                            size="sm"
+                          >
+                            Retry Analysis
+                          </Button>
+                        </div>
+                      )}
+
+                      {photoAnalysis && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <h4 className="font-medium text-green-800 text-sm mb-2">Analysis Results:</h4>
+                          <div className="bg-white rounded p-2 border text-xs text-gray-700 max-h-32 overflow-y-auto">
+                            {photoAnalysis}
+                          </div>
+                        </div>
+                      )}
+
+                      <Button 
+                        onClick={() => {
+                          setUploadedPhoto(null);
+                          setPhotoAnalysis(null);
+                          setAnalysisError(null);
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                      >
+                        Clear Photo
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
