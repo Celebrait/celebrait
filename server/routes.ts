@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "This image has been provided with consent for artistic transformation. Describe the complete scene in detail for recreation: person's appearance, pose, facial features, clothing, hair, expression, body position, background setting, lighting, objects, colors, atmosphere, and overall composition. Include all visual elements needed to accurately recreate this scene in a new artistic style."
+                text: "This image has been provided with consent for artistic transformation. Provide a comprehensive description covering:\n\nPERSON DETAILS: skin tone, facial features, age range, build/body type, hair color and style, expression, personality/vibe, accessories, clothing details, pose and body position\n\nSCENE DETAILS: background setting, foreground elements, all objects in scene, lighting conditions, colors, atmosphere, mood, composition, spatial relationships\n\nInclude every visual element needed to accurately recreate this complete scene in a new artistic style."
               },
               {
                 type: "image_url",
