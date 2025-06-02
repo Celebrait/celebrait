@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Describe the visual characteristics for artistic reference: hair color and texture, hairstyle, age appearance, skin tone, eyewear, facial structure, build, clothing details, pose, expression, setting, background elements, lighting, objects, colors, mood, and overall scene composition. Focus on artistic details only for recreating this scene in a different artistic style."
+                text: "Describe the visual characteristics for artistic reference in comprehensive detail: PERSON - hair color, texture, length, style; eye color; skin tone; facial features; age appearance; build and height; clothing (colors, patterns, textures, style); accessories; pose and body position; facial expression; hand positions. SCENE - exact setting and location; all background objects and their positions; lighting direction and quality; shadows and highlights; color palette; textures of surfaces; spatial relationships; mood and atmosphere; camera angle; foreground, middle ground, background elements. Focus on artistic details only for precise recreation."
               },
               {
                 type: "image_url",
@@ -175,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ]
           }
         ],
-        max_tokens: 600
+        max_tokens: 800
       });
 
       const analysis = visionResponse.choices[0].message.content;
