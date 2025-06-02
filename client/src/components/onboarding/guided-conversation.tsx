@@ -112,6 +112,30 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       required: true
     },
     {
+      id: 'heritage_photo',
+      question: `To create an authentic representation from your photo, what's ${answers.name || 'their'} cultural background?`,
+      aiMessage: `Great photo! Now to create the most authentic artistic representation, could you help me understand ${answers.name || 'their'} cultural background? This ensures I capture their heritage respectfully and accurately.`,
+      type: 'select',
+      options: [
+        { value: 'afrikaner', label: 'Afrikaner', description: 'Dutch-descended South African', color: 'bg-orange-500' },
+        { value: 'english_sa', label: 'English South African', description: 'British-descended South African', color: 'bg-red-500' },
+        { value: 'xhosa', label: 'Xhosa', description: 'South African Bantu ethnic group', color: 'bg-green-500' },
+        { value: 'zulu', label: 'Zulu', description: 'South African Bantu ethnic group', color: 'bg-blue-500' },
+        { value: 'sotho', label: 'Sotho', description: 'Southern Sotho heritage', color: 'bg-purple-500' },
+        { value: 'tswana', label: 'Tswana', description: 'Tswana heritage', color: 'bg-yellow-500' },
+        { value: 'pedi', label: 'Pedi', description: 'Northern Sotho heritage', color: 'bg-pink-500' },
+        { value: 'venda', label: 'Venda', description: 'Venda heritage', color: 'bg-indigo-500' },
+        { value: 'tsonga', label: 'Tsonga', description: 'Tsonga heritage', color: 'bg-teal-500' },
+        { value: 'ndebele', label: 'Ndebele', description: 'Ndebele heritage', color: 'bg-rose-500' },
+        { value: 'swazi', label: 'Swazi', description: 'Swazi heritage', color: 'bg-cyan-500' },
+        { value: 'coloured', label: 'Coloured', description: 'South African mixed heritage', color: 'bg-amber-500' },
+        { value: 'indian', label: 'Indian', description: 'South African Indian community', color: 'bg-emerald-500' },
+        { value: 'chinese', label: 'Chinese', description: 'Chinese South African', color: 'bg-lime-500' },
+        { value: 'other_african', label: 'Other African', description: 'Other African heritage', color: 'bg-gray-500' },
+        { value: 'other', label: 'Other Heritage', description: 'Different cultural background', color: 'bg-violet-500' }
+      ]
+    },
+    {
       id: 'character_costume',
       question: `What should ${answers.name || 'they'} be wearing or dressed as?`,
       aiMessage: `Great! Now let's decide what ${answers.name || 'they'} should be wearing in the card. I'll keep their face and appearance from the photo but change their outfit and character.`,
@@ -448,6 +472,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       }
     }
     
+    // Handle heritage after photo upload - go to costume selection
+    if (currentStep.id === 'heritage_photo') {
+      // After selecting heritage, go to character costume
+      const costumeIndex = steps.findIndex(step => step.id === 'character_costume');
+      if (costumeIndex !== -1) {
+        setTimeout(() => setCurrentStepIndex(costumeIndex), 500);
+        return;
+      }
+    }
+    
     // Handle character/costume choice - go to scene after selection
     if (currentStep.id === 'character_costume') {
       // After selecting costume, go to scene
@@ -562,10 +596,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   };
 
   const handlePhotoUploadContinue = () => {
-    // Go to character/costume selection after photo upload
-    const characterStepIndex = steps.findIndex(step => step.id === 'character_costume');
-    if (characterStepIndex !== -1) {
-      setCurrentStepIndex(characterStepIndex);
+    // Go to heritage question after photo upload
+    const heritageStepIndex = steps.findIndex(step => step.id === 'heritage_photo');
+    if (heritageStepIndex !== -1) {
+      setCurrentStepIndex(heritageStepIndex);
     }
   };
 
@@ -615,7 +649,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     
     // If photo was uploaded, use it as reference
     if (answers.photo_upload) {
-      parts.push(`Create an artistic representation of the person in the uploaded photo, featuring ${answers.name || 'them'}`);
+      let photoDescription = `Create an artistic representation of the person in the uploaded photo, featuring ${answers.name || 'them'}`;
+      
+      // Add heritage information from photo upload flow
+      if (answers.heritage_photo) {
+        photoDescription += `, ${answers.heritage_photo} heritage`;
+      }
+      
+      parts.push(photoDescription);
       
       // Add character/costume specification
       if (answers.character_costume && answers.character_costume !== 'keep_original') {
