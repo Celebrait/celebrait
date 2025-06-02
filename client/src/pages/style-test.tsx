@@ -237,10 +237,13 @@ export default function StyleTest() {
 
                     {photoAnalysis && (
                       <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                        <h4 className="font-medium text-green-800 text-sm mb-2">Analysis Complete</h4>
-                        <div className="bg-white rounded p-2 border text-xs text-gray-700 max-h-20 overflow-y-auto">
-                          {photoAnalysis}
+                        <h4 className="font-medium text-green-800 text-sm mb-2">Photo Analysis Results</h4>
+                        <div className="bg-white rounded p-3 border text-xs text-gray-700 max-h-32 overflow-y-auto">
+                          <pre className="whitespace-pre-wrap">{photoAnalysis}</pre>
                         </div>
+                        <p className="text-green-700 text-xs mt-2">
+                          This analysis will be used to recreate the person in your chosen artistic style.
+                        </p>
                       </div>
                     )}
 
