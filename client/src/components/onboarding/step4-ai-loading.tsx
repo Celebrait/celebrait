@@ -51,53 +51,68 @@ export default function Step4AILoading({ onboarding }: Step4Props) {
         </p>
       </div>
 
-      {/* Before/After Examples Carousel - Primary Focus */}
-      <div className="bg-white/90 rounded-3xl p-8 mb-6 shadow-lg border border-white/20">
-        <h3 className="text-2xl font-bold text-gray-800 text-center mb-6">See How Your Photo Transforms</h3>
+      <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6 mb-8">
+        <div className="flex items-start space-x-3">
+          <AlertTriangle className="text-yellow-600 text-xl mt-1" />
+          <div className="text-left">
+            <h4 className="font-bold text-yellow-800 mb-2">Important: About AI-Generated People</h4>
+            <p className="text-yellow-700 text-sm mb-3">
+              Our AI creates <strong>artistic interpretations</strong> inspired by your photos and descriptions. 
+              The result will be a stylized artwork rather than an exact likeness - think beautiful, personalized illustration!
+            </p>
+            <p className="text-yellow-700 text-sm font-medium">
+              Here are some examples to set your expectations:
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Before/After Examples Carousel */}
+      <div className="bg-white/80 rounded-2xl p-6 mb-8">
         <div className="relative">
-          <div className="flex items-center justify-center space-x-12">
+          <div className="flex items-center justify-center space-x-8">
             <div className="text-center">
-              <p className="text-lg font-semibold text-gray-700 mb-4">Your Photo</p>
+              <p className="text-sm font-medium text-gray-600 mb-2">Your Photo</p>
               <img 
                 src={examples[currentExample].before} 
                 alt="Original photo example"
-                className="w-48 h-48 rounded-2xl object-cover border-4 border-gray-300 shadow-lg"
+                className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
               />
             </div>
             
-            <div className="text-5xl text-ethereal-purple animate-pulse">→</div>
+            <div className="text-3xl text-ethereal-purple">→</div>
             
             <div className="text-center">
-              <p className="text-lg font-semibold text-gray-700 mb-4">AI Artwork</p>
+              <p className="text-sm font-medium text-gray-600 mb-2">AI Artwork</p>
               <img 
                 src={examples[currentExample].after} 
                 alt="AI generated artwork example"
-                className="w-48 h-48 rounded-2xl object-cover border-4 border-purple-300 shadow-lg"
+                className="w-32 h-32 rounded-xl object-cover border-4 border-purple-200"
               />
             </div>
           </div>
           
-          <p className="text-center text-lg text-slate-gray mt-6 font-medium bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl p-4">
+          <p className="text-center text-sm text-slate-gray mt-4 font-medium">
             {examples[currentExample].description}
           </p>
           
           {/* Carousel Navigation */}
-          <div className="flex justify-center items-center space-x-6 mt-8">
+          <div className="flex justify-center items-center space-x-4 mt-6">
             <Button
               onClick={prevExample}
               variant="outline"
-              size="lg"
-              className="rounded-full w-12 h-12 p-0 border-2 border-purple-300 hover:bg-purple-50"
+              size="sm"
+              className="rounded-full w-10 h-10 p-0"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4" />
             </Button>
             
-            <div className="flex space-x-3">
+            <div className="flex space-x-2">
               {examples.map((_, index) => (
                 <div
                   key={index}
-                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                    index === currentExample ? 'bg-ethereal-purple scale-125' : 'bg-gray-300'
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    index === currentExample ? 'bg-ethereal-purple' : 'bg-gray-300'
                   }`}
                 />
               ))}
@@ -106,24 +121,11 @@ export default function Step4AILoading({ onboarding }: Step4Props) {
             <Button
               onClick={nextExample}
               variant="outline"
-              size="lg"
-              className="rounded-full w-12 h-12 p-0 border-2 border-purple-300 hover:bg-purple-50"
+              size="sm"
+              className="rounded-full w-10 h-10 p-0"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4" />
             </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Subtle Information Box */}
-      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-8">
-        <div className="flex items-start space-x-2">
-          <AlertTriangle className="text-gray-500 text-sm mt-0.5 flex-shrink-0" />
-          <div className="text-left">
-            <p className="text-gray-600 text-sm">
-              Our AI creates artistic interpretations inspired by your photos. 
-              Results will be stylized artwork rather than exact likenesses.
-            </p>
           </div>
         </div>
       </div>
