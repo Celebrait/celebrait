@@ -1534,27 +1534,68 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 {currentStep.type === 'photo_upload' && (answers.photo_option === 'upload_and_scene' || answers.photo_option === 'upload_and_transform') && (
                   <div className="space-y-6">
                     {!uploadedPhoto ? (
-                      <div className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center bg-purple-50 hover:bg-purple-100 transition-colors">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handlePhotoUpload}
-                          className="hidden"
-                          id="photo-upload"
-                        />
-                        <label htmlFor="photo-upload" className="cursor-pointer">
-                          <div className="space-y-4">
-                            <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto">
-                              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                              </svg>
+                      <div className="space-y-6">
+                        <div className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center bg-purple-50 hover:bg-purple-100 transition-colors">
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                            onChange={handlePhotoUpload}
+                            className="hidden"
+                            id="photo-upload"
+                          />
+                          <label htmlFor="photo-upload" className="cursor-pointer">
+                            <div className="space-y-4">
+                              <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto">
+                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-semibold text-purple-700">Upload a Photo</h3>
+                                <p className="text-gray-600 mt-2">Click here to select a clear photo. The AI will create an artistic representation while maintaining their likeness.</p>
+                              </div>
                             </div>
+                          </label>
+                        </div>
+
+                        {/* Image Requirements and Best Practices */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                          <h4 className="font-semibold text-blue-800 mb-4 flex items-center">
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Photo Requirements & Best Practices
+                          </h4>
+                          
+                          <div className="grid md:grid-cols-2 gap-4 text-sm">
                             <div>
-                              <h3 className="text-lg font-semibold text-purple-700">Upload a Photo</h3>
-                              <p className="text-gray-600 mt-2">Click here to select a clear photo. The AI will create an artistic representation while maintaining their likeness.</p>
+                              <h5 className="font-medium text-blue-700 mb-2">Accepted Formats:</h5>
+                              <ul className="text-blue-600 space-y-1">
+                                <li>• JPEG (.jpg, .jpeg)</li>
+                                <li>• PNG (.png)</li>
+                                <li>• WebP (.webp)</li>
+                                <li>• Max file size: 10MB</li>
+                              </ul>
+                            </div>
+                            
+                            <div>
+                              <h5 className="font-medium text-blue-700 mb-2">For Best Results:</h5>
+                              <ul className="text-blue-600 space-y-1">
+                                <li>• Face clearly visible and well-lit</li>
+                                <li>• Person looking toward camera</li>
+                                <li>• Minimal shadows on face</li>
+                                <li>• High resolution (at least 512x512)</li>
+                                <li>• Single person in focus</li>
+                              </ul>
                             </div>
                           </div>
-                        </label>
+                          
+                          <div className="mt-4 p-3 bg-blue-100 rounded-lg">
+                            <p className="text-blue-800 text-sm">
+                              <strong>Pro Tip:</strong> Portrait-style photos work best! Avoid group photos, distant shots, or images with heavy filters.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       <div className="space-y-6">
