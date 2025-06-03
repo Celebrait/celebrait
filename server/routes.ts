@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "The owner of this image has given consent to use this image for artistic referencing. Please provide analysis of hair style and color, general age range, skin tone, eye color, glasses or eyewear, facial hair style, and any jewelry or accessories visible (excluding clothing or being held). Focus on artistic elements. Describe only the visual styling elements needed for character art creation."
+                text: "The owner of this image has given consent to use this image for artistic referencing. Please provide analysis of hair style and color, general age range, skin tone, eye shape, eye color, ears, facial structure, glasses or eyewear, facial hair style, and any jewelry or accessories visible (excluding clothing or things being held). Focus on artistic elements. Describe only the visual styling elements needed for character art creation."
               },
               {
                 type: "image_url",
