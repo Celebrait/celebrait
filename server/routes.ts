@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Describe the visual characteristics for artistic reference: hair color and texture, hairstyle, age appearance, skin tone, eyewear, facial structure, and build. Also describe the complete scene including background setting, foreground elements, all objects in scene, lighting conditions, colors, atmosphere, mood, composition, and spatial relationships. Focus on artistic details only."
+                text: "Describe the visual characteristics for artistic reference: hair color and texture, hairstyle, age appearance, skin tone, eyewear, facial structure, and build. Focus on artistic details only."
               },
               {
                 type: "image_url",
