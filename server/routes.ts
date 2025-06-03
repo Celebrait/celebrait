@@ -146,10 +146,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Direct image-to-image transformation using gpt-image-1
+  // Style transformation with greeting card text overlay
   app.post("/api/transform-image-style", async (req, res) => {
     try {
-      const { stylePrompt, imageAnalysis } = req.body;
+      const { stylePrompt, imageAnalysis, frontText, insideText, cardOption } = req.body;
       
       if (!stylePrompt) {
         return res.status(400).json({ message: "Style prompt is required" });
@@ -159,50 +159,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "OpenAI API not configured" });
       }
 
-      // Use the detailed analysis to create accurate recreation prompt
-      const detailedPrompt = imageAnalysis 
-        ? `Create an image in ${stylePrompt} style. Recreate this exact scene with complete accuracy: ${imageAnalysis}. Maintain all person details, pose, setting, and composition while applying the ${stylePrompt} artistic style.`
-        : `Create an image in ${stylePrompt} style`;
+      // Generate front card with text overlay
+      const frontPrompt = imageAnalysis 
+        ? `Create a greeting card in ${stylePrompt} style. Recreate this exact scene: ${imageAnalysis}. Add the text "${frontText || 'Happy Birthday!'}" in elegant typography that matches the ${stylePrompt} artistic style. The text should be prominently displayed and beautifully integrated into the design.`
+        : `Create a greeting card in ${stylePrompt} style with the text "${frontText || 'Happy Birthday!'}" in elegant typography`;
 
-      console.log("Using gpt-image-1 for style transformation with analysis");
-      console.log("Analysis data received:", imageAnalysis ? "YES" : "NO");
-      console.log("Final prompt:", detailedPrompt.substring(0, 200) + "...");
+      console.log("Generating front card with text overlay");
       
-      // Try gpt-image-1 generation first, fallback to dall-e-3 if not available
-      let response;
+      let frontResponse;
       try {
-        response = await openai.images.generate({
+        frontResponse = await openai.images.generate({
           model: "gpt-image-1",
-          prompt: detailedPrompt,
+          prompt: frontPrompt,
           size: "1024x1024",
           quality: "high",
           n: 1
         });
-        console.log("Successfully used gpt-image-1 for style generation");
-        console.log("Response data:", JSON.stringify(response.data, null, 2));
+        console.log("Successfully used gpt-image-1 for front card generation");
       } catch (gptError: any) {
         console.log("gpt-image-1 not available, falling back to dall-e-3:", gptError.message);
         
-        response = await openai.images.generate({
+        frontResponse = await openai.images.generate({
           model: "dall-e-3",
-          prompt: detailedPrompt,
+          prompt: frontPrompt,
           size: "1024x1024",
           quality: "high",
           n: 1
         });
       }
 
-      console.log("Full response structure:", JSON.stringify(response, null, 2));
+      const frontImageUrl = frontResponse.data[0].url || `data:image/png;base64,${frontResponse.data[0].b64_json}`;
       
-      const transformedImageUrl = response.data?.[0]?.url || response.data?.[0]?.b64_json;
-      if (!transformedImageUrl) {
-        console.error("No image data found in response:", response.data);
-        throw new Error("No image data returned from OpenAI");
+      let insideImageUrl = null;
+      
+      // Generate inside card if requested
+      if (cardOption === 'front-and-inside' && insideText) {
+        const insidePrompt = `Create the inside of a greeting card in ${stylePrompt} style. Use similar colors, textures, and artistic elements from the front card design. Display the message "${insideText}" in elegant typography that matches the front card style. Layout should be clean and readable like a traditional greeting card interior with the text centered and beautifully formatted.`;
+        
+        console.log("Generating inside card with matching style");
+        
+        let insideResponse;
+        try {
+          insideResponse = await openai.images.generate({
+            model: "gpt-image-1",
+            prompt: insidePrompt,
+            size: "1024x1024",
+            quality: "high",
+            n: 1
+          });
+          console.log("Successfully used gpt-image-1 for inside card generation");
+        } catch (gptError: any) {
+          console.log("gpt-image-1 not available for inside card, falling back to dall-e-3:", gptError.message);
+          
+          insideResponse = await openai.images.generate({
+            model: "dall-e-3",
+            prompt: insidePrompt,
+            size: "1024x1024",
+            quality: "high",
+            n: 1
+          });
+        }
+        
+        insideImageUrl = insideResponse.data[0].url || `data:image/png;base64,${insideResponse.data[0].b64_json}`;
       }
       
-      // Handle both URL and base64 responses
-      const imageUrl = response.data[0].url || `data:image/png;base64,${response.data[0].b64_json}`;
-      res.json({ imageUrl });
+      res.json({ 
+        frontImageUrl,
+        insideImageUrl 
+      });
     } catch (error: any) {
       console.error("Style transformation error:", error);
       res.status(500).json({ message: "Error transforming image style: " + error.message });

@@ -115,16 +115,19 @@ export default function StyleTest() {
       
       const transformResponse = await apiRequest("POST", "/api/transform-image-style", {
         stylePrompt,
-        imageAnalysis: photoAnalysis
+        imageAnalysis: photoAnalysis,
+        frontText: frontText,
+        insideText: insideText,
+        cardOption: cardOption
       });
 
       const result = await transformResponse.json();
       
-      // Create a mock card structure for display
+      // Create card structure with proper front and inside images
       const mockCard = {
         id: Date.now(),
-        frontImageUrl: result.imageUrl,
-        insideImageUrl: cardOption === 'front-and-inside' ? result.imageUrl : null,
+        frontImageUrl: result.frontImageUrl,
+        insideImageUrl: result.insideImageUrl,
         status: 'completed',
         price: 0
       };
