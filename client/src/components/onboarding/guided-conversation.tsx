@@ -17,8 +17,8 @@ interface ConversationStep {
   id: string;
   question: string;
   aiMessage: string;
-  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload';
-  options?: Array<{ value: string; label: string; description?: string; color?: string; icon?: string }>;
+  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload' | 'photo_creation_choice';
+  options?: Array<{ value: string; label: string; description?: string; color?: string; icon?: string; details?: string }>;
   placeholder?: string;
   required?: boolean;
 }
@@ -97,11 +97,33 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'photo_option',
       question: `How would you like me to create ${answers.name || 'their'} image?`,
-      aiMessage: `Great! Now I can create ${answers.name || 'their'} image in two ways. Would you like to upload a photo of ${answers.name || 'them'} for me to use as reference, or shall I create it based on your description?`,
-      type: 'select',
+      aiMessage: `Perfect! Now I can create ${answers.name || 'their'} image in three different ways. Choose the option that works best for you:`,
+      type: 'photo_creation_choice',
       options: [
-        { value: 'upload_photo', label: 'Upload Photo', description: 'I have a photo to upload', color: 'bg-green-500', icon: 'camera' },
-        { value: 'describe_person', label: 'Describe Person', description: 'I\'ll describe how they look', color: 'bg-blue-500', icon: 'edit' }
+        { 
+          value: 'upload_and_scene', 
+          label: 'Upload Photo + Describe Scene', 
+          description: 'Upload a photo and I\'ll place them in a custom scene you describe',
+          color: 'bg-green-500',
+          icon: 'camera',
+          details: 'Perfect for creating personalized scenes with accurate likeness'
+        },
+        { 
+          value: 'upload_and_transform', 
+          label: 'Upload Photo + Transform Style', 
+          description: 'Upload a photo and I\'ll transform it into different artistic styles',
+          color: 'bg-purple-500',
+          icon: 'palette',
+          details: 'Great for artistic transformations of existing photos'
+        },
+        { 
+          value: 'describe_person', 
+          label: 'Describe Person + Describe Scene', 
+          description: 'I\'ll create everything based on your descriptions',
+          color: 'bg-blue-500',
+          icon: 'edit',
+          details: 'Ideal when you don\'t have a photo but can describe them'
+        }
       ]
     },
     {
@@ -411,6 +433,26 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       }
     }
     
+    // Skip steps based on photo option choice
+    if (answers.photo_option === 'upload_and_transform') {
+      // For style transformation, skip all description steps and go to art style
+      const skipSteps = ['gender', 'age', 'heritage', 'hair_color', 'hair_style', 'build', 'features', 'personality', 'scene'];
+      if (skipSteps.includes(step.id)) {
+        return false;
+      }
+    } else if (answers.photo_option === 'describe_person') {
+      // For description only, skip photo upload
+      if (step.id === 'photo_upload') {
+        return false;
+      }
+    } else if (answers.photo_option === 'upload_and_scene') {
+      // For photo + scene, skip description steps but keep scene
+      const skipSteps = ['gender', 'age', 'heritage', 'hair_color', 'hair_style', 'build', 'features', 'personality'];
+      if (skipSteps.includes(step.id)) {
+        return false;
+      }
+    }
+    
     return true;
   });
 
@@ -579,16 +621,29 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     setAnalysisError(null);
     
     try {
-      const response = await apiRequest("POST", "/api/analyze-photo", {
+      const response = await apiRequest("POST", "/api/analyze-image-composition", {
         photoData
       });
       
       const data = await response.json() as { analysis: string };
       setPhotoAnalysis(data.analysis);
-      toast({
-        title: "Photo analyzed successfully!",
-        description: "You can review and edit the description below."
-      });
+      
+      // For upload_and_transform, automatically proceed to art style after analysis
+      if (answers.photo_option === 'upload_and_transform') {
+        toast({
+          title: "Photo analyzed successfully!",
+          description: "Moving to style selection..."
+        });
+        // Auto-proceed to next step after short delay
+        setTimeout(() => {
+          setCurrentStepIndex(prev => prev + 1);
+        }, 1500);
+      } else {
+        toast({
+          title: "Photo analyzed successfully!",
+          description: "You can review and edit the description below."
+        });
+      }
     } catch (error: any) {
       setAnalysisError(error.message);
       toast({
@@ -1388,7 +1443,48 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   </div>
                 )}
 
-                {currentStep.type === 'photo_upload' && answers.photo_option === 'upload_photo' && (
+                {currentStep.type === 'photo_creation_choice' && (
+                  <div className="space-y-6">
+                    <div className="grid gap-6">
+                      {currentStep.options?.map((option) => (
+                        <div
+                          key={option.value}
+                          onClick={() => handleAnswer(option.value)}
+                          className="bg-white rounded-xl p-6 border-2 border-purple-200 hover:border-purple-400 cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-[1.02]"
+                        >
+                          <div className="flex items-start space-x-4">
+                            <div className={`w-12 h-12 ${option.color} rounded-full flex items-center justify-center flex-shrink-0`}>
+                              {option.icon === 'camera' && (
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                              )}
+                              {option.icon === 'palette' && (
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM7 3H5a2 2 0 00-2 2v12a4 4 0 004 4h2a2 2 0 002-2V5a2 2 0 00-2-2z" />
+                                  <circle cx="16" cy="8" r="6" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
+                                </svg>
+                              )}
+                              {option.icon === 'edit' && (
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-bold text-lg text-gray-800 mb-2">{option.label}</h3>
+                              <p className="text-gray-600 mb-3">{option.description}</p>
+                              <p className="text-sm text-purple-600 font-medium">{option.details}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {currentStep.type === 'photo_upload' && (answers.photo_option === 'upload_and_scene' || answers.photo_option === 'upload_and_transform') && (
                   <div className="space-y-6">
                     {!uploadedPhoto ? (
                       <div className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center bg-purple-50 hover:bg-purple-100 transition-colors">
