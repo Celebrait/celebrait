@@ -36,37 +36,6 @@ export default function StyleTest() {
   
   const { toast } = useToast();
 
-  const downloadImage = async (imageUrl: string, filename: string) => {
-    try {
-      if (imageUrl.startsWith('data:')) {
-        const link = document.createElement('a');
-        link.href = imageUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else {
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      }
-    } catch (error) {
-      console.error('Download failed:', error);
-      toast({
-        title: "Download failed",
-        description: "Could not download the image. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -86,7 +55,7 @@ export default function StyleTest() {
     setPhotoAnalysis(null);
     
     try {
-      const response = await apiRequest("POST", "/api/analyze-photo", {
+      const response = await apiRequest("POST", "/api/analyze-image-composition", {
         photoData
       });
       
@@ -415,17 +384,7 @@ export default function StyleTest() {
                   <div className="space-y-4">
                     {/* Front Card */}
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium">Front</h4>
-                        <Button
-                          onClick={() => downloadImage(generatedCard.frontImageUrl, 'greeting-card-front.png')}
-                          size="sm"
-                          variant="outline"
-                        >
-                          <Download className="w-4 h-4 mr-1" />
-                          Download
-                        </Button>
-                      </div>
+                      <h4 className="font-medium mb-2">Front</h4>
                       <div className="aspect-square rounded-lg overflow-hidden border">
                         <img 
                           src={generatedCard.frontImageUrl} 
@@ -438,17 +397,7 @@ export default function StyleTest() {
                     {/* Inside Card (if applicable) */}
                     {generatedCard.insideImageUrl && (
                       <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium">Inside</h4>
-                          <Button
-                            onClick={() => downloadImage(generatedCard.insideImageUrl, 'greeting-card-inside.png')}
-                            size="sm"
-                            variant="outline"
-                          >
-                            <Download className="w-4 h-4 mr-1" />
-                            Download
-                          </Button>
-                        </div>
+                        <h4 className="font-medium mb-2">Inside</h4>
                         <div className="aspect-square rounded-lg overflow-hidden border">
                           <img 
                             src={generatedCard.insideImageUrl} 

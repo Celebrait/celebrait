@@ -161,8 +161,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate front card with text overlay
       const frontPrompt = imageAnalysis 
-        ? `Create a greeting card in ${stylePrompt} style. Recreate this exact scene: ${imageAnalysis}. Add the text "${frontText || 'Happy Birthday!'}" in elegant typography that matches the ${stylePrompt} artistic style. Ensure the text is fully visible within the image boundaries, properly positioned with adequate margins from all edges, and clearly readable.`
-        : `Create a greeting card in ${stylePrompt} style with the text "${frontText || 'Happy Birthday!'}" in elegant typography. Ensure the text is fully visible within the image boundaries with proper margins.`;
+        ? `Create a greeting card in ${stylePrompt} style. Recreate this exact scene: ${imageAnalysis}. Add the text "${frontText || 'Happy Birthday!'}" in elegant typography that matches the ${stylePrompt} artistic style. The text should be prominently displayed and beautifully integrated into the design.`
+        : `Create a greeting card in ${stylePrompt} style with the text "${frontText || 'Happy Birthday!'}" in elegant typography`;
 
       console.log("Generating front card with text overlay");
       
@@ -194,7 +194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate inside card if requested
       if (cardOption === 'front-and-inside' && insideText) {
-        const insidePrompt = `Create the inside of a greeting card in ${stylePrompt} style. Use similar colors, textures, and artistic elements from the front card design. Display the message "${insideText}" in elegant typography that matches the front card style. Layout should be clean and readable like a traditional greeting card interior with the text centered and beautifully formatted. Ensure all text is fully visible within the image boundaries with proper margins from all edges.`;
+        const insidePrompt = `Create the inside of a greeting card in ${stylePrompt} style. Use similar colors, textures, and artistic elements from the front card design. Display the message "${insideText}" in elegant typography that matches the front card style. Layout should be clean and readable like a traditional greeting card interior with the text centered and beautifully formatted.`;
         
         console.log("Generating inside card with matching style");
         
@@ -254,7 +254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "This image analysis is for artistic purposes ONLY. The person in the scene has provided consent for artistic transformation and recreation. Focus on describing: hair color, hair style, approximate age range, skin tone, any eyewear, facial features, and body build. Then describe the complete scene including background setting, foreground elements, all objects in scene, lighting conditions, colors, atmosphere, mood, composition, and spatial relationships. Include every visual element needed to accurately recreate this complete scene in a new artistic style for greeting card creation."
+                text: "This image has been provided with consent for artistic transformation. The person in the scene has provided consent for artistic recreation. Focus only on the person and describe: hair color, hair style, approximate age range, skin tone, any eyewear, facial features, and body build. Then describe the complete scene including background setting, foreground elements, all objects in scene, lighting conditions, colors, atmosphere, mood, composition, and spatial relationships. Include every visual element needed to accurately recreate this complete scene in a new artistic style."
               },
               {
                 type: "image_url",
@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "This image analysis is for artistic purposes ONLY. The person in the scene has provided consent for artistic transformation and recreation. Describe the visual characteristics for artistic reference: hair color and texture, hairstyle, age appearance, skin tone, eyewear, facial structure, and build. Focus on artistic details only."
+                text: "Describe the visual characteristics for artistic reference: hair color and texture, hairstyle, age appearance, skin tone, eyewear, facial structure, and build. Focus on artistic details only."
               },
               {
                 type: "image_url",
@@ -483,7 +483,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 content: [
                   {
                     type: "text",
-                    text: "This image analysis is for artistic purposes ONLY. The person in the scene has provided consent for artistic transformation and recreation. Describe the visual characteristics for artistic reference: hair color and texture, hairstyle, age appearance, skin tone, eyewear, facial structure, and build. Focus on artistic details only."
+                    text: "Describe the visual characteristics for artistic reference: hair color and texture, hairstyle, age appearance, skin tone, eyewear, facial structure, and build. Focus on artistic details only."
                   },
                   {
                     type: "image_url",

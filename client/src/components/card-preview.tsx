@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, RotateCcw, Edit, Download } from "lucide-react";
+import { ShoppingCart, RotateCcw, Edit } from "lucide-react";
 import { useLocation } from "wouter";
 
 interface CardPreviewProps {
@@ -24,34 +24,6 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
     onboarding.setCurrentStep(6);
   };
 
-  const downloadImage = async (imageUrl: string, filename: string) => {
-    try {
-      if (imageUrl.startsWith('data:')) {
-        // Handle base64 images
-        const link = document.createElement('a');
-        link.href = imageUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else {
-        // Handle URL images
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      }
-    } catch (error) {
-      console.error('Download failed:', error);
-    }
-  };
-
   const formatPrice = (priceInCents: number) => {
     return `R${(priceInCents / 100).toFixed(2)}`;
   };
@@ -67,25 +39,17 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
       <div className="max-w-md mx-auto mb-8">
         <div className="relative">
           {card.frontImageUrl ? (
-            <div className="relative group">
-              <img 
-                src={card.frontImageUrl} 
-                alt="AI generated greeting card design" 
-                className="w-full rounded-2xl shadow-lg"
-              />
-              <Button
-                onClick={() => downloadImage(card.frontImageUrl, 'greeting-card-front.png')}
-                className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                size="sm"
-              >
-                <Download className="w-4 h-4" />
-              </Button>
-            </div>
+            <img 
+              src={card.frontImageUrl} 
+              alt="AI generated greeting card design" 
+              className="w-full rounded-2xl shadow-lg"
+            />
           ) : (
             <div className="w-full aspect-square bg-gray-200 rounded-2xl flex items-center justify-center">
               <p className="text-gray-500">Card generating...</p>
             </div>
           )}
+          
 
         </div>
 
@@ -93,20 +57,11 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
         {card.insideImageUrl && onboarding.selectedPrintOption === 'front-and-inside' && (
           <div className="mt-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Inside Message:</h3>
-            <div className="relative group">
-              <img 
-                src={card.insideImageUrl} 
-                alt="Card inside design" 
-                className="w-full rounded-xl shadow-md"
-              />
-              <Button
-                onClick={() => downloadImage(card.insideImageUrl, 'greeting-card-inside.png')}
-                className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                size="sm"
-              >
-                <Download className="w-4 h-4" />
-              </Button>
-            </div>
+            <img 
+              src={card.insideImageUrl} 
+              alt="Card inside design" 
+              className="w-full rounded-xl shadow-md"
+            />
           </div>
         )}
       </div>
