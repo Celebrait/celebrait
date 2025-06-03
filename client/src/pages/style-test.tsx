@@ -266,6 +266,18 @@ export default function StyleTest() {
                         <p className="text-green-700 text-xs mt-2">
                           This analysis will be used to recreate the person in your chosen artistic style.
                         </p>
+                        <Button 
+                          onClick={() => analyzePhoto(uploadedPhoto)}
+                          variant="outline"
+                          size="sm"
+                          className="mt-2 w-full border-green-300 text-green-600 hover:bg-green-50"
+                          disabled={isAnalyzingPhoto}
+                        >
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Reanalyze Photo
+                        </Button>
                       </div>
                     )}
 
