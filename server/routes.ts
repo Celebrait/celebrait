@@ -159,24 +159,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "OpenAI API not configured" });
       }
 
-      // Convert base64 to buffer
+      // Convert base64 to buffer and write to temp file
       const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, "");
       const imageBuffer = Buffer.from(base64Data, 'base64');
       
-      // Create a File-like object using the buffer directly
-      const imageFile = Object.assign(imageBuffer, {
-        name: 'image.png',
-        type: 'image/png',
-        lastModified: Date.now(),
-        size: imageBuffer.length
-      });
+      // Create temp file for OpenAI
+      const tempFilePath = path.join('/tmp', `temp_image_${Date.now()}.png`);
+      fs.writeFileSync(tempFilePath, imageBuffer);
+      
+      // Create file stream for OpenAI
+      const imageFile = fs.createReadStream(tempFilePath);
 
       // Try gpt-image-1 first, fallback to dall-e-2 if not available
       let response;
       try {
         response = await openai.images.edit({
           model: "gpt-image-1",
-          image: imageFile as any,
+          image: imageFile,
           prompt: stylePrompt,
           size: "1024x1024"
         });
@@ -186,10 +185,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         response = await openai.images.edit({
           model: "dall-e-2", 
-          image: imageFile as any,
+          image: imageFile,
           prompt: stylePrompt,
           size: "1024x1024"
         });
+      }
+      
+      // Clean up temp file
+      try {
+        fs.unlinkSync(tempFilePath);
+      } catch (cleanupError) {
+        console.warn("Failed to cleanup temp file:", cleanupError);
       }
 
       const transformedImageUrl = response.data?.[0]?.url;
