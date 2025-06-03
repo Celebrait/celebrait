@@ -330,7 +330,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'character_summary',
       question: 'Perfect! Let me show you what we have so far...',
-      aiMessage: `Fantastic! I've got a beautiful picture of ${answers.name || 'them'} in my mind. ${answers.name} is a ${answers.age?.replace('_', ' ')?.toLowerCase()} ${answers.gender} of ${answers.heritage?.replace('_', ' ')} heritage${answers.hair_color && answers.hair_style ? `, with ${answers.hair_color.replace('_', ' ')} hair styled ${answers.hair_style.replace('_', ' ')}` : ''}${answers.build ? `, ${answers.build} build` : ''}${answers.features && answers.features !== 'skip' ? `, with ${answers.features}` : ''}${answers.personality ? `, and a ${answers.personality.toLowerCase()} personality` : ''}. Now comes the exciting part - creating the perfect scene! Look at these amazing examples below for inspiration, then we'll move on to describe where you'd like ${answers.gender === 'male' ? 'him' : answers.gender === 'female' ? 'her' : 'them'} to be.`,
+      aiMessage: onboarding.selectedSceneType === 'scene-only' 
+        ? `Wonderful! Now for the creative part - designing your beautiful scene card! Look at these inspiring examples below to spark your imagination. Think about the mood, atmosphere, and visual elements that would perfectly capture the spirit of this ${answers.celebration} celebration.`
+        : `Fantastic! I've got a beautiful picture of ${answers.name || 'them'} in my mind. ${answers.name} is a ${answers.age?.replace('_', ' ')?.toLowerCase()} ${answers.gender} of ${answers.heritage?.replace('_', ' ')} heritage${answers.hair_color && answers.hair_style ? `, with ${answers.hair_color.replace('_', ' ')} hair styled ${answers.hair_style.replace('_', ' ')}` : ''}${answers.build ? `, ${answers.build} build` : ''}${answers.features && answers.features !== 'skip' ? `, with ${answers.features}` : ''}${answers.personality ? `, and a ${answers.personality.toLowerCase()} personality` : ''}. Now comes the exciting part - creating the perfect scene! Look at these amazing examples below for inspiration, then we'll move on to describe where you'd like ${answers.gender === 'male' ? 'him' : answers.gender === 'female' ? 'her' : 'them'} to be.`,
       type: 'summary',
       placeholder: ''
     },
@@ -1005,54 +1007,110 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   <div className="space-y-6">
                     {/* Inspiration Carousel */}
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-center text-purple-700">Card Inspiration Gallery</h3>
+                      <h3 className="text-lg font-semibold text-center text-purple-700">
+                        {onboarding.selectedSceneType === 'scene-only' ? 'Scene Inspiration Gallery' : 'Card Inspiration Gallery'}
+                      </h3>
                       <div className="overflow-x-auto">
                         <div className="flex space-x-4 pb-4">
-                          <div className="flex-shrink-0 w-64">
-                            <div className="bg-gradient-to-br from-blue-400 to-blue-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
-                              🏔️
-                            </div>
-                            <div className="mt-2 text-center">
-                              <div className="font-medium text-sm">Adventure Scene</div>
-                              <div className="text-xs text-gray-600 mt-1">"Standing on a mountain peak at sunrise, wearing hiking gear, with a triumphant expression and arms raised"</div>
-                            </div>
-                          </div>
-                          <div className="flex-shrink-0 w-64">
-                            <div className="bg-gradient-to-br from-green-400 to-green-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
-                              ☕
-                            </div>
-                            <div className="mt-2 text-center">
-                              <div className="font-medium text-sm">Cozy Café</div>
-                              <div className="text-xs text-gray-600 mt-1">"Sitting in a warm café, reading a book, wearing a cozy sweater, with steaming coffee and rain outside"</div>
-                            </div>
-                          </div>
-                          <div className="flex-shrink-0 w-64">
-                            <div className="bg-gradient-to-br from-purple-400 to-purple-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
-                              🎨
-                            </div>
-                            <div className="mt-2 text-center">
-                              <div className="font-medium text-sm">Art Studio</div>
-                              <div className="text-xs text-gray-600 mt-1">"Painting on a canvas in a bright studio, wearing an apron, surrounded by colorful artwork and brushes"</div>
-                            </div>
-                          </div>
-                          <div className="flex-shrink-0 w-64">
-                            <div className="bg-gradient-to-br from-orange-400 to-orange-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
-                              🌸
-                            </div>
-                            <div className="mt-2 text-center">
-                              <div className="font-medium text-sm">Garden Party</div>
-                              <div className="text-xs text-gray-600 mt-1">"Having a picnic in a beautiful flower garden, wearing summer clothes, with butterflies and sunshine"</div>
-                            </div>
-                          </div>
-                          <div className="flex-shrink-0 w-64">
-                            <div className="bg-gradient-to-br from-red-400 to-red-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
-                              🍳
-                            </div>
-                            <div className="mt-2 text-center">
-                              <div className="font-medium text-sm">Chef's Kitchen</div>
-                              <div className="text-xs text-gray-600 mt-1">"Cooking in a professional kitchen, wearing chef's whites, creating a masterpiece dish with passion"</div>
-                            </div>
-                          </div>
+                          {onboarding.selectedSceneType === 'scene-only' ? (
+                            // Scene-only inspiration examples
+                            <>
+                              <div className="flex-shrink-0 w-64">
+                                <div className="bg-gradient-to-br from-pink-400 to-rose-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
+                                  🌅
+                                </div>
+                                <div className="mt-2 text-center">
+                                  <div className="font-medium text-sm">Sunrise Dreams</div>
+                                  <div className="text-xs text-gray-600 mt-1">"Golden sunrise over rolling hills with floating balloons and scattered flower petals"</div>
+                                </div>
+                              </div>
+                              <div className="flex-shrink-0 w-64">
+                                <div className="bg-gradient-to-br from-blue-400 to-indigo-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
+                                  🕯️
+                                </div>
+                                <div className="mt-2 text-center">
+                                  <div className="font-medium text-sm">Cozy Fireplace</div>
+                                  <div className="text-xs text-gray-600 mt-1">"Warm fireplace glow with floating hearts, soft blankets, and twinkling lights"</div>
+                                </div>
+                              </div>
+                              <div className="flex-shrink-0 w-64">
+                                <div className="bg-gradient-to-br from-purple-400 to-violet-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
+                                  🌸
+                                </div>
+                                <div className="mt-2 text-center">
+                                  <div className="font-medium text-sm">Enchanted Garden</div>
+                                  <div className="text-xs text-gray-600 mt-1">"Magical garden with blooming flowers, butterflies, and soft morning mist"</div>
+                                </div>
+                              </div>
+                              <div className="flex-shrink-0 w-64">
+                                <div className="bg-gradient-to-br from-green-400 to-emerald-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
+                                  ⭐
+                                </div>
+                                <div className="mt-2 text-center">
+                                  <div className="font-medium text-sm">Starry Night</div>
+                                  <div className="text-xs text-gray-600 mt-1">"Peaceful night sky with twinkling stars, crescent moon, and gentle clouds"</div>
+                                </div>
+                              </div>
+                              <div className="flex-shrink-0 w-64">
+                                <div className="bg-gradient-to-br from-orange-400 to-amber-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
+                                  🎊
+                                </div>
+                                <div className="mt-2 text-center">
+                                  <div className="font-medium text-sm">Celebration Burst</div>
+                                  <div className="text-xs text-gray-600 mt-1">"Vibrant confetti explosion with ribbons, sparkles, and joyful celebration elements"</div>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            // Person-included inspiration examples
+                            <>
+                              <div className="flex-shrink-0 w-64">
+                                <div className="bg-gradient-to-br from-blue-400 to-blue-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
+                                  🏔️
+                                </div>
+                                <div className="mt-2 text-center">
+                                  <div className="font-medium text-sm">Adventure Scene</div>
+                                  <div className="text-xs text-gray-600 mt-1">"Standing on a mountain peak at sunrise, wearing hiking gear, with a triumphant expression and arms raised"</div>
+                                </div>
+                              </div>
+                              <div className="flex-shrink-0 w-64">
+                                <div className="bg-gradient-to-br from-green-400 to-green-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
+                                  ☕
+                                </div>
+                                <div className="mt-2 text-center">
+                                  <div className="font-medium text-sm">Cozy Café</div>
+                                  <div className="text-xs text-gray-600 mt-1">"Sitting in a warm café, reading a book, wearing a cozy sweater, with steaming coffee and rain outside"</div>
+                                </div>
+                              </div>
+                              <div className="flex-shrink-0 w-64">
+                                <div className="bg-gradient-to-br from-purple-400 to-purple-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
+                                  🎨
+                                </div>
+                                <div className="mt-2 text-center">
+                                  <div className="font-medium text-sm">Art Studio</div>
+                                  <div className="text-xs text-gray-600 mt-1">"Painting on a canvas in a bright studio, wearing an apron, surrounded by colorful artwork and brushes"</div>
+                                </div>
+                              </div>
+                              <div className="flex-shrink-0 w-64">
+                                <div className="bg-gradient-to-br from-orange-400 to-orange-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
+                                  🌸
+                                </div>
+                                <div className="mt-2 text-center">
+                                  <div className="font-medium text-sm">Garden Party</div>
+                                  <div className="text-xs text-gray-600 mt-1">"Having a picnic in a beautiful flower garden, wearing summer clothes, with butterflies and sunshine"</div>
+                                </div>
+                              </div>
+                              <div className="flex-shrink-0 w-64">
+                                <div className="bg-gradient-to-br from-red-400 to-red-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
+                                  🍳
+                                </div>
+                                <div className="mt-2 text-center">
+                                  <div className="font-medium text-sm">Chef's Kitchen</div>
+                                  <div className="text-xs text-gray-600 mt-1">"Cooking in a professional kitchen, wearing chef's whites, creating a masterpiece dish with passion"</div>
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
