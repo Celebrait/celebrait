@@ -141,22 +141,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       aiMessage: `Great photo! Now to create the most authentic artistic representation, could you help me understand ${answers.name || 'their'} cultural background? This ensures I capture their heritage respectfully and accurately.`,
       type: 'select',
       options: [
-        { value: 'afrikaner', label: 'Afrikaner', description: 'Dutch-descended South African', color: 'bg-orange-500' },
-        { value: 'english_sa', label: 'English South African', description: 'British-descended South African', color: 'bg-red-500' },
-        { value: 'xhosa', label: 'Xhosa', description: 'South African Bantu ethnic group', color: 'bg-green-500' },
-        { value: 'zulu', label: 'Zulu', description: 'South African Bantu ethnic group', color: 'bg-blue-500' },
-        { value: 'sotho', label: 'Sotho', description: 'Southern Sotho heritage', color: 'bg-purple-500' },
-        { value: 'tswana', label: 'Tswana', description: 'Tswana heritage', color: 'bg-yellow-500' },
-        { value: 'pedi', label: 'Pedi', description: 'Northern Sotho heritage', color: 'bg-pink-500' },
-        { value: 'venda', label: 'Venda', description: 'Venda heritage', color: 'bg-indigo-500' },
-        { value: 'tsonga', label: 'Tsonga', description: 'Tsonga heritage', color: 'bg-teal-500' },
-        { value: 'ndebele', label: 'Ndebele', description: 'Ndebele heritage', color: 'bg-rose-500' },
-        { value: 'swazi', label: 'Swazi', description: 'Swazi heritage', color: 'bg-cyan-500' },
-        { value: 'coloured', label: 'Coloured', description: 'South African mixed heritage', color: 'bg-amber-500' },
-        { value: 'indian', label: 'Indian', description: 'South African Indian community', color: 'bg-emerald-500' },
-        { value: 'chinese', label: 'Chinese', description: 'Chinese South African', color: 'bg-lime-500' },
-        { value: 'other_african', label: 'Other African', description: 'Other African heritage', color: 'bg-gray-500' },
-        { value: 'other', label: 'Other Heritage', description: 'Different cultural background', color: 'bg-violet-500' }
+        { value: 'black_african', label: 'Black African', description: 'African heritage', color: 'bg-green-500' },
+        { value: 'coloured', label: 'Coloured', description: 'Mixed heritage', color: 'bg-amber-500' },
+        { value: 'white', label: 'White', description: 'European heritage', color: 'bg-blue-500' },
+        { value: 'indian', label: 'Indian', description: 'Indian heritage', color: 'bg-purple-500' }
       ]
     },
     {
