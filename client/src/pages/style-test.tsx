@@ -269,14 +269,31 @@ export default function StyleTest() {
                       </div>
                     )}
 
-                    <Button 
-                      onClick={clearAll}
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                    >
-                      Clear & Start Over
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => {
+                          setUploadedPhoto(null);
+                          setPhotoAnalysis(null);
+                          setAnalysisError(null);
+                          setGeneratedCard(null);
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        Upload New Photo
+                      </Button>
+                      
+                      <Button 
+                        onClick={clearAll}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                      >
+                        Clear & Start Over
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>
