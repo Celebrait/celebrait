@@ -39,6 +39,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [photoAnalysis, setPhotoAnalysis] = useState<string | null>(null);
   const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [retryAttempt, setRetryAttempt] = useState(0);
+  const [analysisSuccess, setAnalysisSuccess] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -618,6 +620,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     const maxRetries = 5;
     setIsAnalyzingPhoto(true);
     setAnalysisError(null);
+    setRetryAttempt(retryCount);
+    setAnalysisSuccess(false);
     
     try {
       // Determine which analysis endpoint to use based on photo option
@@ -669,6 +673,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       } else {
         // Successful analysis
         setPhotoAnalysis(data.analysis);
+        setAnalysisSuccess(true);
         
         toast({
           title: "Photo analyzed successfully!",
@@ -1593,7 +1598,27 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                             <div className="flex items-center space-x-3">
                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                              <p className="text-blue-700">Analyzing your photo...</p>
+                              <div>
+                                <p className="text-blue-700 font-medium">Analyzing your photo...</p>
+                                {retryAttempt > 0 && (
+                                  <p className="text-blue-600 text-sm mt-1">
+                                    Attempt {retryAttempt + 1} of 5 - AI is being cautious, trying again
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {analysisSuccess && !isAnalyzingPhoto && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div className="flex items-center space-x-3">
+                              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <p className="text-green-700 font-medium">
+                                Photo analysis successful! {retryAttempt > 0 && `(Got it on attempt ${retryAttempt + 1})`}
+                              </p>
                             </div>
                           </div>
                         )}
