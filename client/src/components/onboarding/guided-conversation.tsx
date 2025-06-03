@@ -435,19 +435,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     
     // Skip steps based on photo option choice
     if (answers.photo_option === 'upload_and_transform') {
-      // For style transformation, skip all description steps and go to art style
-      const skipSteps = ['gender', 'age', 'heritage', 'hair_color', 'hair_style', 'build', 'features', 'personality', 'scene'];
+      // For style transformation, skip all description steps and go directly to art style
+      const skipSteps = ['heritage_photo', 'character_costume', 'gender', 'age', 'heritage', 'hair_color', 'hair_style', 'build', 'features', 'personality', 'character_summary', 'scene'];
       if (skipSteps.includes(step.id)) {
         return false;
       }
     } else if (answers.photo_option === 'describe_person') {
-      // For description only, skip photo upload
-      if (step.id === 'photo_upload') {
+      // For description only, skip photo upload and related steps
+      const skipSteps = ['photo_upload', 'heritage_photo', 'character_costume'];
+      if (skipSteps.includes(step.id)) {
         return false;
       }
     } else if (answers.photo_option === 'upload_and_scene') {
-      // For photo + scene, skip description steps but keep scene
-      const skipSteps = ['gender', 'age', 'heritage', 'hair_color', 'hair_style', 'build', 'features', 'personality'];
+      // For photo + scene, skip description steps but keep scene and heritage_photo
+      const skipSteps = ['character_costume', 'gender', 'age', 'heritage', 'hair_color', 'hair_style', 'build', 'features', 'personality'];
       if (skipSteps.includes(step.id)) {
         return false;
       }
@@ -628,22 +629,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       const data = await response.json() as { analysis: string };
       setPhotoAnalysis(data.analysis);
       
-      // For upload_and_transform, automatically proceed to art style after analysis
-      if (answers.photo_option === 'upload_and_transform') {
-        toast({
-          title: "Photo analyzed successfully!",
-          description: "Moving to style selection..."
-        });
-        // Auto-proceed to next step after short delay
-        setTimeout(() => {
-          setCurrentStepIndex(prev => prev + 1);
-        }, 1500);
-      } else {
-        toast({
-          title: "Photo analyzed successfully!",
-          description: "You can review and edit the description below."
-        });
-      }
+      toast({
+        title: "Photo analyzed successfully!",
+        description: "You can review and edit the description below."
+      });
     } catch (error: any) {
       setAnalysisError(error.message);
       toast({
