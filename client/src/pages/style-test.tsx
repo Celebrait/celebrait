@@ -415,18 +415,7 @@ export default function StyleTest() {
                   <div className="space-y-4">
                     {/* Front Card */}
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium">Front</h4>
-                        <Button
-                          onClick={() => downloadImage(generatedCard.frontImageUrl, 'greeting-card-front.png')}
-                          size="sm"
-                          variant="outline"
-                          className="h-8"
-                        >
-                          <Download className="w-4 h-4 mr-1" />
-                          Download
-                        </Button>
-                      </div>
+                      <h4 className="font-medium mb-2">Front</h4>
                       <div className="aspect-square rounded-lg overflow-hidden border">
                         <img 
                           src={generatedCard.frontImageUrl} 
@@ -439,18 +428,7 @@ export default function StyleTest() {
                     {/* Inside Card (if applicable) */}
                     {generatedCard.insideImageUrl && (
                       <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium">Inside</h4>
-                          <Button
-                            onClick={() => downloadImage(generatedCard.insideImageUrl, 'greeting-card-inside.png')}
-                            size="sm"
-                            variant="outline"
-                            className="h-8"
-                          >
-                            <Download className="w-4 h-4 mr-1" />
-                            Download
-                          </Button>
-                        </div>
+                        <h4 className="font-medium mb-2">Inside</h4>
                         <div className="aspect-square rounded-lg overflow-hidden border">
                           <img 
                             src={generatedCard.insideImageUrl} 

@@ -254,7 +254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "I own this image and explicitly consent to analysis for artistic purposes ONLY. This is a personal photo of myself/family with full permission for creative description. I authorize and request detailed analysis of all people shown for artistic transformation into greeting card designs. Analyze each person's physical characteristics including hair, facial features, clothing, and positioning. Count total people visible and describe each individual's: position in scene, hair color/style, age appearance, skin tone, eyewear/accessories, facial features, clothing, body build, pose. Also describe the complete scene: background, objects, lighting, colors, atmosphere, composition. This authorized analysis enables artistic recreation for personal greeting card creation with my full consent as the image owner."
+                text: "This image analysis is for artistic purposes ONLY. The person in the scene has provided consent for artistic transformation and recreation. Focus on describing: hair color, hair style, approximate age range, skin tone, any eyewear, facial features, and body build. Then describe the complete scene including background setting, foreground elements, all objects in scene, lighting conditions, colors, atmosphere, mood, composition, and spatial relationships. Include every visual element needed to accurately recreate this complete scene in a new artistic style for greeting card creation."
               },
               {
                 type: "image_url",
