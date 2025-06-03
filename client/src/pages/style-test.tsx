@@ -86,7 +86,7 @@ export default function StyleTest() {
     setPhotoAnalysis(null);
     
     try {
-      const response = await apiRequest("POST", "/api/analyze-image-composition", {
+      const response = await apiRequest("POST", "/api/analyze-photo", {
         photoData
       });
       
