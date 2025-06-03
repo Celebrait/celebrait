@@ -632,7 +632,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       const isGenericRefusal = data.analysis.toLowerCase().includes("i'm sorry") || 
                               data.analysis.toLowerCase().includes("i can't help") ||
                               data.analysis.toLowerCase().includes("i cannot help") ||
-                              data.analysis.toLowerCase().includes("sorry, i can't");
+                              data.analysis.toLowerCase().includes("sorry, i can't") ||
+                              data.analysis.toLowerCase().includes("i'm unable") ||
+                              data.analysis.toLowerCase().includes("i can't provide") ||
+                              data.analysis.toLowerCase().includes("i can't analyze") ||
+                              data.analysis.toLowerCase().includes("i can't assist") ||
+                              data.analysis.toLowerCase().includes("unable to provide") ||
+                              data.analysis.toLowerCase().includes("can't describe") ||
+                              data.analysis.toLowerCase().includes("unable to describe") ||
+                              data.analysis.toLowerCase().includes("can't identify") ||
+                              data.analysis.toLowerCase().includes("unable to identify") ||
+                              (data.analysis.length < 100); // Very short responses are likely refusals
       
       if (isGenericRefusal && retryCount < maxRetries) {
         // Automatically retry in the background
@@ -650,10 +660,33 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         setAnalysisError("The AI is having difficulty analyzing this photo. Please try a different photo with clear lighting and the person's face clearly visible.");
         setIsAnalyzingPhoto(false); // Stop the loading state
       } else {
-        // Successful analysis
-        setPhotoAnalysis(data.analysis);
-        setAnalysisSuccess(true);
-        setIsAnalyzingPhoto(false); // Stop the loading state
+        // Check if we actually have useful analysis content
+        const hasUsefulContent = data.analysis.toLowerCase().includes("hair") ||
+                               data.analysis.toLowerCase().includes("eye") ||
+                               data.analysis.toLowerCase().includes("skin") ||
+                               data.analysis.toLowerCase().includes("age") ||
+                               data.analysis.toLowerCase().includes("facial") ||
+                               data.analysis.length > 150; // Meaningful responses are typically longer
+        
+        if (hasUsefulContent) {
+          // Successful analysis with actual content
+          setPhotoAnalysis(data.analysis);
+          setAnalysisSuccess(true);
+          setIsAnalyzingPhoto(false); // Stop the loading state
+        } else {
+          // Response doesn't contain useful analysis, treat as refusal
+          if (retryCount < maxRetries) {
+            console.log(`AI provided unhelpful response, retrying... (attempt ${retryCount + 1}/${maxRetries})`);
+            setTimeout(() => {
+              analyzePhoto(photoData, retryCount + 1);
+            }, 1000);
+            return;
+          } else {
+            // Max retries reached with unhelpful responses
+            setAnalysisError("The AI is having difficulty analyzing this photo. Please try a different photo with clear lighting and the person's face clearly visible.");
+            setIsAnalyzingPhoto(false);
+          }
+        }
       }
     } catch (error: any) {
       if (retryCount < maxRetries) {
