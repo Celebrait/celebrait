@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, Sparkles } from "lucide-react";
+import { User, Sparkles, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -57,6 +57,20 @@ export default function Step1NameInput({ onboarding }: Step1Props) {
         >
           Let's Go! 🚀
         </Button>
+
+        {/* Back Button */}
+        {onboarding.currentStep > 1 && (
+          <div className="flex justify-center mt-4">
+            <Button
+              onClick={onboarding.previousStep}
+              variant="ghost"
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Go Back
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
