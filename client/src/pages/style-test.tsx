@@ -114,8 +114,8 @@ export default function StyleTest() {
       const stylePrompt = `Transform this image into ${selectedStyle} style while preserving all details of the person and scene.`;
       
       const transformResponse = await apiRequest("POST", "/api/transform-image-style", {
-        imageData: uploadedPhoto,
-        stylePrompt
+        stylePrompt,
+        imageAnalysis: photoAnalysis
       });
 
       const result = await transformResponse.json();
