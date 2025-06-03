@@ -179,6 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           n: 1
         });
         console.log("Successfully used gpt-image-1 for style generation");
+        console.log("Response data:", JSON.stringify(response.data, null, 2));
       } catch (gptError: any) {
         console.log("gpt-image-1 not available, falling back to dall-e-3:", gptError.message);
         
@@ -191,12 +192,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const transformedImageUrl = response.data?.[0]?.url;
+      console.log("Full response structure:", JSON.stringify(response, null, 2));
+      
+      const transformedImageUrl = response.data?.[0]?.url || response.data?.[0]?.b64_json;
       if (!transformedImageUrl) {
-        throw new Error("No image URL returned from OpenAI");
+        console.error("No image data found in response:", response.data);
+        throw new Error("No image data returned from OpenAI");
       }
       
-      res.json({ imageUrl: transformedImageUrl });
+      // Handle both URL and base64 responses
+      const imageUrl = response.data[0].url || `data:image/png;base64,${response.data[0].b64_json}`;
+      res.json({ imageUrl });
     } catch (error: any) {
       console.error("Style transformation error:", error);
       res.status(500).json({ message: "Error transforming image style: " + error.message });
