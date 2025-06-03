@@ -52,7 +52,7 @@ export default function Home() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!generatedCard && (
           <>
-            {onboarding.currentStep < 6 && (
+            {onboarding.currentStep <= 5 && (
               <ProgressIndicator currentStep={onboarding.currentStep} />
             )}
             <div className="animate-slide-up">

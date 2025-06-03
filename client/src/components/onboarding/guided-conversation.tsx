@@ -946,6 +946,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-blue-50">
       {/* Progress Bar */}
       <div className="p-4 bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-gray-600">AI Chat Progress</span>
+          <span className="text-sm text-gray-600">{Math.round(progress)}%</span>
+        </div>
         <Progress value={progress} className="h-3 bg-gradient-to-r from-purple-500 to-pink-500" />
       </div>
 
