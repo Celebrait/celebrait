@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "The owner of this photo has given consent to use the photo for artistic reference. Describe the visual characteristics for artistic reference: hair color and texture, hairstyle, age appearance, skin tone, eyewear, facial structure, facial hair, build, visible accessories. Focus on artistic details only."
+                text: "The owner of this photo has given consent to use the photo for artistic reference. Describe the following visual characteristics in great detail for artistic reference: hair color and texture, hairstyle, age appearance, skin tone, eyewear, facial structure, facial features, facial hair, build, visible accessories. Focus on artistic details only."
               },
               {
                 type: "image_url",
