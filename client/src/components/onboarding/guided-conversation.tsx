@@ -528,23 +528,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       return;
     }
     
-    // Handle photo option choice - skip to appropriate step
+    // Handle photo option choice - let the filtering logic handle the flow
     if (currentStep.id === 'photo_option') {
-      if (value === 'upload_photo') {
-        // Go to photo upload step
-        const photoUploadIndex = steps.findIndex(step => step.id === 'photo_upload');
-        if (photoUploadIndex !== -1) {
-          setTimeout(() => setCurrentStepIndex(photoUploadIndex), 500);
-          return;
-        }
-      } else if (value === 'describe_person') {
-        // Skip photo upload, go to gender step
-        const genderIndex = steps.findIndex(step => step.id === 'gender');
-        if (genderIndex !== -1) {
-          setTimeout(() => setCurrentStepIndex(genderIndex), 500);
-          return;
-        }
-      }
+      // Just proceed to next step - filtering will handle what shows up next
     }
     
     // Handle heritage after photo upload - go to costume selection
