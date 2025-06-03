@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Describe the visual characteristics for artistic reference with comprehensive detail: Hair (color, texture, length, style, parting), facial features (eye color and shape, eyebrow shape, nose shape, lip shape, jawline, cheekbones), skin tone and complexion, age appearance, build and body type, posture, any eyewear (glasses style, color), jewelry (earrings, necklaces, rings, watches), clothing visible (colors, patterns, style), and any other accessories (hats, scarves, badges, etc.). Provide specific details for accurate artistic recreation while focusing on artistic characteristics only."
+                text: "Describe the visual characteristics for artistic reference with comprehensive detail: Hair (color, texture, length, style, parting), facial features (eye color and shape, eyebrow shape, nose shape, lip shape, jawline, cheekbones), skin tone and complexion, age appearance, build and body type, posture, any eyewear (glasses style, color), jewelry (earrings, necklaces, rings, watches), and any other accessories (hats, scarves, badges, etc.). Provide specific details for accurate artistic recreation while focusing on artistic characteristics only. Do not describe clothing."
               },
               {
                 type: "image_url",
