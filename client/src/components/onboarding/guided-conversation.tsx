@@ -385,11 +385,22 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   ];
 
-  // Filter steps based on card type - only show inside message for front-and-inside cards
+  // Filter steps based on scene type and card options
   const filteredSteps = steps.filter(step => {
+    // Skip inside message for front-only cards
     if (step.id === 'inside_message' && onboarding.selectedPrintOption !== 'front-and-inside') {
       return false;
     }
+    
+    // Skip person-related steps for scene-only cards
+    if (onboarding.selectedSceneType === 'scene-only') {
+      const personSteps = ['photo_option', 'photo_upload', 'heritage_photo', 'character_costume', 
+                          'gender', 'age', 'heritage', 'hair_color', 'hair_style', 'build', 'features', 'personality'];
+      if (personSteps.includes(step.id)) {
+        return false;
+      }
+    }
+    
     return true;
   });
 
