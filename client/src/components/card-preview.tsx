@@ -67,11 +67,11 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
       <div className="max-w-md mx-auto mb-8">
         <div className="relative">
           {card.frontImageUrl ? (
-            <div className="relative group">
+            <div className="relative group aspect-square">
               <img 
                 src={card.frontImageUrl} 
                 alt="AI generated greeting card design" 
-                className="w-full rounded-2xl shadow-lg"
+                className="w-full h-full object-contain rounded-2xl shadow-lg"
               />
               <Button
                 onClick={() => downloadImage(card.frontImageUrl, 'greeting-card-front.png')}
@@ -93,11 +93,11 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
         {card.insideImageUrl && onboarding.selectedPrintOption === 'front-and-inside' && (
           <div className="mt-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Inside Message:</h3>
-            <div className="relative group">
+            <div className="relative group aspect-square">
               <img 
                 src={card.insideImageUrl} 
                 alt="Card inside design" 
-                className="w-full rounded-xl shadow-md"
+                className="w-full h-full object-contain rounded-xl shadow-md"
               />
               <Button
                 onClick={() => downloadImage(card.insideImageUrl, 'greeting-card-inside.png')}
