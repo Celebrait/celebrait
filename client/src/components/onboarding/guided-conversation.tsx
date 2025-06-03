@@ -1581,41 +1581,73 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         )}
 
                         {photoAnalysis && (
-                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <h4 className="font-medium text-green-800 mb-2">AI Analysis Results:</h4>
-                            <div className="bg-white rounded p-3 border text-sm text-gray-700 mb-3">
-                              {photoAnalysis}
-                            </div>
-                            <p className="text-green-700 text-sm mb-3">
-                              This description will be used to create your card. You can edit it if needed:
-                            </p>
-                            <Textarea
-                              value={currentInput || photoAnalysis}
-                              onChange={(e) => setCurrentInput(e.target.value)}
-                              className="min-h-[100px]"
-                              placeholder="Edit the description if needed..."
-                            />
-                            <div className="flex space-x-2 mt-3">
+                          <div className="space-y-4">
+                            {/* Reanalyze Button - Prominent Position */}
+                            <div className="flex justify-center">
                               <Button 
                                 onClick={() => analyzePhoto(uploadedPhoto!)}
                                 variant="outline"
-                                className="border-purple-300 text-purple-600 hover:bg-purple-50"
+                                className="border-purple-300 text-purple-600 hover:bg-purple-50 px-6 py-2"
                                 disabled={isAnalyzingPhoto}
                               >
                                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                 </svg>
-                                Reanalyze Photo
+                                Try Analysis Again
                               </Button>
+                            </div>
+
+                            {/* User-Friendly Analysis Summary */}
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                              <h4 className="font-medium text-green-800 mb-3 flex items-center">
+                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                What I Can See in Your Photo:
+                              </h4>
+                              <div className="bg-white rounded-lg p-4 border text-sm text-gray-700 space-y-2">
+                                {photoAnalysis.split(/[-•]\s*/).filter(item => item.trim()).map((item, index) => (
+                                  <div key={index} className="flex items-start space-x-2">
+                                    <span className="text-green-600 mt-1">•</span>
+                                    <span className="flex-1">{item.trim()}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Additional Features Input */}
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                              <h4 className="font-medium text-blue-800 mb-2 flex items-center">
+                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                Did I Miss Anything Important?
+                              </h4>
+                              <p className="text-blue-700 text-sm mb-3">
+                                Add any important details about their appearance that I might have missed:
+                              </p>
+                              <Textarea
+                                value={currentInput}
+                                onChange={(e) => setCurrentInput(e.target.value)}
+                                className="min-h-[80px] bg-white"
+                                placeholder="e.g., dimples, freckles, distinctive clothing, jewelry, tattoos, scars, or anything else that makes them unique..."
+                              />
+                            </div>
+
+                            {/* Continue Button */}
+                            <div className="flex justify-center">
                               <Button 
                                 onClick={() => {
-                                  setAnswers(prev => ({ ...prev, character_description: currentInput || photoAnalysis }));
+                                  const finalDescription = currentInput ? 
+                                    `${photoAnalysis}\n\nAdditional details: ${currentInput}` : 
+                                    photoAnalysis;
+                                  setAnswers(prev => ({ ...prev, character_description: finalDescription }));
                                   handlePhotoUploadContinue();
                                 }}
-                                className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500"
+                                className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-lg font-medium"
                               >
-                                Continue with Description
-                                <ArrowRight className="w-4 h-4 ml-2" />
+                                Continue with This Description
+                                <ArrowRight className="w-5 h-5 ml-2" />
                               </Button>
                             </div>
                           </div>
