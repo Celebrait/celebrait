@@ -110,12 +110,13 @@ export default function StyleTest() {
       const frontPrompt = buildFrontPrompt();
       const insidePrompt = cardOption === 'front-and-inside' ? buildInsidePrompt() : null;
 
-      // Use gpt-image-1 for direct style transformation
-      const stylePrompt = `Transform this image into ${selectedStyle} style while preserving all details of the person and scene. Maintain the composition, pose, facial features, and setting but apply the artistic style of ${selectedStyle}.`;
+      // Use gpt-image-1 for style transformation with detailed analysis
+      const stylePrompt = `Create a ${selectedStyle} style artwork based on this detailed scene description: ${photoAnalysis}. Apply the ${selectedStyle} artistic style while maintaining all person details, pose, setting, and composition exactly as described.`;
       
       const transformResponse = await apiRequest("POST", "/api/transform-image-style", {
         imageData: uploadedPhoto,
-        stylePrompt
+        stylePrompt,
+        imageAnalysis: photoAnalysis
       });
 
       const result = await transformResponse.json();
