@@ -156,24 +156,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "OpenAI API not configured" });
       }
 
-      // Convert base64 to buffer for OpenAI
+      // Convert base64 to buffer and create uploadable stream
       const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, "");
       const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      // Create a readable stream from buffer for OpenAI
+      const { Readable } = require('stream');
+      const imageStream = new Readable();
+      imageStream.push(imageBuffer);
+      imageStream.push(null);
+      
+      // Add filename property for OpenAI
+      (imageStream as any).name = "image.png";
 
       // Try gpt-image-1 first, fallback to dall-e-2 if not available
       let response;
       try {
         response = await openai.images.edit({
           model: "gpt-image-1",
-          image: imageBuffer,
+          image: imageStream,
           prompt: stylePrompt,
           size: "1024x1024"
         });
       } catch (gptError: any) {
         console.log("gpt-image-1 not available, falling back to dall-e-2:", gptError.message);
+        // Create new stream for fallback
+        const fallbackStream = new Readable();
+        fallbackStream.push(imageBuffer);
+        fallbackStream.push(null);
+        (fallbackStream as any).name = "image.png";
+        
         response = await openai.images.edit({
           model: "dall-e-2",
-          image: imageBuffer,
+          image: fallbackStream,
           prompt: stylePrompt,
           size: "1024x1024"
         });
