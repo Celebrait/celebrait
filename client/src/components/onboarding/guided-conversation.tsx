@@ -628,7 +628,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   };
 
-  const analyzePhoto = async (photoData: string) => {
+  const analyzePhoto = async (photoData: string, retryCount = 0) => {
+    const maxRetries = 5;
     setIsAnalyzingPhoto(true);
     setAnalysisError(null);
     
@@ -648,13 +649,56 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       });
       
       const data = await response.json() as { analysis: string };
-      setPhotoAnalysis(data.analysis);
       
-      toast({
-        title: "Photo analyzed successfully!",
-        description: "You can review and edit the description below."
-      });
+      // Check if the response is a generic "can't help" message
+      const isGenericRefusal = data.analysis.toLowerCase().includes("i'm sorry") || 
+                              data.analysis.toLowerCase().includes("i can't help") ||
+                              data.analysis.toLowerCase().includes("i cannot help") ||
+                              data.analysis.toLowerCase().includes("sorry, i can't");
+      
+      if (isGenericRefusal && retryCount < maxRetries) {
+        // Automatically retry in the background
+        console.log(`AI refused to analyze, retrying... (attempt ${retryCount + 1}/${maxRetries})`);
+        
+        toast({
+          title: `Trying again... (${retryCount + 1}/${maxRetries})`,
+          description: "The AI is being cautious, retrying automatically."
+        });
+        
+        // Wait a short moment before retrying
+        setTimeout(() => {
+          analyzePhoto(photoData, retryCount + 1);
+        }, 1000);
+        return;
+      }
+      
+      if (isGenericRefusal && retryCount >= maxRetries) {
+        // After max retries, show error
+        setAnalysisError("The AI is having difficulty analyzing this photo. Please try a different photo with clear lighting and the person's face clearly visible.");
+        toast({
+          title: "Analysis unsuccessful",
+          description: "Please try a different photo or upload manually.",
+          variant: "destructive"
+        });
+      } else {
+        // Successful analysis
+        setPhotoAnalysis(data.analysis);
+        
+        toast({
+          title: "Photo analyzed successfully!",
+          description: retryCount > 0 ? `Got it on attempt ${retryCount + 1}!` : "Analysis complete."
+        });
+      }
     } catch (error: any) {
+      if (retryCount < maxRetries) {
+        // Retry on network/API errors too
+        console.log(`Network error, retrying... (attempt ${retryCount + 1}/${maxRetries})`);
+        setTimeout(() => {
+          analyzePhoto(photoData, retryCount + 1);
+        }, 2000);
+        return;
+      }
+      
       setAnalysisError(error.message);
       toast({
         title: "Photo analysis failed",
@@ -662,7 +706,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         variant: "destructive"
       });
     } finally {
-      setIsAnalyzingPhoto(false);
+      if (retryCount >= maxRetries || (!isAnalyzingPhoto && photoAnalysis)) {
+        setIsAnalyzingPhoto(false);
+      }
     }
   };
 
