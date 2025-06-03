@@ -144,42 +144,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Image style transformation endpoint using gpt-image-1
+  // Direct image-to-image transformation using gpt-image-1
   app.post("/api/transform-image-style", async (req, res) => {
     try {
-      const { stylePrompt, imageAnalysis } = req.body;
+      const { imageData, stylePrompt } = req.body;
       
-      if (!stylePrompt) {
-        return res.status(400).json({ message: "Style prompt is required" });
+      if (!imageData || !stylePrompt) {
+        return res.status(400).json({ message: "Image data and style prompt are required" });
       }
 
       if (!openai) {
         return res.status(500).json({ message: "OpenAI API not configured" });
       }
 
-      // Use the detailed image analysis for accurate recreation in new style
-      const enhancedPrompt = imageAnalysis 
-        ? `${stylePrompt} Use this detailed scene analysis to ensure accuracy: ${imageAnalysis}`
-        : stylePrompt;
+      // Convert base64 to buffer and create proper file object
+      const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, "");
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      // Create file object for OpenAI
+      const imageFile = Object.assign(imageBuffer, {
+        name: 'image.png',
+        type: 'image/png'
+      });
 
-      // Try gpt-image-1 first, fallback to dall-e-3 if not available
+      // Try gpt-image-1 first, fallback to dall-e-2 if not available
       let response;
       try {
-        response = await openai.images.generate({
+        response = await openai.images.edit({
           model: "gpt-image-1",
-          prompt: enhancedPrompt,
-          size: "1024x1024",
-          quality: "hd",
-          n: 1
+          image: imageFile as any,
+          prompt: stylePrompt,
+          size: "1024x1024"
         });
+        console.log("Successfully used gpt-image-1 for transformation");
       } catch (gptError: any) {
-        console.log("gpt-image-1 not available, falling back to dall-e-3:", gptError.message);
-        response = await openai.images.generate({
-          model: "dall-e-3",
-          prompt: enhancedPrompt,
-          size: "1024x1024",
-          quality: "hd",
-          n: 1
+        console.log("gpt-image-1 not available, falling back to dall-e-2:", gptError.message);
+        response = await openai.images.edit({
+          model: "dall-e-2", 
+          image: imageFile as any,
+          prompt: stylePrompt,
+          size: "1024x1024"
         });
       }
 
