@@ -143,6 +143,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Image style transformation endpoint using gpt-image-1
+  app.post("/api/transform-image-style", async (req, res) => {
+    try {
+      const { imageData, stylePrompt } = req.body;
+      
+      if (!imageData || !stylePrompt) {
+        return res.status(400).json({ message: "Image data and style prompt are required" });
+      }
+
+      if (!openai) {
+        return res.status(500).json({ message: "OpenAI API not configured" });
+      }
+
+      // Convert base64 to buffer for OpenAI
+      const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, "");
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+
+      // Try gpt-image-1 first, fallback to dall-e-2 if not available
+      let response;
+      try {
+        response = await openai.images.edit({
+          model: "gpt-image-1",
+          image: imageBuffer,
+          prompt: stylePrompt,
+          size: "1024x1024"
+        });
+      } catch (gptError: any) {
+        console.log("gpt-image-1 not available, falling back to dall-e-2:", gptError.message);
+        response = await openai.images.edit({
+          model: "dall-e-2",
+          image: imageBuffer,
+          prompt: stylePrompt,
+          size: "1024x1024"
+        });
+      }
+
+      const transformedImageUrl = response.data?.[0]?.url;
+      if (!transformedImageUrl) {
+        throw new Error("No image URL returned from OpenAI");
+      }
+      
+      res.json({ imageUrl: transformedImageUrl });
+    } catch (error: any) {
+      console.error("Style transformation error:", error);
+      res.status(500).json({ message: "Error transforming image style: " + error.message });
+    }
+  });
+
   // Analyze image composition endpoint for style transformation
   app.post("/api/analyze-image-composition", async (req, res) => {
     try {

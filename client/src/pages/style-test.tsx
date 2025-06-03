@@ -110,17 +110,26 @@ export default function StyleTest() {
       const frontPrompt = buildFrontPrompt();
       const insidePrompt = cardOption === 'front-and-inside' ? buildInsidePrompt() : null;
 
-      // Generate images
-      const imageResponse = await apiRequest("POST", "/api/generate-style-transform", {
-        cardId: cardData.id,
-        frontPrompt,
-        insidePrompt,
-        originalImage: uploadedPhoto,
-        imageAnalysis: photoAnalysis
+      // Use gpt-image-1 for direct style transformation
+      const stylePrompt = `Transform this image into ${selectedStyle} style while preserving all details of the person and scene. Maintain the composition, pose, facial features, and setting but apply the artistic style of ${selectedStyle}.`;
+      
+      const transformResponse = await apiRequest("POST", "/api/transform-image-style", {
+        imageData: uploadedPhoto,
+        stylePrompt
       });
 
-      const generatedCard = await imageResponse.json();
-      setGeneratedCard(generatedCard);
+      const result = await transformResponse.json();
+      
+      // Create a mock card structure for display
+      const mockCard = {
+        id: Date.now(),
+        frontImageUrl: result.imageUrl,
+        insideImageUrl: cardOption === 'front-and-inside' ? result.imageUrl : null,
+        status: 'completed',
+        price: 0
+      };
+
+      setGeneratedCard(mockCard);
       
       toast({
         title: "Card generated successfully!",
