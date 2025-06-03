@@ -149,53 +149,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Direct image-to-image transformation using gpt-image-1
   app.post("/api/transform-image-style", async (req, res) => {
     try {
-      const { imageData, stylePrompt } = req.body;
+      const { stylePrompt, imageAnalysis } = req.body;
       
-      if (!imageData || !stylePrompt) {
-        return res.status(400).json({ message: "Image data and style prompt are required" });
+      if (!stylePrompt) {
+        return res.status(400).json({ message: "Style prompt is required" });
       }
 
       if (!openai) {
         return res.status(500).json({ message: "OpenAI API not configured" });
       }
 
-      // Convert base64 to buffer and write to temp file
-      const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, "");
-      const imageBuffer = Buffer.from(base64Data, 'base64');
-      
-      // Create temp file for OpenAI
-      const tempFilePath = path.join('/tmp', `temp_image_${Date.now()}.png`);
-      fs.writeFileSync(tempFilePath, imageBuffer);
-      
-      // Create file stream for OpenAI
-      const imageFile = fs.createReadStream(tempFilePath);
+      // Use the detailed analysis to create accurate recreation prompt
+      const detailedPrompt = imageAnalysis 
+        ? `${stylePrompt} Based on this detailed scene: ${imageAnalysis}`
+        : stylePrompt;
 
-      // Try gpt-image-1 first, fallback to dall-e-2 if not available
+      console.log("Using gpt-image-1 for style transformation with analysis");
+      
+      // Try gpt-image-1 generation first, fallback to dall-e-3 if not available
       let response;
       try {
-        response = await openai.images.edit({
+        response = await openai.images.generate({
           model: "gpt-image-1",
-          image: imageFile,
-          prompt: stylePrompt,
-          size: "1024x1024"
+          prompt: detailedPrompt,
+          size: "1024x1024",
+          quality: "hd",
+          n: 1
         });
-        console.log("Successfully used gpt-image-1 for transformation");
+        console.log("Successfully used gpt-image-1 for style generation");
       } catch (gptError: any) {
-        console.log("gpt-image-1 not available, falling back to dall-e-2:", gptError.message);
+        console.log("gpt-image-1 not available, falling back to dall-e-3:", gptError.message);
         
-        response = await openai.images.edit({
-          model: "dall-e-2", 
-          image: imageFile,
-          prompt: stylePrompt,
-          size: "1024x1024"
+        response = await openai.images.generate({
+          model: "dall-e-3",
+          prompt: detailedPrompt,
+          size: "1024x1024",
+          quality: "hd",
+          n: 1
         });
-      }
-      
-      // Clean up temp file
-      try {
-        fs.unlinkSync(tempFilePath);
-      } catch (cleanupError) {
-        console.warn("Failed to cleanup temp file:", cleanupError);
       }
 
       const transformedImageUrl = response.data?.[0]?.url;
