@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { Readable } from "stream";
+import fs from "fs";
+import path from "path";
 import { storage } from "./storage";
 import { insertUserSchema, insertCardSchema, insertLovedOneSchema } from "@shared/schema";
 import OpenAI from "openai";
@@ -157,22 +159,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "OpenAI API not configured" });
       }
 
-      // Convert base64 to buffer
+      // Convert base64 to buffer and write temporary file
       const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, "");
       const imageBuffer = Buffer.from(base64Data, 'base64');
       
-      // Create readable stream for OpenAI
-      const imageStream = new Readable();
-      imageStream.push(imageBuffer);
-      imageStream.push(null);
-      (imageStream as any).path = 'image.png';
+      // Create temporary file
+      const tempFilePath = path.join('/tmp', `temp_image_${Date.now()}.png`);
+      fs.writeFileSync(tempFilePath, imageBuffer);
+      
+      // Create readable stream from file
+      const imageStream = fs.createReadStream(tempFilePath);
 
       // Try gpt-image-1 first, fallback to dall-e-2 if not available
       let response;
       try {
         response = await openai.images.edit({
           model: "gpt-image-1",
-          image: imageStream as any,
+          image: imageStream,
           prompt: stylePrompt,
           size: "1024x1024"
         });
@@ -180,17 +183,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (gptError: any) {
         console.log("gpt-image-1 not available, falling back to dall-e-2:", gptError.message);
         // Create new stream for fallback
-        const fallbackStream = new Readable();
-        fallbackStream.push(imageBuffer);
-        fallbackStream.push(null);
-        (fallbackStream as any).path = 'image.png';
+        const fallbackStream = fs.createReadStream(tempFilePath);
         
         response = await openai.images.edit({
           model: "dall-e-2", 
-          image: fallbackStream as any,
+          image: fallbackStream,
           prompt: stylePrompt,
           size: "1024x1024"
         });
+      }
+      
+      // Clean up temporary file
+      try {
+        fs.unlinkSync(tempFilePath);
+      } catch (cleanupError) {
+        console.warn("Failed to cleanup temp file:", cleanupError);
       }
 
       const transformedImageUrl = response.data?.[0]?.url;
