@@ -161,10 +161,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use the detailed analysis to create accurate recreation prompt
       const detailedPrompt = imageAnalysis 
-        ? `${stylePrompt} Based on this detailed scene: ${imageAnalysis}`
-        : stylePrompt;
+        ? `Create an image in ${stylePrompt} style. Recreate this exact scene with complete accuracy: ${imageAnalysis}. Maintain all person details, pose, setting, and composition while applying the ${stylePrompt} artistic style.`
+        : `Create an image in ${stylePrompt} style`;
 
       console.log("Using gpt-image-1 for style transformation with analysis");
+      console.log("Analysis data received:", imageAnalysis ? "YES" : "NO");
+      console.log("Final prompt:", detailedPrompt.substring(0, 200) + "...");
       
       // Try gpt-image-1 generation first, fallback to dall-e-3 if not available
       let response;
@@ -173,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           model: "gpt-image-1",
           prompt: detailedPrompt,
           size: "1024x1024",
-          quality: "hd",
+          quality: "high",
           n: 1
         });
         console.log("Successfully used gpt-image-1 for style generation");
@@ -184,7 +186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           model: "dall-e-3",
           prompt: detailedPrompt,
           size: "1024x1024",
-          quality: "hd",
+          quality: "high",
           n: 1
         });
       }
