@@ -51,12 +51,9 @@ export default function Home() {
       
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!generatedCard && (
-          <>
-            <ProgressIndicator currentStep={onboarding.currentStep} />
-            <div className="animate-slide-up">
-              {renderCurrentStep()}
-            </div>
-          </>
+          <div className="animate-slide-up">
+            {renderCurrentStep()}
+          </div>
         )}
 
         {generatedCard && (
