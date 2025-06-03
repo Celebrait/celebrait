@@ -159,45 +159,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "OpenAI API not configured" });
       }
 
-      // Convert base64 to buffer and write temporary file
+      // Convert base64 to buffer and create file object
       const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, "");
       const imageBuffer = Buffer.from(base64Data, 'base64');
       
-      // Create temporary file
-      const tempFilePath = path.join('/tmp', `temp_image_${Date.now()}.png`);
-      fs.writeFileSync(tempFilePath, imageBuffer);
-      
-      // Create readable stream from file
-      const imageStream = fs.createReadStream(tempFilePath);
+      // Create proper file object with Blob interface for OpenAI
+      const toFile = (buffer: Buffer, filename: string, mimeType: string) => {
+        const file = Object.assign(buffer, {
+          lastModified: Date.now(),
+          name: filename,
+          type: mimeType,
+          size: buffer.length,
+          stream: () => new Readable({
+            read() {
+              this.push(buffer);
+              this.push(null);
+            }
+          }),
+          arrayBuffer: () => Promise.resolve(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)),
+          text: () => Promise.resolve(buffer.toString()),
+          slice: (start?: number, end?: number, contentType?: string) => {
+            return toFile(buffer.slice(start, end), filename, contentType || mimeType);
+          }
+        });
+        return file;
+      };
+
+      const imageFile = toFile(imageBuffer, 'image.png', 'image/png');
 
       // Try gpt-image-1 first, fallback to dall-e-2 if not available
       let response;
       try {
         response = await openai.images.edit({
           model: "gpt-image-1",
-          image: imageStream,
+          image: imageFile as any,
           prompt: stylePrompt,
           size: "1024x1024"
         });
         console.log("Successfully used gpt-image-1 for transformation");
       } catch (gptError: any) {
         console.log("gpt-image-1 not available, falling back to dall-e-2:", gptError.message);
-        // Create new stream for fallback
-        const fallbackStream = fs.createReadStream(tempFilePath);
         
         response = await openai.images.edit({
           model: "dall-e-2", 
-          image: fallbackStream,
+          image: imageFile as any,
           prompt: stylePrompt,
           size: "1024x1024"
         });
-      }
-      
-      // Clean up temporary file
-      try {
-        fs.unlinkSync(tempFilePath);
-      } catch (cleanupError) {
-        console.warn("Failed to cleanup temp file:", cleanupError);
       }
 
       const transformedImageUrl = response.data?.[0]?.url;
