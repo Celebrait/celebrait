@@ -460,6 +460,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const currentStep = filteredSteps[currentStepIndex];
   const progress = ((currentStepIndex + 1) / filteredSteps.length) * 100;
 
+  // Safety check to prevent undefined currentStep errors
+  if (!currentStep) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Loading conversation...</p>
+        </div>
+      </div>
+    );
+  }
+
   useEffect(() => {
     initializeCard();
   }, []);
@@ -622,7 +633,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     setAnalysisError(null);
     
     try {
-      const response = await apiRequest("POST", "/api/analyze-image-composition", {
+      // Determine which analysis endpoint to use based on photo option
+      const photoOption = answers.photo_option;
+      let endpoint = "/api/analyze-photo"; // Default to person-only analysis
+      
+      if (photoOption === 'upload_and_transform') {
+        // For transform option, analyze both person and scene
+        endpoint = "/api/analyze-image-composition";
+      }
+      // For 'upload_and_scene', use default person-only analysis
+      
+      const response = await apiRequest("POST", endpoint, {
         photoData
       });
       
