@@ -254,7 +254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Describe the visual characteristics for artistic reference: hair color and texture, hairstyle, age appearance, skin tone, eyewear, facial structure, and build. Also describe the complete scene including background setting, foreground elements, all objects in scene, lighting conditions, colors, atmosphere, mood, composition, and spatial relationships. Focus on artistic details only."
+                text: "I need to recreate this scene as artistic reference for illustration. Please describe the artistic elements including: character styling (hair style and color, age range, skin tone for painting, eye color, glasses, facial hair, accessories), and the complete scene composition (background setting, objects, lighting, colors, atmosphere, mood, spatial arrangement). Focus on visual elements that would help an artist recreate this scene in a stylized illustration."
               },
               {
                 type: "image_url",
@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Describe the visual characteristics for artistic reference: hair color and texture, hairstyle, age appearance, skin tone, eye shape and color, ears, eyewear, facial structure, facial hair, build, accessories worn by the person (jewelry, hats, watches, etc.). Focus on artistic details only. NEVER describe any clothing whatsoever including shirts, tops, jackets, or any garments. Do not describe items being held or background elements."
+                text: "I need to create an artistic portrait based on this reference image. Please provide artistic styling notes about hair style and color, general age range, skin tone for painting, eye color, glasses or eyewear, facial hair style, and any jewelry or accessories visible (excluding clothing). Focus on artistic elements that would help an illustrator recreate this person's likeness in a stylized way. Describe only the visual styling elements needed for character art creation."
               },
               {
                 type: "image_url",
