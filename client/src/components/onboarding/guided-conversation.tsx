@@ -665,6 +665,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       if (isGenericRefusal && retryCount >= maxRetries) {
         // After max retries, show error
         setAnalysisError("The AI is having difficulty analyzing this photo. Please try a different photo with clear lighting and the person's face clearly visible.");
+        setIsAnalyzingPhoto(false); // Stop the loading state
         toast({
           title: "Analysis unsuccessful",
           description: "Please try a different photo or upload manually.",
@@ -674,6 +675,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         // Successful analysis
         setPhotoAnalysis(data.analysis);
         setAnalysisSuccess(true);
+        setIsAnalyzingPhoto(false); // Stop the loading state
         
         toast({
           title: "Photo analyzed successfully!",
@@ -691,15 +693,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       }
       
       setAnalysisError(error.message);
+      setIsAnalyzingPhoto(false); // Stop loading on final error
       toast({
         title: "Photo analysis failed",
         description: error.message,
         variant: "destructive"
       });
-    } finally {
-      if (retryCount >= maxRetries || (!isAnalyzingPhoto && photoAnalysis)) {
-        setIsAnalyzingPhoto(false);
-      }
     }
   };
 
