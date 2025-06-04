@@ -1283,38 +1283,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       </div>
                     </div>
 
-                    {/* Top Tips for Best Results */}
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
-                      <h4 className="font-semibold text-amber-800 mb-4 flex items-center">
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                        </svg>
-                        Top Tips for Best Results
-                      </h4>
-                      
-                      <div className="grid md:grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <h5 className="font-medium text-amber-700 mb-2">Scene Description:</h5>
-                          <ul className="text-amber-600 space-y-1">
-                            <li>• Be specific about the setting</li>
-                            <li>• Include mood and atmosphere</li>
-                            <li>• Mention lighting (sunny, cozy, dramatic)</li>
-                            <li>• Add props or background elements</li>
-                          </ul>
-                        </div>
-                        
-                        <div>
-                          <h5 className="font-medium text-amber-700 mb-2">What Works Well:</h5>
-                          <ul className="text-amber-600 space-y-1">
-                            <li>• Action-based descriptions</li>
-                            <li>• Emotional expressions</li>
-                            <li>• Seasonal or themed elements</li>
-                            <li>• Personal interests or hobbies</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-
                     <div className="flex justify-center">
                       <Button 
                         onClick={handleSummaryNext}
@@ -1889,6 +1857,23 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
                 {currentStep.type === 'textarea' && (
                   <div className="space-y-4">
+                    {currentStep.id === 'scene' && (
+                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-4 rounded-lg">
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0">
+                            <svg className="w-5 h-5 text-blue-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-sm font-semibold text-blue-800">Top tip for best results:</h3>
+                            <p className="text-sm text-blue-700 mt-1">
+                              The more specific the better. Be as detailed as you like as our AI is amazing at creating scenes. Go wild if you want, or keep it simple. Don't worry about defining the style as you can select that next.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <Textarea
                       value={currentInput}
                       onChange={(e) => setCurrentInput(e.target.value)}
