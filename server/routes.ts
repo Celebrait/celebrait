@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Please help me generate a fictional character design inspired by the visible visual features in this image. Focus on artistic inspiration only, such as hair colour/textures/styles, facial shapes, facial features (nose, ears, lips), facial hair, skin tones, eyewear, feature, and accessories that could inform a stylized version. Avoid describing clothing or making any assumptions about identities or personal characteristics."
+                text: "Please help me generate a fictional character design inspired by the visible visual features in this image by analysing the features for artistic purposes only. Focus on artistic description only, such as hair colour/textures/styles, facial shapes/structure, facial features (nose, ears, mouth, lips), facial hair, skin tones, eyewear, and accessories that could inform a stylized version. Avoid describing clothing or making any assumptions about identities or personal characteristics. Do not make any suggestions about what to do with the description, as I will do this myself."
               },
               {
                 type: "image_url",
