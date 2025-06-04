@@ -45,57 +45,6 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
 
       <div className="grid md:grid-cols-2 gap-6">
         <Card 
-          className="bg-white/80 border-2 border-purple-200 hover:border-ethereal-purple cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-105"
-          onClick={() => handlePrintOptionSelect('front-only')}
-        >
-          <CardContent className="p-6">
-            <img 
-              src="https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" 
-              alt="Front of greeting card design" 
-              className="w-full aspect-square object-cover rounded-xl mb-4" 
-            />
-            
-            <div className="flex items-center mb-3">
-              <div className="w-10 h-10 bg-gradient-celebrait rounded-full flex items-center justify-center mr-3">
-                <Image className="text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-800">Front Only</h3>
-            </div>
-            
-            <ul className="space-y-2 mb-4">
-              <li className="flex items-center text-slate-gray">
-                <Check className="text-green-500 mr-3 w-4 h-4" />
-                AI-designed front cover
-              </li>
-              <li className="flex items-center text-slate-gray">
-                <Check className="text-green-500 mr-3 w-4 h-4" />
-                Write your own message inside
-              </li>
-              <li className="flex items-center text-slate-gray">
-                <Check className="text-green-500 mr-3 w-4 h-4" />
-                Perfect for personal touch
-              </li>
-              <li className="flex items-center text-slate-gray">
-                <Check className="text-green-500 mr-3 w-4 h-4" />
-                Blank interior for handwriting
-              </li>
-            </ul>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold text-ethereal-purple">R89</span>
-              <span className="text-sm text-slate-gray">Standard</span>
-            </div>
-            
-            <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-              <div className="flex items-start space-x-2">
-                <Lightbulb className="text-blue-600 w-4 h-4 mt-0.5" />
-                <p className="text-sm text-blue-700">Great when you want to add your personal handwritten message</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card 
           className="bg-white/80 border-2 border-purple-200 hover:border-ethereal-purple cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-105 relative"
           onClick={() => handlePrintOptionSelect('front-and-inside')}
         >
