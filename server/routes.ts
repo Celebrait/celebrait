@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "For artistic purposes only, describe: Hair (color, texture, length, style, parting), facial hair (beard, mustache, goatee, stubble - style, color, length), facial features (eye color and shape, eyebrow shape, nose shape, lip shape, jawline, cheekbones), skin tone and complexion, age appearance, build and body type, posture, any eyewear (glasses style, color), jewelry (earrings, necklaces, rings, watches), and any other accessories (hats, scarves, badges, etc.). Focus on artistic characteristics only. Do not describe clothing, anything being held or background. Focus on a description that helps with artistic purposes only for my art project."
+                text: "For artistic purposes only, describe the person in this photo: Hair colour and style, facial hair, facial features, facial structure, skin tone and complexion, age appearance, build, eyewear, jewelry, and any other accessories. Focus on artistic characteristics only. Do not describe clothing, anything being held or background. Focus on a description that helps with artistic purposes only for my art project."
               },
               {
                 type: "image_url",
