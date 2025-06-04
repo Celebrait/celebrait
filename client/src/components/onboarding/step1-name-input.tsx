@@ -67,7 +67,7 @@ export default function Step1NameInput({ onboarding }: Step1Props) {
               className="text-gray-500 hover:text-gray-700"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Go Back
+              Go Back a Step
             </Button>
           </div>
         )}

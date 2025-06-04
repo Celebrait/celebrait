@@ -130,7 +130,7 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
           className="text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Go Back
+          Go Back a Step
         </Button>
       </div>
     </div>
