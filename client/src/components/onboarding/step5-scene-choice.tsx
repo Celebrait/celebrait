@@ -23,26 +23,29 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
 
       <div className="grid md:grid-cols-2 gap-6">
         <Card 
-          className="bg-white/80 border-2 border-purple-200 hover:border-ethereal-purple cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-105"
+          className="bg-white/80 border-2 border-purple-200 hover:border-ethereal-purple cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-105 relative"
           onClick={() => handleSceneTypeSelect('with-person')}
         >
+          {/* Photo Upload Available Badge */}
+          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-1 rounded-full text-sm font-bold shadow-lg z-10">
+            Photo Upload Available
+          </div>
           <CardContent className="p-6">
             <img 
-              src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=500" 
+              src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" 
               alt="AI generated artwork with people" 
-              className="w-full h-48 object-cover rounded-xl mb-4" 
+              className="w-full aspect-square object-cover rounded-xl mb-4" 
             />
             
             <div className="flex items-center mb-3">
               <div className="w-10 h-10 bg-gradient-celebrait rounded-full flex items-center justify-center mr-3">
                 <Users className="text-white" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800">Include Your Loved One</h3>
+              <h3 className="text-xl font-bold text-gray-800">Include your loved one or friend</h3>
             </div>
             
             <p className="text-slate-gray mb-4">
-              Create a card featuring your loved one as a character in a fun, artistic scene. 
-              Perfect for birthdays, celebrations, or just because!
+              Artistic representation of your loved one/friend.
             </p>
             
             <ul className="space-y-2">
@@ -56,6 +59,10 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
               </li>
               <li className="flex items-center text-slate-gray text-sm">
                 <Check className="text-green-500 mr-3 w-4 h-4" />
+                Upload a photo or describe what you want!
+              </li>
+              <li className="flex items-center text-slate-gray text-sm">
+                <Check className="text-green-500 mr-3 w-4 h-4" />
                 Highly personalized and unique
               </li>
             </ul>
@@ -65,19 +72,20 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
         <Card 
           className="bg-white/80 border-2 border-gray-300 cursor-not-allowed transition-all duration-300 relative opacity-75"
         >
-          {/* Coming Soon Overlay */}
-          <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center z-10">
-            <div className="bg-white rounded-lg px-6 py-3 shadow-lg">
-              <span className="text-lg font-bold text-gray-800">Coming Soon</span>
-            </div>
-          </div>
-          
           <CardContent className="p-6">
-            <img 
-              src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=500" 
-              alt="Abstract creative artwork" 
-              className="w-full h-48 object-cover rounded-xl mb-4" 
-            />
+            <div className="relative">
+              <img 
+                src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" 
+                alt="Abstract creative artwork" 
+                className="w-full aspect-square object-cover rounded-xl mb-4" 
+              />
+              {/* Coming Soon Overlay positioned over image only */}
+              <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center mb-4">
+                <div className="bg-white rounded-lg px-6 py-3 shadow-lg">
+                  <span className="text-lg font-bold text-gray-800">Coming Soon</span>
+                </div>
+              </div>
+            </div>
             
             <div className="flex items-center mb-3">
               <div className="w-10 h-10 bg-gradient-to-r from-warm-pink to-sa-gold rounded-full flex items-center justify-center mr-3">
