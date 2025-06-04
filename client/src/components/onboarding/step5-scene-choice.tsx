@@ -44,7 +44,7 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
                   <path d="M20 21a8 8 0 1 0-16 0"/>
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-800">Include your loved one or friend</h3>
+              <h3 className="text-xl font-bold text-gray-800">Include Loved One/Friend</h3>
             </div>
             
             <p className="text-slate-gray mb-4">
