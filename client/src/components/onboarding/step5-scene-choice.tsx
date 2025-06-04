@@ -27,7 +27,7 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
           onClick={() => handleSceneTypeSelect('with-person')}
         >
           {/* Photo Upload Available Badge */}
-          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-1 rounded-full text-sm font-bold shadow-lg z-10">
+          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-500 to-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg z-10 whitespace-nowrap">
             Photo Upload Available
           </div>
           <CardContent className="p-6">
@@ -39,7 +39,10 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
             
             <div className="flex items-center mb-3">
               <div className="w-10 h-10 bg-gradient-celebrait rounded-full flex items-center justify-center mr-3">
-                <Users className="text-white" />
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="8" r="5"/>
+                  <path d="M20 21a8 8 0 1 0-16 0"/>
+                </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-800">Include your loved one or friend</h3>
             </div>
@@ -89,7 +92,11 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
             
             <div className="flex items-center mb-3">
               <div className="w-10 h-10 bg-gradient-to-r from-warm-pink to-sa-gold rounded-full flex items-center justify-center mr-3">
-                <Mountain className="text-white" />
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M12 1v6m0 6v6"/>
+                  <path d="m9 9 3 3 3-3"/>
+                </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-800">Just a Scene & Message</h3>
             </div>
