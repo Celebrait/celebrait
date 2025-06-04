@@ -35,9 +35,9 @@ export default function Home() {
       case 3:
         return <Step3PrintedOptions onboarding={onboarding} />;
       case 4:
-        return <Step4AILoading onboarding={onboarding} />;
-      case 5:
         return <Step5SceneChoice onboarding={onboarding} />;
+      case 5:
+        return <Step4AILoading onboarding={onboarding} />;
       case 6:
         return <GuidedConversation onboarding={onboarding} onCardGenerated={handleCardGenerated} />;
       default:
@@ -52,7 +52,7 @@ export default function Home() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!generatedCard && (
           <>
-            {onboarding.currentStep <= 5 && (
+            {onboarding.currentStep <= 4 && (
               <ProgressIndicator currentStep={onboarding.currentStep} />
             )}
             <div className="animate-slide-up">
