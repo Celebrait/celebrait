@@ -648,10 +648,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         // Automatically retry in the background
         console.log(`AI refused to analyze, retrying... (attempt ${retryCount + 1}/${maxRetries})`);
         
-        // Wait a short moment before retrying
+        // Wait a consistent moment before retrying to allow message to be read
         setTimeout(() => {
           analyzePhoto(photoData, retryCount + 1);
-        }, 1000);
+        }, 2500);
         return;
       }
       
@@ -679,7 +679,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
             console.log(`AI provided unhelpful response, retrying... (attempt ${retryCount + 1}/${maxRetries})`);
             setTimeout(() => {
               analyzePhoto(photoData, retryCount + 1);
-            }, 1000);
+            }, 2500);
             return;
           } else {
             // Max retries reached with unhelpful responses
