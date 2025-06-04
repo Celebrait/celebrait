@@ -8,6 +8,15 @@ import { ArrowRight, ArrowLeft, Sparkles, Bot, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
+// Example prompts for the scene description
+const EXAMPLE_PROMPTS = [
+  "Sitting in a cozy coffee shop in Manhattan, wearing a warm burgundy sweater, reading a vintage book with steam rising from a cappuccino, while soft jazz plays and rain gently taps the window",
+  "Dancing freely in a sunlit meadow filled with wildflowers, wearing a flowing summer dress, with butterflies floating around and golden hour light creating a magical glow",
+  "Cooking pasta in a rustic Italian kitchen, wearing a flour-dusted apron, with fresh herbs scattered on marble counters, warm candlelight, and the aroma of garlic and tomatoes filling the air",
+  "Hiking to a mountain summit at sunrise, wearing adventure gear, arms raised in triumph, with misty valleys below and the first rays of sunlight painting the sky in brilliant oranges and pinks",
+  "Painting on a canvas in a bright art studio, wearing paint-splattered clothes, surrounded by colorful artwork, with natural light streaming through large windows and creativity flowing freely"
+];
+
 interface GuidedConversationProps {
   onboarding: any;
   onCardGenerated: (card: any) => void;
@@ -48,14 +57,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Example prompts for the scene description
-  const examplePrompts = [
-    "Sitting in a cozy coffee shop in Manhattan, wearing a warm burgundy sweater, reading a vintage book with steam rising from a cappuccino, while soft jazz plays and rain gently taps the window",
-    "Dancing freely in a sunlit meadow filled with wildflowers, wearing a flowing summer dress, with butterflies floating around and golden hour light creating a magical glow",
-    "Cooking pasta in a rustic Italian kitchen, wearing a flour-dusted apron, with fresh herbs scattered on marble counters, warm candlelight, and the aroma of garlic and tomatoes filling the air",
-    "Hiking to a mountain summit at sunrise, wearing adventure gear, arms raised in triumph, with misty valleys below and the first rays of sunlight painting the sky in brilliant oranges and pinks",
-    "Painting on a canvas in a bright art studio, wearing paint-splattered clothes, surrounded by colorful artwork, with natural light streaming through large windows and creativity flowing freely"
-  ];
+
 
   const steps: ConversationStep[] = [
     {
@@ -493,10 +495,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
   // Handle rotating example prompts for scene description
   useEffect(() => {
+    console.log('Scene effect triggered:', {
+      stepId: currentStep.id,
+      userHasTyped,
+      currentExampleIndex
+    });
+    
     if (currentStep.id === 'scene' && !userHasTyped) {
       const typeText = async () => {
+        console.log('Starting to type example:', currentExampleIndex);
         setIsTypingExample(true);
-        const currentPrompt = examplePrompts[currentExampleIndex];
+        const currentPrompt = EXAMPLE_PROMPTS[currentExampleIndex];
         
         // Clear existing text
         setPlaceholderText('');
@@ -511,7 +520,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         
         // Wait 3 seconds before moving to next example
         setTimeout(() => {
-          setCurrentExampleIndex((prev) => (prev + 1) % examplePrompts.length);
+          setCurrentExampleIndex((prev) => (prev + 1) % EXAMPLE_PROMPTS.length);
         }, 3000);
       };
       
