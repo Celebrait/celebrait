@@ -41,8 +41,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [analysisSuccess, setAnalysisSuccess] = useState(false);
+  const [placeholderText, setPlaceholderText] = useState('');
+  const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
+  const [isTypingExample, setIsTypingExample] = useState(false);
+  const [userHasTyped, setUserHasTyped] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Example prompts for the scene description
+  const examplePrompts = [
+    "Sitting in a cozy coffee shop in Manhattan, wearing a warm burgundy sweater, reading a vintage book with steam rising from a cappuccino, while soft jazz plays and rain gently taps the window",
+    "Dancing freely in a sunlit meadow filled with wildflowers, wearing a flowing summer dress, with butterflies floating around and golden hour light creating a magical glow",
+    "Cooking pasta in a rustic Italian kitchen, wearing a flour-dusted apron, with fresh herbs scattered on marble counters, warm candlelight, and the aroma of garlic and tomatoes filling the air",
+    "Hiking to a mountain summit at sunrise, wearing adventure gear, arms raised in triumph, with misty valleys below and the first rays of sunlight painting the sky in brilliant oranges and pinks",
+    "Painting on a canvas in a bright art studio, wearing paint-splattered clothes, surrounded by colorful artwork, with natural light streaming through large windows and creativity flowing freely"
+  ];
 
   const steps: ConversationStep[] = [
     {
@@ -477,6 +490,43 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     const timer = setTimeout(() => setIsTyping(false), 1000);
     return () => clearTimeout(timer);
   }, [currentStepIndex]);
+
+  // Handle rotating example prompts for scene description
+  useEffect(() => {
+    if (currentStep.id === 'scene' && !userHasTyped) {
+      const typeText = async () => {
+        setIsTypingExample(true);
+        const currentPrompt = examplePrompts[currentExampleIndex];
+        
+        // Clear existing text
+        setPlaceholderText('');
+        
+        // Type out the text character by character
+        for (let i = 0; i <= currentPrompt.length; i++) {
+          setPlaceholderText(currentPrompt.slice(0, i));
+          await new Promise(resolve => setTimeout(resolve, 30));
+        }
+        
+        setIsTypingExample(false);
+        
+        // Wait 3 seconds before moving to next example
+        setTimeout(() => {
+          setCurrentExampleIndex((prev) => (prev + 1) % examplePrompts.length);
+        }, 3000);
+      };
+      
+      const timer = setTimeout(typeText, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep.id, currentExampleIndex, userHasTyped]);
+
+  // Reset user typing state when entering scene step
+  useEffect(() => {
+    if (currentStep.id === 'scene') {
+      setUserHasTyped(false);
+      setCurrentInput('');
+    }
+  }, [currentStep.id]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1866,9 +1916,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             </svg>
                           </div>
                           <div className="ml-3">
-                            <h3 className="text-sm font-semibold text-blue-800">Top tip for best results:</h3>
+                            <h3 className="text-sm font-semibold text-blue-800">💡 Pro tip:</h3>
                             <p className="text-sm text-blue-700 mt-1">
-                              The more specific the better. Be as detailed as you like as our AI is amazing at creating scenes. Go wild if you want, or keep it simple. Don't worry about defining the style as you can select that next.
+                              Paint us a picture with your words! The more vivid your description, the more amazing your card will be. Our AI loves details, so feel free to get creative or keep it simple - whatever feels right. Don't worry about art style - that's coming up next!
                             </p>
                           </div>
                         </div>
@@ -1876,8 +1926,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                     )}
                     <Textarea
                       value={currentInput}
-                      onChange={(e) => setCurrentInput(e.target.value)}
-                      placeholder={currentStep.placeholder}
+                      onChange={(e) => {
+                        setCurrentInput(e.target.value);
+                        if (currentStep.id === 'scene' && !userHasTyped) {
+                          setUserHasTyped(true);
+                          setPlaceholderText('');
+                        }
+                      }}
+                      onFocus={() => {
+                        if (currentStep.id === 'scene') {
+                          setUserHasTyped(true);
+                          setPlaceholderText('');
+                        }
+                      }}
+                      placeholder={currentStep.id === 'scene' && !userHasTyped ? placeholderText : currentStep.placeholder}
                       className="text-lg p-4 min-h-[120px] rounded-xl border-purple-200 focus:border-purple-400"
                       autoFocus
                     />
