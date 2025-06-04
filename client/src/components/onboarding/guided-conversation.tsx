@@ -1636,7 +1636,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       {currentStep.options?.map((option) => {
                         const isDisabled = (option as any).disabled;
                         return (
-                        <div
+                          <div
                           key={option.value}
                           onClick={isDisabled ? undefined : () => handleAnswer(option.value)}
                           className={`bg-white rounded-xl p-6 border-2 transition-all duration-300 relative ${
@@ -1678,7 +1678,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               <p className="text-sm text-purple-600 font-medium">{option.details}</p>
                             </div>
                           </div>
-                        </div>
+                          </div>
                         );
                       })}
                     </div>
