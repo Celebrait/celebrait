@@ -1902,6 +1902,22 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           </div>
         </div>
       </div>
+
+      {/* Persistent Back to Card Selection Button */}
+      <div className="p-4 bg-white border-t border-gray-200">
+        <div className="flex justify-center">
+          <Button 
+            onClick={() => {
+              onboarding.setCurrentStep(2);
+            }}
+            variant="outline"
+            className="px-6 py-2 rounded-xl border-gray-300 text-gray-600 hover:bg-gray-50"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Card Selection
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
