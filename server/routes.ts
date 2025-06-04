@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "The owner of this photo has given permission to use the photo for artistic reference purposes. Describe the visual characteristics in this image for artistic reference only: Hair (color, texture, length, style, parting), facial hair (beard, mustache, goatee, stubble - style, color, length), facial features (eye color and shape, eyebrow shape, nose shape, lip shape, jawline, cheekbones), skin tone and complexion, age appearance, build and body type, posture, any eyewear (glasses style, color), jewelry (earrings, necklaces, rings, watches), and any other accessories (hats, scarves, badges, etc.). Focus on artistic characteristics only. Do not describe clothing, anything being held or background. Cast no judgement in your analysis."
+                text: "For character design purposes, describe the visual characteristics of this image for artistic reference only with comprehensive detail: Hair (color, texture, length, style, parting), facial hair (beard, mustache, goatee, stubble - style, color, length), facial features (eye color and shape, eyebrow shape, nose shape, lip shape, jawline, cheekbones), skin tone and complexion, age appearance, build and body type, posture, any eyewear (glasses style, color), jewelry (earrings, necklaces, rings, watches), and any other accessories (hats, scarves, badges, etc.). Focusing on artistic characteristics only. Do not describe clothing."
               },
               {
                 type: "image_url",
