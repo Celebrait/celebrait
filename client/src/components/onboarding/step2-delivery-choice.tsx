@@ -72,15 +72,22 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
         </Card>
 
         <Card 
-          className="bg-white/80 border-2 border-purple-200 hover:border-ethereal-purple cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-105"
-          onClick={() => handleDeliverySelect('digital')}
+          className="bg-white/80 border-2 border-gray-300 cursor-not-allowed transition-all duration-300 relative opacity-75"
         >
           <CardContent className="p-6">
-            <img 
-              src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=500" 
-              alt="Digital greeting cards on mobile" 
-              className="w-full h-48 object-cover rounded-xl mb-4" 
-            />
+            <div className="relative">
+              <img 
+                src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=500" 
+                alt="Digital greeting cards on mobile" 
+                className="w-full h-48 object-cover rounded-xl mb-4" 
+              />
+              {/* Coming Soon Overlay positioned over image only */}
+              <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center mb-4">
+                <div className="bg-white rounded-lg px-6 py-3 shadow-lg">
+                  <span className="text-lg font-bold text-gray-800">Coming Soon</span>
+                </div>
+              </div>
+            </div>
             
             <div className="flex items-center mb-3">
               <div className="w-10 h-10 bg-gradient-to-r from-warm-pink to-sa-gold rounded-full flex items-center justify-center mr-3">
