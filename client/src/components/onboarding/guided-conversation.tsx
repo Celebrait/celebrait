@@ -27,7 +27,7 @@ interface ConversationStep {
   question: string;
   aiMessage: string;
   type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload' | 'photo_creation_choice';
-  options?: Array<{ value: string; label: string; description?: string; color?: string; icon?: string; details?: string }>;
+  options?: Array<{ value: string; label: string; description?: string; color?: string; icon?: string; details?: string; disabled?: boolean }>;
   placeholder?: string;
   required?: boolean;
 }
@@ -126,20 +126,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           details: 'Perfect for creating personalized scenes with accurate likeness'
         },
         { 
-          value: 'upload_and_transform', 
-          label: 'Upload Photo + Transform Style', 
-          description: 'Upload a photo and I\'ll transform it into different artistic styles',
-          color: 'bg-purple-500',
-          icon: 'palette',
-          details: 'Great for artistic transformations of existing photos'
-        },
-        { 
           value: 'describe_person', 
           label: 'Describe Person + Describe Scene', 
           description: 'I\'ll create everything based on your descriptions',
           color: 'bg-blue-500',
           icon: 'edit',
           details: 'Ideal when you don\'t have a photo but can describe them'
+        },
+        { 
+          value: 'upload_and_transform', 
+          label: 'Upload Photo + Transform Style', 
+          description: 'Upload a photo and I\'ll transform it into different artistic styles',
+          color: 'bg-gray-500',
+          icon: 'palette',
+          details: 'Great for artistic transformations of existing photos',
+          disabled: true
         }
       ]
     },
@@ -1632,12 +1633,25 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 {currentStep.type === 'photo_creation_choice' && (
                   <div className="space-y-6">
                     <div className="grid gap-6">
-                      {currentStep.options?.map((option) => (
+                      {currentStep.options?.map((option) => {
+                        const isDisabled = (option as any).disabled;
+                        return (
                         <div
                           key={option.value}
-                          onClick={() => handleAnswer(option.value)}
-                          className="bg-white rounded-xl p-6 border-2 border-purple-200 hover:border-purple-400 cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-[1.02]"
+                          onClick={isDisabled ? undefined : () => handleAnswer(option.value)}
+                          className={`bg-white rounded-xl p-6 border-2 transition-all duration-300 relative ${
+                            isDisabled 
+                              ? 'border-gray-300 cursor-not-allowed opacity-75' 
+                              : 'border-purple-200 hover:border-purple-400 cursor-pointer hover:shadow-lg transform hover:scale-[1.02]'
+                          }`}
                         >
+                          {isDisabled && (
+                            <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center z-10">
+                              <div className="bg-white rounded-lg px-6 py-3 shadow-lg">
+                                <span className="text-lg font-bold text-gray-800">Coming Soon</span>
+                              </div>
+                            </div>
+                          )}
                           <div className="flex items-start space-x-4">
                             <div className={`w-12 h-12 ${option.color} rounded-full flex items-center justify-center flex-shrink-0`}>
                               {option.icon === 'camera' && (
@@ -1665,7 +1679,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             </div>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
