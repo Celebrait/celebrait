@@ -33,9 +33,9 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
         >
           <CardContent className="p-6">
             <img 
-              src="https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=500" 
+              src="https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" 
               alt="Printed greeting cards" 
-              className="w-full h-48 object-cover rounded-xl mb-4" 
+              className="w-full aspect-square object-cover rounded-xl mb-4" 
             />
             
             <div className="flex items-center mb-3">
@@ -48,19 +48,19 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
             <ul className="space-y-2 mb-4">
               <li className="flex items-center text-slate-gray">
                 <Check className="text-green-500 mr-3 w-4 h-4" />
-                Premium quality cardstock
+                Personalised AI image featuring loved one/friend
               </li>
               <li className="flex items-center text-slate-gray">
                 <Check className="text-green-500 mr-3 w-4 h-4" />
-                Direct delivery to loved one
+                Personalised message on front of card
               </li>
               <li className="flex items-center text-slate-gray">
                 <Check className="text-green-500 mr-3 w-4 h-4" />
-                Handwritten message option
+                Personalised message inside card
               </li>
               <li className="flex items-center text-slate-gray">
                 <Check className="text-green-500 mr-3 w-4 h-4" />
-                Includes envelope
+                Hand delivered to you by Aidan in Hout Bay
               </li>
             </ul>
             
@@ -77,9 +77,9 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
           <CardContent className="p-6">
             <div className="relative">
               <img 
-                src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=500" 
+                src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=400" 
                 alt="Digital greeting cards on mobile" 
-                className="w-full h-48 object-cover rounded-xl mb-4" 
+                className="w-full aspect-square object-cover rounded-xl mb-4" 
               />
               {/* Coming Soon Overlay positioned over image only */}
               <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center mb-4">
