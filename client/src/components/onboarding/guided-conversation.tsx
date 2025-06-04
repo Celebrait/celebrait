@@ -605,7 +605,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   };
 
   const analyzePhoto = async (photoData: string, retryCount = 0) => {
-    const maxRetries = 5;
+    const maxRetries = 10;
     setIsAnalyzingPhoto(true);
     setAnalysisError(null);
     setRetryAttempt(retryCount);
@@ -1709,28 +1709,32 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
                         {isAnalyzingPhoto && (
                           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <div className="flex items-center space-x-3">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                              <div>
-                                <p className="text-blue-700 font-medium">Analyzing your photo...</p>
-                                {retryAttempt > 0 && (
-                                  <p className="text-blue-600 text-sm mt-1">
-                                    Attempt {retryAttempt + 1} of 5 - AI is being cautious, trying again
-                                  </p>
-                                )}
-                              </div>
+                            <div className="flex flex-col items-center justify-center text-center space-y-2">
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                              <p className="text-blue-700 font-medium">
+                                {retryAttempt === 0 && "Analyzing your photo..."}
+                                {retryAttempt === 1 && "Still analyzing, won't be long..."}
+                                {retryAttempt === 2 && "Getting a better look at the details..."}
+                                {retryAttempt === 3 && "Almost there, just checking the finer points..."}
+                                {retryAttempt === 4 && "Taking our time to get it right..."}
+                                {retryAttempt === 5 && "Being extra thorough with the analysis..."}
+                                {retryAttempt === 6 && "Making sure we capture every detail..."}
+                                {retryAttempt === 7 && "Nearly done, finalizing the description..."}
+                                {retryAttempt === 8 && "Just a moment longer, perfecting the analysis..."}
+                                {retryAttempt >= 9 && "Putting the finishing touches on your analysis..."}
+                              </p>
                             </div>
                           </div>
                         )}
 
                         {analysisSuccess && !isAnalyzingPhoto && (
                           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <div className="flex items-center space-x-3">
+                            <div className="flex flex-col items-center justify-center text-center space-y-2">
                               <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                               <p className="text-green-700 font-medium">
-                                Photo analysis successful! {retryAttempt > 0 && `(Got it on attempt ${retryAttempt + 1})`}
+                                Photo analysis successful!
                               </p>
                             </div>
                           </div>
