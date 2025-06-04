@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Bot, User, Send, Shield, ChevronDown, Heart, Gift, PartyPopper, GraduationCap, Baby, Cake } from "lucide-react";
+import { Bot, User, Send, Shield, ChevronDown, Heart, Gift, PartyPopper, GraduationCap, Baby, Cake, Calendar, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -46,8 +46,8 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
 
   const mainCelebrations = [
     { name: "Birthday", icon: Cake, color: "bg-pink-500" },
-    { name: "Anniversary", icon: Heart, color: "bg-red-500" },
-    { name: "Wedding", icon: Gift, color: "bg-purple-500" },
+    { name: "Anniversary", icon: Calendar, color: "bg-red-500" },
+    { name: "Wedding", icon: Sparkles, color: "bg-purple-500" },
     { name: "Graduation", icon: GraduationCap, color: "bg-blue-500" },
     { name: "New Baby", icon: Baby, color: "bg-green-500" }
   ];
