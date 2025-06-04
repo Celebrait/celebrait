@@ -130,8 +130,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'photo_upload',
-      question: `Please upload a photo of ${answers.name || 'them'}`,
-      aiMessage: `Perfect! Please upload a clear photo of ${answers.name || 'them'}. I'll use this to create an artistic representation that captures their likeness while fitting the style you choose.`,
+      question: answers.photo_option === 'upload_and_transform' 
+        ? `Please upload a photo for style transformation`
+        : `Please upload a photo of ${answers.name || 'them'}`,
+      aiMessage: answers.photo_option === 'upload_and_transform'
+        ? `Perfect! Please upload a clear photo that you'd like me to transform into different artistic styles. I'll apply the artistic style you choose while maintaining the essence of the original image.`
+        : `Perfect! Please upload a clear photo of ${answers.name || 'them'}. I'll use this to create an artistic representation that captures their likeness while fitting the style you choose.`,
       type: 'photo_upload',
       required: true
     },
@@ -1623,13 +1627,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                 </svg>
                               </div>
                               <div>
-                                <h3 className="text-lg font-semibold text-purple-700">Upload a Photo</h3>
-                                <p className="text-gray-600 mt-2">Click here to select a clear photo. The AI will create an artistic representation while maintaining their likeness.</p>
-                                <div className="mt-3 p-2 bg-amber-100 border border-amber-300 rounded-lg">
-                                  <p className="text-amber-900 text-sm font-medium text-center">
-                                    <strong>Important:</strong> Photo must feature one person only. Avoid group photos, distant shots, or images with heavy filters.
-                                  </p>
-                                </div>
+                                <h3 className="text-lg font-semibold text-purple-700">
+                                  {answers.photo_option === 'upload_and_transform' ? 'Upload Photo for Style Transformation' : 'Upload a Photo'}
+                                </h3>
+                                <p className="text-gray-600 mt-2">
+                                  {answers.photo_option === 'upload_and_transform' 
+                                    ? 'Click here to select a photo that you\'d like to transform into different artistic styles.'
+                                    : 'Click here to select a clear photo. The AI will create an artistic representation while maintaining their likeness.'
+                                  }
+                                </p>
                               </div>
                             </div>
                           </label>
