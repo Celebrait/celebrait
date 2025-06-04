@@ -194,45 +194,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate inside card if requested
       if (cardOption === 'front-and-inside' && insideText) {
-        console.log("Generating inside card using front card as visual reference");
+        const insidePrompt = `Create the inside of a greeting card in ${stylePrompt} style. Use similar colors, textures, and artistic elements from the front card design. Display the message "${insideText}" in elegant typography that matches the front card style. Layout should be clean and readable like a traditional greeting card interior with the text centered and beautifully formatted.`;
         
-        // First, analyze the front card image to extract style elements
-        const frontImageBase64 = frontResponse.data[0].b64_json || frontImageUrl.split(',')[1];
-        const styleAnalysisPrompt = `Analyze this greeting card image and describe the exact artistic style, color palette, visual effects, lighting, texture, and overall aesthetic. Focus on style elements that should be replicated in a matching design.`;
-        
-        let styleAnalysis = "";
-        try {
-          const analysisResponse = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "text",
-                    text: styleAnalysisPrompt
-                  },
-                  {
-                    type: "image_url",
-                    image_url: {
-                      url: `data:image/png;base64,${frontImageBase64}`
-                    }
-                  }
-                ]
-              }
-            ],
-            max_tokens: 300
-          });
-          
-          styleAnalysis = analysisResponse.choices[0].message.content || "";
-          console.log("Front card style analysis:", styleAnalysis.substring(0, 100) + "...");
-        } catch (error: any) {
-          console.log("Style analysis failed, using fallback approach:", error.message);
-          styleAnalysis = `${stylePrompt} style with consistent visual treatment`;
-        }
-        
-        // Generate inside card with enhanced style matching
-        const insidePrompt = `Full-bleed square greeting card interior, no borders, no background, no card mockup. EXACT STYLE REPLICATION: Create an inside card that matches this style description: "${styleAnalysis}". Use identical color palette, artistic treatment, lighting, and visual effects. Clean typography layout with centered text: "${insideText}". The background should be a subtle, complementary design that harmonizes with the front card's aesthetic. Print-ready artwork filling entire frame with perfect visual consistency.`;
+        console.log("Generating inside card with matching style");
         
         let insideResponse;
         try {
@@ -243,7 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             quality: "high",
             n: 1
           });
-          console.log("Successfully used gpt-image-1 for inside card generation with style analysis");
+          console.log("Successfully used gpt-image-1 for inside card generation");
         } catch (gptError: any) {
           console.log("gpt-image-1 not available for inside card, falling back to dall-e-3:", gptError.message);
           
@@ -596,59 +560,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate inside image if provided
       if (insidePrompt) {
-        console.log('Generating inside card using front card as visual reference');
+        console.log('Using model: gpt-image-1 for inside image');
         
-        // First, analyze the front card image to extract style elements
-        const frontImageBase64 = frontResponse.data?.[0]?.b64_json;
-        if (!frontImageBase64) {
-          console.log('No front card image data available for analysis');
-          return res.status(500).json({ message: "Front card generation failed" });
+        let finalInsidePrompt = insidePrompt;
+        
+        // If we have photo analysis and the inside prompt mentions character elements, integrate the analysis
+        if (photoData && photoAnalysis && (insidePrompt.includes('character') || insidePrompt.includes('person'))) {
+          console.log('Integrating photo analysis into inside prompt');
+          finalInsidePrompt = insidePrompt.replace(
+            'person with these specific characteristics',
+            `person with these specific characteristics: ${photoAnalysis}`
+          );
         }
         
-        const styleAnalysisPrompt = `Analyze this greeting card image and describe the exact artistic style, color palette, visual effects, lighting, texture, and overall aesthetic. Focus on style elements that should be replicated in a matching design.`;
+        // Extract color and style information from front prompt for consistency
+        const artStyle = frontPrompt.includes('watercolor') ? 'watercolor' : 
+                        frontPrompt.includes('cartoon') ? 'cartoon' :
+                        frontPrompt.includes('realistic') ? 'realistic' :
+                        frontPrompt.includes('digital_art') ? 'digital art' :
+                        frontPrompt.includes('pop_art') ? 'pop art' :
+                        frontPrompt.includes('oil_painting') ? 'oil painting' : 'artistic';
         
-        let styleAnalysis = "";
-        try {
-          const analysisResponse = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "text",
-                    text: styleAnalysisPrompt
-                  },
-                  {
-                    type: "image_url",
-                    image_url: {
-                      url: `data:image/png;base64,${frontImageBase64}`
-                    }
-                  }
-                ]
-              }
-            ],
-            max_tokens: 300
-          });
-          
-          styleAnalysis = analysisResponse.choices[0].message.content || "";
-          console.log("Front card style analysis:", styleAnalysis.substring(0, 100) + "...");
-        } catch (error: any) {
-          console.log("Style analysis failed, using fallback approach:", error.message);
-          // Extract basic style info from front prompt as fallback
-          const artStyle = frontPrompt.includes('watercolor') ? 'watercolor' : 
-                          frontPrompt.includes('cartoon') ? 'cartoon' :
-                          frontPrompt.includes('realistic') ? 'realistic' :
-                          frontPrompt.includes('digital_art') ? 'digital art' :
-                          frontPrompt.includes('pop_art') ? 'pop art' :
-                          frontPrompt.includes('oil_painting') ? 'oil painting' : 'vintage art';
-          styleAnalysis = `${artStyle} style with consistent visual treatment`;
-        }
+        // Extract text from front prompt to understand typography
+        const frontTextMatch = frontPrompt.match(/with the text "([^"]+)"/);
+        const frontText = frontTextMatch ? frontTextMatch[1] : '';
         
-        // Generate inside card with enhanced style matching
-        const enhancedInsidePrompt = `Full-bleed square greeting card interior, no borders, no background, no card mockup. EXACT STYLE REPLICATION: Create an inside card that matches this style description: "${styleAnalysis}". Use identical color palette, artistic treatment, lighting, and visual effects. Clean typography layout with centered text from the inside prompt: "${insidePrompt}". The background should be a subtle, complementary design that harmonizes with the front card's aesthetic. Print-ready artwork filling entire frame with perfect visual consistency.`;
+        // Extract scene information from front prompt for subtle background reference
+        const sceneMatch = frontPrompt.match(/in (.+?),/);
+        const sceneDescription = sceneMatch ? sceneMatch[1] : '';
         
-        console.log('Using model: gpt-image-1 for inside image with visual style analysis');
+        const enhancedInsidePrompt = `${finalInsidePrompt}. REFERENCE FRONT CARD: The front card uses "${frontText}" in ${artStyle} style with scene: ${sceneDescription}. EXACT MATCHING REQUIRED: 1) Use IDENTICAL typography style, font family, text weight, letter spacing, and color treatment as the front card text. 2) Create a subtle background that makes artistic reference to the front card scene (${sceneDescription}) without overwhelming the message - use similar colors, lighting mood, or abstract elements from that setting. 3) Match the exact color palette, artistic texture, and visual mood from the front card. 4) Ensure the typography looks like it was designed by the same artist using the same font system. The inside should feel like a perfect companion piece to the front card.`;
         
         const insideImageGeneration = await openai.images.generate({
           model: "gpt-image-1", 
