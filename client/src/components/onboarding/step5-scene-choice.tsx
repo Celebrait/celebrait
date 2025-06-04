@@ -63,9 +63,15 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
         </Card>
 
         <Card 
-          className="bg-white/80 border-2 border-purple-200 hover:border-ethereal-purple cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-105"
-          onClick={() => handleSceneTypeSelect('scene-only')}
+          className="bg-white/80 border-2 border-gray-300 cursor-not-allowed transition-all duration-300 relative opacity-75"
         >
+          {/* Coming Soon Overlay */}
+          <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center z-10">
+            <div className="bg-white rounded-lg px-6 py-3 shadow-lg">
+              <span className="text-lg font-bold text-gray-800">Coming Soon</span>
+            </div>
+          </div>
+          
           <CardContent className="p-6">
             <img 
               src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=500" 
