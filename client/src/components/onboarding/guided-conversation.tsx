@@ -1713,15 +1713,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                               <p className="text-blue-700 font-medium">
                                 {retryAttempt === 0 && "Analyzing your photo..."}
-                                {retryAttempt === 1 && "Still analyzing, won't be long..."}
-                                {retryAttempt === 2 && "Getting a better look at the details..."}
-                                {retryAttempt === 3 && "Almost there, just checking the finer points..."}
-                                {retryAttempt === 4 && "Taking our time to get it right..."}
-                                {retryAttempt === 5 && "Being extra thorough with the analysis..."}
-                                {retryAttempt === 6 && "Making sure we capture every detail..."}
-                                {retryAttempt === 7 && "Nearly done, finalizing the description..."}
-                                {retryAttempt === 8 && "Just a moment longer, perfecting the analysis..."}
-                                {retryAttempt >= 9 && "Putting the finishing touches on your analysis..."}
+                                {retryAttempt === 1 && "Examining the visual details..."}
+                                {retryAttempt === 2 && "Processing the image characteristics..."}
+                                {retryAttempt === 3 && "Studying the artistic features..."}
+                                {retryAttempt === 4 && "Reviewing the visual elements..."}
+                                {retryAttempt === 5 && "Analyzing the composition..."}
+                                {retryAttempt === 6 && "Processing the image data..."}
+                                {retryAttempt === 7 && "Examining the visual attributes..."}
+                                {retryAttempt === 8 && "Analyzing the artistic details..."}
+                                {retryAttempt >= 9 && "Processing the visual information..."}
                               </p>
                             </div>
                           </div>
