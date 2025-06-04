@@ -1662,9 +1662,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             </div>
                           </div>
                           
-                          <div className="mt-4 p-3 bg-blue-100 rounded-lg">
-                            <p className="text-blue-800 text-sm">
-                              <strong>Pro Tip:</strong> Portrait-style photos work best! Avoid group photos, distant shots, or images with heavy filters.
+                          <div className="mt-4 p-4 bg-amber-100 border-2 border-amber-300 rounded-lg">
+                            <p className="text-amber-900 text-base font-semibold">
+                              <strong>Important:</strong> Photo must feature one person only. Avoid group photos, distant shots, or images with heavy filters.
                             </p>
                           </div>
                         </div>
