@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, ArrowLeft, Sparkles, Bot, User } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ArrowRight, ArrowLeft, Sparkles, Bot, User, Info, Camera, Palette, MessageSquare, Upload, Wand2, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -1564,41 +1565,223 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
                 {currentStep.type === 'photo_creation_choice' && (
                   <div className="space-y-6">
-                    <div className="grid gap-6">
-                      {currentStep.options?.map((option) => (
-                        <div
-                          key={option.value}
-                          onClick={() => handleAnswer(option.value)}
-                          className="bg-white rounded-xl p-6 border-2 border-purple-200 hover:border-purple-400 cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-[1.02]"
-                        >
-                          <div className="flex items-start space-x-4">
-                            <div className={`w-12 h-12 ${option.color} rounded-full flex items-center justify-center flex-shrink-0`}>
-                              {option.icon === 'camera' && (
-                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                              )}
-                              {option.icon === 'palette' && (
-                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM7 3H5a2 2 0 00-2 2v12a4 4 0 004 4h2a2 2 0 002-2V5a2 2 0 00-2-2z" />
-                                  <circle cx="16" cy="8" r="6" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
-                                </svg>
-                              )}
-                              {option.icon === 'edit' && (
-                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              )}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      
+                      {/* Option 1: Upload Photo + Describe Scene */}
+                      <Card className="bg-white border-2 border-purple-200 hover:border-purple-400 transition-all duration-300 hover:shadow-lg">
+                        <CardContent className="p-6">
+                          <div className="flex items-center mb-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mr-3">
+                              <Upload className="text-white w-5 h-5" />
                             </div>
-                            <div className="flex-1">
-                              <h3 className="font-bold text-lg text-gray-800 mb-2">{option.label}</h3>
-                              <p className="text-gray-600 mb-3">{option.description}</p>
-                              <p className="text-sm text-purple-600 font-medium">{option.details}</p>
-                            </div>
+                            <h3 className="text-lg font-bold text-gray-800">Upload Photo + Scene</h3>
                           </div>
-                        </div>
-                      ))}
+                          
+                          <p className="text-slate-gray text-sm mb-4">
+                            Upload their photo and describe the scene you want them in. AI creates an artistic version.
+                          </p>
+                          
+                          <div className="space-y-3">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="w-full mb-3">
+                                  <Info className="w-4 h-4 mr-2" />
+                                  How it works
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-3xl">
+                                <DialogHeader>
+                                  <DialogTitle>Upload Photo + Describe Scene</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <p className="text-gray-600">AI analyzes your uploaded photo to understand their appearance, then places them artistically in your described scene.</p>
+                                  
+                                  <div className="grid md:grid-cols-2 gap-4">
+                                    <div className="text-center">
+                                      <div className="bg-gray-100 rounded-lg p-6 mb-2 h-48 flex items-center justify-center">
+                                        <div className="text-center">
+                                          <Camera className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                                          <p className="text-sm text-gray-500">Your uploaded photo</p>
+                                        </div>
+                                      </div>
+                                      <p className="text-sm font-medium">BEFORE: Original Photo</p>
+                                    </div>
+                                    <div className="text-center">
+                                      <div className="bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg p-6 mb-2 h-48 flex items-center justify-center">
+                                        <div className="text-center">
+                                          <Palette className="w-12 h-12 mx-auto mb-2 text-purple-500" />
+                                          <p className="text-sm text-purple-600">Artistic scene with them</p>
+                                        </div>
+                                      </div>
+                                      <p className="text-sm font-medium">AFTER: AI Artwork</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="bg-blue-50 p-4 rounded-lg">
+                                    <h4 className="font-medium mb-2">Best for:</h4>
+                                    <ul className="text-sm space-y-1">
+                                      <li>• Most realistic representation</li>
+                                      <li>• When you have a clear photo</li>
+                                      <li>• Custom scene ideas</li>
+                                    </ul>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                            
+                            <Button 
+                              onClick={() => handleAnswer('upload_and_scene')}
+                              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                            >
+                              Choose This Option
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Option 2: Upload Photo + Transform Style */}
+                      <Card className="bg-white border-2 border-purple-200 hover:border-purple-400 transition-all duration-300 hover:shadow-lg">
+                        <CardContent className="p-6">
+                          <div className="flex items-center mb-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mr-3">
+                              <Wand2 className="text-white w-5 h-5" />
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-800">Upload + Transform</h3>
+                          </div>
+                          
+                          <p className="text-slate-gray text-sm mb-4">
+                            Upload their photo and transform it into different artistic styles and characters.
+                          </p>
+                          
+                          <div className="space-y-3">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="w-full mb-3">
+                                  <Info className="w-4 h-4 mr-2" />
+                                  How it works
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-3xl">
+                                <DialogHeader>
+                                  <DialogTitle>Upload Photo + Transform Style</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <p className="text-gray-600">AI transforms your uploaded photo into different artistic styles, costumes, or character representations while maintaining their likeness.</p>
+                                  
+                                  <div className="grid md:grid-cols-2 gap-4">
+                                    <div className="text-center">
+                                      <div className="bg-gray-100 rounded-lg p-6 mb-2 h-48 flex items-center justify-center">
+                                        <div className="text-center">
+                                          <Camera className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                                          <p className="text-sm text-gray-500">Your uploaded photo</p>
+                                        </div>
+                                      </div>
+                                      <p className="text-sm font-medium">BEFORE: Original Photo</p>
+                                    </div>
+                                    <div className="text-center">
+                                      <div className="bg-gradient-to-br from-pink-100 to-purple-100 rounded-lg p-6 mb-2 h-48 flex items-center justify-center">
+                                        <div className="text-center">
+                                          <Wand2 className="w-12 h-12 mx-auto mb-2 text-pink-500" />
+                                          <p className="text-sm text-pink-600">Transformed character</p>
+                                        </div>
+                                      </div>
+                                      <p className="text-sm font-medium">AFTER: Style Transform</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="bg-purple-50 p-4 rounded-lg">
+                                    <h4 className="font-medium mb-2">Best for:</h4>
+                                    <ul className="text-sm space-y-1">
+                                      <li>• Fun character transformations</li>
+                                      <li>• Costume/style changes</li>
+                                      <li>• Creative interpretations</li>
+                                    </ul>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                            
+                            <Button 
+                              onClick={() => handleAnswer('upload_and_transform')}
+                              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                            >
+                              Choose This Option
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Option 3: Describe Person + Scene */}
+                      <Card className="bg-white border-2 border-purple-200 hover:border-purple-400 transition-all duration-300 hover:shadow-lg">
+                        <CardContent className="p-6">
+                          <div className="flex items-center mb-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mr-3">
+                              <MessageSquare className="text-white w-5 h-5" />
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-800">Describe Everything</h3>
+                          </div>
+                          
+                          <p className="text-slate-gray text-sm mb-4">
+                            Describe their appearance and the scene. AI creates everything from your descriptions.
+                          </p>
+                          
+                          <div className="space-y-3">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="w-full mb-3">
+                                  <Info className="w-4 h-4 mr-2" />
+                                  How it works
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-3xl">
+                                <DialogHeader>
+                                  <DialogTitle>Describe Person + Scene</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <p className="text-gray-600">AI creates both the person and scene entirely from your text descriptions. No photo needed - just tell us what they look like and what scene you want.</p>
+                                  
+                                  <div className="grid md:grid-cols-2 gap-4">
+                                    <div className="text-center">
+                                      <div className="bg-gray-100 rounded-lg p-6 mb-2 h-48 flex items-center justify-center">
+                                        <div className="text-center">
+                                          <MessageSquare className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                                          <p className="text-sm text-gray-500">Your descriptions</p>
+                                        </div>
+                                      </div>
+                                      <p className="text-sm font-medium">BEFORE: Text Descriptions</p>
+                                    </div>
+                                    <div className="text-center">
+                                      <div className="bg-gradient-to-br from-green-100 to-blue-100 rounded-lg p-6 mb-2 h-48 flex items-center justify-center">
+                                        <div className="text-center">
+                                          <Users className="w-12 h-12 mx-auto mb-2 text-green-500" />
+                                          <p className="text-sm text-green-600">Complete AI artwork</p>
+                                        </div>
+                                      </div>
+                                      <p className="text-sm font-medium">AFTER: Generated Art</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="bg-green-50 p-4 rounded-lg">
+                                    <h4 className="font-medium mb-2">Best for:</h4>
+                                    <ul className="text-sm space-y-1">
+                                      <li>• No photo available</li>
+                                      <li>• Creative freedom</li>
+                                      <li>• Stylized representations</li>
+                                    </ul>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                            
+                            <Button 
+                              onClick={() => handleAnswer('describe_person')}
+                              className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
+                            >
+                              Choose This Option
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
                   </div>
                 )}
