@@ -1704,15 +1704,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               </Button>
                             </label>
                           </div>
-                          
-                          {/* Important Notice - only show after successful analysis */}
-                          {analysisSuccess && photoAnalysis && (
-                            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                              <p className="text-amber-800 text-sm font-medium text-center">
-                                <strong>Important:</strong> Photo must feature one person only. Avoid group photos, distant shots, or images with heavy filters.
-                              </p>
-                            </div>
-                          )}
                         </div>
 
                         {isAnalyzingPhoto && (
