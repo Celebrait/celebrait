@@ -1647,7 +1647,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            Photo Requirements & Best Practices
+                            {answers.photo_option === 'upload_and_transform' ? 'Style Transformation Requirements' : 'Photo Requirements & Best Practices'}
                           </h4>
                           
                           <div className="grid md:grid-cols-2 gap-4 text-sm">
@@ -1662,13 +1662,27 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             </div>
                             
                             <div>
-                              <h5 className="font-medium text-blue-700 mb-2">For Best Results:</h5>
+                              <h5 className="font-medium text-blue-700 mb-2">
+                                {answers.photo_option === 'upload_and_transform' ? 'For Best Transformation:' : 'For Best Results:'}
+                              </h5>
                               <ul className="text-blue-600 space-y-1">
-                                <li>• Face clearly visible and well-lit</li>
-                                <li>• Person looking toward camera</li>
-                                <li>• Minimal shadows on face</li>
-                                <li>• High resolution (at least 512x512)</li>
-                                <li>• Single person in focus</li>
+                                {answers.photo_option === 'upload_and_transform' ? (
+                                  <>
+                                    <li>• Clear, high-quality image</li>
+                                    <li>• Good lighting and contrast</li>
+                                    <li>• Interesting composition</li>
+                                    <li>• High resolution (at least 512x512)</li>
+                                    <li>• Avoid heavily processed images</li>
+                                  </>
+                                ) : (
+                                  <>
+                                    <li>• Face clearly visible and well-lit</li>
+                                    <li>• Person looking toward camera</li>
+                                    <li>• Minimal shadows on face</li>
+                                    <li>• High resolution (at least 512x512)</li>
+                                    <li>• Single person in focus</li>
+                                  </>
+                                )}
                               </ul>
                             </div>
                           </div>
