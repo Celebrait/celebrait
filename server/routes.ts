@@ -585,7 +585,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const frontTextMatch = frontPrompt.match(/with the text "([^"]+)"/);
         const frontText = frontTextMatch ? frontTextMatch[1] : '';
         
-        const enhancedInsidePrompt = `${finalInsidePrompt}. REFERENCE FRONT CARD: The front card uses "${frontText}" in ${artStyle} style. EXACT MATCHING REQUIRED: Use identical typography style, font family, text weight, and color treatment as the front card. Match the exact color palette, mood, and artistic approach. Create a cohesive design where the inside feels like the same designer created both cards with consistent visual language.`;
+        // Extract scene information from front prompt for subtle background reference
+        const sceneMatch = frontPrompt.match(/in (.+?),/);
+        const sceneDescription = sceneMatch ? sceneMatch[1] : '';
+        
+        const enhancedInsidePrompt = `${finalInsidePrompt}. REFERENCE FRONT CARD: The front card uses "${frontText}" in ${artStyle} style with scene: ${sceneDescription}. EXACT MATCHING REQUIRED: 1) Use IDENTICAL typography style, font family, text weight, letter spacing, and color treatment as the front card text. 2) Create a subtle background that makes artistic reference to the front card scene (${sceneDescription}) without overwhelming the message - use similar colors, lighting mood, or abstract elements from that setting. 3) Match the exact color palette, artistic texture, and visual mood from the front card. 4) Ensure the typography looks like it was designed by the same artist using the same font system. The inside should feel like a perfect companion piece to the front card.`;
         
         const insideImageGeneration = await openai.images.generate({
           model: "gpt-image-1", 
