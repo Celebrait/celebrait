@@ -534,6 +534,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     if (currentStep.id === 'scene') {
       setUserHasTyped(false);
       setCurrentInput('');
+      setPlaceholderText('');
+      setCurrentExampleIndex(0);
     }
   }, [currentStep.id]);
 
@@ -1937,20 +1939,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       value={currentInput}
                       onChange={(e) => {
                         setCurrentInput(e.target.value);
-                        if (currentStep.id === 'scene' && !userHasTyped) {
+                        if (currentStep.id === 'scene' && !userHasTyped && e.target.value.length > 0) {
                           setUserHasTyped(true);
                           setPlaceholderText('');
                         }
                       }}
                       onFocus={() => {
-                        if (currentStep.id === 'scene') {
+                        if (currentStep.id === 'scene' && !userHasTyped) {
                           setUserHasTyped(true);
                           setPlaceholderText('');
                         }
                       }}
-                      placeholder={currentStep.id === 'scene' && !userHasTyped ? placeholderText : currentStep.placeholder}
+                      placeholder={currentStep.id === 'scene' && !userHasTyped && placeholderText ? placeholderText : currentStep.placeholder}
                       className="text-lg p-4 min-h-[120px] rounded-xl border-purple-200 focus:border-purple-400"
-                      autoFocus
+                      autoFocus={currentStep.id !== 'scene'}
                     />
                     <div className="flex justify-between items-center">
                       <Button 
