@@ -194,9 +194,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate inside card if requested
       if (cardOption === 'front-and-inside' && insideText) {
-        const insidePrompt = `Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame, Greeting card interior with elegant typography displaying: "${insideText}", MANDATORY STYLE REPLICATION: This is the inside of a greeting card that MUST match this front card design: "${frontPrompt}". Copy the EXACT same: 1) Color scheme and palette 2) Artistic style (${stylePrompt}) 3) Visual effects, textures, and atmosphere 4) Lighting and mood 5) Typography style and treatment. The background should be a subtle, simplified version of the front card's environment/scene that doesn't compete with the text but maintains visual continuity. Typography must be large, bold, professional greeting card style, prominently centered, and use the same font family and visual effects as the front card text. The inside must look like it was designed by the same artist as the front, with perfect stylistic harmony. Apply identical artistic filters, color grading, and visual treatment. Print-ready artwork, no card mockup visible`;
+        console.log("Generating inside card using front card as visual reference");
         
-        console.log("Generating inside card with matching style");
+        // First, analyze the front card image to extract style elements
+        const frontImageBase64 = frontResponse.data[0].b64_json || frontImageUrl.split(',')[1];
+        const styleAnalysisPrompt = `Analyze this greeting card image and describe the exact artistic style, color palette, visual effects, lighting, texture, and overall aesthetic. Focus on style elements that should be replicated in a matching design.`;
+        
+        let styleAnalysis = "";
+        try {
+          const analysisResponse = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: styleAnalysisPrompt
+                  },
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: `data:image/png;base64,${frontImageBase64}`
+                    }
+                  }
+                ]
+              }
+            ],
+            max_tokens: 300
+          });
+          
+          styleAnalysis = analysisResponse.choices[0].message.content || "";
+          console.log("Front card style analysis:", styleAnalysis.substring(0, 100) + "...");
+        } catch (error: any) {
+          console.log("Style analysis failed, using fallback approach:", error.message);
+          styleAnalysis = `${stylePrompt} style with consistent visual treatment`;
+        }
+        
+        // Generate inside card with enhanced style matching
+        const insidePrompt = `Full-bleed square greeting card interior, no borders, no background, no card mockup. EXACT STYLE REPLICATION: Create an inside card that matches this style description: "${styleAnalysis}". Use identical color palette, artistic treatment, lighting, and visual effects. Clean typography layout with centered text: "${insideText}". The background should be a subtle, complementary design that harmonizes with the front card's aesthetic. Print-ready artwork filling entire frame with perfect visual consistency.`;
         
         let insideResponse;
         try {
@@ -207,7 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             quality: "high",
             n: 1
           });
-          console.log("Successfully used gpt-image-1 for inside card generation");
+          console.log("Successfully used gpt-image-1 for inside card generation with style analysis");
         } catch (gptError: any) {
           console.log("gpt-image-1 not available for inside card, falling back to dall-e-3:", gptError.message);
           
