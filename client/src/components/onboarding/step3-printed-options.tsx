@@ -156,7 +156,7 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
             </div>
             
             <div className="flex items-center mb-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-warm-pink to-sa-gold rounded-full flex items-center justify-center mr-3">
+              <div className="w-10 h-10 bg-gradient-celebrait rounded-full flex items-center justify-center mr-3">
                 <Layers className="text-white" />
               </div>
               <h3 className="text-xl font-bold text-gray-800">Front + Inside</h3>
