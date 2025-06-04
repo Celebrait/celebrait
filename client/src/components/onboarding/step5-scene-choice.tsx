@@ -27,7 +27,7 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
           onClick={() => handleSceneTypeSelect('with-person')}
         >
           {/* Photo Upload Available Badge */}
-          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-500 to-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg z-10 whitespace-nowrap">
+          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-1 rounded-full text-sm font-bold shadow-lg z-10 whitespace-nowrap">
             Photo Upload Available
           </div>
           <CardContent className="p-6">
