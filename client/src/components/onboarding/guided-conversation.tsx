@@ -1625,6 +1625,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               <div>
                                 <h3 className="text-lg font-semibold text-purple-700">Upload a Photo</h3>
                                 <p className="text-gray-600 mt-2">Click here to select a clear photo. The AI will create an artistic representation while maintaining their likeness.</p>
+                                <div className="mt-3 p-2 bg-amber-100 border border-amber-300 rounded-lg">
+                                  <p className="text-amber-900 text-sm font-medium text-center">
+                                    <strong>Important:</strong> Photo must feature one person only. Avoid group photos, distant shots, or images with heavy filters.
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           </label>
@@ -1660,12 +1665,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                 <li>• Single person in focus</li>
                               </ul>
                             </div>
-                          </div>
-                          
-                          <div className="mt-4 p-4 bg-amber-100 border-2 border-amber-300 rounded-lg">
-                            <p className="text-amber-900 text-base font-semibold">
-                              <strong>Important:</strong> Photo must feature one person only. Avoid group photos, distant shots, or images with heavy filters.
-                            </p>
                           </div>
                         </div>
                       </div>
