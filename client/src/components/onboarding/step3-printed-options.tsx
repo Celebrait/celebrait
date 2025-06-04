@@ -1,15 +1,39 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Image, Layers, Check, Lightbulb, Gift, ArrowLeft } from "lucide-react";
+import { Image, Layers, Check, Lightbulb, Gift, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
 
 interface Step3Props {
   onboarding: any;
 }
 
 export default function Step3PrintedOptions({ onboarding }: Step3Props) {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  
+  const carouselImages = [
+    {
+      src: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400",
+      alt: "Front of greeting card design",
+      label: "Front"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400",
+      alt: "Inside of greeting card design",
+      label: "Inside"
+    }
+  ];
+
   const handlePrintOptionSelect = (option: 'front-only' | 'front-and-inside') => {
     onboarding.setSelectedPrintOption(option);
     onboarding.nextStep();
+  };
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % carouselImages.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + carouselImages.length) % carouselImages.length);
   };
 
   return (
@@ -80,11 +104,56 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
             Complete Package
           </div>
           <CardContent className="p-6">
-            <img 
-              src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" 
-              alt="Both sides of greeting card design" 
-              className="w-full aspect-square object-cover rounded-xl mb-4" 
-            />
+            {/* Swipeable Carousel */}
+            <div className="relative w-full aspect-square rounded-xl mb-4 overflow-hidden bg-gray-100">
+              <img 
+                src={carouselImages[currentSlide].src}
+                alt={carouselImages[currentSlide].alt}
+                className="w-full h-full object-cover transition-all duration-300" 
+              />
+              
+              {/* Navigation Arrows */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  prevSlide();
+                }}
+                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-all duration-200 z-10"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  nextSlide();
+                }}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-all duration-200 z-10"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              
+              {/* Slide Indicator and Label */}
+              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
+                {carouselImages[currentSlide].label}
+              </div>
+              
+              {/* Dots Indicator */}
+              <div className="absolute bottom-2 right-2 flex space-x-1">
+                {carouselImages.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentSlide(index);
+                    }}
+                    className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                      index === currentSlide ? 'bg-white' : 'bg-white/50'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
             
             <div className="flex items-center mb-3">
               <div className="w-10 h-10 bg-gradient-to-r from-warm-pink to-sa-gold rounded-full flex items-center justify-center mr-3">
