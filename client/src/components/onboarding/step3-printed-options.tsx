@@ -26,9 +26,9 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
         >
           <CardContent className="p-6">
             <img 
-              src="https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=500" 
+              src="https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" 
               alt="Front of greeting card design" 
-              className="w-full h-48 object-cover rounded-xl mb-4" 
+              className="w-full aspect-square object-cover rounded-xl mb-4" 
             />
             
             <div className="flex items-center mb-3">
@@ -72,14 +72,18 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
         </Card>
 
         <Card 
-          className="bg-white/80 border-2 border-purple-200 hover:border-ethereal-purple cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-105"
+          className="bg-white/80 border-2 border-purple-200 hover:border-ethereal-purple cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-105 relative"
           onClick={() => handlePrintOptionSelect('front-and-inside')}
         >
+          {/* Complete Package Badge */}
+          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-1 rounded-full text-sm font-bold shadow-lg z-10">
+            Complete Package
+          </div>
           <CardContent className="p-6">
             <img 
-              src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=500" 
+              src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" 
               alt="Both sides of greeting card design" 
-              className="w-full h-48 object-cover rounded-xl mb-4" 
+              className="w-full aspect-square object-cover rounded-xl mb-4" 
             />
             
             <div className="flex items-center mb-3">
