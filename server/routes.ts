@@ -194,7 +194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate inside card if requested
       if (cardOption === 'front-and-inside' && insideText) {
-        const insidePrompt = `Create the inside of a greeting card in ${stylePrompt} style. Use similar colors, textures, and artistic elements from the front card design. Display the message "${insideText}" in elegant typography that matches the front card style. Layout should be clean and readable like a traditional greeting card interior with the text centered and beautifully formatted.`;
+        const insidePrompt = `Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame, Greeting card interior with elegant typography displaying: "${insideText}", CRITICAL STYLE MATCHING: Use the EXACT same color palette, artistic style, visual effects, and mood as the front card - ${stylePrompt} style with identical artistic treatment. Background must complement the front card's aesthetic with subtle texture or pattern that harmonizes perfectly. Typography must be large, bold, and prominently displayed using the same font style and visual treatment as any text on the front card. Text should be centered and occupy significant visual space. Apply the same lighting, shadows, and artistic filters used on the front card. The overall composition must feel like a natural continuation of the front card design, creating visual cohesion between front and inside, print-ready artwork, no card mockup visible`;
         
         console.log("Generating inside card with matching style");
         
