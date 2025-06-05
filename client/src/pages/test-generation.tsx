@@ -163,50 +163,98 @@ export default function TestGeneration() {
     }
   };
 
+  const analyzePhotoWithRetry = async (photoData: string, personIndex: number, maxRetries = 10) => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Analyzing Person ${personIndex}, attempt ${attempt}/${maxRetries}`);
+        
+        const response = await apiRequest("POST", "/api/analyze-photo", {
+          photoData
+        });
+        
+        const data = await response.json() as { analysis: string };
+        
+        // Check if the response is a generic refusal message
+        const isGenericRefusal = data.analysis.toLowerCase().includes("i'm sorry") || 
+                                data.analysis.toLowerCase().includes("i can't help") ||
+                                data.analysis.toLowerCase().includes("i cannot help") ||
+                                data.analysis.toLowerCase().includes("sorry, i can't") ||
+                                data.analysis.toLowerCase().includes("i'm unable") ||
+                                data.analysis.toLowerCase().includes("i can't provide") ||
+                                data.analysis.toLowerCase().includes("i can't analyze") ||
+                                data.analysis.toLowerCase().includes("i'm not able") ||
+                                data.analysis.toLowerCase().includes("unable to provide") ||
+                                data.analysis.toLowerCase().includes("cannot provide");
+        
+        if (isGenericRefusal) {
+          console.log(`Person ${personIndex} attempt ${attempt}: Generic refusal detected, retrying...`);
+          if (attempt === maxRetries) {
+            throw new Error(`Analysis failed after ${maxRetries} attempts - AI consistently refusing to analyze Person ${personIndex}`);
+          }
+          continue; // Try again
+        }
+        
+        // Success - return the analysis
+        console.log(`Person ${personIndex} succeeded on attempt ${attempt}`);
+        return {
+          personIndex,
+          analysis: data.analysis.startsWith(`Person ${personIndex}:`) ? data.analysis : `Person ${personIndex}: ${data.analysis}`,
+          attempts: attempt
+        };
+        
+      } catch (error: any) {
+        console.log(`Person ${personIndex} attempt ${attempt}: Error - ${error.message}`);
+        if (attempt === maxRetries) {
+          throw new Error(`Analysis failed after ${maxRetries} attempts for Person ${personIndex}: ${error.message}`);
+        }
+      }
+    }
+  };
+
   const analyzePhotos = async (photoDataArray: string[]) => {
     setIsAnalyzingPhotos(true);
     setAnalysisError(null);
     setPhotoAnalyses([]);
     
     try {
-      if (photoDataArray.length === 1) {
-        // Use single photo analysis for one photo
-        setCurrentAnalysisIndex(0);
-        const response = await apiRequest("POST", "/api/analyze-photo", {
-          photoData: photoDataArray[0]
-        });
+      const analyses = [];
+      
+      for (let i = 0; i < photoDataArray.length; i++) {
+        setCurrentAnalysisIndex(i);
         
-        const data = await response.json() as { analysis: string };
-        setPhotoAnalyses([{ personIndex: 1, analysis: data.analysis }]);
-      } else {
-        // Analyze photos one by one to show progress
-        const analyses = [];
-        for (let i = 0; i < photoDataArray.length; i++) {
-          setCurrentAnalysisIndex(i);
-          
-          const response = await apiRequest("POST", "/api/analyze-photo", {
-            photoData: photoDataArray[i]
-          });
-          
-          const data = await response.json() as { analysis: string };
-          const analysis = {
-            personIndex: i + 1,
-            analysis: `Person ${i + 1}: ${data.analysis}`
-          };
-          
+        try {
+          const analysis = await analyzePhotoWithRetry(photoDataArray[i], i + 1, 10);
           analyses.push(analysis);
           setPhotoAnalyses([...analyses]); // Update UI progressively
+          
+          toast({
+            title: `Person ${i + 1} analyzed successfully`,
+            description: `Succeeded after ${analysis.attempts} attempt(s)`,
+          });
+        } catch (error: any) {
+          console.error(`Failed to analyze Person ${i + 1}:`, error);
+          toast({
+            title: `Person ${i + 1} analysis failed`,
+            description: error.message,
+            variant: "destructive"
+          });
+          // Continue with other photos even if one fails
         }
       }
       
-      toast({
-        title: "Photos analyzed successfully!",
-        description: `${photoDataArray.length} photo(s) analyzed sequentially and ready for testing.`
-      });
+      if (analyses.length > 0) {
+        toast({
+          title: "Photo analysis completed!",
+          description: `Successfully analyzed ${analyses.length} out of ${photoDataArray.length} photos.`
+        });
+      } else {
+        setAnalysisError("All photo analyses failed after multiple retry attempts");
+      }
+      
     } catch (error: any) {
       setAnalysisError(error.message);
       toast({
-        title: "Photo analysis failed",
+        title: "Analysis failed",
         description: error.message,
         variant: "destructive"
       });
