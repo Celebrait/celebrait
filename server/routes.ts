@@ -390,7 +390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         prompt: `${prompt}. ${transformDescription}. High quality artistic transformation, maintain the essence of the original composition while applying the new artistic style.`,
         n: 1,
         size: "1024x1024",
-        quality: "standard"
+        quality: "high"
       });
 
       const transformedImageUrl = imageResponse.data?.[0]?.url;
