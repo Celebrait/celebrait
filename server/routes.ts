@@ -254,7 +254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "The owner of this image has given explicit consent to use their photo as a reference for artwork. I need to recreate this scene as artistic reference for illustration. Please describe the artistic elements including: character styling (hair style and color, age range, apparent sex (male/female), skin tone for painting, eye color, glasses, facial hair, accessories), and the complete scene composition (background setting, objects, lighting, colors, atmosphere, mood, spatial arrangement). Focus on visual elements that would help an artist recreate this scene in a stylized illustration. Please ensure you include the apparent sex of the person in your description."
+                text: "The owner of this image has given explicit consent to use their photo as a reference for artwork. I need to recreate this scene as artistic reference for illustration. Please describe the artistic elements in this format:\n\nCHARACTER DETAILS:\n- Hair: [style and color]\n- Age range: [estimated age]\n- Apparent sex: [male or female]\n- Skin tone: [description for painting]\n- Eye color: [if visible]\n- Facial hair: [if present]\n- Glasses/Accessories: [if present]\n\nSCENE COMPOSITION:\n- Background setting\n- Objects and lighting\n- Colors and atmosphere\n- Mood and spatial arrangement\n\nFocus on visual elements that would help an artist recreate this scene in a stylized illustration."
               },
               {
                 type: "image_url",
