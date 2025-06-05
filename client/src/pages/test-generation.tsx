@@ -207,7 +207,7 @@ export default function TestGeneration() {
         null;
 
       console.log('Card type:', cardType);
-      console.log('Front prompt:', frontPrompt.substring(0, 100) + '...');
+      console.log('Front prompt:', frontPrompt?.substring(0, 100) + '...');
       console.log('Inside prompt:', insidePrompt ? insidePrompt.substring(0, 100) + '...' : 'null');
 
       const imageResponse = await apiRequest("POST", "/api/generate-images", {
@@ -366,7 +366,7 @@ export default function TestGeneration() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {!uploadedPhoto ? (
+                  {uploadedPhotos.length === 0 ? (
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                       <input
                         type="file"
@@ -374,27 +374,39 @@ export default function TestGeneration() {
                         onChange={handlePhotoUpload}
                         className="hidden"
                         id="photo-upload-test"
+                        multiple
                       />
                       <label htmlFor="photo-upload-test" className="cursor-pointer">
                         <Camera className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                        <p className="text-sm text-gray-600">Upload a photo to test analysis</p>
+                        <p className="text-sm text-gray-600">Upload photos to test multi-person analysis</p>
+                        <p className="text-xs text-gray-500 mt-1">Select multiple files for testing multiple people</p>
                       </label>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div className="w-24 h-24 mx-auto rounded-lg overflow-hidden border">
-                        <img 
-                          src={uploadedPhoto} 
-                          alt="Uploaded test photo" 
-                          className="w-full h-full object-cover"
-                        />
+                      {/* Display uploaded photos */}
+                      <div className="grid grid-cols-2 gap-2">
+                        {uploadedPhotos.map((photo, index) => (
+                          <div key={index} className="relative">
+                            <div className="w-full aspect-square rounded-lg overflow-hidden border">
+                              <img 
+                                src={photo} 
+                                alt={`Uploaded photo ${index + 1}`} 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="absolute top-1 left-1 bg-purple-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                              {index + 1}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                       
-                      {isAnalyzingPhoto && (
+                      {isAnalyzingPhotos && (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                           <div className="flex items-center space-x-2">
                             <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                            <p className="text-blue-700 text-sm">Analyzing photo...</p>
+                            <p className="text-blue-700 text-sm">Analyzing {uploadedPhotos.length} photo(s)...</p>
                           </div>
                         </div>
                       )}
@@ -404,7 +416,7 @@ export default function TestGeneration() {
                           <p className="text-red-700 font-medium text-sm">Analysis failed:</p>
                           <p className="text-red-600 text-xs mt-1">{analysisError}</p>
                           <Button 
-                            onClick={() => analyzePhoto(uploadedPhoto)}
+                            onClick={() => analyzePhotos(uploadedPhotos)}
                             className="mt-2 bg-red-600 hover:bg-red-700"
                             size="sm"
                           >
@@ -413,38 +425,44 @@ export default function TestGeneration() {
                         </div>
                       )}
 
-                      {photoAnalysis && (
+                      {photoAnalyses.length > 0 && (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                          <h4 className="font-medium text-green-800 text-sm mb-2">Analysis Results:</h4>
-                          <div className="bg-white rounded p-2 border text-xs text-gray-700 max-h-32 overflow-y-auto">
-                            {photoAnalysis}
+                          <p className="text-green-700 font-medium text-sm mb-2">Analysis Results:</p>
+                          <div className="space-y-2">
+                            {photoAnalyses.map((analysis, index) => (
+                              <div key={index} className="text-green-600 text-xs p-2 bg-white rounded border">
+                                <div className="font-medium mb-1">Person {analysis.personIndex}:</div>
+                                <div className="max-h-20 overflow-y-auto">{analysis.analysis}</div>
+                              </div>
+                            ))}
                           </div>
                           <Button 
-                            onClick={() => analyzePhoto(uploadedPhoto)}
-                            variant="outline"
+                            onClick={() => analyzePhotos(uploadedPhotos)}
+                            className="mt-2 bg-green-600 hover:bg-green-700"
                             size="sm"
-                            className="mt-2 w-full border-green-300 text-green-600 hover:bg-green-50"
-                            disabled={isAnalyzingPhoto}
                           >
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            Reanalyze Photo
+                            Re-analyze
                           </Button>
                         </div>
                       )}
 
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p className="text-yellow-700 text-sm">
+                          <strong>Multi-person testing:</strong> Each uploaded photo will be analyzed separately as "Person 1", "Person 2", etc. The front prompt will include all analyzed people.
+                        </p>
+                      </div>
+
                       <Button 
                         onClick={() => {
-                          setUploadedPhoto(null);
-                          setPhotoAnalysis(null);
+                          setUploadedPhotos([]);
+                          setPhotoAnalyses([]);
                           setAnalysisError(null);
                         }}
                         variant="outline"
                         size="sm"
                         className="w-full"
                       >
-                        Clear Photo
+                        Upload Different Photos
                       </Button>
                     </div>
                   )}
