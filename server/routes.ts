@@ -665,6 +665,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let insideImageUrl = null;
       
+      // Extract image data FIRST (gpt-image-1 returns base64 data in 'data' array)
+      const frontResponse = frontImageGeneration as any;
+      console.log('Checking frontResponse.data:', !!frontResponse.data);
+      console.log('frontResponse.data type:', typeof frontResponse.data);
+      
+      if (frontResponse.data && Array.isArray(frontResponse.data) && frontResponse.data.length > 0) {
+        const imageData = frontResponse.data[0];
+        console.log('Image data type:', typeof imageData);
+        console.log('Image data keys:', Object.keys(imageData));
+        
+        // The data might be in imageData.b64_json or imageData.url
+        if (typeof imageData === 'string') {
+          frontImageUrl = `data:image/png;base64,${imageData}`;
+        } else if (imageData.b64_json) {
+          frontImageUrl = `data:image/png;base64,${imageData.b64_json}`;
+        } else if (imageData.url) {
+          frontImageUrl = imageData.url;
+        }
+        console.log('Successfully extracted front image data from data array');
+      } else {
+        console.log('Failed to find data array in frontResponse');
+      }
+
       // Generate inside image if provided, using front card as visual reference
       if (insidePrompt && frontImageUrl) {
         console.log('Using model: gpt-image-1 for inside image with front card visual reference');
@@ -746,30 +769,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       }
-
-      // Extract image data (gpt-image-1 returns base64 data in 'data' array)
-      const frontResponse = frontImageGeneration as any;
-      console.log('Checking frontResponse.data:', !!frontResponse.data);
-      console.log('frontResponse.data type:', typeof frontResponse.data);
       
-      let frontImageUrl = null;
-      if (frontResponse.data && Array.isArray(frontResponse.data) && frontResponse.data.length > 0) {
-        const imageData = frontResponse.data[0];
-        console.log('Image data type:', typeof imageData);
-        console.log('Image data keys:', Object.keys(imageData));
-        
-        // The data might be in imageData.b64_json or imageData.url
-        if (typeof imageData === 'string') {
-          frontImageUrl = `data:image/png;base64,${imageData}`;
-        } else if (imageData.b64_json) {
-          frontImageUrl = `data:image/png;base64,${imageData.b64_json}`;
-        } else if (imageData.url) {
-          frontImageUrl = imageData.url;
-        }
-        console.log('Successfully extracted front image data from data array');
-      } else {
-        console.log('Failed to find data array in frontResponse');
-      }
       console.log('Extracted front image URL:', frontImageUrl ? 'Base64 data received' : 'No image data');
       console.log('Extracted inside image URL:', insideImageUrl ? 'Base64 data received' : 'No image data');
 
