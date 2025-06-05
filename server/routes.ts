@@ -324,8 +324,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Image style transformation endpoint
-  app.post("/api/transform-image-style", async (req, res) => {
+  // Image-to-image style transformation endpoint
+  app.post("/api/transform-style", async (req, res) => {
     try {
       const { imageData, style } = req.body;
       

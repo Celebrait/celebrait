@@ -69,7 +69,7 @@ export default function StyleTransform() {
     try {
       const selectedStyleData = artisticStyles.find(style => style.id === selectedStyle);
       
-      const response = await apiRequest("POST", "/api/transform-image-style", {
+      const response = await apiRequest("POST", "/api/transform-style", {
         imageData: uploadedImage,
         style: selectedStyle,
         styleDescription: selectedStyleData?.description || ''
