@@ -2081,7 +2081,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                 onClick={() => {
                                   const combinedAnalysis = photoAnalyses.map(a => a.analysis).join('\n\n');
                                   setAnswers(prev => ({ ...prev, character_description: combinedAnalysis }));
-                                  handlePhotoUploadContinue();
+                                  setCurrentStepIndex(prev => prev + 1);
                                 }}
                                 className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-lg font-medium"
                               >
@@ -2094,7 +2094,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
                         {!isAnalyzingPhoto && photoAnalyses.length === 0 && !analysisError && (
                           <Button 
-                            onClick={handlePhotoUploadContinue}
+                            onClick={() => setCurrentStepIndex(prev => prev + 1)}
                             className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
                           >
                             Continue without Analysis
