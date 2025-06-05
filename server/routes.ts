@@ -664,6 +664,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let insideImageUrl = null;
+      let frontImageUrl = null;
       
       // Extract image data FIRST (gpt-image-1 returns base64 data in 'data' array)
       const frontResponse = frontImageGeneration as any;
