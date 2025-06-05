@@ -27,7 +27,7 @@ interface ConversationStep {
   id: string;
   question: string;
   aiMessage: string;
-  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload' | 'photo_creation_choice';
+  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload' | 'photo_creation_choice' | 'people_details';
   options?: Array<{ value: string; label: string; description?: string; color?: string; icon?: string; details?: string; disabled?: boolean }>;
   placeholder?: string;
   required?: boolean;
@@ -35,7 +35,7 @@ interface ConversationStep {
 
 export default function GuidedConversation({ onboarding, onCardGenerated }: GuidedConversationProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, any>>({});
   const [selectedPersonalities, setSelectedPersonalities] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [cardId, setCardId] = useState<number | null>(null);
@@ -160,16 +160,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       required: true
     },
     {
-      id: 'heritage_photo',
-      question: `To create an authentic representation from your photo, what's ${answers.name || 'their'} cultural background?`,
-      aiMessage: `Great photo! Now to create the most authentic artistic representation, could you help me understand ${answers.name || 'their'} cultural background? This ensures I capture their heritage respectfully and accurately.`,
-      type: 'select',
-      options: [
-        { value: 'black_african', label: 'Black African', description: 'African heritage', color: 'bg-green-500' },
-        { value: 'coloured', label: 'Coloured', description: 'Mixed heritage', color: 'bg-amber-500' },
-        { value: 'white', label: 'White', description: 'European heritage', color: 'bg-blue-500' },
-        { value: 'indian', label: 'Indian', description: 'Indian heritage', color: 'bg-purple-500' }
-      ]
+      id: 'people_details',
+      question: `Please provide details for each person`,
+      aiMessage: `Great photos! I've analyzed each person. Now I need to know their gender and cultural background to create authentic artistic representations. Please provide this information for each person.`,
+      type: 'people_details',
+      required: true
     },
     {
       id: 'character_costume',
@@ -1689,6 +1684,152 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                           </div>
                         );
                       })}
+                    </div>
+                  </div>
+                )}
+
+                {currentStep.type === 'people_details' && (
+                  <div className="space-y-6">
+                    {/* Important Notice */}
+                    <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
+                      <div className="flex items-start space-x-3">
+                        <svg className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <div>
+                          <h4 className="font-bold text-yellow-800 mb-1">Important: About AI-Generated People</h4>
+                          <p className="text-yellow-700 text-sm">
+                            Our AI creates <strong>artistic interpretations</strong> inspired by your photos and descriptions. The result will be a 
+                            stylized artwork rather than an exact likeness - think beautiful, personalized illustration!
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* People Details Form */}
+                    {photoAnalyses.map((analysis, index) => (
+                      <div key={index} className="bg-white border-2 border-purple-200 rounded-xl p-6">
+                        <div className="flex items-start space-x-4 mb-6">
+                          <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-white font-bold text-lg">{index + 1}</span>
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-xl font-bold text-purple-800 mb-2">Person {index + 1}</h3>
+                            <div className="bg-purple-50 rounded-lg p-3">
+                              <p className="text-purple-700 text-sm">{analysis.analysis}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-6">
+                          {/* Gender Selection */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-3">Gender</label>
+                            <div className="space-y-2">
+                              {[
+                                { value: 'female', label: 'Female', color: 'bg-pink-500' },
+                                { value: 'male', label: 'Male', color: 'bg-blue-500' }
+                              ].map((option) => (
+                                <div
+                                  key={option.value}
+                                  onClick={() => {
+                                    const newPeopleDetails = [...(answers.people_details || [])];
+                                    newPeopleDetails[index] = { ...(newPeopleDetails[index] || {}), gender: option.value };
+                                    setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
+                                  }}
+                                  className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                                    answers.people_details?.[index]?.gender === option.value
+                                      ? 'border-purple-400 bg-purple-50' 
+                                      : 'border-gray-200 hover:border-purple-300'
+                                  }`}
+                                >
+                                  <div className="flex items-center space-x-3">
+                                    <div className={`w-4 h-4 ${option.color} rounded-full`}></div>
+                                    <span className="font-medium text-gray-800">{option.label}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Cultural Background Selection */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-3">Cultural Background</label>
+                            <div className="space-y-2">
+                              {[
+                                { value: 'black_african', label: 'Black African', description: 'African heritage', color: 'bg-green-500' },
+                                { value: 'coloured', label: 'Coloured', description: 'Mixed heritage', color: 'bg-amber-500' },
+                                { value: 'white', label: 'White', description: 'European heritage', color: 'bg-blue-500' },
+                                { value: 'indian', label: 'Indian', description: 'Indian heritage', color: 'bg-purple-500' }
+                              ].map((option) => (
+                                <div
+                                  key={option.value}
+                                  onClick={() => {
+                                    const newPeopleDetails = [...(answers.people_details || [])];
+                                    newPeopleDetails[index] = { ...(newPeopleDetails[index] || {}), heritage: option.value };
+                                    setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
+                                  }}
+                                  className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                                    answers.people_details?.[index]?.heritage === option.value
+                                      ? 'border-purple-400 bg-purple-50' 
+                                      : 'border-gray-200 hover:border-purple-300'
+                                  }`}
+                                >
+                                  <div className="flex items-center space-x-3">
+                                    <div className={`w-4 h-4 ${option.color} rounded-full`}></div>
+                                    <div>
+                                      <span className="font-medium text-gray-800">{option.label}</span>
+                                      <p className="text-sm text-gray-500">{option.description}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Name Input for Person */}
+                        <div className="mt-6">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            What's this person's name? (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={answers.people_details?.[index]?.name || ''}
+                            onChange={(e) => {
+                              const newPeopleDetails = [...(answers.people_details || [])];
+                              newPeopleDetails[index] = { ...(newPeopleDetails[index] || {}), name: e.target.value };
+                              setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
+                            }}
+                            placeholder="Enter their name..."
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none transition-colors"
+                          />
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Continue Button */}
+                    <div className="flex justify-center pt-6">
+                      <Button
+                        onClick={() => {
+                          // Check if all required fields are filled
+                          const allDetailsComplete = photoAnalyses.every((_, index) => 
+                            answers.people_details?.[index]?.gender && 
+                            answers.people_details?.[index]?.heritage
+                          );
+                          
+                          if (allDetailsComplete) {
+                            setCurrentStepIndex(prev => prev + 1);
+                          }
+                        }}
+                        disabled={!photoAnalyses.every((_, index) => 
+                          answers.people_details?.[index]?.gender && 
+                          answers.people_details?.[index]?.heritage
+                        )}
+                        className="px-8 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Continue to Next Step
+                      </Button>
                     </div>
                   </div>
                 )}
