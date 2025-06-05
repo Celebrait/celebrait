@@ -355,16 +355,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const prompt = stylePrompts[style as keyof typeof stylePrompts] || `Transform this image into ${style} artistic style`;
 
-      // Use GPT-4o vision to analyze and describe the transformation
-      const visionResponse = await openai.chat.completions.create({
-        model: "gpt-4o",
+      // Use GPT-Image-1 with chat completions for image-to-image transformation
+      console.log('Generating styled image with GPT-Image-1...');
+      const imageResponse = await openai.chat.completions.create({
+        model: "gpt-image-1",
         messages: [
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: `${prompt}. Provide a detailed description of how this image should look when transformed into this artistic style, focusing on colors, textures, composition, and visual elements that define this style.`
+                text: `${prompt}. Apply this artistic style transformation while maintaining the original composition, subjects, and scene layout. High quality artistic rendering.`
               },
               {
                 type: "image_url",
@@ -375,36 +376,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ]
           }
         ],
-        max_tokens: 500
+        max_tokens: 4096
       });
 
-      const transformDescription = visionResponse.choices[0].message.content;
+      console.log('GPT-Image-1 response structure:', Object.keys(imageResponse));
+      const imageContent = imageResponse.choices[0]?.message?.content;
+      console.log('Image content type:', typeof imageContent);
       
-      if (!transformDescription) {
-        return res.status(400).json({ message: "Failed to analyze image for style transformation" });
-      }
-
-      // Generate the transformed image using DALL-E 2
-      console.log('Generating image with DALL-E 2...');
-      const imageResponse = await openai.images.generate({
-        model: "dall-e-2",
-        prompt: `${prompt}. ${transformDescription}. High quality artistic transformation, maintain the essence of the original composition while applying the new artistic style.`,
-        n: 1,
-        size: "1024x1024"
-      });
-
-      console.log('Image response:', imageResponse);
-      const transformedImageUrl = imageResponse.data?.[0]?.url;
-      console.log('Transformed image URL:', transformedImageUrl);
-      
-      if (!transformedImageUrl) {
-        console.log('No image URL in response');
+      // GPT-Image-1 returns base64 image data in the message content
+      let transformedImageUrl;
+      if (typeof imageContent === 'string' && imageContent.startsWith('data:image')) {
+        transformedImageUrl = imageContent;
+      } else {
+        console.log('Unexpected response format from GPT-Image-1');
         return res.status(400).json({ message: "Failed to generate transformed image" });
       }
 
       res.json({
         transformedImageUrl,
-        styleDescription: transformDescription,
+        styleDescription: prompt,
         originalPrompt: prompt
       });
 
