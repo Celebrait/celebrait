@@ -514,7 +514,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Using model: gpt-image-1 for front image');
       
       let frontImageGeneration;
-      if (photoData && photoAnalysis) {
+      
+      // Check if frontPrompt already contains detailed character descriptions (from test page)
+      const hasDetailedCharacters = frontPrompt.includes('featuring Person') || frontPrompt.includes('Person 1:') || frontPrompt.includes('Person 2:');
+      
+      if (hasDetailedCharacters) {
+        // Use the detailed prompt directly from the test page
+        console.log('Using detailed character prompt from frontend:', frontPrompt);
+        
+        frontImageGeneration = await openai.images.generate({
+          model: "gpt-image-1",
+          prompt: frontPrompt,
+          n: 1,
+          size: "1024x1024"
+        });
+      } else if (photoData && photoAnalysis) {
         // Use the photo analysis that was already captured during onboarding
         console.log('Using pre-captured photo analysis:', photoAnalysis);
         
