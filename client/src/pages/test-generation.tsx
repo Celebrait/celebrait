@@ -161,14 +161,22 @@ export default function TestGeneration() {
         // Base requirements
         parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
         
-        // If photos were uploaded and analyzed, use them
+        // Always prioritize photo analysis when available
         if (uploadedPhotos.length > 0 && photoAnalyses.length > 0) {
           photoAnalyses.forEach((analysis, index) => {
             const personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
             parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}`);
           });
+          
+          // Add scene from preset if available
+          if (preset) {
+            const sceneMatch = preset.frontPrompt.match(/in (.+?)\./);
+            if (sceneMatch) {
+              parts.push(`in ${sceneMatch[1]}`);
+            }
+          }
         } else if (preset) {
-          // Use preset character description
+          // Use preset character description only if no photos
           const presetDescription = preset.frontPrompt.match(/showing a (.+?) in/)?.[1] || 'person';
           parts.push(`featuring ${presetDescription}`);
         }
