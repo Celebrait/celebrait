@@ -716,7 +716,33 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           photoData
         });
         
-        const data = await response.json() as { analysis: string };
+        const data = await response.json() as { 
+          analysis: string;
+          peopleCount?: number;
+          individualPeople?: Array<{personIndex: number, analysis: string, needsDetails: boolean}>;
+          requiresPersonDetails?: boolean;
+        };
+        
+        // Check if multiple people were detected in a single image
+        if (data.peopleCount && data.peopleCount > 1 && data.individualPeople) {
+          console.log(`Detected ${data.peopleCount} people in single image`);
+          // Store the individual people data for the people_details step
+          setAnswers(prev => ({ 
+            ...prev, 
+            detected_people: data.individualPeople,
+            people_count: data.peopleCount,
+            requires_person_details: true
+          }));
+          
+          return {
+            personIndex,
+            analysis: data.analysis,
+            attempts: attempt,
+            multipleDetected: true,
+            peopleCount: data.peopleCount,
+            individualPeople: data.individualPeople
+          };
+        }
         
         // Check if the response is a generic refusal message
         const isGenericRefusal = data.analysis.toLowerCase().includes("i'm sorry") || 
@@ -1633,15 +1659,54 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   <div className="space-y-6">
                     <div className="text-center mb-6">
                       <p className="text-gray-600">
-                        Great! Now let's add some details about each person for better card personalization.
+                        {answers.detected_people ? 
+                          `Great! I found ${answers.people_count} people in your photo. Let's add details for each person:` :
+                          'Great! Now let\'s add some details about each person for better card personalization.'
+                        }
                       </p>
                     </div>
 
                     {/* Single Person Display */}
                     {(() => {
                       const currentPersonIndex = answers.current_person_index || 0;
-                      const analysis = photoAnalyses[currentPersonIndex];
                       
+                      // Handle multiple people detected in single image
+                      if (answers.detected_people && answers.detected_people[currentPersonIndex]) {
+                        const detectedPerson = answers.detected_people[currentPersonIndex];
+                        
+                        return (
+                          <div className="bg-white border-2 border-purple-200 rounded-xl p-8">
+                            <div className="flex items-center justify-center mb-6">
+                              <div className="w-20 h-20 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden border-2 border-purple-300">
+                                {/* Show the same source image for all people when multiple detected */}
+                                {uploadedPhotos[0] ? (
+                                  <img 
+                                    src={uploadedPhotos[0]} 
+                                    alt={`Person ${currentPersonIndex + 1} from group photo`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="text-purple-600 font-bold text-lg">{currentPersonIndex + 1}</span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="text-center mb-6">
+                              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                                Person {currentPersonIndex + 1} {answers.people_count > 1 && `of ${answers.people_count}`}
+                              </h3>
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <p className="text-sm text-blue-700">
+                                  <strong>AI detected:</strong> {detectedPerson.analysis.replace(`Person ${detectedPerson.personIndex}:`, '').trim()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      // Handle separate photos (original functionality)
+                      const analysis = photoAnalyses[currentPersonIndex];
                       if (!analysis) return null;
 
                       return (
@@ -1749,44 +1814,134 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             </div>
                           </div>
 
-                          {/* Navigation Buttons */}
-                          <div className="flex justify-center pt-6">
-                            {currentPersonIndex < photoAnalyses.length - 1 ? (
-                              <Button
-                                onClick={() => {
-                                  const person = answers.people_details?.[currentPersonIndex];
-                                  if (person?.gender && (person?.heritage || person?.custom_heritage)) {
-                                    setAnswers(prev => ({ ...prev, current_person_index: currentPersonIndex + 1 }));
-                                  }
-                                }}
-                                disabled={(() => {
-                                  const person = answers.people_details?.[currentPersonIndex];
-                                  return !(person?.gender && (person?.heritage || person?.custom_heritage));
-                                })()}
-                                className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white font-medium hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
-                              >
-                                Continue to Next Person
-                                <ArrowRight className="w-4 h-4 ml-2" />
-                              </Button>
-                            ) : (
-                              <Button
-                                onClick={() => {
-                                  const person = answers.people_details?.[currentPersonIndex];
-                                  if (person?.gender && (person?.heritage || person?.custom_heritage)) {
-                                    setCurrentStepIndex(prev => prev + 1);
-                                  }
-                                }}
-                                disabled={(() => {
-                                  const person = answers.people_details?.[currentPersonIndex];
-                                  return !(person?.gender && (person?.heritage || person?.custom_heritage));
-                                })()}
-                                className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white font-medium hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
-                              >
-                                Continue to Next Step
-                                <ArrowRight className="w-4 h-4 ml-2" />
-                              </Button>
-                            )}
-                          </div>
+                          {/* Gender and Heritage Selection continues here... */}
+                            <div className="space-y-6">
+                              {/* Gender Selection */}
+                              <div>
+                                <label className="block text-base font-medium text-gray-800 mb-3">Gender</label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  {[
+                                    { value: 'female', label: 'Female' },
+                                    { value: 'male', label: 'Male' }
+                                  ].map((option) => (
+                                    <Button
+                                      key={option.value}
+                                      onClick={() => {
+                                        const newPeopleDetails = [...(answers.people_details || [])];
+                                        newPeopleDetails[currentPersonIndex] = { ...(newPeopleDetails[currentPersonIndex] || {}), gender: option.value };
+                                        setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
+                                      }}
+                                      variant="outline"
+                                      className={`h-auto p-3 sm:p-4 text-center transition-all hover:scale-105 hover:shadow-lg bg-white/80 border-2 rounded-xl text-sm font-medium ${
+                                        answers.people_details?.[currentPersonIndex]?.gender === option.value
+                                          ? 'border-purple-500 bg-purple-50 text-purple-700' 
+                                          : 'border-purple-200 hover:border-purple-400 text-gray-800 hover:bg-purple-50'
+                                      }`}
+                                    >
+                                      {option.label}
+                                    </Button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Cultural Background Selection */}
+                              <div>
+                                <label className="block text-base font-medium text-gray-800 mb-3">Cultural Background</label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                                  {[
+                                    { value: 'black_african', label: 'Black African' },
+                                    { value: 'coloured', label: 'Coloured' },
+                                    { value: 'white', label: 'White' },
+                                    { value: 'indian', label: 'Indian' }
+                                  ].map((option) => (
+                                    <Button
+                                      key={option.value}
+                                      onClick={() => {
+                                        const newPeopleDetails = [...(answers.people_details || [])];
+                                        newPeopleDetails[currentPersonIndex] = { 
+                                          ...(newPeopleDetails[currentPersonIndex] || {}), 
+                                          heritage: option.value,
+                                          custom_heritage: '' 
+                                        };
+                                        setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
+                                      }}
+                                      variant="outline"
+                                      className={`h-auto p-3 sm:p-4 text-center transition-all hover:scale-105 hover:shadow-lg bg-white/80 border-2 rounded-xl text-sm font-medium ${
+                                        answers.people_details?.[currentPersonIndex]?.heritage === option.value
+                                          ? 'border-purple-500 bg-purple-50 text-purple-700' 
+                                          : 'border-purple-200 hover:border-purple-400 text-gray-800 hover:bg-purple-50'
+                                      }`}
+                                    >
+                                      {option.label}
+                                    </Button>
+                                  ))}
+                                </div>
+                                
+                                <div className="mt-4">
+                                  <label className="block text-sm font-medium text-gray-600 mb-2">Or specify different background:</label>
+                                  <input
+                                    type="text"
+                                    value={answers.people_details?.[currentPersonIndex]?.custom_heritage || ''}
+                                    onChange={(e) => {
+                                      const newPeopleDetails = [...(answers.people_details || [])];
+                                      newPeopleDetails[currentPersonIndex] = { 
+                                        ...(newPeopleDetails[currentPersonIndex] || {}), 
+                                        custom_heritage: e.target.value,
+                                        heritage: e.target.value ? 'custom' : ''
+                                      };
+                                      setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
+                                    }}
+                                    placeholder="Type your cultural background..."
+                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-purple-500 focus:outline-none transition-colors bg-white"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Navigation Buttons */}
+                            <div className="flex justify-center pt-6">
+                              {(() => {
+                                // Determine total number of people to process
+                                const totalPeople = answers.detected_people ? answers.people_count : photoAnalyses.length;
+                                const isLastPerson = currentPersonIndex >= (totalPeople - 1);
+                                
+                                return isLastPerson ? (
+                                  <Button
+                                    onClick={() => {
+                                      const person = answers.people_details?.[currentPersonIndex];
+                                      if (person?.gender && (person?.heritage || person?.custom_heritage)) {
+                                        setCurrentStepIndex(prev => prev + 1);
+                                      }
+                                    }}
+                                    disabled={(() => {
+                                      const person = answers.people_details?.[currentPersonIndex];
+                                      return !(person?.gender && (person?.heritage || person?.custom_heritage));
+                                    })()}
+                                    className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white font-medium hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
+                                  >
+                                    Continue to Next Step
+                                    <ArrowRight className="w-4 h-4 ml-2" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    onClick={() => {
+                                      const person = answers.people_details?.[currentPersonIndex];
+                                      if (person?.gender && (person?.heritage || person?.custom_heritage)) {
+                                        setAnswers(prev => ({ ...prev, current_person_index: currentPersonIndex + 1 }));
+                                      }
+                                    }}
+                                    disabled={(() => {
+                                      const person = answers.people_details?.[currentPersonIndex];
+                                      return !(person?.gender && (person?.heritage || person?.custom_heritage));
+                                    })()}
+                                    className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white font-medium hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
+                                  >
+                                    Continue to Next Person
+                                    <ArrowRight className="w-4 h-4 ml-2" />
+                                  </Button>
+                                );
+                              })()}
+                            </div>
                         </div>
                       );
                     })()}

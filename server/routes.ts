@@ -247,7 +247,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "OpenAI API not configured" });
       }
 
-      const visionResponse = await openai.chat.completions.create({
+      // First, check if there are multiple people in the image
+      const peopleCountResponse = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
           {
@@ -255,7 +256,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "The owner of this image has given explicit consent to use their photo as a reference for artwork. I need to recreate this scene as artistic reference for illustration. Please describe the artistic elements including: character styling (hair style and color, age range, skin tone for painting, eye color, glasses, facial hair, accessories), and the complete scene composition (background setting, objects, lighting, colors, atmosphere, mood, spatial arrangement). Focus on visual elements that would help an artist recreate this scene in a stylized illustration."
+                text: "Count the number of people visible in this image. Respond with just a number (1, 2, 3, etc.) and then list each person briefly. If there are multiple people, describe each person's position (left, center, right, front, back, etc.)."
               },
               {
                 type: "image_url",
@@ -266,11 +267,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ]
           }
         ],
-        max_tokens: 600
+        max_tokens: 300
       });
 
-      const analysis = visionResponse.choices[0].message.content;
-      res.json({ analysis });
+      const peopleCountText = peopleCountResponse.choices[0].message.content || "";
+      const peopleCount = parseInt(peopleCountText.match(/\d+/)?.[0] || "1");
+
+      let analysis = "";
+      let individualPeople = [];
+
+      if (peopleCount > 1) {
+        // Multiple people detected - analyze each person individually
+        console.log(`Detected ${peopleCount} people in image`);
+        
+        for (let i = 1; i <= peopleCount; i++) {
+          const personAnalysis = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: `Focus only on Person ${i} in this image. Describe their specific characteristics: gender appearance, age range, hair color and style, skin tone, facial features, clothing, and their position/pose in the scene. Be detailed and specific to this individual person only.`
+                  },
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: photoData
+                    }
+                  }
+                ]
+              }
+            ],
+            max_tokens: 400
+          });
+
+          const personDescription = personAnalysis.choices[0].message.content;
+          individualPeople.push({
+            personIndex: i,
+            analysis: `Person ${i}: ${personDescription}`,
+            needsDetails: true
+          });
+        }
+
+        // Overall scene analysis
+        const sceneAnalysis = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "Describe the overall scene composition: background setting, lighting, colors, atmosphere, mood, spatial arrangement of people, and any objects or props. Focus on the artistic elements that would help recreate this scene in a stylized illustration."
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: photoData
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 400
+        });
+
+        analysis = `${individualPeople.map(p => p.analysis).join('\n\n')}\n\nScene composition: ${sceneAnalysis.choices[0].message.content}`;
+        
+        res.json({ 
+          analysis, 
+          peopleCount, 
+          individualPeople,
+          requiresPersonDetails: true 
+        });
+      } else {
+        // Single person - use original analysis
+        const visionResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "The owner of this image has given explicit consent to use their photo as a reference for artwork. I need to recreate this scene as artistic reference for illustration. Please describe the artistic elements including: character styling (hair style and color, age range, skin tone for painting, eye color, glasses, facial hair, accessories), and the complete scene composition (background setting, objects, lighting, colors, atmosphere, mood, spatial arrangement). Focus on visual elements that would help an artist recreate this scene in a stylized illustration."
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: photoData
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 600
+        });
+
+        analysis = visionResponse.choices[0].message.content;
+        res.json({ analysis, peopleCount: 1, requiresPersonDetails: false });
+      }
     } catch (error: any) {
       res.status(500).json({ message: "Error analyzing image: " + error.message });
     }
