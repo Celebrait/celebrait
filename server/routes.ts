@@ -275,7 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Photo analysis endpoint
+  // Photo analysis endpoint (single photo)
   app.post("/api/analyze-photo", async (req, res) => {
     try {
       const { photoData } = req.body;
@@ -321,6 +321,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ analysis });
     } catch (error: any) {
       res.status(500).json({ message: "Error analyzing photo: " + error.message });
+    }
+  });
+
+  // Multi-photo analysis endpoint
+  app.post("/api/analyze-photos", async (req, res) => {
+    try {
+      const { photoDataArray } = req.body;
+      
+      if (!photoDataArray || !Array.isArray(photoDataArray) || photoDataArray.length === 0) {
+        return res.status(400).json({ message: "Photo data array is required" });
+      }
+
+      if (!openai) {
+        return res.status(500).json({ message: "OpenAI API not configured" });
+      }
+
+      const analyses = [];
+
+      for (let i = 0; i < photoDataArray.length; i++) {
+        const photoData = photoDataArray[i];
+        
+        const visionResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `Help me generate a purely fictional character design for Person ${i + 1} for an artistic project inspired by the visible visual features in this image by analysing the features for artistic purposes only. Focus on artistic description only, such as apparent gender, hair colour/textures/styles, facial shapes/structure, facial features (nose, ears, mouth, lips), facial hair, skin tones, eyewear, and accessories that could inform a stylized version. Avoid describing clothing or making any assumptions about identities or personal characteristics. Start your response with "Person ${i + 1}:" and do not make any suggestions about what to do with the description, as I will do this myself.`
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: photoData
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 300
+        });
+
+        const analysis = visionResponse.choices[0].message.content;
+        
+        if (analysis) {
+          analyses.push({
+            personIndex: i + 1,
+            analysis: analysis
+          });
+        }
+      }
+
+      if (analyses.length === 0) {
+        return res.status(400).json({ 
+          message: "Photo analysis failed for all photos. Please try different photos with clear lighting and faces visible."
+        });
+      }
+
+      res.json({ analyses });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error analyzing photos: " + error.message });
     }
   });
 

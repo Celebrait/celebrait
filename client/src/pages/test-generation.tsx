@@ -45,26 +45,38 @@ export default function TestGeneration() {
   const [includeText, setIncludeText] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCard, setGeneratedCard] = useState<any>(null);
-  const [uploadedPhoto, setUploadedPhoto] = useState<string | null>(null);
-  const [photoAnalysis, setPhotoAnalysis] = useState<string | null>(null);
-  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
+  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+  const [photoAnalyses, setPhotoAnalyses] = useState<Array<{personIndex: number, analysis: string}>>([]);
+  const [isAnalyzingPhotos, setIsAnalyzingPhotos] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const analyzePhoto = async (photoData: string) => {
-    setIsAnalyzingPhoto(true);
+  const analyzePhotos = async (photoDataArray: string[]) => {
+    setIsAnalyzingPhotos(true);
     setAnalysisError(null);
     
     try {
-      const response = await apiRequest("POST", "/api/analyze-photo", {
-        photoData
-      });
+      if (photoDataArray.length === 1) {
+        // Use single photo analysis for one photo
+        const response = await apiRequest("POST", "/api/analyze-photo", {
+          photoData: photoDataArray[0]
+        });
+        
+        const data = await response.json() as { analysis: string };
+        setPhotoAnalyses([{ personIndex: 1, analysis: data.analysis }]);
+      } else {
+        // Use multi-photo analysis for multiple photos
+        const response = await apiRequest("POST", "/api/analyze-photos", {
+          photoDataArray
+        });
+        
+        const data = await response.json() as { analyses: Array<{personIndex: number, analysis: string}> };
+        setPhotoAnalyses(data.analyses);
+      }
       
-      const data = await response.json() as { analysis: string };
-      setPhotoAnalysis(data.analysis);
       toast({
-        title: "Photo analyzed successfully!",
-        description: "Analysis results ready for testing."
+        title: "Photos analyzed successfully!",
+        description: `${photoDataArray.length} photo(s) analyzed and ready for testing.`
       });
     } catch (error: any) {
       setAnalysisError(error.message);
@@ -74,20 +86,27 @@ export default function TestGeneration() {
         variant: "destructive"
       });
     } finally {
-      setIsAnalyzingPhoto(false);
+      setIsAnalyzingPhotos(false);
     }
   };
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64String = e.target?.result as string;
-        setUploadedPhoto(base64String);
-        analyzePhoto(base64String);
-      };
-      reader.readAsDataURL(file);
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const photoPromises = Array.from(files).map(file => {
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            resolve(e.target?.result as string);
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      Promise.all(photoPromises).then(photos => {
+        setUploadedPhotos(photos);
+        analyzePhotos(photos);
+      });
     }
   };
 
@@ -118,13 +137,73 @@ export default function TestGeneration() {
 
       const card = await cardResponse.json();
 
-      // Determine front prompt
-      const frontPrompt = customPromptText || 
-        (includeText ? preset.frontPrompt : preset.frontPromptNoText);
+      // Build front prompt using the same logic as main onboarding
+      let frontPrompt = customPromptText;
+      
+      if (!customPromptText) {
+        const parts = [];
+        
+        // Base requirements
+        parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
+        
+        // If photos were uploaded and analyzed, use them
+        if (uploadedPhotos.length > 0 && photoAnalyses.length > 0) {
+          photoAnalyses.forEach((analysis, index) => {
+            const personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
+            parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}`);
+          });
+        } else if (preset) {
+          // Use preset character description
+          const presetDescription = preset.frontPrompt.match(/showing a (.+?) in/)?.[1] || 'person';
+          parts.push(`featuring ${presetDescription}`);
+        }
+        
+        if (preset?.artStyle) {
+          parts.push(`${preset.artStyle.replace('_', ' ')} art style`);
+        }
+        
+        // Add text if enabled
+        if (includeText && preset) {
+          const textMatch = preset.frontPrompt.match(/Text overlay: '(.+?)'/);
+          if (textMatch) {
+            parts.push(`with the text "${textMatch[1]}" integrated into the design`);
+          }
+        }
+        
+        // Final formatting requirements
+        parts.push('print-ready artwork, no card mockup visible');
+        
+        frontPrompt = parts.join(', ');
+      }
 
-      // Generate inside prompt for front-and-inside cards
+      // Generate inside prompt for front-and-inside cards using same logic as main onboarding
       const insidePrompt = cardType === 'front-and-inside' ? 
-        `Full-bleed square greeting card interior, no borders, no background, no card mockup. Style matching the exact colors and mood from front card in ${preset?.artStyle === 'oil_painting' ? 'rich oil painting' : preset?.artStyle === 'watercolor' ? 'dreamy watercolor' : preset?.artStyle === 'cartoon' ? 'vibrant cartoon' : 'realistic photography'} style. Clean typography layout with centered text: '${preset?.insideMessage || 'Hope your special day brings you joy and happiness!'}'. Print-ready artwork filling entire frame with consistent visual theme.` : 
+        (() => {
+          const insideMessage = preset?.insideMessage || "Hope your special day brings you joy and happiness!";
+          const parts = [];
+          
+          // Base requirements
+          parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
+          
+          // Greeting card interior layout focusing on typography
+          parts.push(`Greeting card interior with elegant typography displaying: "${insideMessage}"`);
+          
+          // Subtle aesthetic matching without character elements
+          parts.push('subtle complementary background that matches the front card color palette and overall mood');
+          
+          // Art style consistency
+          if (preset?.artStyle) {
+            parts.push(`${preset.artStyle.replace('_', ' ')} art style with same visual treatment as front`);
+          }
+          
+          // Typography and layout requirements
+          parts.push('professional greeting card typography using same font style and treatment as front card');
+          parts.push('text prominently displayed and clearly readable');
+          parts.push('minimal decorative elements that complement without overwhelming the message');
+          parts.push('print-ready artwork, no card mockup visible');
+          
+          return parts.join(', ');
+        })() : 
         null;
 
       console.log('Card type:', cardType);
@@ -135,7 +214,7 @@ export default function TestGeneration() {
         cardId: card.id,
         frontPrompt,
         insidePrompt,
-        photoData: uploadedPhoto
+        photoData: uploadedPhotos.length > 0 ? uploadedPhotos[0] : null
       });
 
       const updatedCard = await imageResponse.json();
