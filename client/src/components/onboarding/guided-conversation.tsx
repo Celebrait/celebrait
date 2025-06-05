@@ -863,73 +863,73 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const buildImagePrompt = () => {
     const parts = [];
     
-    // Critical: Card format requirements
-    parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
+    // Base requirements (matching test page structure)
+    parts.push("Square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible");
     
-    // If photo was uploaded, use it as reference
-    if (answers.photo_upload) {
-      let photoDescription = `Create an artistic representation of the person in the uploaded photo, featuring ${answers.name || 'them'}`;
-      
-      // Add heritage information from photo upload flow
-      if (answers.heritage_photo) {
-        photoDescription += `, ${answers.heritage_photo} heritage`;
-      }
-      
-      parts.push(photoDescription);
-      
-      // Add character/costume specification
-      if (answers.character_costume && answers.character_costume !== 'keep_original') {
-        const costumeDescriptions = {
-          'superhero': 'dressed as a superhero with cape, mask, and heroic costume',
-          'princess_prince': 'dressed as royalty in a regal gown or princely attire with crown',
-          'pirate': 'dressed as a pirate with hat, eyepatch, and swashbuckling outfit',
-          'astronaut': 'wearing a space suit and helmet as an astronaut',
-          'wizard_witch': 'dressed as a wizard/witch with robes, hat, and magical attire',
-          'chef': 'dressed as a chef with chef hat, apron, and cooking attire',
-          'detective': 'dressed as a detective with trench coat, hat, and magnifying glass',
-          'athlete': 'wearing sports uniform or athletic gear',
-          'musician': 'dressed as a musician with performance outfit and instrument'
-        };
+    // Add all analyzed people with their cultural details
+    if (photoAnalyses.length > 0 && answers.people_details) {
+      photoAnalyses.forEach((analysis, index) => {
+        const personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
+        const personDetails = answers.people_details[index];
         
-        const costumeDesc = costumeDescriptions[answers.character_costume as keyof typeof costumeDescriptions];
-        console.log('Costume selection debug:', answers.character_costume, costumeDesc);
-        if (costumeDesc) {
-          parts.push(costumeDesc);
+        let culturalText = '';
+        if (personDetails?.custom_heritage) {
+          culturalText = `, ${personDetails.custom_heritage} heritage`;
+        } else if (personDetails?.heritage) {
+          culturalText = `, ${personDetails.heritage.replace('_', ' ')} heritage`;
         }
-      }
+        
+        parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}${culturalText}`);
+      });
     } else if (answers.name) {
-      let personDescription = answers.name;
+      // Fallback for manual descriptions
+      let characterDesc = `${answers.name}`;
       
-      if (answers.gender) personDescription += `, ${answers.gender}`;
-      if (answers.age) personDescription += `, ${answers.age.replace('_', ' ')}`;
-      if (answers.heritage) personDescription += `, ${answers.heritage} heritage`;
-      if (answers.hair_color) personDescription += `, ${answers.hair_color.replace('_', ' ')} hair`;
-      if (answers.hair_style) personDescription += ` ${answers.hair_style.replace('_', ' ')}`;
-      if (answers.build) personDescription += `, ${answers.build} build`;
-      if (answers.features && answers.features !== 'skip') personDescription += `, ${answers.features}`;
+      if (answers.gender) characterDesc += `, ${answers.gender}`;
+      if (answers.age) characterDesc += `, ${answers.age.replace('_', ' ')}`;
+      if (answers.heritage) characterDesc += `, ${answers.heritage} heritage`;
+      if (answers.hair_color && answers.hair_style) {
+        characterDesc += `, ${answers.hair_color.replace('_', ' ')} ${answers.hair_style.replace('_', ' ')} hair`;
+      }
+      if (answers.build) characterDesc += `, ${answers.build} build`;
+      if (answers.features && answers.features !== 'skip') {
+        characterDesc += `, ${answers.features}`;
+      }
       
-      parts.push(`featuring ${personDescription}`);
+      parts.push(`featuring ${characterDesc}`);
     }
     
-    if (answers.personality) {
-      parts.push(`${answers.personality} personality`);
-    }
-    
+    // Add scene description
     if (answers.scene) {
-      parts.push(`in ${answers.scene}`);
+      parts.push(answers.scene);
+    } else if (answers.celebration) {
+      // Default scene based on celebration
+      const celebrationScenes = {
+        'birthday': 'celebrating at a birthday party with balloons and confetti',
+        'anniversary': 'celebrating in a romantic setting with warm lighting',
+        'graduation': 'celebrating achievement with academic elements',
+        'wedding': 'celebrating in an elegant wedding setting',
+        'christmas': 'celebrating Christmas with festive decorations',
+        'mothers_day': 'celebrating in a beautiful garden setting',
+        'fathers_day': 'celebrating in a warm family setting'
+      };
+      
+      const defaultScene = celebrationScenes[answers.celebration] || 'celebrating in a joyful setting';
+      parts.push(defaultScene);
     }
     
+    // Add art style
     if (answers.art_style) {
-      parts.push(`${answers.art_style} art style`);
+      parts.push(`${answers.art_style.replace('_', ' ')} style`);
     }
     
-    // Focus on clear text rendering
-    if (answers.message && answers.message.trim()) {
-      parts.push(`with the text "${answers.message}" integrated into the design`);
+    // Add front text
+    if (answers.message) {
+      parts.push(`with "${answers.message}" text prominently displayed`);
     }
     
-    // Final formatting requirements
-    parts.push('print-ready artwork, no card mockup visible');
+    // Final requirements
+    parts.push('professional greeting card quality, print-ready artwork');
     
     return parts.join(', ');
   };
