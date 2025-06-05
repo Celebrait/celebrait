@@ -48,16 +48,19 @@ export default function TestGeneration() {
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const [photoAnalyses, setPhotoAnalyses] = useState<Array<{personIndex: number, analysis: string}>>([]);
   const [isAnalyzingPhotos, setIsAnalyzingPhotos] = useState(false);
+  const [currentAnalysisIndex, setCurrentAnalysisIndex] = useState<number>(-1);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const analyzePhotos = async (photoDataArray: string[]) => {
     setIsAnalyzingPhotos(true);
     setAnalysisError(null);
+    setPhotoAnalyses([]);
     
     try {
       if (photoDataArray.length === 1) {
         // Use single photo analysis for one photo
+        setCurrentAnalysisIndex(0);
         const response = await apiRequest("POST", "/api/analyze-photo", {
           photoData: photoDataArray[0]
         });
@@ -65,18 +68,29 @@ export default function TestGeneration() {
         const data = await response.json() as { analysis: string };
         setPhotoAnalyses([{ personIndex: 1, analysis: data.analysis }]);
       } else {
-        // Use multi-photo analysis for multiple photos
-        const response = await apiRequest("POST", "/api/analyze-photos", {
-          photoDataArray
-        });
-        
-        const data = await response.json() as { analyses: Array<{personIndex: number, analysis: string}> };
-        setPhotoAnalyses(data.analyses);
+        // Analyze photos one by one to show progress
+        const analyses = [];
+        for (let i = 0; i < photoDataArray.length; i++) {
+          setCurrentAnalysisIndex(i);
+          
+          const response = await apiRequest("POST", "/api/analyze-photo", {
+            photoData: photoDataArray[i]
+          });
+          
+          const data = await response.json() as { analysis: string };
+          const analysis = {
+            personIndex: i + 1,
+            analysis: `Person ${i + 1}: ${data.analysis}`
+          };
+          
+          analyses.push(analysis);
+          setPhotoAnalyses([...analyses]); // Update UI progressively
+        }
       }
       
       toast({
         title: "Photos analyzed successfully!",
-        description: `${photoDataArray.length} photo(s) analyzed and ready for testing.`
+        description: `${photoDataArray.length} photo(s) analyzed sequentially and ready for testing.`
       });
     } catch (error: any) {
       setAnalysisError(error.message);
@@ -87,6 +101,7 @@ export default function TestGeneration() {
       });
     } finally {
       setIsAnalyzingPhotos(false);
+      setCurrentAnalysisIndex(-1);
     }
   };
 
@@ -388,14 +403,32 @@ export default function TestGeneration() {
                       <div className="grid grid-cols-2 gap-2">
                         {uploadedPhotos.map((photo, index) => (
                           <div key={index} className="relative">
-                            <div className="w-full aspect-square rounded-lg overflow-hidden border">
+                            <div className={`w-full aspect-square rounded-lg overflow-hidden border-2 ${
+                              currentAnalysisIndex === index ? 'border-blue-500 shadow-lg' : 
+                              photoAnalyses.some(a => a.personIndex === index + 1) ? 'border-green-500' : 
+                              'border-gray-300'
+                            }`}>
                               <img 
                                 src={photo} 
                                 alt={`Uploaded photo ${index + 1}`} 
                                 className="w-full h-full object-cover"
                               />
+                              {currentAnalysisIndex === index && (
+                                <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
+                                  <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                                </div>
+                              )}
+                              {photoAnalyses.some(a => a.personIndex === index + 1) && currentAnalysisIndex !== index && (
+                                <div className="absolute top-1 right-1 bg-green-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                                  ✓
+                                </div>
+                              )}
                             </div>
-                            <div className="absolute top-1 left-1 bg-purple-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                            <div className={`absolute top-1 left-1 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center ${
+                              currentAnalysisIndex === index ? 'bg-blue-500' : 
+                              photoAnalyses.some(a => a.personIndex === index + 1) ? 'bg-green-500' : 
+                              'bg-purple-500'
+                            }`}>
                               {index + 1}
                             </div>
                           </div>
@@ -406,7 +439,10 @@ export default function TestGeneration() {
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                           <div className="flex items-center space-x-2">
                             <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                            <p className="text-blue-700 text-sm">Analyzing {uploadedPhotos.length} photo(s)...</p>
+                            <p className="text-blue-700 text-sm">
+                              Analyzing photo {currentAnalysisIndex + 1} of {uploadedPhotos.length} 
+                              {uploadedPhotos.length > 1 ? ' (one at a time)' : ''}...
+                            </p>
                           </div>
                         </div>
                       )}
@@ -448,7 +484,9 @@ export default function TestGeneration() {
 
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                         <p className="text-yellow-700 text-sm">
-                          <strong>Multi-person testing:</strong> Each uploaded photo will be analyzed separately as "Person 1", "Person 2", etc. The front prompt will include all analyzed people.
+                          <strong>Sequential Analysis:</strong> Each photo is analyzed individually in order (Person 1, Person 2, etc.). 
+                          Watch the blue highlight and spinner to see which photo is currently being processed. 
+                          All analyzed people will be included in the final card generation.
                         </p>
                       </div>
 

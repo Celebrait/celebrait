@@ -342,6 +342,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (let i = 0; i < photoDataArray.length; i++) {
         const photoData = photoDataArray[i];
         
+        console.log(`Analyzing photo ${i + 1} of ${photoDataArray.length}...`);
+        
         const visionResponse = await openai.chat.completions.create({
           model: "gpt-4o",
           messages: [
