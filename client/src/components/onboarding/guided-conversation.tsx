@@ -144,19 +144,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           value: 'describe_person', 
           label: 'Describe Person + Describe Scene', 
           description: 'I\'ll create everything based on your descriptions',
-          color: 'bg-gray-400',
+          color: 'bg-blue-500',
           icon: 'edit',
-          details: 'Ideal when you don\'t have a photo but can describe them',
-          disabled: true
+          details: 'Ideal when you don\'t have a photo but can describe them'
         },
         { 
           value: 'upload_and_transform', 
           label: 'Upload Photo + Transform Style', 
           description: 'Upload a photo and I\'ll transform it into different artistic styles',
-          color: 'bg-gray-500',
+          color: 'bg-purple-500',
           icon: 'palette',
-          details: 'Great for artistic transformations of existing photos',
-          disabled: true
+          details: 'Great for artistic transformations of existing photos'
         }
       ]
     },
