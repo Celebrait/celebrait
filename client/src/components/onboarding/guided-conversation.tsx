@@ -1719,51 +1719,52 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             </div>
                           </div>
 
-                          <div className="text-center mb-8">
-                            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                          <div className="text-center mb-6">
+                            <h3 className="text-xl font-semibold text-gray-800 mb-1">
                               Person {currentPersonIndex + 1} {photoAnalyses.length > 1 && `of ${photoAnalyses.length}`}
                             </h3>
                           </div>
 
-                          <div className="space-y-8">
+                          <div className="space-y-6">
                             {/* Gender Selection */}
                             <div>
-                              <label className="block text-lg font-medium text-gray-900 mb-4">Gender</label>
-                              <div className="grid grid-cols-2 gap-4">
+                              <label className="block text-base font-medium text-gray-800 mb-3">Gender</label>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {[
                                   { value: 'female', label: 'Female' },
                                   { value: 'male', label: 'Male' }
                                 ].map((option) => (
-                                  <div
+                                  <Button
                                     key={option.value}
                                     onClick={() => {
                                       const newPeopleDetails = [...(answers.people_details || [])];
                                       newPeopleDetails[currentPersonIndex] = { ...(newPeopleDetails[currentPersonIndex] || {}), gender: option.value };
                                       setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
                                     }}
-                                    className={`p-6 border-2 rounded-2xl cursor-pointer transition-all duration-200 text-center ${
+                                    variant="outline"
+                                    className={`h-auto p-3 sm:p-4 text-center transition-all hover:scale-105 hover:shadow-lg bg-white/80 border-2 rounded-xl text-sm font-medium ${
                                       answers.people_details?.[currentPersonIndex]?.gender === option.value
-                                        ? 'border-purple-500 bg-purple-50 shadow-md' 
-                                        : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                                        ? 'border-purple-500 bg-purple-50 text-purple-700' 
+                                        : 'border-purple-200 hover:border-purple-400 text-gray-800 hover:bg-purple-50'
                                     }`}
                                   >
-                                    <span className="text-lg font-medium text-gray-800">{option.label}</span>
-                                  </div>
+                                    {option.label}
+                                  </Button>
                                 ))}
                               </div>
                             </div>
 
                             {/* Cultural Background Selection */}
                             <div>
-                              <label className="block text-lg font-medium text-gray-900 mb-4">Cultural Background</label>
-                              <div className="grid grid-cols-2 gap-4 mb-4">
+                              <label className="block text-base font-medium text-gray-800 mb-3">Cultural Background</label>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                                 {[
                                   { value: 'black_african', label: 'Black African' },
                                   { value: 'coloured', label: 'Coloured' },
                                   { value: 'white', label: 'White' },
                                   { value: 'indian', label: 'Indian' }
                                 ].map((option) => (
-                                  <div
+                                  <Button
                                     key={option.value}
                                     onClick={() => {
                                       const newPeopleDetails = [...(answers.people_details || [])];
@@ -1774,19 +1775,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                       };
                                       setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
                                     }}
-                                    className={`p-6 border-2 rounded-2xl cursor-pointer transition-all duration-200 text-center ${
+                                    variant="outline"
+                                    className={`h-auto p-3 sm:p-4 text-center transition-all hover:scale-105 hover:shadow-lg bg-white/80 border-2 rounded-xl text-sm font-medium ${
                                       answers.people_details?.[currentPersonIndex]?.heritage === option.value
-                                        ? 'border-purple-500 bg-purple-50 shadow-md' 
-                                        : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                                        ? 'border-purple-500 bg-purple-50 text-purple-700' 
+                                        : 'border-purple-200 hover:border-purple-400 text-gray-800 hover:bg-purple-50'
                                     }`}
                                   >
-                                    <span className="text-lg font-medium text-gray-800">{option.label}</span>
-                                  </div>
+                                    {option.label}
+                                  </Button>
                                 ))}
                               </div>
                               
                               <div className="mt-4">
-                                <label className="block text-sm font-medium text-gray-500 mb-2">Or specify different background:</label>
+                                <label className="block text-sm font-medium text-gray-600 mb-2">Or specify different background:</label>
                                 <input
                                   type="text"
                                   value={answers.people_details?.[currentPersonIndex]?.custom_heritage || ''}
@@ -1800,14 +1802,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                     setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
                                   }}
                                   placeholder="Type your cultural background..."
-                                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-purple-500 focus:outline-none transition-colors"
+                                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-purple-500 focus:outline-none transition-colors bg-white"
                                 />
                               </div>
                             </div>
                           </div>
 
                           {/* Navigation Buttons */}
-                          <div className="flex justify-center pt-8">
+                          <div className="flex justify-center pt-6">
                             {currentPersonIndex < photoAnalyses.length - 1 ? (
                               <Button
                                 onClick={() => {
@@ -1820,9 +1822,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                   const person = answers.people_details?.[currentPersonIndex];
                                   return !(person?.gender && (person?.heritage || person?.custom_heritage));
                                 })()}
-                                className="px-8 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                                className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white font-medium hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
                               >
                                 Continue to Next Person
+                                <ArrowRight className="w-4 h-4 ml-2" />
                               </Button>
                             ) : (
                               <Button
@@ -1836,9 +1839,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                   const person = answers.people_details?.[currentPersonIndex];
                                   return !(person?.gender && (person?.heritage || person?.custom_heritage));
                                 })()}
-                                className="px-8 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                                className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white font-medium hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
                               >
                                 Continue to Next Step
+                                <ArrowRight className="w-4 h-4 ml-2" />
                               </Button>
                             )}
                           </div>
