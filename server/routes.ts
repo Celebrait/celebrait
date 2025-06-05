@@ -385,6 +385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Generate the transformed image using gpt-image-1
+      console.log('Generating image with gpt-image-1...');
       const imageResponse = await openai.images.generate({
         model: "gpt-image-1",
         prompt: `${prompt}. ${transformDescription}. High quality artistic transformation, maintain the essence of the original composition while applying the new artistic style.`,
@@ -393,9 +394,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         quality: "high"
       });
 
+      console.log('Image response:', imageResponse);
       const transformedImageUrl = imageResponse.data?.[0]?.url;
+      console.log('Transformed image URL:', transformedImageUrl);
       
       if (!transformedImageUrl) {
+        console.log('No image URL in response');
         return res.status(400).json({ message: "Failed to generate transformed image" });
       }
 
