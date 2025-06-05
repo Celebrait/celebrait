@@ -122,7 +122,15 @@ export default function TestGeneration() {
 
       const frontPrompt = parts.join(', ');
 
-      console.log('Generating card with analyzed people:', frontPrompt);
+      console.log('=== CARD GENERATION PROMPT ===');
+      console.log('Full prompt:', frontPrompt);
+      console.log('Photo analyses used:');
+      photoAnalyses.forEach((analysis, index) => {
+        console.log(`Photo ${index + 1}:`, analysis.analysis);
+      });
+      console.log('Random scenario:', randomScenario);
+      console.log('Random style:', randomStyle);
+      console.log('===========================');
 
       const imageResponse = await apiRequest("POST", "/api/generate-images", {
         cardId: card.id,
