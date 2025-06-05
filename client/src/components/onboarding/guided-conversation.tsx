@@ -1138,6 +1138,22 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       </div>
                     )}
 
+                    {/* Back to Card Selection button for celebration step */}
+                    {currentStep.id === 'celebration' && (
+                      <div className="flex justify-center mt-6">
+                        <Button 
+                          onClick={() => {
+                            onboarding.setCurrentStep(2);
+                          }}
+                          variant="outline"
+                          className="px-6 py-2 rounded-xl border-purple-300 text-purple-600 hover:bg-purple-50 font-medium shadow-md"
+                        >
+                          <ArrowLeft className="w-4 h-4 mr-2" />
+                          Back to Card Selection
+                        </Button>
+                      </div>
+                    )}
+
                     {/* Always Show Input Field */}
                     <div className="space-y-2">
                       <p className="text-sm text-gray-600 text-center">
@@ -1618,18 +1634,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         <ArrowRight className="w-4 h-4" />
                       </Button>
                     </div>
-                    <div className="flex justify-center">
-                      <Button 
-                        onClick={() => {
-                          onboarding.setCurrentStep(2);
-                        }}
-                        variant="outline"
-                        className="px-6 py-2 rounded-xl border-gray-300 text-gray-600 hover:bg-gray-50"
-                      >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back to Card Selection
-                      </Button>
-                    </div>
+
                     {currentStep.id === 'features' && (
                       <div className="flex justify-center">
                         <Button 
@@ -2009,17 +2014,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       className="text-lg p-4 min-h-[120px] rounded-xl border-purple-200 focus:border-purple-400"
                       autoFocus={currentStep.id !== 'scene'}
                     />
-                    <div className="flex justify-between items-center">
-                      <Button 
-                        onClick={() => {
-                          onboarding.setCurrentStep(2);
-                        }}
-                        variant="outline"
-                        className="px-6 py-2 rounded-xl border-gray-300 text-gray-600 hover:bg-gray-50"
-                      >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back to Card Selection
-                      </Button>
+                    <div className="flex justify-end">
                       <Button 
                         onClick={handleTextSubmit}
                         disabled={!currentInput.trim()}
@@ -2044,16 +2039,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Go Back a Step
-                </Button>
-                <Button
-                  onClick={() => {
-                    onboarding.setCurrentStep(2);
-                  }}
-                  variant="outline"
-                  className="px-6 py-2 rounded-xl border-purple-300 text-purple-600 hover:bg-purple-50 font-medium shadow-sm"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Card Selection
                 </Button>
               </div>
             )}
