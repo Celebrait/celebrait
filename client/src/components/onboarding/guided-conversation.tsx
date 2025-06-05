@@ -155,7 +155,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         : `Please upload photos of ${answers.name || 'them'} (you can select multiple)`,
       aiMessage: answers.photo_option === 'upload_and_transform'
         ? `Perfect! Please upload a clear photo that you'd like me to transform into different artistic styles. I'll apply the artistic style you choose while maintaining the essence of the original image.`
-        : `Perfect! Please upload a clear photo of ${answers.name || 'them'}. I'll use this to create an artistic representation that captures their likeness while fitting the style you choose.`,
+        : `Perfect! Please upload one clear photo of ${answers.name || 'them'}, then one clear photo of any other people you'd like in the scene.`,
       type: 'photo_upload',
       required: true
     },
