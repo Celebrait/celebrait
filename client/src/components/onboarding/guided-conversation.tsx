@@ -1710,14 +1710,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                     {photoAnalyses.map((analysis, index) => (
                       <div key={index} className="bg-white border-2 border-purple-200 rounded-xl p-6">
                         <div className="flex items-start space-x-4 mb-6">
-                          <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-white font-bold text-lg">{index + 1}</span>
+                          <div className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden border-2 border-purple-300">
+                            {uploadedPhotos[index] ? (
+                              <img 
+                                src={uploadedPhotos[index]} 
+                                alt={`Person ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-purple-600 font-bold text-lg">{index + 1}</span>
+                            )}
                           </div>
                           <div className="flex-1">
                             <h3 className="text-xl font-bold text-purple-800 mb-2">Person {index + 1}</h3>
-                            <div className="bg-purple-50 rounded-lg p-3">
-                              <p className="text-purple-700 text-sm">{analysis.analysis}</p>
-                            </div>
                           </div>
                         </div>
 
@@ -1727,8 +1732,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             <label className="block text-sm font-medium text-gray-700 mb-3">Gender</label>
                             <div className="space-y-2">
                               {[
-                                { value: 'female', label: 'Female', color: 'bg-pink-500' },
-                                { value: 'male', label: 'Male', color: 'bg-blue-500' }
+                                { value: 'female', label: 'Female' },
+                                { value: 'male', label: 'Male' }
                               ].map((option) => (
                                 <div
                                   key={option.value}
@@ -1737,16 +1742,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                     newPeopleDetails[index] = { ...(newPeopleDetails[index] || {}), gender: option.value };
                                     setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
                                   }}
-                                  className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
                                     answers.people_details?.[index]?.gender === option.value
                                       ? 'border-purple-400 bg-purple-50' 
-                                      : 'border-gray-200 hover:border-purple-300'
+                                      : 'border-gray-200 hover:border-gray-300'
                                   }`}
                                 >
-                                  <div className="flex items-center space-x-3">
-                                    <div className={`w-4 h-4 ${option.color} rounded-full`}></div>
-                                    <span className="font-medium text-gray-800">{option.label}</span>
-                                  </div>
+                                  <span className="font-medium text-gray-800">{option.label}</span>
                                 </div>
                               ))}
                             </div>
@@ -1755,12 +1757,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                           {/* Cultural Background Selection */}
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-3">Cultural Background</label>
-                            <div className="space-y-2">
+                            <div className="space-y-2 mb-3">
                               {[
-                                { value: 'black_african', label: 'Black African', description: 'African heritage', color: 'bg-green-500' },
-                                { value: 'coloured', label: 'Coloured', description: 'Mixed heritage', color: 'bg-amber-500' },
-                                { value: 'white', label: 'White', description: 'European heritage', color: 'bg-blue-500' },
-                                { value: 'indian', label: 'Indian', description: 'Indian heritage', color: 'bg-purple-500' }
+                                { value: 'black_african', label: 'Black African' },
+                                { value: 'coloured', label: 'Coloured' },
+                                { value: 'white', label: 'White' },
+                                { value: 'indian', label: 'Indian' }
                               ].map((option) => (
                                 <div
                                   key={option.value}
@@ -1769,42 +1771,38 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                     newPeopleDetails[index] = { ...(newPeopleDetails[index] || {}), heritage: option.value };
                                     setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
                                   }}
-                                  className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
                                     answers.people_details?.[index]?.heritage === option.value
                                       ? 'border-purple-400 bg-purple-50' 
-                                      : 'border-gray-200 hover:border-purple-300'
+                                      : 'border-gray-200 hover:border-gray-300'
                                   }`}
                                 >
-                                  <div className="flex items-center space-x-3">
-                                    <div className={`w-4 h-4 ${option.color} rounded-full`}></div>
-                                    <div>
-                                      <span className="font-medium text-gray-800">{option.label}</span>
-                                      <p className="text-sm text-gray-500">{option.description}</p>
-                                    </div>
-                                  </div>
+                                  <span className="font-medium text-gray-800">{option.label}</span>
                                 </div>
                               ))}
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-500 mb-2">Or specify different background:</label>
+                              <input
+                                type="text"
+                                value={answers.people_details?.[index]?.custom_heritage || ''}
+                                onChange={(e) => {
+                                  const newPeopleDetails = [...(answers.people_details || [])];
+                                  newPeopleDetails[index] = { 
+                                    ...(newPeopleDetails[index] || {}), 
+                                    custom_heritage: e.target.value,
+                                    heritage: e.target.value ? 'custom' : newPeopleDetails[index]?.heritage 
+                                  };
+                                  setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
+                                }}
+                                placeholder="Type your cultural background..."
+                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-purple-500 focus:outline-none transition-colors"
+                              />
                             </div>
                           </div>
                         </div>
 
-                        {/* Name Input for Person */}
-                        <div className="mt-6">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            What's this person's name? (Optional)
-                          </label>
-                          <input
-                            type="text"
-                            value={answers.people_details?.[index]?.name || ''}
-                            onChange={(e) => {
-                              const newPeopleDetails = [...(answers.people_details || [])];
-                              newPeopleDetails[index] = { ...(newPeopleDetails[index] || {}), name: e.target.value };
-                              setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
-                            }}
-                            placeholder="Enter their name..."
-                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none transition-colors"
-                          />
-                        </div>
+
                       </div>
                     ))}
 
@@ -1813,19 +1811,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       <Button
                         onClick={() => {
                           // Check if all required fields are filled
-                          const allDetailsComplete = photoAnalyses.every((_, index) => 
-                            answers.people_details?.[index]?.gender && 
-                            answers.people_details?.[index]?.heritage
-                          );
+                          const allDetailsComplete = photoAnalyses.every((_, index) => {
+                            const person = answers.people_details?.[index];
+                            return person?.gender && (person?.heritage || person?.custom_heritage);
+                          });
                           
                           if (allDetailsComplete) {
                             setCurrentStepIndex(prev => prev + 1);
                           }
                         }}
-                        disabled={!photoAnalyses.every((_, index) => 
-                          answers.people_details?.[index]?.gender && 
-                          answers.people_details?.[index]?.heritage
-                        )}
+                        disabled={!photoAnalyses.every((_, index) => {
+                          const person = answers.people_details?.[index];
+                          return person?.gender && (person?.heritage || person?.custom_heritage);
+                        })}
                         className="px-8 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                       >
                         Continue to Next Step
