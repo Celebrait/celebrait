@@ -474,13 +474,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         return false;
       }
     } else if (answers.photo_option === 'describe_person') {
-      // For description only, skip photo upload and related steps
-      const skipSteps = ['photo_upload', 'heritage_photo', 'character_costume'];
+      // For description only, skip photo upload and related steps but keep all description steps
+      const skipSteps = ['photo_upload', 'heritage_photo', 'character_costume', 'people_details'];
       if (skipSteps.includes(step.id)) {
         return false;
       }
     } else if (answers.photo_option === 'upload_and_scene') {
-      // For photo + scene, skip description steps but keep scene and heritage_photo
+      // For photo + scene, skip description steps but keep scene and people_details
       const skipSteps = ['character_costume', 'gender', 'age', 'heritage', 'hair_color', 'hair_style', 'build', 'features', 'personality'];
       if (skipSteps.includes(step.id)) {
         return false;
