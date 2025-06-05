@@ -362,10 +362,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
       const imageBuffer = Buffer.from(base64Data, 'base64');
       
+      console.log('Original image buffer size:', imageBuffer.length, 'bytes');
+      
+      // Check if image is too large (limit to 4MB for API)
+      const maxSizeBytes = 4 * 1024 * 1024; // 4MB
+      if (imageBuffer.length > maxSizeBytes) {
+        return res.status(400).json({ 
+          message: `Image file too large (${Math.round(imageBuffer.length / 1024 / 1024)}MB). Please upload an image smaller than 4MB.` 
+        });
+      }
+      
       // Use images.variations with GPT-Image-1
       const imageResponse = await openai.images.createVariation({
         model: "gpt-image-1",
-        image: imageBuffer,
+        image: imageBuffer as any, // Cast to bypass TypeScript restriction
         n: 1,
         size: "1024x1024"
       });

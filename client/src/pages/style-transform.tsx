@@ -32,10 +32,10 @@ export default function StyleTransform() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > 2 * 1024 * 1024) {
       toast({
         title: "File too large",
-        description: "Please select an image under 10MB",
+        description: "Please select an image under 2MB for optimal processing",
         variant: "destructive"
       });
       return;
@@ -44,9 +44,37 @@ export default function StyleTransform() {
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target?.result) {
-        setUploadedImage(e.target.result as string);
-        setTransformedImage(null);
-        setTransformError(null);
+        const result = e.target.result as string;
+        
+        // Compress image to reduce size
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d')!;
+          
+          // Resize to max 800px while maintaining aspect ratio
+          const maxDimension = 800;
+          let { width, height } = img;
+          
+          if (width > height && width > maxDimension) {
+            height = (height * maxDimension) / width;
+            width = maxDimension;
+          } else if (height > maxDimension) {
+            width = (width * maxDimension) / height;
+            height = maxDimension;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Convert to base64 with reduced quality
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          setUploadedImage(compressedDataUrl);
+          setTransformedImage(null);
+          setTransformError(null);
+        };
+        img.src = result;
       }
     };
     reader.readAsDataURL(file);
