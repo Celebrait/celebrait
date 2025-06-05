@@ -1028,15 +1028,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto">
-        <div className="flex items-center justify-center min-h-full p-6">
-          <div className="w-full max-w-2xl space-y-6">
+        <div className="flex items-center justify-center min-h-full p-4 sm:p-6">
+          <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6">
             {/* AI Avatar and Message */}
             <div className="text-center space-y-4">
               <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
                 <Bot className="w-8 h-8 text-white" />
               </div>
               
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-purple-100">
+              <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20">
                 {isTyping ? (
                   <div className="flex justify-center space-x-2">
                     <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
@@ -1044,24 +1044,24 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                     <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 ) : (
-                  <p className="text-lg text-gray-800 leading-relaxed">{currentStep.aiMessage}</p>
+                  <p className="text-sm sm:text-base lg:text-lg text-gray-800 leading-relaxed">{currentStep.aiMessage}</p>
                 )}
               </div>
             </div>
 
             {/* Answer Options */}
             {!isTyping && (
-              <div className="space-y-4">
+              <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-white/20">
                 {currentStep.type === 'select' && currentStep.options && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 sm:space-y-6">
                     {/* Compact Options Grid */}
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       {(showAllOptions[currentStep.id] ? currentStep.options : currentStep.options.slice(0, 4)).map((option) => (
                         <Button
                           key={option.value}
                           onClick={() => handleAnswer(option.value)}
                           variant="outline"
-                          className="h-auto p-3 text-center transition-all hover:scale-[1.02] hover:shadow-md bg-gradient-to-r from-purple-200 to-blue-200 text-purple-700 border-purple-200 hover:from-purple-300 hover:to-blue-300 hover:text-purple-800 active:from-purple-200 active:to-blue-200 rounded-lg text-sm font-medium"
+                          className="h-auto p-3 sm:p-4 text-center transition-all hover:scale-105 hover:shadow-lg bg-white/80 border-2 border-purple-200 hover:border-ethereal-purple text-gray-800 hover:bg-purple-50 rounded-xl text-xs sm:text-sm font-medium"
                         >
                           <div className="flex items-center justify-center space-x-2">
                             {option.icon && (
@@ -1150,9 +1150,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 )}
 
                 {currentStep.type === 'multiselect' && currentStep.options && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 sm:space-y-6">
                     {/* Multi-select Options Grid */}
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       {(showAllOptions[currentStep.id] ? currentStep.options : currentStep.options.slice(0, 6)).map((option) => (
                         <Button
                           key={option.value}
