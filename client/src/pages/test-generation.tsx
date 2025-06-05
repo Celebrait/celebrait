@@ -54,6 +54,128 @@ export default function TestGeneration() {
   const [culturalBackgrounds, setCulturalBackgrounds] = useState<Array<{personIndex: number, background: string}>>([]);
   const { toast } = useToast();
 
+  const generateStyleMatchingTest = async () => {
+    try {
+      setIsGenerating(true);
+      setGeneratedCard(null);
+
+      // Create a test user first
+      const timestamp = Date.now();
+      const userResponse = await apiRequest("POST", "/api/users", {
+        username: `Test User ${timestamp}`,
+        email: `test${timestamp}@example.com`
+      });
+
+      const user = await userResponse.json();
+
+      // Create a card for front-and-inside
+      const cardResponse = await apiRequest("POST", "/api/cards", {
+        cardType: "printed",
+        printOption: "front-and-inside",
+        recipientName: "Test Person",
+        celebration: "birthday",
+        sceneType: "with-person",
+        price: 25.00,
+        userId: user.id
+      });
+
+      const card = await cardResponse.json();
+
+      // Generate random elements
+      const names = ["Sarah", "Mike", "Emma", "Alex", "Maya", "James", "Luna", "Kai"];
+      const styles = ["watercolor", "digital art", "cartoon", "realistic", "oil painting"];
+      const scenes = [
+        "celebrating at a rooftop party with city skyline",
+        "having a picnic in a blooming cherry blossom park",
+        "enjoying a beach sunset with waves",
+        "celebrating in a cozy cabin with fireplace",
+        "having fun at a carnival with colorful lights",
+        "relaxing in a beautiful garden with flowers"
+      ];
+      const frontMessages = [
+        "Happy Birthday!",
+        "Celebrate Life!",
+        "Another Year of Awesome!",
+        "Make a Wish!",
+        "Party Time!"
+      ];
+      const insideMessages = [
+        "Hope your special day brings you joy, laughter, and wonderful memories!",
+        "Wishing you happiness, love, and all your heart desires on your birthday!",
+        "May this new year of life be filled with adventure and beautiful moments!",
+        "Another year older, another year more amazing! Celebrate yourself today!",
+        "Here's to you and all the incredible things that make you special!"
+      ];
+
+      const randomName = names[Math.floor(Math.random() * names.length)];
+      const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+      const randomScene = scenes[Math.floor(Math.random() * scenes.length)];
+      const randomFrontMessage = frontMessages[Math.floor(Math.random() * frontMessages.length)];
+      const randomInsideMessage = insideMessages[Math.floor(Math.random() * insideMessages.length)];
+
+      // Build front prompt
+      const frontPrompt = [
+        "Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame",
+        `featuring a cheerful person named ${randomName}`,
+        `${randomScene}`,
+        `${randomStyle.replace('_', ' ')} art style`,
+        `with the text "${randomFrontMessage}" integrated into the design`,
+        "print-ready artwork, no card mockup visible"
+      ].join(', ');
+
+      // Build inside prompt - this will use image-to-image reference
+      const insidePrompt = [
+        "Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame",
+        `Greeting card interior with elegant typography displaying: "${randomInsideMessage}"`,
+        "subtle complementary background that matches the front card color palette and overall mood",
+        `${randomStyle.replace('_', ' ')} art style with same visual treatment as front`,
+        "professional greeting card typography using same font style and treatment as front card",
+        "text prominently displayed and clearly readable",
+        "minimal decorative elements that complement without overwhelming the message",
+        "print-ready artwork, no card mockup visible"
+      ].join(', ');
+
+      console.log('Style matching test parameters:');
+      console.log('Name:', randomName);
+      console.log('Style:', randomStyle);
+      console.log('Scene:', randomScene);
+      console.log('Front message:', randomFrontMessage);
+      console.log('Inside message:', randomInsideMessage);
+      console.log('Front prompt:', frontPrompt);
+      console.log('Inside prompt:', insidePrompt);
+
+      const imageResponse = await apiRequest("POST", "/api/generate-images", {
+        cardId: card.id,
+        frontPrompt,
+        insidePrompt,
+        photoData: null
+      });
+
+      const updatedCard = await imageResponse.json();
+      console.log('Generated style-matched card:', updatedCard);
+      
+      if (updatedCard && updatedCard.frontImageUrl) {
+        setGeneratedCard(updatedCard);
+        toast({
+          title: "Style-matched card generated!",
+          description: `Created ${randomStyle} style card featuring ${randomName} with matching front and inside designs.`
+        });
+      } else {
+        throw new Error("Card generation failed - no image URL received");
+      }
+    } catch (error: any) {
+      console.error('Style matching test error:', error);
+      setGeneratedCard(null);
+      toast({
+        title: "Generation failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const generateCardWithAnalyzedPeople = async () => {
     if (photoAnalyses.length === 0) {
       toast({
@@ -800,6 +922,32 @@ export default function TestGeneration() {
               </CardContent>
             </Card>
 
+            {/* Style Matching Test */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Style Matching Test</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-blue-700 text-sm font-medium mb-2">Image-to-Image Style Matching</p>
+                    <p className="text-blue-600 text-xs">
+                      This test generates a random front card, then uses gpt-image-1's image-to-image capabilities 
+                      to create a perfectly matching inside card using the front card as a visual style reference.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={generateStyleMatchingTest}
+                    disabled={isGenerating}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    {isGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Generate Random Style-Matched Card Set
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Custom Prompt */}
             <Card>
               <CardHeader>
@@ -867,12 +1015,20 @@ export default function TestGeneration() {
                     {/* Inside Image */}
                     {generatedCard.insideImageUrl && (
                       <div>
-                        <h3 className="font-medium mb-2">Inside</h3>
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-medium">Inside</h3>
+                          <Badge variant="outline" className="text-xs">
+                            Style-matched using image-to-image
+                          </Badge>
+                        </div>
                         <img
                           src={generatedCard.insideImageUrl}
                           alt="Generated inside"
                           className="w-full rounded-lg shadow-lg"
                         />
+                        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700">
+                          This inside card was generated using the front card image as a visual reference to ensure perfect style matching.
+                        </div>
                       </div>
                     )}
                   </div>
