@@ -1138,6 +1138,22 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       </div>
                     )}
 
+                    {/* Back to Card Selection Button for Celebration Step */}
+                    {currentStep.id === 'celebration' && (
+                      <div className="flex justify-center mb-4">
+                        <Button
+                          onClick={() => {
+                            onboarding.setCurrentStep(2);
+                          }}
+                          variant="outline"
+                          className="px-8 py-3 rounded-xl border-2 border-purple-400 text-purple-700 hover:bg-purple-50 font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                        >
+                          <ArrowLeft className="w-5 h-5 mr-3" />
+                          Back to Card Selection
+                        </Button>
+                      </div>
+                    )}
+
                     {/* Always Show Input Field */}
                     <div className="space-y-2">
                       <p className="text-sm text-gray-600 text-center">
@@ -1618,18 +1634,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         <ArrowRight className="w-4 h-4" />
                       </Button>
                     </div>
-                    <div className="flex justify-center">
-                      <Button 
-                        onClick={() => {
-                          onboarding.setCurrentStep(2);
-                        }}
-                        variant="outline"
-                        className="px-6 py-2 rounded-xl border-gray-300 text-gray-600 hover:bg-gray-50"
-                      >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back to Card Selection
-                      </Button>
-                    </div>
+
                     {currentStep.id === 'features' && (
                       <div className="flex justify-center">
                         <Button 
