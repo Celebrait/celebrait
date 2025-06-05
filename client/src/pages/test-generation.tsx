@@ -155,6 +155,11 @@ export default function TestGeneration() {
       // Build front prompt using the same logic as main onboarding
       let frontPrompt = customPromptText;
       
+      console.log('Debug - uploadedPhotos.length:', uploadedPhotos.length);
+      console.log('Debug - photoAnalyses.length:', photoAnalyses.length);
+      console.log('Debug - customPromptText:', customPromptText);
+      console.log('Debug - preset:', preset?.title);
+      
       if (!customPromptText) {
         const parts = [];
         
@@ -163,13 +168,17 @@ export default function TestGeneration() {
         
         // ONLY use photo analysis when photos are uploaded - never use preset characters
         if (uploadedPhotos.length > 0) {
+          console.log('Debug - Photos uploaded, checking analyses...');
           if (photoAnalyses.length > 0) {
+            console.log('Debug - Using photo analyses:', photoAnalyses);
             // Use analyzed people only
             photoAnalyses.forEach((analysis, index) => {
               const personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
+              console.log(`Debug - Adding Person ${analysis.personIndex}:`, personDescription);
               parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}`);
             });
           } else {
+            console.log('Debug - No photo analyses available, throwing error');
             // If analysis failed, don't generate - return error
             throw new Error("Photo analysis failed. Cannot generate card without analyzing uploaded people.");
           }
@@ -178,10 +187,12 @@ export default function TestGeneration() {
           if (preset) {
             const sceneMatch = preset.frontPrompt.match(/in (.+?)\./);
             if (sceneMatch) {
+              console.log('Debug - Adding scene:', sceneMatch[1]);
               parts.push(`in ${sceneMatch[1]}`);
             }
           }
         } else if (preset) {
+          console.log('Debug - No photos, using preset character');
           // Use preset character description only when no photos uploaded
           const presetDescription = preset.frontPrompt.match(/showing a (.+?) in/)?.[1] || 'person';
           parts.push(`featuring ${presetDescription}`);
@@ -203,6 +214,7 @@ export default function TestGeneration() {
         parts.push('print-ready artwork, no card mockup visible');
         
         frontPrompt = parts.join(', ');
+        console.log('Debug - Final built prompt:', frontPrompt);
       }
 
       // Generate inside prompt for front-and-inside cards using same logic as main onboarding
