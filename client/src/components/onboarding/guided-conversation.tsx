@@ -1714,24 +1714,24 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                     : 'Click here to select a clear photo. The AI will create an artistic representation while maintaining their likeness.'
                                   }
                                 </p>
+                                
+                                {/* Important Single Person Warning */}
+                                <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 mt-4">
+                                  <div className="flex items-center justify-center space-x-3">
+                                    <svg className="w-5 h-5 text-yellow-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    </svg>
+                                    <div className="text-center">
+                                      <h4 className="font-bold text-yellow-800 mb-1">Important:</h4>
+                                      <p className="text-yellow-700 font-medium text-sm">
+                                        Upload one clear photo of your loved one or friend only. For best results choose a portrait photo that is well lit with facial features clearly visible!
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </label>
-                        </div>
-
-                        {/* Important Single Person Warning */}
-                        <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-6">
-                          <div className="flex items-start space-x-3">
-                            <svg className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                            </svg>
-                            <div>
-                              <h4 className="font-bold text-yellow-800 mb-2">Important:</h4>
-                              <p className="text-yellow-700 font-medium">
-                                Upload one clear photo of your loved one or friend only. For best results choose a portrait photo that is well lit with facial features clearly visible!
-                              </p>
-                            </div>
-                          </div>
                         </div>
 
                         {/* Image Requirements and Best Practices */}
