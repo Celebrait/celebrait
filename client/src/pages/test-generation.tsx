@@ -160,7 +160,48 @@ export default function TestGeneration() {
       console.log('Debug - customPromptText:', customPromptText);
       console.log('Debug - preset:', preset?.title);
       
-      if (!customPromptText) {
+      // ALWAYS use photo analysis when photos are uploaded, regardless of custom prompt
+      if (uploadedPhotos.length > 0 && photoAnalyses.length > 0) {
+        console.log('Debug - Overriding with photo analysis...');
+        const parts = [];
+        
+        // Base requirements
+        parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
+        
+        // Use analyzed people only
+        photoAnalyses.forEach((analysis, index) => {
+          const personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
+          console.log(`Debug - Adding Person ${analysis.personIndex}:`, personDescription);
+          parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}`);
+        });
+        
+        // Add scene from preset if available
+        if (preset) {
+          const sceneMatch = preset.frontPrompt.match(/in (.+?)\./);
+          if (sceneMatch) {
+            console.log('Debug - Adding scene:', sceneMatch[1]);
+            parts.push(`in ${sceneMatch[1]}`);
+          }
+        }
+        
+        if (preset?.artStyle) {
+          parts.push(`${preset.artStyle.replace('_', ' ')} art style`);
+        }
+        
+        // Add text if enabled
+        if (includeText && preset) {
+          const textMatch = preset.frontPrompt.match(/Text overlay: '(.+?)'/);
+          if (textMatch) {
+            parts.push(`with the text "${textMatch[1]}" integrated into the design`);
+          }
+        }
+        
+        // Final formatting requirements
+        parts.push('print-ready artwork, no card mockup visible');
+        
+        frontPrompt = parts.join(', ');
+        console.log('Debug - Final built prompt with photo analysis:', frontPrompt);
+      } else if (!customPromptText) {
         const parts = [];
         
         // Base requirements
