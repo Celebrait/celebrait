@@ -1140,15 +1140,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
                     {/* Back to Card Selection Button for Celebration Step */}
                     {currentStep.id === 'celebration' && (
-                      <div className="flex justify-center mb-4">
+                      <div className="flex justify-center">
                         <Button
                           onClick={() => {
                             onboarding.setCurrentStep(2);
                           }}
                           variant="outline"
-                          className="px-8 py-3 rounded-xl border-2 border-purple-400 text-purple-700 hover:bg-purple-50 font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                          className="px-6 py-2 rounded-xl border-purple-300 text-purple-600 hover:bg-purple-50 font-medium shadow-sm"
                         >
-                          <ArrowLeft className="w-5 h-5 mr-3" />
+                          <ArrowLeft className="w-4 h-4 mr-2" />
                           Back to Card Selection
                         </Button>
                       </div>
