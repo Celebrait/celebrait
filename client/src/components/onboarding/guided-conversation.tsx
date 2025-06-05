@@ -841,7 +841,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         frontPrompt,
         insidePrompt,
         photoData: answers.photo_upload || null,
-        photoAnalysis: photoAnalysis || null
+        photoAnalysis: photoAnalyses.length > 0 ? photoAnalyses.map(a => a.analysis).join('\n\n') : null
       });
 
       const card = await response.json();
@@ -1846,17 +1846,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             <div className="flex flex-col items-center justify-center text-center space-y-2">
                               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                               <p className="text-blue-700 font-medium">
-                                {retryAttempt === 0 && "Analyzing your photo..."}
-                                {retryAttempt === 1 && "Examining the visual details..."}
-                                {retryAttempt === 2 && "Processing the image characteristics..."}
-                                {retryAttempt === 3 && "Studying the artistic features..."}
-                                {retryAttempt === 4 && "Reviewing the visual elements..."}
-                                {retryAttempt === 5 && "Analyzing the composition..."}
-                                {retryAttempt === 6 && "Processing the image data..."}
-                                {retryAttempt === 7 && "Examining the visual attributes..."}
-                                {retryAttempt === 8 && "Analyzing the artistic details..."}
-                                {retryAttempt >= 9 && "Processing the visual information..."}
+                                {currentAnalysisIndex >= 0 ? `Analyzing Person ${currentAnalysisIndex + 1}...` : 'Starting photo analysis...'}
                               </p>
+                              {photoAnalyses.length > 0 && (
+                                <p className="text-blue-600 text-sm">
+                                  Completed: {photoAnalyses.length}/{uploadedPhotos.length} photos
+                                </p>
+                              )}
                             </div>
                           </div>
                         )}
@@ -1896,7 +1892,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                   </ul>
                                 </div>
                                 <Button 
-                                  onClick={() => analyzePhoto(uploadedPhoto!)}
+                                  onClick={() => analyzePhotos(uploadedPhotos)}
                                   className="w-full bg-amber-600 hover:bg-amber-700 text-white"
                                   disabled={isAnalyzingPhoto}
                                 >
@@ -1910,12 +1906,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                           </div>
                         )}
 
-                        {photoAnalysis && (
+                        {photoAnalyses.length > 0 && (
                           <div className="space-y-4">
                             {/* Reanalyze Button - Prominent Position */}
                             <div className="flex justify-center">
                               <Button 
-                                onClick={() => analyzePhoto(uploadedPhoto!)}
+                                onClick={() => analyzePhotos(uploadedPhotos)}
                                 variant="outline"
                                 className="border-purple-300 text-purple-600 hover:bg-purple-50 px-6 py-2"
                                 disabled={isAnalyzingPhoto}
@@ -1923,18 +1919,24 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                 </svg>
-                                Try Analysis Again
+                                Reanalyze Photos
                               </Button>
                             </div>
 
-                            {/* Simple Analysis Display */}
+                            {/* Analysis Results Display */}
                             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                               <h4 className="font-medium text-green-800 mb-2">AI Analysis Results:</h4>
-                              <div className="bg-white rounded p-3 border text-sm text-gray-700 mb-3">
-                                {photoAnalysis}
+                              <div className="space-y-3">
+                                {photoAnalyses.map((analysis, index) => (
+                                  <div key={index} className="bg-white rounded p-3 border text-sm text-gray-700">
+                                    <div className="font-medium text-purple-600 mb-1">Person {analysis.personIndex}:</div>
+                                    <div>{analysis.analysis}</div>
+                                    <div className="text-xs text-gray-500 mt-1">Attempts: {analysis.attempts}</div>
+                                  </div>
+                                ))}
                               </div>
-                              <p className="text-green-700 text-sm mb-3">
-                                This description will be used to create your card.
+                              <p className="text-green-700 text-sm mt-3">
+                                These descriptions will be used to create your card.
                               </p>
                             </div>
 
@@ -1942,19 +1944,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             <div className="flex justify-center">
                               <Button 
                                 onClick={() => {
-                                  setAnswers(prev => ({ ...prev, character_description: photoAnalysis }));
+                                  const combinedAnalysis = photoAnalyses.map(a => a.analysis).join('\n\n');
+                                  setAnswers(prev => ({ ...prev, character_description: combinedAnalysis }));
                                   handlePhotoUploadContinue();
                                 }}
                                 className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-lg font-medium"
                               >
-                                Continue with This Description
+                                Continue with These Descriptions
                                 <ArrowRight className="w-5 h-5 ml-2" />
                               </Button>
                             </div>
                           </div>
                         )}
 
-                        {!isAnalyzingPhoto && !photoAnalysis && !analysisError && (
+                        {!isAnalyzingPhoto && photoAnalyses.length === 0 && !analysisError && (
                           <Button 
                             onClick={handlePhotoUploadContinue}
                             className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
