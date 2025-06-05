@@ -31,8 +31,12 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
   return (
     <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-4">Your card is ready! 🎉</h2>
-        <p className="text-lg text-slate-gray">Here's your beautiful AI-generated greeting card</p>
+        <h2 className="text-3xl font-bold text-gray-800 mb-4">
+          {onboarding.answers?.name ? `${onboarding.answers.name}'s` : 'Your'} card is ready! 🎉
+        </h2>
+        <p className="text-lg text-slate-gray">
+          Here's {onboarding.answers?.name ? `${onboarding.answers.name}'s` : 'your'} beautiful AI-generated {onboarding.answers?.celebration || 'greeting'} card.
+        </p>
       </div>
 
       {/* Card Display */}

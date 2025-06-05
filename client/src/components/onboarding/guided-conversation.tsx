@@ -1001,7 +1001,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         <div className="flex-1 flex items-center justify-center">
           <div className="max-w-4xl mx-auto text-center p-8">
             <Sparkles className="w-16 h-16 mx-auto text-purple-500 animate-pulse mb-6" />
-            <h2 className="text-3xl font-bold mb-4">Generating Your Card</h2>
+            <h2 className="text-3xl font-bold mb-4">
+              Generating {answers.name ? `${answers.name}'s` : 'Your'} {answers.celebration ? answers.celebration.charAt(0).toUpperCase() + answers.celebration.slice(1) : ''} Card
+            </h2>
             
             {/* Cycling Quotes */}
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20 mb-8 min-h-[120px] flex items-center justify-center">
