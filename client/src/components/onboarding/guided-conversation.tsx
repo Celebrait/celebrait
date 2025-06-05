@@ -117,7 +117,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'photo_option',
       question: `How would you like me to create ${answers.name || 'their'} image?`,
-      aiMessage: `Perfect! Now I can create ${answers.name || 'them'} in 2 ways. Choose the option that works best for you (click the "How it Works" button for examples and best practices):`,
+      aiMessage: `Perfect! Now I can create ${answers.name || 'their'}'s ${answers.celebration || 'celebration'} card in 2 ways. Choose the option that works best for you (click the "How it Works" button for examples and best practices):`,
       type: 'photo_creation_choice',
       options: [
         { 
