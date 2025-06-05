@@ -1138,22 +1138,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       </div>
                     )}
 
-                    {/* Back to Card Selection Button for Celebration Step */}
-                    {currentStep.id === 'celebration' && (
-                      <div className="flex justify-center">
-                        <Button
-                          onClick={() => {
-                            onboarding.setCurrentStep(2);
-                          }}
-                          variant="outline"
-                          className="px-6 py-2 rounded-xl border-purple-300 text-purple-600 hover:bg-purple-50 font-medium shadow-sm"
-                        >
-                          <ArrowLeft className="w-4 h-4 mr-2" />
-                          Back to Card Selection
-                        </Button>
-                      </div>
-                    )}
-
                     {/* Always Show Input Field */}
                     <div className="space-y-2">
                       <p className="text-sm text-gray-600 text-center">
@@ -1176,6 +1160,22 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         </Button>
                       </div>
                     </div>
+
+                    {/* Back to Card Selection Button for Celebration Step */}
+                    {currentStep.id === 'celebration' && (
+                      <div className="flex justify-center mt-4">
+                        <Button
+                          onClick={() => {
+                            onboarding.setCurrentStep(2);
+                          }}
+                          variant="outline"
+                          className="px-6 py-2 rounded-xl border-purple-300 text-purple-600 hover:bg-purple-50 font-medium shadow-sm"
+                        >
+                          <ArrowLeft className="w-4 h-4 mr-2" />
+                          Back to Card Selection
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
 
