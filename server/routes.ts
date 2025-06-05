@@ -558,25 +558,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
           size: "1024x1024"
         });
       } else if (photoData && photoAnalysis) {
-        // Use the photo analysis that was already captured during onboarding
-        console.log('Using pre-captured photo analysis:', photoAnalysis);
+        // Check if this is a scene composition analysis (for upload_and_transform)
+        const isSceneAnalysis = photoAnalysis.includes('background setting') || 
+                               photoAnalysis.includes('scene composition') ||
+                               photoAnalysis.includes('lighting') ||
+                               photoAnalysis.includes('atmosphere');
         
-        // Integrate facial features from the successful onboarding analysis
-        let enhancedPrompt = frontPrompt.replace(
-          'Create an artistic representation of the person in the uploaded photo',
-          `Create an artistic representation of a person with these specific characteristics: ${photoAnalysis}`
-        );
-        
-        // Add explicit instructions for scene and text prominence
-        enhancedPrompt += '. CRITICAL REQUIREMENTS: 1) The scene/background must be clearly visible and match the described setting exactly. 2) Text must be large, bold, and clearly readable - positioned prominently in the foreground or on a clear background area.';
-        console.log('Using enhanced prompt with photo description:', enhancedPrompt);
-        
-        frontImageGeneration = await openai.images.generate({
-          model: "gpt-image-1",
-          prompt: enhancedPrompt,
-          n: 1,
-          size: "1024x1024"
-        });
+        if (isSceneAnalysis) {
+          // Use the complete scene analysis for transformation
+          console.log('Using scene composition analysis for style transformation:', photoAnalysis);
+          
+          let enhancedPrompt = frontPrompt.includes('Create an artistic representation') 
+            ? frontPrompt.replace(
+                'Create an artistic representation of the person in the uploaded photo',
+                `Recreate this exact scene with precise accuracy: ${photoAnalysis}`
+              )
+            : `${frontPrompt}. Recreate this exact scene: ${photoAnalysis}`;
+          
+          // Add transformation and text requirements
+          enhancedPrompt += '. CRITICAL REQUIREMENTS: 1) Maintain the exact composition, poses, and spatial relationships described. 2) Transform the artistic style completely while preserving all scene elements. 3) Text must be large, bold, and clearly readable - positioned prominently.';
+          console.log('Using scene transformation prompt:', enhancedPrompt);
+          
+          frontImageGeneration = await openai.images.generate({
+            model: "gpt-image-1",
+            prompt: enhancedPrompt,
+            n: 1,
+            size: "1024x1024"
+          });
+        } else {
+          // Use the person-only analysis as before
+          console.log('Using pre-captured person analysis:', photoAnalysis);
+          
+          let enhancedPrompt = frontPrompt.replace(
+            'Create an artistic representation of the person in the uploaded photo',
+            `Create an artistic representation of a person with these specific characteristics: ${photoAnalysis}`
+          );
+          
+          // Add explicit instructions for scene and text prominence
+          enhancedPrompt += '. CRITICAL REQUIREMENTS: 1) The scene/background must be clearly visible and match the described setting exactly. 2) Text must be large, bold, and clearly readable - positioned prominently in the foreground or on a clear background area.';
+          console.log('Using enhanced prompt with photo description:', enhancedPrompt);
+          
+          frontImageGeneration = await openai.images.generate({
+            model: "gpt-image-1",
+            prompt: enhancedPrompt,
+            n: 1,
+            size: "1024x1024"
+          });
+        }
       } else if (photoData) {
         // Fallback: try to analyze the photo again
         console.log('Photo provided but no analysis - attempting analysis');

@@ -707,8 +707,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         let endpoint = "/api/analyze-photo"; // Default to person-only analysis
         
         if (photoOption === 'upload_and_transform') {
-          // For transform option, analyze both person and scene
+          // For transform option, analyze both person and scene composition
           endpoint = "/api/analyze-image-composition";
+          console.log(`Using scene composition analysis for upload_and_transform option`);
         }
         
         const response = await apiRequest("POST", endpoint, {
