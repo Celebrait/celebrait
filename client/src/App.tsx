@@ -7,6 +7,7 @@ import Home from "@/pages/home";
 import Checkout from "@/pages/checkout";
 import TestGeneration from "@/pages/test-generation";
 import StyleTest from "@/pages/style-test";
+import StyleTransform from "@/pages/style-transform";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/checkout/:cardId" component={Checkout} />
       <Route path="/test" component={TestGeneration} />
       <Route path="/style-test" component={StyleTest} />
+      <Route path="/style-transform" component={StyleTransform} />
       <Route component={NotFound} />
     </Switch>
   );

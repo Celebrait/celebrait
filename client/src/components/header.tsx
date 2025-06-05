@@ -17,6 +17,8 @@ export default function Header() {
             <a href="#" className="text-slate-gray hover:text-ethereal-purple transition-colors">How it works</a>
             <a href="#" className="text-slate-gray hover:text-ethereal-purple transition-colors">Gallery</a>
             <a href="#" className="text-slate-gray hover:text-ethereal-purple transition-colors">Pricing</a>
+            <a href="/test" className="text-slate-gray hover:text-ethereal-purple transition-colors">Test Lab</a>
+            <a href="/style-transform" className="text-slate-gray hover:text-ethereal-purple transition-colors">Style Transform</a>
           </nav>
           
           <div className="flex items-center space-x-4">
