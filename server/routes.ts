@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Help me generate a purely fictional character design for an artistic project inspired by the visible visual features in this image by analysing the features for artistic purposes only. Focus on artistic description only, such as apparent gender, approximate age range, hair colour/textures/styles, facial shapes/structure, facial features (nose, ears, mouth, lips), facial hair, skin tones, eyewear, and accessories that could inform a stylized version. Avoid describing clothing or making any assumptions about identities or personal characteristics. Do not make any suggestions about what to do with the description, as I will do this myself."
+                text: "Help me generate a purely fictional character design for an artistic project inspired by the visible visual features in this image by analysing the features for artistic purposes only. Please provide a structured description including: 1) Apparent gender presentation, 2) Approximate age range, 3) Hair colour/textures/styles, 4) Facial shapes/structure, 5) Facial features (nose, ears, mouth, lips), 6) Facial hair (if any), 7) Skin tones, 8) Eyewear (if any), 9) Accessories (if any). Focus only on visible artistic elements that could inform a stylized character design. Avoid describing clothing or making assumptions about identities or personal characteristics. Do not make suggestions about what to do with the description."
               },
               {
                 type: "image_url",
@@ -352,7 +352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               content: [
                 {
                   type: "text",
-                  text: `Help me generate a purely fictional character design for Person ${i + 1} for an artistic project inspired by the visible visual features in this image by analysing the features for artistic purposes only. Focus on artistic description only, such as apparent gender, approximate age range, hair colour/textures/styles, facial shapes/structure, facial features (nose, ears, mouth, lips), facial hair, skin tones, eyewear, and accessories that could inform a stylized version. Avoid describing clothing or making any assumptions about identities or personal characteristics. Start your response with "Person ${i + 1}:" and do not make any suggestions about what to do with the description, as I will do this myself.`
+                  text: `Help me generate a purely fictional character design for Person ${i + 1} for an artistic project inspired by the visible visual features in this image by analysing the features for artistic purposes only. Please provide a structured description including: 1) Apparent gender presentation, 2) Approximate age range, 3) Hair colour/textures/styles, 4) Facial shapes/structure, 5) Facial features (nose, ears, mouth, lips), 6) Facial hair (if any), 7) Skin tones, 8) Eyewear (if any), 9) Accessories (if any). Focus only on visible artistic elements that could inform a stylized character design. Avoid describing clothing or making assumptions about identities or personal characteristics. Start your response with "Person ${i + 1}:" and do not make suggestions about what to do with the description.`
                 },
                 {
                   type: "image_url",
