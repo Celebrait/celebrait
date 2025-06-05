@@ -57,10 +57,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [isTypingExample, setIsTypingExample] = useState(false);
   const [userHasTyped, setUserHasTyped] = useState(false);
   const [showHowItWorksModal, setShowHowItWorksModal] = useState(false);
+  const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-
+  // AI design quotes for loading screen
+  const aiQuotes = [
+    "Art is not what you see, but what you make others see. - Edgar Degas",
+    "Every artist was first an amateur. - Ralph Waldo Emerson", 
+    "Creativity is intelligence having fun. - Albert Einstein",
+    "The best way to predict the future is to design it. - Buckminster Fuller",
+    "Design is thinking made visual. - Saul Bass",
+    "Simplicity is the ultimate sophistication. - Leonardo da Vinci",
+    "Art enables us to find ourselves and lose ourselves at the same time. - Thomas Merton",
+    "Innovation distinguishes between a leader and a follower. - Steve Jobs"
+  ];
 
   const steps: ConversationStep[] = [
     {
@@ -521,6 +532,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   }, [currentStep?.id, currentExampleIndex, userHasTyped]);
 
+  // Cycle through quotes every 3 seconds during loading
+  useEffect(() => {
+    if (isLoading) {
+      const quoteInterval = setInterval(() => {
+        setCurrentQuoteIndex((prev) => (prev + 1) % aiQuotes.length);
+      }, 3000);
+      
+      return () => clearInterval(quoteInterval);
+    }
+  }, [isLoading, aiQuotes.length]);
+
   // Safety check to prevent undefined currentStep errors
   if (!currentStep) {
     return (
@@ -979,54 +1001,27 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         <div className="flex-1 flex items-center justify-center">
           <div className="max-w-4xl mx-auto text-center p-8">
             <Sparkles className="w-16 h-16 mx-auto text-purple-500 animate-pulse mb-6" />
-            <h2 className="text-3xl font-bold mb-4">Our AI is Warming Up</h2>
+            <h2 className="text-3xl font-bold mb-4">Generating Your Card</h2>
+            
+            {/* Cycling Quotes */}
+            <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20 mb-8 min-h-[120px] flex items-center justify-center">
+              <p 
+                key={currentQuoteIndex}
+                className="text-lg text-gray-700 italic transition-opacity duration-500 max-w-2xl"
+              >
+                {aiQuotes[currentQuoteIndex]}
+              </p>
+            </div>
+            
             <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-              We're creating people in images using advanced AI. Here's what you can expect from our artistic character generation:
+              Our AI is crafting your personalized greeting card with artistic flair
             </p>
             
-            {/* Before/After Examples Carousel */}
-            <div className="bg-white rounded-2xl p-8 shadow-lg">
-              <h3 className="text-xl font-semibold mb-6">See the AI Magic in Action</h3>
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="text-center">
-                  <div className="bg-gray-100 rounded-lg p-6 mb-4 h-32 flex items-center justify-center">
-                    <span className="text-gray-500 font-medium">Photo Upload</span>
-                  </div>
-                  <p className="text-sm text-gray-600">Your reference photo</p>
-                </div>
-                <div className="flex items-center justify-center">
-                  <ArrowRight className="w-8 h-8 text-purple-500" />
-                </div>
-                <div className="text-center">
-                  <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg p-6 mb-4 h-32 flex items-center justify-center">
-                    <span className="text-purple-600 font-medium">AI Generated Art</span>
-                  </div>
-                  <p className="text-sm text-gray-600">Stylized artistic representation</p>
-                </div>
-              </div>
-              
-              <div className="mt-8 grid md:grid-cols-2 gap-6 text-left">
-                <div className="bg-green-50 rounded-lg p-4">
-                  <h4 className="font-semibold text-green-800 mb-2">What We Capture</h4>
-                  <ul className="text-sm text-green-700 space-y-1">
-                    <li>• Facial features and structure</li>
-                    <li>• Hair style and color</li>
-                    <li>• Eye color and shape</li>
-                    <li>• Age appearance</li>
-                    <li>• Distinctive characteristics</li>
-                  </ul>
-                </div>
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <h4 className="font-semibold text-blue-800 mb-2">Artistic Enhancement</h4>
-                  <ul className="text-sm text-blue-700 space-y-1">
-                    <li>• Stylized artistic interpretation</li>
-                    <li>• Custom scenes and backgrounds</li>
-                    <li>• Various art styles available</li>
-                    <li>• Professional card layout</li>
-                    <li>• High-quality print ready output</li>
-                  </ul>
-                </div>
-              </div>
+            {/* Animated loading dots */}
+            <div className="flex justify-center space-x-2">
+              <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"></div>
+              <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
             </div>
           </div>
         </div>
