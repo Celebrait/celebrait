@@ -689,13 +689,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Failed to find data array in frontResponse');
       }
 
-      // Generate inside image if provided, using vision analysis of front card
+      // Generate inside image if provided, using GPT Vision analysis for perfect style matching
       if (insidePrompt && frontImageUrl) {
-        console.log('Analyzing front card with GPT Vision for style consistency');
+        console.log('Generating inside card using GPT Vision style matching approach');
         
         try {
-          // First, analyze the front card with GPT Vision
-          const visionAnalysis = await openai.chat.completions.create({
+          // Analyze the front card with GPT Vision for detailed style analysis
+          const styleAnalysisResponse = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [
               {
@@ -717,35 +717,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
             max_tokens: 800
           });
           
-          const styleAnalysis = visionAnalysis.choices[0].message.content;
-          console.log('Front card style analysis completed:', styleAnalysis ? 'Analysis received' : 'No analysis');
+          const styleAnalysis = styleAnalysisResponse.choices[0].message.content;
+          console.log('Front card style analysis completed');
           
           if (styleAnalysis) {
-            // Generate inside card using the detailed style analysis
-            const visionBasedInsidePrompt = `Create the interior of a greeting card that perfectly matches this visual style analysis: ${styleAnalysis}. 
-
-CRITICAL REQUIREMENTS FOR STYLE MATCHING:
-1) Use the EXACT same artistic style, technique, and visual treatment described above
-2) Apply the IDENTICAL color palette, saturation levels, and mood 
-3) Use the SAME typography style - font family, weight, sizing, color, and positioning approach
-4) Match the lighting, atmosphere, and overall visual mood precisely
-5) Display this message prominently: "${insidePrompt.match(/"([^"]+)"/)?.[1] || 'Happy Birthday!'}"
-6) Create a subtle background that references the front card's visual elements without overwhelming the text
-7) Maintain the same artistic quality and professional appearance
-8) Square 1:1 aspect ratio, full bleed design, no borders
-
-The inside should look like it was created by the same artist using identical design principles and visual language.`;
+            // Extract the message text from the inside prompt
+            const messageMatch = insidePrompt.match(/"([^"]+)"/);
+            const insideMessage = messageMatch ? messageMatch[1] : 'Happy Birthday!';
             
-            const visionBasedGeneration = await openai.images.generate({
+            // Generate inside card using the detailed style analysis
+            const styleMatchedInsidePrompt = `Create the interior of a greeting card that perfectly matches this visual style analysis: ${styleAnalysis}. 
+
+CRITICAL REQUIREMENTS FOR PERFECT STYLE MATCHING:
+1) Use the EXACT same artistic style, technique, and visual treatment described in the analysis
+2) Apply the IDENTICAL color palette, saturation levels, and mood from the front card
+3) Use the SAME typography style - match font family, weight, sizing, color, and positioning approach exactly
+4) Match the lighting, atmosphere, and overall visual mood precisely
+5) Display this message prominently and beautifully: "${insideMessage}"
+6) Create a subtle, complementary background that references the front card's visual elements without overwhelming the text
+7) Maintain the same artistic quality and professional appearance as the front card
+8) Square 1:1 aspect ratio, full bleed design, no borders
+9) The inside should look like it was created by the same artist using identical design principles
+
+The result should be a perfect visual companion to the front card with seamless style consistency.`;
+            
+            console.log('Generating inside card with style-matched prompt');
+            const insideGeneration = await openai.images.generate({
               model: "gpt-image-1",
-              prompt: visionBasedInsidePrompt,
+              prompt: styleMatchedInsidePrompt,
               n: 1,
               size: "1024x1024"
             });
             
-            const visionResponse = visionBasedGeneration as any;
-            if (visionResponse.data && Array.isArray(visionResponse.data) && visionResponse.data.length > 0) {
-              const imageData = visionResponse.data[0];
+            const insideResponse = insideGeneration as any;
+            if (insideResponse.data && Array.isArray(insideResponse.data) && insideResponse.data.length > 0) {
+              const imageData = insideResponse.data[0];
               
               if (typeof imageData === 'string') {
                 insideImageUrl = `data:image/png;base64,${imageData}`;
@@ -754,43 +760,48 @@ The inside should look like it was created by the same artist using identical de
               } else if (imageData.url) {
                 insideImageUrl = imageData.url;
               }
-              console.log('Successfully generated inside card using GPT Vision analysis');
+              console.log('Successfully generated style-matched inside card using GPT Vision analysis');
             }
           } else {
-            throw new Error('Vision analysis failed to provide style description');
+            throw new Error('GPT Vision analysis failed to provide style description');
           }
         } catch (visionError: any) {
-          console.log('Vision-based generation failed, falling back to enhanced text approach:', visionError.message);
+          console.log('GPT Vision style matching failed, using enhanced fallback approach:', visionError.message);
           
-          // Fallback to enhanced text-based generation
-          let finalInsidePrompt = insidePrompt;
+          // Enhanced fallback approach with better style inference
+          const messageMatch = insidePrompt.match(/"([^"]+)"/);
+          const insideMessage = messageMatch ? messageMatch[1] : 'Happy Birthday!';
           
-          if (photoData && photoAnalysis && (insidePrompt.includes('character') || insidePrompt.includes('person'))) {
-            console.log('Integrating photo analysis into fallback inside prompt');
-            finalInsidePrompt = insidePrompt.replace(
-              'person with these specific characteristics',
-              `person with these specific characteristics: ${photoAnalysis}`
-            );
-          }
-          
+          // Extract style clues from the front prompt
           const artStyle = frontPrompt.includes('watercolor') ? 'watercolor' : 
                           frontPrompt.includes('cartoon') ? 'cartoon' :
                           frontPrompt.includes('realistic') ? 'realistic' :
-                          frontPrompt.includes('digital_art') ? 'digital art' :
-                          frontPrompt.includes('pop_art') ? 'pop art' :
-                          frontPrompt.includes('oil_painting') ? 'oil painting' : 'artistic';
+                          frontPrompt.includes('digital art') ? 'digital art' :
+                          frontPrompt.includes('pop art') ? 'pop art' :
+                          frontPrompt.includes('oil painting') ? 'oil painting' :
+                          frontPrompt.includes('whimsical') ? 'whimsical' :
+                          frontPrompt.includes('dreamy') ? 'dreamy watercolor' : 'artistic';
           
-          const frontTextMatch = frontPrompt.match(/with the text "([^"]+)"/);
-          const frontText = frontTextMatch ? frontTextMatch[1] : '';
+          const frontTextMatch = frontPrompt.match(/(?:text|message)[^"]*"([^"]+)"/i);
+          const frontText = frontTextMatch ? frontTextMatch[1] : 'Happy Birthday!';
           
-          const sceneMatch = frontPrompt.match(/in (.+?),/);
-          const sceneDescription = sceneMatch ? sceneMatch[1] : '';
+          const enhancedFallbackPrompt = `Create the interior of a greeting card in ${artStyle} style that perfectly matches the front card design. 
+
+STYLE CONSISTENCY REQUIREMENTS:
+1) Use identical ${artStyle} artistic technique and visual treatment
+2) Match the exact color palette, mood, and saturation from the front card  
+3) Use the same typography style as "${frontText}" - identical font family, weight, color, and positioning approach
+4) Create complementary background elements that reference the front card without overwhelming the message
+5) Display this message prominently: "${insideMessage}"
+6) Maintain consistent lighting, atmosphere, and artistic quality
+7) Square 1:1 aspect ratio, full bleed design, no borders
+
+The inside should look like a perfect companion piece created by the same artist.`;
           
-          const enhancedInsidePrompt = `${finalInsidePrompt}. REFERENCE FRONT CARD: The front card uses "${frontText}" in ${artStyle} style with scene: ${sceneDescription}. EXACT MATCHING REQUIRED: 1) Use IDENTICAL typography style, font family, text weight, letter spacing, and color treatment as the front card text. 2) Create a subtle background that makes artistic reference to the front card scene (${sceneDescription}) without overwhelming the message - use similar colors, lighting mood, or abstract elements from that setting. 3) Match the exact color palette, artistic texture, and visual mood from the front card. 4) Ensure the typography looks like it was designed by the same artist using the same font system. The inside should feel like a perfect companion piece to the front card.`;
-          
+          console.log('Generating inside card with enhanced fallback prompt');
           const fallbackGeneration = await openai.images.generate({
             model: "gpt-image-1", 
-            prompt: enhancedInsidePrompt,
+            prompt: enhancedFallbackPrompt,
             n: 1,
             size: "1024x1024"
           });
@@ -806,7 +817,7 @@ The inside should look like it was created by the same artist using identical de
             } else if (imageData.url) {
               insideImageUrl = imageData.url;
             }
-            console.log('Successfully generated inside card using fallback text-based approach');
+            console.log('Successfully generated inside card using enhanced fallback approach');
           }
         }
       }
