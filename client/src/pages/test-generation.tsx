@@ -167,28 +167,28 @@ export default function TestGeneration() {
     
     try {
       if (photoDataArray.length === 1) {
-        // Use multi-photo endpoint for consistent structured analysis
+        // Use single photo analysis for one photo
         setCurrentAnalysisIndex(0);
-        const response = await apiRequest("POST", "/api/analyze-photos", {
-          photoDataArray: [photoDataArray[0]]
+        const response = await apiRequest("POST", "/api/analyze-photo", {
+          photoData: photoDataArray[0]
         });
         
-        const data = await response.json() as { analyses: Array<{personIndex: number, analysis: string}> };
-        setPhotoAnalyses([{ personIndex: 1, analysis: data.analyses[0].analysis }]);
+        const data = await response.json() as { analysis: string };
+        setPhotoAnalyses([{ personIndex: 1, analysis: data.analysis }]);
       } else {
         // Analyze photos one by one to show progress
         const analyses = [];
         for (let i = 0; i < photoDataArray.length; i++) {
           setCurrentAnalysisIndex(i);
           
-          const response = await apiRequest("POST", "/api/analyze-photos", {
-            photoDataArray: [photoDataArray[i]]
+          const response = await apiRequest("POST", "/api/analyze-photo", {
+            photoData: photoDataArray[i]
           });
           
-          const data = await response.json() as { analyses: Array<{personIndex: number, analysis: string}> };
+          const data = await response.json() as { analysis: string };
           const analysis = {
             personIndex: i + 1,
-            analysis: data.analyses[0].analysis
+            analysis: `Person ${i + 1}: ${data.analysis}`
           };
           
           analyses.push(analysis);

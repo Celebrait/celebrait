@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Please describe the artistic visual characteristics visible in this image for the purpose of creating a fictional character illustration. Focus on observable physical features including apparent gender, hair color and style, facial structure, approximate age appearance, skin tone, and any visible accessories like glasses or jewelry. Provide an objective description of these visual elements as they would appear in an artistic rendering."
+                text: "Please describe the artistic visual characteristics visible in this image for the purpose of creating a fictional character illustration. Focus on observable physical features including hair color and style, facial structure, approximate age appearance, skin tone, and any visible accessories like glasses or jewelry. Provide an objective description of these visual elements as they would appear in an artistic rendering."
               },
               {
                 type: "image_url",
@@ -352,7 +352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               content: [
                 {
                   type: "text",
-                  text: `Please describe the artistic visual characteristics visible in this image for Person ${i + 1} for the purpose of creating a fictional character illustration. Focus on observable physical features including apparent gender, hair color and style, facial structure, approximate age appearance, skin tone, and any visible accessories like glasses or jewelry. Provide an objective description of these visual elements as they would appear in an artistic rendering. Start your response with "Person ${i + 1}:"`
+                  text: `Please describe the artistic visual characteristics visible in this image for Person ${i + 1} for the purpose of creating a fictional character illustration. Focus on observable physical features including hair color and style, facial structure, approximate age appearance, skin tone, and any visible accessories like glasses or jewelry. Provide an objective description of these visual elements as they would appear in an artistic rendering. Start your response with "Person ${i + 1}:"`
                 },
                 {
                   type: "image_url",
