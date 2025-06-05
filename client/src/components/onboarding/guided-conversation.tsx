@@ -1158,11 +1158,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                           key={option.value}
                           onClick={() => handlePersonalityToggle(option.value)}
                           variant="outline"
-                          className={`h-auto p-3 text-center transition-all hover:scale-[1.02] hover:shadow-md ${
+                          className={`h-auto p-3 sm:p-4 text-center transition-all hover:scale-105 hover:shadow-lg ${
                             selectedPersonalities.includes(option.value) 
                               ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white border-purple-500' 
-                              : 'bg-gradient-to-r from-purple-200 to-blue-200 text-purple-700 border-purple-200'
-                          } hover:opacity-90 rounded-lg text-sm font-medium`}
+                              : 'bg-white/80 border-2 border-purple-200 hover:border-ethereal-purple text-gray-800 hover:bg-purple-50'
+                          } rounded-xl text-xs sm:text-sm font-medium`}
                         >
                           {option.label}
                         </Button>
@@ -1209,24 +1209,24 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                     </div>
 
                     {/* Always Show Input Field */}
-                    <div className="space-y-2">
-                      <p className="text-sm text-gray-600 text-center">
+                    <div className="space-y-3 sm:space-y-4">
+                      <p className="text-xs sm:text-sm text-gray-600 text-center">
                         Don't see the option you're looking for? Type it below:
                       </p>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-2 sm:space-x-3">
                         <Input
                           value={currentInput}
                           onChange={(e) => setCurrentInput(e.target.value)}
                           placeholder="Type your answer..."
-                          className="text-lg p-3 rounded-lg border-purple-200 focus:border-purple-400"
+                          className="text-sm sm:text-base p-3 sm:p-4 rounded-xl border-purple-200 focus:border-purple-400 bg-white/80"
                           onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                         />
                         <Button 
                           onClick={handleTextSubmit}
                           disabled={!currentInput.trim()}
-                          className="px-4 py-3 rounded-lg bg-gradient-to-r from-purple-500 to-blue-500"
+                          className="px-4 sm:px-6 py-3 sm:py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
                         >
-                          <ArrowRight className="w-4 h-4" />
+                          <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                         </Button>
                       </div>
                     </div>
@@ -1234,7 +1234,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 )}
 
                 {currentStep.type === 'summary' && (
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-6">
                     {/* Inspiration Carousel */}
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-center text-purple-700">
@@ -2009,9 +2009,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
               </div>
             )}
 
-            {/* Back Buttons */}
+            {/* Back Button */}
             {currentStepIndex > 0 && !isTyping && (
-              <div className="flex flex-col items-center space-y-3 pt-4">
+              <div className="flex justify-center pt-4 sm:pt-6">
                 <Button
                   onClick={handlePrevious}
                   variant="ghost"
@@ -2019,16 +2019,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Go Back a Step
-                </Button>
-                <Button 
-                  onClick={() => {
-                    onboarding.setCurrentStep(2);
-                  }}
-                  variant="outline"
-                  className="px-6 py-3 rounded-xl border-gray-400 text-gray-700 hover:bg-gray-100 shadow-md"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Card Selection
                 </Button>
               </div>
             )}
