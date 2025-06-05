@@ -52,6 +52,106 @@ export default function TestGeneration() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const { toast } = useToast();
 
+  const generateCardWithAnalyzedPeople = async () => {
+    if (photoAnalyses.length === 0) {
+      toast({
+        title: "No analysis available",
+        description: "Please analyze photos first before generating a card.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+
+      // Create a user
+      const userResponse = await apiRequest("POST", "/api/users", {
+        username: `Test User ${Date.now()}`,
+        email: `test${Date.now()}@example.com`
+      });
+
+      const user = await userResponse.json();
+
+      // Create a card
+      const cardResponse = await apiRequest("POST", "/api/cards", {
+        cardType: "printed",
+        printOption: "front-only",
+        recipientName: "Test User",
+        celebration: "birthday",
+        sceneType: "with-person",
+        price: 25.00,
+        userId: user.id
+      });
+
+      const card = await cardResponse.json();
+
+      // Build prompt with analyzed people
+      const parts = [];
+      
+      // Base requirements
+      parts.push("Square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible");
+      
+      // Add all analyzed people
+      photoAnalyses.forEach((analysis) => {
+        const personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
+        parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}`);
+      });
+      
+      // Add random greeting card scenario
+      const scenarios = [
+        "celebrating on a beach at sunset",
+        "having fun at a birthday party with balloons and confetti",
+        "enjoying a picnic in a beautiful park",
+        "celebrating at a rooftop party with city views",
+        "having a cozy celebration indoors with warm lighting",
+        "celebrating outdoors in a garden with flowers"
+      ];
+      
+      const randomScenario = scenarios[Math.floor(Math.random() * scenarios.length)];
+      parts.push(randomScenario);
+      
+      // Add style
+      const styles = ["anime style", "watercolor style", "digital art style", "cartoon style", "realistic style"];
+      const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+      parts.push(randomStyle);
+      
+      // Add birthday text
+      parts.push('with "Happy Birthday!" text prominently displayed');
+      parts.push('professional greeting card quality, print-ready artwork');
+
+      const frontPrompt = parts.join(', ');
+
+      console.log('Generating card with analyzed people:', frontPrompt);
+
+      const imageResponse = await apiRequest("POST", "/api/generate-images", {
+        cardId: card.id,
+        frontPrompt,
+        insidePrompt: null,
+        photoData: uploadedPhotos.length > 0 ? uploadedPhotos[0] : null
+      });
+
+      const updatedCard = await imageResponse.json();
+      console.log('Generated card with analyzed people:', updatedCard);
+      
+      setGeneratedCard(updatedCard);
+
+      toast({
+        title: "Card generated successfully!",
+        description: `Created greeting card featuring ${photoAnalyses.length} analyzed people.`
+      });
+    } catch (error: any) {
+      console.error('Error generating card:', error);
+      toast({
+        title: "Generation failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const analyzePhotos = async (photoDataArray: string[]) => {
     setIsAnalyzingPhotos(true);
     setAnalysisError(null);
@@ -557,6 +657,30 @@ export default function TestGeneration() {
                         </p>
                       </div>
 
+                      {photoAnalyses.length > 0 && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <p className="text-green-700 font-medium text-sm mb-2">Ready for Card Generation!</p>
+                          <p className="text-green-600 text-xs mb-3">
+                            {photoAnalyses.length} people analyzed and ready to be featured on a greeting card.
+                          </p>
+                          <Button 
+                            onClick={generateCardWithAnalyzedPeople}
+                            className="w-full bg-green-600 hover:bg-green-700 text-white"
+                            size="sm"
+                            disabled={isGenerating}
+                          >
+                            {isGenerating ? (
+                              <>
+                                <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                                Generating Card...
+                              </>
+                            ) : (
+                              "Generate Greeting Card with Analyzed People"
+                            )}
+                          </Button>
+                        </div>
+                      )}
+
                       <Button 
                         onClick={() => {
                           setUploadedPhotos([]);
@@ -658,6 +782,55 @@ export default function TestGeneration() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Generated Card Display */}
+            {generatedCard && generatedCard.frontImageUrl && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Generated Greeting Card with Analyzed People</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <p className="text-green-700 text-sm font-medium">
+                        Successfully generated card featuring {photoAnalyses.length} analyzed people!
+                      </p>
+                    </div>
+                    
+                    <div className="relative">
+                      <img 
+                        src={generatedCard.frontImageUrl} 
+                        alt="Generated greeting card with analyzed people" 
+                        className="w-full max-w-md mx-auto rounded-lg border shadow-lg"
+                      />
+                    </div>
+                    
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <p className="text-blue-700 text-sm">
+                        <strong>Card Details:</strong> This card was generated using the detailed character analysis 
+                        from your uploaded photos. Each person's features were analyzed and incorporated into the final image.
+                      </p>
+                    </div>
+                    
+                    <Button 
+                      onClick={generateCardWithAnalyzedPeople}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                      size="sm"
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                          Generating New Card...
+                        </>
+                      ) : (
+                        "Generate Another Random Card"
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
