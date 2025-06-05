@@ -117,7 +117,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'photo_option',
       question: `How would you like me to create ${answers.name || 'their'} image?`,
-      aiMessage: `Perfect! Now I can create ${answers.name || 'their'}'s ${answers.celebration || 'celebration'} card in 2 ways. Choose the option that works best for you:`,
+      aiMessage: `Perfect! Now how do you want to create ${answers.name || 'their'}'s ${answers.celebration || 'celebration'} card?`,
       type: 'photo_creation_choice',
       options: [
         { 
@@ -1644,7 +1644,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         return (
                           <div 
                             key={option.value}
-                            onClick={() => !isDisabled && handleMultiSelectAnswer(currentStep.id, option.value)}
+                            onClick={() => !isDisabled && handleAnswer(option.value)}
                             className={`relative p-6 border-2 rounded-xl transition-all duration-200 ${
                               isDisabled 
                                 ? 'border-gray-300 cursor-not-allowed opacity-75' 
@@ -1683,127 +1683,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                 <p className="text-gray-600 mb-3">{option.description}</p>
                                 <p className="text-sm text-purple-600 font-medium">{option.details}</p>
                                 
-                                {/* Add How it Works button specifically to Upload Photo option */}
-                                {option.value === 'upload_and_scene' && !isDisabled && (
-                                  <div className="mt-4 flex flex-col items-start space-y-2">
-                                    <Dialog>
-                                      <DialogTrigger asChild>
-                                        <Button 
-                                          variant="outline"
-                                          size="sm"
-                                          className="px-4 py-2 rounded-lg border-2 border-blue-400 text-blue-700 hover:bg-blue-50 font-semibold"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <HelpCircle className="w-4 h-4 mr-2" />
-                                          How it Works
-                                        </Button>
-                                      </DialogTrigger>
-                                      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                                        <DialogHeader>
-                                          <DialogTitle className="text-2xl font-bold text-center mb-4">How Each Method Works</DialogTitle>
-                                        </DialogHeader>
-                                        
-                                        <div className="grid gap-6">
-                                          {/* Method 1: Upload Photo + Describe Scene */}
-                                          <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6">
-                                            <div className="flex items-start space-x-4">
-                                              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                </svg>
-                                              </div>
-                                              <div className="flex-1">
-                                                <h3 className="text-xl font-bold text-green-800 mb-3">Upload Photo + Describe Scene</h3>
-                                                <p className="text-green-700 mb-4">Upload photos of your loved ones and I'll place them in custom scenes you describe. Perfect for creating personalized cards with accurate likeness.</p>
-                                                
-                                                <div className="bg-white rounded-lg p-4 mb-4">
-                                                  <h4 className="font-semibold text-green-800 mb-2">How it works:</h4>
-                                                  <ol className="list-decimal list-inside space-y-2 text-sm text-green-700">
-                                                    <li>Upload one or more clear photos (each photo must feature only one person)</li>
-                                                    <li>Our AI analyzes each person's facial features, hair, and appearance</li>
-                                                    <li>You describe the scene you want them placed in</li>
-                                      <li>We create an artistic card showing them in your custom scene</li>
-                                    </ol>
-                                  </div>
 
-                                  <div className="grid md:grid-cols-2 gap-4">
-                                    <div className="bg-green-100 rounded-lg p-3">
-                                      <h5 className="font-semibold text-green-800 mb-2">Best for:</h5>
-                                      <ul className="text-sm text-green-700 space-y-1">
-                                        <li>• Accurate facial representation</li>
-                                        <li>• Multiple people in one card</li>
-                                        <li>• Custom scene creation</li>
-                                        <li>• When you have good photos</li>
-                                      </ul>
-                                    </div>
-                                    <div className="bg-yellow-100 rounded-lg p-3">
-                                      <h5 className="font-semibold text-yellow-800 mb-2">Photo Requirements:</h5>
-                                      <ul className="text-sm text-yellow-700 space-y-1">
-                                        <li>• One person per photo only</li>
-                                        <li>• Clear, well-lit portraits</li>
-                                        <li>• Face clearly visible</li>
-                                        <li>• High quality (512x512+ pixels)</li>
-                                      </ul>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Method 2: Describe Person + Describe Scene */}
-                            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
-                              <div className="flex items-start space-x-4">
-                                <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                </div>
-                                <div className="flex-1">
-                                  <h3 className="text-xl font-bold text-blue-800 mb-3">Describe Person + Describe Scene</h3>
-                                  <p className="text-blue-700 mb-4">No photos needed! Describe the person and scene, and I'll create everything from your descriptions. Ideal when you don't have photos but can describe them well.</p>
-                                  
-                                  <div className="bg-white rounded-lg p-4 mb-4">
-                                    <h4 className="font-semibold text-blue-800 mb-2">How it works:</h4>
-                                    <ol className="list-decimal list-inside space-y-2 text-sm text-blue-700">
-                                      <li>You describe the person's appearance (hair, build, features, etc.)</li>
-                                      <li>You choose their cultural background for authentic representation</li>
-                                      <li>You describe the scene and what they should be doing</li>
-                                      <li>We create an artistic card based entirely on your descriptions</li>
-                                    </ol>
-                                  </div>
-
-                                  <div className="grid md:grid-cols-2 gap-4">
-                                    <div className="bg-blue-100 rounded-lg p-3">
-                                      <h5 className="font-semibold text-blue-800 mb-2">Best for:</h5>
-                                      <ul className="text-sm text-blue-700 space-y-1">
-                                        <li>• When you don't have photos</li>
-                                        <li>• Creative interpretations</li>
-                                        <li>• Fantasy or artistic styles</li>
-                                        <li>• Full creative control</li>
-                                      </ul>
-                                    </div>
-                                    <div className="bg-purple-100 rounded-lg p-3">
-                                      <h5 className="font-semibold text-purple-800 mb-2">Tips for Success:</h5>
-                                      <ul className="text-sm text-purple-700 space-y-1">
-                                        <li>• Be specific with descriptions</li>
-                                        <li>• Include distinctive features</li>
-                                        <li>• Mention personality traits</li>
-                                        <li>• Describe clothing preferences</li>
-                                      </ul>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                                        </DialogContent>
-                                    </Dialog>
-                                    <p className="text-sm text-gray-500 text-center">
-                                      (click the "How it Works" button for examples and best practices)
-                                    </p>
-                                  </div>
-                                )}
                               </div>
                             </div>
                           </div>
