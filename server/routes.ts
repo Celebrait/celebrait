@@ -353,7 +353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               content: [
                 {
                   type: "text",
-                  text: `Please describe the artistic visual characteristics visible in this image for Person ${i + 1} for the purpose of creating a fictional character illustration. Focus on observable physical features including hair color, texture, and style, facial hair, sex, facial structure, facial features (eyes, nose, mouth, lips, ears), approximate age appearance, skin tone, apparent build, and any visible accessories like glasses or jewelry. Provide an objective description of these visual elements as they would appear in an artistic rendering. Do not describe any clothing. Start your response with "Person ${i + 1}:"`
+                  text: `${PHOTO_ANALYSIS_PROMPT}\n\nStart your response with "Person ${i + 1}:"`
                 },
                 {
                   type: "image_url",
