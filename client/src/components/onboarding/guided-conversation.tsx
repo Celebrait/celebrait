@@ -866,11 +866,18 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     // Base requirements (matching test page structure)
     parts.push("Square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible");
     
-    // Add all analyzed people with their cultural details
+    // Add all analyzed people with their cultural details and user-selected gender
     if (photoAnalyses.length > 0 && answers.people_details) {
       photoAnalyses.forEach((analysis, index) => {
-        const personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
+        let personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
         const personDetails = answers.people_details[index];
+        
+        // Override gender from analysis with user selection if available
+        if (personDetails?.gender) {
+          // Remove any gender references from AI analysis and replace with user selection
+          personDescription = personDescription.replace(/\b(male|female|man|woman|boy|girl)\b/gi, '');
+          personDescription = `${personDetails.gender}, ${personDescription}`;
+        }
         
         let culturalText = '';
         if (personDetails?.custom_heritage) {
@@ -904,7 +911,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       parts.push(answers.scene);
     } else if (answers.celebration) {
       // Default scene based on celebration
-      const celebrationScenes = {
+      const celebrationScenes: Record<string, string> = {
         'birthday': 'celebrating at a birthday party with balloons and confetti',
         'anniversary': 'celebrating in a romantic setting with warm lighting',
         'graduation': 'celebrating achievement with academic elements',
