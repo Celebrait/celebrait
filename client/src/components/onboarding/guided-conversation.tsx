@@ -2049,9 +2049,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   onClick={() => {
                     onboarding.setCurrentStep(2);
                   }}
-                  variant="ghost"
-                  className="text-gray-400 hover:text-gray-600 text-sm"
+                  variant="outline"
+                  className="px-6 py-2 rounded-xl border-purple-300 text-purple-600 hover:bg-purple-50 font-medium shadow-sm"
                 >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Card Selection
                 </Button>
               </div>

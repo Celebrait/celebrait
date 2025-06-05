@@ -197,7 +197,7 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
       </div>
 
       {/* Back Button */}
-      <div className="flex flex-col items-center space-y-2 mt-4 sm:mt-6">
+      <div className="flex justify-center mt-4 sm:mt-6">
         <Button
           onClick={onboarding.previousStep}
           variant="ghost"
@@ -205,15 +205,6 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Go Back a Step
-        </Button>
-        <Button
-          onClick={() => {
-            onboarding.setCurrentStep(2);
-          }}
-          variant="ghost"
-          className="text-gray-400 hover:text-gray-600 text-sm"
-        >
-          Back to Card Selection
         </Button>
       </div>
     </div>
