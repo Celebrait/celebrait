@@ -50,6 +50,7 @@ export default function TestGeneration() {
   const [isAnalyzingPhotos, setIsAnalyzingPhotos] = useState(false);
   const [currentAnalysisIndex, setCurrentAnalysisIndex] = useState<number>(-1);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [culturalBackgrounds, setCulturalBackgrounds] = useState<Array<{personIndex: number, background: string}>>([]);
   const { toast } = useToast();
 
   const generateCardWithAnalyzedPeople = async () => {
@@ -92,10 +93,12 @@ export default function TestGeneration() {
       // Base requirements
       parts.push("Square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible");
       
-      // Add all analyzed people
+      // Add all analyzed people with cultural background
       photoAnalyses.forEach((analysis) => {
         const personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
-        parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}`);
+        const culturalBg = culturalBackgrounds.find(bg => bg.personIndex === analysis.personIndex);
+        const culturalText = culturalBg ? `, ${culturalBg.background} heritage` : '';
+        parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}${culturalText}`);
       });
       
       // Add random greeting card scenario
@@ -279,8 +282,10 @@ export default function TestGeneration() {
         // Use analyzed people only
         photoAnalyses.forEach((analysis, index) => {
           const personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
-          console.log(`Debug - Adding Person ${analysis.personIndex}:`, personDescription);
-          parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}`);
+          const culturalBg = culturalBackgrounds.find(bg => bg.personIndex === analysis.personIndex);
+          const culturalText = culturalBg ? `, ${culturalBg.background} heritage` : '';
+          console.log(`Debug - Adding Person ${analysis.personIndex}:`, personDescription + culturalText);
+          parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}${culturalText}`);
         });
         
         // Add scene from preset if available
@@ -666,26 +671,69 @@ export default function TestGeneration() {
                       </div>
 
                       {photoAnalyses.length > 0 && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                          <p className="text-green-700 font-medium text-sm mb-2">Ready for Card Generation!</p>
-                          <p className="text-green-600 text-xs mb-3">
-                            {photoAnalyses.length} people analyzed and ready to be featured on a greeting card.
-                          </p>
-                          <Button 
-                            onClick={generateCardWithAnalyzedPeople}
-                            className="w-full bg-green-600 hover:bg-green-700 text-white"
-                            size="sm"
-                            disabled={isGenerating}
-                          >
-                            {isGenerating ? (
-                              <>
-                                <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                                Generating Card...
-                              </>
-                            ) : (
-                              "Generate Greeting Card with Analyzed People"
-                            )}
-                          </Button>
+                        <div className="space-y-3">
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <p className="text-blue-700 font-medium text-sm mb-3">Optional: Set Cultural Background</p>
+                            <p className="text-blue-600 text-xs mb-3">
+                              Define race/cultural heritage for each person to enhance character accuracy in the generated card.
+                            </p>
+                            
+                            {photoAnalyses.map((analysis) => (
+                              <div key={analysis.personIndex} className="mb-3 last:mb-0">
+                                <label className="block text-sm font-medium text-blue-700 mb-1">
+                                  Person {analysis.personIndex}
+                                </label>
+                                <select
+                                  value={culturalBackgrounds.find(bg => bg.personIndex === analysis.personIndex)?.background || ''}
+                                  onChange={(e) => {
+                                    const newBackgrounds = culturalBackgrounds.filter(bg => bg.personIndex !== analysis.personIndex);
+                                    if (e.target.value) {
+                                      newBackgrounds.push({ personIndex: analysis.personIndex, background: e.target.value });
+                                    }
+                                    setCulturalBackgrounds(newBackgrounds);
+                                  }}
+                                  className="w-full p-2 border border-blue-300 rounded text-sm"
+                                >
+                                  <option value="">No specific heritage</option>
+                                  <option value="African">African</option>
+                                  <option value="African American">African American</option>
+                                  <option value="Asian">Asian</option>
+                                  <option value="Caucasian">Caucasian</option>
+                                  <option value="East Asian">East Asian</option>
+                                  <option value="Hispanic/Latino">Hispanic/Latino</option>
+                                  <option value="Indigenous">Indigenous</option>
+                                  <option value="Middle Eastern">Middle Eastern</option>
+                                  <option value="Mixed heritage">Mixed heritage</option>
+                                  <option value="Native American">Native American</option>
+                                  <option value="Pacific Islander">Pacific Islander</option>
+                                  <option value="South Asian">South Asian</option>
+                                  <option value="Southeast Asian">Southeast Asian</option>
+                                </select>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <p className="text-green-700 font-medium text-sm mb-2">Ready for Card Generation!</p>
+                            <p className="text-green-600 text-xs mb-3">
+                              {photoAnalyses.length} people analyzed and ready to be featured on a greeting card.
+                            </p>
+                            <Button 
+                              onClick={generateCardWithAnalyzedPeople}
+                              className="w-full bg-green-600 hover:bg-green-700 text-white"
+                              size="sm"
+                              disabled={isGenerating}
+                            >
+                              {isGenerating ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                                  Generating Card...
+                                </>
+                              ) : (
+                                "Generate Greeting Card with Analyzed People"
+                              )}
+                            </Button>
+                          </div>
                         </div>
                       )}
 
@@ -694,6 +742,7 @@ export default function TestGeneration() {
                           setUploadedPhotos([]);
                           setPhotoAnalyses([]);
                           setAnalysisError(null);
+                          setCulturalBackgrounds([]);
                         }}
                         variant="outline"
                         size="sm"
