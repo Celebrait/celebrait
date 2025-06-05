@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
 
 // Example prompts for the scene description
 const EXAMPLE_PROMPTS = [
