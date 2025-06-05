@@ -428,6 +428,18 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   ];
 
+  // All hooks must be at the top level before any conditional returns
+  useEffect(() => {
+    initializeCard();
+  }, []);
+
+  useEffect(() => {
+    // Simulate AI typing when moving to new step
+    setIsTyping(true);
+    const timer = setTimeout(() => setIsTyping(false), 1000);
+    return () => clearTimeout(timer);
+  }, [currentStepIndex]);
+
   // Filter steps based on scene type and card options
   const filteredSteps = steps.filter(step => {
     // Skip inside message for front-only cards
@@ -471,30 +483,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const currentStep = filteredSteps[currentStepIndex];
   const progress = ((currentStepIndex + 1) / filteredSteps.length) * 100;
 
-  // Safety check to prevent undefined currentStep errors
-  if (!currentStep) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">Loading conversation...</p>
-        </div>
-      </div>
-    );
-  }
-
-  useEffect(() => {
-    initializeCard();
-  }, []);
-
-  useEffect(() => {
-    // Simulate AI typing when moving to new step
-    setIsTyping(true);
-    const timer = setTimeout(() => setIsTyping(false), 1000);
-    return () => clearTimeout(timer);
-  }, [currentStepIndex]);
-
   // Handle rotating example prompts for scene description
   useEffect(() => {
+    if (!currentStep) return;
+    
     console.log('Scene effect triggered:', {
       stepId: currentStep.id,
       userHasTyped,
@@ -527,7 +519,18 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       const timer = setTimeout(typeText, 500);
       return () => clearTimeout(timer);
     }
-  }, [currentStep.id, currentExampleIndex, userHasTyped]);
+  }, [currentStep?.id, currentExampleIndex, userHasTyped]);
+
+  // Safety check to prevent undefined currentStep errors
+  if (!currentStep) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Loading conversation...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Reset user typing state when entering scene step
   useEffect(() => {
@@ -580,8 +583,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     if (editingStep && returnToSummary) {
       setEditingStep(null);
       setReturnToSummary(false);
-      const summaryStepIndex = steps.findIndex(step => step.id === 'final_summary');
-      setCurrentStepIndex(summaryStepIndex);
+      const summaryStepIndex = filteredSteps.findIndex(step => step.id === 'final_summary');
+      if (summaryStepIndex !== -1) {
+        setCurrentStepIndex(summaryStepIndex);
+      }
       return;
     }
     
@@ -593,7 +598,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     // Handle heritage after photo upload - go to costume selection
     if (currentStep.id === 'heritage_photo') {
       // After selecting heritage, go to character costume
-      const costumeIndex = steps.findIndex(step => step.id === 'character_costume');
+      const costumeIndex = filteredSteps.findIndex(step => step.id === 'character_costume');
       if (costumeIndex !== -1) {
         setTimeout(() => setCurrentStepIndex(costumeIndex), 500);
         return;
@@ -603,7 +608,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     // Handle character/costume choice - go to scene after selection
     if (currentStep.id === 'character_costume') {
       // After selecting costume, go to scene
-      const sceneIndex = steps.findIndex(step => step.id === 'scene');
+      const sceneIndex = filteredSteps.findIndex(step => step.id === 'scene');
       if (sceneIndex !== -1) {
         setTimeout(() => setCurrentStepIndex(sceneIndex), 500);
         return;
@@ -621,7 +626,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   };
 
   const handleEditStep = (stepId: string) => {
-    const stepIndex = steps.findIndex(step => step.id === stepId);
+    const stepIndex = filteredSteps.findIndex(step => step.id === stepId);
     if (stepIndex !== -1) {
       setEditingStep(stepId);
       setReturnToSummary(true);
