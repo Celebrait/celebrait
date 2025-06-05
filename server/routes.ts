@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Help me generate a purely fictional character design for an artistic project inspired by the visible visual features in this image by analysing the features for artistic purposes only. Please provide a structured description including: 1) Apparent gender presentation, 2) Approximate age range, 3) Hair colour/textures/styles, 4) Facial shapes/structure, 5) Facial features (nose, ears, mouth, lips), 6) Facial hair (if any), 7) Skin tones, 8) Eyewear (if any), 9) Accessories (if any). Focus only on visible artistic elements that could inform a stylized character design. Avoid describing clothing or making assumptions about identities or personal characteristics. Do not make suggestions about what to do with the description."
+                text: "Please describe the artistic visual characteristics visible in this image for the purpose of creating a fictional character illustration. Focus on observable physical features including hair color and style, facial structure, approximate age appearance, skin tone, and any visible accessories like glasses or jewelry. Provide an objective description of these visual elements as they would appear in an artistic rendering."
               },
               {
                 type: "image_url",
@@ -352,7 +352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               content: [
                 {
                   type: "text",
-                  text: `Help me generate a purely fictional character design for Person ${i + 1} for an artistic project inspired by the visible visual features in this image by analysing the features for artistic purposes only. Please provide a structured description including: 1) Apparent gender presentation, 2) Approximate age range, 3) Hair colour/textures/styles, 4) Facial shapes/structure, 5) Facial features (nose, ears, mouth, lips), 6) Facial hair (if any), 7) Skin tones, 8) Eyewear (if any), 9) Accessories (if any). Focus only on visible artistic elements that could inform a stylized character design. Avoid describing clothing or making assumptions about identities or personal characteristics. Start your response with "Person ${i + 1}:" and do not make suggestions about what to do with the description.`
+                  text: `Please describe the artistic visual characteristics visible in this image for Person ${i + 1} for the purpose of creating a fictional character illustration. Focus on observable physical features including hair color and style, facial structure, approximate age appearance, skin tone, and any visible accessories like glasses or jewelry. Provide an objective description of these visual elements as they would appear in an artistic rendering. Start your response with "Person ${i + 1}:"`
                 },
                 {
                   type: "image_url",

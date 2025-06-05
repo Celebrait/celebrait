@@ -161,12 +161,18 @@ export default function TestGeneration() {
         // Base requirements
         parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
         
-        // Always prioritize photo analysis when available
-        if (uploadedPhotos.length > 0 && photoAnalyses.length > 0) {
-          photoAnalyses.forEach((analysis, index) => {
-            const personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
-            parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}`);
-          });
+        // ONLY use photo analysis when photos are uploaded - never use preset characters
+        if (uploadedPhotos.length > 0) {
+          if (photoAnalyses.length > 0) {
+            // Use analyzed people only
+            photoAnalyses.forEach((analysis, index) => {
+              const personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
+              parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}`);
+            });
+          } else {
+            // If analysis failed, don't generate - return error
+            throw new Error("Photo analysis failed. Cannot generate card without analyzing uploaded people.");
+          }
           
           // Add scene from preset if available
           if (preset) {
@@ -176,7 +182,7 @@ export default function TestGeneration() {
             }
           }
         } else if (preset) {
-          // Use preset character description only if no photos
+          // Use preset character description only when no photos uploaded
           const presetDescription = preset.frontPrompt.match(/showing a (.+?) in/)?.[1] || 'person';
           parts.push(`featuring ${presetDescription}`);
         }
