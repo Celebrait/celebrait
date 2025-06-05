@@ -384,14 +384,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Failed to analyze image for style transformation" });
       }
 
-      // Generate the transformed image using gpt-image-1
-      console.log('Generating image with gpt-image-1...');
+      // Generate the transformed image using DALL-E 2
+      console.log('Generating image with DALL-E 2...');
       const imageResponse = await openai.images.generate({
-        model: "gpt-image-1",
+        model: "dall-e-2",
         prompt: `${prompt}. ${transformDescription}. High quality artistic transformation, maintain the essence of the original composition while applying the new artistic style.`,
         n: 1,
-        size: "1024x1024",
-        quality: "high"
+        size: "1024x1024"
       });
 
       console.log('Image response:', imageResponse);
