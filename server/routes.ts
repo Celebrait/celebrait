@@ -689,38 +689,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Failed to find data array in frontResponse');
       }
 
-      // Generate inside image if provided, using front card as visual reference
+      // Generate inside image if provided, using vision analysis of front card
       if (insidePrompt && frontImageUrl) {
-        console.log('Using model: gpt-image-1 for inside image with front card visual reference');
-        
-        // Create image-to-image prompt that references the front card visually
-        const imageToImagePrompt = `Using the attached front greeting card image as a visual style reference, create the interior of this greeting card. CRITICAL REQUIREMENTS: 1) Match the exact artistic style, color palette, lighting, and visual mood from the reference image. 2) Use identical typography treatment - same font family, weight, size proportions, and text styling as shown in the reference. 3) Display this message prominently: "${insidePrompt.match(/"([^"]+)"/)?.[1] || 'Happy Birthday!'}" 4) Create a subtle, complementary background that references visual elements from the front card without overwhelming the text. 5) Maintain the same artistic quality and print-ready professional appearance. The inside should look like it was designed by the same artist using the same design system.`;
+        console.log('Analyzing front card with GPT Vision for style consistency');
         
         try {
-          // Use gpt-image-1 with image reference for style consistency
-          const insideImageGeneration = await openai.images.generate({
-            model: "gpt-image-1",
-            prompt: imageToImagePrompt,
-            image: frontImageUrl, // Pass the front card as visual reference
-            n: 1,
-            size: "1024x1024"
+          // First, analyze the front card with GPT Vision
+          const visionAnalysis = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: "Analyze this greeting card image for visual style consistency. Please describe in detail: 1) The artistic style (watercolor, digital art, cartoon, realistic, etc.) 2) Color palette (dominant colors, mood, saturation levels) 3) Typography style (font family, weight, size, color, positioning, decorative elements) 4) Lighting and atmosphere (bright, soft, dramatic, warm, cool) 5) Background elements and textures 6) Overall visual mood and artistic treatment. Be very specific about visual elements that would help recreate the same artistic style for a companion piece."
+                  },
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: frontImageUrl
+                    }
+                  }
+                ]
+              }
+            ],
+            max_tokens: 800
           });
           
-          const insideResponse = insideImageGeneration as any;
-          if (insideResponse.data && Array.isArray(insideResponse.data) && insideResponse.data.length > 0) {
-            const imageData = insideResponse.data[0];
+          const styleAnalysis = visionAnalysis.choices[0].message.content;
+          console.log('Front card style analysis completed:', styleAnalysis ? 'Analysis received' : 'No analysis');
+          
+          if (styleAnalysis) {
+            // Generate inside card using the detailed style analysis
+            const visionBasedInsidePrompt = `Create the interior of a greeting card that perfectly matches this visual style analysis: ${styleAnalysis}. 
+
+CRITICAL REQUIREMENTS FOR STYLE MATCHING:
+1) Use the EXACT same artistic style, technique, and visual treatment described above
+2) Apply the IDENTICAL color palette, saturation levels, and mood 
+3) Use the SAME typography style - font family, weight, sizing, color, and positioning approach
+4) Match the lighting, atmosphere, and overall visual mood precisely
+5) Display this message prominently: "${insidePrompt.match(/"([^"]+)"/)?.[1] || 'Happy Birthday!'}"
+6) Create a subtle background that references the front card's visual elements without overwhelming the text
+7) Maintain the same artistic quality and professional appearance
+8) Square 1:1 aspect ratio, full bleed design, no borders
+
+The inside should look like it was created by the same artist using identical design principles and visual language.`;
             
-            if (typeof imageData === 'string') {
-              insideImageUrl = `data:image/png;base64,${imageData}`;
-            } else if (imageData.b64_json) {
-              insideImageUrl = `data:image/png;base64,${imageData.b64_json}`;
-            } else if (imageData.url) {
-              insideImageUrl = imageData.url;
+            const visionBasedGeneration = await openai.images.generate({
+              model: "gpt-image-1",
+              prompt: visionBasedInsidePrompt,
+              n: 1,
+              size: "1024x1024"
+            });
+            
+            const visionResponse = visionBasedGeneration as any;
+            if (visionResponse.data && Array.isArray(visionResponse.data) && visionResponse.data.length > 0) {
+              const imageData = visionResponse.data[0];
+              
+              if (typeof imageData === 'string') {
+                insideImageUrl = `data:image/png;base64,${imageData}`;
+              } else if (imageData.b64_json) {
+                insideImageUrl = `data:image/png;base64,${imageData.b64_json}`;
+              } else if (imageData.url) {
+                insideImageUrl = imageData.url;
+              }
+              console.log('Successfully generated inside card using GPT Vision analysis');
             }
-            console.log('Successfully generated inside card using front card as visual reference');
+          } else {
+            throw new Error('Vision analysis failed to provide style description');
           }
-        } catch (imageToImageError: any) {
-          console.log('Image-to-image generation failed, falling back to text-only approach:', imageToImageError.message);
+        } catch (visionError: any) {
+          console.log('Vision-based generation failed, falling back to enhanced text approach:', visionError.message);
           
           // Fallback to enhanced text-based generation
           let finalInsidePrompt = insidePrompt;
