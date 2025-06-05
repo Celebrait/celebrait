@@ -132,9 +132,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           value: 'describe_person', 
           label: 'Describe Person + Describe Scene', 
           description: 'I\'ll create everything based on your descriptions',
-          color: 'bg-blue-500',
+          color: 'bg-gray-400',
           icon: 'edit',
-          details: 'Ideal when you don\'t have a photo but can describe them'
+          details: 'Ideal when you don\'t have a photo but can describe them',
+          disabled: true
         },
         { 
           value: 'upload_and_transform', 
@@ -1637,42 +1638,91 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
                 {currentStep.type === 'photo_creation_choice' && (
                   <div className="space-y-6">
-                    {/* How it Works Button */}
-                    <div className="flex flex-col items-center space-y-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button 
-                            variant="outline"
-                            className="px-6 py-3 rounded-xl border-2 border-blue-400 text-blue-700 hover:bg-blue-50 font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                    <div className="grid gap-6">
+                      {currentStep.options?.map((option) => {
+                        const isDisabled = (option as any).disabled;
+                        return (
+                          <div 
+                            key={option.value}
+                            onClick={() => !isDisabled && handleMultiSelectAnswer(currentStep.id, option.value)}
+                            className={`relative p-6 border-2 rounded-xl transition-all duration-200 ${
+                              isDisabled 
+                                ? 'border-gray-300 cursor-not-allowed opacity-75' 
+                                : 'border-purple-200 hover:border-purple-400 cursor-pointer hover:shadow-lg transform hover:scale-[1.02]'
+                            }`}
                           >
-                            <HelpCircle className="w-5 h-5 mr-2" />
-                            How it Works
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle className="text-2xl font-bold text-center mb-4">How Each Method Works</DialogTitle>
-                          </DialogHeader>
-                          <div className="grid gap-6">
-                            {/* Method 1: Upload Photo + Describe Scene */}
-                            <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6">
-                              <div className="flex items-start space-x-4">
-                                <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            {isDisabled && (
+                              <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center z-10">
+                                <div className="bg-white rounded-lg px-6 py-3 shadow-lg">
+                                  <span className="text-lg font-bold text-gray-800">Coming Soon</span>
+                                </div>
+                              </div>
+                            )}
+                            <div className="flex items-start space-x-4">
+                              <div className={`w-12 h-12 ${option.color} rounded-full flex items-center justify-center flex-shrink-0`}>
+                                {option.icon === 'camera' && (
+                                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                                   </svg>
-                                </div>
-                                <div className="flex-1">
-                                  <h3 className="text-xl font-bold text-green-800 mb-3">Upload Photo + Describe Scene</h3>
-                                  <p className="text-green-700 mb-4">Upload photos of your loved ones and I'll place them in custom scenes you describe. Perfect for creating personalized cards with accurate likeness.</p>
-                                  
-                                  <div className="bg-white rounded-lg p-4 mb-4">
-                                    <h4 className="font-semibold text-green-800 mb-2">How it works:</h4>
-                                    <ol className="list-decimal list-inside space-y-2 text-sm text-green-700">
-                                      <li>Upload one or more clear photos (each photo must feature only one person)</li>
-                                      <li>Our AI analyzes each person's facial features, hair, and appearance</li>
-                                      <li>You describe the scene you want them placed in</li>
+                                )}
+                                {option.icon === 'palette' && (
+                                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM7 3H5a2 2 0 00-2 2v12a4 4 0 004 4h2a2 2 0 002-2V5a2 2 0 00-2-2z" />
+                                    <circle cx="16" cy="8" r="6" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
+                                  </svg>
+                                )}
+                                {option.icon === 'edit' && (
+                                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="font-bold text-lg text-gray-800 mb-2">{option.label}</h3>
+                                <p className="text-gray-600 mb-3">{option.description}</p>
+                                <p className="text-sm text-purple-600 font-medium">{option.details}</p>
+                                
+                                {/* Add How it Works button specifically to Upload Photo option */}
+                                {option.value === 'upload_and_scene' && !isDisabled && (
+                                  <div className="mt-4 flex flex-col items-start space-y-2">
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button 
+                                          variant="outline"
+                                          size="sm"
+                                          className="px-4 py-2 rounded-lg border-2 border-blue-400 text-blue-700 hover:bg-blue-50 font-semibold"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <HelpCircle className="w-4 h-4 mr-2" />
+                                          How it Works
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                                        <DialogHeader>
+                                          <DialogTitle className="text-2xl font-bold text-center mb-4">How Each Method Works</DialogTitle>
+                                        </DialogHeader>
+                                        
+                                        <div className="grid gap-6">
+                                          {/* Method 1: Upload Photo + Describe Scene */}
+                                          <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6">
+                                            <div className="flex items-start space-x-4">
+                                              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                </svg>
+                                              </div>
+                                              <div className="flex-1">
+                                                <h3 className="text-xl font-bold text-green-800 mb-3">Upload Photo + Describe Scene</h3>
+                                                <p className="text-green-700 mb-4">Upload photos of your loved ones and I'll place them in custom scenes you describe. Perfect for creating personalized cards with accurate likeness.</p>
+                                                
+                                                <div className="bg-white rounded-lg p-4 mb-4">
+                                                  <h4 className="font-semibold text-green-800 mb-2">How it works:</h4>
+                                                  <ol className="list-decimal list-inside space-y-2 text-sm text-green-700">
+                                                    <li>Upload one or more clear photos (each photo must feature only one person)</li>
+                                                    <li>Our AI analyzes each person's facial features, hair, and appearance</li>
+                                                    <li>You describe the scene you want them placed in</li>
                                       <li>We create an artistic card showing them in your custom scene</li>
                                     </ol>
                                   </div>
@@ -1747,59 +1797,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               </div>
                             </div>
                           </div>
-                        </DialogContent>
-                      </Dialog>
-                      <p className="text-sm text-gray-500 text-center">
-                        (click the "How it Works" button for examples and best practices)
-                      </p>
-                    </div>
-                    
-                    <div className="grid gap-6">
-                      {currentStep.options?.map((option) => {
-                        const isDisabled = (option as any).disabled;
-                        return (
-                          <div
-                          key={option.value}
-                          onClick={isDisabled ? undefined : () => handleAnswer(option.value)}
-                          className={`bg-white rounded-xl p-6 border-2 transition-all duration-300 relative ${
-                            isDisabled 
-                              ? 'border-gray-300 cursor-not-allowed opacity-75' 
-                              : 'border-purple-200 hover:border-purple-400 cursor-pointer hover:shadow-lg transform hover:scale-[1.02]'
-                          }`}
-                        >
-                          {isDisabled && (
-                            <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center z-10">
-                              <div className="bg-white rounded-lg px-6 py-3 shadow-lg">
-                                <span className="text-lg font-bold text-gray-800">Coming Soon</span>
+                                        </DialogContent>
+                                    </Dialog>
+                                    <p className="text-sm text-gray-500 text-center">
+                                      (click the "How it Works" button for examples and best practices)
+                                    </p>
+                                  </div>
+                                )}
                               </div>
                             </div>
-                          )}
-                          <div className="flex items-start space-x-4">
-                            <div className={`w-12 h-12 ${option.color} rounded-full flex items-center justify-center flex-shrink-0`}>
-                              {option.icon === 'camera' && (
-                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                              )}
-                              {option.icon === 'palette' && (
-                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM7 3H5a2 2 0 00-2 2v12a4 4 0 004 4h2a2 2 0 002-2V5a2 2 0 00-2-2z" />
-                                  <circle cx="16" cy="8" r="6" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
-                                </svg>
-                              )}
-                              {option.icon === 'edit' && (
-                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <h3 className="font-bold text-lg text-gray-800 mb-2">{option.label}</h3>
-                              <p className="text-gray-600 mb-3">{option.description}</p>
-                              <p className="text-sm text-purple-600 font-medium">{option.details}</p>
-                            </div>
-                          </div>
                           </div>
                         );
                       })}
