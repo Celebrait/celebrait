@@ -163,68 +163,44 @@ export default function TestGeneration() {
       // ALWAYS use photo analysis when photos are uploaded, regardless of custom prompt
       if (uploadedPhotos.length > 0 && photoAnalyses.length > 0) {
         console.log('Debug - Overriding with photo analysis...');
+        const parts = [];
         
-        // Build a clear, concise prompt for accurate character generation
-        const characterDescriptions = [];
+        // Base requirements
+        parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
         
+        // Use analyzed people only
         photoAnalyses.forEach((analysis, index) => {
-          const fullDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
-          
-          // Extract essential features for image generation
-          const hairMatch = fullDescription.match(/\*\*Hair\*\*[:\s]*([^*\n]+)/i);
-          const ageMatch = fullDescription.match(/\*\*.*Age.*\*\*[:\s]*([^*\n]+)/i);
-          const skinMatch = fullDescription.match(/\*\*Skin.*\*\*[:\s]*([^*\n]+)/i);
-          const facialHairMatch = fullDescription.match(/\*\*Facial Hair\*\*[:\s]*([^*\n]+)/i);
-          
-          let personDesc = `Person ${analysis.personIndex}:`;
-          if (ageMatch) personDesc += ` ${ageMatch[1].trim()},`;
-          if (hairMatch) personDesc += ` ${hairMatch[1].trim()},`;
-          if (skinMatch) personDesc += ` ${skinMatch[1].trim()},`;
-          if (facialHairMatch && !facialHairMatch[1].toLowerCase().includes('no visible')) {
-            personDesc += ` ${facialHairMatch[1].trim()},`;
-          }
-          
-          characterDescriptions.push(personDesc.replace(/,$/, ''));
-          console.log(`Debug - Character ${analysis.personIndex}:`, personDesc);
+          const personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
+          console.log(`Debug - Adding Person ${analysis.personIndex}:`, personDescription);
+          parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}`);
         });
         
-        // Extract scene from custom prompt text
-        let sceneContext = '';
-        if (customPromptText) {
-          const lowerPrompt = customPromptText.toLowerCase();
-          if (lowerPrompt.includes('beach')) sceneContext = 'on a beach';
-          else if (lowerPrompt.includes('party')) sceneContext = 'at a party';
-          else if (lowerPrompt.includes('jet')) sceneContext = 'on a private jet';
-          else if (lowerPrompt.includes('restaurant')) sceneContext = 'at a restaurant';
-          else {
-            // Try to extract scene context more broadly
-            const sceneMatch = customPromptText.match(/(?:standing|sitting|flying|walking|at|on|in)\s+([^,]+)/i);
-            if (sceneMatch) sceneContext = sceneMatch[0];
+        // Add scene from preset if available
+        if (preset) {
+          const sceneMatch = preset.frontPrompt.match(/in (.+?)\./);
+          if (sceneMatch) {
+            console.log('Debug - Adding scene:', sceneMatch[1]);
+            parts.push(`in ${sceneMatch[1]}`);
           }
         }
         
-        // Extract text from custom prompt
-        let cardText = '';
-        if (customPromptText) {
-          const textMatch = customPromptText.match(/with\s+([^,]+)/i);
-          if (textMatch) cardText = textMatch[1].trim();
+        if (preset?.artStyle) {
+          parts.push(`${preset.artStyle.replace('_', ' ')} art style`);
         }
         
-        // Extract art style
-        let artStyle = 'digital art';
-        if (customPromptText) {
-          if (customPromptText.includes('anime')) artStyle = 'anime style';
-          else if (customPromptText.includes('cartoon')) artStyle = 'cartoon style';
-          else if (customPromptText.includes('realistic')) artStyle = 'realistic style';
-          else if (customPromptText.includes('watercolor')) artStyle = 'watercolor style';
+        // Add text if enabled
+        if (includeText && preset) {
+          const textMatch = preset.frontPrompt.match(/Text overlay: '(.+?)'/);
+          if (textMatch) {
+            parts.push(`with the text "${textMatch[1]}" integrated into the design`);
+          }
         }
         
-        // Build focused prompt
-        frontPrompt = `Greeting card image showing ${characterDescriptions.join(' and ')} ${sceneContext}`;
-        if (cardText) frontPrompt += `, with "${cardText}" text`;
-        frontPrompt += `, ${artStyle}, square format, professional quality`;
+        // Final formatting requirements
+        parts.push('print-ready artwork, no card mockup visible');
         
-        console.log('Debug - Final focused prompt:', frontPrompt);
+        frontPrompt = parts.join(', ');
+        console.log('Debug - Final built prompt with photo analysis:', frontPrompt);
       } else if (!customPromptText) {
         const parts = [];
         
