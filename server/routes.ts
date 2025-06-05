@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import { storage } from "./storage";
 import { insertUserSchema, insertCardSchema, insertLovedOneSchema } from "@shared/schema";
+import { PHOTO_ANALYSIS_PROMPT } from "@shared/prompts";
 import OpenAI from "openai";
 import Stripe from "stripe";
 
@@ -296,7 +297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: [
               {
                 type: "text",
-                text: "Please describe the artistic visual characteristics visible in this image for the purpose of creating a fictional character illustration. Focus on observable physical features including hair color, texture, and style, facial hair, sex, facial structure, facial features (eyes, nose, mouth, lips, ears), approximate age appearance, skin tone, apparent build, and any visible accessories like glasses or jewelry. Provide an objective description of these visual elements as they would appear in an artistic rendering. Do not describe any clothing."
+                text: PHOTO_ANALYSIS_PROMPT
               },
               {
                 type: "image_url",

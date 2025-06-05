@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Copy, RotateCcw, Camera } from 'lucide-react';
+import { buildImagePrompt } from '@shared/prompts';
 
 const TEST_PROMPTS = [
   {
@@ -87,21 +88,7 @@ export default function TestGeneration() {
 
       const card = await cardResponse.json();
 
-      // Build prompt with analyzed people
-      const parts = [];
-      
-      // Base requirements
-      parts.push("Square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible");
-      
-      // Add all analyzed people with cultural background
-      photoAnalyses.forEach((analysis) => {
-        const personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
-        const culturalBg = culturalBackgrounds.find(bg => bg.personIndex === analysis.personIndex);
-        const culturalText = culturalBg ? `, ${culturalBg.background} heritage` : '';
-        parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}${culturalText}`);
-      });
-      
-      // Add random greeting card scenario
+      // Build prompt using shared system
       const scenarios = [
         "celebrating on a beach at sunset",
         "having fun at a birthday party with balloons and confetti",
@@ -111,19 +98,28 @@ export default function TestGeneration() {
         "celebrating outdoors in a garden with flowers"
       ];
       
+      const styles = ["anime", "watercolor", "digital art", "cartoon", "realistic"];
       const randomScenario = scenarios[Math.floor(Math.random() * scenarios.length)];
-      parts.push(randomScenario);
-      
-      // Add style
-      const styles = ["anime style", "watercolor style", "digital art style", "cartoon style", "realistic style"];
       const randomStyle = styles[Math.floor(Math.random() * styles.length)];
-      parts.push(randomStyle);
       
-      // Add birthday text
-      parts.push('with "Happy Birthday!" text prominently displayed');
-      parts.push('professional greeting card quality, print-ready artwork');
-
-      const frontPrompt = parts.join(', ');
+      const mockAnswers = {
+        scene: randomScenario,
+        art_style: randomStyle,
+        name: "Test Person",
+        celebration: "birthday"
+      };
+      
+      // Add cultural backgrounds to photo analyses
+      const enrichedAnalyses = photoAnalyses.map(analysis => {
+        const culturalBg = culturalBackgrounds.find(bg => bg.personIndex === analysis.personIndex);
+        const culturalText = culturalBg ? `, ${culturalBg.background} heritage` : '';
+        return {
+          ...analysis,
+          analysis: analysis.analysis + culturalText
+        };
+      });
+      
+      const frontPrompt = buildImagePrompt(mockAnswers, enrichedAnalyses);
 
       console.log('=== CARD GENERATION PROMPT ===');
       console.log('Full prompt:', frontPrompt);
