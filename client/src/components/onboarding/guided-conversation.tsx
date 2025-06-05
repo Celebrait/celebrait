@@ -1701,7 +1701,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
                 {currentStep.type === 'photo_upload' && (answers.photo_option === 'upload_and_scene' || answers.photo_option === 'upload_and_transform') && (
                   <div className="space-y-6">
-                    {!uploadedPhoto ? (
+                    {uploadedPhotos.length === 0 ? (
                       <div className="space-y-6">
                         <div className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center bg-purple-50 hover:bg-purple-100 transition-colors">
                           <input
@@ -1710,6 +1710,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             onChange={handlePhotoUpload}
                             className="hidden"
                             id="photo-upload"
+                            multiple
                           />
                           <label htmlFor="photo-upload" className="cursor-pointer">
                             <div className="space-y-4">
@@ -1720,12 +1721,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               </div>
                               <div>
                                 <h3 className="text-lg font-semibold text-purple-700">
-                                  {answers.photo_option === 'upload_and_transform' ? 'Upload Photo for Style Transformation' : 'Upload a Photo'}
+                                  {answers.photo_option === 'upload_and_transform' ? 'Upload Photos for Style Transformation' : 'Upload Photos'}
                                 </h3>
                                 <p className="text-gray-600 mt-2">
                                   {answers.photo_option === 'upload_and_transform' 
-                                    ? 'Click here to select a photo that you\'d like to transform into different artistic styles.'
-                                    : 'Click here to select a clear photo. The AI will create an artistic representation while maintaining their likeness.'
+                                    ? 'Click here to select one or more photos that you\'d like to transform into different artistic styles.'
+                                    : 'Click here to select one or more clear photos. The AI will create artistic representations while maintaining their likeness.'
                                   }
                                 </p>
                                 
@@ -1798,14 +1799,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                     ) : (
                       <div className="space-y-6">
                         <div className="text-center">
-                          <div className="w-32 h-32 mx-auto rounded-xl overflow-hidden border-4 border-purple-300">
-                            <img 
-                              src={uploadedPhoto} 
-                              alt="Uploaded photo" 
-                              className="w-full h-full object-cover"
-                            />
+                          <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+                            {uploadedPhotos.map((photo, index) => (
+                              <div key={index} className="w-32 h-32 rounded-xl overflow-hidden border-4 border-purple-300">
+                                <img 
+                                  src={photo} 
+                                  alt={`Uploaded photo ${index + 1}`} 
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ))}
                           </div>
-                          <p className="text-green-600 font-medium mt-2">Photo uploaded successfully!</p>
+                          <p className="text-green-600 font-medium mt-2">
+                            {uploadedPhotos.length === 1 ? 'Photo uploaded successfully!' : `${uploadedPhotos.length} photos uploaded successfully!`}
+                          </p>
                           
                           <div className="flex gap-2 mt-4 justify-center">
                             <input
@@ -1814,6 +1821,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               onChange={handlePhotoUpload}
                               className="hidden"
                               id="photo-reupload"
+                              multiple
                             />
                             <label htmlFor="photo-reupload">
                               <Button 
@@ -1826,7 +1834,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                   </svg>
-                                  Upload Different Photo
+                                  Upload Different Photos
                                 </span>
                               </Button>
                             </label>
