@@ -355,32 +355,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const prompt = stylePrompts[style as keyof typeof stylePrompts] || `Transform this image into ${style} artistic style`;
 
-      // Use GPT-Image-1 with images.variations for style transformation
-      console.log('Generating styled image with GPT-Image-1...');
+      // Use GPT-4o to analyze the image and create a detailed style prompt
+      console.log('Analyzing image with GPT-4o for style transformation...');
       
-      // Convert base64 data URL to raw base64
-      const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
-      const imageBuffer = Buffer.from(base64Data, 'base64');
+      const visionResponse = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `Analyze this image and describe it in detail for recreating in ${prompt} style. Include: composition, subjects, colors, lighting, mood, and specific elements. Then provide a complete prompt for generating this scene in the specified artistic style.`
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: imageData
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 500
+      });
+
+      const analysisResult = visionResponse.choices[0].message.content;
       
-      console.log('Original image buffer size:', imageBuffer.length, 'bytes');
-      
-      // Check if image is too large (limit to 4MB for API)
-      const maxSizeBytes = 4 * 1024 * 1024; // 4MB
-      if (imageBuffer.length > maxSizeBytes) {
-        return res.status(400).json({ 
-          message: `Image file too large (${Math.round(imageBuffer.length / 1024 / 1024)}MB). Please upload an image smaller than 4MB.` 
-        });
+      if (!analysisResult) {
+        return res.status(400).json({ message: "Failed to analyze image" });
       }
-      
-      // Use images.variations with GPT-Image-1
-      const imageResponse = await openai.images.createVariation({
-        model: "gpt-image-1",
-        image: imageBuffer as any, // Cast to bypass TypeScript restriction
+
+      // Generate new image using DALL-E 2 with the analyzed content and style
+      console.log('Generating styled image with DALL-E 2...');
+      const imageResponse = await openai.images.generate({
+        model: "dall-e-2",
+        prompt: `${prompt}. Recreate this scene: ${analysisResult}. High quality artistic rendering with detailed attention to the original composition and subjects.`,
         n: 1,
         size: "1024x1024"
       });
 
-      console.log('GPT-Image-1 response:', imageResponse);
+      console.log('DALL-E 2 response:', imageResponse);
       const transformedImageUrl = imageResponse.data?.[0]?.url;
       console.log('Transformed image URL:', transformedImageUrl);
       
@@ -391,7 +406,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         transformedImageUrl,
-        styleDescription: prompt,
+        styleDescription: analysisResult,
         originalPrompt: prompt
       });
 
