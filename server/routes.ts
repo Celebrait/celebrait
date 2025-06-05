@@ -355,20 +355,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const prompt = stylePrompts[style as keyof typeof stylePrompts] || `Transform this image into ${style} artistic style`;
 
-      // Use GPT-Image-1 with images.edit for image-to-image transformation
+      // Use GPT-Image-1 with images.variations for style transformation
       console.log('Generating styled image with GPT-Image-1...');
       
       // Convert base64 data URL to raw base64
       const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
       const imageBuffer = Buffer.from(base64Data, 'base64');
       
-      const imageResponse = await openai.images.edit({
+      // Use images.variations with GPT-Image-1
+      const imageResponse = await openai.images.createVariation({
         model: "gpt-image-1",
         image: imageBuffer,
-        prompt: `${prompt}. Apply this artistic style transformation while maintaining the original composition, subjects, and scene layout. High quality artistic rendering.`,
         n: 1,
-        size: "1024x1024",
-        response_format: "url"
+        size: "1024x1024"
       });
 
       console.log('GPT-Image-1 response:', imageResponse);
