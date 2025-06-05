@@ -2034,9 +2034,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
               </div>
             )}
 
-            {/* Back Button */}
+            {/* Back Buttons */}
             {currentStepIndex > 0 && !isTyping && (
-              <div className="flex justify-center pt-4 sm:pt-6">
+              <div className="flex flex-col items-center space-y-2 pt-4 sm:pt-6">
                 <Button
                   onClick={handlePrevious}
                   variant="ghost"
@@ -2044,6 +2044,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Go Back a Step
+                </Button>
+                <Button
+                  onClick={() => {
+                    onboarding.setCurrentStep(2);
+                  }}
+                  variant="ghost"
+                  className="text-gray-400 hover:text-gray-600 text-sm"
+                >
+                  Back to Card Selection
                 </Button>
               </div>
             )}
