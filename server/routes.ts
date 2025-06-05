@@ -355,40 +355,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const prompt = stylePrompts[style as keyof typeof stylePrompts] || `Transform this image into ${style} artistic style`;
 
-      // Use GPT-Image-1 with chat completions for image-to-image transformation
+      // Use GPT-Image-1 with images.edit for image-to-image transformation
       console.log('Generating styled image with GPT-Image-1...');
-      const imageResponse = await openai.chat.completions.create({
+      
+      // Convert base64 data URL to raw base64
+      const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      const imageResponse = await openai.images.edit({
         model: "gpt-image-1",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: `${prompt}. Apply this artistic style transformation while maintaining the original composition, subjects, and scene layout. High quality artistic rendering.`
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: imageData
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 4096
+        image: imageBuffer,
+        prompt: `${prompt}. Apply this artistic style transformation while maintaining the original composition, subjects, and scene layout. High quality artistic rendering.`,
+        n: 1,
+        size: "1024x1024",
+        response_format: "url"
       });
 
-      console.log('GPT-Image-1 response structure:', Object.keys(imageResponse));
-      const imageContent = imageResponse.choices[0]?.message?.content;
-      console.log('Image content type:', typeof imageContent);
+      console.log('GPT-Image-1 response:', imageResponse);
+      const transformedImageUrl = imageResponse.data?.[0]?.url;
+      console.log('Transformed image URL:', transformedImageUrl);
       
-      // GPT-Image-1 returns base64 image data in the message content
-      let transformedImageUrl;
-      if (typeof imageContent === 'string' && imageContent.startsWith('data:image')) {
-        transformedImageUrl = imageContent;
-      } else {
-        console.log('Unexpected response format from GPT-Image-1');
+      if (!transformedImageUrl) {
+        console.log('No image URL in response');
         return res.status(400).json({ message: "Failed to generate transformed image" });
       }
 
