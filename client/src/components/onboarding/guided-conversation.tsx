@@ -107,15 +107,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         { value: 'friend', label: 'My Friend', description: 'Close friend or best friend', color: 'bg-green-500', icon: 'user-plus' },
         { value: 'sibling', label: 'My Sibling', description: 'Brother, sister, step-sibling', color: 'bg-purple-500', icon: 'users-2' },
         { value: 'child', label: 'My Child', description: 'Son, daughter, stepchild', color: 'bg-yellow-500', icon: 'baby' },
-        { value: 'grandparent', label: 'My Grandparent', description: 'Grandmother, grandfather', color: 'bg-orange-500', icon: 'user-round' },
+        { value: 'grandmother', label: 'My Grandmother', description: 'Grandmom, nana, granny', color: 'bg-orange-500', icon: 'user-round' },
+        { value: 'grandfather', label: 'My Grandfather', description: 'Grandpa, granddad, papa', color: 'bg-orange-600', icon: 'user-round' },
         { value: 'grandchild', label: 'My Grandchild', description: 'Grandson, granddaughter', color: 'bg-teal-500', icon: 'smile' },
         { value: 'cousin', label: 'My Cousin', description: 'Male or female cousin', color: 'bg-indigo-500', icon: 'user-circle' },
-        { value: 'aunt_uncle', label: 'My Aunt/Uncle', description: 'Aunt, uncle, great-aunt/uncle', color: 'bg-rose-500', icon: 'user' },
-        { value: 'niece_nephew', label: 'My Niece/Nephew', description: 'Niece, nephew', color: 'bg-cyan-500', icon: 'smile' },
+        { value: 'aunt', label: 'My Aunt', description: 'Aunt, great-aunt', color: 'bg-rose-500', icon: 'user' },
+        { value: 'uncle', label: 'My Uncle', description: 'Uncle, great-uncle', color: 'bg-rose-600', icon: 'user' },
+        { value: 'niece', label: 'My Niece', description: 'Niece, grand-niece', color: 'bg-cyan-500', icon: 'smile' },
+        { value: 'nephew', label: 'My Nephew', description: 'Nephew, grand-nephew', color: 'bg-cyan-600', icon: 'smile' },
         { value: 'colleague', label: 'My Colleague', description: 'Coworker, boss, employee', color: 'bg-gray-500', icon: 'briefcase' },
         { value: 'teacher', label: 'My Teacher', description: 'Teacher, professor, mentor', color: 'bg-emerald-500', icon: 'book-open' },
-        { value: 'neighbor', label: 'My Neighbor', description: 'Next door, community friend', color: 'bg-lime-500', icon: 'home' },
-        { value: 'acquaintance', label: 'My Acquaintance', description: 'Someone you know casually', color: 'bg-amber-500', icon: 'user-question' }
+        { value: 'neighbor', label: 'My Neighbor', description: 'Next door, community friend', color: 'bg-lime-500', icon: 'home' }
       ]
     },
     {
