@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -29,6 +29,23 @@ export const lovedOnes = pgTable("loved_ones", {
   name: text("name").notNull(),
   birthday: text("birthday").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const orders = pgTable("orders", {
+  id: serial("id").primaryKey(),
+  cardId: integer("card_id").notNull().references(() => cards.id),
+  customerEmail: text("customer_email").notNull(),
+  customerName: text("customer_name").notNull(),
+  customerPhone: text("customer_phone").notNull(),
+  amount: integer("amount").notNull(), // in cents
+  currency: text("currency").notNull().default("ZAR"),
+  paymentReference: text("payment_reference").notNull().unique(),
+  paymentStatus: text("payment_status").notNull().default("pending"), // pending, successful, failed
+  orderStatus: text("order_status").notNull().default("processing"), // processing, printed, shipped, delivered
+  shippingAddress: json("shipping_address"), // for physical cards
+  trackingNumber: text("tracking_number"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
