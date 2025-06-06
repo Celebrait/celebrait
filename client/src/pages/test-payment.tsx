@@ -49,31 +49,24 @@ export default function TestPayment() {
   const createTestCard = async (cardType: 'digital' | 'printed', printOption?: string) => {
     setCreatingCard(true);
     try {
-      // Create test card
-      const cardResponse = await apiRequest('POST', '/api/cards', {
-        userId: 1,
+      // Create test card with mock data (no AI generation to save tokens)
+      const mockCard = {
+        id: Date.now(),
         cardType,
         printOption: printOption || null,
         sceneType: 'with-person',
+        frontImageUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3Vuc2V0IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I0ZGRDI2NjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRkY2QzI4O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNzdW5zZXQpIi8+CiAgPGNpcmNsZSBjeD0iMzAwIiBjeT0iMTAwIiByPSI2MCIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC45Ii8+CiAgPHRleHQgeD0iMjAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNGRkZGRkYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkhhcHB5IEJpcnRoZGF5ITwvdGV4dD4KPC9zdmc+',
+        insideImageUrl: printOption === 'front-and-inside' ? 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjRjlGOUY5Ii8+CiAgPHRleHQgeD0iMjAwIiB5PSIxNTAiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCBzZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzMzMzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+CiAgICA8dHNwYW4geD0iMjAwIiBkeT0iMCI+V2lzaGluZyB5b3UgYWxsIHRoZTwvdHNwYW4+CiAgICA8dHNwYW4geD0iMjAwIiBkeT0iMzAiPmhhcHBpbmVzcyBpbiB0aGUgd29ybGQ8L3RzcGFuPgogICAgPHRzcGFuIHg9IjIwMCIgZHk9IjMwIj5vbiB5b3VyIHNwZWNpYWwgZGF5ITwvdHNwYW4+CiAgPC90ZXh0Pgo8L3N2Zz4=' : null,
+        status: 'generating',
+        price: cardType === 'digital' ? 2900 : (printOption === 'front-and-inside' ? 12900 : 8900),
         conversationData: {
           celebration: 'birthday',
           name: 'Test Person',
           scene: 'celebrating at a beautiful beach sunset'
-        },
-        price: cardType === 'digital' ? 2900 : (printOption === 'front-and-inside' ? 12900 : 8900)
-      });
+        }
+      };
 
-      const card = await cardResponse.json();
-      
-      // Generate test images for the card
-      const imageResponse = await apiRequest('POST', '/api/generate-images', {
-        cardId: card.id,
-        frontPrompt: 'Square 1:1 aspect ratio greeting card design, full bleed with no borders, featuring a person celebrating at a beautiful beach sunset with "Happy Birthday!" text prominently displayed, watercolor style, professional greeting card quality',
-        insidePrompt: printOption === 'front-and-inside' ? 'Square 1:1 aspect ratio greeting card interior with elegant typography displaying "Wishing you all the happiness in the world on your special day!", watercolor style matching front card' : null
-      });
-
-      const updatedCard = await imageResponse.json();
-      setTestCard(updatedCard);
+      setTestCard(mockCard);
 
       toast({
         title: 'Test Card Created',
@@ -408,38 +401,116 @@ export default function TestPayment() {
                   </div>
 
                   {testOrder && (
-                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <h4 className="font-medium text-green-800 mb-2">Payment Successful!</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Order ID:</span>
-                          <span>#{testOrder.id}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Status:</span>
-                          <Badge variant="default" className="bg-green-500">
-                            {testOrder.paymentStatus}
-                          </Badge>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Order Status:</span>
-                          <span>{testOrder.orderStatus}</span>
-                        </div>
-                        {testOrder.card?.cardType === 'digital' ? (
-                          <div className="mt-3 pt-3 border-t border-green-200">
-                            <Button size="sm" className="w-full bg-green-600 hover:bg-green-700">
-                              <Download className="w-4 h-4 mr-2" />
-                              Download Card
-                            </Button>
+                    <div className="space-y-4">
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <h4 className="font-medium text-green-800 mb-2">Payment Successful!</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Order ID:</span>
+                            <span>#{testOrder.id}</span>
                           </div>
-                        ) : (
-                          <div className="mt-3 pt-3 border-t border-green-200">
-                            <div className="flex items-center gap-2 text-green-700">
-                              <Truck className="w-4 h-4" />
-                              <span>Preparing for shipping (3-5 days)</span>
+                          <div className="flex justify-between">
+                            <span>Amount Paid:</span>
+                            <span>{formatPrice(testCard.price)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Payment Status:</span>
+                            <Badge variant="default" className="bg-green-500">
+                              {testOrder.paymentStatus}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card Preview */}
+                      <div className="p-4 bg-white border border-gray-200 rounded-lg">
+                        <h4 className="font-medium mb-3">Your Card Preview</h4>
+                        <div className="grid grid-cols-1 gap-3">
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Front of Card</p>
+                            <img 
+                              src={testCard.frontImageUrl} 
+                              alt="Card front" 
+                              className="w-full max-w-[200px] mx-auto border rounded-lg shadow-sm"
+                            />
+                          </div>
+                          {testCard.insideImageUrl && (
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">Inside of Card</p>
+                              <img 
+                                src={testCard.insideImageUrl} 
+                                alt="Card inside" 
+                                className="w-full max-w-[200px] mx-auto border rounded-lg shadow-sm"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Next Steps */}
+                      {testOrder.card?.cardType === 'digital' ? (
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <h4 className="font-medium text-blue-800 mb-2">Digital Card Ready</h4>
+                          <div className="space-y-3">
+                            <p className="text-sm text-blue-700">Your high-resolution card is ready for download and sharing.</p>
+                            <div className="space-y-2">
+                              <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700">
+                                <Download className="w-4 h-4 mr-2" />
+                                Download High-Res PNG (300 DPI)
+                              </Button>
+                              <Button size="sm" variant="outline" className="w-full">
+                                <Mail className="w-4 h-4 mr-2" />
+                                Email to Recipient
+                              </Button>
+                            </div>
+                            <div className="text-xs text-blue-600 space-y-1">
+                              <p>• Perfect for social media sharing</p>
+                              <p>• Print at home on cardstock</p>
+                              <p>• Share via WhatsApp or SMS</p>
                             </div>
                           </div>
-                        )}
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                          <h4 className="font-medium text-orange-800 mb-2">Physical Card Processing</h4>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-orange-700">
+                              <Truck className="w-4 h-4" />
+                              <span>Preparing for professional printing</span>
+                            </div>
+                            <div className="text-sm text-orange-700 space-y-1">
+                              <p><strong>Shipping to:</strong></p>
+                              <p>{formData.firstName} {formData.lastName}</p>
+                              <p>{formData.address.line1}</p>
+                              {formData.address.line2 && <p>{formData.address.line2}</p>}
+                              <p>{formData.address.city}, {formData.address.province} {formData.address.postalCode}</p>
+                            </div>
+                            <div className="space-y-2">
+                              <Button size="sm" variant="outline" className="w-full">
+                                Track Order #{testOrder.id}
+                              </Button>
+                              <p className="text-xs text-orange-600">
+                                Estimated delivery: 3-5 business days via Courier
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Order Management */}
+                      <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <h4 className="font-medium mb-2">Order Management</h4>
+                        <div className="space-y-2">
+                          <Button size="sm" variant="outline" className="w-full">
+                            View Order History
+                          </Button>
+                          <Button size="sm" variant="outline" className="w-full">
+                            Create Another Card
+                          </Button>
+                          <Button size="sm" variant="outline" className="w-full">
+                            Contact Support
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )}
