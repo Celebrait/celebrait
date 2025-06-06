@@ -1231,10 +1231,25 @@ The inside should look like a perfect companion piece created by the same artist
         }
       );
 
+      console.log('Flux character transformation output type:', typeof output);
       console.log('Flux character transformation output:', output);
 
-      // Update card with new image
-      const frontImageUrl = Array.isArray(output) ? output[0] : output;
+      // Handle Replicate output - it's typically an array of URLs
+      let frontImageUrl;
+      
+      if (Array.isArray(output) && output.length > 0) {
+        frontImageUrl = output[0];
+        console.log('Using first image from array:', frontImageUrl);
+      } else if (typeof output === 'string') {
+        frontImageUrl = output;
+        console.log('Using direct string URL:', frontImageUrl);
+      } else {
+        console.error('Unexpected output format from Replicate:', typeof output, output);
+        throw new Error('Invalid output format from Replicate - expected array or string URL');
+      }
+
+      console.log('Final extracted frontImageUrl:', frontImageUrl);
+
       const updatedCard = await storage.updateCard(cardId, {
         frontImageUrl,
         status: 'completed'
@@ -1289,10 +1304,25 @@ The inside should look like a perfect companion piece created by the same artist
         }
       );
 
+      console.log('Flux style transformation output type:', typeof output);
       console.log('Flux style transformation output:', output);
 
-      // Update card with new image
-      const frontImageUrl = Array.isArray(output) ? output[0] : output;
+      // Handle Replicate output - it's typically an array of URLs
+      let frontImageUrl;
+      
+      if (Array.isArray(output) && output.length > 0) {
+        frontImageUrl = output[0];
+        console.log('Using first image from array:', frontImageUrl);
+      } else if (typeof output === 'string') {
+        frontImageUrl = output;
+        console.log('Using direct string URL:', frontImageUrl);
+      } else {
+        console.error('Unexpected output format from Replicate:', typeof output, output);
+        throw new Error('Invalid output format from Replicate - expected array or string URL');
+      }
+
+      console.log('Final extracted frontImageUrl:', frontImageUrl);
+
       const updatedCard = await storage.updateCard(cardId, {
         frontImageUrl,
         status: 'completed'
