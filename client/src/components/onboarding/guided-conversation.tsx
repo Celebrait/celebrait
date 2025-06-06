@@ -451,6 +451,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
   // Validate user input with AI-powered content filtering
   const validateUserInput = async (userInput: string, stepId: string, questionText: string) => {
+    console.log('validateUserInput called with:', { userInput, stepId, questionText });
+    
     if (!userInput || userInput.trim().length === 0) {
       return { isValid: false, response: "Please provide an answer to continue." };
     }
@@ -458,6 +460,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     setValidationState({ isValidating: true, validationError: null, aiResponse: null });
 
     try {
+      console.log('Making validation request...');
       const response = await fetch('/api/validate-input', {
         method: 'POST',
         headers: {
@@ -471,7 +474,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         })
       });
       
+      console.log('Response status:', response.status);
       const validation = await response.json();
+      console.log('Validation response:', validation);
       
       setValidationState({ 
         isValidating: false, 
@@ -481,6 +486,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
       return validation;
     } catch (error: any) {
+      console.error('Validation error:', error);
       setValidationState({ 
         isValidating: false, 
         validationError: "Sorry, I'm having trouble validating your response. Please try again.",
@@ -509,7 +515,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
 
     // Generate more conversational responses based on context
-    const conversationalResponses = {
+    const conversationalResponses: Record<string, string> = {
       'celebration': `Great choice! ${userAnswer} is such a special occasion.`,
       'recipient': `Perfect! A ${userAnswer} card will be so meaningful.`,
       'name': `${userAnswer} is a beautiful name! I can already imagine how special this ${answers.celebration || 'celebration'} card will be for them.`,
