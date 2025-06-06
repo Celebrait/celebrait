@@ -1279,12 +1279,8 @@ The inside should look like a perfect companion piece created by the same artist
 
       console.log('Character transformation with flux-kontext-max:', { cardId, prompt, scene, artStyle });
 
-      // Content filtering to avoid sensitive content flags
-      const sanitizedPrompt = prompt.replace(/smoking|cigar|cigarette|drug|alcohol/gi, '');
-      const sanitizedScene = scene.replace(/smoking|cigar|cigarette|drug|alcohol/gi, '');
-      
-      // Build clean transformation prompt for character in new scene
-      const transformPrompt = `Make this a ${artStyle} style image. ${sanitizedPrompt} ${sanitizedScene}`.trim();
+      // Build transformation prompt for character in new scene
+      const transformPrompt = `Make this a ${artStyle} style image. ${prompt} ${scene}`.trim();
 
       console.log('Flux character transformation prompt:', transformPrompt);
       console.log('Original image data length:', originalImage.length);
@@ -1294,7 +1290,7 @@ The inside should look like a perfect companion piece created by the same artist
         input_image: originalImage,
         aspect_ratio: "1:1",
         output_format: "jpg",
-        safety_tolerance: 6
+        safety_tolerance: 1
       };
 
       console.log('Flux parameters:', fluxInput);
