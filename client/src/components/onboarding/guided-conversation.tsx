@@ -1671,11 +1671,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
                 {currentStep.type === 'people_details' && (
                   <div className="space-y-6">
-                    <div className="text-center mb-6">
-                      <p className="text-gray-600">
-                        Great! Now let's add some details about each person for better card personalization.
-                      </p>
-                    </div>
+
 
                     {/* Single Person Display */}
                     {(() => {
