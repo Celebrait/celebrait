@@ -156,7 +156,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           description: 'Upload a photo and I\'ll transform it into different artistic styles',
           color: 'bg-purple-500',
           icon: 'palette',
-          details: 'Great for artistic transformations of existing photos'
+          details: 'Great for artistic transformations of existing photos',
+          disabled: true
         }
       ]
     },
