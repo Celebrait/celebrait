@@ -109,7 +109,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'recipient',
       question: `Who's the lucky person getting this card?`,
-      aiMessage: `Perfect choice! Now, who's this special ${answers.celebration} card for?`,
+      aiMessage: `${answers.celebration ? `${answers.celebration.charAt(0).toUpperCase() + answers.celebration.slice(1)} - what a wonderful celebration!` : 'Perfect choice!'} Now, who's this special card for?`,
       type: 'select',
       options: [
         { value: 'partner', label: 'My Partner', description: 'Spouse, boyfriend, girlfriend', color: 'bg-red-500', icon: 'users' },
@@ -132,7 +132,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'name',
       question: `What's their name?`,
-      aiMessage: `Love it! What's their name? I want to make this card feel super personal for them.`,
+      aiMessage: `Perfect! A ${answers.celebration || 'special'} card for your ${answers.recipient === 'partner' ? 'partner' : answers.recipient === 'mother' ? 'mom' : answers.recipient === 'father' ? 'dad' : answers.recipient === 'friend' ? 'friend' : answers.recipient === 'sibling' ? 'sibling' : answers.recipient === 'child' ? 'child' : answers.recipient?.replace('_', ' ') || 'loved one'} - how sweet! What's their name?`,
       type: 'text',
       placeholder: 'Enter their name',
       required: true
@@ -140,7 +140,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'photo_option',
       question: `How should I create ${answers.name || 'their'} image for the card?`,
-      aiMessage: `Awesome! Now, how would you like me to create ${answers.name || 'their'}'s image for this ${answers.celebration || 'celebration'} card?`,
+      aiMessage: `Amazing! ${answers.name ? `${answers.name} sounds lovely!` : 'Great name!'} Now, how should I create ${answers.name ? `${answers.name}'s` : 'their'} image for this ${answers.celebration || 'special'} card?`,
       type: 'photo_creation_choice',
       options: [
         { 
@@ -352,7 +352,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'personality',
       question: `What's ${answers.name || 'their'} personality like?`,
-      aiMessage: `Amazing! What's ${answers.name || 'their'} personality like? I want to capture their true spirit in the card!`,
+      aiMessage: `Perfect! Now tell me about ${answers.name ? `${answers.name}'s` : 'their'} personality. ${answers.name ? `What makes ${answers.name} special?` : 'What are they like?'} I want to capture their true spirit!`,
       type: 'select',
       options: [
         { value: 'outgoing', label: 'Outgoing', description: 'Life of the party', color: 'bg-orange-500' },
@@ -390,8 +390,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       id: 'scene',
       question: onboarding.selectedSceneType === 'scene-only' ? 'What scene or visual should the card show?' : `Where should ${answers.name || 'they'} be and what should they be doing?`,
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
-        ? `Now for the creative part! Since you want a scene-only card, describe the beautiful visual or scene you'd like me to create. Think about the mood, setting, and atmosphere that would be perfect for this ${answers.celebration} celebration.`
-        : `Now for the magic! This is where we place ${answers.name || 'them'} in the scene on the greeting card. I need to know where ${answers.gender === 'male' ? 'he' : answers.gender === 'female' ? 'she' : 'they'} should be and what ${answers.gender === 'male' ? 'he' : answers.gender === 'female' ? 'she' : 'they'} should be doing. Think about ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} personality and what would make ${answers.gender === 'male' ? 'him' : answers.gender === 'female' ? 'her' : 'them'} smile!`,
+        ? `Perfect! Now for the fun part - what scene should this ${answers.celebration || 'special'} card show? Think about the mood and atmosphere that captures the celebration perfectly.`
+        : `This is the exciting part! Where should ${answers.name ? `${answers.name}` : 'they'} be and what should they be doing? ${answers.personality ? `Since ${answers.name || 'they'} ${answers.personality === 'outgoing' ? 'love being social' : answers.personality === 'calm' ? 'enjoy peaceful moments' : answers.personality === 'funny' ? 'love to laugh' : answers.personality === 'adventurous' ? 'love adventure' : 'are so ' + answers.personality}, ` : ''}what scene would make them smile?`,
       type: 'textarea',
       placeholder: onboarding.selectedSceneType === 'scene-only' 
         ? 'e.g., a beautiful sunset over mountains with floating balloons, or a cozy fireplace with warm golden light and scattered rose petals...'
@@ -400,7 +400,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'art_style',
       question: 'What style should the artwork be?',
-      aiMessage: `Perfect! What art style feels right for this card? This sets the whole mood and atmosphere!`,
+      aiMessage: `Love it! Now, what art style would work best for ${answers.name ? `${answers.name}'s` : 'this'} ${answers.celebration || 'special'} card? ${answers.personality ? `Something ${answers.personality === 'outgoing' ? 'bold and vibrant' : answers.personality === 'calm' ? 'soft and peaceful' : answers.personality === 'funny' ? 'playful and fun' : answers.personality === 'creative' ? 'artistic and imaginative' : 'that matches their ' + answers.personality + ' spirit'}?` : 'This sets the whole mood!'}`,
       type: 'select',
       options: [
         { value: 'realistic', label: 'Realistic', description: 'Lifelike and detailed', color: 'bg-blue-500' },
@@ -420,14 +420,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'message',
       question: 'Any message for the front of the card?',
-      aiMessage: `Almost there! What should the front say? You can also leave this blank - sometimes the image says it all!`,
+      aiMessage: `Almost there! What should the front of ${answers.name ? `${answers.name}'s` : 'the'} card say? ${answers.celebration ? `Something like "Happy ${answers.celebration.charAt(0).toUpperCase() + answers.celebration.slice(1)}" or ` : ''}you can leave it blank - sometimes the image says it all!`,
       type: 'text',
       placeholder: 'e.g., Happy Birthday, Celebrating You, or leave blank for no message'
     },
     {
       id: 'inside_message',
       question: `What should I write inside the card?`,
-      aiMessage: `Perfect! What heartfelt message goes inside? This will be beautifully styled to match the front.`,
+      aiMessage: `Perfect! What heartfelt message should go inside ${answers.name ? `${answers.name}'s` : 'the'} ${answers.celebration || 'special'} card? ${answers.name ? `This is your chance to tell ${answers.name} exactly how you feel!` : 'Make it personal and meaningful!'}`,
       type: 'textarea',
       placeholder: 'e.g., "Wishing you all the happiness in the world on your special day. You deserve all the joy and love life has to offer!"',
       required: true
