@@ -607,10 +607,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       } else if (photoData) {
-        // Fallback: try to analyze the photo again
-        console.log('Photo provided but no analysis - attempting analysis');
+        // Direct image-to-image transformation using the uploaded photo as visual reference
+        console.log('Using direct image-to-image transformation with uploaded photo as reference');
         
         try {
+          // Check if GPT-Image-1 supports image input parameter
+          frontImageGeneration = await openai.images.generate({
+            model: "gpt-image-1",
+            prompt: frontPrompt,
+            image: photoData, // Use uploaded photo as direct visual reference
+            n: 1,
+            size: "1024x1024"
+          });
+          console.log('Successfully used direct image-to-image with gpt-image-1');
+        } catch (imageInputError: any) {
+          console.log('Direct image input not supported, using enhanced prompt approach:', imageInputError.message);
+          
+          // Fallback: analyze the photo for prompt enhancement
           const visionResponse = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [
@@ -660,15 +673,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               size: "1024x1024"
             });
           }
-        } catch (error: any) {
-          console.log('Vision analysis failed:', error.message);
-          const cleanedPrompt = frontPrompt.replace('Create an artistic representation of the person in the uploaded photo', 'Create an artistic representation of a person');
-          frontImageGeneration = await openai.images.generate({
-            model: "gpt-image-1",
-            prompt: cleanedPrompt,
-            n: 1,
-            size: "1024x1024"
-          });
         }
       } else {
         // Standard text-only generation

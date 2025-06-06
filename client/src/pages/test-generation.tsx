@@ -101,19 +101,13 @@ export default function TestGeneration() {
       });
       const card = await cardResponse.json();
 
-      // Analyze the uploaded photo to get character description
-      const analysisResponse = await apiRequest("POST", "/api/analyze-photo", {
-        photoData: transformPhoto
-      });
-      const { analysis } = await analysisResponse.json();
-
-      // Build transformation prompt using the character and new scene
+      // Build transformation prompt for direct image-to-image
       const transformPrompt = [
         "Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame",
-        `featuring the same person from the reference image: ${analysis}`,
+        "using the reference image as a guide, recreate the same person",
         `now ${transformScene}`,
         `${transformStyle || 'realistic'} art style`,
-        "maintain the person's distinctive features and characteristics from the reference photo",
+        "maintain the person's exact appearance and characteristics from the reference image",
         "high-quality artistic rendering, professional artwork"
       ].join(', ');
 
