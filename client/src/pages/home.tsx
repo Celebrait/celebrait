@@ -46,27 +46,23 @@ export default function Home() {
   };
 
   return (
-    <div className="mobile-safe">
+    <div className="min-h-screen">
       <Header />
       
-      <main className="container-narrow py-6 sm:py-8 lg:py-12" id="main-content">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!generatedCard && (
           <>
             {onboarding.currentStep <= 4 && (
-              <div className="mb-6 sm:mb-8 lg:mb-12">
-                <ProgressIndicator currentStep={onboarding.currentStep} />
-              </div>
+              <ProgressIndicator currentStep={onboarding.currentStep} />
             )}
-            <div className="animate-slide-in-up scroll-to-top">
+            <div className="animate-slide-up">
               {renderCurrentStep()}
             </div>
           </>
         )}
 
         {generatedCard && (
-          <div className="animate-fade-in scroll-to-top">
-            <CardPreview card={generatedCard} onboarding={onboarding} />
-          </div>
+          <CardPreview card={generatedCard} onboarding={onboarding} />
         )}
       </main>
 

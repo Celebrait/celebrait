@@ -7,15 +7,6 @@ interface Step2Props {
 }
 
 export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
-  const scrollToTop = () => {
-    setTimeout(() => {
-      document.getElementById('main-content')?.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
-      });
-    }, 100);
-  };
-
   const handleDeliverySelect = (type: 'printed' | 'digital') => {
     onboarding.setSelectedDelivery(type);
     if (type === 'printed') {
@@ -24,19 +15,18 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
       // Skip print options for digital
       onboarding.setCurrentStep(4);
     }
-    scrollToTop();
   };
 
   return (
-    <div className="card-responsive animate-fade-in">
+    <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-white/20 max-w-4xl mx-auto">
       <div className="text-center mb-4 sm:mb-6">
-        <h2 className="mb-2 sm:mb-4">
-          Hey <span className="text-ethereal-purple">{onboarding.userName}</span>!
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 mb-2 sm:mb-4">
+          Hey <span className="text-ethereal-purple">{onboarding.userName}</span>! 👋
         </h2>
-        <p className="text-slate-gray">How would you like to share your greeting card?</p>
+        <p className="text-sm sm:text-base lg:text-lg text-slate-gray">How would you like to share your greeting card?</p>
       </div>
 
-      <div className="grid-two-col">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <Card 
           className="bg-white/80 border-2 border-purple-200 hover:border-ethereal-purple cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-105 relative"
           onClick={() => handleDeliverySelect('printed')}
@@ -53,10 +43,10 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
             />
             
             <div className="flex items-center mb-2 sm:mb-3">
-              <div className="icon-xl bg-gradient-celebrait rounded-full flex items-center justify-center mr-2 sm:mr-3">
-                <Printer className="text-white icon-md" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-celebrait rounded-full flex items-center justify-center mr-2 sm:mr-3">
+                <Printer className="text-white w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <h3 className="font-bold text-gray-800">Printed & Delivered</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800">Printed & Delivered</h3>
             </div>
             
             <ul className="space-y-1 sm:space-y-2 mb-3 sm:mb-4">
@@ -138,16 +128,13 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
       </div>
 
       {/* Back Button */}
-      <div className="flex justify-center mt-4 sm:mt-6">
+      <div className="flex justify-center mt-6">
         <Button
-          onClick={() => {
-            onboarding.previousStep();
-            scrollToTop();
-          }}
+          onClick={onboarding.previousStep}
           variant="ghost"
-          className="text-gray-500 hover:text-gray-700 touch-target"
+          className="text-gray-500 hover:text-gray-700"
         >
-          <ArrowLeft className="icon-sm mr-2" />
+          <ArrowLeft className="w-4 h-4 mr-2" />
           Go Back a Step
         </Button>
       </div>
