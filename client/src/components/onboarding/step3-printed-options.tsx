@@ -23,19 +23,9 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
     }
   ];
 
-  const scrollToTop = () => {
-    setTimeout(() => {
-      document.getElementById('main-content')?.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
-      });
-    }, 100);
-  };
-
   const handlePrintOptionSelect = (option: 'front-only' | 'front-and-inside') => {
     onboarding.setSelectedPrintOption(option);
     onboarding.nextStep();
-    scrollToTop();
   };
 
   const nextSlide = () => {

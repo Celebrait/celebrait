@@ -1060,42 +1060,33 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     );
   }
 
-  const scrollToTop = () => {
-    setTimeout(() => {
-      document.getElementById('main-content')?.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
-      });
-    }, 100);
-  };
-
   return (
-    <div className="mobile-safe flex flex-col bg-gradient-to-br from-purple-50 to-blue-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-blue-50">
       {/* Progress Bar */}
-      <div className="p-3 sm:p-4 bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10">
-        <div className="flex items-center justify-between mb-3 sm:mb-4">
-          <span className="form-label mb-0">Card Creation Progress</span>
-          <span className="text-xs sm:text-sm text-slate-gray">Let's create something magical</span>
+      <div className="p-4 bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10">
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-sm font-medium text-slate-gray">Card Creation Progress</span>
+          <span className="text-sm text-slate-gray">Let's create something magical ✨</span>
         </div>
-        <div className="progress-responsive">
+        <div className="w-full bg-gray-200 rounded-full h-2">
           <div 
-            className="bg-gradient-celebrait h-2 sm:h-3 rounded-full transition-all duration-500" 
+            className="bg-gradient-celebrait h-2 rounded-full transition-all duration-500" 
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto keyboard-safe">
-        <div className="flex items-center justify-center min-h-full container-narrow py-4 sm:py-6">
-          <div className="w-full space-y-4 sm:space-y-6 animate-fade-in">
+      <div className="flex-1 overflow-y-auto">
+        <div className="flex items-center justify-center min-h-full p-4 sm:p-6">
+          <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6">
             {/* AI Avatar and Message */}
             <div className="text-center space-y-4">
-              <div className="icon-xl bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
-                <Bot className="icon-lg text-white" />
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                <Bot className="w-8 h-8 text-white" />
               </div>
               
-              <div className="card-responsive">
+              <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20">
                 {isTyping ? (
                   <div className="flex justify-center space-x-2">
                     <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
