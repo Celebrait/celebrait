@@ -8,10 +8,12 @@ import { insertUserSchema, insertCardSchema, insertLovedOneSchema } from "@share
 import { PHOTO_ANALYSIS_PROMPT } from "@shared/prompts";
 import OpenAI from "openai";
 import Stripe from "stripe";
+import axios from "axios";
 
-// Temporarily allow running without API keys for testing
+// API configuration
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
 const hasStripe = !!process.env.STRIPE_SECRET_KEY;
+const hasYoco = !!process.env.YOCO_SECRET_KEY;
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = hasOpenAI ? new OpenAI({ 
@@ -21,6 +23,12 @@ const openai = hasOpenAI ? new OpenAI({
 const stripe = hasStripe ? new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
 }) : null;
+
+// YOCO configuration
+const yocoConfig = hasYoco ? {
+  secretKey: process.env.YOCO_SECRET_KEY!,
+  baseUrl: "https://api.yoco.com/v1"
+} : null;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User registration
@@ -898,7 +906,183 @@ The inside should look like a perfect companion piece created by the same artist
     }
   });
 
-  // Complete payment and remove watermark
+  // YOCO Payment Integration
+  
+  // Create YOCO checkout session
+  app.post("/api/yoco/create-checkout", async (req, res) => {
+    try {
+      const { cardId } = req.body;
+
+      if (!cardId) {
+        return res.status(400).json({ message: "Card ID is required" });
+      }
+
+      if (!yocoConfig) {
+        return res.status(503).json({ message: "YOCO payment service not configured" });
+      }
+
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      // Create checkout session with YOCO
+      const checkoutData = {
+        amount: card.price, // Amount in cents
+        currency: "ZAR",
+        cancelUrl: `${req.headers.origin}/checkout/${cardId}?cancelled=true`,
+        successUrl: `${req.headers.origin}/checkout/${cardId}/success`,
+        failureUrl: `${req.headers.origin}/checkout/${cardId}?failed=true`,
+        metadata: {
+          cardId: cardId.toString(),
+          cardType: card.cardType,
+          printOption: card.printOption
+        }
+      };
+
+      const response = await axios.post(
+        `${yocoConfig.baseUrl}/checkouts`,
+        checkoutData,
+        {
+          headers: {
+            'Authorization': `Bearer ${yocoConfig.secretKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      res.json({ 
+        checkoutId: response.data.id,
+        redirectUrl: response.data.redirectUrl 
+      });
+    } catch (error: any) {
+      console.error('YOCO checkout creation error:', error.response?.data || error.message);
+      res.status(500).json({ 
+        message: "Error creating YOCO checkout: " + (error.response?.data?.message || error.message) 
+      });
+    }
+  });
+
+  // Handle YOCO webhook for payment confirmation
+  app.post("/api/yoco/webhook", async (req, res) => {
+    try {
+      const { type, payload } = req.body;
+
+      if (type === 'checkout.succeeded') {
+        const { id: checkoutId, metadata } = payload;
+        const cardId = parseInt(metadata.cardId);
+
+        // Update card status to paid
+        await storage.updateCard(cardId, {
+          status: 'paid',
+          paymentId: checkoutId
+        });
+
+        console.log(`Payment successful for card ${cardId}, checkout ${checkoutId}`);
+      }
+
+      res.status(200).json({ received: true });
+    } catch (error: any) {
+      console.error('YOCO webhook error:', error);
+      res.status(500).json({ message: "Webhook processing failed" });
+    }
+  });
+
+  // Get YOCO checkout status
+  app.get("/api/yoco/checkout/:checkoutId", async (req, res) => {
+    try {
+      const { checkoutId } = req.params;
+
+      if (!yocoConfig) {
+        return res.status(503).json({ message: "YOCO payment service not configured" });
+      }
+
+      const response = await axios.get(
+        `${yocoConfig.baseUrl}/checkouts/${checkoutId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${yocoConfig.secretKey}`
+          }
+        }
+      );
+
+      res.json(response.data);
+    } catch (error: any) {
+      console.error('YOCO checkout status error:', error.response?.data || error.message);
+      res.status(500).json({ 
+        message: "Error fetching checkout status: " + (error.response?.data?.message || error.message) 
+      });
+    }
+  });
+
+  // Process YOCO payment with token (for card payments)
+  app.post("/api/yoco/process-payment", async (req, res) => {
+    try {
+      const { cardId, token } = req.body;
+
+      if (!cardId || !token) {
+        return res.status(400).json({ message: "Card ID and payment token are required" });
+      }
+
+      if (!yocoConfig) {
+        return res.status(503).json({ message: "YOCO payment service not configured" });
+      }
+
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      // Process payment with YOCO
+      const paymentData = {
+        token,
+        amountInCents: card.price,
+        currency: "ZAR",
+        metadata: {
+          cardId: cardId.toString(),
+          cardType: card.cardType,
+          printOption: card.printOption
+        }
+      };
+
+      const response = await axios.post(
+        `${yocoConfig.baseUrl}/charges`,
+        paymentData,
+        {
+          headers: {
+            'Authorization': `Bearer ${yocoConfig.secretKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.status === 'successful') {
+        // Update card status to paid
+        const updatedCard = await storage.updateCard(cardId, {
+          status: 'paid',
+          paymentId: response.data.id
+        });
+
+        res.json({ 
+          success: true, 
+          paymentId: response.data.id,
+          card: updatedCard 
+        });
+      } else {
+        res.status(400).json({ 
+          success: false, 
+          message: "Payment failed: " + response.data.failureReason 
+        });
+      }
+    } catch (error: any) {
+      console.error('YOCO payment processing error:', error.response?.data || error.message);
+      res.status(500).json({ 
+        message: "Error processing payment: " + (error.response?.data?.message || error.message) 
+      });
+    }
+  });
+
+  // Complete payment and remove watermark (legacy Stripe endpoint)
   app.post("/api/complete-payment", async (req, res) => {
     try {
       const { cardId } = req.body;
