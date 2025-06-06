@@ -381,7 +381,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
         ? `Wonderful! Now for the creative part - designing your beautiful scene card! Browse through these inspiring card examples below to spark your imagination. Each one shows different moods, styles, and atmospheres that could work perfectly for your ${answers.celebration} celebration.`
         : answers.photo_option === 'upload_and_scene'
-        ? `Perfect! Your photo has been analyzed and I'm ready to place ${answers.name || 'them'} in an amazing scene. Browse through these inspiring card examples below to get ideas for the perfect setting and atmosphere for your ${answers.celebration} celebration.`
+        ? `Perfect! I'm ready to create an amazing ${answers.celebration || 'celebration'} greeting card for ${answers.name || 'them'}. Browse through the inspiring card examples below to get ideas for the perfect setting and atmosphere for your ${answers.celebration || 'celebration'}.`
         : `Excellent! I have all the details I need about ${answers.name || 'them'}. Now let's create the perfect scene! Browse through these inspiring card examples below to spark your imagination for where ${answers.name || 'they'} should be and what ${answers.gender === 'male' ? 'he' : answers.gender === 'female' ? 'she' : 'they'} should be doing.`,
       type: 'summary',
       placeholder: ''
