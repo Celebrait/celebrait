@@ -4,9 +4,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Copy, RotateCcw, Camera } from 'lucide-react';
+import { Loader2, Copy, RotateCcw, Camera, Upload, User, Palette, Wand2 } from 'lucide-react';
 import { buildImagePrompt } from '@shared/prompts';
 
 const TEST_PROMPTS = [
@@ -52,7 +55,185 @@ export default function TestGeneration() {
   const [currentAnalysisIndex, setCurrentAnalysisIndex] = useState<number>(-1);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [culturalBackgrounds, setCulturalBackgrounds] = useState<Array<{personIndex: number, background: string}>>([]);
+  
+  // Image transformation states
+  const [transformPhoto, setTransformPhoto] = useState<string>('');
+  const [transformScene, setTransformScene] = useState('');
+  const [transformStyle, setTransformStyle] = useState('');
+  const [isTransforming, setIsTransforming] = useState(false);
+  const [transformedImage, setTransformedImage] = useState<string>('');
+  const [styleTransformPhoto, setStyleTransformPhoto] = useState<string>('');
+  const [selectedArtStyle, setSelectedArtStyle] = useState('');
+  const [isStyleTransforming, setIsStyleTransforming] = useState(false);
+  const [styleTransformedImage, setStyleTransformedImage] = useState<string>('');
+  
   const { toast } = useToast();
+
+  // Character transformation using image-to-image
+  const transformCharacterToScene = async () => {
+    if (!transformPhoto || !transformScene) {
+      toast({
+        title: "Missing information",
+        description: "Please upload a photo and describe a scene",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsTransforming(true);
+    try {
+      // Create a test card to use the image generation system
+      const timestamp = Date.now();
+      const userResponse = await apiRequest("POST", "/api/users", {
+        username: `Transform User ${timestamp}`,
+        email: `transform${timestamp}@example.com`
+      });
+      const user = await userResponse.json();
+
+      const cardResponse = await apiRequest("POST", "/api/cards", {
+        cardType: "digital",
+        printOption: null,
+        recipientName: "Transform Test",
+        celebration: "transformation",
+        sceneType: "with-person",
+        price: 0,
+        userId: user.id
+      });
+      const card = await cardResponse.json();
+
+      // Analyze the uploaded photo to get character description
+      const analysisResponse = await apiRequest("POST", "/api/analyze-photo", {
+        photoData: transformPhoto
+      });
+      const { analysis } = await analysisResponse.json();
+
+      // Build transformation prompt using the character and new scene
+      const transformPrompt = [
+        "Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame",
+        `featuring the same person from the reference image: ${analysis}`,
+        `now ${transformScene}`,
+        `${transformStyle || 'realistic'} art style`,
+        "maintain the person's distinctive features and characteristics from the reference photo",
+        "high-quality artistic rendering, professional artwork"
+      ].join(', ');
+
+      console.log('Character transformation prompt:', transformPrompt);
+
+      const imageResponse = await apiRequest("POST", "/api/generate-images", {
+        cardId: card.id,
+        frontPrompt: transformPrompt,
+        insidePrompt: null,
+        photoData: transformPhoto
+      });
+
+      const result = await imageResponse.json();
+      
+      if (result && result.frontImageUrl) {
+        setTransformedImage(result.frontImageUrl);
+        toast({
+          title: "Character transformed!",
+          description: "Successfully transformed character to new scene"
+        });
+      } else {
+        throw new Error("Transformation failed - no image generated");
+      }
+    } catch (error: any) {
+      console.error('Character transformation error:', error);
+      toast({
+        title: "Transformation failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsTransforming(false);
+    }
+  };
+
+  // Style transformation using image-to-image
+  const transformImageStyle = async () => {
+    if (!styleTransformPhoto || !selectedArtStyle) {
+      toast({
+        title: "Missing information",
+        description: "Please upload a photo and select an art style",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsStyleTransforming(true);
+    try {
+      // Create a test card to use the image generation system
+      const timestamp = Date.now();
+      const userResponse = await apiRequest("POST", "/api/users", {
+        username: `Style User ${timestamp}`,
+        email: `style${timestamp}@example.com`
+      });
+      const user = await userResponse.json();
+
+      const cardResponse = await apiRequest("POST", "/api/cards", {
+        cardType: "digital",
+        printOption: null,
+        recipientName: "Style Test",
+        celebration: "transformation",
+        sceneType: "scene-only",
+        price: 0,
+        userId: user.id
+      });
+      const card = await cardResponse.json();
+
+      // Build style transformation prompt
+      const stylePrompt = [
+        "Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame",
+        "recreate the exact scene and composition from the reference image",
+        `rendered in ${selectedArtStyle} art style`,
+        "maintain all elements, poses, and arrangements from the original",
+        "transform only the artistic style while preserving the content",
+        "high-quality artistic rendering, professional artwork"
+      ].join(', ');
+
+      console.log('Style transformation prompt:', stylePrompt);
+
+      const imageResponse = await apiRequest("POST", "/api/generate-images", {
+        cardId: card.id,
+        frontPrompt: stylePrompt,
+        insidePrompt: null,
+        photoData: styleTransformPhoto
+      });
+
+      const result = await imageResponse.json();
+      
+      if (result && result.frontImageUrl) {
+        setStyleTransformedImage(result.frontImageUrl);
+        toast({
+          title: "Style transformed!",
+          description: `Successfully applied ${selectedArtStyle} style`
+        });
+      } else {
+        throw new Error("Style transformation failed - no image generated");
+      }
+    } catch (error: any) {
+      console.error('Style transformation error:', error);
+      toast({
+        title: "Transformation failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsStyleTransforming(false);
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>, setter: (value: string) => void) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setter(result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const generateStyleMatchingTest = async () => {
     try {
