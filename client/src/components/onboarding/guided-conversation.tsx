@@ -419,15 +419,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'message',
-      question: 'What message should appear on the front of the card?',
-      aiMessage: `Almost there! This is your opportunity to get really personal! What heartfelt message should appear on the front of ${answers.name || 'their'} card? You can also leave this blank if you want no message at all - sometimes the image speaks for itself. Make it as meaningful and personal as you want!`,
+      question: 'Any message for the front of the card?',
+      aiMessage: `Almost there! What should the front say? You can also leave this blank - sometimes the image says it all!`,
       type: 'text',
       placeholder: 'e.g., Happy Birthday, Celebrating You, or leave blank for no message'
     },
     {
       id: 'inside_message',
-      question: `What heartfelt message would you like inside the card?`,
-      aiMessage: `Since you chose a front + inside card, let's create a beautiful message for the inside! This will be displayed with elegant typography matching the front design.`,
+      question: `What should I write inside the card?`,
+      aiMessage: `Perfect! What heartfelt message goes inside? This will be beautifully styled to match the front.`,
       type: 'textarea',
       placeholder: 'e.g., "Wishing you all the happiness in the world on your special day. You deserve all the joy and love life has to offer!"',
       required: true
