@@ -122,6 +122,8 @@ export class MemStorage implements IStorage {
       id,
       paymentStatus: 'pending',
       orderStatus: 'processing',
+      trackingNumber: null,
+      currency: orderData.currency || 'ZAR',
       createdAt: new Date(),
       updatedAt: new Date()
     };

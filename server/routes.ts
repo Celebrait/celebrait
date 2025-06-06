@@ -12,6 +12,7 @@ import Stripe from "stripe";
 // Temporarily allow running without API keys for testing
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
 const hasStripe = !!process.env.STRIPE_SECRET_KEY;
+const hasPaystack = !!process.env.PAYSTACK_SECRET_KEY;
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = hasOpenAI ? new OpenAI({ 
@@ -948,6 +949,194 @@ The inside should look like a perfect companion piece created by the same artist
       });
     } catch (error: any) {
       res.status(500).json({ message: "Error in chat: " + error.message });
+    }
+  });
+
+  // Paystack payment initialization
+  app.post("/api/create-payment", async (req, res) => {
+    try {
+      const { cardId, customerInfo, amount, currency = 'ZAR' } = req.body;
+
+      if (!cardId || !customerInfo || !amount) {
+        return res.status(400).json({ message: "Card ID, customer info, and amount are required" });
+      }
+
+      const reference = `celebrait_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const orderData = {
+        cardId: parseInt(cardId),
+        customerEmail: customerInfo.email,
+        customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+        customerPhone: customerInfo.phone,
+        amount: parseInt(amount),
+        currency,
+        paymentReference: reference,
+        shippingAddress: customerInfo.address || null
+      };
+
+      const order = await storage.createOrder(orderData);
+
+      if (!hasPaystack) {
+        const mockPaymentUrl = `${req.protocol}://${req.get('host')}/payment-success?reference=${reference}&status=success`;
+        return res.json({ 
+          paymentUrl: mockPaymentUrl, 
+          reference,
+          message: "Test mode - payment will be simulated"
+        });
+      }
+
+      const paystackResponse = await fetch('https://api.paystack.co/transaction/initialize', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: customerInfo.email,
+          amount: amount,
+          currency,
+          reference,
+          callback_url: `${req.protocol}://${req.get('host')}/payment-success`,
+          metadata: {
+            cardId: cardId.toString(),
+            orderId: order.id.toString(),
+            customerName: orderData.customerName,
+            cardType: 'greeting_card'
+          }
+        })
+      });
+
+      const paystackData = await paystackResponse.json();
+
+      if (paystackData.status) {
+        res.json({ 
+          paymentUrl: paystackData.data.authorization_url, 
+          reference,
+          accessCode: paystackData.data.access_code
+        });
+      } else {
+        throw new Error(paystackData.message || 'Payment initialization failed');
+      }
+
+    } catch (error: any) {
+      res.status(500).json({ message: "Error creating payment: " + error.message });
+    }
+  });
+
+  // Paystack payment verification
+  app.post("/api/verify-payment", async (req, res) => {
+    try {
+      const { reference } = req.body;
+
+      if (!reference) {
+        return res.status(400).json({ message: "Payment reference is required" });
+      }
+
+      const order = await storage.getOrderByReference(reference);
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+
+      if (!hasPaystack) {
+        const updatedOrder = await storage.updateOrder(order.id, {
+          paymentStatus: 'successful',
+          orderStatus: order.shippingAddress ? 'processing' : 'completed'
+        });
+
+        const card = await storage.getCard(order.cardId);
+        
+        return res.json({
+          ...updatedOrder,
+          card,
+          status: 'success',
+          message: 'Payment verified successfully (test mode)'
+        });
+      }
+
+      const verifyResponse = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+        headers: {
+          'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
+        }
+      });
+
+      const verifyData = await verifyResponse.json();
+
+      if (verifyData.status && verifyData.data.status === 'success') {
+        const updatedOrder = await storage.updateOrder(order.id, {
+          paymentStatus: 'successful',
+          orderStatus: order.shippingAddress ? 'processing' : 'completed'
+        });
+
+        const card = await storage.getCard(order.cardId);
+
+        if (card) {
+          await storage.updateCard(card.id, { status: 'paid' });
+        }
+
+        res.json({
+          ...updatedOrder,
+          card,
+          status: 'success',
+          message: 'Payment verified successfully'
+        });
+      } else {
+        await storage.updateOrder(order.id, {
+          paymentStatus: 'failed'
+        });
+
+        res.status(400).json({
+          message: 'Payment verification failed',
+          status: 'failed'
+        });
+      }
+
+    } catch (error: any) {
+      res.status(500).json({ message: "Error verifying payment: " + error.message });
+    }
+  });
+
+  // Get order details
+  app.get("/api/orders/:id", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const order = await storage.getOrder(orderId);
+      
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+
+      const card = await storage.getCard(order.cardId);
+      
+      res.json({
+        ...order,
+        card
+      });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Get orders by email
+  app.get("/api/orders", async (req, res) => {
+    try {
+      const { email } = req.query;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const orders = await storage.getOrdersByEmail(email as string);
+      
+      const ordersWithCards = await Promise.all(
+        orders.map(async (order) => {
+          const card = await storage.getCard(order.cardId);
+          return { ...order, card };
+        })
+      );
+
+      res.json(ordersWithCards);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
     }
   });
 
