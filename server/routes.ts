@@ -1252,7 +1252,10 @@ The inside should look like a perfect companion piece created by the same artist
         num_inference_steps = 28,
         seed,
         strength = 0.95,
-        output_format = "png"
+        output_format = "png",
+        safety_tolerance = 2,
+        aspect_ratio = "1:1",
+        output_quality = 80
       } = req.body;
 
       if (!cardId || !originalImage || !prompt) {
@@ -1275,7 +1278,7 @@ The inside should look like a perfect companion piece created by the same artist
 
       console.log('Flux character transformation prompt:', transformPrompt);
       console.log('Original image data length:', originalImage.length);
-      console.log('Flux parameters:', { guidance_scale, num_inference_steps, strength, seed });
+      console.log('Flux parameters:', { guidance_scale, num_inference_steps, strength, seed, safety_tolerance, aspect_ratio });
 
       const fluxInput: any = {
         input_image: originalImage,
@@ -1283,8 +1286,14 @@ The inside should look like a perfect companion piece created by the same artist
         guidance_scale,
         num_inference_steps,
         strength,
-        output_format
+        output_format,
+        safety_tolerance,
+        aspect_ratio
       };
+      
+      if (output_format === 'jpg') {
+        fluxInput.output_quality = output_quality;
+      }
       
       if (seed) fluxInput.seed = seed;
 
@@ -1346,7 +1355,10 @@ The inside should look like a perfect companion piece created by the same artist
         num_inference_steps = 28,
         seed,
         strength = 0.95,
-        output_format = "png"
+        output_format = "png",
+        safety_tolerance = 2,
+        aspect_ratio = "1:1",
+        output_quality = 80
       } = req.body;
 
       if (!cardId || !originalImage || !prompt) {
@@ -1369,7 +1381,7 @@ The inside should look like a perfect companion piece created by the same artist
 
       console.log('Flux style transformation prompt:', transformPrompt);
       console.log('Original image data length:', originalImage.length);
-      console.log('Flux parameters:', { guidance_scale, num_inference_steps, strength, seed });
+      console.log('Flux parameters:', { guidance_scale, num_inference_steps, strength, seed, safety_tolerance, aspect_ratio });
 
       const fluxInput: any = {
         input_image: originalImage,
@@ -1377,8 +1389,14 @@ The inside should look like a perfect companion piece created by the same artist
         guidance_scale,
         num_inference_steps,
         strength,
-        output_format
+        output_format,
+        safety_tolerance,
+        aspect_ratio
       };
+      
+      if (output_format === 'jpg') {
+        fluxInput.output_quality = output_quality;
+      }
       
       if (seed) fluxInput.seed = seed;
 
