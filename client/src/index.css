@@ -60,10 +60,59 @@
     @apply border-border;
   }
 
+  html {
+    @apply scroll-smooth;
+  }
+
   body {
     @apply font-sans antialiased min-h-screen;
     background: linear-gradient(135deg, hsl(var(--soft-white)) 0%, #faf5ff 50%, #fdf2f8 100%);
     font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  /* Responsive Typography System */
+  h1 {
+    @apply text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight tracking-tight;
+  }
+  
+  h2 {
+    @apply text-xl sm:text-2xl lg:text-3xl font-semibold leading-tight tracking-tight;
+  }
+  
+  h3 {
+    @apply text-lg sm:text-xl lg:text-2xl font-semibold leading-snug;
+  }
+  
+  h4 {
+    @apply text-base sm:text-lg lg:text-xl font-medium leading-snug;
+  }
+  
+  h5 {
+    @apply text-sm sm:text-base lg:text-lg font-medium leading-snug;
+  }
+  
+  h6 {
+    @apply text-sm sm:text-base font-medium leading-snug;
+  }
+
+  p {
+    @apply text-sm sm:text-base leading-relaxed;
+  }
+
+  /* Form Elements Responsive Sizing */
+  input, textarea, select {
+    @apply text-sm sm:text-base;
+  }
+
+  button {
+    @apply text-sm sm:text-base;
+  }
+
+  /* Focus Management for Mobile */
+  input:focus, textarea:focus, select:focus, button:focus {
+    @apply outline-none ring-2 ring-primary ring-offset-2;
   }
 }
 
@@ -152,5 +201,166 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  /* Responsive Container System */
+  .container-responsive {
+    @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .container-narrow {
+    @apply w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .container-wide {
+    @apply w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Card System with Consistent Spacing */
+  .card-responsive {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8;
+  }
+
+  .card-compact {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 lg:p-6;
+  }
+
+  /* Button System */
+  .btn-responsive {
+    @apply px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-lg font-medium transition-all duration-200;
+  }
+
+  .btn-large {
+    @apply px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-lg font-medium transition-all duration-200;
+  }
+
+  /* Grid System */
+  .grid-responsive {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8;
+  }
+
+  .grid-two-col {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8;
+  }
+
+  /* Spacing System */
+  .space-y-responsive > :not([hidden]) ~ :not([hidden]) {
+    @apply space-y-3 sm:space-y-4 lg:space-y-6;
+  }
+
+  .space-x-responsive > :not([hidden]) ~ :not([hidden]) {
+    @apply space-x-3 sm:space-x-4 lg:space-x-6;
+  }
+
+  /* Mobile-Optimized Forms */
+  .form-group {
+    @apply space-y-2 sm:space-y-3;
+  }
+
+  .form-input {
+    @apply w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200;
+  }
+
+  .form-label {
+    @apply block text-sm sm:text-base font-medium text-gray-700 mb-1 sm:mb-2;
+  }
+
+  /* Mobile Touch Targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Scroll to Top Utility */
+  .scroll-to-top {
+    scroll-behavior: smooth;
+    scroll-margin-top: 1rem;
+  }
+
+  /* Mobile-Safe Viewport */
+  .mobile-safe {
+    @apply min-h-screen;
+    min-height: -webkit-fill-available;
+  }
+
+  /* Icon Sizing System */
+  .icon-sm {
+    @apply w-4 h-4 sm:w-5 sm:h-5;
+  }
+
+  .icon-md {
+    @apply w-5 h-5 sm:w-6 sm:h-6;
+  }
+
+  .icon-lg {
+    @apply w-6 h-6 sm:w-8 sm:h-8;
+  }
+
+  .icon-xl {
+    @apply w-8 h-8 sm:w-10 sm:h-10;
+  }
+
+  /* Loading States */
+  .loading-spinner {
+    @apply animate-spin w-4 h-4 sm:w-5 sm:h-5 border-2 border-current border-t-transparent rounded-full;
+  }
+
+  /* Mobile-First Badge System */
+  .badge-responsive {
+    @apply inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium;
+  }
+
+  /* Responsive Images */
+  .img-responsive {
+    @apply w-full h-auto rounded-lg;
+  }
+
+  /* Mobile Navigation */
+  .nav-mobile {
+    @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 sm:p-3;
+  }
+
+  /* Progress Indicators */
+  .progress-responsive {
+    @apply w-full bg-gray-200 rounded-full h-2 sm:h-3;
+  }
+
+  /* Animation Utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .animate-slide-in-up {
+    animation: slideInUp 0.4s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideInUp {
+    from { 
+      opacity: 0; 
+      transform: translateY(20px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+  }
+
+  /* Mobile Keyboard Safe Area */
+  .keyboard-safe {
+    padding-bottom: env(keyboard-inset-height, 0px);
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
