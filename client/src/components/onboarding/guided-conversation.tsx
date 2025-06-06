@@ -508,23 +508,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       contextualMessage = contextualMessage.replace(/celebration/g, answers.celebration);
     }
 
-    // Add conversation history context
-    if (conversationHistory.length > 0) {
-      const recentSteps = conversationHistory.slice(-2);
-      const context = recentSteps.map(h => `${h.stepId}: ${h.userAnswer}`).join(', ');
-      
-      // For certain steps, reference previous answers
-      if (stepId === 'scene' && answers.character_costume) {
-        contextualMessage += ` I'll make sure the scene complements their ${answers.character_costume} outfit perfectly!`;
-      }
-      
-      if (stepId === 'art_style' && answers.personality) {
-        const personalities = Array.isArray(answers.personality) ? answers.personality.join(' and ') : answers.personality;
-        contextualMessage += ` Given their ${personalities} personality, what style do you think would capture their essence best?`;
-      }
-    }
+    // Generate more conversational responses based on context
+    const conversationalResponses = {
+      'celebration': `Great choice! ${userAnswer} is such a special occasion.`,
+      'recipient': `Perfect! A ${userAnswer} card will be so meaningful.`,
+      'name': `${userAnswer} is a beautiful name! I can already imagine how special this ${answers.celebration || 'celebration'} card will be for them.`,
+      'scene': `What a wonderful scene! I can picture ${answers.name || 'them'} ${userAnswer}. This will make for a beautiful ${answers.celebration || 'celebration'} card.`,
+      'art_style': `Excellent choice! ${userAnswer.replace('_', ' ')} style will be perfect for ${answers.name || 'this'} ${answers.celebration || 'celebration'} card.`,
+      'message': userAnswer ? `"${userAnswer}" is such a heartfelt message for ${answers.name || 'them'}!` : `Sometimes the image speaks for itself - great choice to keep it message-free!`,
+      'inside_message': `That's such a beautiful and personal message for ${answers.name || 'them'}. It really captures the spirit of ${answers.celebration || 'this celebration'}.`
+    };
 
-    return contextualMessage;
+    // Use conversational response if available, otherwise use contextual message
+    return conversationalResponses[stepId] || contextualMessage;
   };
 
   // All hooks must be at the top level before any conditional returns
@@ -788,30 +784,28 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
       console.log('Current step:', currentStep.id, currentStep.type);
 
-      // Use AI validation for text/textarea inputs
-      if (currentStep.type === 'text' || currentStep.type === 'textarea') {
-        console.log('Starting AI validation...');
-        const validation = await validateUserInput(currentInput.trim(), currentStep.id, currentStep.question);
-        console.log('Validation result:', validation);
-        
-        if (!validation.isValid) {
-          console.log('Validation failed, showing error');
-          // Show AI feedback for invalid input - don't proceed
-          return;
-        }
-        
-        console.log('Validation passed, proceeding');
-        // Clear validation state on successful validation
-        setValidationState({ isValidating: false, validationError: null, aiResponse: null });
-        
-        // Add to conversation history for context
-        setConversationHistory(prev => [...prev, {
-          stepId: currentStep.id,
-          question: currentStep.question,
-          userAnswer: currentInput.trim(),
-          aiResponse: generateContextualResponse(currentStep.id, currentInput.trim())
-        }]);
+      // Use AI validation for all text inputs (including custom options in select fields)
+      console.log('Starting AI validation...');
+      const validation = await validateUserInput(currentInput.trim(), currentStep.id, currentStep.question);
+      console.log('Validation result:', validation);
+      
+      if (!validation.isValid) {
+        console.log('Validation failed, showing error');
+        // Show AI feedback for invalid input - don't proceed
+        return;
       }
+      
+      console.log('Validation passed, proceeding');
+      // Clear validation state on successful validation
+      setValidationState({ isValidating: false, validationError: null, aiResponse: null });
+      
+      // Add to conversation history for context
+      setConversationHistory(prev => [...prev, {
+        stepId: currentStep.id,
+        question: currentStep.question,
+        userAnswer: currentInput.trim(),
+        aiResponse: generateContextualResponse(currentStep.id, currentInput.trim())
+      }]);
       
       handleAnswer(currentInput.trim());
     }
