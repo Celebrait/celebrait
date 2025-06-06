@@ -19,6 +19,7 @@ function Router() {
       <Route path="/checkout/:cardId" component={Checkout} />
       <Route path="/payment/:cardId" component={Payment} />
       <Route path="/payment-success" component={PaymentSuccess} />
+      <Route path="/test" component={TestGeneration} />
       <Route path="/test-payment" component={TestPayment} />
       <Route path="/test-generation" component={TestGeneration} />
       <Route path="/style-test" component={StyleTest} />
