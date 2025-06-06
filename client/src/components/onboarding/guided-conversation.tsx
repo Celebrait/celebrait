@@ -59,17 +59,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [userHasTyped, setUserHasTyped] = useState(false);
   const [showHowItWorksModal, setShowHowItWorksModal] = useState(false);
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
-  const [validationState, setValidationState] = useState<{
-    isValidating: boolean;
-    validationError: string | null;
-    aiResponse: string | null;
-  }>({ isValidating: false, validationError: null, aiResponse: null });
-  const [conversationHistory, setConversationHistory] = useState<Array<{
-    stepId: string;
-    question: string;
-    userAnswer: string;
-    aiResponse: string;
-  }>>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -88,8 +77,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const steps: ConversationStep[] = [
     {
       id: 'celebration',
-      question: `Hey there! What are we celebrating today?`,
-      aiMessage: `I'm so excited to help you create something amazing! Tell me, what's the special occasion?`,
+      question: 'What celebration is this card for?',
+      aiMessage: `Hey ${onboarding.userName}! 🎉 I'm so excited to help you create something magical. Let's start by choosing what celebration this card is for!`,
       type: 'select',
       options: [
         { value: 'birthday', label: 'Birthday', description: 'Celebrate another year of life', color: 'bg-pink-500', icon: 'cake' },
@@ -108,8 +97,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'recipient',
-      question: `Who's the lucky person getting this card?`,
-      aiMessage: `${answers.celebration ? `${answers.celebration.charAt(0).toUpperCase() + answers.celebration.slice(1)} - what a wonderful celebration!` : 'Perfect choice!'} Now, who's this special card for?`,
+      question: 'Who is this card for?',
+      aiMessage: `Perfect choice! Now, who is this special ${answers.celebration} card for?`,
       type: 'select',
       options: [
         { value: 'partner', label: 'My Partner', description: 'Spouse, boyfriend, girlfriend', color: 'bg-red-500', icon: 'users' },
@@ -131,16 +120,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'name',
-      question: `What's their name?`,
-      aiMessage: `Perfect! A ${answers.celebration || 'special'} card for your ${answers.recipient === 'partner' ? 'partner' : answers.recipient === 'mother' ? 'mom' : answers.recipient === 'father' ? 'dad' : answers.recipient === 'friend' ? 'friend' : answers.recipient === 'sibling' ? 'sibling' : answers.recipient === 'child' ? 'child' : answers.recipient?.replace('_', ' ') || 'loved one'} - how sweet! What's their name?`,
+      question: 'What\'s their name?',
+      aiMessage: `Wonderful! What's their name? I want to make sure this card feels personal and special for them.`,
       type: 'text',
       placeholder: 'Enter their name',
       required: true
     },
     {
       id: 'photo_option',
-      question: `How should I create ${answers.name || 'their'} image for the card?`,
-      aiMessage: `Amazing! ${answers.name ? `${answers.name} sounds lovely!` : 'Great name!'} Now, how should I create ${answers.name ? `${answers.name}'s` : 'their'} image for this ${answers.celebration || 'special'} card?`,
+      question: `How would you like me to create ${answers.name || 'their'} image?`,
+      aiMessage: `Perfect! Now how do you want to create ${answers.name || 'their'}'s ${answers.celebration || 'celebration'} card?`,
       type: 'photo_creation_choice',
       options: [
         { 
@@ -324,8 +313,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'build',
-      question: `How would you describe ${answers.name || 'their'} build?`,
-      aiMessage: `Perfect! What's ${answers.name || 'their'} body type like? This helps me create the most accurate representation!`,
+      question: `What's ${answers.name || 'their'} body type?`,
+      aiMessage: `Perfect! Now let's capture ${answers.name || 'their'} body type. This helps me create the most accurate representation of ${answers.gender === 'male' ? 'him' : answers.gender === 'female' ? 'her' : 'them'}. I want to make sure I get this just right!`,
       type: 'select',
       options: [
         { value: 'slim', label: 'Slim', description: 'Lean and slender build', color: 'bg-green-500' },
@@ -342,8 +331,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'features',
-      question: `What makes ${answers.name || 'them'} instantly recognizable?`,
-      aiMessage: `Now for the fun part - what makes ${answers.name || 'them'} uniquely them? Any glasses, dimples, freckles, facial hair, or that special smile?`,
+      question: `What distinctive facial features make ${answers.name || 'them'} uniquely recognizable?`,
+      aiMessage: `Now let's capture what makes ${answers.name || 'them'} truly unique! I'm thinking about ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} distinctive facial features. ${answers.gender === 'female' 
+        ? 'Does she have glasses, freckles, dimples, beauty marks, distinctive eyebrows, long eyelashes, or a unique smile that lights up the room?' 
+        : answers.gender === 'male' 
+        ? 'Does he have glasses, a beard, mustache, goatee, sideburns, distinctive eyebrows, a cleft chin, or a characteristic smile?'
+        : 'Do they have glasses, facial hair, freckles, dimples, distinctive eyebrows, or other unique facial characteristics?'} These details help me create something truly personal and authentic!`,
       type: 'text',
       placeholder: answers.gender === 'female' 
         ? 'e.g., round glasses, freckles across nose, dimpled smile'
@@ -351,8 +344,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'personality',
-      question: `What's ${answers.name || 'their'} personality like?`,
-      aiMessage: `Perfect! Now tell me about ${answers.name ? `${answers.name}'s` : 'their'} personality. ${answers.name ? `What makes ${answers.name} special?` : 'What are they like?'} I want to capture their true spirit!`,
+      question: `What's ${answers.name || 'their'} main personality trait?`,
+      aiMessage: `Amazing! Now I want to capture ${answers.name || 'their'} essence - the heart of who ${answers.gender === 'male' ? 'he is' : answers.gender === 'female' ? 'she is' : 'they are'}. What's ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} main personality trait that everyone would recognize? This will help me represent ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} true spirit in the card.`,
       type: 'select',
       options: [
         { value: 'outgoing', label: 'Outgoing', description: 'Life of the party', color: 'bg-orange-500' },
@@ -390,8 +383,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       id: 'scene',
       question: onboarding.selectedSceneType === 'scene-only' ? 'What scene or visual should the card show?' : `Where should ${answers.name || 'they'} be and what should they be doing?`,
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
-        ? `Perfect! Now for the fun part - what scene should this ${answers.celebration || 'special'} card show? Think about the mood and atmosphere that captures the celebration perfectly.`
-        : `This is the exciting part! Where should ${answers.name ? `${answers.name}` : 'they'} be and what should they be doing? ${answers.personality ? `Since ${answers.name || 'they'} ${answers.personality === 'outgoing' ? 'love being social' : answers.personality === 'calm' ? 'enjoy peaceful moments' : answers.personality === 'funny' ? 'love to laugh' : answers.personality === 'adventurous' ? 'love adventure' : 'are so ' + answers.personality}, ` : ''}what scene would make them smile?`,
+        ? `Now for the creative part! Since you want a scene-only card, describe the beautiful visual or scene you'd like me to create. Think about the mood, setting, and atmosphere that would be perfect for this ${answers.celebration} celebration.`
+        : `Now for the magic! This is where we place ${answers.name || 'them'} in the scene on the greeting card. I need to know where ${answers.gender === 'male' ? 'he' : answers.gender === 'female' ? 'she' : 'they'} should be and what ${answers.gender === 'male' ? 'he' : answers.gender === 'female' ? 'she' : 'they'} should be doing. Think about ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} personality and what would make ${answers.gender === 'male' ? 'him' : answers.gender === 'female' ? 'her' : 'them'} smile!`,
       type: 'textarea',
       placeholder: onboarding.selectedSceneType === 'scene-only' 
         ? 'e.g., a beautiful sunset over mountains with floating balloons, or a cozy fireplace with warm golden light and scattered rose petals...'
@@ -399,8 +392,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'art_style',
-      question: 'What style should the artwork be?',
-      aiMessage: `Love it! Now, what art style would work best for ${answers.name ? `${answers.name}'s` : 'this'} ${answers.celebration || 'special'} card? ${answers.personality ? `Something ${answers.personality === 'outgoing' ? 'bold and vibrant' : answers.personality === 'calm' ? 'soft and peaceful' : answers.personality === 'funny' ? 'playful and fun' : answers.personality === 'creative' ? 'artistic and imaginative' : 'that matches their ' + answers.personality + ' spirit'}?` : 'This sets the whole mood!'}`,
+      question: 'What art style should we use for the card?',
+      aiMessage: onboarding.selectedSceneType === 'scene-only' 
+        ? `Perfect! Now let's choose the art style for your scene. This sets the whole mood and feel - I want to make sure it captures the perfect atmosphere for this ${answers.celebration} celebration!`
+        : `Perfect! Now let's choose the art style for ${answers.name || 'their'} card. This sets the whole mood and feel - I want to make sure it matches ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} personality perfectly!`,
       type: 'select',
       options: [
         { value: 'realistic', label: 'Realistic', description: 'Lifelike and detailed', color: 'bg-blue-500' },
@@ -419,15 +414,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'message',
-      question: 'Any message for the front of the card?',
-      aiMessage: `Almost there! What should the front of ${answers.name ? `${answers.name}'s` : 'the'} card say? ${answers.celebration ? `Something like "Happy ${answers.celebration.charAt(0).toUpperCase() + answers.celebration.slice(1)}" or ` : ''}you can leave it blank - sometimes the image says it all!`,
+      question: 'What message should appear on the front of the card?',
+      aiMessage: `Almost there! This is your opportunity to get really personal! What heartfelt message should appear on the front of ${answers.name || 'their'} card? You can also leave this blank if you want no message at all - sometimes the image speaks for itself. Make it as meaningful and personal as you want!`,
       type: 'text',
       placeholder: 'e.g., Happy Birthday, Celebrating You, or leave blank for no message'
     },
     {
       id: 'inside_message',
-      question: `What should I write inside the card?`,
-      aiMessage: `Perfect! What heartfelt message should go inside ${answers.name ? `${answers.name}'s` : 'the'} ${answers.celebration || 'special'} card? ${answers.name ? `This is your chance to tell ${answers.name} exactly how you feel!` : 'Make it personal and meaningful!'}`,
+      question: `What heartfelt message would you like inside the card?`,
+      aiMessage: `Since you chose a front + inside card, let's create a beautiful message for the inside! This will be displayed with elegant typography matching the front design.`,
       type: 'textarea',
       placeholder: 'e.g., "Wishing you all the happiness in the world on your special day. You deserve all the joy and love life has to offer!"',
       required: true
@@ -442,86 +437,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       placeholder: ''
     }
   ];
-
-  // Validate user input with AI-powered content filtering
-  const validateUserInput = async (userInput: string, stepId: string, questionText: string) => {
-    console.log('validateUserInput called with:', { userInput, stepId, questionText });
-    
-    if (!userInput || userInput.trim().length === 0) {
-      return { isValid: false, response: "Please provide an answer to continue." };
-    }
-
-    setValidationState({ isValidating: true, validationError: null, aiResponse: null });
-
-    try {
-      console.log('Making validation request...');
-      const response = await fetch('/api/validate-input', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userInput: userInput.trim(),
-          questionContext: questionText,
-          previousAnswers: answers,
-          stepId
-        })
-      });
-      
-      console.log('Response status:', response.status);
-      const validation = await response.json();
-      console.log('Validation response:', validation);
-      
-      setValidationState({ 
-        isValidating: false, 
-        validationError: validation.isValid ? null : validation.response,
-        aiResponse: validation.isValid ? null : validation.response
-      });
-
-      return validation;
-    } catch (error: any) {
-      console.error('Validation error:', error);
-      setValidationState({ 
-        isValidating: false, 
-        validationError: "Sorry, I'm having trouble validating your response. Please try again.",
-        aiResponse: null
-      });
-      return { isValid: false, response: "Sorry, I'm having trouble validating your response. Please try again." };
-    }
-  };
-
-  // Generate contextual AI response based on conversation history
-  const generateContextualResponse = (stepId: string, userAnswer: string) => {
-    const currentStep = filteredSteps[currentStepIndex];
-    if (!currentStep) return '';
-
-    // Build contextual response based on previous answers
-    let contextualMessage = currentStep.aiMessage;
-
-    // Add personalized touches based on previous answers
-    if (answers.name && stepId !== 'name') {
-      contextualMessage = contextualMessage.replace(/\btheir\b/g, `${answers.name}'s`);
-      contextualMessage = contextualMessage.replace(/\bthem\b/g, answers.name);
-    }
-
-    if (answers.celebration && stepId !== 'celebration') {
-      contextualMessage = contextualMessage.replace(/celebration/g, answers.celebration);
-    }
-
-    // Generate more conversational responses based on context
-    const conversationalResponses: Record<string, string> = {
-      'celebration': `Great choice! ${userAnswer} is such a special occasion.`,
-      'recipient': `Perfect! A ${userAnswer} card will be so meaningful.`,
-      'name': `${userAnswer} is a beautiful name! I can already imagine how special this ${answers.celebration || 'celebration'} card will be for them.`,
-      'scene': `What a wonderful scene! I can picture ${answers.name || 'them'} ${userAnswer}. This will make for a beautiful ${answers.celebration || 'celebration'} card.`,
-      'art_style': `Excellent choice! ${userAnswer.replace('_', ' ')} style will be perfect for ${answers.name || 'this'} ${answers.celebration || 'celebration'} card.`,
-      'message': userAnswer ? `"${userAnswer}" is such a heartfelt message for ${answers.name || 'them'}!` : `Sometimes the image speaks for itself - great choice to keep it message-free!`,
-      'inside_message': `That's such a beautiful and personal message for ${answers.name || 'them'}. It really captures the spirit of ${answers.celebration || 'this celebration'}.`
-    };
-
-    // Use conversational response if available, otherwise use contextual message
-    return conversationalResponses[stepId] || contextualMessage;
-  };
 
   // All hooks must be at the top level before any conditional returns
   useEffect(() => {
@@ -776,25 +691,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   };
 
-  const handleTextSubmit = async () => {
-    console.log('handleTextSubmit called with input:', currentInput);
+  const handleTextSubmit = () => {
     if (currentInput.trim()) {
-      const currentStep = filteredSteps[currentStepIndex];
-      if (!currentStep) return;
-
-      console.log('Current step:', currentStep.id, currentStep.type);
-
-      // Skip validation for text inputs to improve user flow
-      console.log('Proceeding without validation for text input');
-      
-      // Add to conversation history for context
-      setConversationHistory(prev => [...prev, {
-        stepId: currentStep.id,
-        question: currentStep.question,
-        userAnswer: currentInput.trim(),
-        aiResponse: generateContextualResponse(currentStep.id, currentInput.trim())
-      }]);
-      
       handleAnswer(currentInput.trim());
     }
   };
@@ -1260,44 +1158,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       <div className="flex space-x-2">
                         <Input
                           value={currentInput}
-                          onChange={(e) => {
-                            setCurrentInput(e.target.value);
-                            if (validationState.validationError) {
-                              setValidationState({ isValidating: false, validationError: null, aiResponse: null });
-                            }
-                          }}
+                          onChange={(e) => setCurrentInput(e.target.value)}
                           placeholder="Type your answer..."
-                          className={`text-lg p-3 rounded-lg focus:border-purple-400 ${
-                            validationState.validationError 
-                              ? 'border-red-300 focus:border-red-400' 
-                              : 'border-purple-200'
-                          }`}
+                          className="text-lg p-3 rounded-lg border-purple-200 focus:border-purple-400"
                           onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                         />
                         <Button 
                           onClick={handleTextSubmit}
-                          disabled={!currentInput.trim() || validationState.isValidating}
+                          disabled={!currentInput.trim()}
                           className="px-4 py-3 rounded-lg bg-gradient-to-r from-purple-500 to-blue-500"
                         >
-                          {validationState.isValidating ? (
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <ArrowRight className="w-4 h-4" />
-                          )}
+                          <ArrowRight className="w-4 h-4" />
                         </Button>
                       </div>
-                      
-                      {validationState.validationError && (
-                        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mt-3">
-                          <div className="flex items-start space-x-3">
-                            <Bot className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-red-700 font-medium">I need some clarification:</p>
-                              <p className="text-red-600 mt-1">{validationState.validationError}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
@@ -1369,44 +1242,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       <div className="flex space-x-2 sm:space-x-3">
                         <Input
                           value={currentInput}
-                          onChange={(e) => {
-                            setCurrentInput(e.target.value);
-                            if (validationState.validationError) {
-                              setValidationState({ isValidating: false, validationError: null, aiResponse: null });
-                            }
-                          }}
+                          onChange={(e) => setCurrentInput(e.target.value)}
                           placeholder="Type your answer..."
-                          className={`text-sm sm:text-base p-3 sm:p-4 rounded-xl focus:border-purple-400 bg-white/80 ${
-                            validationState.validationError 
-                              ? 'border-red-300 focus:border-red-400' 
-                              : 'border-purple-200'
-                          }`}
+                          className="text-sm sm:text-base p-3 sm:p-4 rounded-xl border-purple-200 focus:border-purple-400 bg-white/80"
                           onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                         />
                         <Button 
                           onClick={handleTextSubmit}
-                          disabled={!currentInput.trim() || validationState.isValidating}
+                          disabled={!currentInput.trim()}
                           className="px-4 sm:px-6 py-3 sm:py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
                         >
-                          {validationState.isValidating ? (
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                          )}
+                          <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                         </Button>
                       </div>
-                      
-                      {validationState.validationError && (
-                        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mt-3">
-                          <div className="flex items-start space-x-3">
-                            <Bot className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-red-700 font-medium">I need some clarification:</p>
-                              <p className="text-red-600 mt-1">{validationState.validationError}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
@@ -1700,45 +1548,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                     <div className="flex space-x-3">
                       <Input
                         value={currentInput}
-                        onChange={(e) => {
-                          setCurrentInput(e.target.value);
-                          if (validationState.validationError) {
-                            setValidationState({ isValidating: false, validationError: null, aiResponse: null });
-                          }
-                        }}
+                        onChange={(e) => setCurrentInput(e.target.value)}
                         placeholder={currentStep.placeholder}
-                        className={`text-lg p-4 rounded-xl focus:border-purple-400 ${
-                          validationState.validationError 
-                            ? 'border-red-300 focus:border-red-400' 
-                            : 'border-purple-200'
-                        }`}
+                        className="text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
                         onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                         autoFocus
                       />
                       <Button 
                         onClick={handleTextSubmit}
-                        disabled={!currentInput.trim() || validationState.isValidating}
+                        disabled={!currentInput.trim()}
                         className="px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
                       >
-                        {validationState.isValidating ? (
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <ArrowRight className="w-4 h-4" />
-                        )}
+                        <ArrowRight className="w-4 h-4" />
                       </Button>
                     </div>
-                    
-                    {validationState.validationError && (
-                      <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                        <div className="flex items-start space-x-3">
-                          <Bot className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-red-700 font-medium">I need some clarification:</p>
-                            <p className="text-red-600 mt-1">{validationState.validationError}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
 
                     {currentStep.id === 'features' && (
                       <div className="flex justify-center">
@@ -2270,9 +2093,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       value={currentInput}
                       onChange={(e) => {
                         setCurrentInput(e.target.value);
-                        if (validationState.validationError) {
-                          setValidationState({ isValidating: false, validationError: null, aiResponse: null });
-                        }
                         if (currentStep.id === 'scene' && !userHasTyped && e.target.value.length > 0) {
                           setUserHasTyped(true);
                           setPlaceholderText('');
@@ -2285,25 +2105,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         }
                       }}
                       placeholder={currentStep.id === 'scene' && !userHasTyped && placeholderText ? placeholderText : currentStep.placeholder}
-                      className={`text-lg p-4 min-h-[120px] rounded-xl focus:border-purple-400 ${
-                        validationState.validationError 
-                          ? 'border-red-300 focus:border-red-400' 
-                          : 'border-purple-200'
-                      }`}
+                      className="text-lg p-4 min-h-[120px] rounded-xl border-purple-200 focus:border-purple-400"
                       autoFocus={currentStep.id !== 'scene'}
                     />
-                    
-                    {validationState.validationError && (
-                      <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                        <div className="flex items-start space-x-3">
-                          <Bot className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-red-700 font-medium">I need some clarification:</p>
-                            <p className="text-red-600 mt-1">{validationState.validationError}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                     <div className="flex justify-between items-center">
                       <Button 
                         onClick={() => {
