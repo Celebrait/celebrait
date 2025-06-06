@@ -1234,7 +1234,7 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Flux character transformation output type:', typeof output);
       console.log('Flux character transformation output:', output);
 
-      // Handle Replicate output - it's typically an array of URLs
+      // Handle Replicate ReadableStream output
       let frontImageUrl;
       
       if (Array.isArray(output) && output.length > 0) {
@@ -1243,9 +1243,43 @@ The inside should look like a perfect companion piece created by the same artist
       } else if (typeof output === 'string') {
         frontImageUrl = output;
         console.log('Using direct string URL:', frontImageUrl);
+      } else if (output && typeof output === 'object' && 'getReader' in output) {
+        // Handle ReadableStream from Replicate
+        console.log('Processing ReadableStream from Replicate...');
+        const reader = (output as any).getReader();
+        const chunks = [];
+        
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+          }
+          
+          // Concatenate chunks and parse as JSON or URL
+          const result = chunks.join('');
+          console.log('Stream result:', result);
+          
+          try {
+            const parsed = JSON.parse(result);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              frontImageUrl = parsed[0];
+            } else if (typeof parsed === 'string') {
+              frontImageUrl = parsed;
+            } else {
+              frontImageUrl = result; // Use raw result as URL
+            }
+          } catch {
+            frontImageUrl = result; // Use raw result as URL
+          }
+          
+          console.log('Extracted from stream:', frontImageUrl);
+        } finally {
+          reader.releaseLock();
+        }
       } else {
         console.error('Unexpected output format from Replicate:', typeof output, output);
-        throw new Error('Invalid output format from Replicate - expected array or string URL');
+        throw new Error('Invalid output format from Replicate - expected array, string URL, or ReadableStream');
       }
 
       console.log('Final extracted frontImageUrl:', frontImageUrl);
@@ -1307,7 +1341,7 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Flux style transformation output type:', typeof output);
       console.log('Flux style transformation output:', output);
 
-      // Handle Replicate output - it's typically an array of URLs
+      // Handle Replicate ReadableStream output
       let frontImageUrl;
       
       if (Array.isArray(output) && output.length > 0) {
@@ -1316,9 +1350,43 @@ The inside should look like a perfect companion piece created by the same artist
       } else if (typeof output === 'string') {
         frontImageUrl = output;
         console.log('Using direct string URL:', frontImageUrl);
+      } else if (output && typeof output === 'object' && 'getReader' in output) {
+        // Handle ReadableStream from Replicate
+        console.log('Processing ReadableStream from Replicate...');
+        const reader = (output as any).getReader();
+        const chunks = [];
+        
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+          }
+          
+          // Concatenate chunks and parse as JSON or URL
+          const result = chunks.join('');
+          console.log('Stream result:', result);
+          
+          try {
+            const parsed = JSON.parse(result);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              frontImageUrl = parsed[0];
+            } else if (typeof parsed === 'string') {
+              frontImageUrl = parsed;
+            } else {
+              frontImageUrl = result; // Use raw result as URL
+            }
+          } catch {
+            frontImageUrl = result; // Use raw result as URL
+          }
+          
+          console.log('Extracted from stream:', frontImageUrl);
+        } finally {
+          reader.releaseLock();
+        }
       } else {
         console.error('Unexpected output format from Replicate:', typeof output, output);
-        throw new Error('Invalid output format from Replicate - expected array or string URL');
+        throw new Error('Invalid output format from Replicate - expected array, string URL, or ReadableStream');
       }
 
       console.log('Final extracted frontImageUrl:', frontImageUrl);
