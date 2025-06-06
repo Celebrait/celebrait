@@ -8,9 +8,11 @@ import { insertUserSchema, insertCardSchema, insertLovedOneSchema, insertOrderSc
 import { PHOTO_ANALYSIS_PROMPT } from "@shared/prompts";
 import OpenAI from "openai";
 import Stripe from "stripe";
+import Replicate from "replicate";
 
 // Temporarily allow running without API keys for testing
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
+const hasReplicate = !!process.env.REPLICATE_API_TOKEN;
 const hasStripe = !!process.env.STRIPE_SECRET_KEY;
 const hasPaystack = !!process.env.PAYSTACK_SECRET_KEY;
 
