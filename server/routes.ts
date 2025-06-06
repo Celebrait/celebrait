@@ -26,7 +26,7 @@ const replicate = hasReplicate ? new Replicate({
 }) : null;
 
 const stripe = hasStripe ? new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2025-05-28.basil",
 }) : null;
 
 // Helper function to process Replicate flux binary output
@@ -1273,41 +1273,41 @@ The inside should look like a perfect companion piece created by the same artist
 
       console.log('Character transformation with flux-kontext-max:', { cardId, prompt, scene, artStyle });
 
-      // Build transformation prompt for character in new scene with stronger reference emphasis
-      const transformPrompt = `SQUARE 1:1 ASPECT RATIO, EXACTLY 1024x1024 PIXELS. Using the provided reference image as the primary visual guide, recreate this exact person with their specific facial features, hair, and physical characteristics. ${prompt}, ${scene}, ${artStyle} art style. The person in the output must match the reference image exactly - same face, same hair, same physical appearance. MAINTAIN PERFECT SQUARE FORMAT 1:1 RATIO. High-quality artistic rendering, professional artwork.`;
+      // Content filtering to avoid sensitive content flags
+      const sanitizedPrompt = prompt.replace(/smoking|cigar|cigarette|drug|alcohol/gi, '');
+      const sanitizedScene = scene.replace(/smoking|cigar|cigarette|drug|alcohol/gi, '');
+      
+      // Build clean transformation prompt for character in new scene
+      const transformPrompt = `Make this a ${artStyle} style image. ${sanitizedPrompt} ${sanitizedScene}`.trim();
 
       console.log('Flux character transformation prompt:', transformPrompt);
       console.log('Original image data length:', originalImage.length);
-      console.log('Flux parameters:', { guidance_scale, num_inference_steps, strength, seed, safety_tolerance, aspect_ratio });
 
       const fluxInput: any = {
-        input_image: originalImage,
         prompt: transformPrompt,
-        guidance_scale,
-        num_inference_steps,
-        strength,
-        output_format,
-        safety_tolerance,
-        aspect_ratio
+        input_image: originalImage,
+        aspect_ratio: "1:1",
+        output_format: "jpg",
+        safety_tolerance: 6
       };
-      
-      if (output_format === 'jpg') {
-        fluxInput.output_quality = output_quality;
-      }
-      
-      if (seed) fluxInput.seed = seed;
+
+      console.log('Flux parameters:', fluxInput);
 
       const output = await replicate.run(
-        "black-forest-labs/flux-kontext-max",
+        "black-forest-labs/flux-kontext-pro",
         { input: fluxInput }
       );
 
       console.log('Flux character transformation output type:', typeof output);
 
-      // Handle Replicate flux binary output
-      let frontImageUrl;
+      // Handle flux-kontext-pro output format
+      let frontImageUrl: string;
       
-      if (Array.isArray(output) && output.length > 0) {
+      if (output && typeof output === 'object' && 'url' in output && typeof (output as any).url === 'function') {
+        // flux-kontext-pro returns an object with url() method
+        frontImageUrl = (output as any).url();
+        console.log('Using flux-kontext-pro URL method:', frontImageUrl);
+      } else if (Array.isArray(output) && output.length > 0) {
         frontImageUrl = output[0];
         console.log('Using first image from array:', frontImageUrl);
       } else if (typeof output === 'string') {
@@ -1325,7 +1325,7 @@ The inside should look like a perfect companion piece created by the same artist
         }
       } else {
         console.error('Unexpected flux output format:', typeof output, output);
-        throw new Error('Invalid flux output format - expected array, string URL, or binary iterator');
+        throw new Error('Invalid flux output format - expected object with url() method, array, string URL, or binary iterator');
       }
 
       console.log('Final extracted frontImageUrl:', frontImageUrl);
