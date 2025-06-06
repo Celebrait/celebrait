@@ -175,24 +175,17 @@ export default function TestGeneration() {
       });
       const card = await cardResponse.json();
 
-      // Build character transformation prompt
-      const characterPrompt = [
-        "Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame",
-        "using the reference image as a guide, recreate the same person, now",
-        transformScene,
-        transformStyle ? `${transformStyle} art style` : "realistic style",
-        "maintain the person's exact appearance and characteristics from the reference image",
-        "high-quality artistic rendering, professional artwork"
-      ].join(', ');
-
-      console.log('Flux character transformation prompt:', characterPrompt);
+      // Let server build the prompt with proper 1:1 enforcement
+      console.log('Flux character transformation prompt:', transformScene);
 
       const fluxResponse = await apiRequest("POST", "/api/transform-character-flux", {
         cardId: card.id,
         originalImage: transformPhoto,
-        prompt: characterPrompt,
+        prompt: transformScene,
         scene: transformScene,
-        artStyle: transformStyle || "realistic"
+        artStyle: transformStyle || "realistic",
+        safety_tolerance: 5,
+        aspect_ratio: "1:1"
       });
 
       const result = await fluxResponse.json();
@@ -250,23 +243,16 @@ export default function TestGeneration() {
       });
       const card = await cardResponse.json();
 
-      // Build style transformation prompt
-      const stylePrompt = [
-        "Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame",
-        "recreate the exact scene and composition from the reference image",
-        `rendered in ${selectedArtStyle} art style`,
-        "maintain all elements, poses, and arrangements from the original",
-        "transform only the artistic style while preserving the content",
-        "high-quality artistic rendering, professional artwork"
-      ].join(', ');
-
-      console.log('Flux style transformation prompt:', stylePrompt);
+      // Let server build the prompt with proper 1:1 enforcement
+      console.log('Flux style transformation:', selectedArtStyle);
 
       const fluxResponse = await apiRequest("POST", "/api/transform-style-flux", {
         cardId: card.id,
         originalImage: styleTransformPhoto,
-        prompt: stylePrompt,
-        artStyle: selectedArtStyle
+        prompt: "Transform this image",
+        artStyle: selectedArtStyle,
+        safety_tolerance: 5,
+        aspect_ratio: "1:1"
       });
 
       const result = await fluxResponse.json();
