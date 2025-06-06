@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle } from "lucide-react";
+import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette, Edit3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
@@ -1605,23 +1605,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               </div>
                             )}
                             <div className="flex items-start space-x-4">
-                              <div className={`w-16 h-16 ${option.color} rounded-full flex items-center justify-center flex-shrink-0 shadow-lg`}>
-                                {option.icon === 'camera' && (
-                                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M12 9a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    <path fillRule="evenodd" d="M9 20a1 1 0 01-.894-.553L7.382 18H4a2 2 0 01-2-2V8a2 2 0 012-2h16a2 2 0 012 2v8a2 2 0 01-2 2h-3.382l-.724 1.447A1 1 0 0115 20H9zM7 9a5 5 0 1110 0 5 5 0 01-10 0z" clipRule="evenodd"/>
-                                  </svg>
-                                )}
-                                {option.icon === 'palette' && (
-                                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                    <path fillRule="evenodd" d="M20.599 1.5c-.376 0-.743.111-1.055.32l-5.08 3.385a18.747 18.747 0 00-3.471 2.987 10.04 10.04 0 01-4.815 3.436 6.951 6.951 0 01-5.33-.645c-.37-.297-.99-.233-1.29.163-.297.394-.234.997.165 1.291a8.995 8.995 0 001.904.765c.85.194 1.737.157 2.543-.111.812-.269 1.611-.686 2.352-1.24a8.581 8.581 0 002.813-2.98c.892-.856 1.58-1.8 2.098-2.748a.75.75 0 111.315.716c-.571 1.05-1.313 2.081-2.253 3.012a7.081 7.081 0 01-2.32 1.988c-.24.127-.482.248-.726.363a.75.75 0 11-.598-1.377c.244-.115.486-.236.726-.363.24-.127.48-.26.72-.4a5.581 5.581 0 001.828-1.564c.94-.931 1.682-1.962 2.253-3.012a2.25 2.25 0 00-3.945-2.148c-.518.948-1.206 1.892-2.098 2.748a10.081 10.081 0 01-2.813 2.98c-.741.554-1.54.971-2.352 1.24-.806.268-1.693.305-2.543.111a6.988 6.988 0 01-1.904-.765c-.399-.294-.462-.897-.165-1.291.3-.396.92-.46 1.29-.163a5.451 5.451 0 004.815-3.436 20.247 20.247 0 013.471-2.987L19.544 1.82c.312-.209.679-.32 1.055-.32z" clipRule="evenodd"/>
-                                  </svg>
-                                )}
-                                {option.icon === 'edit' && (
-                                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-                                  </svg>
-                                )}
+                              <div className={`w-8 h-8 sm:w-10 sm:h-10 ${option.color} rounded-full flex items-center justify-center mr-2 sm:mr-3`}>
+                                {option.icon === 'camera' && <Camera className="text-white w-4 h-4 sm:w-5 sm:h-5" />}
+                                {option.icon === 'palette' && <Palette className="text-white w-4 h-4 sm:w-5 sm:h-5" />}
+                                {option.icon === 'edit' && <Edit3 className="text-white w-4 h-4 sm:w-5 sm:h-5" />}
                               </div>
                               <div className="flex-1">
                                 <h3 className="font-bold text-lg text-gray-800 mb-2">{option.label}</h3>
