@@ -62,8 +62,6 @@ export class MemStorage implements IStorage {
       frontImageUrl: null,
       insideImageUrl: null,
       status: 'generating',
-      paymentId: null,
-      paymentMethod: null,
       createdAt: new Date()
     };
     this.cards.set(id, card);
