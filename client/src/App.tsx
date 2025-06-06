@@ -20,7 +20,7 @@ function Router() {
       <Route path="/payment/:cardId" component={Payment} />
       <Route path="/payment-success" component={PaymentSuccess} />
       <Route path="/test-payment" component={TestPayment} />
-      <Route path="/test" component={TestGeneration} />
+      <Route path="/test-generation" component={TestGeneration} />
       <Route path="/style-test" component={StyleTest} />
       <Route component={NotFound} />
     </Switch>
