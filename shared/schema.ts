@@ -20,6 +20,8 @@ export const cards = pgTable("cards", {
   insideImageUrl: text("inside_image_url"),
   status: text("status").default('generating'), // 'generating' | 'completed' | 'paid'
   price: integer("price").notNull(), // in cents
+  paymentId: text("payment_id"), // YOCO payment/checkout ID
+  paymentMethod: text("payment_method"), // 'yoco_checkout' | 'yoco_card'
   createdAt: timestamp("created_at").defaultNow(),
 });
 

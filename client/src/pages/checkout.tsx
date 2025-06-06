@@ -12,7 +12,7 @@ import { ArrowLeft, CreditCard, Shield, Lock } from "lucide-react";
 // Check if YOCO is configured for production use
 const hasYocoKey = !!import.meta.env.VITE_YOCO_PUBLIC_KEY;
 
-const CheckoutForm = ({ cardData }: { cardData: any }) => {
+const CheckoutForm = ({ cardData }: { cardData: CardData }) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'checkout'>('checkout');
@@ -158,9 +158,18 @@ const CheckoutForm = ({ cardData }: { cardData: any }) => {
   );
 };
 
+interface CardData {
+  id: number;
+  frontImageUrl: string | null;
+  cardType: string;
+  printOption: string | null;
+  price: number;
+  status: string;
+}
+
 export default function Checkout() {
   const { cardId } = useParams();
-  const [cardData, setCardData] = useState(null);
+  const [cardData, setCardData] = useState<CardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
