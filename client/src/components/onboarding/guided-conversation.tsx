@@ -784,26 +784,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
       console.log('Current step:', currentStep.id, currentStep.type);
 
-      // Use AI validation for all text inputs (including custom options in select fields)
-      console.log('Starting AI validation...');
-      const validation = await validateUserInput(currentInput.trim(), currentStep.id, currentStep.question);
-      console.log('Validation result:', validation);
-      
-      if (!validation.isValid) {
-        console.log('Validation failed, showing error');
-        // Set the validation error to display the AI's conversational response
-        setValidationState({ 
-          isValidating: false, 
-          validationError: validation.response,
-          aiResponse: validation.response 
-        });
-        // Don't proceed with form submission
-        return;
-      }
-      
-      console.log('Validation passed, proceeding');
-      // Clear validation state on successful validation
-      setValidationState({ isValidating: false, validationError: null, aiResponse: null });
+      // Skip validation for text inputs to improve user flow
+      console.log('Proceeding without validation for text input');
       
       // Add to conversation history for context
       setConversationHistory(prev => [...prev, {
