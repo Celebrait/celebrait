@@ -439,7 +439,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const insideImageGeneration = await openai.images.generate({
             model: "gpt-image-1",
             prompt: imageToImagePrompt,
-            image: frontImageUrl, // Pass the front card as visual reference
             n: 1,
             size: "1024x1024"
           });
@@ -611,15 +610,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Using direct image-to-image transformation with uploaded photo as reference');
         
         try {
-          // Check if GPT-Image-1 supports image input parameter
-          frontImageGeneration = await openai.images.generate({
-            model: "gpt-image-1",
-            prompt: frontPrompt,
-            image: photoData, // Use uploaded photo as direct visual reference
-            n: 1,
-            size: "1024x1024"
+          // For now, analyze the photo to create enhanced prompts since direct image input isn't supported
+          console.log('Analyzing uploaded photo for enhanced prompt generation');
+          
+          const visionResponse = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: "Analyze this image and describe ONLY the visual artistic elements for recreation: composition, poses, spatial relationships, lighting, color palette, artistic style, scene elements, and overall mood. Focus on what would be needed to recreate this exact visual arrangement in a different artistic style."
+                  },
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: photoData
+                    }
+                  }
+                ]
+              }
+            ],
+            max_tokens: 300
           });
-          console.log('Successfully used direct image-to-image with gpt-image-1');
+          
+          const visualAnalysis = visionResponse.choices[0].message.content;
+          console.log('Visual analysis result:', visualAnalysis);
+          
+          if (visualAnalysis) {
+            // Create enhanced prompt using visual analysis for true style transformation
+            const enhancedPrompt = `${frontPrompt}. VISUAL REFERENCE: Recreate this exact composition and arrangement: ${visualAnalysis}. Transform the artistic style while maintaining the precise visual structure, poses, and spatial relationships described.`;
+            
+            frontImageGeneration = await openai.images.generate({
+              model: "gpt-image-1",
+              prompt: enhancedPrompt,
+              n: 1,
+              size: "1024x1024"
+            });
+            console.log('Successfully generated image using visual analysis enhancement');
+          } else {
+            throw new Error('Visual analysis failed');
+          }
         } catch (imageInputError: any) {
           console.log('Direct image input not supported, using enhanced prompt approach:', imageInputError.message);
           
