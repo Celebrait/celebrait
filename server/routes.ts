@@ -1258,10 +1258,11 @@ The inside should look like a perfect companion piece created by the same artist
 
       console.log('Character transformation with flux-kontext-pro:', { cardId, prompt, scene, artStyle });
 
-      // Build transformation prompt for character in new scene
-      const transformPrompt = `${prompt}, ${scene}, ${artStyle} art style, maintain the person's exact appearance and characteristics from the reference image, high-quality artistic rendering, professional artwork`;
+      // Build transformation prompt for character in new scene with stronger reference emphasis
+      const transformPrompt = `Using the provided reference image as the primary visual guide, recreate this exact person with their specific facial features, hair, and physical characteristics. ${prompt}, ${scene}, ${artStyle} art style. The person in the output must match the reference image exactly - same face, same hair, same physical appearance. High-quality artistic rendering, professional artwork.`;
 
       console.log('Flux character transformation prompt:', transformPrompt);
+      console.log('Original image data length:', originalImage.length);
 
       const output = await replicate.run(
         "black-forest-labs/flux-kontext-pro",
