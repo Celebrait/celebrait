@@ -781,19 +781,26 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   };
 
   const handleTextSubmit = async () => {
+    console.log('handleTextSubmit called with input:', currentInput);
     if (currentInput.trim()) {
       const currentStep = filteredSteps[currentStepIndex];
       if (!currentStep) return;
 
+      console.log('Current step:', currentStep.id, currentStep.type);
+
       // Use AI validation for text/textarea inputs
       if (currentStep.type === 'text' || currentStep.type === 'textarea') {
+        console.log('Starting AI validation...');
         const validation = await validateUserInput(currentInput.trim(), currentStep.id, currentStep.question);
+        console.log('Validation result:', validation);
         
         if (!validation.isValid) {
+          console.log('Validation failed, showing error');
           // Show AI feedback for invalid input - don't proceed
           return;
         }
         
+        console.log('Validation passed, proceeding');
         // Clear validation state on successful validation
         setValidationState({ isValidating: false, validationError: null, aiResponse: null });
         
