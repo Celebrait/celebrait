@@ -1253,7 +1253,7 @@ The inside should look like a perfect companion piece created by the same artist
         seed,
         strength = 0.95,
         output_format = "png",
-        safety_tolerance = 2,
+        safety_tolerance = 5,
         aspect_ratio = "1:1",
         output_quality = 80
       } = req.body;
@@ -1356,7 +1356,7 @@ The inside should look like a perfect companion piece created by the same artist
         seed,
         strength = 0.95,
         output_format = "png",
-        safety_tolerance = 2,
+        safety_tolerance = 5,
         aspect_ratio = "1:1",
         output_quality = 80
       } = req.body;
