@@ -245,6 +245,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      if (!frontResponse.data || frontResponse.data.length === 0) {
+        throw new Error('Failed to generate front image - no data returned');
+      }
       const frontImageUrl = frontResponse.data[0].url || `data:image/png;base64,${frontResponse.data[0].b64_json}`;
       
       let insideImageUrl = null;
@@ -277,6 +280,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
+        if (!insideResponse.data || insideResponse.data.length === 0) {
+          throw new Error('Failed to generate inside image - no data returned');
+        }
         insideImageUrl = insideResponse.data[0].url || `data:image/png;base64,${insideResponse.data[0].b64_json}`;
       }
       
@@ -482,6 +488,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         size: "1024x1024"
       });
 
+      // Extract front image data first
+      const frontResponse = frontImageGeneration as any;
+      let frontImageUrl = null;
+      if (frontResponse.data && Array.isArray(frontResponse.data) && frontResponse.data.length > 0) {
+        const imageData = frontResponse.data[0];
+        
+        if (typeof imageData === 'string') {
+          frontImageUrl = `data:image/png;base64,${imageData}`;
+        } else if (imageData.b64_json) {
+          frontImageUrl = `data:image/png;base64,${imageData.b64_json}`;
+        } else if (imageData.url) {
+          frontImageUrl = imageData.url;
+        }
+        console.log('Successfully extracted front image data');
+      }
+
       let insideImageUrl = null;
       
       // Generate inside image if provided, using front card as visual reference
@@ -537,22 +559,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log('Successfully generated inside card using fallback approach');
           }
         }
-      }
-
-      // Extract front image data
-      const frontResponse = frontImageGeneration as any;
-      let frontImageUrl = null;
-      if (frontResponse.data && Array.isArray(frontResponse.data) && frontResponse.data.length > 0) {
-        const imageData = frontResponse.data[0];
-        
-        if (typeof imageData === 'string') {
-          frontImageUrl = `data:image/png;base64,${imageData}`;
-        } else if (imageData.b64_json) {
-          frontImageUrl = `data:image/png;base64,${imageData.b64_json}`;
-        } else if (imageData.url) {
-          frontImageUrl = imageData.url;
-        }
-        console.log('Successfully extracted front image data');
       }
 
       console.log('Extracted front image URL:', frontImageUrl ? 'Base64 data received' : 'No image data');
