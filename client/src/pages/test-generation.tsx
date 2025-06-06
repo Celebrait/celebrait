@@ -803,12 +803,23 @@ export default function TestGeneration() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">AI Image Generation Test</h1>
-          <p className="text-gray-600">Test different prompts and configurations</p>
+          <p className="text-gray-600">Test different prompts and image transformations</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Controls */}
-          <div className="space-y-6">
+        <Tabs defaultValue="prompts" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="prompts">Test Prompts</TabsTrigger>
+            <TabsTrigger value="photos">Photo Analysis</TabsTrigger>
+            <TabsTrigger value="character">Character Transform</TabsTrigger>
+            <TabsTrigger value="style">Style Transform</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="prompts">
+            <div className="mt-6">
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Controls */}
+              <div className="space-y-6">
             {/* Card Type Toggle */}
             <Card>
               <CardHeader>
@@ -1269,8 +1280,251 @@ export default function TestGeneration() {
                 </CardContent>
               </Card>
             )}
-          </div>
-        </div>
+              </div>
+            </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="photos">
+            <div className="mt-6">
+              {/* Existing photo analysis content - move from above */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Camera className="w-5 h-5" />
+                      Photo Upload & Analysis
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="w-full p-2 border border-gray-300 rounded"
+                      />
+                      <div className="text-sm text-gray-600">
+                        Upload photos to analyze people for character generation
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="character">
+            <div className="mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Character Transformation Controls */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="w-5 h-5" />
+                      Character Scene Transformation
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="character-photo">Upload Photo of Person</Label>
+                      <Input
+                        id="character-photo"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, setTransformPhoto)}
+                      />
+                      {transformPhoto && (
+                        <div className="mt-2">
+                          <img src={transformPhoto} alt="Character reference" className="w-32 h-32 object-cover rounded border" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="new-scene">Describe New Scene</Label>
+                      <Textarea
+                        id="new-scene"
+                        placeholder="e.g., celebrating on a beautiful beach at sunset, having a picnic in a flower garden, dancing at a rooftop party..."
+                        value={transformScene}
+                        onChange={(e) => setTransformScene(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="transform-style">Art Style (Optional)</Label>
+                      <Select value={transformStyle} onValueChange={setTransformStyle}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select art style..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="realistic">Realistic</SelectItem>
+                          <SelectItem value="watercolor">Watercolor</SelectItem>
+                          <SelectItem value="cartoon">Cartoon</SelectItem>
+                          <SelectItem value="anime">Anime</SelectItem>
+                          <SelectItem value="oil painting">Oil Painting</SelectItem>
+                          <SelectItem value="digital art">Digital Art</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <Button
+                      onClick={transformCharacterToScene}
+                      disabled={isTransforming || !transformPhoto || !transformScene}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                    >
+                      {isTransforming ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Transforming Character...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="w-4 h-4 mr-2" />
+                          Transform Character to New Scene
+                        </>
+                      )}
+                    </Button>
+
+                    <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded">
+                      This feature analyzes the person in your photo and places them in a completely new scene while maintaining their distinctive features.
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Character Transformation Result */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Transformed Character</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {transformedImage ? (
+                      <div className="space-y-4">
+                        <img 
+                          src={transformedImage} 
+                          alt="Transformed character" 
+                          className="w-full rounded-lg shadow-lg" 
+                        />
+                        <div className="bg-green-50 border border-green-200 rounded p-3">
+                          <p className="text-green-700 text-sm">
+                            Character successfully transformed to new scene using image-to-image reference!
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="aspect-square bg-gray-50 rounded-lg flex items-center justify-center">
+                        <p className="text-gray-500">Upload photo and describe scene to transform</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="style">
+            <div className="mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Style Transformation Controls */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Palette className="w-5 h-5" />
+                      Artistic Style Transformation
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="style-photo">Upload Photo to Transform</Label>
+                      <Input
+                        id="style-photo"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, setStyleTransformPhoto)}
+                      />
+                      {styleTransformPhoto && (
+                        <div className="mt-2">
+                          <img src={styleTransformPhoto} alt="Style reference" className="w-32 h-32 object-cover rounded border" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="art-style">Select New Art Style</Label>
+                      <Select value={selectedArtStyle} onValueChange={setSelectedArtStyle}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose art style..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="watercolor painting">Watercolor Painting</SelectItem>
+                          <SelectItem value="oil painting">Oil Painting</SelectItem>
+                          <SelectItem value="cartoon style">Cartoon Style</SelectItem>
+                          <SelectItem value="anime style">Anime Style</SelectItem>
+                          <SelectItem value="impressionist painting">Impressionist Painting</SelectItem>
+                          <SelectItem value="digital art">Digital Art</SelectItem>
+                          <SelectItem value="pencil sketch">Pencil Sketch</SelectItem>
+                          <SelectItem value="pop art">Pop Art</SelectItem>
+                          <SelectItem value="minimalist illustration">Minimalist Illustration</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <Button
+                      onClick={transformImageStyle}
+                      disabled={isStyleTransforming || !styleTransformPhoto || !selectedArtStyle}
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                    >
+                      {isStyleTransforming ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Applying Style...
+                        </>
+                      ) : (
+                        <>
+                          <Palette className="w-4 h-4 mr-2" />
+                          Transform to {selectedArtStyle || 'Selected Style'}
+                        </>
+                      )}
+                    </Button>
+
+                    <div className="text-xs text-gray-500 bg-purple-50 p-2 rounded">
+                      This feature transforms your entire photo into a new artistic style while preserving the composition and content.
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Style Transformation Result */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Style Transformed Image</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {styleTransformedImage ? (
+                      <div className="space-y-4">
+                        <img 
+                          src={styleTransformedImage} 
+                          alt="Style transformed" 
+                          className="w-full rounded-lg shadow-lg" 
+                        />
+                        <div className="bg-purple-50 border border-purple-200 rounded p-3">
+                          <p className="text-purple-700 text-sm">
+                            Image successfully transformed to {selectedArtStyle} using image-to-image reference!
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="aspect-square bg-gray-50 rounded-lg flex items-center justify-center">
+                        <p className="text-gray-500">Upload photo and select style to transform</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
