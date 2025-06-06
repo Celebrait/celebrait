@@ -145,32 +145,32 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
         </Card>
 
         <Card 
-          className="bg-white/80 border-2 border-purple-200 cursor-not-allowed transition-all duration-300 relative"
+          className="bg-white/80 border-2 border-gray-300 cursor-not-allowed transition-all duration-300 relative opacity-75"
         >
           <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="relative">
               <img 
                 src="https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" 
                 alt="Front of greeting card design" 
-                className="w-full aspect-square object-cover rounded-xl mb-3 sm:mb-4 opacity-60" 
+                className="w-full aspect-square object-cover rounded-xl mb-3 sm:mb-4" 
               />
               
-              {/* Coming Soon Overlay */}
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-xl mb-3 sm:mb-4">
-                <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg">
-                  Coming Soon
+              {/* Coming Soon Overlay positioned over image only */}
+              <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center mb-3 sm:mb-4">
+                <div className="bg-white rounded-lg px-3 sm:px-6 py-2 sm:py-3 shadow-lg">
+                  <span className="text-sm sm:text-lg font-bold text-gray-800">Coming Soon</span>
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center mb-2 sm:mb-3 opacity-60">
+            <div className="flex items-center mb-2 sm:mb-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-celebrait rounded-full flex items-center justify-center mr-2 sm:mr-3">
                 <Image className="text-white w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-gray-800">Front Only</h3>
             </div>
             
-            <ul className="space-y-1 sm:space-y-2 mb-3 sm:mb-4 opacity-60">
+            <ul className="space-y-1 sm:space-y-2 mb-3 sm:mb-4">
               <li className="flex items-center text-slate-gray text-xs sm:text-sm">
                 <Check className="text-green-500 mr-2 sm:mr-3 w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                 AI-designed front cover
@@ -189,15 +189,15 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
               </li>
             </ul>
             
-            <div className="flex items-center justify-between opacity-60">
+            <div className="flex items-center justify-between">
               <span className="text-lg sm:text-xl lg:text-2xl font-bold text-ethereal-purple">R89</span>
               <span className="text-xs sm:text-sm text-slate-gray">Standard</span>
             </div>
             
-            <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-orange-50 rounded-lg border border-orange-200">
+            <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-blue-50 rounded-lg">
               <div className="flex items-start space-x-2">
-                <div className="w-3 h-3 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 bg-orange-500 rounded-full"></div>
-                <p className="text-xs sm:text-sm text-orange-700 font-medium">This option will be available soon! For now, choose the complete package above.</p>
+                <Lightbulb className="text-blue-600 w-3 h-3 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0" />
+                <p className="text-xs sm:text-sm text-blue-700">Great when you want to add your personal handwritten message</p>
               </div>
             </div>
           </CardContent>
