@@ -4,7 +4,7 @@ import { Readable } from "stream";
 import fs from "fs";
 import path from "path";
 import { storage } from "./storage";
-import { insertUserSchema, insertCardSchema, insertLovedOneSchema } from "@shared/schema";
+import { insertUserSchema, insertCardSchema, insertLovedOneSchema, insertOrderSchema } from "@shared/schema";
 import { PHOTO_ANALYSIS_PROMPT } from "@shared/prompts";
 import OpenAI from "openai";
 import Stripe from "stripe";

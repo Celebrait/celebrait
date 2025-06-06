@@ -1,4 +1,4 @@
-import { users, cards, lovedOnes, type User, type InsertUser, type Card, type InsertCard, type LovedOne, type InsertLovedOne } from "@shared/schema";
+import { users, cards, lovedOnes, orders, type User, type InsertUser, type Card, type InsertCard, type LovedOne, type InsertLovedOne, type Order, type InsertOrder } from "@shared/schema";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -12,23 +12,33 @@ export interface IStorage {
   
   createLovedOne(lovedOne: InsertLovedOne & { userId: number }): Promise<LovedOne>;
   getUserLovedOnes(userId: number): Promise<LovedOne[]>;
+  
+  createOrder(order: InsertOrder): Promise<Order>;
+  getOrder(id: number): Promise<Order | undefined>;
+  getOrderByReference(reference: string): Promise<Order | undefined>;
+  updateOrder(id: number, updates: Partial<Order>): Promise<Order>;
+  getOrdersByEmail(email: string): Promise<Order[]>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private cards: Map<number, Card>;
   private lovedOnes: Map<number, LovedOne>;
+  private orders: Map<number, Order>;
   private currentUserId: number;
   private currentCardId: number;
   private currentLovedOneId: number;
+  private currentOrderId: number;
 
   constructor() {
     this.users = new Map();
     this.cards = new Map();
     this.lovedOnes = new Map();
+    this.orders = new Map();
     this.currentUserId = 1;
     this.currentCardId = 1;
     this.currentLovedOneId = 1;
+    this.currentOrderId = 1;
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -102,6 +112,51 @@ export class MemStorage implements IStorage {
   async getUserLovedOnes(userId: number): Promise<LovedOne[]> {
     return Array.from(this.lovedOnes.values()).filter(
       (lovedOne) => lovedOne.userId === userId,
+    );
+  }
+
+  async createOrder(orderData: InsertOrder): Promise<Order> {
+    const id = this.currentOrderId++;
+    const order: Order = {
+      ...orderData,
+      id,
+      paymentStatus: 'pending',
+      orderStatus: 'processing',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.orders.set(id, order);
+    return order;
+  }
+
+  async getOrder(id: number): Promise<Order | undefined> {
+    return this.orders.get(id);
+  }
+
+  async getOrderByReference(reference: string): Promise<Order | undefined> {
+    return Array.from(this.orders.values()).find(
+      (order) => order.paymentReference === reference
+    );
+  }
+
+  async updateOrder(id: number, updates: Partial<Order>): Promise<Order> {
+    const order = this.orders.get(id);
+    if (!order) {
+      throw new Error(`Order with id ${id} not found`);
+    }
+    
+    const updatedOrder = { 
+      ...order, 
+      ...updates, 
+      updatedAt: new Date() 
+    };
+    this.orders.set(id, updatedOrder);
+    return updatedOrder;
+  }
+
+  async getOrdersByEmail(email: string): Promise<Order[]> {
+    return Array.from(this.orders.values()).filter(
+      (order) => order.customerEmail === email
     );
   }
 }

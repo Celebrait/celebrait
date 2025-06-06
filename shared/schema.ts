@@ -66,9 +66,22 @@ export const insertLovedOneSchema = createInsertSchema(lovedOnes).pick({
   birthday: true,
 });
 
+export const insertOrderSchema = createInsertSchema(orders).pick({
+  cardId: true,
+  customerEmail: true,
+  customerName: true,
+  customerPhone: true,
+  amount: true,
+  currency: true,
+  paymentReference: true,
+  shippingAddress: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertCard = z.infer<typeof insertCardSchema>;
 export type Card = typeof cards.$inferSelect;
 export type InsertLovedOne = z.infer<typeof insertLovedOneSchema>;
 export type LovedOne = typeof lovedOnes.$inferSelect;
+export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type Order = typeof orders.$inferSelect;
