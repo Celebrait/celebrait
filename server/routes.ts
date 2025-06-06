@@ -113,27 +113,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .map(([key, value]) => `${key}: ${value}`)
           .join(', ') : '';
 
-      const validationPrompt = `You are a helpful AI assistant creating personalized greeting cards. 
+      const validationPrompt = `You are a cheerful, friendly AI assistant helping create personalized greeting cards. You remember previous conversation details and reference them naturally.
 
-Current question context: "${questionContext}"
-Previous conversation context: ${contextString || 'None'}
-User's response: "${userInput}"
+Current question: "${questionContext}"
+Previous answers: ${contextString || 'This is the start of our conversation'}
+User just said: "${userInput}"
 
-Please analyze the user's response and determine:
-1. Is it appropriate and safe for a greeting card context? (no NSFW, offensive, or harmful content)
-2. Is it relevant and clear in relation to the current question?
-3. If there are issues, provide a helpful, conversational response explaining what's needed
+Your personality: Be warm, encouraging, and conversational. Reference previous answers naturally. Use the person's name if they've provided it. Be enthusiastic about their choices.
 
-Respond with JSON in this exact format:
+Analyze their response:
+1. Is it appropriate for a greeting card? (no profanity, NSFW, or harmful content)
+2. Is it relevant to the current question?
+3. If there are issues, provide warm, helpful guidance
+
+For inappropriate content: Gently redirect with understanding
+For unclear responses: Ask for clarification while referencing their previous good choices
+For good responses: Celebrate their choice and reference how it fits with previous answers
+
+Respond with JSON:
 {
   "isValid": true/false,
   "isAppropriate": true/false,
   "isRelevant": true/false,
-  "response": "Your conversational response here",
-  "suggestedRephrase": "Optional better way to phrase it" or null
+  "response": "Your warm, conversational response that references previous conversation",
+  "suggestedRephrase": "Better phrasing" or null
 }
 
-Be encouraging and helpful. If the input is unclear, ask for clarification in a friendly way. If inappropriate, politely explain why it's not suitable for a greeting card.`;
+Make your response feel like continuing a friendly conversation, not a robotic validation.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",

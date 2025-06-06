@@ -1278,19 +1278,44 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       <div className="flex space-x-2">
                         <Input
                           value={currentInput}
-                          onChange={(e) => setCurrentInput(e.target.value)}
+                          onChange={(e) => {
+                            setCurrentInput(e.target.value);
+                            if (validationState.validationError) {
+                              setValidationState({ isValidating: false, validationError: null, aiResponse: null });
+                            }
+                          }}
                           placeholder="Type your answer..."
-                          className="text-lg p-3 rounded-lg border-purple-200 focus:border-purple-400"
+                          className={`text-lg p-3 rounded-lg focus:border-purple-400 ${
+                            validationState.validationError 
+                              ? 'border-red-300 focus:border-red-400' 
+                              : 'border-purple-200'
+                          }`}
                           onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                         />
                         <Button 
                           onClick={handleTextSubmit}
-                          disabled={!currentInput.trim()}
+                          disabled={!currentInput.trim() || validationState.isValidating}
                           className="px-4 py-3 rounded-lg bg-gradient-to-r from-purple-500 to-blue-500"
                         >
-                          <ArrowRight className="w-4 h-4" />
+                          {validationState.isValidating ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <ArrowRight className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
+                      
+                      {validationState.validationError && (
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mt-3">
+                          <div className="flex items-start space-x-3">
+                            <Bot className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-red-700 font-medium">I need some clarification:</p>
+                              <p className="text-red-600 mt-1">{validationState.validationError}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
