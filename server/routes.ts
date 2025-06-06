@@ -166,33 +166,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? `Create a greeting card in ${stylePrompt} style. Recreate this exact scene: ${imageAnalysis}. Add the text "${frontText || 'Happy Birthday!'}" in elegant typography that matches the ${stylePrompt} artistic style. The text should be prominently displayed and beautifully integrated into the design.`
         : `Create a greeting card in ${stylePrompt} style with the text "${frontText || 'Happy Birthday!'}" in elegant typography`;
 
-      console.log("Generating front card with text overlay and image analysis");
+      console.log("Generating front card with text overlay");
       
       let frontResponse;
       try {
-        if (imageAnalysis) {
-          // Use image-to-image transformation with the original photo
-          console.log("Using image-to-image transformation with original photo reference");
-          frontResponse = await openai.images.generate({
-            model: "gpt-image-1",
-            prompt: frontPrompt,
-            image: req.body.originalImage || req.body.photoData, // Use original photo as reference
-            size: "1024x1024",
-            quality: "high",
-            n: 1
-          });
-          console.log("Successfully used image-to-image for style transformation");
-        } else {
-          // Fallback to text-only generation
-          frontResponse = await openai.images.generate({
-            model: "gpt-image-1",
-            prompt: frontPrompt,
-            size: "1024x1024",
-            quality: "high",
-            n: 1
-          });
-          console.log("Successfully used text-only gpt-image-1 generation");
-        }
+        frontResponse = await openai.images.generate({
+          model: "gpt-image-1",
+          prompt: frontPrompt,
+          size: "1024x1024",
+          quality: "high",
+          n: 1
+        });
+        console.log("Successfully used gpt-image-1 for front card generation");
       } catch (gptError: any) {
         console.log("gpt-image-1 not available, falling back to dall-e-3:", gptError.message);
         
@@ -595,29 +580,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           enhancedPrompt += '. CRITICAL REQUIREMENTS: 1) Maintain the exact composition, poses, and spatial relationships described. 2) Transform the artistic style completely while preserving all scene elements. 3) Text must be large, bold, and clearly readable - positioned prominently.';
           console.log('Using scene transformation prompt:', enhancedPrompt);
           
-          // Try image-to-image generation first, fall back to text-only if not supported
-          try {
-            console.log('Attempting image-to-image generation with uploaded photo as reference');
-            frontImageGeneration = await openai.images.generate({
-              model: "gpt-image-1",
-              prompt: enhancedPrompt,
-              image: photoData, // Use uploaded photo as reference
-              n: 1,
-              size: "1024x1024"
-            });
-            console.log('Successfully used image-to-image generation');
-          } catch (imageToImageError: any) {
-            console.log('Image-to-image not available, using text-only generation:', imageToImageError.message);
-            frontImageGeneration = await openai.images.generate({
-              model: "gpt-image-1",
-              prompt: enhancedPrompt,
-              n: 1,
-              size: "1024x1024"
-            });
-          }
+          frontImageGeneration = await openai.images.generate({
+            model: "gpt-image-1",
+            prompt: enhancedPrompt,
+            n: 1,
+            size: "1024x1024"
+          });
         } else {
-          // Use the person-only analysis with image-to-image
-          console.log('Using pre-captured person analysis with image-to-image:', photoAnalysis);
+          // Use the person-only analysis as before
+          console.log('Using pre-captured person analysis:', photoAnalysis);
           
           let enhancedPrompt = frontPrompt.replace(
             'Create an artistic representation of the person in the uploaded photo',
@@ -628,26 +599,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           enhancedPrompt += '. CRITICAL REQUIREMENTS: 1) The scene/background must be clearly visible and match the described setting exactly. 2) Text must be large, bold, and clearly readable - positioned prominently in the foreground or on a clear background area.';
           console.log('Using enhanced prompt with photo description:', enhancedPrompt);
           
-          // Try image-to-image generation first, fall back to text-only if not supported
-          try {
-            console.log('Attempting image-to-image generation for person characteristics');
-            frontImageGeneration = await openai.images.generate({
-              model: "gpt-image-1",
-              prompt: enhancedPrompt,
-              image: photoData, // Use uploaded photo as reference
-              n: 1,
-              size: "1024x1024"
-            });
-            console.log('Successfully used image-to-image for person characteristics');
-          } catch (imageToImageError: any) {
-            console.log('Image-to-image not available, using text-only generation:', imageToImageError.message);
-            frontImageGeneration = await openai.images.generate({
-              model: "gpt-image-1",
-              prompt: enhancedPrompt,
-              n: 1,
-              size: "1024x1024"
-            });
-          }
+          frontImageGeneration = await openai.images.generate({
+            model: "gpt-image-1",
+            prompt: enhancedPrompt,
+            n: 1,
+            size: "1024x1024"
+          });
         }
       } else if (photoData) {
         // Fallback: try to analyze the photo again
