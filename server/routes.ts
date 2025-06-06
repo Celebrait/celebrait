@@ -610,45 +610,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Using direct image-to-image transformation with uploaded photo as reference');
         
         try {
-          // Use the uploaded image directly as reference with gpt-image-1
-          console.log('Attempting direct image reference with gpt-image-1');
+          // For now, analyze the photo to create enhanced prompts since direct image input isn't supported
+          console.log('Analyzing uploaded photo for enhanced prompt generation');
           
-          frontImageGeneration = await openai.images.generate({
-            model: "gpt-image-1",
-            prompt: frontPrompt,
-            reference_image: photoData, // Direct image reference
-            n: 1,
-            size: "1024x1024"
-          } as any);
-          console.log('Successfully used direct image reference with gpt-image-1');
-        } catch (imageInputError: any) {
-          console.log('Reference image parameter failed, trying image parameter:', imageInputError.message);
+          const visionResponse = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: "Analyze this image and describe ONLY the visual artistic elements for recreation: composition, poses, spatial relationships, lighting, color palette, artistic style, scene elements, and overall mood. Focus on what would be needed to recreate this exact visual arrangement in a different artistic style."
+                  },
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: photoData
+                    }
+                  }
+                ]
+              }
+            ],
+            max_tokens: 300
+          });
           
-          try {
+          const visualAnalysis = visionResponse.choices[0].message.content;
+          console.log('Visual analysis result:', visualAnalysis);
+          
+          if (visualAnalysis) {
+            // Create enhanced prompt using visual analysis for true style transformation
+            const enhancedPrompt = `${frontPrompt}. VISUAL REFERENCE: Recreate this exact composition and arrangement: ${visualAnalysis}. Transform the artistic style while maintaining the precise visual structure, poses, and spatial relationships described.`;
+            
             frontImageGeneration = await openai.images.generate({
-              model: "gpt-image-1", 
-              prompt: frontPrompt,
-              image: photoData, // Alternative image parameter
+              model: "gpt-image-1",
+              prompt: enhancedPrompt,
               n: 1,
               size: "1024x1024"
-            } as any);
-            console.log('Successfully used image parameter with gpt-image-1');
-          } catch (secondError: any) {
-            console.log('Both image parameters failed, trying source_image:', secondError.message);
+            });
+            console.log('Successfully generated image using visual analysis enhancement');
+          } else {
+            throw new Error('Visual analysis failed');
+          }
+        } catch (imageInputError: any) {
+          console.log('Direct image input not supported, using enhanced prompt approach:', imageInputError.message);
+          
+          // Fallback: analyze the photo for prompt enhancement
+          const visionResponse = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: "Describe the visual characteristics for artistic reference: hair color and texture, hairstyle, age appearance, skin tone, eyewear, facial structure, and build. Focus on artistic details only."
+                  },
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: photoData
+                    }
+                  }
+                ]
+              }
+            ],
+            max_tokens: 200
+          });
+          
+          const photoDescription = visionResponse.choices[0].message.content;
+          console.log('Photo analysis result:', photoDescription);
+          
+          if (photoDescription && photoDescription.trim().length > 20 && !photoDescription.includes("can't identify")) {
+            let enhancedPrompt = frontPrompt.replace(
+              'Create an artistic representation of the person in the uploaded photo',
+              `Create an artistic representation of a person with these specific characteristics: ${photoDescription}`
+            );
             
-            try {
-              frontImageGeneration = await openai.images.generate({
-                model: "gpt-image-1",
-                prompt: frontPrompt,
-                source_image: photoData, // Third attempt with source_image
-                n: 1,
-                size: "1024x1024"
-              } as any);
-              console.log('Successfully used source_image parameter with gpt-image-1');
-            } catch (thirdError: any) {
-              console.log('All direct image parameters failed, image-to-image not supported:', thirdError.message);
-              throw new Error('Direct image-to-image transformation not supported by gpt-image-1. Please use text descriptions instead.');
-            }
+            enhancedPrompt += '. CRITICAL REQUIREMENTS: 1) The scene/background must be clearly visible and match the described setting exactly. 2) Text must be large, bold, and clearly readable - positioned prominently in the foreground or on a clear background area.';
+            
+            frontImageGeneration = await openai.images.generate({
+              model: "gpt-image-1",
+              prompt: enhancedPrompt,
+              n: 1,
+              size: "1024x1024"
+            });
+          } else {
+            console.log('Photo analysis failed, using original prompt without photo reference');
+            const cleanedPrompt = frontPrompt.replace('Create an artistic representation of the person in the uploaded photo', 'Create an artistic representation of a person');
+            frontImageGeneration = await openai.images.generate({
+              model: "gpt-image-1",
+              prompt: cleanedPrompt,
+              n: 1,
+              size: "1024x1024"
+            });
           }
         }
       } else {
