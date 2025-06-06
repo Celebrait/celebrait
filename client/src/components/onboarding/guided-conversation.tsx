@@ -797,7 +797,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       
       if (!validation.isValid) {
         console.log('Validation failed, showing error');
-        // Show AI feedback for invalid input - don't proceed
+        // Set the validation error to display the AI's conversational response
+        setValidationState({ 
+          isValidating: false, 
+          validationError: validation.response,
+          aiResponse: validation.response 
+        });
+        // Don't proceed with form submission
         return;
       }
       
@@ -1387,19 +1393,44 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       <div className="flex space-x-2 sm:space-x-3">
                         <Input
                           value={currentInput}
-                          onChange={(e) => setCurrentInput(e.target.value)}
+                          onChange={(e) => {
+                            setCurrentInput(e.target.value);
+                            if (validationState.validationError) {
+                              setValidationState({ isValidating: false, validationError: null, aiResponse: null });
+                            }
+                          }}
                           placeholder="Type your answer..."
-                          className="text-sm sm:text-base p-3 sm:p-4 rounded-xl border-purple-200 focus:border-purple-400 bg-white/80"
+                          className={`text-sm sm:text-base p-3 sm:p-4 rounded-xl focus:border-purple-400 bg-white/80 ${
+                            validationState.validationError 
+                              ? 'border-red-300 focus:border-red-400' 
+                              : 'border-purple-200'
+                          }`}
                           onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                         />
                         <Button 
                           onClick={handleTextSubmit}
-                          disabled={!currentInput.trim()}
+                          disabled={!currentInput.trim() || validationState.isValidating}
                           className="px-4 sm:px-6 py-3 sm:py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
                         >
-                          <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                          {validationState.isValidating ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                          )}
                         </Button>
                       </div>
+                      
+                      {validationState.validationError && (
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mt-3">
+                          <div className="flex items-start space-x-3">
+                            <Bot className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-red-700 font-medium">I need some clarification:</p>
+                              <p className="text-red-600 mt-1">{validationState.validationError}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
