@@ -48,6 +48,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [returnToSummary, setReturnToSummary] = useState(false);
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const [photoAnalyses, setPhotoAnalyses] = useState<Array<{personIndex: number, analysis: string, attempts: number}>>([]);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const [selectedVideoOption, setSelectedVideoOption] = useState<string>('');
   const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
   const [currentAnalysisIndex, setCurrentAnalysisIndex] = useState<number>(-1);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -136,19 +138,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       options: [
         { 
           value: 'upload_and_scene', 
-          label: 'Upload Photo + Describe Scene', 
-          description: 'Upload a photo and I\'ll place them in a custom scene you describe',
+          label: 'Upload Photo(s) + Describe Scene', 
+          description: `Upload a photo of ${answers.name || 'them'} + anyone else you want to feature on the card. I'll then place them in a custom scene you describe.`,
           color: 'bg-green-500',
           icon: 'camera',
-          details: 'Perfect for creating personalized scenes with accurate likeness'
+          details: 'Perfect for creating personalised scenes with custom messaging!'
         },
         { 
           value: 'describe_person', 
-          label: 'Describe Person + Describe Scene', 
-          description: 'I\'ll create everything based on your descriptions',
+          label: `Describe ${answers.name || 'Person'} + Describe Scene`, 
+          description: `Describe ${answers.name || 'their'} visual features + anyone else you want to feature on the card.`,
           color: 'bg-blue-500',
           icon: 'edit',
-          details: 'Ideal when you don\'t have a photo but can describe them'
+          details: 'Ideal when you don\'t want to upload photos but still want an amazing personalised card!'
         },
         { 
           value: 'upload_and_transform', 
@@ -1625,9 +1627,26 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               <div className="flex-1">
                                 <h3 className="font-bold text-lg text-gray-800 mb-2">{option.label}</h3>
                                 <p className="text-gray-600 mb-3">{option.description}</p>
-                                <p className="text-sm text-purple-600 font-medium">{option.details}</p>
+                                <p className="text-sm text-purple-600 font-medium mb-4">{option.details}</p>
                                 
-
+                                {/* Video Explainer Button - only for enabled options */}
+                                {!isDisabled && (
+                                  <Button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedVideoOption(option.value);
+                                      setVideoModalOpen(true);
+                                    }}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-purple-300 text-purple-600 hover:bg-purple-50 hover:border-purple-400"
+                                  >
+                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Video Explainer
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -2164,6 +2183,40 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           </div>
         </div>
       </div>
+
+      {/* Video Explainer Modal */}
+      <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gray-800">
+              {selectedVideoOption === 'upload_and_scene' && 'Upload Photo(s) + Describe Scene'}
+              {selectedVideoOption === 'describe_person' && `Describe ${answers.name || 'Person'} + Describe Scene`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Watch this short video to learn more about how our "{selectedVideoOption === 'upload_and_scene' ? 'Upload Photo(s) + Describe Scene' : `Describe ${answers.name || 'Person'} + Describe Scene`}" creation process works.
+            </p>
+            
+            {/* Video Placeholder */}
+            <div className="w-full aspect-video bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+              <div className="text-center">
+                <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-gray-500 text-lg font-medium">Video Coming Soon</p>
+                <p className="text-gray-400 text-sm">Explainer video will be available here</p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end">
+              <Button onClick={() => setVideoModalOpen(false)} variant="outline">
+                Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
