@@ -780,8 +780,32 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   };
 
-  const handleTextSubmit = () => {
+  const handleTextSubmit = async () => {
     if (currentInput.trim()) {
+      const currentStep = filteredSteps[currentStepIndex];
+      if (!currentStep) return;
+
+      // Use AI validation for text/textarea inputs
+      if (currentStep.type === 'text' || currentStep.type === 'textarea') {
+        const validation = await validateUserInput(currentInput.trim(), currentStep.id, currentStep.question);
+        
+        if (!validation.isValid) {
+          // Show AI feedback for invalid input - don't proceed
+          return;
+        }
+        
+        // Clear validation state on successful validation
+        setValidationState({ isValidating: false, validationError: null, aiResponse: null });
+        
+        // Add to conversation history for context
+        setConversationHistory(prev => [...prev, {
+          stepId: currentStep.id,
+          question: currentStep.question,
+          userAnswer: currentInput.trim(),
+          aiResponse: generateContextualResponse(currentStep.id, currentInput.trim())
+        }]);
+      }
+      
       handleAnswer(currentInput.trim());
     }
   };
@@ -930,41 +954,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   };
 
-  const handleNext = async () => {
-    const currentStep = filteredSteps[currentStepIndex];
-    if (!currentStep) return;
-
-    // For text/textarea inputs, validate with AI before proceeding
-    if ((currentStep.type === 'text' || currentStep.type === 'textarea') && currentInput.trim()) {
-      const validation = await validateUserInput(currentInput.trim(), currentStep.id, currentStep.question);
-      
-      if (!validation.isValid) {
-        // Show AI feedback for invalid input
-        setValidationState({ 
-          isValidating: false, 
-          validationError: validation.response,
-          aiResponse: validation.response
-        });
-        return; // Don't proceed to next step
-      }
-      
-      // Clear validation state on successful validation
-      setValidationState({ isValidating: false, validationError: null, aiResponse: null });
-      
-      // Store the validated answer
-      setAnswers(prev => ({ ...prev, [currentStep.id]: currentInput.trim() }));
-      
-      // Add to conversation history for context
-      setConversationHistory(prev => [...prev, {
-        stepId: currentStep.id,
-        question: currentStep.question,
-        userAnswer: currentInput.trim(),
-        aiResponse: generateContextualResponse(currentStep.id, currentInput.trim())
-      }]);
-      
-      setCurrentInput('');
-    }
-
+  const handleNext = () => {
     if (currentStepIndex < filteredSteps.length - 1) {
       setCurrentStepIndex(prev => prev + 1);
       setEditingStep(null);
