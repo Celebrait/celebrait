@@ -18,11 +18,33 @@ export default function PaymentSuccess() {
   const cardId = searchParams.get('cardId');
   const paymentId = searchParams.get('payment_id');
   const success = searchParams.get('payment') === 'success';
+  const isDemo = searchParams.get('demo') === 'true';
 
   useEffect(() => {
     const loadCardData = async () => {
       if (!cardId) {
         setLocation('/');
+        return;
+      }
+
+      // Handle demo mode with test data
+      if (isDemo || cardId === 'test') {
+        const testCard = {
+          id: 999,
+          frontImageUrl: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=500&fit=crop",
+          cardType: "printed",
+          printOption: "front-and-inside",
+          price: 4500,
+          status: "paid"
+        };
+        setCardData(testCard);
+        
+        if (success) {
+          toast({
+            title: "Demo Payment Successful!",
+            description: "This was a demo payment. Your test card is ready for download.",
+          });
+        }
         return;
       }
 
