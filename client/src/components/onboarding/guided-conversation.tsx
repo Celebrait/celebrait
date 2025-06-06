@@ -449,6 +449,84 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   ];
 
+  // Validate user input with AI-powered content filtering
+  const validateUserInput = async (userInput: string, stepId: string, questionText: string) => {
+    if (!userInput || userInput.trim().length === 0) {
+      return { isValid: false, response: "Please provide an answer to continue." };
+    }
+
+    setValidationState({ isValidating: true, validationError: null, aiResponse: null });
+
+    try {
+      const response = await fetch('/api/validate-input', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userInput: userInput.trim(),
+          questionContext: questionText,
+          previousAnswers: answers,
+          stepId
+        })
+      });
+      
+      const validation = await response.json();
+      
+      setValidationState({ 
+        isValidating: false, 
+        validationError: validation.isValid ? null : validation.response,
+        aiResponse: validation.isValid ? null : validation.response
+      });
+
+      return validation;
+    } catch (error: any) {
+      setValidationState({ 
+        isValidating: false, 
+        validationError: "Sorry, I'm having trouble validating your response. Please try again.",
+        aiResponse: null
+      });
+      return { isValid: false, response: "Sorry, I'm having trouble validating your response. Please try again." };
+    }
+  };
+
+  // Generate contextual AI response based on conversation history
+  const generateContextualResponse = (stepId: string, userAnswer: string) => {
+    const currentStep = filteredSteps[currentStepIndex];
+    if (!currentStep) return '';
+
+    // Build contextual response based on previous answers
+    let contextualMessage = currentStep.aiMessage;
+
+    // Add personalized touches based on previous answers
+    if (answers.name && stepId !== 'name') {
+      contextualMessage = contextualMessage.replace(/\btheir\b/g, `${answers.name}'s`);
+      contextualMessage = contextualMessage.replace(/\bthem\b/g, answers.name);
+    }
+
+    if (answers.celebration && stepId !== 'celebration') {
+      contextualMessage = contextualMessage.replace(/celebration/g, answers.celebration);
+    }
+
+    // Add conversation history context
+    if (conversationHistory.length > 0) {
+      const recentSteps = conversationHistory.slice(-2);
+      const context = recentSteps.map(h => `${h.stepId}: ${h.userAnswer}`).join(', ');
+      
+      // For certain steps, reference previous answers
+      if (stepId === 'scene' && answers.character_costume) {
+        contextualMessage += ` I'll make sure the scene complements their ${answers.character_costume} outfit perfectly!`;
+      }
+      
+      if (stepId === 'art_style' && answers.personality) {
+        const personalities = Array.isArray(answers.personality) ? answers.personality.join(' and ') : answers.personality;
+        contextualMessage += ` Given their ${personalities} personality, what style do you think would capture their essence best?`;
+      }
+    }
+
+    return contextualMessage;
+  };
+
   // All hooks must be at the top level before any conditional returns
   useEffect(() => {
     initializeCard();
@@ -852,7 +930,41 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    const currentStep = filteredSteps[currentStepIndex];
+    if (!currentStep) return;
+
+    // For text/textarea inputs, validate with AI before proceeding
+    if ((currentStep.type === 'text' || currentStep.type === 'textarea') && currentInput.trim()) {
+      const validation = await validateUserInput(currentInput.trim(), currentStep.id, currentStep.question);
+      
+      if (!validation.isValid) {
+        // Show AI feedback for invalid input
+        setValidationState({ 
+          isValidating: false, 
+          validationError: validation.response,
+          aiResponse: validation.response
+        });
+        return; // Don't proceed to next step
+      }
+      
+      // Clear validation state on successful validation
+      setValidationState({ isValidating: false, validationError: null, aiResponse: null });
+      
+      // Store the validated answer
+      setAnswers(prev => ({ ...prev, [currentStep.id]: currentInput.trim() }));
+      
+      // Add to conversation history for context
+      setConversationHistory(prev => [...prev, {
+        stepId: currentStep.id,
+        question: currentStep.question,
+        userAnswer: currentInput.trim(),
+        aiResponse: generateContextualResponse(currentStep.id, currentInput.trim())
+      }]);
+      
+      setCurrentInput('');
+    }
+
     if (currentStepIndex < filteredSteps.length - 1) {
       setCurrentStepIndex(prev => prev + 1);
       setEditingStep(null);
