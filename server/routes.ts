@@ -1241,7 +1241,19 @@ The inside should look like a perfect companion piece created by the same artist
   // Character transformation using flux-kontext-max
   app.post("/api/transform-character-flux", async (req, res) => {
     try {
-      const { cardId, originalImage, prompt, scene, artStyle } = req.body;
+      const { 
+        cardId, 
+        originalImage, 
+        prompt, 
+        scene, 
+        artStyle,
+        // Optional flux parameters
+        guidance_scale = 3.5,
+        num_inference_steps = 28,
+        seed,
+        strength = 0.95,
+        output_format = "png"
+      } = req.body;
 
       if (!cardId || !originalImage || !prompt) {
         return res.status(400).json({ message: "Card ID, original image, and prompt are required" });
@@ -1263,16 +1275,22 @@ The inside should look like a perfect companion piece created by the same artist
 
       console.log('Flux character transformation prompt:', transformPrompt);
       console.log('Original image data length:', originalImage.length);
+      console.log('Flux parameters:', { guidance_scale, num_inference_steps, strength, seed });
+
+      const fluxInput: any = {
+        input_image: originalImage,
+        prompt: transformPrompt,
+        guidance_scale,
+        num_inference_steps,
+        strength,
+        output_format
+      };
+      
+      if (seed) fluxInput.seed = seed;
 
       const output = await replicate.run(
         "black-forest-labs/flux-kontext-max",
-        {
-          input: {
-            input_image: originalImage,
-            prompt: transformPrompt,
-            output_format: "png"
-          }
-        }
+        { input: fluxInput }
       );
 
       console.log('Flux character transformation output type:', typeof output);
@@ -1315,10 +1333,21 @@ The inside should look like a perfect companion piece created by the same artist
     }
   });
 
-  // Style transformation using flux-kontext-pro
+  // Style transformation using flux-kontext-max
   app.post("/api/transform-style-flux", async (req, res) => {
     try {
-      const { cardId, originalImage, prompt, artStyle } = req.body;
+      const { 
+        cardId, 
+        originalImage, 
+        prompt, 
+        artStyle,
+        // Optional flux parameters
+        guidance_scale = 3.5,
+        num_inference_steps = 28,
+        seed,
+        strength = 0.95,
+        output_format = "png"
+      } = req.body;
 
       if (!cardId || !originalImage || !prompt) {
         return res.status(400).json({ message: "Card ID, original image, and prompt are required" });
@@ -1340,16 +1369,22 @@ The inside should look like a perfect companion piece created by the same artist
 
       console.log('Flux style transformation prompt:', transformPrompt);
       console.log('Original image data length:', originalImage.length);
+      console.log('Flux parameters:', { guidance_scale, num_inference_steps, strength, seed });
+
+      const fluxInput: any = {
+        input_image: originalImage,
+        prompt: transformPrompt,
+        guidance_scale,
+        num_inference_steps,
+        strength,
+        output_format
+      };
+      
+      if (seed) fluxInput.seed = seed;
 
       const output = await replicate.run(
         "black-forest-labs/flux-kontext-max",
-        {
-          input: {
-            input_image: originalImage,
-            prompt: transformPrompt,
-            output_format: "png"
-          }
-        }
+        { input: fluxInput }
       );
 
       console.log('Flux style transformation output type:', typeof output);
