@@ -27,7 +27,7 @@ interface GuidedConversationProps {
 interface ConversationStep {
   id: string;
   question: string;
-  aiMessage: string;
+  aiMessage: string | JSX.Element;
   type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload' | 'photo_creation_choice' | 'people_details';
   options?: Array<{ value: string; label: string; description?: string; color?: string; icon?: string; details?: string; disabled?: boolean }>;
   placeholder?: string;
@@ -50,6 +50,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [photoAnalyses, setPhotoAnalyses] = useState<Array<{personIndex: number, analysis: string, attempts: number}>>([]);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedVideoOption, setSelectedVideoOption] = useState<string>('');
+  const [copyrightConsentOpen, setCopyrightConsentOpen] = useState(false);
+  const [hasCopyrightConsent, setHasCopyrightConsent] = useState(false);
   const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
   const [currentAnalysisIndex, setCurrentAnalysisIndex] = useState<number>(-1);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -170,7 +172,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         : `Please upload photos of ${answers.name || 'them'} (you can select multiple)`,
       aiMessage: answers.photo_option === 'upload_and_transform'
         ? `Perfect! Please upload a clear photo that you'd like me to transform into different artistic styles. I'll apply the artistic style you choose while maintaining the essence of the original image.`
-        : `Perfect! Please upload <strong>one clear photo</strong> of ${answers.name || 'them'} + <strong>one clear photo</strong> of any other people you'd like in the scene.`,
+        : `Perfect! Please upload one clear photo of ${answers.name || 'them'} + one clear photo of any other people you'd like in the scene.`,
       type: 'photo_upload',
       required: true
     },
@@ -805,6 +807,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   };;
 
+  const handlePhotoUploadClick = () => {
+    if (!hasCopyrightConsent) {
+      setCopyrightConsentOpen(true);
+    } else {
+      document.getElementById('photo-upload')?.click();
+    }
+  };
+
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
@@ -828,6 +838,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         reader.readAsDataURL(file);
       });
     }
+  };
+
+  const handleCopyrightConsent = () => {
+    setHasCopyrightConsent(true);
+    setCopyrightConsentOpen(false);
+    // Trigger file input after consent
+    setTimeout(() => {
+      document.getElementById('photo-upload')?.click();
+    }, 100);
   };
 
   const handlePhotoUploadContinue = () => {
