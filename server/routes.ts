@@ -308,7 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ]
           }
         ],
-        max_tokens: 300
+        max_tokens: 500
       });
 
       const analysis = visionResponse.choices[0].message.content;
