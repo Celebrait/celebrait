@@ -31,15 +31,19 @@ const stripe = hasStripe ? new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 // Helper function to process Replicate flux binary output
 async function processFluxBinaryOutput(output: any): Promise<string> {
+  console.log('processFluxBinaryOutput called with output type:', typeof output);
   const binaryChunks: Uint8Array[] = [];
   
   // Collect all binary chunks from the async output
   for await (const chunk of output) {
+    console.log('Processing chunk:', typeof chunk, chunk instanceof Uint8Array ? `Uint8Array(${chunk.length})` : chunk);
     if (chunk instanceof Uint8Array) {
       binaryChunks.push(chunk);
       console.log('Collected binary chunk:', chunk.length, 'bytes');
     }
   }
+  
+  console.log('Total binary chunks collected:', binaryChunks.length);
   
   if (binaryChunks.length === 0) {
     throw new Error('No binary chunks received from flux model');
@@ -1277,9 +1281,8 @@ The inside should look like a perfect companion piece created by the same artist
       );
 
       console.log('Flux character transformation output type:', typeof output);
-      console.log('Flux character transformation output:', output);
 
-      // Handle Replicate async iterator output
+      // Handle Replicate flux binary output
       let frontImageUrl;
       
       if (Array.isArray(output) && output.length > 0) {
@@ -1289,33 +1292,18 @@ The inside should look like a perfect companion piece created by the same artist
         frontImageUrl = output;
         console.log('Using direct string URL:', frontImageUrl);
       } else if (output && typeof output === 'object') {
-        // Handle async iterator from Replicate
-        console.log('Processing async iterator from Replicate...');
+        // Handle flux binary output from Replicate
+        console.log('Processing flux binary output from Replicate...');
         
         try {
-          const results = [];
-          
-          // Try to iterate over the async output
-          for await (const item of output as any) {
-            results.push(item);
-            console.log('Got item from iterator:', item);
-          }
-          
-          if (results.length > 0) {
-            frontImageUrl = results[0];
-            console.log('Using first result from iterator:', frontImageUrl);
-          } else {
-            throw new Error('No results from async iterator');
-          }
-        } catch (iterError) {
-          console.error('Async iteration failed:', iterError);
-          // Fallback: convert object to string
-          frontImageUrl = String(output);
-          console.log('Using string conversion as fallback:', frontImageUrl);
+          frontImageUrl = await processFluxBinaryOutput(output);
+        } catch (fluxError) {
+          console.error('Flux binary processing failed:', fluxError);
+          throw new Error('Failed to process flux binary output');
         }
       } else {
-        console.error('Unexpected output format from Replicate:', typeof output, output);
-        throw new Error('Invalid output format from Replicate - expected array, string URL, or async iterator');
+        console.error('Unexpected flux output format:', typeof output, output);
+        throw new Error('Invalid flux output format - expected array, string URL, or binary iterator');
       }
 
       console.log('Final extracted frontImageUrl:', frontImageUrl);
@@ -1375,9 +1363,8 @@ The inside should look like a perfect companion piece created by the same artist
       );
 
       console.log('Flux style transformation output type:', typeof output);
-      console.log('Flux style transformation output:', output);
 
-      // Handle Replicate async iterator output
+      // Handle Replicate flux binary output
       let frontImageUrl;
       
       if (Array.isArray(output) && output.length > 0) {
@@ -1387,33 +1374,18 @@ The inside should look like a perfect companion piece created by the same artist
         frontImageUrl = output;
         console.log('Using direct string URL:', frontImageUrl);
       } else if (output && typeof output === 'object') {
-        // Handle async iterator from Replicate
-        console.log('Processing async iterator from Replicate...');
+        // Handle flux binary output from Replicate
+        console.log('Processing flux binary output from Replicate...');
         
         try {
-          const results = [];
-          
-          // Try to iterate over the async output
-          for await (const item of output as any) {
-            results.push(item);
-            console.log('Got item from iterator:', item);
-          }
-          
-          if (results.length > 0) {
-            frontImageUrl = results[0];
-            console.log('Using first result from iterator:', frontImageUrl);
-          } else {
-            throw new Error('No results from async iterator');
-          }
-        } catch (iterError) {
-          console.error('Async iteration failed:', iterError);
-          // Fallback: convert object to string
-          frontImageUrl = String(output);
-          console.log('Using string conversion as fallback:', frontImageUrl);
+          frontImageUrl = await processFluxBinaryOutput(output);
+        } catch (fluxError) {
+          console.error('Flux binary processing failed:', fluxError);
+          throw new Error('Failed to process flux binary output');
         }
       } else {
-        console.error('Unexpected output format from Replicate:', typeof output, output);
-        throw new Error('Invalid output format from Replicate - expected array, string URL, or async iterator');
+        console.error('Unexpected flux output format:', typeof output, output);
+        throw new Error('Invalid flux output format - expected array, string URL, or binary iterator');
       }
 
       console.log('Final extracted frontImageUrl:', frontImageUrl);
