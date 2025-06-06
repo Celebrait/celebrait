@@ -143,7 +143,156 @@ export default function TestGeneration() {
     }
   };
 
-  // Style transformation using image-to-image
+  // Character transformation using flux-kontext-pro
+  const transformCharacterWithFlux = async () => {
+    if (!transformPhoto || !transformScene) {
+      toast({
+        title: "Missing information",
+        description: "Please upload a photo and describe the new scene",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsTransforming(true);
+    try {
+      // Create a test card
+      const timestamp = Date.now();
+      const userResponse = await apiRequest("POST", "/api/users", {
+        username: `Flux Character User ${timestamp}`,
+        email: `flux_char${timestamp}@example.com`
+      });
+      const user = await userResponse.json();
+
+      const cardResponse = await apiRequest("POST", "/api/cards", {
+        cardType: "digital",
+        printOption: null,
+        recipientName: "Character Test",
+        celebration: "transformation",
+        sceneType: "with-person",
+        price: 0,
+        userId: user.id
+      });
+      const card = await cardResponse.json();
+
+      // Build character transformation prompt
+      const characterPrompt = [
+        "Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame",
+        "using the reference image as a guide, recreate the same person, now",
+        transformScene,
+        transformStyle ? `${transformStyle} art style` : "realistic style",
+        "maintain the person's exact appearance and characteristics from the reference image",
+        "high-quality artistic rendering, professional artwork"
+      ].join(', ');
+
+      console.log('Flux character transformation prompt:', characterPrompt);
+
+      const fluxResponse = await apiRequest("POST", "/api/transform-character-flux", {
+        cardId: card.id,
+        originalImage: transformPhoto,
+        prompt: characterPrompt,
+        scene: transformScene,
+        artStyle: transformStyle || "realistic"
+      });
+
+      const result = await fluxResponse.json();
+      
+      if (result && result.frontImageUrl) {
+        setTransformedImage(result.frontImageUrl);
+        toast({
+          title: "Character transformation complete!",
+          description: "Successfully transformed character to new scene using flux-kontext-pro"
+        });
+      } else {
+        throw new Error("No image generated");
+      }
+    } catch (error: any) {
+      console.error('Flux character transformation error:', error);
+      toast({
+        title: "Transformation failed",
+        description: error.message || "Failed to transform character",
+        variant: "destructive"
+      });
+    } finally {
+      setIsTransforming(false);
+    }
+  };
+
+  // Style transformation using flux-kontext-pro
+  const transformStyleWithFlux = async () => {
+    if (!styleTransformPhoto || !selectedArtStyle) {
+      toast({
+        title: "Missing information",
+        description: "Please upload a photo and select an art style",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsStyleTransforming(true);
+    try {
+      // Create a test card
+      const timestamp = Date.now();
+      const userResponse = await apiRequest("POST", "/api/users", {
+        username: `Flux Style User ${timestamp}`,
+        email: `flux_style${timestamp}@example.com`
+      });
+      const user = await userResponse.json();
+
+      const cardResponse = await apiRequest("POST", "/api/cards", {
+        cardType: "digital",
+        printOption: null,
+        recipientName: "Style Test",
+        celebration: "transformation",
+        sceneType: "scene-only",
+        price: 0,
+        userId: user.id
+      });
+      const card = await cardResponse.json();
+
+      // Build style transformation prompt
+      const stylePrompt = [
+        "Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame",
+        "recreate the exact scene and composition from the reference image",
+        `rendered in ${selectedArtStyle} art style`,
+        "maintain all elements, poses, and arrangements from the original",
+        "transform only the artistic style while preserving the content",
+        "high-quality artistic rendering, professional artwork"
+      ].join(', ');
+
+      console.log('Flux style transformation prompt:', stylePrompt);
+
+      const fluxResponse = await apiRequest("POST", "/api/transform-style-flux", {
+        cardId: card.id,
+        originalImage: styleTransformPhoto,
+        prompt: stylePrompt,
+        artStyle: selectedArtStyle
+      });
+
+      const result = await fluxResponse.json();
+      
+      if (result && result.frontImageUrl) {
+        setStyleTransformedImage(result.frontImageUrl);
+        toast({
+          title: "Style transformation complete!",
+          description: "Successfully transformed style using flux-kontext-pro"
+        });
+      } else {
+        throw new Error("No image generated");
+      }
+    } catch (error: any) {
+      console.error('Flux style transformation error:', error);
+      toast({
+        title: "Transformation failed",
+        description: error.message || "Failed to transform style",
+        variant: "destructive"
+      });
+    } finally {
+      setIsStyleTransforming(false);
+    }
+  };
+
+  // Legacy style transformation using OpenAI (fallback)
   const transformImageStyle = async () => {
     if (!styleTransformPhoto || !selectedArtStyle) {
       toast({
@@ -1364,23 +1513,44 @@ export default function TestGeneration() {
                       </Select>
                     </div>
 
-                    <Button
-                      onClick={transformCharacterToScene}
-                      disabled={isTransforming || !transformPhoto || !transformScene}
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                    >
-                      {isTransforming ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Transforming Character...
-                        </>
-                      ) : (
-                        <>
-                          <Wand2 className="w-4 h-4 mr-2" />
-                          Transform Character to New Scene
-                        </>
-                      )}
-                    </Button>
+                    <div className="space-y-2">
+                      <Button
+                        onClick={transformCharacterWithFlux}
+                        disabled={isTransforming || !transformPhoto || !transformScene}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                      >
+                        {isTransforming ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Transforming with Flux...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-4 h-4 mr-2" />
+                            Transform with Flux-Kontext-Pro
+                          </>
+                        )}
+                      </Button>
+                      
+                      <Button
+                        onClick={transformCharacterToScene}
+                        disabled={isTransforming || !transformPhoto || !transformScene}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        {isTransforming ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Transforming with OpenAI...
+                          </>
+                        ) : (
+                          <>
+                            <User className="w-4 h-4 mr-2" />
+                            Transform with OpenAI (Legacy)
+                          </>
+                        )}
+                      </Button>
+                    </div>
 
                     <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded">
                       This feature analyzes the person in your photo and places them in a completely new scene while maintaining their distinctive features.
@@ -1465,23 +1635,44 @@ export default function TestGeneration() {
                       </Select>
                     </div>
 
-                    <Button
-                      onClick={transformImageStyle}
-                      disabled={isStyleTransforming || !styleTransformPhoto || !selectedArtStyle}
-                      className="w-full bg-purple-600 hover:bg-purple-700"
-                    >
-                      {isStyleTransforming ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Applying Style...
-                        </>
-                      ) : (
-                        <>
-                          <Palette className="w-4 h-4 mr-2" />
-                          Transform to {selectedArtStyle || 'Selected Style'}
-                        </>
-                      )}
-                    </Button>
+                    <div className="space-y-2">
+                      <Button
+                        onClick={transformStyleWithFlux}
+                        disabled={isStyleTransforming || !styleTransformPhoto || !selectedArtStyle}
+                        className="w-full bg-purple-600 hover:bg-purple-700"
+                      >
+                        {isStyleTransforming ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Transforming with Flux...
+                          </>
+                        ) : (
+                          <>
+                            <Palette className="w-4 h-4 mr-2" />
+                            Transform with Flux-Kontext-Pro
+                          </>
+                        )}
+                      </Button>
+                      
+                      <Button
+                        onClick={transformImageStyle}
+                        disabled={isStyleTransforming || !styleTransformPhoto || !selectedArtStyle}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        {isStyleTransforming ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Transforming with OpenAI...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-4 h-4 mr-2" />
+                            Transform with OpenAI (Legacy)
+                          </>
+                        )}
+                      </Button>
+                    </div>
 
                     <div className="text-xs text-gray-500 bg-purple-50 p-2 rounded">
                       This feature transforms your entire photo into a new artistic style while preserving the composition and content.

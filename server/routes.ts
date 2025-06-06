@@ -21,6 +21,10 @@ const openai = hasOpenAI ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY 
 }) : null;
 
+const replicate = hasReplicate ? new Replicate({
+  auth: process.env.REPLICATE_API_TOKEN,
+}) : null;
+
 const stripe = hasStripe ? new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
 }) : null;
@@ -1182,6 +1186,122 @@ The inside should look like a perfect companion piece created by the same artist
       res.json(ordersWithCards);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Character transformation using flux-kontext-pro
+  app.post("/api/transform-character-flux", async (req, res) => {
+    try {
+      const { cardId, originalImage, prompt, scene, artStyle } = req.body;
+
+      if (!cardId || !originalImage || !prompt) {
+        return res.status(400).json({ message: "Card ID, original image, and prompt are required" });
+      }
+
+      if (!replicate) {
+        return res.status(503).json({ message: "Replicate API not configured - REPLICATE_API_TOKEN required" });
+      }
+
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      console.log('Character transformation with flux-kontext-pro:', { cardId, prompt, scene, artStyle });
+
+      // Build transformation prompt for character in new scene
+      const transformPrompt = `${prompt}, ${scene}, ${artStyle} art style, maintain the person's exact appearance and characteristics from the reference image, high-quality artistic rendering, professional artwork`;
+
+      console.log('Flux character transformation prompt:', transformPrompt);
+
+      const output = await replicate.run(
+        "black-forest-labs/flux-kontext-pro",
+        {
+          input: {
+            image: originalImage,
+            prompt: transformPrompt,
+            num_outputs: 1,
+            aspect_ratio: "1:1",
+            output_format: "png",
+            output_quality: 90,
+            guidance_scale: 3.5,
+            num_inference_steps: 28,
+            seed: Math.floor(Math.random() * 1000000)
+          }
+        }
+      );
+
+      console.log('Flux character transformation output:', output);
+
+      // Update card with new image
+      const frontImageUrl = Array.isArray(output) ? output[0] : output;
+      const updatedCard = await storage.updateCard(cardId, {
+        frontImageUrl,
+        status: 'completed'
+      });
+
+      res.json(updatedCard);
+    } catch (error: any) {
+      console.error('Character transformation error:', error);
+      res.status(500).json({ message: "Character transformation failed: " + error.message });
+    }
+  });
+
+  // Style transformation using flux-kontext-pro
+  app.post("/api/transform-style-flux", async (req, res) => {
+    try {
+      const { cardId, originalImage, prompt, artStyle } = req.body;
+
+      if (!cardId || !originalImage || !prompt) {
+        return res.status(400).json({ message: "Card ID, original image, and prompt are required" });
+      }
+
+      if (!replicate) {
+        return res.status(503).json({ message: "Replicate API not configured - REPLICATE_API_TOKEN required" });
+      }
+
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      console.log('Style transformation with flux-kontext-pro:', { cardId, prompt, artStyle });
+
+      // Build transformation prompt for style change
+      const transformPrompt = `${prompt}, rendered in ${artStyle} art style, maintain all elements, poses, and arrangements from the original, transform only the artistic style while preserving the content, high-quality artistic rendering, professional artwork`;
+
+      console.log('Flux style transformation prompt:', transformPrompt);
+
+      const output = await replicate.run(
+        "black-forest-labs/flux-kontext-pro",
+        {
+          input: {
+            image: originalImage,
+            prompt: transformPrompt,
+            num_outputs: 1,
+            aspect_ratio: "1:1",
+            output_format: "png",
+            output_quality: 90,
+            guidance_scale: 3.5,
+            num_inference_steps: 28,
+            seed: Math.floor(Math.random() * 1000000)
+          }
+        }
+      );
+
+      console.log('Flux style transformation output:', output);
+
+      // Update card with new image
+      const frontImageUrl = Array.isArray(output) ? output[0] : output;
+      const updatedCard = await storage.updateCard(cardId, {
+        frontImageUrl,
+        status: 'completed'
+      });
+
+      res.json(updatedCard);
+    } catch (error: any) {
+      console.error('Style transformation error:', error);
+      res.status(500).json({ message: "Style transformation failed: " + error.message });
     }
   });
 
