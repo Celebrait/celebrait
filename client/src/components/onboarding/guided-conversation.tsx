@@ -147,7 +147,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         { 
           value: 'describe_person', 
           label: `Describe ${answers.name || 'Person'} + Describe Scene`, 
-          description: `Describe ${answers.name || 'their'} visual features + anyone else you want to feature on the card.`,
+          description: `Describe ${answers.name ? `${answers.name}'s` : 'their'} visual features + anyone else you want to feature on the card. I'll then place them in a custom scene you describe.`,
           color: 'bg-blue-500',
           icon: 'edit',
           details: 'Ideal when you don\'t want to upload photos but still want an amazing personalised card!'
