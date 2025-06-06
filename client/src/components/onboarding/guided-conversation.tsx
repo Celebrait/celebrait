@@ -179,7 +179,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'people_details',
       question: `Please provide details for each person`,
-      aiMessage: `Great photos! I've analyzed each person. Now I need to know their gender and cultural background to create authentic artistic representations. Please provide this information for each person.`,
+      aiMessage: `Great photos! I've analysed each person. But I need you confirm their gender and cultural background as our AI doesn't always get this right!`,
       type: 'people_details',
       required: true
     },
@@ -242,7 +242,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         { value: 'tsonga', label: 'Tsonga', description: 'Tsonga heritage', color: 'bg-teal-500' },
         { value: 'ndebele', label: 'Ndebele', description: 'Ndebele heritage', color: 'bg-rose-500' },
         { value: 'swazi', label: 'Swazi', description: 'Swazi heritage', color: 'bg-cyan-500' },
-        { value: 'coloured', label: 'Coloured', description: 'South African mixed heritage', color: 'bg-amber-500' },
+        { value: 'coloured', label: 'Cape Coloured', description: 'South African mixed heritage', color: 'bg-amber-500' },
         { value: 'indian', label: 'Indian', description: 'South African Indian community', color: 'bg-emerald-500' },
         { value: 'chinese', label: 'Chinese', description: 'Chinese South African', color: 'bg-lime-500' },
         { value: 'other_african', label: 'Other African', description: 'Other African heritage', color: 'bg-gray-500' },
@@ -1710,7 +1710,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             {/* Gender Selection */}
                             <div>
                               <label className="block text-base font-medium text-gray-800 mb-3">Gender</label>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                                 {[
                                   { value: 'female', label: 'Female' },
                                   { value: 'male', label: 'Male' }
@@ -1719,7 +1719,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                     key={option.value}
                                     onClick={() => {
                                       const newPeopleDetails = [...(answers.people_details || [])];
-                                      newPeopleDetails[currentPersonIndex] = { ...(newPeopleDetails[currentPersonIndex] || {}), gender: option.value };
+                                      newPeopleDetails[currentPersonIndex] = { ...(newPeopleDetails[currentPersonIndex] || {}), gender: option.value, custom_gender: '' };
                                       setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
                                     }}
                                     variant="outline"
@@ -1733,6 +1733,28 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                   </Button>
                                 ))}
                               </div>
+                              
+                              <div className="space-y-2">
+                                <p className="text-sm text-gray-600 text-center">
+                                  Want to specify different gender? Type it below:
+                                </p>
+                                <div className="flex space-x-2">
+                                  <Input
+                                    value={answers.people_details?.[currentPersonIndex]?.custom_gender || ''}
+                                    onChange={(e) => {
+                                      const newPeopleDetails = [...(answers.people_details || [])];
+                                      newPeopleDetails[currentPersonIndex] = { 
+                                        ...(newPeopleDetails[currentPersonIndex] || {}), 
+                                        custom_gender: e.target.value,
+                                        gender: e.target.value ? 'custom' : ''
+                                      };
+                                      setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
+                                    }}
+                                    placeholder="Type your answer..."
+                                    className="text-lg p-3 rounded-lg border-purple-200 focus:border-purple-400"
+                                  />
+                                </div>
+                              </div>
                             </div>
 
                             {/* Cultural Background Selection */}
@@ -1741,7 +1763,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                                 {[
                                   { value: 'black_african', label: 'Black African' },
-                                  { value: 'coloured', label: 'Coloured' },
+                                  { value: 'coloured', label: 'Cape Coloured' },
                                   { value: 'white', label: 'White' },
                                   { value: 'indian', label: 'Indian' }
                                 ].map((option) => (
@@ -1768,23 +1790,26 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                 ))}
                               </div>
                               
-                              <div className="mt-4">
-                                <label className="block text-sm font-medium text-gray-600 mb-2">Or specify different background:</label>
-                                <input
-                                  type="text"
-                                  value={answers.people_details?.[currentPersonIndex]?.custom_heritage || ''}
-                                  onChange={(e) => {
-                                    const newPeopleDetails = [...(answers.people_details || [])];
-                                    newPeopleDetails[currentPersonIndex] = { 
-                                      ...(newPeopleDetails[currentPersonIndex] || {}), 
-                                      custom_heritage: e.target.value,
-                                      heritage: e.target.value ? 'custom' : ''
-                                    };
-                                    setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
-                                  }}
-                                  placeholder="Type your cultural background..."
-                                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-purple-500 focus:outline-none transition-colors bg-white"
-                                />
+                              <div className="space-y-2">
+                                <p className="text-sm text-gray-600 text-center">
+                                  Don't see the cultural background you're looking for or want to be more specific? Type it below:
+                                </p>
+                                <div className="flex space-x-2">
+                                  <Input
+                                    value={answers.people_details?.[currentPersonIndex]?.custom_heritage || ''}
+                                    onChange={(e) => {
+                                      const newPeopleDetails = [...(answers.people_details || [])];
+                                      newPeopleDetails[currentPersonIndex] = { 
+                                        ...(newPeopleDetails[currentPersonIndex] || {}), 
+                                        custom_heritage: e.target.value,
+                                        heritage: e.target.value ? 'custom' : ''
+                                      };
+                                      setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
+                                    }}
+                                    placeholder="Type your answer..."
+                                    className="text-lg p-3 rounded-lg border-purple-200 focus:border-purple-400"
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>
