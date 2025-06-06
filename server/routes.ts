@@ -1343,8 +1343,14 @@ The inside should look like a perfect companion piece created by the same artist
         frontImageUrl = urlResult.toString();
         console.log('Using flux-kontext-pro URL method:', frontImageUrl);
       } else if (Array.isArray(output) && output.length > 0) {
-        // flux-dev returns an array of URLs
-        frontImageUrl = output[0];
+        // flux-dev returns an array of URLs or streams
+        const firstOutput = output[0];
+        if (typeof firstOutput === 'string') {
+          frontImageUrl = firstOutput;
+        } else if (firstOutput && typeof firstOutput === 'object') {
+          // Handle flux-dev binary output
+          frontImageUrl = await processFluxBinaryOutput(firstOutput);
+        }
         console.log('Using first image from array (flux-dev):', frontImageUrl);
       } else if (typeof output === 'string') {
         frontImageUrl = output;
