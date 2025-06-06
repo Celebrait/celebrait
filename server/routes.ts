@@ -1038,12 +1038,19 @@ The inside should look like a perfect companion piece created by the same artist
       }
 
       if (!hasPaystack) {
+        // Get card to determine order status based on type
+        const card = await storage.getCard(order.cardId);
+        const isDigital = !order.shippingAddress;
+        
         const updatedOrder = await storage.updateOrder(order.id, {
           paymentStatus: 'successful',
-          orderStatus: order.shippingAddress ? 'processing' : 'completed'
+          orderStatus: isDigital ? 'completed' : 'processing'
         });
 
-        const card = await storage.getCard(order.cardId);
+        // Update card status to paid
+        if (card) {
+          await storage.updateCard(card.id, { status: 'paid' });
+        }
         
         return res.json({
           ...updatedOrder,

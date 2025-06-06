@@ -419,6 +419,12 @@ export default function TestPayment() {
                               {testOrder.paymentStatus}
                             </Badge>
                           </div>
+                          <div className="flex justify-between">
+                            <span>Order Status:</span>
+                            <Badge variant={testCard.cardType === 'digital' ? 'default' : 'secondary'}>
+                              {testCard.cardType === 'digital' ? 'Completed' : 'Processing'}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
 
@@ -448,7 +454,7 @@ export default function TestPayment() {
                       </div>
 
                       {/* Next Steps */}
-                      {testOrder.card?.cardType === 'digital' ? (
+                      {testCard.cardType === 'digital' ? (
                         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                           <h4 className="font-medium text-blue-800 mb-2">Digital Card Ready</h4>
                           <div className="space-y-3">
@@ -497,14 +503,50 @@ export default function TestPayment() {
                         </div>
                       )}
 
-                      {/* Order Management */}
+                      {/* What happens next */}
                       <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                        <h4 className="font-medium mb-2">Order Management</h4>
-                        <div className="space-y-2">
-                          <Button size="sm" variant="outline" className="w-full">
-                            View Order History
-                          </Button>
-                          <Button size="sm" variant="outline" className="w-full">
+                        <h4 className="font-medium mb-3">What happens next?</h4>
+                        {testCard.cardType === 'digital' ? (
+                          <div className="space-y-2 text-sm text-gray-700">
+                            <div className="flex items-start gap-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                              <span>Your digital card is immediately available for download</span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                              <span>Share via email, WhatsApp, or social media</span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                              <span>Print at home on quality cardstock (300 DPI)</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2 text-sm text-gray-700">
+                            <div className="flex items-start gap-2">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                              <span>Professional printing begins within 24 hours</span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                              <span>Quality check and packaging (1-2 days)</span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                              <span>Courier delivery to your address (2-3 days)</span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                              <span>SMS tracking updates throughout delivery</span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="mt-4 space-y-2">
+                          <Button size="sm" variant="outline" className="w-full" onClick={() => {
+                            setTestCard(null);
+                            setTestOrder(null);
+                          }}>
                             Create Another Card
                           </Button>
                           <Button size="sm" variant="outline" className="w-full">
