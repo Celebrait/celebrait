@@ -1305,7 +1305,8 @@ The inside should look like a perfect companion piece created by the same artist
       
       if (output && typeof output === 'object' && 'url' in output && typeof (output as any).url === 'function') {
         // flux-kontext-pro returns an object with url() method
-        frontImageUrl = (output as any).url();
+        const urlResult = (output as any).url();
+        frontImageUrl = urlResult.toString();
         console.log('Using flux-kontext-pro URL method:', frontImageUrl);
       } else if (Array.isArray(output) && output.length > 0) {
         frontImageUrl = output[0];
