@@ -1254,10 +1254,10 @@ The inside should look like a perfect companion piece created by the same artist
         scene, 
         artStyle,
         // Optional flux parameters
-        guidance_scale = 3.5,
-        num_inference_steps = 28,
+        guidance_scale = 15,
+        num_inference_steps = 50,
         seed,
-        strength = 0.95,
+        strength = 1,
         output_format = "png",
         safety_tolerance = 5,
         aspect_ratio = "1:1",
@@ -1313,10 +1313,10 @@ The inside should look like a perfect companion piece created by the same artist
           const fluxDevInput = {
             prompt: transformPrompt,
             image: originalImage,
-            guidance_scale: 3.5,
-            num_inference_steps: 28,
-            strength: 0.95,
-            seed: Math.floor(Math.random() * 1000000)
+            guidance_scale: 15,
+            num_inference_steps: 50,
+            strength: 1,
+            seed: seed || Math.floor(Math.random() * 1000000)
           };
           
           console.log('Using flux-dev with input:', fluxDevInput);
