@@ -170,7 +170,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         : `Please upload photos of ${answers.name || 'them'} (you can select multiple)`,
       aiMessage: answers.photo_option === 'upload_and_transform'
         ? `Perfect! Please upload a clear photo that you'd like me to transform into different artistic styles. I'll apply the artistic style you choose while maintaining the essence of the original image.`
-        : `Perfect! Please upload **one clear photo** of ${answers.name || 'them'} + **one clear photo** of any other people you'd like in the scene.`,
+        : `Perfect! Please upload <strong>one clear photo</strong> of ${answers.name || 'them'} + <strong>one clear photo</strong> of any other people you'd like in the scene.`,
       type: 'photo_upload',
       required: true
     },
@@ -1905,10 +1905,31 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       </div>
                     ) : (
                       <div className="space-y-6">
+                        {/* Important Box */}
+                        <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
+                          <div className="text-center">
+                            <div className="flex items-center justify-center space-x-2 mb-2">
+                              <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                              </svg>
+                              <h4 className="font-bold text-yellow-800">Important:</h4>
+                            </div>
+                            <p className="text-yellow-700 font-medium text-sm">
+                              Upload <strong>one clear photo ONLY</strong> of each person you want in the scene. For best results, choose portrait photos that are well lit with facial features clearly visible!
+                            </p>
+                          </div>
+                        </div>
+
                         <div className="text-center">
-                          <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+                          <div className={`flex justify-center items-center gap-4 flex-wrap ${
+                            uploadedPhotos.length === 1 ? 'justify-center' :
+                            uploadedPhotos.length === 2 ? 'justify-center' :
+                            uploadedPhotos.length === 3 ? 'justify-center' :
+                            uploadedPhotos.length === 4 ? 'justify-center' :
+                            'justify-center'
+                          }`}>
                             {uploadedPhotos.map((photo, index) => (
-                              <div key={index} className="w-32 h-32 rounded-xl overflow-hidden border-4 border-purple-300">
+                              <div key={index} className="w-32 h-32 rounded-xl overflow-hidden border-4 border-purple-300 flex-shrink-0">
                                 <img 
                                   src={photo} 
                                   alt={`Uploaded photo ${index + 1}`} 
