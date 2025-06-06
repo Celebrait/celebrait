@@ -1238,7 +1238,7 @@ The inside should look like a perfect companion piece created by the same artist
     }
   });
 
-  // Character transformation using flux-kontext-pro
+  // Character transformation using flux-kontext-max
   app.post("/api/transform-character-flux", async (req, res) => {
     try {
       const { cardId, originalImage, prompt, scene, artStyle } = req.body;
@@ -1256,7 +1256,7 @@ The inside should look like a perfect companion piece created by the same artist
         return res.status(404).json({ message: "Card not found" });
       }
 
-      console.log('Character transformation with flux-kontext-pro:', { cardId, prompt, scene, artStyle });
+      console.log('Character transformation with flux-kontext-max:', { cardId, prompt, scene, artStyle });
 
       // Build transformation prompt for character in new scene with stronger reference emphasis
       const transformPrompt = `Using the provided reference image as the primary visual guide, recreate this exact person with their specific facial features, hair, and physical characteristics. ${prompt}, ${scene}, ${artStyle} art style. The person in the output must match the reference image exactly - same face, same hair, same physical appearance. High-quality artistic rendering, professional artwork.`;
@@ -1265,18 +1265,12 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Original image data length:', originalImage.length);
 
       const output = await replicate.run(
-        "black-forest-labs/flux-kontext-pro",
+        "black-forest-labs/flux-kontext-max",
         {
           input: {
-            image: originalImage,
+            input_image: originalImage,
             prompt: transformPrompt,
-            num_outputs: 1,
-            aspect_ratio: "1:1",
-            output_format: "png",
-            output_quality: 90,
-            guidance_scale: 3.5,
-            num_inference_steps: 28,
-            seed: Math.floor(Math.random() * 1000000)
+            output_format: "png"
           }
         }
       );
@@ -1339,26 +1333,21 @@ The inside should look like a perfect companion piece created by the same artist
         return res.status(404).json({ message: "Card not found" });
       }
 
-      console.log('Style transformation with flux-kontext-pro:', { cardId, prompt, artStyle });
+      console.log('Style transformation with flux-kontext-max:', { cardId, prompt, artStyle });
 
-      // Build transformation prompt for style change
-      const transformPrompt = `${prompt}, rendered in ${artStyle} art style, maintain all elements, poses, and arrangements from the original, transform only the artistic style while preserving the content, high-quality artistic rendering, professional artwork`;
+      // Build transformation prompt for style change with stronger reference emphasis
+      const transformPrompt = `Using the provided reference image as the primary visual guide, recreate this exact person with their specific facial features, hair, and physical characteristics. ${prompt}, ${artStyle} art style. The person in the output must match the reference image exactly - same face, same hair, same physical appearance. High-quality artistic rendering, professional artwork.`;
 
       console.log('Flux style transformation prompt:', transformPrompt);
+      console.log('Original image data length:', originalImage.length);
 
       const output = await replicate.run(
-        "black-forest-labs/flux-kontext-pro",
+        "black-forest-labs/flux-kontext-max",
         {
           input: {
-            image: originalImage,
+            input_image: originalImage,
             prompt: transformPrompt,
-            num_outputs: 1,
-            aspect_ratio: "1:1",
-            output_format: "png",
-            output_quality: 90,
-            guidance_scale: 3.5,
-            num_inference_steps: 28,
-            seed: Math.floor(Math.random() * 1000000)
+            output_format: "png"
           }
         }
       );
