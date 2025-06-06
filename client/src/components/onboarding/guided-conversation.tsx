@@ -1094,7 +1094,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                     <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 ) : (
-                  <p className="text-sm sm:text-base lg:text-lg text-gray-800 leading-relaxed">{currentStep.aiMessage}</p>
+                  <div className="text-sm sm:text-base lg:text-lg text-gray-800 leading-relaxed">
+                    {currentStep.id === 'photo_upload' && answers.photo_option !== 'upload_and_transform' ? (
+                      <span>
+                        Perfect! Please upload <strong>one clear photo</strong> of {answers.name || 'them'} + <strong>one clear photo</strong> of any other people you'd like in the scene.
+                      </span>
+                    ) : (
+                      <span>{currentStep.aiMessage}</span>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -1838,7 +1846,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             id="photo-upload"
                             multiple
                           />
-                          <label htmlFor="photo-upload" className="cursor-pointer">
+                          <label onClick={handlePhotoUploadClick} className="cursor-pointer">
                             <div className="space-y-4">
                               <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto">
                                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2253,6 +2261,48 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-medium shadow-lg transform hover:scale-105 transition-all duration-200"
               >
                 Got it, thanks!
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Copyright Consent Modal */}
+      <Dialog open={copyrightConsentOpen} onOpenChange={setCopyrightConsentOpen}>
+        <DialogContent className="max-w-md bg-white border-2 border-red-200">
+          <DialogHeader className="text-center pb-4">
+            <div className="flex items-center justify-center space-x-3 mb-3">
+              <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <DialogTitle className="text-xl font-bold text-red-600">
+                Copyright Agreement
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+          
+          <div className="space-y-4 p-2">
+            <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+              <p className="text-gray-800 text-sm font-medium text-center leading-relaxed">
+                By uploading any images on the Celebrait platform, you confirm that you own its copyright or have the legitimate right to use it. Any use of copyrighted material is strictly prohibited.
+              </p>
+            </div>
+            
+            <div className="flex flex-col space-y-3 pt-2">
+              <Button 
+                onClick={handleCopyrightConsent}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-medium"
+              >
+                I Agree & Own Rights to These Images
+              </Button>
+              <Button 
+                onClick={() => setCopyrightConsentOpen(false)}
+                variant="outline"
+                className="border-gray-300 text-gray-600 hover:bg-gray-50 px-6 py-3 rounded-xl font-medium"
+              >
+                Cancel
               </Button>
             </div>
           </div>
