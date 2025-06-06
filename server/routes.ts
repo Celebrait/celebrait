@@ -29,6 +29,51 @@ const stripe = hasStripe ? new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
 }) : null;
 
+// Helper function to process Replicate flux binary output
+async function processFluxBinaryOutput(output: any): Promise<string> {
+  const binaryChunks: Uint8Array[] = [];
+  
+  // Collect all binary chunks from the async output
+  for await (const chunk of output) {
+    if (chunk instanceof Uint8Array) {
+      binaryChunks.push(chunk);
+      console.log('Collected binary chunk:', chunk.length, 'bytes');
+    }
+  }
+  
+  if (binaryChunks.length === 0) {
+    throw new Error('No binary chunks received from flux model');
+  }
+  
+  // Concatenate all binary chunks into a single image
+  const totalLength = binaryChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const fullImage = new Uint8Array(totalLength);
+  let offset = 0;
+  
+  for (const chunk of binaryChunks) {
+    fullImage.set(chunk, offset);
+    offset += chunk.length;
+  }
+  
+  console.log('Assembled complete image:', fullImage.length, 'bytes');
+  
+  // Convert to base64 data URL
+  const base64 = Buffer.from(fullImage).toString('base64');
+  
+  // Detect image format from header bytes
+  let mimeType = 'image/jpeg'; // default
+  if (fullImage[0] === 0x89 && fullImage[1] === 0x50 && fullImage[2] === 0x4E && fullImage[3] === 0x47) {
+    mimeType = 'image/png';
+  } else if (fullImage[0] === 0xFF && fullImage[1] === 0xD8) {
+    mimeType = 'image/jpeg';
+  }
+  
+  const dataUrl = `data:${mimeType};base64,${base64}`;
+  console.log('Generated data URL with mime type:', mimeType, 'length:', dataUrl.length);
+  
+  return dataUrl;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // User registration
   app.post("/api/users", async (req, res) => {
