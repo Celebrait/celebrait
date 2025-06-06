@@ -1234,7 +1234,7 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Flux character transformation output type:', typeof output);
       console.log('Flux character transformation output:', output);
 
-      // Handle Replicate ReadableStream output
+      // Handle Replicate async iterator output
       let frontImageUrl;
       
       if (Array.isArray(output) && output.length > 0) {
@@ -1243,43 +1243,34 @@ The inside should look like a perfect companion piece created by the same artist
       } else if (typeof output === 'string') {
         frontImageUrl = output;
         console.log('Using direct string URL:', frontImageUrl);
-      } else if (output && typeof output === 'object' && 'getReader' in output) {
-        // Handle ReadableStream from Replicate
-        console.log('Processing ReadableStream from Replicate...');
-        const reader = (output as any).getReader();
-        const chunks = [];
+      } else if (output && typeof output === 'object') {
+        // Handle async iterator from Replicate
+        console.log('Processing async iterator from Replicate...');
         
         try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            chunks.push(value);
+          const results = [];
+          
+          // Try to iterate over the async output
+          for await (const item of output as any) {
+            results.push(item);
+            console.log('Got item from iterator:', item);
           }
           
-          // Concatenate chunks and parse as JSON or URL
-          const result = chunks.join('');
-          console.log('Stream result:', result);
-          
-          try {
-            const parsed = JSON.parse(result);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              frontImageUrl = parsed[0];
-            } else if (typeof parsed === 'string') {
-              frontImageUrl = parsed;
-            } else {
-              frontImageUrl = result; // Use raw result as URL
-            }
-          } catch {
-            frontImageUrl = result; // Use raw result as URL
+          if (results.length > 0) {
+            frontImageUrl = results[0];
+            console.log('Using first result from iterator:', frontImageUrl);
+          } else {
+            throw new Error('No results from async iterator');
           }
-          
-          console.log('Extracted from stream:', frontImageUrl);
-        } finally {
-          reader.releaseLock();
+        } catch (iterError) {
+          console.error('Async iteration failed:', iterError);
+          // Fallback: convert object to string
+          frontImageUrl = String(output);
+          console.log('Using string conversion as fallback:', frontImageUrl);
         }
       } else {
         console.error('Unexpected output format from Replicate:', typeof output, output);
-        throw new Error('Invalid output format from Replicate - expected array, string URL, or ReadableStream');
+        throw new Error('Invalid output format from Replicate - expected array, string URL, or async iterator');
       }
 
       console.log('Final extracted frontImageUrl:', frontImageUrl);
@@ -1341,7 +1332,7 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Flux style transformation output type:', typeof output);
       console.log('Flux style transformation output:', output);
 
-      // Handle Replicate ReadableStream output
+      // Handle Replicate async iterator output
       let frontImageUrl;
       
       if (Array.isArray(output) && output.length > 0) {
@@ -1350,43 +1341,34 @@ The inside should look like a perfect companion piece created by the same artist
       } else if (typeof output === 'string') {
         frontImageUrl = output;
         console.log('Using direct string URL:', frontImageUrl);
-      } else if (output && typeof output === 'object' && 'getReader' in output) {
-        // Handle ReadableStream from Replicate
-        console.log('Processing ReadableStream from Replicate...');
-        const reader = (output as any).getReader();
-        const chunks = [];
+      } else if (output && typeof output === 'object') {
+        // Handle async iterator from Replicate
+        console.log('Processing async iterator from Replicate...');
         
         try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            chunks.push(value);
+          const results = [];
+          
+          // Try to iterate over the async output
+          for await (const item of output as any) {
+            results.push(item);
+            console.log('Got item from iterator:', item);
           }
           
-          // Concatenate chunks and parse as JSON or URL
-          const result = chunks.join('');
-          console.log('Stream result:', result);
-          
-          try {
-            const parsed = JSON.parse(result);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              frontImageUrl = parsed[0];
-            } else if (typeof parsed === 'string') {
-              frontImageUrl = parsed;
-            } else {
-              frontImageUrl = result; // Use raw result as URL
-            }
-          } catch {
-            frontImageUrl = result; // Use raw result as URL
+          if (results.length > 0) {
+            frontImageUrl = results[0];
+            console.log('Using first result from iterator:', frontImageUrl);
+          } else {
+            throw new Error('No results from async iterator');
           }
-          
-          console.log('Extracted from stream:', frontImageUrl);
-        } finally {
-          reader.releaseLock();
+        } catch (iterError) {
+          console.error('Async iteration failed:', iterError);
+          // Fallback: convert object to string
+          frontImageUrl = String(output);
+          console.log('Using string conversion as fallback:', frontImageUrl);
         }
       } else {
         console.error('Unexpected output format from Replicate:', typeof output, output);
-        throw new Error('Invalid output format from Replicate - expected array, string URL, or ReadableStream');
+        throw new Error('Invalid output format from Replicate - expected array, string URL, or async iterator');
       }
 
       console.log('Final extracted frontImageUrl:', frontImageUrl);
