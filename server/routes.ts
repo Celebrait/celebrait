@@ -1271,7 +1271,7 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Character transformation with flux-kontext-max:', { cardId, prompt, scene, artStyle });
 
       // Build transformation prompt for character in new scene with stronger reference emphasis
-      const transformPrompt = `Create a square 1:1 aspect ratio image. Using the provided reference image as the primary visual guide, recreate this exact person with their specific facial features, hair, and physical characteristics. ${prompt}, ${scene}, ${artStyle} art style. The person in the output must match the reference image exactly - same face, same hair, same physical appearance. Square format, high-quality artistic rendering, professional artwork.`;
+      const transformPrompt = `Using the provided reference image as the primary visual guide, recreate this exact person with their specific facial features, hair, and physical characteristics. ${prompt}, ${scene}, ${artStyle} art style. The person in the output must match the reference image exactly - same face, same hair, same physical appearance. High-quality artistic rendering, professional artwork.`;
 
       console.log('Flux character transformation prompt:', transformPrompt);
       console.log('Original image data length:', originalImage.length);
@@ -1365,7 +1365,7 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Style transformation with flux-kontext-max:', { cardId, prompt, artStyle });
 
       // Build transformation prompt for style change with stronger reference emphasis
-      const transformPrompt = `Create a square 1:1 aspect ratio image. Using the provided reference image as the primary visual guide, recreate this exact person with their specific facial features, hair, and physical characteristics. ${prompt}, ${artStyle} art style. The person in the output must match the reference image exactly - same face, same hair, same physical appearance. Square format, high-quality artistic rendering, professional artwork.`;
+      const transformPrompt = `Using the provided reference image as the primary visual guide, recreate this exact person with their specific facial features, hair, and physical characteristics. ${prompt}, ${artStyle} art style. The person in the output must match the reference image exactly - same face, same hair, same physical appearance. High-quality artistic rendering, professional artwork.`;
 
       console.log('Flux style transformation prompt:', transformPrompt);
       console.log('Original image data length:', originalImage.length);
