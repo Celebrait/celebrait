@@ -1605,22 +1605,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               </div>
                             )}
                             <div className="flex items-start space-x-4">
-                              <div className={`w-12 h-12 ${option.color} rounded-full flex items-center justify-center flex-shrink-0`}>
+                              <div className={`w-16 h-16 ${option.color} rounded-full flex items-center justify-center flex-shrink-0 shadow-lg`}>
                                 {option.icon === 'camera' && (
-                                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 9a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path fillRule="evenodd" d="M9 20a1 1 0 01-.894-.553L7.382 18H4a2 2 0 01-2-2V8a2 2 0 012-2h16a2 2 0 012 2v8a2 2 0 01-2 2h-3.382l-.724 1.447A1 1 0 0115 20H9zM7 9a5 5 0 1110 0 5 5 0 01-10 0z" clipRule="evenodd"/>
                                   </svg>
                                 )}
                                 {option.icon === 'palette' && (
-                                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM7 3H5a2 2 0 00-2 2v12a4 4 0 004 4h2a2 2 0 002-2V5a2 2 0 00-2-2z" />
-                                    <circle cx="16" cy="8" r="6" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
+                                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                    <path fillRule="evenodd" d="M20.599 1.5c-.376 0-.743.111-1.055.32l-5.08 3.385a18.747 18.747 0 00-3.471 2.987 10.04 10.04 0 01-4.815 3.436 6.951 6.951 0 01-5.33-.645c-.37-.297-.99-.233-1.29.163-.297.394-.234.997.165 1.291a8.995 8.995 0 001.904.765c.85.194 1.737.157 2.543-.111.812-.269 1.611-.686 2.352-1.24a8.581 8.581 0 002.813-2.98c.892-.856 1.58-1.8 2.098-2.748a.75.75 0 111.315.716c-.571 1.05-1.313 2.081-2.253 3.012a7.081 7.081 0 01-2.32 1.988c-.24.127-.482.248-.726.363a.75.75 0 11-.598-1.377c.244-.115.486-.236.726-.363.24-.127.48-.26.72-.4a5.581 5.581 0 001.828-1.564c.94-.931 1.682-1.962 2.253-3.012a2.25 2.25 0 00-3.945-2.148c-.518.948-1.206 1.892-2.098 2.748a10.081 10.081 0 01-2.813 2.98c-.741.554-1.54.971-2.352 1.24-.806.268-1.693.305-2.543.111a6.988 6.988 0 01-1.904-.765c-.399-.294-.462-.897-.165-1.291.3-.396.92-.46 1.29-.163a5.451 5.451 0 004.815-3.436 20.247 20.247 0 013.471-2.987L19.544 1.82c.312-.209.679-.32 1.055-.32z" clipRule="evenodd"/>
                                   </svg>
                                 )}
                                 {option.icon === 'edit' && (
-                                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
                                   </svg>
                                 )}
                               </div>
@@ -2186,32 +2185,47 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
       {/* Video Explainer Modal */}
       <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-800">
-              {selectedVideoOption === 'upload_and_scene' && 'Upload Photo(s) + Describe Scene'}
-              {selectedVideoOption === 'describe_person' && `Describe ${answers.name || 'Person'} + Describe Scene`}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-gray-600">
-              Watch this short video to learn more about how our "{selectedVideoOption === 'upload_and_scene' ? 'Upload Photo(s) + Describe Scene' : `Describe ${answers.name || 'Person'} + Describe Scene`}" creation process works.
-            </p>
-            
-            {/* Video Placeholder */}
-            <div className="w-full aspect-video bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-              <div className="text-center">
-                <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <DialogContent className="max-w-4xl bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200">
+          <DialogHeader className="text-center pb-4">
+            <div className="flex items-center justify-center space-x-3 mb-3">
+              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p className="text-gray-500 text-lg font-medium">Video Coming Soon</p>
-                <p className="text-gray-400 text-sm">Explainer video will be available here</p>
+              </div>
+              <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                {selectedVideoOption === 'upload_and_scene' && 'Upload Photo(s) + Describe Scene'}
+                {selectedVideoOption === 'describe_person' && `Describe ${answers.name || 'Person'} + Describe Scene`}
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+          
+          <div className="space-y-6 p-2">
+            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 border border-purple-200">
+              <p className="text-gray-700 text-center font-medium">
+                Watch this short video to learn more about how our "<span className="text-purple-600 font-semibold">{selectedVideoOption === 'upload_and_scene' ? 'Upload Photo(s) + Describe Scene' : `Describe ${answers.name || 'Person'} + Describe Scene`}</span>" creation process works.
+              </p>
+            </div>
+            
+            {/* Video Placeholder */}
+            <div className="w-full aspect-video bg-gradient-to-br from-white to-purple-50 rounded-xl flex items-center justify-center border-2 border-dashed border-purple-300 shadow-inner">
+              <div className="text-center">
+                <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                </div>
+                <p className="text-purple-600 text-xl font-bold mb-2">Video Coming Soon</p>
+                <p className="text-purple-500 text-sm">Explainer video will be available here</p>
               </div>
             </div>
             
-            <div className="flex justify-end">
-              <Button onClick={() => setVideoModalOpen(false)} variant="outline">
-                Close
+            <div className="flex justify-center pt-4">
+              <Button 
+                onClick={() => setVideoModalOpen(false)} 
+                className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-medium shadow-lg transform hover:scale-105 transition-all duration-200"
+              >
+                Got it, thanks!
               </Button>
             </div>
           </div>
