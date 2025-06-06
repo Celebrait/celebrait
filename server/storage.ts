@@ -124,6 +124,7 @@ export class MemStorage implements IStorage {
       orderStatus: 'processing',
       trackingNumber: null,
       currency: orderData.currency || 'ZAR',
+      shippingAddress: orderData.shippingAddress || null,
       createdAt: new Date(),
       updatedAt: new Date()
     };
