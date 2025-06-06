@@ -88,8 +88,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const steps: ConversationStep[] = [
     {
       id: 'celebration',
-      question: 'What celebration is this card for?',
-      aiMessage: `Hey ${onboarding.userName}! 🎉 I'm so excited to help you create something magical. Let's start by choosing what celebration this card is for!`,
+      question: `Hey there! What are we celebrating today?`,
+      aiMessage: `I'm so excited to help you create something amazing! Tell me, what's the special occasion?`,
       type: 'select',
       options: [
         { value: 'birthday', label: 'Birthday', description: 'Celebrate another year of life', color: 'bg-pink-500', icon: 'cake' },
@@ -108,8 +108,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'recipient',
-      question: 'Who is this card for?',
-      aiMessage: `Perfect choice! Now, who is this special ${answers.celebration} card for?`,
+      question: `Who's the lucky person getting this card?`,
+      aiMessage: `Perfect choice! Now, who's this special ${answers.celebration} card for?`,
       type: 'select',
       options: [
         { value: 'partner', label: 'My Partner', description: 'Spouse, boyfriend, girlfriend', color: 'bg-red-500', icon: 'users' },
@@ -131,16 +131,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'name',
-      question: 'What\'s their name?',
-      aiMessage: `Wonderful! What's their name? I want to make sure this card feels personal and special for them.`,
+      question: `What's their name?`,
+      aiMessage: `Love it! What's their name? I want to make this card feel super personal for them.`,
       type: 'text',
       placeholder: 'Enter their name',
       required: true
     },
     {
       id: 'photo_option',
-      question: `How would you like me to create ${answers.name || 'their'} image?`,
-      aiMessage: `Perfect! Now how do you want to create ${answers.name || 'their'}'s ${answers.celebration || 'celebration'} card?`,
+      question: `How should I create ${answers.name || 'their'} image for the card?`,
+      aiMessage: `Awesome! Now, how would you like me to create ${answers.name || 'their'}'s image for this ${answers.celebration || 'celebration'} card?`,
       type: 'photo_creation_choice',
       options: [
         { 
@@ -324,8 +324,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'build',
-      question: `What's ${answers.name || 'their'} body type?`,
-      aiMessage: `Perfect! Now let's capture ${answers.name || 'their'} body type. This helps me create the most accurate representation of ${answers.gender === 'male' ? 'him' : answers.gender === 'female' ? 'her' : 'them'}. I want to make sure I get this just right!`,
+      question: `How would you describe ${answers.name || 'their'} build?`,
+      aiMessage: `Perfect! What's ${answers.name || 'their'} body type like? This helps me create the most accurate representation!`,
       type: 'select',
       options: [
         { value: 'slim', label: 'Slim', description: 'Lean and slender build', color: 'bg-green-500' },
@@ -342,12 +342,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'features',
-      question: `What distinctive facial features make ${answers.name || 'them'} uniquely recognizable?`,
-      aiMessage: `Now let's capture what makes ${answers.name || 'them'} truly unique! I'm thinking about ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} distinctive facial features. ${answers.gender === 'female' 
-        ? 'Does she have glasses, freckles, dimples, beauty marks, distinctive eyebrows, long eyelashes, or a unique smile that lights up the room?' 
-        : answers.gender === 'male' 
-        ? 'Does he have glasses, a beard, mustache, goatee, sideburns, distinctive eyebrows, a cleft chin, or a characteristic smile?'
-        : 'Do they have glasses, facial hair, freckles, dimples, distinctive eyebrows, or other unique facial characteristics?'} These details help me create something truly personal and authentic!`,
+      question: `What makes ${answers.name || 'them'} instantly recognizable?`,
+      aiMessage: `Now for the fun part - what makes ${answers.name || 'them'} uniquely them? Any glasses, dimples, freckles, facial hair, or that special smile?`,
       type: 'text',
       placeholder: answers.gender === 'female' 
         ? 'e.g., round glasses, freckles across nose, dimpled smile'
@@ -355,8 +351,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'personality',
-      question: `What's ${answers.name || 'their'} main personality trait?`,
-      aiMessage: `Amazing! Now I want to capture ${answers.name || 'their'} essence - the heart of who ${answers.gender === 'male' ? 'he is' : answers.gender === 'female' ? 'she is' : 'they are'}. What's ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} main personality trait that everyone would recognize? This will help me represent ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} true spirit in the card.`,
+      question: `What's ${answers.name || 'their'} personality like?`,
+      aiMessage: `Amazing! What's ${answers.name || 'their'} personality like? I want to capture their true spirit in the card!`,
       type: 'select',
       options: [
         { value: 'outgoing', label: 'Outgoing', description: 'Life of the party', color: 'bg-orange-500' },
@@ -403,10 +399,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
     {
       id: 'art_style',
-      question: 'What art style should we use for the card?',
-      aiMessage: onboarding.selectedSceneType === 'scene-only' 
-        ? `Perfect! Now let's choose the art style for your scene. This sets the whole mood and feel - I want to make sure it captures the perfect atmosphere for this ${answers.celebration} celebration!`
-        : `Perfect! Now let's choose the art style for ${answers.name || 'their'} card. This sets the whole mood and feel - I want to make sure it matches ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} personality perfectly!`,
+      question: 'What style should the artwork be?',
+      aiMessage: `Perfect! What art style feels right for this card? This sets the whole mood and atmosphere!`,
       type: 'select',
       options: [
         { value: 'realistic', label: 'Realistic', description: 'Lifelike and detailed', color: 'bg-blue-500' },
