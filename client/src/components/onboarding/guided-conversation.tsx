@@ -59,6 +59,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [userHasTyped, setUserHasTyped] = useState(false);
   const [showHowItWorksModal, setShowHowItWorksModal] = useState(false);
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
+  const [validationState, setValidationState] = useState<{
+    isValidating: boolean;
+    validationError: string | null;
+    aiResponse: string | null;
+  }>({ isValidating: false, validationError: null, aiResponse: null });
+  const [conversationHistory, setConversationHistory] = useState<Array<{
+    stepId: string;
+    question: string;
+    userAnswer: string;
+    aiResponse: string;
+  }>>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 

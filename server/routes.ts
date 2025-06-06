@@ -93,6 +93,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Conversational AI validation endpoint
+  app.post("/api/validate-input", async (req, res) => {
+    try {
+      const { userInput, questionContext, previousAnswers, stepId } = req.body;
+
+      if (!userInput || !questionContext) {
+        return res.status(400).json({ message: "User input and question context are required" });
+      }
+
+      if (!openai) {
+        return res.status(503).json({ message: "AI service not available - API key required" });
+      }
+
+      // Build context from previous answers
+      const contextString = previousAnswers ? 
+        Object.entries(previousAnswers)
+          .filter(([key, value]) => value && key !== stepId)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join(', ') : '';
+
+      const validationPrompt = `You are a helpful AI assistant creating personalized greeting cards. 
+
+Current question context: "${questionContext}"
+Previous conversation context: ${contextString || 'None'}
+User's response: "${userInput}"
+
+Please analyze the user's response and determine:
+1. Is it appropriate and safe for a greeting card context? (no NSFW, offensive, or harmful content)
+2. Is it relevant and clear in relation to the current question?
+3. If there are issues, provide a helpful, conversational response explaining what's needed
+
+Respond with JSON in this exact format:
+{
+  "isValid": true/false,
+  "isAppropriate": true/false,
+  "isRelevant": true/false,
+  "response": "Your conversational response here",
+  "suggestedRephrase": "Optional better way to phrase it" or null
+}
+
+Be encouraging and helpful. If the input is unclear, ask for clarification in a friendly way. If inappropriate, politely explain why it's not suitable for a greeting card.`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: validationPrompt
+          },
+          {
+            role: "user",
+            content: userInput
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3,
+        max_tokens: 500
+      });
+
+      const validation = JSON.parse(response.choices[0].message.content || '{}');
+      res.json(validation);
+    } catch (error: any) {
+      console.error("Input validation error:", error);
+      res.status(500).json({ message: "Error validating input: " + error.message });
+    }
+  });
+
   // AI Chat completion
   app.post("/api/chat", async (req, res) => {
     try {
