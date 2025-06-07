@@ -1516,37 +1516,51 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
 
       try {
-        console.log('Making GPT-Image-1 API request using OpenAI SDK');
+        console.log('Making GPT-Image-1 API request using direct HTTP form-data');
         
-        // Create a Blob-like object with proper MIME type for OpenAI SDK
-        const imageBlob = {
-          stream: () => {
-            const { Readable } = require('stream');
-            const stream = new Readable();
-            stream.push(imageBuffer);
-            stream.push(null);
-            return stream;
-          },
-          type: `image/${mimeType}`,
-          name: `image.${mimeType}`,
-          size: imageBuffer.length
-        };
+        // Use form-data package for proper multipart form handling
+        const FormData = require('form-data');
+        const formData = new FormData();
         
-        // Use OpenAI SDK with exact parameters from documentation
-        const response = await openai.images.edit({
-          image: imageBlob as any,
-          prompt: transformPrompt,
-          model: "gpt-image-1",
-          n: 1,
-          size: "1024x1024"
+        // Add image buffer directly with proper metadata
+        formData.append('image', imageBuffer, {
+          filename: `image.${mimeType}`,
+          contentType: `image/${mimeType}`
         });
+        formData.append('prompt', transformPrompt);
+        formData.append('model', 'gpt-image-1');
+        formData.append('n', '1');
+        formData.append('size', '1024x1024');
+        
+        // Make direct HTTP request
+        const response = await fetch('https://api.openai.com/v1/images/edits', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            ...formData.getHeaders()
+          },
+          body: formData
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            errorData = { error: { message: errorText } };
+          }
+          throw new Error(`GPT-Image-1 API error: ${response.status} ${errorData.error?.message || 'Unknown error'}`);
+        }
+        
+        const responseData = await response.json();
         
         console.log('GPT-Image-1 response received successfully');
         
         // Extract image URL from response
         let imageUrl: string = '';
-        if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
-          const imageResult = response.data[0];
+        if (responseData && responseData.data && Array.isArray(responseData.data) && responseData.data.length > 0) {
+          const imageResult = responseData.data[0];
           
           if (imageResult.b64_json) {
             imageUrl = `data:image/png;base64,${imageResult.b64_json}`;
@@ -1565,29 +1579,23 @@ The inside should look like a perfect companion piece created by the same artist
         res.json({ imageUrl });
         
       } catch (error: any) {
-        // Clean up temp file if it still exists
-        try {
-          await fs.promises.unlink(tempFilePath);
-        } catch (unlinkError) {
-          // File may already be deleted, ignore error
-        }
         
-        console.error('GPT-Image-1 SDK error details:', error);
+        console.error('GPT-Image-1 FormData error details:', error);
         
-        // Handle specific OpenAI SDK errors
-        if (error.status === 400) {
-          if (error.message?.includes('model') || error.code === 'model_not_found') {
+        // Handle specific API errors
+        if (error.message?.includes('400')) {
+          if (error.message?.includes('model') || error.message?.includes('model_not_found')) {
             throw new Error('GPT-Image-1 model is not available with your current OpenAI API access. This model may require special permissions.');
           } else if (error.message?.includes('multipart') || error.message?.includes('form-data')) {
             throw new Error('Image upload format error. Please ensure the image is valid.');
           } else {
             throw new Error(`GPT-Image-1 API error: ${error.message}`);
           }
-        } else if (error.status === 401) {
+        } else if (error.message?.includes('401')) {
           throw new Error('OpenAI API authentication failed. Please check your API key.');
-        } else if (error.status === 429) {
+        } else if (error.message?.includes('429')) {
           throw new Error('OpenAI API rate limit exceeded. Please try again later.');
-        } else if (error.status === 500) {
+        } else if (error.message?.includes('500')) {
           throw new Error('OpenAI API server error. Please try again later.');
         } else {
           throw new Error(`GPT-Image-1 error: ${error.message || 'Unknown error'}`);
