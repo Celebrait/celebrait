@@ -1558,8 +1558,10 @@ The inside should look like a perfect companion piece created by the same artist
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
           ...form.getHeaders()
         },
-        body: form
+        body: form as any
       });
+
+      console.log('OpenAI API response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
