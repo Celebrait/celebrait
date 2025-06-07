@@ -1489,6 +1489,119 @@ The inside should look like a perfect companion piece created by the same artist
     }
   });
 
+  // Scene editing using GPT-Image-1 edits API
+  app.post("/api/edit-scene-gpt-image-1", async (req, res) => {
+    if (!openai) {
+      return res.status(500).json({ message: "OpenAI API key not configured" });
+    }
+
+    try {
+      const { imageData, scenePrompt, style, includeText, cardText } = req.body;
+      
+      if (!imageData || !scenePrompt) {
+        return res.status(400).json({ message: "Image data and scene description are required" });
+      }
+
+      console.log('Processing GPT-Image-1 scene edit request');
+      console.log('Scene prompt:', scenePrompt);
+      console.log('Style:', style);
+      console.log('Include text:', includeText);
+      console.log('Card text:', cardText);
+
+      // Build the complete prompt
+      let fullPrompt = scenePrompt;
+      if (style && style.trim()) {
+        fullPrompt = `${scenePrompt} in ${style}`;
+      }
+      if (includeText && cardText && cardText.trim()) {
+        fullPrompt = `${fullPrompt}. Include the text "${cardText}" beautifully integrated into the composition, rendered in the same artistic style as the rest of the image, as if it were naturally part of a greeting card design.`;
+      }
+
+      console.log('Complete prompt for scene editing:', fullPrompt);
+
+      // Convert base64 data URL to buffer
+      const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      // Create a temporary file for the image
+      const tempImagePath = `/tmp/temp_edit_${Date.now()}.jpg`;
+      fs.writeFileSync(tempImagePath, imageBuffer);
+
+      try {
+        console.log('Calling GPT-Image-1 edits API with scene editing...');
+        const response = await openai.images.edit({
+          image: fs.createReadStream(tempImagePath),
+          prompt: fullPrompt,
+          model: "gpt-image-1",
+          n: 1,
+          size: "1024x1024"
+        });
+
+        console.log('GPT-Image-1 edits response received');
+        console.log('Response structure:', {
+          created: response.created,
+          dataLength: response.data?.length,
+          hasUsage: !!response.usage
+        });
+
+        let imageUrl = '';
+        
+        if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+          const imageData = response.data[0];
+          console.log('Image data type:', typeof imageData);
+          console.log('Image data keys:', Object.keys(imageData));
+          
+          if (typeof imageData === 'string') {
+            imageUrl = `data:image/png;base64,${imageData}`;
+          } else if (imageData.b64_json) {
+            imageUrl = `data:image/png;base64,${imageData.b64_json}`;
+          } else if (imageData.url) {
+            imageUrl = imageData.url;
+          }
+          console.log('Successfully extracted scene-edited image data');
+        } else {
+          console.log('Failed to find data array in response');
+          throw new Error('No image data received from GPT-Image-1 edits API');
+        }
+
+        // Clean up temp file
+        try {
+          fs.unlinkSync(tempImagePath);
+        } catch (cleanupError) {
+          console.log('Warning: Could not clean up temp file:', cleanupError);
+        }
+
+        res.json({ 
+          imageUrl,
+          usage: response.usage
+        });
+
+      } catch (apiError: any) {
+        // Clean up temp file on error
+        try {
+          fs.unlinkSync(tempImagePath);
+        } catch (cleanupError) {
+          console.log('Warning: Could not clean up temp file on error:', cleanupError);
+        }
+        throw apiError;
+      }
+
+    } catch (error: any) {
+      console.error('GPT-Image-1 scene edit error:', error);
+      
+      let errorMessage = 'Scene editing failed';
+      if (error.message?.includes('moderation')) {
+        errorMessage = 'Content moderation detected unsafe content in the image or prompt';
+      } else if (error.message?.includes('special access')) {
+        errorMessage = 'GPT-Image-1 requires special access permissions from OpenAI';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      res.status(500).json({ message: errorMessage });
+    }
+  });
+
   // GPT-Image-1 style transformation using OpenAI SDK as per documentation
   app.post("/api/transform-style-gpt-image-1", async (req, res) => {
     try {

@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 
 export default function GPTImageTest() {
@@ -17,6 +18,14 @@ export default function GPTImageTest() {
   const [error, setError] = useState<string>('');
   const [includeText, setIncludeText] = useState(false);
   const [cardText, setCardText] = useState('');
+  
+  // Scene editing specific state
+  const [scenePrompt, setScenePrompt] = useState('');
+  const [sceneStyle, setSceneStyle] = useState('watercolor painting');
+  const [sceneIncludeText, setSceneIncludeText] = useState(false);
+  const [sceneCardText, setSceneCardText] = useState('');
+  const [activeTab, setActiveTab] = useState<'transform' | 'scene'>('transform');
+  
   const { toast } = useToast();
 
   const buildPromptWithText = (baseStyle: string): string => {
@@ -90,6 +99,68 @@ export default function GPTImageTest() {
     }
   };
 
+  const testSceneEdit = async () => {
+    if (!imageFile || !imagePreview) {
+      toast({
+        title: "Error",
+        description: "Please select an image first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!scenePrompt.trim()) {
+      toast({
+        title: "Error",
+        description: "Please describe the new scene",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+    setResultImage('');
+
+    try {
+      const response = await fetch('/api/edit-scene-gpt-image-1', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          imageData: imagePreview,
+          scenePrompt: scenePrompt,
+          style: sceneStyle,
+          includeText: sceneIncludeText,
+          cardText: sceneCardText
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Scene editing failed');
+      }
+
+      setResultImage(data.imageUrl);
+      toast({
+        title: "Success",
+        description: "Scene editing completed successfully"
+      });
+    } catch (err: any) {
+      console.error('Scene edit error:', err);
+      setError(err.message);
+      toast({
+        title: "Scene Edit Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const testDALLE3 = async () => {
     if (!imageFile || !imagePreview) {
       toast({
@@ -141,11 +212,11 @@ export default function GPTImageTest() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-6 max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">GPT-Image-1 & AI Style Transformation Test</h1>
+        <h1 className="text-3xl font-bold mb-2">GPT-Image-1 Advanced Testing</h1>
         <p className="text-muted-foreground">
-          Test GPT-Image-1 image style transformations with integrated greeting card text
+          Test GPT-Image-1 for style transformations and scene editing with greeting card text integration
         </p>
       </div>
 
@@ -155,7 +226,7 @@ export default function GPTImageTest() {
           <CardHeader>
             <CardTitle>Upload & Configure</CardTitle>
             <CardDescription>
-              Upload an image and specify the transformation style with optional greeting card text
+              Upload an image and choose between style transformation or scene editing
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -181,71 +252,157 @@ export default function GPTImageTest() {
               </div>
             )}
 
-            <div>
-              <Label htmlFor="style-input">Transformation Style</Label>
-              <Textarea
-                id="style-input"
-                value={style}
-                onChange={(e) => setStyle(e.target.value)}
-                placeholder="e.g., anime style, watercolor painting, oil painting, sketch"
-                className="mt-2"
-                rows={3}
-              />
-            </div>
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'transform' | 'scene')} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="transform">Style Transform</TabsTrigger>
+                <TabsTrigger value="scene">Scene Editing</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="transform" className="space-y-4 mt-4">
+                <div>
+                  <Label htmlFor="style-input">Transformation Style</Label>
+                  <Textarea
+                    id="style-input"
+                    value={style}
+                    onChange={(e) => setStyle(e.target.value)}
+                    placeholder="e.g., anime style, watercolor painting, oil painting, sketch"
+                    className="mt-2"
+                    rows={3}
+                  />
+                </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="include-text"
-                  checked={includeText}
-                  onCheckedChange={setIncludeText}
-                />
-                <Label htmlFor="include-text">Include Greeting Card Text</Label>
-              </div>
-
-              {includeText && (
-                <Card className="p-4 bg-gray-50">
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="card-text">Greeting Card Text</Label>
-                      <Input
-                        id="card-text"
-                        value={cardText}
-                        onChange={(e) => setCardText(e.target.value)}
-                        placeholder="e.g., Happy Birthday, Merry Christmas, Thank You"
-                        className="mt-1"
-                      />
-                    </div>
-
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                      <p className="text-sm text-blue-800">
-                        <strong>Preview prompt:</strong> {buildPromptWithText(style)}
-                      </p>
-                    </div>
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="include-text"
+                      checked={includeText}
+                      onCheckedChange={setIncludeText}
+                    />
+                    <Label htmlFor="include-text">Include Greeting Card Text</Label>
                   </div>
-                </Card>
-              )}
 
-              <div className="space-y-3">
-                <Button 
-                  onClick={testGPTImage1}
-                  disabled={isLoading || !imageFile}
-                  className="w-full"
-                  variant="default"
-                >
-                  {isLoading ? 'Processing...' : 'Test GPT-Image-1'}
-                </Button>
+                  {includeText && (
+                    <Card className="p-4 bg-gray-50">
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="card-text">Greeting Card Text</Label>
+                          <Input
+                            id="card-text"
+                            value={cardText}
+                            onChange={(e) => setCardText(e.target.value)}
+                            placeholder="e.g., Happy Birthday, Merry Christmas, Thank You"
+                            className="mt-1"
+                          />
+                        </div>
 
-                <Button 
-                  onClick={testDALLE3}
-                  disabled={isLoading || !imageFile}
-                  className="w-full"
-                  variant="outline"
-                >
-                  {isLoading ? 'Processing...' : 'Test DALL-E 3 (Alternative)'}
-                </Button>
-              </div>
-            </div>
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                          <p className="text-sm text-blue-800">
+                            <strong>Preview prompt:</strong> {buildPromptWithText(style)}
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  )}
+
+                  <div className="space-y-3">
+                    <Button 
+                      onClick={testGPTImage1}
+                      disabled={isLoading || !imageFile}
+                      className="w-full"
+                      variant="default"
+                    >
+                      {isLoading ? 'Processing...' : 'Transform Style (GPT-Image-1)'}
+                    </Button>
+
+                    <Button 
+                      onClick={testDALLE3}
+                      disabled={isLoading || !imageFile}
+                      className="w-full"
+                      variant="outline"
+                    >
+                      {isLoading ? 'Processing...' : 'Transform Style (DALL-E 3)'}
+                    </Button>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="scene" className="space-y-4 mt-4">
+                <div>
+                  <Label htmlFor="scene-prompt">New Scene Description</Label>
+                  <Textarea
+                    id="scene-prompt"
+                    value={scenePrompt}
+                    onChange={(e) => setScenePrompt(e.target.value)}
+                    placeholder="e.g., Sitting in a coffee shop in Rome, Standing on a beach at sunset, Reading in a cozy library"
+                    className="mt-2"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="scene-style">Art Style</Label>
+                  <Select value={sceneStyle} onValueChange={setSceneStyle}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="watercolor painting">Watercolor Painting</SelectItem>
+                      <SelectItem value="oil painting">Oil Painting</SelectItem>
+                      <SelectItem value="anime style">Anime Style</SelectItem>
+                      <SelectItem value="digital art">Digital Art</SelectItem>
+                      <SelectItem value="sketch">Pencil Sketch</SelectItem>
+                      <SelectItem value="photorealistic">Photorealistic</SelectItem>
+                      <SelectItem value="cartoon">Cartoon</SelectItem>
+                      <SelectItem value="vintage poster">Vintage Poster</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="scene-include-text"
+                      checked={sceneIncludeText}
+                      onCheckedChange={setSceneIncludeText}
+                    />
+                    <Label htmlFor="scene-include-text">Include Greeting Card Text</Label>
+                  </div>
+
+                  {sceneIncludeText && (
+                    <Card className="p-4 bg-gray-50">
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="scene-card-text">Greeting Card Text</Label>
+                          <Input
+                            id="scene-card-text"
+                            value={sceneCardText}
+                            onChange={(e) => setSceneCardText(e.target.value)}
+                            placeholder="e.g., Happy Birthday, Merry Christmas, Thank You"
+                            className="mt-1"
+                          />
+                        </div>
+
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                          <p className="text-sm text-blue-800">
+                            <strong>Preview prompt:</strong> {scenePrompt} in {sceneStyle}
+                            {sceneIncludeText && sceneCardText ? `. Include the text "${sceneCardText}" beautifully integrated into the composition` : ''}
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  )}
+
+                  <Button 
+                    onClick={testSceneEdit}
+                    disabled={isLoading || !imageFile || !scenePrompt.trim()}
+                    className="w-full"
+                    variant="default"
+                  >
+                    {isLoading ? 'Processing...' : 'Edit Scene (GPT-Image-1)'}
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
