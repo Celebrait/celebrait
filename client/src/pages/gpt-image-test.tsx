@@ -441,11 +441,13 @@ export default function GPTImageTest() {
               <div className="space-y-4">
                 <div>
                   <Label>Transformed Image</Label>
-                  <img 
-                    src={resultImage} 
-                    alt="Transformed result" 
-                    className="mt-2 max-w-full border rounded"
-                  />
+                  <div className="mt-2 w-full flex justify-center">
+                    <img 
+                      src={resultImage} 
+                      alt="Transformed result" 
+                      className="max-w-full max-h-96 w-auto h-auto border rounded object-contain"
+                    />
+                  </div>
                 </div>
                 <Button 
                   onClick={() => {
