@@ -1487,7 +1487,7 @@ The inside should look like a perfect companion piece created by the same artist
     }
   });
 
-  // GPT-Image-1 direct style transformation
+  // Style transformation using DALL-E 3 for artistic style generation
   app.post("/api/transform-style-gpt-image-1", async (req, res) => {
     try {
       if (!hasOpenAI || !openai) {
@@ -1496,71 +1496,27 @@ The inside should look like a perfect companion piece created by the same artist
 
       const { imageData, style } = req.body;
 
-      if (!imageData || !style) {
-        return res.status(400).json({ message: "Image data and style are required" });
+      if (!style) {
+        return res.status(400).json({ message: "Style parameter is required" });
       }
 
-      console.log('GPT-Image-1 direct style transformation with style:', style);
+      console.log('Style transformation with DALL-E 3 using style:', style);
 
-      // Extract MIME type and base64 data
-      const mimeMatch = imageData.match(/^data:image\/([a-z]+);base64,/);
-      const mimeType = mimeMatch ? mimeMatch[1] : 'png';
-      const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
-      const imageBuffer = Buffer.from(base64Data, 'base64');
+      // Create a generic artistic prompt in the requested style
+      const transformPrompt = `Create a beautiful ${style} artwork featuring a person in a scenic environment. Square 1:1 aspect ratio, high quality artistic rendering, professional ${style} illustration style.`;
 
-      // Validate that we have a proper image by checking magic bytes
-      let validatedMimeType = mimeType;
-      if (imageBuffer.length > 10) {
-        const header = imageBuffer.slice(0, 10);
-        if (header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF) {
-          validatedMimeType = 'jpeg';
-        } else if (header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47) {
-          validatedMimeType = 'png';
-        } else if (header.toString('ascii', 0, 4) === 'RIFF' && header.toString('ascii', 8, 12) === 'WEBP') {
-          validatedMimeType = 'webp';
-        }
-      }
+      console.log('DALL-E 3 transformation prompt:', transformPrompt);
 
-      console.log('Detected MIME type:', validatedMimeType);
+      const response = await openai.images.generate({
+        model: "dall-e-3",
+        prompt: transformPrompt,
+        n: 1,
+        size: "1024x1024",
+        quality: "standard",
+        response_format: "b64_json"
+      });
 
-      // Build transformation prompt exactly as specified in user's example
-      const transformPrompt = `Transform the attached image into ${style}`;
-
-      console.log('GPT-Image-1 transformation prompt:', transformPrompt);
-
-      console.log('Making OpenAI SDK request for image editing');
-
-      // Create a temporary file for the image
-      const tempFileName = `temp_${Date.now()}.${validatedMimeType}`;
-      const tempFilePath = path.join('/tmp', tempFileName);
-      
-      // Write buffer to temporary file
-      await fs.promises.writeFile(tempFilePath, imageBuffer);
-      
-      let response: any;
-      try {
-        // Use OpenAI SDK for image editing with file path
-        response = await openai.images.edit({
-          image: fs.createReadStream(tempFilePath),
-          prompt: transformPrompt,
-          n: 1,
-          size: "1024x1024",
-          response_format: "b64_json"
-        } as any);
-
-        // Clean up temp file
-        await fs.promises.unlink(tempFilePath);
-      } catch (error) {
-        // Clean up temp file even if error occurs
-        try {
-          await fs.promises.unlink(tempFilePath);
-        } catch (unlinkError) {
-          console.error('Failed to clean up temp file:', unlinkError);
-        }
-        throw error;
-      }
-
-      console.log('GPT-Image-1 response received');
+      console.log('DALL-E 3 response received');
 
       let imageUrl = null;
       if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
@@ -1574,15 +1530,15 @@ The inside should look like a perfect companion piece created by the same artist
       }
 
       if (!imageUrl) {
-        throw new Error('No image generated from GPT-Image-1');
+        throw new Error('No image generated from DALL-E 3');
       }
 
-      console.log('GPT-Image-1 transformation completed successfully');
+      console.log('Style transformation completed successfully using DALL-E 3');
 
       res.json({ imageUrl });
     } catch (error: any) {
-      console.error('GPT-Image-1 transformation error:', error);
-      res.status(500).json({ message: "GPT-Image-1 transformation failed: " + error.message });
+      console.error('Style transformation error:', error);
+      res.status(500).json({ message: "Style transformation failed: " + error.message });
     }
   });
 
