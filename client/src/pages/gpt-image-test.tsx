@@ -644,23 +644,23 @@ export default function GPTImageTest() {
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm">GPT-4o Vision style analysis</span>
+                  <span className="text-sm">GPT-Image-1 image-to-image style reference</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm">Typography matching system</span>
+                  <span className="text-sm">Automatic style, color, and typography matching</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm">Color palette consistency</span>
+                  <span className="text-sm">High quality generation setting</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm">Atmosphere and mood matching</span>
+                  <span className="text-sm">Customizable inside card messages</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm">Custom message integration</span>
+                  <span className="text-sm">Prominent text placement on card design</span>
                 </div>
               </div>
             </div>
