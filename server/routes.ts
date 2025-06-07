@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { Readable } from "stream";
+import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
 import { storage } from "./storage";
@@ -1524,7 +1525,6 @@ The inside should look like a perfect companion piece created by the same artist
         console.log('Making GPT-Image-1 API request with exact format from documentation');
         
         // Use the exact curl equivalent with form-data
-        const { spawn } = require('child_process');
         
         const curlArgs = [
           'https://api.openai.com/v1/images/edits',
@@ -1544,15 +1544,15 @@ The inside should look like a perfect companion piece created by the same artist
           let stdout = '';
           let stderr = '';
           
-          curl.stdout.on('data', (data) => {
+          curl.stdout.on('data', (data: Buffer) => {
             stdout += data.toString();
           });
           
-          curl.stderr.on('data', (data) => {
+          curl.stderr.on('data', (data: Buffer) => {
             stderr += data.toString();
           });
           
-          curl.on('close', (code) => {
+          curl.on('close', (code: number | null) => {
             if (code === 0) {
               resolve(stdout);
             } else {
