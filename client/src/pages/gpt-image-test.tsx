@@ -36,6 +36,7 @@ export default function GPTImageTest() {
   const generateInsideCardAuto = async (frontImage: string) => {
     if (!insideCardText.trim()) return;
 
+    console.log('Auto-generating inside card with text:', insideCardText);
     setIsGeneratingInside(true);
 
     try {
