@@ -1526,70 +1526,105 @@ The inside should look like a perfect companion piece created by the same artist
       const imageBuffer = Buffer.from(base64Data, 'base64');
       
       console.log('Image buffer size:', imageBuffer.length, 'bytes, MIME type:', mimeType);
-      
-      // Create a temporary file for the image with correct extension
-      const tempImagePath = `/tmp/temp_edit_${Date.now()}.${mimeType}`;
-      fs.writeFileSync(tempImagePath, imageBuffer);
 
       try {
-        console.log('Calling GPT-Image-1 edits API with scene editing...');
-        const response = await openai.images.edit({
-          image: fs.createReadStream(tempImagePath),
-          prompt: fullPrompt,
-          model: "gpt-image-1",
-          n: 1,
-          size: "1024x1024",
-          quality: "low",
-          background: "auto"
-        });
-
-        console.log('GPT-Image-1 edits response received');
-        console.log('Response structure:', {
-          created: response.created,
-          dataLength: response.data?.length,
-          hasUsage: !!response.usage
-        });
-
-        let imageUrl = '';
+        console.log('Making GPT-Image-1 scene edit API request using direct HTTP form-data');
         
-        if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-          const imageData = response.data[0];
-          console.log('Image data type:', typeof imageData);
-          console.log('Image data keys:', Object.keys(imageData));
-          
-          if (typeof imageData === 'string') {
-            imageUrl = `data:image/png;base64,${imageData}`;
-          } else if (imageData.b64_json) {
-            imageUrl = `data:image/png;base64,${imageData.b64_json}`;
-          } else if (imageData.url) {
-            imageUrl = imageData.url;
+        // Use form-data package for proper multipart form handling
+        const formData = new FormData();
+        
+        // Add image buffer directly with proper metadata
+        formData.append('image', imageBuffer, {
+          filename: `image.${mimeType}`,
+          contentType: `image/${mimeType}`
+        });
+        formData.append('prompt', fullPrompt);
+        formData.append('model', 'gpt-image-1');
+        formData.append('n', '1');
+        formData.append('size', '1024x1024');
+        formData.append('quality', 'low');
+        formData.append('background', 'auto');
+        
+        // Use node-fetch with proper FormData handling
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch('https://api.openai.com/v1/images/edits', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            ...formData.getHeaders()
+          },
+          body: formData
+        });
+        
+        // Add timeout handling for GPT-Image-1 requests
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('GPT-Image-1 scene edit request timed out - this model may require special OpenAI API access')), 30000);
+        });
+        
+        const responsePromise = (async () => {
+          if (!response.ok) {
+            const errorText = await response.text();
+            let errorData;
+            try {
+              errorData = JSON.parse(errorText);
+            } catch {
+              errorData = { error: { message: errorText } };
+            }
+            throw new Error(`GPT-Image-1 API error: ${response.status} ${errorData.error?.message || 'Unknown error'}`);
           }
-          console.log('Successfully extracted scene-edited image data');
+          
+          return await response.json();
+        })();
+        
+        const responseData = await Promise.race([responsePromise, timeoutPromise]);
+        
+        console.log('GPT-Image-1 scene edit response received successfully');
+        
+        // Extract image URL from response
+        let imageUrl: string = '';
+        if (responseData && (responseData as any).data && Array.isArray((responseData as any).data) && (responseData as any).data.length > 0) {
+          const imageResult = (responseData as any).data[0];
+          
+          if (imageResult.b64_json) {
+            imageUrl = `data:image/png;base64,${imageResult.b64_json}`;
+            console.log('Generated base64 image URL successfully');
+          } else if (imageResult.url) {
+            imageUrl = imageResult.url;
+            console.log('Generated image URL:', imageResult.url);
+          } else {
+            throw new Error('No image data received from GPT-Image-1');
+          }
         } else {
-          console.log('Failed to find data array in response');
-          throw new Error('No image data received from GPT-Image-1 edits API');
+          throw new Error('Invalid response format from GPT-Image-1 API');
         }
-
-        // Clean up temp file
-        try {
-          fs.unlinkSync(tempImagePath);
-        } catch (cleanupError) {
-          console.log('Warning: Could not clean up temp file:', cleanupError);
-        }
-
+        
+        console.log('GPT-Image-1 scene editing completed successfully');
         res.json({ 
           imageUrl,
-          usage: response.usage
+          usage: (responseData as any).usage
         });
+        
+      } catch (error: any) {
+        console.error('GPT-Image-1 FormData scene edit error details:', error);
 
-      } catch (apiError: any) {
-        // Clean up temp file on error
-        try {
-          fs.unlinkSync(tempImagePath);
-        } catch (cleanupError) {
-          console.log('Warning: Could not clean up temp file on error:', cleanupError);
+        // Handle specific API errors
+        if (error.message?.includes('400')) {
+          if (error.message?.includes('model') || error.message?.includes('model_not_found')) {
+            throw new Error('GPT-Image-1 model is not available with your current OpenAI API access. This model may require special permissions.');
+          } else if (error.message?.includes('multipart') || error.message?.includes('form-data')) {
+            throw new Error('Image upload format error. Please ensure the image is valid.');
+          } else {
+            throw new Error(`GPT-Image-1 API error: ${error.message}`);
+          }
+        } else if (error.message?.includes('401')) {
+          throw new Error('OpenAI API authentication failed. Please check your API key.');
+        } else if (error.message?.includes('429')) {
+          throw new Error('OpenAI API rate limit exceeded. Please try again later.');
+        } else if (error.message?.includes('500')) {
+          throw new Error('OpenAI API server error. Please try again later.');
+        } else {
+          throw new Error(`GPT-Image-1 scene edit error: ${error.message || 'Unknown error'}`);
         }
-        throw apiError;
       }
 
     } catch (error: any) {
