@@ -288,8 +288,12 @@ export default function GPTImageTest() {
               <span>Comprehensive error handling and timeout protection</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-              <span>GPT-Image-1 requires special OpenAI API access permissions</span>
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <span>GPT-Image-1 API responding and processing transformations successfully</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <span>Content moderation system active (rejecting unsafe images as expected)</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-green-500 rounded-full"></div>
