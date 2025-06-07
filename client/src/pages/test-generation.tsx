@@ -278,6 +278,47 @@ export default function TestGeneration() {
     }
   };
 
+  // GPT-Image-1 direct style transformation
+  const transformWithGPTImage1 = async () => {
+    if (!styleTransformPhoto || !selectedArtStyle) {
+      toast({
+        title: "Missing information",
+        description: "Please upload a photo and select an art style",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsStyleTransforming(true);
+    try {
+      const imageResponse = await apiRequest("POST", "/api/transform-style-gpt-image-1", {
+        imageData: styleTransformPhoto,
+        style: selectedArtStyle
+      });
+
+      const result = await imageResponse.json();
+      
+      if (result && result.imageUrl) {
+        setStyleTransformedImage(result.imageUrl);
+        toast({
+          title: "Style transformed!",
+          description: `Successfully applied ${selectedArtStyle} style using GPT-Image-1`
+        });
+      } else {
+        throw new Error("Style transformation failed - no image generated");
+      }
+    } catch (error: any) {
+      console.error('GPT-Image-1 style transformation error:', error);
+      toast({
+        title: "Transformation failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsStyleTransforming(false);
+    }
+  };
+
   // Legacy style transformation using OpenAI (fallback)
   const transformImageStyle = async () => {
     if (!styleTransformPhoto || !selectedArtStyle) {
@@ -1622,6 +1663,24 @@ export default function TestGeneration() {
                     </div>
 
                     <div className="space-y-2">
+                      <Button
+                        onClick={transformWithGPTImage1}
+                        disabled={isStyleTransforming || !styleTransformPhoto || !selectedArtStyle}
+                        className="w-full bg-green-600 hover:bg-green-700"
+                      >
+                        {isStyleTransforming ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Transforming with GPT-Image-1...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-4 h-4 mr-2" />
+                            Transform with GPT-Image-1 (Direct)
+                          </>
+                        )}
+                      </Button>
+
                       <Button
                         onClick={transformStyleWithFlux}
                         disabled={isStyleTransforming || !styleTransformPhoto || !selectedArtStyle}
