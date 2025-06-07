@@ -26,6 +26,12 @@ export default function GPTImageTest() {
   const [sceneCardText, setSceneCardText] = useState('');
   const [activeTab, setActiveTab] = useState<'transform' | 'scene'>('transform');
   
+  // Inside card state
+  const [frontCardImage, setFrontCardImage] = useState<string>('');
+  const [insideCardText, setInsideCardText] = useState('');
+  const [insideCardImage, setInsideCardImage] = useState<string>('');
+  const [isGeneratingInside, setIsGeneratingInside] = useState(false);
+  
   const { toast } = useToast();
 
   const buildPromptWithText = (baseStyle: string): string => {
@@ -82,6 +88,8 @@ export default function GPTImageTest() {
       }
 
       setResultImage(data.imageUrl);
+      setFrontCardImage(data.imageUrl);
+      setInsideCardImage(''); // Reset inside card when new front is generated
       toast({
         title: "Success",
         description: "GPT-Image-1 transformation completed successfully"
@@ -144,6 +152,8 @@ export default function GPTImageTest() {
       }
 
       setResultImage(data.imageUrl);
+      setFrontCardImage(data.imageUrl);
+      setInsideCardImage(''); // Reset inside card when new front is generated
       toast({
         title: "Success",
         description: "Scene editing completed successfully"
@@ -208,6 +218,55 @@ export default function GPTImageTest() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const generateInsideCard = async () => {
+    if (!frontCardImage || !insideCardText.trim()) {
+      toast({
+        title: "Error",
+        description: "Please generate a front card first and enter inside text",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGeneratingInside(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/generate-inside-card', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          frontCardImage: frontCardImage,
+          insideText: insideCardText
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Inside card generation failed');
+      }
+
+      setInsideCardImage(data.imageUrl);
+      toast({
+        title: "Success",
+        description: "Inside card generated successfully"
+      });
+    } catch (err: any) {
+      console.error('Inside card generation error:', err);
+      setError(err.message);
+      toast({
+        title: "Inside Card Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingInside(false);
     }
   };
 
@@ -440,27 +499,83 @@ export default function GPTImageTest() {
             {resultImage && (
               <div className="space-y-4">
                 <div>
-                  <Label>Transformed Image</Label>
+                  <Label>Front Card</Label>
                   <div className="mt-2 w-full flex justify-center">
                     <img 
                       src={resultImage} 
-                      alt="Transformed result" 
+                      alt="Front card result" 
                       className="max-w-full max-h-96 w-auto h-auto border rounded object-contain"
                     />
                   </div>
                 </div>
-                <Button 
-                  onClick={() => {
-                    const link = document.createElement('a');
-                    link.download = `transformed-${Date.now()}.png`;
-                    link.href = resultImage;
-                    link.click();
-                  }}
-                  variant="outline"
-                  className="w-full"
-                >
-                  Download Result
-                </Button>
+
+                {/* Inside Card Generation Section */}
+                <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
+                  <h4 className="font-semibold text-purple-900 mb-3">Generate Inside Card</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="inside-text">Inside Card Message</Label>
+                      <Textarea
+                        id="inside-text"
+                        value={insideCardText}
+                        onChange={(e) => setInsideCardText(e.target.value)}
+                        placeholder="e.g., Hope your special day is amazing! With love from..."
+                        className="mt-1"
+                        rows={2}
+                      />
+                    </div>
+                    <Button 
+                      onClick={generateInsideCard}
+                      disabled={isGeneratingInside || !frontCardImage || !insideCardText.trim()}
+                      className="w-full"
+                      variant="default"
+                    >
+                      {isGeneratingInside ? 'Generating Inside...' : 'Generate Inside Card'}
+                    </Button>
+                  </div>
+                </div>
+
+                {insideCardImage && (
+                  <div className="mt-4">
+                    <Label>Inside Card</Label>
+                    <div className="mt-2 w-full flex justify-center">
+                      <img 
+                        src={insideCardImage} 
+                        alt="Inside card result" 
+                        className="max-w-full max-h-96 w-auto h-auto border rounded object-contain"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.download = `front-card-${Date.now()}.png`;
+                      link.href = resultImage;
+                      link.click();
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Download Front
+                  </Button>
+                  {insideCardImage && (
+                    <Button 
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.download = `inside-card-${Date.now()}.png`;
+                        link.href = insideCardImage;
+                        link.click();
+                      }}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      Download Inside
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -503,7 +618,7 @@ export default function GPTImageTest() {
             </div>
             
             <div>
-              <h4 className="font-semibold mb-3">Scene Editing (NEW)</h4>
+              <h4 className="font-semibold mb-3">Scene Editing</h4>
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
@@ -519,24 +634,48 @@ export default function GPTImageTest() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm">Temporary file handling for uploads</span>
+                  <span className="text-sm">Text overlay for greeting cards</span>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-3">Inside Card Generation (NEW)</h4>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">GPT-4o Vision style analysis</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm">Text overlay for greeting cards</span>
+                  <span className="text-sm">Typography matching system</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">Color palette consistency</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">Atmosphere and mood matching</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">Custom message integration</span>
                 </div>
               </div>
             </div>
           </div>
           
           <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
-            <h4 className="font-semibold text-blue-900 mb-2">Ready for Testing</h4>
+            <h4 className="font-semibold text-blue-900 mb-2">Complete Greeting Card Workflow</h4>
             <p className="text-sm text-blue-800">
-              Both style transformation and scene editing are now available. Upload an image and test either feature:
+              Create professional greeting cards with matching front and inside designs:
             </p>
             <ul className="text-sm text-blue-700 mt-2 ml-4">
-              <li>• <strong>Style Transform:</strong> Change the artistic style while keeping the original scene</li>
-              <li>• <strong>Scene Editing:</strong> Place the subject in a completely new environment with custom styling</li>
+              <li>• <strong>Step 1:</strong> Generate front card using style transformation or scene editing</li>
+              <li>• <strong>Step 2:</strong> Automatically analyze visual style, typography, and atmosphere</li>
+              <li>• <strong>Step 3:</strong> Generate matching inside card with consistent design language</li>
+              <li>• <strong>Result:</strong> Complete greeting card set with professional visual cohesion</li>
             </ul>
           </div>
         </CardContent>

@@ -1643,6 +1643,142 @@ The inside should look like a perfect companion piece created by the same artist
     }
   });
 
+  // Generate inside card with style analysis from front card
+  app.post("/api/generate-inside-card", async (req, res) => {
+    if (!openai) {
+      return res.status(500).json({ message: "OpenAI API key not configured" });
+    }
+
+    try {
+      const { frontCardImage, insideText } = req.body;
+      
+      if (!frontCardImage || !insideText) {
+        return res.status(400).json({ message: "Front card image and inside text are required" });
+      }
+
+      console.log('Generating inside card with style analysis');
+      console.log('Inside text:', insideText);
+
+      // First, analyze the front card's visual style with GPT-4o Vision
+      console.log('Analyzing front card style with GPT-4o Vision...');
+      const styleAnalysisResponse = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "user", 
+            content: [
+              {
+                type: "text",
+                text: "Analyze this greeting card for perfect style replication. Describe in detail: 1) Artistic style (watercolor, digital art, oil painting, etc.) 2) Color palette (specific colors, saturation, mood) 3) Typography details (font style, weight, size, color, positioning, decorative elements) 4) Lighting and atmosphere (brightness, warmth, shadows) 5) Texture and background elements 6) Overall visual composition and artistic treatment. Be extremely specific about visual elements that would help create a perfectly matching companion piece."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: frontCardImage
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 800
+      });
+
+      const styleAnalysis = styleAnalysisResponse.choices[0].message.content;
+      console.log('Style analysis completed successfully');
+
+      if (!styleAnalysis) {
+        throw new Error('Failed to analyze front card style');
+      }
+
+      // Generate inside card using the detailed style analysis
+      const insideCardPrompt = `Create the interior of a greeting card that perfectly matches this visual style analysis: ${styleAnalysis}
+
+CRITICAL REQUIREMENTS FOR PERFECT STYLE MATCHING:
+1) Use the EXACT same artistic style, technique, and visual treatment described in the analysis
+2) Apply the IDENTICAL color palette, saturation levels, and mood from the front card
+3) Use the SAME typography style - match font family, weight, sizing, color, and positioning approach exactly
+4) Match the lighting, atmosphere, and overall visual mood precisely
+5) Display this message prominently and beautifully: "${insideText}"
+6) Create a subtle, complementary background that references the front card's visual elements without overwhelming the text
+7) Maintain the same artistic quality and professional appearance as the front card
+8) Square 1:1 aspect ratio, full bleed design, no borders
+9) The inside should look like it was created by the same artist using identical design principles
+10) Focus on typography as the main element, with the message as the centerpiece
+
+The result should be a perfect visual companion to the front card with seamless style consistency.`;
+
+      console.log('Generating inside card with style-matched prompt');
+
+      // Use form-data approach for consistency
+      const formData = new FormData();
+      formData.append('prompt', insideCardPrompt);
+      formData.append('model', 'gpt-image-1');
+      formData.append('n', '1');
+      formData.append('size', '1024x1024');
+      formData.append('quality', 'low');
+
+      const fetch = (await import('node-fetch')).default;
+      const response = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          ...formData.getHeaders()
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: { message: errorText } };
+        }
+        throw new Error(`GPT-Image-1 API error: ${response.status} ${errorData.error?.message || 'Unknown error'}`);
+      }
+
+      const responseData = await response.json();
+      
+      let imageUrl: string = '';
+      if (responseData && (responseData as any).data && Array.isArray((responseData as any).data) && (responseData as any).data.length > 0) {
+        const imageResult = (responseData as any).data[0];
+        
+        if (imageResult.b64_json) {
+          imageUrl = `data:image/png;base64,${imageResult.b64_json}`;
+          console.log('Generated inside card base64 image URL successfully');
+        } else if (imageResult.url) {
+          imageUrl = imageResult.url;
+          console.log('Generated inside card image URL:', imageResult.url);
+        } else {
+          throw new Error('No image data received from GPT-Image-1');
+        }
+      } else {
+        throw new Error('Invalid response format from GPT-Image-1 API');
+      }
+
+      console.log('Inside card generation completed successfully');
+      res.json({ 
+        imageUrl,
+        usage: (responseData as any).usage
+      });
+
+    } catch (error: any) {
+      console.error('Inside card generation error:', error);
+      
+      let errorMessage = 'Inside card generation failed';
+      if (error.message?.includes('moderation')) {
+        errorMessage = 'Content moderation detected unsafe content in the text or image';
+      } else if (error.message?.includes('special access')) {
+        errorMessage = 'GPT-Image-1 requires special access permissions from OpenAI';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      res.status(500).json({ message: errorMessage });
+    }
+  });
+
   // GPT-Image-1 style transformation using OpenAI SDK as per documentation
   app.post("/api/transform-style-gpt-image-1", async (req, res) => {
     try {
