@@ -1522,20 +1522,25 @@ The inside should look like a perfect companion piece created by the same artist
       
       console.log('Created temporary file:', tempFilePath, 'with MIME type:', mimeType);
 
-      // Build transformation prompt
-      const transformPrompt = `Transform this image into ${style} art style. Maintain the exact composition, poses, and all visual elements while changing only the artistic style and rendering technique. Create a high-quality artistic transformation that preserves all details from the original image.`;
+      // Build transformation prompt exactly as specified in user's example
+      const transformPrompt = `Transform the attached image into ${style}`;
 
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
 
       let response;
       try {
-        // Use GPT-Image-1 for direct image-to-image transformation
+        console.log('Using GPT-Image-1 edit method as specified');
+        
+        // Use GPT-Image-1 edit method exactly as in user's example
         response = await openai.images.edit({
           image: fs.createReadStream(tempFilePath),
           prompt: transformPrompt,
           model: "gpt-image-1",
           n: 1,
-          size: "1024x1024"
+          size: "1024x1024",
+          quality: "low",
+          background: "auto",
+          moderation: "auto"
         });
       } finally {
         // Clean up temporary file
