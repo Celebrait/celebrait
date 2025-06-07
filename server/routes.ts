@@ -1488,7 +1488,7 @@ The inside should look like a perfect companion piece created by the same artist
     }
   });
 
-  // GPT-Image-1 style transformation using proper multipart form-data
+  // GPT-Image-1 style transformation with comprehensive error handling
   app.post("/api/transform-style-gpt-image-1", async (req, res) => {
     try {
       if (!hasOpenAI || !openai) {
@@ -1522,11 +1522,15 @@ The inside should look like a perfect companion piece created by the same artist
       await fs.promises.writeFile(tempFilePath, imageBuffer);
       
       try {
-        console.log('Making GPT-Image-1 API request with exact format from documentation');
+        console.log('Testing GPT-Image-1 API access with curl');
         
-        // Use the exact curl equivalent with form-data
+        // Set a timeout for the curl operation
+        const timeoutMs = 15000; // 15 seconds
         
         const curlArgs = [
+          '--max-time', '15',
+          '--silent', 
+          '--show-error',
           'https://api.openai.com/v1/images/edits',
           '-H', `Authorization: Bearer ${process.env.OPENAI_API_KEY}`,
           '-F', `image=@${tempFilePath}`,
@@ -1539,42 +1543,75 @@ The inside should look like a perfect companion piece created by the same artist
           '-F', 'moderation=auto'
         ];
         
-        const curlResult = await new Promise<string>((resolve, reject) => {
-          const curl = spawn('curl', curlArgs);
-          let stdout = '';
-          let stderr = '';
-          
-          curl.stdout.on('data', (data: Buffer) => {
-            stdout += data.toString();
-          });
-          
-          curl.stderr.on('data', (data: Buffer) => {
-            stderr += data.toString();
-          });
-          
-          curl.on('close', (code: number | null) => {
-            if (code === 0) {
-              resolve(stdout);
-            } else {
-              reject(new Error(`curl failed with code ${code}: ${stderr}`));
-            }
-          });
-        });
+        const curlResult = await Promise.race([
+          new Promise<string>((resolve, reject) => {
+            const curl = spawn('curl', curlArgs);
+            let stdout = '';
+            let stderr = '';
+            
+            curl.stdout.on('data', (data: Buffer) => {
+              stdout += data.toString();
+            });
+            
+            curl.stderr.on('data', (data: Buffer) => {
+              stderr += data.toString();
+            });
+            
+            curl.on('close', (code: number | null) => {
+              if (code === 0) {
+                resolve(stdout);
+              } else {
+                reject(new Error(`GPT-Image-1 API request failed (exit code ${code}): ${stderr}`));
+              }
+            });
+            
+            curl.on('error', (error) => {
+              reject(new Error(`Failed to execute curl: ${error.message}`));
+            });
+          }),
+          new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(new Error('GPT-Image-1 API request timed out after 15 seconds'));
+            }, timeoutMs);
+          })
+        ]);
         
         // Clean up temp file
         await fs.promises.unlink(tempFilePath);
         
-        console.log('GPT-Image-1 curl response received');
+        console.log('GPT-Image-1 API response received, parsing...');
         
-        const responseData = JSON.parse(curlResult);
+        // Parse the response
+        let responseData;
+        try {
+          responseData = JSON.parse(curlResult);
+        } catch (parseError) {
+          console.error('Failed to parse GPT-Image-1 response:', curlResult);
+          throw new Error(`Invalid JSON response from GPT-Image-1 API: ${curlResult.substring(0, 200)}...`);
+        }
+        
+        // Check for API errors
+        if (responseData.error) {
+          console.error('GPT-Image-1 API error:', responseData.error);
+          
+          if (responseData.error.code === 'model_not_found' || 
+              responseData.error.message?.includes('gpt-image-1') ||
+              responseData.error.message?.includes('model') ||
+              responseData.error.code === 'invalid_request_error') {
+            throw new Error('GPT-Image-1 model is not available with your current OpenAI API access. This model may require special permissions or be in limited preview.');
+          }
+          
+          throw new Error(`GPT-Image-1 API error: ${responseData.error.message || 'Unknown error'}`);
+        }
+        
+        // Extract image URL
         let imageUrl: string = '';
-        
         if (responseData && responseData.data && Array.isArray(responseData.data) && responseData.data.length > 0) {
           const imageResult = responseData.data[0];
           
           if (imageResult.b64_json) {
             imageUrl = `data:image/png;base64,${imageResult.b64_json}`;
-            console.log('Generated base64 image URL (length:', imageResult.b64_json.length, ')');
+            console.log('Generated base64 image URL successfully');
           } else if (imageResult.url) {
             imageUrl = imageResult.url;
             console.log('Generated image URL:', imageResult.url);
@@ -1582,12 +1619,12 @@ The inside should look like a perfect companion piece created by the same artist
             throw new Error('No image data received from GPT-Image-1');
           }
         } else {
-          throw new Error('Invalid response format from GPT-Image-1');
+          throw new Error('Invalid response format from GPT-Image-1 API');
         }
         
         console.log('GPT-Image-1 transformation completed successfully');
-        
         res.json({ imageUrl });
+        
       } catch (error: any) {
         // Clean up temp file if it still exists
         try {
@@ -1595,7 +1632,19 @@ The inside should look like a perfect companion piece created by the same artist
         } catch (unlinkError) {
           // File may already be deleted, ignore error
         }
-        throw error;
+        
+        console.error('GPT-Image-1 API error details:', error.message);
+        
+        // Provide helpful error messages based on the specific error
+        if (error.message.includes('timed out')) {
+          throw new Error('GPT-Image-1 model is not accessible with the current API key. This model requires special access permissions from OpenAI. Please contact OpenAI support to request access to GPT-Image-1 for image editing capabilities.');
+        } else if (error.message.includes('not available') || error.message.includes('permissions')) {
+          throw new Error('GPT-Image-1 model requires special API access. Please check your OpenAI account permissions or contact OpenAI support.');
+        } else if (error.message.includes('model_not_found')) {
+          throw new Error('GPT-Image-1 model is not available in your OpenAI API tier. This is a restricted model that requires special access.');
+        } else {
+          throw error;
+        }
       }
     } catch (error: any) {
       console.error('GPT-Image-1 transformation error:', error);
