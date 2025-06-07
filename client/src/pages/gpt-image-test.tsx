@@ -462,6 +462,25 @@ export default function GPTImageTest() {
                 </div>
               </TabsContent>
             </Tabs>
+
+            {/* Inside Card Message Input - Always Visible */}
+            <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
+              <h4 className="font-semibold text-purple-900 mb-3">Inside Card Message</h4>
+              <div>
+                <Label htmlFor="inside-message">Prepare your inside card text</Label>
+                <Textarea
+                  id="inside-message"
+                  value={insideCardText}
+                  onChange={(e) => setInsideCardText(e.target.value)}
+                  placeholder="e.g., Hope your special day is amazing! With love from..."
+                  className="mt-1"
+                  rows={3}
+                />
+                <p className="text-sm text-purple-700 mt-2">
+                  This message will be used to generate the inside card after you create the front card.
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -509,30 +528,22 @@ export default function GPTImageTest() {
                   </div>
                 </div>
 
-                {/* Inside Card Generation Section */}
+                {/* Inside Card Generation Button */}
                 <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
                   <h4 className="font-semibold text-purple-900 mb-3">Generate Inside Card</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <Label htmlFor="inside-text">Inside Card Message</Label>
-                      <Textarea
-                        id="inside-text"
-                        value={insideCardText}
-                        onChange={(e) => setInsideCardText(e.target.value)}
-                        placeholder="e.g., Hope your special day is amazing! With love from..."
-                        className="mt-1"
-                        rows={2}
-                      />
-                    </div>
-                    <Button 
-                      onClick={generateInsideCard}
-                      disabled={isGeneratingInside || !frontCardImage || !insideCardText.trim()}
-                      className="w-full"
-                      variant="default"
-                    >
-                      {isGeneratingInside ? 'Generating Inside...' : 'Generate Inside Card'}
-                    </Button>
-                  </div>
+                  <Button 
+                    onClick={generateInsideCard}
+                    disabled={isGeneratingInside || !frontCardImage || !insideCardText.trim()}
+                    className="w-full"
+                    variant="default"
+                  >
+                    {isGeneratingInside ? 'Generating Inside Card...' : 'Generate Inside Card'}
+                  </Button>
+                  {!insideCardText.trim() && (
+                    <p className="text-sm text-purple-600 mt-2">
+                      Please add your inside card message above to continue.
+                    </p>
+                  )}
                 </div>
 
                 {insideCardImage && (
