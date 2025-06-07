@@ -277,7 +277,18 @@ export default function GPTImageTest() {
     }
   };
 
+  const generateInsideCard = async () => {
+    if (!frontCardImage || !insideCardText.trim()) {
+      toast({
+        title: "Error",
+        description: "Please generate a front card first and enter inside text",
+        variant: "destructive"
+      });
+      return;
+    }
 
+    await generateInsideCardAuto(frontCardImage);
+  };
 
   return (
     <div className="container mx-auto p-6 max-w-6xl">
@@ -472,21 +483,33 @@ export default function GPTImageTest() {
               </TabsContent>
             </Tabs>
 
-            {/* Inside Card Message Input - Always Visible */}
+            {/* Greeting Card Text Inputs - Always Visible */}
             <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
-              <h4 className="font-semibold text-purple-900 mb-3">Inside Card Message</h4>
-              <div>
-                <Label htmlFor="inside-message">Prepare your inside card text</Label>
-                <Textarea
-                  id="inside-message"
-                  value={insideCardText}
-                  onChange={(e) => setInsideCardText(e.target.value)}
-                  placeholder="e.g., Hope your special day is amazing! With love from..."
-                  className="mt-1"
-                  rows={3}
-                />
-                <p className="text-sm text-purple-700 mt-2">
-                  This message will be used to generate the inside card after you create the front card.
+              <h4 className="font-semibold text-purple-900 mb-3">Greeting Card Messages</h4>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="front-card-text">Front Card Text (Optional)</Label>
+                  <Input
+                    id="front-card-text"
+                    value={frontCardText}
+                    onChange={(e) => setFrontCardText(e.target.value)}
+                    placeholder="e.g., Happy Birthday!"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="inside-message">Inside Card Message</Label>
+                  <Textarea
+                    id="inside-message"
+                    value={insideCardText}
+                    onChange={(e) => setInsideCardText(e.target.value)}
+                    placeholder="e.g., Hope your special day is amazing! With love from..."
+                    className="mt-1"
+                    rows={3}
+                  />
+                </div>
+                <p className="text-sm text-purple-700">
+                  The inside card will be automatically generated using your front card's style after the front is created.
                 </p>
               </div>
             </div>
@@ -537,23 +560,15 @@ export default function GPTImageTest() {
                   </div>
                 </div>
 
-                {/* Inside Card Generation Button */}
-                <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
-                  <h4 className="font-semibold text-purple-900 mb-3">Generate Inside Card</h4>
-                  <Button 
-                    onClick={generateInsideCard}
-                    disabled={isGeneratingInside || !frontCardImage || !insideCardText.trim()}
-                    className="w-full"
-                    variant="default"
-                  >
-                    {isGeneratingInside ? 'Generating Inside Card...' : 'Generate Inside Card'}
-                  </Button>
-                  {!insideCardText.trim() && (
-                    <p className="text-sm text-purple-600 mt-2">
-                      Please add your inside card message above to continue.
-                    </p>
-                  )}
-                </div>
+                {/* Auto-generating Inside Card Status */}
+                {isGeneratingInside && (
+                  <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                      <span className="ml-3 text-purple-900">Automatically generating inside card...</span>
+                    </div>
+                  </div>
+                )}
 
                 {insideCardImage && (
                   <div className="mt-4">
