@@ -1719,8 +1719,10 @@ export default function TestGeneration() {
                       </Button>
                     </div>
 
-                    <div className="text-xs text-gray-500 bg-purple-50 p-2 rounded">
-                      This feature transforms your entire photo into a new artistic style while preserving the composition and content.
+                    <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded space-y-2">
+                      <div><strong>GPT-Image-1 (Direct):</strong> Uses OpenAI's latest image editing model for direct image-to-image style transformation without analysis steps.</div>
+                      <div><strong>Flux-Kontext-Pro:</strong> Uses Replicate's advanced model for character-aware transformations.</div>
+                      <div><strong>OpenAI (Legacy):</strong> Uses analysis + generation approach for style transformation.</div>
                     </div>
                   </CardContent>
                 </Card>

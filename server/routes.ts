@@ -1487,6 +1487,73 @@ The inside should look like a perfect companion piece created by the same artist
     }
   });
 
+  // GPT-Image-1 direct style transformation
+  app.post("/api/transform-style-gpt-image-1", async (req, res) => {
+    try {
+      if (!hasOpenAI || !openai) {
+        return res.status(503).json({ message: "OpenAI API is not configured" });
+      }
+
+      const { imageData, style } = req.body;
+
+      if (!imageData || !style) {
+        return res.status(400).json({ message: "Image data and style are required" });
+      }
+
+      console.log('GPT-Image-1 direct style transformation with style:', style);
+
+      // Convert base64 data URL to buffer for OpenAI
+      const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+
+      // Create a readable stream from the buffer
+      const imageStream = new Readable({
+        read() {
+          this.push(imageBuffer);
+          this.push(null);
+        }
+      });
+
+      // Build transformation prompt
+      const transformPrompt = `Transform this image into ${style} art style. Maintain the exact composition, poses, and all visual elements while changing only the artistic style and rendering technique. Create a high-quality artistic transformation that preserves all details from the original image.`;
+
+      console.log('GPT-Image-1 transformation prompt:', transformPrompt);
+
+      // Use GPT-Image-1 for direct image-to-image transformation
+      const response = await openai.images.edit({
+        image: imageStream as any,
+        prompt: transformPrompt,
+        model: "gpt-image-1",
+        n: 1,
+        size: "1024x1024"
+      });
+
+      console.log('GPT-Image-1 response received');
+
+      let imageUrl = null;
+      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+        const imageData = response.data[0];
+        
+        if (imageData.b64_json) {
+          imageUrl = `data:image/png;base64,${imageData.b64_json}`;
+        } else if (imageData.url) {
+          imageUrl = imageData.url;
+        }
+      }
+
+      if (!imageUrl) {
+        throw new Error('No image generated from GPT-Image-1');
+      }
+
+      console.log('GPT-Image-1 transformation completed successfully');
+
+      res.json({ imageUrl });
+    } catch (error: any) {
+      console.error('GPT-Image-1 transformation error:', error);
+      res.status(500).json({ message: "GPT-Image-1 transformation failed: " + error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
