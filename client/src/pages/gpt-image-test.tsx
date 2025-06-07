@@ -1,11 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 
@@ -16,68 +15,26 @@ export default function GPTImageTest() {
   const [isLoading, setIsLoading] = useState(false);
   const [resultImage, setResultImage] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const [showTextOptions, setShowTextOptions] = useState(false);
-  const [textOverlay, setTextOverlay] = useState({
+  const [includeText, setIncludeText] = useState(false);
+  const [cardText, setCardText] = useState({
     text: '',
-    fontSize: 32,
-    color: '#ffffff',
-    position: 'center' as 'top' | 'center' | 'bottom',
-    fontFamily: 'Arial',
-    strokeColor: '#000000',
-    strokeWidth: 2
+    textStyle: 'elegant calligraphy',
+    position: 'center'
   });
   const { toast } = useToast();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const addTextToImage = (imageUrl: string): Promise<string> => {
-    return new Promise((resolve) => {
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      if (!canvas || !ctx) {
-        resolve(imageUrl);
-        return;
-      }
+  const buildPromptWithText = (baseStyle: string): string => {
+    if (!includeText || !cardText.text.trim()) {
+      return `Transform the attached image into ${baseStyle}`;
+    }
 
-      const img = new Image();
-      img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        
-        // Draw the image
-        ctx.drawImage(img, 0, 0);
-        
-        if (textOverlay.text) {
-          // Set font properties
-          ctx.font = `${textOverlay.fontSize}px ${textOverlay.fontFamily}`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          
-          // Calculate position
-          const x = canvas.width / 2;
-          let y = canvas.height / 2;
-          
-          if (textOverlay.position === 'top') {
-            y = textOverlay.fontSize + 20;
-          } else if (textOverlay.position === 'bottom') {
-            y = canvas.height - textOverlay.fontSize - 20;
-          }
-          
-          // Draw stroke if enabled
-          if (textOverlay.strokeWidth > 0) {
-            ctx.strokeStyle = textOverlay.strokeColor;
-            ctx.lineWidth = textOverlay.strokeWidth;
-            ctx.strokeText(textOverlay.text, x, y);
-          }
-          
-          // Draw text
-          ctx.fillStyle = textOverlay.color;
-          ctx.fillText(textOverlay.text, x, y);
-        }
-        
-        resolve(canvas.toDataURL('image/png'));
-      };
-      img.src = imageUrl;
-    });
+    const positionText = {
+      'top': 'at the top of the image',
+      'center': 'in the center of the image', 
+      'bottom': 'at the bottom of the image'
+    }[cardText.position];
+
+    return `Transform the attached image into ${baseStyle}. Include the text "${cardText.text}" rendered in beautiful ${cardText.textStyle} style ${positionText}, as if it were naturally integrated into a greeting card design. The text should harmonize with the artistic style and appear as an organic part of the composition.`;
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,7 +72,7 @@ export default function GPTImageTest() {
         },
         body: JSON.stringify({
           imageData: imagePreview,
-          style: style
+          style: buildPromptWithText(style)
         })
       });
 
@@ -125,8 +82,7 @@ export default function GPTImageTest() {
         throw new Error(data.message || 'GPT-Image-1 transformation failed');
       }
 
-      const finalImageUrl = textOverlay.text ? await addTextToImage(data.imageUrl) : data.imageUrl;
-      setResultImage(finalImageUrl);
+      setResultImage(data.imageUrl);
       toast({
         title: "Success",
         description: "GPT-Image-1 transformation completed successfully"
@@ -166,7 +122,7 @@ export default function GPTImageTest() {
         },
         body: JSON.stringify({
           imageData: imagePreview,
-          style: style
+          style: buildPromptWithText(style)
         })
       });
 
@@ -176,8 +132,7 @@ export default function GPTImageTest() {
         throw new Error(data.message || 'DALL-E 3 transformation failed');
       }
 
-      const finalImageUrl = textOverlay.text ? await addTextToImage(data.imageUrl) : data.imageUrl;
-      setResultImage(finalImageUrl);
+      setResultImage(data.imageUrl);
       toast({
         title: "Success",
         description: "DALL-E 3 transformation completed successfully"
@@ -200,7 +155,7 @@ export default function GPTImageTest() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">GPT-Image-1 & AI Style Transformation Test</h1>
         <p className="text-muted-foreground">
-          Test GPT-Image-1 image style transformations and compare with other AI models
+          Test GPT-Image-1 image style transformations with integrated greeting card text
         </p>
       </div>
 
@@ -210,7 +165,7 @@ export default function GPTImageTest() {
           <CardHeader>
             <CardTitle>Upload & Configure</CardTitle>
             <CardDescription>
-              Upload an image and specify the transformation style
+              Upload an image and specify the transformation style with optional greeting card text
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -251,48 +206,54 @@ export default function GPTImageTest() {
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
                 <Switch
-                  id="text-overlay"
-                  checked={showTextOptions}
-                  onCheckedChange={setShowTextOptions}
+                  id="include-text"
+                  checked={includeText}
+                  onCheckedChange={setIncludeText}
                 />
-                <Label htmlFor="text-overlay">Add Text Overlay</Label>
+                <Label htmlFor="include-text">Include Greeting Card Text</Label>
               </div>
 
-              {showTextOptions && (
+              {includeText && (
                 <Card className="p-4 bg-gray-50">
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="overlay-text">Text</Label>
+                      <Label htmlFor="card-text">Greeting Card Text</Label>
                       <Input
-                        id="overlay-text"
-                        value={textOverlay.text}
-                        onChange={(e) => setTextOverlay(prev => ({ ...prev, text: e.target.value }))}
-                        placeholder="Enter text to add to image"
+                        id="card-text"
+                        value={cardText.text}
+                        onChange={(e) => setCardText(prev => ({ ...prev, text: e.target.value }))}
+                        placeholder="e.g., Happy Birthday, Merry Christmas, Thank You"
                         className="mt-1"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="font-size">Font Size: {textOverlay.fontSize}px</Label>
-                        <Slider
-                          id="font-size"
-                          min={12}
-                          max={120}
-                          step={2}
-                          value={[textOverlay.fontSize]}
-                          onValueChange={(value) => setTextOverlay(prev => ({ ...prev, fontSize: value[0] }))}
-                          className="mt-2"
-                        />
+                        <Label htmlFor="text-style">Text Style</Label>
+                        <Select
+                          value={cardText.textStyle}
+                          onValueChange={(value) => setCardText(prev => ({ ...prev, textStyle: value }))}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="elegant calligraphy">Elegant Calligraphy</SelectItem>
+                            <SelectItem value="vintage script">Vintage Script</SelectItem>
+                            <SelectItem value="modern typography">Modern Typography</SelectItem>
+                            <SelectItem value="handwritten cursive">Handwritten Cursive</SelectItem>
+                            <SelectItem value="bold decorative">Bold Decorative</SelectItem>
+                            <SelectItem value="classic serif">Classic Serif</SelectItem>
+                            <SelectItem value="playful handwriting">Playful Handwriting</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div>
-                        <Label htmlFor="position">Position</Label>
+                        <Label htmlFor="text-position">Text Position</Label>
                         <Select
-                          value={textOverlay.position}
-                          onValueChange={(value: 'top' | 'center' | 'bottom') => 
-                            setTextOverlay(prev => ({ ...prev, position: value }))
-                          }
+                          value={cardText.position}
+                          onValueChange={(value) => setCardText(prev => ({ ...prev, position: value }))}
                         >
                           <SelectTrigger className="mt-1">
                             <SelectValue />
@@ -306,63 +267,10 @@ export default function GPTImageTest() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="font-family">Font Family</Label>
-                        <Select
-                          value={textOverlay.fontFamily}
-                          onValueChange={(value) => setTextOverlay(prev => ({ ...prev, fontFamily: value }))}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Arial">Arial</SelectItem>
-                            <SelectItem value="Georgia">Georgia</SelectItem>
-                            <SelectItem value="Times New Roman">Times New Roman</SelectItem>
-                            <SelectItem value="Helvetica">Helvetica</SelectItem>
-                            <SelectItem value="Impact">Impact</SelectItem>
-                            <SelectItem value="Comic Sans MS">Comic Sans MS</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="text-color">Text Color</Label>
-                        <Input
-                          id="text-color"
-                          type="color"
-                          value={textOverlay.color}
-                          onChange={(e) => setTextOverlay(prev => ({ ...prev, color: e.target.value }))}
-                          className="mt-1 h-10"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="stroke-color">Stroke Color</Label>
-                        <Input
-                          id="stroke-color"
-                          type="color"
-                          value={textOverlay.strokeColor}
-                          onChange={(e) => setTextOverlay(prev => ({ ...prev, strokeColor: e.target.value }))}
-                          className="mt-1 h-10"
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="stroke-width">Stroke Width: {textOverlay.strokeWidth}px</Label>
-                        <Slider
-                          id="stroke-width"
-                          min={0}
-                          max={10}
-                          step={1}
-                          value={[textOverlay.strokeWidth]}
-                          onValueChange={(value) => setTextOverlay(prev => ({ ...prev, strokeWidth: value[0] }))}
-                          className="mt-2"
-                        />
-                      </div>
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                      <p className="text-sm text-blue-800">
+                        <strong>Preview prompt:</strong> {buildPromptWithText(style)}
+                      </p>
                     </div>
                   </div>
                 </Card>
@@ -396,7 +304,7 @@ export default function GPTImageTest() {
           <CardHeader>
             <CardTitle>Transformation Results</CardTitle>
             <CardDescription>
-              View the AI-generated style transformations
+              View the AI-generated style transformations with integrated text
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -432,37 +340,18 @@ export default function GPTImageTest() {
                     className="mt-2 max-w-full border rounded"
                   />
                 </div>
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={() => {
-                      const link = document.createElement('a');
-                      link.download = `transformed-${Date.now()}.png`;
-                      link.href = resultImage;
-                      link.click();
-                    }}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    Download Result
-                  </Button>
-                  
-                  {textOverlay.text && (
-                    <Button 
-                      onClick={async () => {
-                        const finalImage = await addTextToImage(resultImage);
-                        setResultImage(finalImage);
-                        toast({
-                          title: "Text Updated",
-                          description: "Text overlay has been updated on the image"
-                        });
-                      }}
-                      variant="secondary"
-                      className="flex-1"
-                    >
-                      Update Text
-                    </Button>
-                  )}
-                </div>
+                <Button 
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.download = `transformed-${Date.now()}.png`;
+                    link.href = resultImage;
+                    link.click();
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Download Result
+                </Button>
               </div>
             )}
 
@@ -474,9 +363,6 @@ export default function GPTImageTest() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Hidden canvas for text overlay processing */}
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
 
       {/* Implementation Status */}
       <Card className="mt-6">
@@ -500,6 +386,10 @@ export default function GPTImageTest() {
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-green-500 rounded-full"></div>
               <span>GPT-Image-1 API responding and processing transformations successfully</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <span>Greeting card text integration via prompt engineering</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
