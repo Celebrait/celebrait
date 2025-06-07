@@ -1514,60 +1514,61 @@ The inside should look like a perfect companion piece created by the same artist
       const transformPrompt = `Transform the attached image into ${style}`;
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
 
-      // Create a temporary file for the image since OpenAI API requires file upload
+      // Create temporary file for the image
       const tempFileName = `temp_${Date.now()}.${mimeType}`;
       const tempFilePath = path.join('/tmp', tempFileName);
       
-      // Write buffer to temporary file
       await fs.promises.writeFile(tempFilePath, imageBuffer);
       
       try {
-        // Use form-data to create proper multipart request
-        const FormData = (await import('form-data')).default;
-        const form = new FormData();
+        console.log('Making GPT-Image-1 API request with exact format from documentation');
         
-        // Append image as file stream with proper filename and content type
-        form.append('image', fs.createReadStream(tempFilePath), {
-          filename: `image.${mimeType}`,
-          contentType: `image/${mimeType}`
+        // Use the exact curl equivalent with form-data
+        const { spawn } = require('child_process');
+        
+        const curlArgs = [
+          'https://api.openai.com/v1/images/edits',
+          '-H', `Authorization: Bearer ${process.env.OPENAI_API_KEY}`,
+          '-F', `image=@${tempFilePath}`,
+          '-F', `prompt=${transformPrompt}`,
+          '-F', 'model=gpt-image-1',
+          '-F', 'n=1',
+          '-F', 'size=1024x1024',
+          '-F', 'quality=high',
+          '-F', 'background=auto',
+          '-F', 'moderation=auto'
+        ];
+        
+        const curlResult = await new Promise<string>((resolve, reject) => {
+          const curl = spawn('curl', curlArgs);
+          let stdout = '';
+          let stderr = '';
+          
+          curl.stdout.on('data', (data) => {
+            stdout += data.toString();
+          });
+          
+          curl.stderr.on('data', (data) => {
+            stderr += data.toString();
+          });
+          
+          curl.on('close', (code) => {
+            if (code === 0) {
+              resolve(stdout);
+            } else {
+              reject(new Error(`curl failed with code ${code}: ${stderr}`));
+            }
+          });
         });
         
-        // Add all required parameters as per API documentation
-        form.append('prompt', transformPrompt);
-        form.append('model', 'gpt-image-1');
-        form.append('n', '1');
-        form.append('size', '1024x1024');
-        form.append('quality', 'high');
-        form.append('background', 'auto');
-        form.append('moderation', 'auto');
-
-        console.log('Making GPT-Image-1 API request with file stream');
-
-        // Make direct fetch request to OpenAI API
-        const response = await fetch('https://api.openai.com/v1/images/edits', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-            ...form.getHeaders()
-          },
-          body: form as any
-        });
-
         // Clean up temp file
         await fs.promises.unlink(tempFilePath);
         
-        console.log('GPT-Image-1 API response status:', response.status);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('GPT-Image-1 API error response:', errorText);
-          throw new Error(`GPT-Image-1 API error: ${response.status} ${errorText}`);
-        }
-
-        const responseData = await response.json();
-        console.log('GPT-Image-1 response received successfully');
-
-        let imageUrl = null;
+        console.log('GPT-Image-1 curl response received');
+        
+        const responseData = JSON.parse(curlResult);
+        let imageUrl: string = '';
+        
         if (responseData && responseData.data && Array.isArray(responseData.data) && responseData.data.length > 0) {
           const imageResult = responseData.data[0];
           
@@ -1577,56 +1578,25 @@ The inside should look like a perfect companion piece created by the same artist
           } else if (imageResult.url) {
             imageUrl = imageResult.url;
             console.log('Generated image URL:', imageResult.url);
+          } else {
+            throw new Error('No image data received from GPT-Image-1');
           }
+        } else {
+          throw new Error('Invalid response format from GPT-Image-1');
         }
-
-        if (!imageUrl) {
-          throw new Error('No image data received from GPT-Image-1');
-        }
-
+        
         console.log('GPT-Image-1 transformation completed successfully');
-        return imageUrl;
-      } catch (error) {
-        // Clean up temp file even if error occurs
+        
+        res.json({ imageUrl });
+      } catch (error: any) {
+        // Clean up temp file if it still exists
         try {
           await fs.promises.unlink(tempFilePath);
         } catch (unlinkError) {
-          console.error('Failed to clean up temp file:', unlinkError);
+          // File may already be deleted, ignore error
         }
         throw error;
       }
-
-      console.log('GPT-Image-1 API response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('GPT-Image-1 API error response:', errorText);
-        throw new Error(`GPT-Image-1 API error: ${response.status} ${errorText}`);
-      }
-
-      const responseData = await response.json();
-      console.log('GPT-Image-1 response received successfully');
-
-      let imageUrl = null;
-      if (responseData && responseData.data && Array.isArray(responseData.data) && responseData.data.length > 0) {
-        const imageResult = responseData.data[0];
-        
-        if (imageResult.b64_json) {
-          imageUrl = `data:image/png;base64,${imageResult.b64_json}`;
-          console.log('Generated base64 image URL (length:', imageResult.b64_json.length, ')');
-        } else if (imageResult.url) {
-          imageUrl = imageResult.url;
-          console.log('Generated image URL:', imageResult.url);
-        }
-      }
-
-      if (!imageUrl) {
-        throw new Error('No image data received from GPT-Image-1');
-      }
-
-      console.log('GPT-Image-1 transformation completed successfully');
-
-      res.json({ imageUrl });
     } catch (error: any) {
       console.error('GPT-Image-1 transformation error:', error);
       res.status(500).json({ message: "GPT-Image-1 transformation failed: " + error.message });
