@@ -1529,7 +1529,7 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
 
       // Try using the image buffer directly with proper FormData
-      const FormData = require('form-data');
+      const FormData = (await import('form-data')).default;
       const form = new FormData();
       
       // Create a proper stream with filename and content type
