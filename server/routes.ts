@@ -1508,53 +1508,70 @@ The inside should look like a perfect companion piece created by the same artist
       const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
       const imageBuffer = Buffer.from(base64Data, 'base64');
 
-      // Create temporary file with proper extension
-      const tempDir = path.join(process.cwd(), 'temp');
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true });
+      // Validate that we have a proper image by checking magic bytes
+      let validatedMimeType = mimeType;
+      if (imageBuffer.length > 10) {
+        const header = imageBuffer.slice(0, 10);
+        if (header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF) {
+          validatedMimeType = 'jpeg';
+        } else if (header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47) {
+          validatedMimeType = 'png';
+        } else if (header.toString('ascii', 0, 4) === 'RIFF' && header.toString('ascii', 8, 12) === 'WEBP') {
+          validatedMimeType = 'webp';
+        }
       }
-      
-      const tempFileName = `temp_image_${Date.now()}.${mimeType}`;
-      const tempFilePath = path.join(tempDir, tempFileName);
-      
-      // Write buffer to temporary file
-      fs.writeFileSync(tempFilePath, imageBuffer);
-      
-      console.log('Created temporary file:', tempFilePath, 'with MIME type:', mimeType);
+
+      console.log('Detected MIME type:', validatedMimeType);
 
       // Build transformation prompt exactly as specified in user's example
       const transformPrompt = `Transform the attached image into ${style}`;
 
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
 
-      let response;
-      try {
-        console.log('Using GPT-Image-1 edit method as specified');
-        
-        // Use GPT-Image-1 edit method exactly as in user's example
-        response = await openai.images.edit({
-          image: fs.createReadStream(tempFilePath),
-          prompt: transformPrompt,
-          model: "gpt-image-1",
-          n: 1,
-          size: "1024x1024",
-          quality: "low",
-          background: "auto",
-          moderation: "auto"
-        });
-      } finally {
-        // Clean up temporary file
-        if (fs.existsSync(tempFilePath)) {
-          fs.unlinkSync(tempFilePath);
-          console.log('Cleaned up temporary file:', tempFilePath);
+      // Try using the image buffer directly with proper FormData
+      const FormData = require('form-data');
+      const form = new FormData();
+      
+      // Create a proper stream with filename and content type
+      const imageStream = new Readable({
+        read() {
+          this.push(imageBuffer);
+          this.push(null);
         }
+      });
+
+      form.append('image', imageStream, {
+        filename: `image.${validatedMimeType}`,
+        contentType: `image/${validatedMimeType}`
+      });
+      form.append('prompt', transformPrompt);
+      form.append('model', 'gpt-image-1');
+      form.append('n', '1');
+      form.append('size', '1024x1024');
+
+      console.log('Making direct API request with FormData');
+
+      // Make the API request directly using fetch instead of the OpenAI SDK
+      const response = await fetch('https://api.openai.com/v1/images/edits', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          ...form.getHeaders()
+        },
+        body: form
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`OpenAI API error: ${response.status} ${JSON.stringify(errorData)}`);
       }
 
+      const responseData = await response.json();
       console.log('GPT-Image-1 response received');
 
       let imageUrl = null;
-      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-        const imageData = response.data[0];
+      if (responseData && responseData.data && Array.isArray(responseData.data) && responseData.data.length > 0) {
+        const imageData = responseData.data[0];
         
         if (imageData.b64_json) {
           imageUrl = `data:image/png;base64,${imageData.b64_json}`;
