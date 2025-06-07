@@ -63,12 +63,30 @@ app.use((req, res, next) => {
   
   server.on('error', (err: any) => {
     if (err.code === 'EADDRINUSE') {
-      console.error(`Port ${port} is already in use. Attempting to restart...`);
-      process.exit(1);
+      console.error(`Port ${port} is already in use. Server will attempt to restart automatically.`);
+      // Don't exit immediately, let the process manager handle restarts
+      setTimeout(() => process.exit(1), 1000);
     } else {
       console.error('Server error:', err);
       throw err;
     }
+  });
+  
+  // Graceful shutdown handler
+  process.on('SIGTERM', () => {
+    console.log('Received SIGTERM, shutting down gracefully');
+    server.close(() => {
+      console.log('Server closed');
+      process.exit(0);
+    });
+  });
+  
+  process.on('SIGINT', () => {
+    console.log('Received SIGINT, shutting down gracefully');
+    server.close(() => {
+      console.log('Server closed');
+      process.exit(0);
+    });
   });
   
   server.listen(port, "0.0.0.0", () => {
