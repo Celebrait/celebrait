@@ -1487,7 +1487,7 @@ The inside should look like a perfect companion piece created by the same artist
     }
   });
 
-  // Style transformation using DALL-E 3 for artistic style generation
+  // GPT-Image-1 style transformation using proper multipart form-data
   app.post("/api/transform-style-gpt-image-1", async (req, res) => {
     try {
       if (!hasOpenAI || !openai) {
@@ -1496,49 +1496,140 @@ The inside should look like a perfect companion piece created by the same artist
 
       const { imageData, style } = req.body;
 
-      if (!style) {
-        return res.status(400).json({ message: "Style parameter is required" });
+      if (!imageData || !style) {
+        return res.status(400).json({ message: "Image data and style are required" });
       }
 
-      console.log('Style transformation with DALL-E 3 using style:', style);
+      console.log('GPT-Image-1 style transformation with style:', style);
 
-      // Create a generic artistic prompt in the requested style
-      const transformPrompt = `Create a beautiful ${style} artwork featuring a person in a scenic environment. Square 1:1 aspect ratio, high quality artistic rendering, professional ${style} illustration style.`;
+      // Extract MIME type and base64 data
+      const mimeMatch = imageData.match(/^data:image\/([a-z]+);base64,/);
+      const mimeType = mimeMatch ? mimeMatch[1] : 'png';
+      const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
+      const imageBuffer = Buffer.from(base64Data, 'base64');
 
-      console.log('DALL-E 3 transformation prompt:', transformPrompt);
+      console.log('Image buffer size:', imageBuffer.length, 'bytes, MIME type:', mimeType);
 
-      const response = await openai.images.generate({
-        model: "dall-e-3",
-        prompt: transformPrompt,
-        n: 1,
-        size: "1024x1024",
-        quality: "standard",
-        response_format: "b64_json"
-      });
+      // Build transformation prompt
+      const transformPrompt = `Transform the attached image into ${style}`;
+      console.log('GPT-Image-1 transformation prompt:', transformPrompt);
 
-      console.log('DALL-E 3 response received');
+      // Create a temporary file for the image since OpenAI API requires file upload
+      const tempFileName = `temp_${Date.now()}.${mimeType}`;
+      const tempFilePath = path.join('/tmp', tempFileName);
+      
+      // Write buffer to temporary file
+      await fs.promises.writeFile(tempFilePath, imageBuffer);
+      
+      try {
+        // Use form-data to create proper multipart request
+        const FormData = (await import('form-data')).default;
+        const form = new FormData();
+        
+        // Append image as file stream with proper filename and content type
+        form.append('image', fs.createReadStream(tempFilePath), {
+          filename: `image.${mimeType}`,
+          contentType: `image/${mimeType}`
+        });
+        
+        // Add all required parameters as per API documentation
+        form.append('prompt', transformPrompt);
+        form.append('model', 'gpt-image-1');
+        form.append('n', '1');
+        form.append('size', '1024x1024');
+        form.append('quality', 'high');
+        form.append('background', 'auto');
+        form.append('moderation', 'auto');
+
+        console.log('Making GPT-Image-1 API request with file stream');
+
+        // Make direct fetch request to OpenAI API
+        const response = await fetch('https://api.openai.com/v1/images/edits', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            ...form.getHeaders()
+          },
+          body: form as any
+        });
+
+        // Clean up temp file
+        await fs.promises.unlink(tempFilePath);
+        
+        console.log('GPT-Image-1 API response status:', response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('GPT-Image-1 API error response:', errorText);
+          throw new Error(`GPT-Image-1 API error: ${response.status} ${errorText}`);
+        }
+
+        const responseData = await response.json();
+        console.log('GPT-Image-1 response received successfully');
+
+        let imageUrl = null;
+        if (responseData && responseData.data && Array.isArray(responseData.data) && responseData.data.length > 0) {
+          const imageResult = responseData.data[0];
+          
+          if (imageResult.b64_json) {
+            imageUrl = `data:image/png;base64,${imageResult.b64_json}`;
+            console.log('Generated base64 image URL (length:', imageResult.b64_json.length, ')');
+          } else if (imageResult.url) {
+            imageUrl = imageResult.url;
+            console.log('Generated image URL:', imageResult.url);
+          }
+        }
+
+        if (!imageUrl) {
+          throw new Error('No image data received from GPT-Image-1');
+        }
+
+        console.log('GPT-Image-1 transformation completed successfully');
+        return imageUrl;
+      } catch (error) {
+        // Clean up temp file even if error occurs
+        try {
+          await fs.promises.unlink(tempFilePath);
+        } catch (unlinkError) {
+          console.error('Failed to clean up temp file:', unlinkError);
+        }
+        throw error;
+      }
+
+      console.log('GPT-Image-1 API response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('GPT-Image-1 API error response:', errorText);
+        throw new Error(`GPT-Image-1 API error: ${response.status} ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log('GPT-Image-1 response received successfully');
 
       let imageUrl = null;
-      if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
-        const imageData = response.data[0];
+      if (responseData && responseData.data && Array.isArray(responseData.data) && responseData.data.length > 0) {
+        const imageResult = responseData.data[0];
         
-        if (imageData.b64_json) {
-          imageUrl = `data:image/png;base64,${imageData.b64_json}`;
-        } else if (imageData.url) {
-          imageUrl = imageData.url;
+        if (imageResult.b64_json) {
+          imageUrl = `data:image/png;base64,${imageResult.b64_json}`;
+          console.log('Generated base64 image URL (length:', imageResult.b64_json.length, ')');
+        } else if (imageResult.url) {
+          imageUrl = imageResult.url;
+          console.log('Generated image URL:', imageResult.url);
         }
       }
 
       if (!imageUrl) {
-        throw new Error('No image generated from DALL-E 3');
+        throw new Error('No image data received from GPT-Image-1');
       }
 
-      console.log('Style transformation completed successfully using DALL-E 3');
+      console.log('GPT-Image-1 transformation completed successfully');
 
       res.json({ imageUrl });
     } catch (error: any) {
-      console.error('Style transformation error:', error);
-      res.status(500).json({ message: "Style transformation failed: " + error.message });
+      console.error('GPT-Image-1 transformation error:', error);
+      res.status(500).json({ message: "GPT-Image-1 transformation failed: " + error.message });
     }
   });
 
