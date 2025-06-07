@@ -10,6 +10,7 @@ import PaymentSuccess from "@/pages/payment-success";
 import TestPayment from "@/pages/test-payment";
 import TestGeneration from "@/pages/test-generation";
 import StyleTest from "@/pages/style-test";
+import GPTImageTest from "@/pages/gpt-image-test";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/test-payment" component={TestPayment} />
       <Route path="/test-generation" component={TestGeneration} />
       <Route path="/style-test" component={StyleTest} />
+      <Route path="/gpt-image-test" component={GPTImageTest} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1543,25 +1543,34 @@ The inside should look like a perfect companion piece created by the same artist
           body: formData
         });
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          let errorData;
-          try {
-            errorData = JSON.parse(errorText);
-          } catch {
-            errorData = { error: { message: errorText } };
-          }
-          throw new Error(`GPT-Image-1 API error: ${response.status} ${errorData.error?.message || 'Unknown error'}`);
-        }
+        // Add timeout handling for GPT-Image-1 requests
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('GPT-Image-1 request timed out - this model may require special OpenAI API access')), 30000);
+        });
         
-        const responseData = await response.json();
+        const responsePromise = (async () => {
+          if (!response.ok) {
+            const errorText = await response.text();
+            let errorData;
+            try {
+              errorData = JSON.parse(errorText);
+            } catch {
+              errorData = { error: { message: errorText } };
+            }
+            throw new Error(`GPT-Image-1 API error: ${response.status} ${errorData.error?.message || 'Unknown error'}`);
+          }
+          
+          return await response.json();
+        })();
+        
+        const responseData = await Promise.race([responsePromise, timeoutPromise]);
         
         console.log('GPT-Image-1 response received successfully');
         
         // Extract image URL from response
         let imageUrl: string = '';
-        if (responseData && responseData.data && Array.isArray(responseData.data) && responseData.data.length > 0) {
-          const imageResult = responseData.data[0];
+        if (responseData && (responseData as any).data && Array.isArray((responseData as any).data) && (responseData as any).data.length > 0) {
+          const imageResult = (responseData as any).data[0];
           
           if (imageResult.b64_json) {
             imageUrl = `data:image/png;base64,${imageResult.b64_json}`;
