@@ -1528,52 +1528,43 @@ The inside should look like a perfect companion piece created by the same artist
 
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
 
-      // Try using the image buffer directly with proper FormData
-      const FormData = (await import('form-data')).default;
-      const form = new FormData();
+      console.log('Making OpenAI SDK request for image editing');
+
+      // Create a temporary file for the image
+      const tempFileName = `temp_${Date.now()}.${validatedMimeType}`;
+      const tempFilePath = path.join('/tmp', tempFileName);
       
-      // Create a proper stream with filename and content type
-      const imageStream = new Readable({
-        read() {
-          this.push(imageBuffer);
-          this.push(null);
+      // Write buffer to temporary file
+      await fs.promises.writeFile(tempFilePath, imageBuffer);
+      
+      let response: any;
+      try {
+        // Use OpenAI SDK for image editing with file path
+        response = await openai.images.edit({
+          image: fs.createReadStream(tempFilePath),
+          prompt: transformPrompt,
+          n: 1,
+          size: "1024x1024",
+          response_format: "b64_json"
+        } as any);
+
+        // Clean up temp file
+        await fs.promises.unlink(tempFilePath);
+      } catch (error) {
+        // Clean up temp file even if error occurs
+        try {
+          await fs.promises.unlink(tempFilePath);
+        } catch (unlinkError) {
+          console.error('Failed to clean up temp file:', unlinkError);
         }
-      });
-
-      form.append('image', imageStream, {
-        filename: `image.${validatedMimeType}`,
-        contentType: `image/${validatedMimeType}`
-      });
-      form.append('prompt', transformPrompt);
-      form.append('model', 'gpt-image-1');
-      form.append('n', '1');
-      form.append('size', '1024x1024');
-
-      console.log('Making direct API request with FormData');
-
-      // Make the API request directly using fetch instead of the OpenAI SDK
-      const response = await fetch('https://api.openai.com/v1/images/edits', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          ...form.getHeaders()
-        },
-        body: form as any
-      });
-
-      console.log('OpenAI API response status:', response.status);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`OpenAI API error: ${response.status} ${JSON.stringify(errorData)}`);
+        throw error;
       }
 
-      const responseData = await response.json();
       console.log('GPT-Image-1 response received');
 
       let imageUrl = null;
-      if (responseData && responseData.data && Array.isArray(responseData.data) && responseData.data.length > 0) {
-        const imageData = responseData.data[0];
+      if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
+        const imageData = response.data[0];
         
         if (imageData.b64_json) {
           imageUrl = `data:image/png;base64,${imageData.b64_json}`;
