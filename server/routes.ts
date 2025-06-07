@@ -1774,8 +1774,8 @@ The inside should look like a perfect companion piece created by the same artist
 
       console.log('Image buffer size:', imageBuffer.length, 'bytes, MIME type:', mimeType);
 
-      // Build transformation prompt
-      const transformPrompt = `Transform the attached image into ${style}`;
+      // Use the style prompt directly (it already contains the full transformation instruction)
+      const transformPrompt = style;
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
 
       try {
