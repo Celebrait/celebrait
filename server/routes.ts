@@ -1519,12 +1519,16 @@ The inside should look like a perfect companion piece created by the same artist
 
       console.log('Complete prompt for scene editing:', fullPrompt);
 
-      // Convert base64 data URL to buffer
+      // Extract MIME type and base64 data
+      const mimeMatch = imageData.match(/^data:image\/([a-z]+);base64,/);
+      const mimeType = mimeMatch ? mimeMatch[1] : 'png';
       const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
       const imageBuffer = Buffer.from(base64Data, 'base64');
       
-      // Create a temporary file for the image
-      const tempImagePath = `/tmp/temp_edit_${Date.now()}.jpg`;
+      console.log('Image buffer size:', imageBuffer.length, 'bytes, MIME type:', mimeType);
+      
+      // Create a temporary file for the image with correct extension
+      const tempImagePath = `/tmp/temp_edit_${Date.now()}.${mimeType}`;
       fs.writeFileSync(tempImagePath, imageBuffer);
 
       try {
@@ -1534,7 +1538,9 @@ The inside should look like a perfect companion piece created by the same artist
           prompt: fullPrompt,
           model: "gpt-image-1",
           n: 1,
-          size: "1024x1024"
+          size: "1024x1024",
+          quality: "low",
+          background: "auto"
         });
 
         console.log('GPT-Image-1 edits response received');
