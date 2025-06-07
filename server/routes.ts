@@ -10,6 +10,7 @@ import { PHOTO_ANALYSIS_PROMPT } from "@shared/prompts";
 import OpenAI from "openai";
 import Stripe from "stripe";
 import Replicate from "replicate";
+import FormData from "form-data";
 
 // Temporarily allow running without API keys for testing
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
@@ -1519,7 +1520,6 @@ The inside should look like a perfect companion piece created by the same artist
         console.log('Making GPT-Image-1 API request using direct HTTP form-data');
         
         // Use form-data package for proper multipart form handling
-        const FormData = require('form-data');
         const formData = new FormData();
         
         // Add image buffer directly with proper metadata
@@ -1532,7 +1532,8 @@ The inside should look like a perfect companion piece created by the same artist
         formData.append('n', '1');
         formData.append('size', '1024x1024');
         
-        // Make direct HTTP request
+        // Use node-fetch with proper FormData handling
+        const fetch = (await import('node-fetch')).default;
         const response = await fetch('https://api.openai.com/v1/images/edits', {
           method: 'POST',
           headers: {
