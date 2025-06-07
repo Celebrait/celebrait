@@ -1502,31 +1502,48 @@ The inside should look like a perfect companion piece created by the same artist
 
       console.log('GPT-Image-1 direct style transformation with style:', style);
 
-      // Convert base64 data URL to buffer for OpenAI
+      // Extract MIME type and base64 data
+      const mimeMatch = imageData.match(/^data:image\/([a-z]+);base64,/);
+      const mimeType = mimeMatch ? mimeMatch[1] : 'png';
       const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
       const imageBuffer = Buffer.from(base64Data, 'base64');
 
-      // Create a readable stream from the buffer
-      const imageStream = new Readable({
-        read() {
-          this.push(imageBuffer);
-          this.push(null);
-        }
-      });
+      // Create temporary file with proper extension
+      const tempDir = path.join(process.cwd(), 'temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      const tempFileName = `temp_image_${Date.now()}.${mimeType}`;
+      const tempFilePath = path.join(tempDir, tempFileName);
+      
+      // Write buffer to temporary file
+      fs.writeFileSync(tempFilePath, imageBuffer);
+      
+      console.log('Created temporary file:', tempFilePath, 'with MIME type:', mimeType);
 
       // Build transformation prompt
       const transformPrompt = `Transform this image into ${style} art style. Maintain the exact composition, poses, and all visual elements while changing only the artistic style and rendering technique. Create a high-quality artistic transformation that preserves all details from the original image.`;
 
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
 
-      // Use GPT-Image-1 for direct image-to-image transformation
-      const response = await openai.images.edit({
-        image: imageStream as any,
-        prompt: transformPrompt,
-        model: "gpt-image-1",
-        n: 1,
-        size: "1024x1024"
-      });
+      let response;
+      try {
+        // Use GPT-Image-1 for direct image-to-image transformation
+        response = await openai.images.edit({
+          image: fs.createReadStream(tempFilePath),
+          prompt: transformPrompt,
+          model: "gpt-image-1",
+          n: 1,
+          size: "1024x1024"
+        });
+      } finally {
+        // Clean up temporary file
+        if (fs.existsSync(tempFilePath)) {
+          fs.unlinkSync(tempFilePath);
+          console.log('Cleaned up temporary file:', tempFilePath);
+        }
+      }
 
       console.log('GPT-Image-1 response received');
 
