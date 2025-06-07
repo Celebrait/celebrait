@@ -474,38 +474,68 @@ export default function GPTImageTest() {
       {/* Implementation Status */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Implementation Status</CardTitle>
+          <CardTitle>Feature Implementation Status</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span>GPT-Image-1 API implementation complete using exact documentation format</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold mb-3">Style Transformation</h4>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">GPT-Image-1 style transformation API</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">DALL-E 3 fallback implementation</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">Greeting card text integration</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm">Content moderation active</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span>Proper multipart form-data handling with node-fetch</span>
+            
+            <div>
+              <h4 className="font-semibold mb-3">Scene Editing (NEW)</h4>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">GPT-Image-1 edits API integration</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">Scene description prompt building</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">Art style selection dropdown</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">Temporary file handling for uploads</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">Text overlay for greeting cards</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span>Comprehensive error handling and timeout protection</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span>GPT-Image-1 API responding and processing transformations successfully</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span>Greeting card text integration via prompt engineering</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span>Content moderation system active (rejecting unsafe images as expected)</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span>DALL-E 3 alternative available with standard API access</span>
-            </div>
+          </div>
+          
+          <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
+            <h4 className="font-semibold text-blue-900 mb-2">Ready for Testing</h4>
+            <p className="text-sm text-blue-800">
+              Both style transformation and scene editing are now available. Upload an image and test either feature:
+            </p>
+            <ul className="text-sm text-blue-700 mt-2 ml-4">
+              <li>• <strong>Style Transform:</strong> Change the artistic style while keeping the original scene</li>
+              <li>• <strong>Scene Editing:</strong> Place the subject in a completely new environment with custom styling</li>
+            </ul>
           </div>
         </CardContent>
       </Card>
