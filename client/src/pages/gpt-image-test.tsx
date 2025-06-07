@@ -16,25 +16,15 @@ export default function GPTImageTest() {
   const [resultImage, setResultImage] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [includeText, setIncludeText] = useState(false);
-  const [cardText, setCardText] = useState({
-    text: '',
-    textStyle: 'elegant calligraphy',
-    position: 'center'
-  });
+  const [cardText, setCardText] = useState('');
   const { toast } = useToast();
 
   const buildPromptWithText = (baseStyle: string): string => {
-    if (!includeText || !cardText.text.trim()) {
+    if (!includeText || !cardText.trim()) {
       return `Transform the attached image into ${baseStyle}`;
     }
 
-    const positionText = {
-      'top': 'at the top of the image',
-      'center': 'in the center of the image', 
-      'bottom': 'at the bottom of the image'
-    }[cardText.position];
-
-    return `Transform the attached image into ${baseStyle}. Include the text "${cardText.text}" rendered in beautiful ${cardText.textStyle} style ${positionText}, as if it were naturally integrated into a greeting card design. The text should harmonize with the artistic style and appear as an organic part of the composition.`;
+    return `Transform the attached image into ${baseStyle}. Include the text "${cardText}" beautifully integrated into the composition, rendered in the same artistic style as the rest of the image, as if it were naturally part of a greeting card design.`;
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,51 +210,11 @@ export default function GPTImageTest() {
                       <Label htmlFor="card-text">Greeting Card Text</Label>
                       <Input
                         id="card-text"
-                        value={cardText.text}
-                        onChange={(e) => setCardText(prev => ({ ...prev, text: e.target.value }))}
+                        value={cardText}
+                        onChange={(e) => setCardText(e.target.value)}
                         placeholder="e.g., Happy Birthday, Merry Christmas, Thank You"
                         className="mt-1"
                       />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="text-style">Text Style</Label>
-                        <Select
-                          value={cardText.textStyle}
-                          onValueChange={(value) => setCardText(prev => ({ ...prev, textStyle: value }))}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="elegant calligraphy">Elegant Calligraphy</SelectItem>
-                            <SelectItem value="vintage script">Vintage Script</SelectItem>
-                            <SelectItem value="modern typography">Modern Typography</SelectItem>
-                            <SelectItem value="handwritten cursive">Handwritten Cursive</SelectItem>
-                            <SelectItem value="bold decorative">Bold Decorative</SelectItem>
-                            <SelectItem value="classic serif">Classic Serif</SelectItem>
-                            <SelectItem value="playful handwriting">Playful Handwriting</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="text-position">Text Position</Label>
-                        <Select
-                          value={cardText.position}
-                          onValueChange={(value) => setCardText(prev => ({ ...prev, position: value }))}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="top">Top</SelectItem>
-                            <SelectItem value="center">Center</SelectItem>
-                            <SelectItem value="bottom">Bottom</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
                     </div>
 
                     <div className="p-3 bg-blue-50 border border-blue-200 rounded">
