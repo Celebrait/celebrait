@@ -632,7 +632,7 @@ export default function TestGeneration() {
     }
   };
 
-  const analyzePhotoWithRetry = async (photoData: string, personIndex: number, maxRetries = 10) => {
+  const analyzePhotoWithRetry = async (photoData: string, personIndex: number, maxRetries = 10): Promise<{personIndex: number, analysis: string, attempts: number}> => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(`Analyzing Person ${personIndex}, attempt ${attempt}/${maxRetries}`);
@@ -678,6 +678,9 @@ export default function TestGeneration() {
         }
       }
     }
+    
+    // This should never be reached due to the throw in the catch block, but TypeScript needs it
+    throw new Error(`Unexpected error: analysis loop completed without returning for Person ${personIndex}`);
   };
 
   const analyzePhotos = async (photoDataArray: string[]) => {
@@ -686,7 +689,7 @@ export default function TestGeneration() {
     setPhotoAnalyses([]);
     
     try {
-      const analyses = [];
+      const analyses: Array<{personIndex: number, analysis: string, attempts: number}> = [];
       
       for (let i = 0; i < photoDataArray.length; i++) {
         setCurrentAnalysisIndex(i);
@@ -694,7 +697,7 @@ export default function TestGeneration() {
         try {
           const analysis = await analyzePhotoWithRetry(photoDataArray[i], i + 1, 10);
           analyses.push(analysis);
-          setPhotoAnalyses([...analyses]); // Update UI progressively
+          setPhotoAnalyses(analyses.map(a => ({personIndex: a.personIndex, analysis: a.analysis}))); // Update UI progressively
           
           toast({
             title: `Person ${i + 1} analyzed successfully`,

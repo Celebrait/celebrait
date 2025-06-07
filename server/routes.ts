@@ -1335,7 +1335,7 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Flux character transformation output type:', typeof output);
 
       // Handle different flux model output formats
-      let frontImageUrl: string;
+      let frontImageUrl: string = '';
       
       if (output && typeof output === 'object' && 'url' in output && typeof (output as any).url === 'function') {
         // flux-kontext-pro returns an object with url() method
@@ -1450,7 +1450,7 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Flux style transformation output type:', typeof output);
 
       // Handle Replicate flux binary output
-      let frontImageUrl;
+      let frontImageUrl: string = '';
       
       if (Array.isArray(output) && output.length > 0) {
         frontImageUrl = output[0];
