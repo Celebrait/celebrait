@@ -17,14 +17,12 @@ export default function GPTImageTest() {
   const [resultImage, setResultImage] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [includeText, setIncludeText] = useState(false);
-  const [cardText, setCardText] = useState('');
   const [frontCardText, setFrontCardText] = useState('');
   
   // Scene editing specific state
   const [scenePrompt, setScenePrompt] = useState('');
   const [sceneStyle, setSceneStyle] = useState('watercolor painting');
   const [sceneIncludeText, setSceneIncludeText] = useState(false);
-  const [sceneCardText, setSceneCardText] = useState('');
   const [activeTab, setActiveTab] = useState<'transform' | 'scene'>('transform');
   
   // Inside card state
@@ -77,11 +75,11 @@ export default function GPTImageTest() {
   };
 
   const buildPromptWithText = (baseStyle: string): string => {
-    if (!includeText || !cardText.trim()) {
+    if (!includeText || !frontCardText.trim()) {
       return `Transform the attached image into ${baseStyle}`;
     }
 
-    return `Transform the attached image into ${baseStyle}. Include the text "${cardText}" beautifully integrated into the composition, rendered in the same artistic style as the rest of the image, as if it were naturally part of a greeting card design.`;
+    return `Transform the attached image into ${baseStyle}. Include the text "${frontCardText}" beautifully integrated into the composition, rendered in the same artistic style as the rest of the image, as if it were naturally part of a greeting card design.`;
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -190,7 +188,7 @@ export default function GPTImageTest() {
           scenePrompt: scenePrompt,
           style: sceneStyle,
           includeText: sceneIncludeText,
-          cardText: sceneCardText
+          cardText: frontCardText
         })
       });
 
@@ -362,23 +360,15 @@ export default function GPTImageTest() {
 
                   {includeText && (
                     <Card className="p-4 bg-gray-50">
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="card-text">Greeting Card Text</Label>
-                          <Input
-                            id="card-text"
-                            value={cardText}
-                            onChange={(e) => setCardText(e.target.value)}
-                            placeholder="e.g., Happy Birthday, Merry Christmas, Thank You"
-                            className="mt-1"
-                          />
-                        </div>
-
-                        <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                          <p className="text-sm text-blue-800">
-                            <strong>Preview prompt:</strong> {buildPromptWithText(style)}
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                        <p className="text-sm text-blue-800">
+                          <strong>Preview prompt:</strong> {buildPromptWithText(style)}
+                        </p>
+                        {includeText && !frontCardText && (
+                          <p className="text-sm text-amber-700 mt-2">
+                            Enter front card text above to include it in the transformation
                           </p>
-                        </div>
+                        )}
                       </div>
                     </Card>
                   )}
@@ -449,24 +439,16 @@ export default function GPTImageTest() {
 
                   {sceneIncludeText && (
                     <Card className="p-4 bg-gray-50">
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="scene-card-text">Greeting Card Text</Label>
-                          <Input
-                            id="scene-card-text"
-                            value={sceneCardText}
-                            onChange={(e) => setSceneCardText(e.target.value)}
-                            placeholder="e.g., Happy Birthday, Merry Christmas, Thank You"
-                            className="mt-1"
-                          />
-                        </div>
-
-                        <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                          <p className="text-sm text-blue-800">
-                            <strong>Preview prompt:</strong> {scenePrompt} in {sceneStyle}
-                            {sceneIncludeText && sceneCardText ? `. Include the text "${sceneCardText}" beautifully integrated into the composition` : ''}
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                        <p className="text-sm text-blue-800">
+                          <strong>Preview prompt:</strong> {scenePrompt} in {sceneStyle}
+                          {sceneIncludeText && frontCardText ? `. Include the text "${frontCardText}" beautifully integrated into the composition` : ''}
+                        </p>
+                        {sceneIncludeText && !frontCardText && (
+                          <p className="text-sm text-amber-700 mt-2">
+                            Enter front card text above to include it in the scene
                           </p>
-                        </div>
+                        )}
                       </div>
                     </Card>
                   )}
