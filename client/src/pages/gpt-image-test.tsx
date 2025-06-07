@@ -18,6 +18,7 @@ export default function GPTImageTest() {
   const [error, setError] = useState<string>('');
   const [includeText, setIncludeText] = useState(false);
   const [cardText, setCardText] = useState('');
+  const [frontCardText, setFrontCardText] = useState('');
   
   // Scene editing specific state
   const [scenePrompt, setScenePrompt] = useState('');
@@ -33,6 +34,47 @@ export default function GPTImageTest() {
   const [isGeneratingInside, setIsGeneratingInside] = useState(false);
   
   const { toast } = useToast();
+
+  const generateInsideCardAuto = async (frontImage: string) => {
+    if (!insideCardText.trim()) return;
+
+    setIsGeneratingInside(true);
+
+    try {
+      const response = await fetch('/api/generate-inside-card', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          frontCardImage: frontImage,
+          insideText: insideCardText
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Inside card generation failed');
+      }
+
+      setInsideCardImage(data.imageUrl);
+      toast({
+        title: "Success",
+        description: "Inside card generated automatically"
+      });
+    } catch (err: any) {
+      console.error('Inside card generation error:', err);
+      setError(err.message);
+      toast({
+        title: "Inside Card Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingInside(false);
+    }
+  };
 
   const buildPromptWithText = (baseStyle: string): string => {
     if (!includeText || !cardText.trim()) {
@@ -94,6 +136,13 @@ export default function GPTImageTest() {
         title: "Success",
         description: "GPT-Image-1 transformation completed successfully"
       });
+
+      // Automatically generate inside card if inside text is provided
+      if (insideCardText.trim()) {
+        setTimeout(() => {
+          generateInsideCardAuto(data.imageUrl);
+        }, 1000);
+      }
     } catch (err: any) {
       console.error('GPT-Image-1 error:', err);
       setError(err.message);
@@ -158,6 +207,13 @@ export default function GPTImageTest() {
         title: "Success",
         description: "Scene editing completed successfully"
       });
+
+      // Automatically generate inside card if inside text is provided
+      if (insideCardText.trim()) {
+        setTimeout(() => {
+          generateInsideCardAuto(data.imageUrl);
+        }, 1000);
+      }
     } catch (err: any) {
       console.error('Scene edit error:', err);
       setError(err.message);
@@ -221,54 +277,7 @@ export default function GPTImageTest() {
     }
   };
 
-  const generateInsideCard = async () => {
-    if (!frontCardImage || !insideCardText.trim()) {
-      toast({
-        title: "Error",
-        description: "Please generate a front card first and enter inside text",
-        variant: "destructive"
-      });
-      return;
-    }
 
-    setIsGeneratingInside(true);
-    setError('');
-
-    try {
-      const response = await fetch('/api/generate-inside-card', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          frontCardImage: frontCardImage,
-          insideText: insideCardText
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Inside card generation failed');
-      }
-
-      setInsideCardImage(data.imageUrl);
-      toast({
-        title: "Success",
-        description: "Inside card generated successfully"
-      });
-    } catch (err: any) {
-      console.error('Inside card generation error:', err);
-      setError(err.message);
-      toast({
-        title: "Inside Card Error",
-        description: err.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsGeneratingInside(false);
-    }
-  };
 
   return (
     <div className="container mx-auto p-6 max-w-6xl">
