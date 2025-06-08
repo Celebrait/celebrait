@@ -46,7 +46,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
             <img 
               src={card.frontImageUrl} 
               alt="AI generated greeting card design" 
-              style={{ display: 'block', width: '1028px', height: '1028px' }}
+              style={{ display: 'block', width: '1028px', height: '1028px', objectFit: 'cover' }}
             />
           </div>
         ) : (
@@ -63,7 +63,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
               <img 
                 src={card.insideImageUrl} 
                 alt="Card inside design" 
-                style={{ display: 'block', width: '1028px', height: '1028px' }}
+                style={{ display: 'block', width: '1028px', height: '1028px', objectFit: 'cover' }}
               />
             </div>
           </div>

@@ -538,7 +538,7 @@ export default function GPTImageTest() {
                     <img 
                       src={resultImage} 
                       alt="Front card result" 
-                      style={{ display: 'block', width: '1028px', height: '1028px' }}
+                      style={{ display: 'block', width: '1028px', height: '1028px', objectFit: 'cover' }}
                     />
                   </div>
                 </div>
@@ -560,7 +560,7 @@ export default function GPTImageTest() {
                       <img 
                         src={insideCardImage} 
                         alt="Inside card result" 
-                        style={{ display: 'block', width: '1028px', height: '1028px' }}
+                        style={{ display: 'block', width: '1028px', height: '1028px', objectFit: 'cover' }}
                       />
                     </div>
                   </div>
