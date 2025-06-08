@@ -478,8 +478,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         return false;
       }
     } else if (answers.photo_option === 'upload_and_scene') {
-      // For photo + scene, skip description steps but keep scene and people_details
-      const skipSteps = ['character_costume', 'gender', 'age', 'heritage', 'hair_color', 'hair_style', 'build', 'features', 'personality'];
+      // For photo + scene, skip all description steps including gender and heritage
+      const skipSteps = ['character_costume', 'gender', 'age', 'heritage', 'heritage_photo', 'hair_color', 'hair_style', 'build', 'features', 'personality'];
       if (skipSteps.includes(step.id)) {
         return false;
       }
