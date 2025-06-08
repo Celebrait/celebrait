@@ -799,7 +799,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         frontPrompt,
         insidePrompt,
         photoData: answers.photo_upload || null,
-        photoAnalysis: photoAnalyses.length > 0 ? photoAnalyses.map(a => a.analysis).join('\n\n') : null
+        uploadedPhotos: answers.uploaded_photos || []
       });
 
       const card = await response.json();
@@ -822,16 +822,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     parts.push("Square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible");
     
     // Add all analyzed people with their cultural details and user-selected gender
-    if (photoAnalyses.length > 0 && answers.people_details) {
-      photoAnalyses.forEach((analysis, index) => {
-        let personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
+    // Image-to-image approach - use uploaded photos directly
+    if (answers.uploaded_photos && answers.people_details) {
+      answers.uploaded_photos.forEach((photo, index) => {
         const personDetails = answers.people_details[index];
         
-        // Override gender from analysis with user selection if available
+        // For image-to-image approach, describe person based on user input
+        let personDescription = `Person ${index + 1}`;
+        
         if (personDetails?.gender) {
-          // Remove any gender references from AI analysis and replace with user selection
-          personDescription = personDescription.replace(/\b(male|female|man|woman|boy|girl)\b/gi, '');
-          personDescription = `${personDetails.gender}, ${personDescription}`;
+          personDescription += `, ${personDetails.gender}`;
         }
         
         let culturalText = '';
@@ -841,7 +841,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           culturalText = `, ${personDetails.heritage.replace('_', ' ')} heritage`;
         }
         
-        parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}${culturalText}`);
+        if (personDetails?.name) {
+          personDescription += `, representing ${personDetails.name}`;
+        }
+        
+        parts.push(`featuring ${personDescription}${culturalText}`);
       });
     } else if (answers.name) {
       // Fallback for manual descriptions
@@ -1872,7 +1876,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               <h4 className="font-bold text-yellow-800">Important:</h4>
                             </div>
                             <p className="text-yellow-700 font-medium text-sm">
-                              Upload <strong>one clear photo ONLY</strong> of each person you want in the scene. For best results, choose portrait photos that are well lit with facial features clearly visible!
+                              {answers.photo_option === 'upload_and_transform' 
+                                ? `Upload <strong>exactly ONE photo</strong> featuring ${answers.name || 'them'} that you'd like to transform into a new artistic style. The entire image will be transformed while maintaining the original composition.`
+                                : `Upload <strong>one clear photo ONLY</strong> of each person you want in the scene. For best results, choose portrait photos that are well lit with facial features clearly visible!`
+                              }
                             </p>
                           </div>
                         </div>
