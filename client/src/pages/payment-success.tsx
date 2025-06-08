@@ -47,18 +47,45 @@ export default function PaymentSuccess() {
 
   const downloadCard = async () => {
     if (order?.card?.frontImageUrl) {
-      // Create download link
-      const link = document.createElement('a');
-      link.href = order.card.frontImageUrl;
-      link.download = `celebrait-card-${order.id}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast({
-        title: 'Download Started',
-        description: 'Your card is being downloaded'
-      });
+      try {
+        // Convert base64 to blob for proper download
+        const base64Data = order.card.frontImageUrl.split(',')[1];
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'image/png' });
+        
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `celebrait-card-${order.id}.png`;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: 'Download Started',
+          description: 'Your card is being downloaded'
+        });
+      } catch (error) {
+        console.error('Download error:', error);
+        // Fallback to direct link
+        const link = document.createElement('a');
+        link.href = order.card.frontImageUrl;
+        link.download = `celebrait-card-${order.id}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({
+          title: 'Download Started',
+          description: 'Your card is being downloaded'
+        });
+      }
     }
   };
 
