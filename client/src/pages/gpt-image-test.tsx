@@ -538,7 +538,7 @@ export default function GPTImageTest() {
                     <img 
                       src={resultImage} 
                       alt="Front card result" 
-                      className="max-w-full max-h-96 w-auto h-auto border rounded object-contain"
+                      className="w-full border rounded"
                     />
                   </div>
                 </div>
@@ -560,7 +560,7 @@ export default function GPTImageTest() {
                       <img 
                         src={insideCardImage} 
                         alt="Inside card result" 
-                        className="max-w-full max-h-96 w-auto h-auto border rounded object-contain"
+                        className="w-full border rounded"
                       />
                     </div>
                   </div>
