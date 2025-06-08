@@ -535,11 +535,13 @@ export default function GPTImageTest() {
                 <div>
                   <Label>Front Card</Label>
                   <div className="mt-2 w-full flex justify-center">
-                    <img 
-                      src={resultImage} 
-                      alt="Front card result" 
-                      style={{ display: 'block', width: '1028px', height: '1028px', objectFit: 'cover' }}
-                    />
+                    <div style={{ width: '100%', maxWidth: '1028px', aspectRatio: '1/1' }}>
+                      <img 
+                        src={resultImage} 
+                        alt="Front card result" 
+                        style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -557,11 +559,13 @@ export default function GPTImageTest() {
                   <div className="mt-4">
                     <Label>Inside Card</Label>
                     <div className="mt-2 w-full flex justify-center">
-                      <img 
-                        src={insideCardImage} 
-                        alt="Inside card result" 
-                        style={{ display: 'block', width: '1028px', height: '1028px', objectFit: 'cover' }}
-                      />
+                      <div style={{ width: '100%', maxWidth: '1028px', aspectRatio: '1/1' }}>
+                        <img 
+                          src={insideCardImage} 
+                          alt="Inside card result" 
+                          style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      </div>
                     </div>
                   </div>
                 )}

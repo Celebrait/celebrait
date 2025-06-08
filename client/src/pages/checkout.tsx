@@ -201,11 +201,13 @@ export default function Checkout() {
             <CardContent>
               {cardData.frontImageUrl && (
                 <div className="mb-4 flex justify-center">
-                  <img 
-                    src={cardData.frontImageUrl} 
-                    alt="Card preview" 
-                    style={{ display: 'block', width: '1028px', height: '1028px', objectFit: 'cover' }}
-                  />
+                  <div style={{ width: '100%', maxWidth: '1028px', aspectRatio: '1/1' }}>
+                    <img 
+                      src={cardData.frontImageUrl} 
+                      alt="Card preview" 
+                      style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </div>
                 </div>
               )}
               <div className="space-y-2">
