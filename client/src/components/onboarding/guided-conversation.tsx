@@ -809,21 +809,33 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
+      const isTransformStyle = answers.photo_option === 'upload_and_transform';
+      
+      // Limit to one file for transform style option
+      const filesToProcess = isTransformStyle ? [files[0]] : Array.from(files);
+      
       const photoDataArray: string[] = [];
       let filesProcessed = 0;
       
-      Array.from(files).forEach((file) => {
+      filesToProcess.forEach((file) => {
         const reader = new FileReader();
         reader.onload = (e) => {
           const photoData = e.target?.result as string;
           photoDataArray.push(photoData);
           filesProcessed++;
           
-          if (filesProcessed === files.length) {
+          if (filesProcessed === filesToProcess.length) {
             setUploadedPhotos(photoDataArray);
             setAnswers(prev => ({ ...prev, photo_upload: photoDataArray[0] })); // Store first photo for backward compatibility
-            // Auto-analyze all photos
-            analyzePhotos(photoDataArray);
+            
+            if (isTransformStyle) {
+              // Skip analysis for transform style - show success message immediately
+              setAnalysisSuccess(true);
+              setAnswers(prev => ({ ...prev, character_description: 'Photo uploaded successfully for style transformation' }));
+            } else {
+              // Auto-analyze photos for upload and scene option
+              analyzePhotos(photoDataArray);
+            }
           }
         };
         reader.readAsDataURL(file);
@@ -1856,7 +1868,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             onChange={handlePhotoUpload}
                             className="hidden"
                             id="photo-upload"
-                            multiple
+                            multiple={answers.photo_option !== 'upload_and_transform'}
                           />
                           <label onClick={handlePhotoUploadClick} className="cursor-pointer">
                             <div className="space-y-4">
@@ -1867,11 +1879,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               </div>
                               <div>
                                 <h3 className="text-lg font-semibold text-purple-700">
-                                  {answers.photo_option === 'upload_and_transform' ? 'Upload Photos for Style Transformation' : 'Upload Photos'}
+                                  {answers.photo_option === 'upload_and_transform' ? 'Upload Photo for Style Transformation' : 'Upload Photos'}
                                 </h3>
                                 <p className="text-gray-600 mt-2">
                                   {answers.photo_option === 'upload_and_transform' 
-                                    ? 'Click here to select one or more photos that you\'d like to transform into different artistic styles.'
+                                    ? 'Click here to select one photo that you\'d like to transform into a different artistic style.'
                                     : 'Click here to select one or more clear photos. The AI will create artistic representations while maintaining their likeness.'
                                   }
                                 </p>
@@ -1886,7 +1898,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                       <h4 className="font-bold text-yellow-800">Important:</h4>
                                     </div>
                                     <p className="text-yellow-700 font-medium text-sm">
-                                      Upload <strong>one clear photo ONLY</strong> of each person you want in the scene. For best results, choose portrait photos that are well lit with facial features clearly visible!
+                                      {answers.photo_option === 'upload_and_transform' 
+                                        ? <>Upload <strong>one clear photo ONLY</strong>. For best results, choose a photo with good lighting and clear details!</>
+                                        : <>Upload <strong>one clear photo ONLY</strong> of each person you want in the scene. For best results, choose portrait photos that are well lit with facial features clearly visible!</>
+                                      }
                                     </p>
                                   </div>
                                 </div>
