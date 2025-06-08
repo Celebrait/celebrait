@@ -200,12 +200,14 @@ export default function Checkout() {
             </CardHeader>
             <CardContent>
               {cardData.frontImageUrl && (
-                <img 
-                  src={cardData.frontImageUrl} 
-                  alt="Card preview" 
-                  className="w-full rounded-xl shadow-lg mb-4"
-                  style={{ aspectRatio: '1/1', objectFit: 'contain' }}
-                />
+                <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                  <img 
+                    src={cardData.frontImageUrl} 
+                    alt="Card preview" 
+                    className="w-full rounded-lg shadow-lg"
+                    style={{ objectFit: 'contain', width: '100%', height: 'auto' }}
+                  />
+                </div>
               )}
               <div className="space-y-2">
                 <div className="flex justify-between">
