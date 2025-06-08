@@ -43,12 +43,12 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
       <div className="max-w-lg mx-auto mb-8">
         <div className="relative">
           {card.frontImageUrl ? (
-            <div className="bg-gray-50 rounded-2xl p-6">
+            <div className="w-full flex justify-center bg-gray-50 rounded-lg p-4">
               <img 
                 src={card.frontImageUrl} 
                 alt="AI generated greeting card design" 
-                className="w-full rounded-xl shadow-lg"
-                style={{ objectFit: 'contain', width: '100%', height: 'auto', maxHeight: 'none' }}
+                className="max-w-full max-h-96 border rounded shadow-sm"
+                style={{ objectFit: 'contain', width: 'auto', height: 'auto' }}
               />
             </div>
           ) : (
@@ -64,12 +64,12 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
         {card.insideImageUrl && onboarding.selectedPrintOption === 'front-and-inside' && (
           <div className="mt-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Inside Message:</h3>
-            <div className="bg-gray-50 rounded-xl p-6">
+            <div className="w-full flex justify-center bg-gray-50 rounded-lg p-4">
               <img 
                 src={card.insideImageUrl} 
                 alt="Card inside design" 
-                className="w-full rounded-lg shadow-md"
-                style={{ objectFit: 'contain', width: '100%', height: 'auto', maxHeight: 'none' }}
+                className="max-w-full max-h-96 border rounded shadow-sm"
+                style={{ objectFit: 'contain', width: 'auto', height: 'auto' }}
               />
             </div>
           </div>
