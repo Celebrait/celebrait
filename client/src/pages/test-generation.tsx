@@ -466,17 +466,17 @@ export default function TestGeneration() {
 
       // Build front prompt
       const frontPrompt = [
-        "Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame",
+        "Create a square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible",
         `featuring a cheerful person named ${randomName}`,
         `${randomScene}`,
         `${randomStyle.replace('_', ' ')} art style`,
-        `with the text "${randomFrontMessage}" prominently displayed in the CENTER of the image, positioned well within the safe printable area with generous margins from ALL edges, ensuring NO text is cut off or truncated`,
-        "print-ready artwork, no card mockup visible"
+        `with the text "${randomFrontMessage}" prominently displayed in the same style as the artwork, ensuring text is fully visible to read, and NO text is cut off or truncated`,
+        "professional greeting card quality, print-ready artwork"
       ].join(', ');
 
       // Build inside prompt - this will use image-to-image reference
       const insidePrompt = [
-        "Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame",
+        "Create a square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible",
         `Greeting card interior with elegant typography displaying: "${randomInsideMessage}"`,
         "subtle complementary background that matches the front card color palette and overall mood",
         `${randomStyle.replace('_', ' ')} art style with same visual treatment as front`,
@@ -797,7 +797,7 @@ export default function TestGeneration() {
         const parts = [];
         
         // Base requirements
-        parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
+        parts.push("Create a square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible");
         
         // Use analyzed people only
         photoAnalyses.forEach((analysis, index) => {
@@ -838,7 +838,7 @@ export default function TestGeneration() {
         const parts = [];
         
         // Base requirements
-        parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
+        parts.push("Create a square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible");
         
         // ONLY use photo analysis when photos are uploaded - never use preset characters
         if (uploadedPhotos.length > 0) {
@@ -898,7 +898,7 @@ export default function TestGeneration() {
           const parts = [];
           
           // Base requirements
-          parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
+          parts.push("Create a square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible");
           
           // Greeting card interior layout focusing on typography
           parts.push(`Greeting card interior with elegant typography displaying: "${insideMessage}"`);
