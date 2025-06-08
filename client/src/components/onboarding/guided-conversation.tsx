@@ -131,6 +131,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [isTypingExample, setIsTypingExample] = useState(false);
   const [userHasTyped, setUserHasTyped] = useState(false);
   const [showHowItWorksModal, setShowHowItWorksModal] = useState(false);
+  const [showInspirationModal, setShowInspirationModal] = useState(false);
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -1363,116 +1364,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
                 {currentStep.type === 'summary' && (
                   <div className="space-y-4 sm:space-y-6">
-                    {/* Inspiration Carousel */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-center text-purple-700">
-                        {onboarding.selectedSceneType === 'scene-only' ? 'Scene Inspiration Gallery' : 'Card Inspiration Gallery'}
-                      </h3>
-                      <div className="overflow-x-auto">
-                        <div className="flex space-x-4 pb-4">
-                          {onboarding.selectedSceneType === 'scene-only' ? (
-                            // Scene-only inspiration examples
-                            <>
-                              <div className="flex-shrink-0 w-64">
-                                <div className="bg-gradient-to-br from-pink-400 to-rose-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
-                                  🌅
-                                </div>
-                                <div className="mt-2 text-center">
-                                  <div className="font-medium text-sm">Sunrise Dreams</div>
-                                  <div className="text-xs text-gray-600 mt-1">"Golden sunrise over rolling hills with floating balloons and scattered flower petals"</div>
-                                </div>
-                              </div>
-                              <div className="flex-shrink-0 w-64">
-                                <div className="bg-gradient-to-br from-blue-400 to-indigo-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
-                                  🕯️
-                                </div>
-                                <div className="mt-2 text-center">
-                                  <div className="font-medium text-sm">Cozy Fireplace</div>
-                                  <div className="text-xs text-gray-600 mt-1">"Warm fireplace glow with floating hearts, soft blankets, and twinkling lights"</div>
-                                </div>
-                              </div>
-                              <div className="flex-shrink-0 w-64">
-                                <div className="bg-gradient-to-br from-purple-400 to-violet-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
-                                  🌸
-                                </div>
-                                <div className="mt-2 text-center">
-                                  <div className="font-medium text-sm">Enchanted Garden</div>
-                                  <div className="text-xs text-gray-600 mt-1">"Magical garden with blooming flowers, butterflies, and soft morning mist"</div>
-                                </div>
-                              </div>
-                              <div className="flex-shrink-0 w-64">
-                                <div className="bg-gradient-to-br from-green-400 to-emerald-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
-                                  ⭐
-                                </div>
-                                <div className="mt-2 text-center">
-                                  <div className="font-medium text-sm">Starry Night</div>
-                                  <div className="text-xs text-gray-600 mt-1">"Peaceful night sky with twinkling stars, crescent moon, and gentle clouds"</div>
-                                </div>
-                              </div>
-                              <div className="flex-shrink-0 w-64">
-                                <div className="bg-gradient-to-br from-orange-400 to-amber-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
-                                  🎊
-                                </div>
-                                <div className="mt-2 text-center">
-                                  <div className="font-medium text-sm">Celebration Burst</div>
-                                  <div className="text-xs text-gray-600 mt-1">"Vibrant confetti explosion with ribbons, sparkles, and joyful celebration elements"</div>
-                                </div>
-                              </div>
-                            </>
-                          ) : (
-                            // Person-included inspiration examples
-                            <>
-                              <div className="flex-shrink-0 w-64">
-                                <div className="bg-gradient-to-br from-blue-400 to-blue-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
-                                  🏔️
-                                </div>
-                                <div className="mt-2 text-center">
-                                  <div className="font-medium text-sm">Adventure Scene</div>
-                                  <div className="text-xs text-gray-600 mt-1">"Standing on a mountain peak at sunrise, wearing hiking gear, with a triumphant expression and arms raised"</div>
-                                </div>
-                              </div>
-                              <div className="flex-shrink-0 w-64">
-                                <div className="bg-gradient-to-br from-green-400 to-green-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
-                                  ☕
-                                </div>
-                                <div className="mt-2 text-center">
-                                  <div className="font-medium text-sm">Cozy Café</div>
-                                  <div className="text-xs text-gray-600 mt-1">"Sitting in a warm café, reading a book, wearing a cozy sweater, with steaming coffee and rain outside"</div>
-                                </div>
-                              </div>
-                              <div className="flex-shrink-0 w-64">
-                                <div className="bg-gradient-to-br from-purple-400 to-purple-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
-                                  🎨
-                                </div>
-                                <div className="mt-2 text-center">
-                                  <div className="font-medium text-sm">Art Studio</div>
-                                  <div className="text-xs text-gray-600 mt-1">"Painting on a canvas in a bright studio, wearing an apron, surrounded by colorful artwork and brushes"</div>
-                                </div>
-                              </div>
-                              <div className="flex-shrink-0 w-64">
-                                <div className="bg-gradient-to-br from-orange-400 to-orange-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
-                                  🌸
-                                </div>
-                                <div className="mt-2 text-center">
-                                  <div className="font-medium text-sm">Garden Party</div>
-                                  <div className="text-xs text-gray-600 mt-1">"Having a picnic in a beautiful flower garden, wearing summer clothes, with butterflies and sunshine"</div>
-                                </div>
-                              </div>
-                              <div className="flex-shrink-0 w-64">
-                                <div className="bg-gradient-to-br from-red-400 to-red-600 aspect-square rounded-xl flex items-center justify-center text-white text-6xl">
-                                  🍳
-                                </div>
-                                <div className="mt-2 text-center">
-                                  <div className="font-medium text-sm">Chef's Kitchen</div>
-                                  <div className="text-xs text-gray-600 mt-1">"Cooking in a professional kitchen, wearing chef's whites, creating a masterpiece dish with passion"</div>
-                                </div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
                     <div className="flex justify-center">
                       <Button 
                         onClick={handleSummaryNext}
@@ -2230,11 +2121,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                             </svg>
                           </div>
-                          <div className="ml-3">
+                          <div className="ml-3 flex-1">
                             <h3 className="text-sm font-semibold text-blue-800">💡 Pro tip:</h3>
-                            <p className="text-sm text-blue-700 mt-1">
+                            <p className="text-sm text-blue-700 mt-1 mb-3">
                               Paint us a picture with your words! The more vivid your description, the more amazing your card will be. Our AI loves details, so feel free to get creative or keep it simple - whatever feels right. Don't worry about art style - that's coming up next!
                             </p>
+                            <Button
+                              onClick={() => setShowInspirationModal(true)}
+                              variant="outline"
+                              size="sm"
+                              className="bg-white border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 text-xs font-medium"
+                            >
+                              <Eye className="w-3 h-3 mr-1" />
+                              View Inspiration Examples
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -2402,6 +2302,67 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 Cancel
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Inspiration Modal with Carousel */}
+      <Dialog open={showInspirationModal} onOpenChange={setShowInspirationModal}>
+        <DialogContent className="max-w-4xl bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200">
+          <DialogHeader className="text-center pb-4">
+            <div className="flex items-center justify-center space-x-3 mb-3">
+              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                <Eye className="w-6 h-6 text-white" />
+              </div>
+              <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                {onboarding.selectedSceneType === 'scene-only' ? 'Scene Inspiration Gallery' : 'Card Inspiration Gallery'}
+              </DialogTitle>
+            </div>
+            <p className="text-gray-600 text-sm">
+              Browse through these inspiring examples to spark your creativity
+            </p>
+          </DialogHeader>
+          
+          <div className="px-8 py-4">
+            <Carousel className="w-full max-w-3xl mx-auto">
+              <CarouselContent>
+                {(onboarding.selectedSceneType === 'scene-only' 
+                  ? INSPIRATION_EXAMPLES.sceneOnly 
+                  : INSPIRATION_EXAMPLES.withPerson
+                ).map((example, index) => (
+                  <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
+                    <div className="p-2">
+                      <Card className="h-full">
+                        <CardContent className="p-4">
+                          <div className={`bg-gradient-to-br ${example.gradient} aspect-square rounded-xl flex items-center justify-center text-white text-5xl mb-4`}>
+                            {example.emoji}
+                          </div>
+                          <div className="text-center">
+                            <h3 className="font-semibold text-lg text-gray-800 mb-2">
+                              {example.title}
+                            </h3>
+                            <p className="text-sm text-gray-600 leading-relaxed">
+                              "{example.description}"
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-4" />
+              <CarouselNext className="right-4" />
+            </Carousel>
+          </div>
+          
+          <div className="flex justify-center pt-4 pb-2">
+            <Button 
+              onClick={() => setShowInspirationModal(false)} 
+              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-medium shadow-lg transform hover:scale-105 transition-all duration-200"
+            >
+              Close & Continue Creating
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
