@@ -438,6 +438,7 @@ export default function TestPayment() {
                               src={testCard.frontImageUrl} 
                               alt="Card front" 
                               className="w-full max-w-[200px] mx-auto border rounded-lg shadow-sm"
+                              style={{ aspectRatio: '1/1', objectFit: 'contain' }}
                             />
                           </div>
                           {testCard.insideImageUrl && (
@@ -447,6 +448,7 @@ export default function TestPayment() {
                                 src={testCard.insideImageUrl} 
                                 alt="Card inside" 
                                 className="w-full max-w-[200px] mx-auto border rounded-lg shadow-sm"
+                                style={{ aspectRatio: '1/1', objectFit: 'contain' }}
                               />
                             </div>
                           )}
