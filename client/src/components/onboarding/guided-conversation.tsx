@@ -1019,7 +1019,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     const parts = [];
     
     // Base requirements (matching test page structure)
-    parts.push("Create a square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible");
+    parts.push("Square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible");
     
     // Add all analyzed people with their cultural details and user-selected gender
     if (photoAnalyses.length > 0 && answers.people_details) {
@@ -1087,7 +1087,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     
     // Add front text
     if (answers.message) {
-      parts.push(`with "${answers.message}" text prominently displayed in the same style as the artwork, ensuring text is fully visible to read, and NO text is cut off or truncated`);
+      parts.push(`with "${answers.message}" text prominently displayed`);
     }
     
     // Final requirements

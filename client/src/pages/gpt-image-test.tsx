@@ -51,28 +51,36 @@ export default function GPTImageTest() {
         })
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(data.message || 'Inside card generation failed');
       }
 
-      const data = await response.json();
-      console.log('Inside card generated:', data);
       setInsideCardImage(data.imageUrl);
-      
       toast({
-        title: "Inside Card Generated",
-        description: "Your inside card has been created with matching style."
+        title: "Success",
+        description: "Inside card generated automatically"
       });
-    } catch (error) {
-      console.error('Error generating inside card:', error);
+    } catch (err: any) {
+      console.error('Inside card generation error:', err);
+      setError(err.message);
       toast({
-        title: "Error",
-        description: "Failed to generate inside card. Please try again.",
+        title: "Inside Card Error",
+        description: err.message,
         variant: "destructive"
       });
     } finally {
       setIsGeneratingInside(false);
     }
+  };
+
+  const buildPromptWithText = (baseStyle: string): string => {
+    if (!includeText || !frontCardText.trim()) {
+      return `Transform the attached image into ${baseStyle}`;
+    }
+
+    return `Transform the attached image into ${baseStyle}. Include the text "${frontCardText}" beautifully integrated into the composition, rendered in the same artistic style as the rest of the image, as if it were naturally part of a greeting card design.`;
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,18 +89,20 @@ export default function GPTImageTest() {
       setImageFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
+        const result = e.target?.result as string;
+        setImagePreview(result);
       };
       reader.readAsDataURL(file);
-      setResultImage('');
-      setError('');
-      setInsideCardImage('');
     }
   };
 
-  const handleStyleTransformation = async () => {
-    if (!imageFile) {
-      setError('Please upload an image first');
+  const testGPTImage1 = async () => {
+    if (!imageFile || !imagePreview) {
+      toast({
+        title: "Error",
+        description: "Please select an image first",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -101,45 +111,43 @@ export default function GPTImageTest() {
     setResultImage('');
 
     try {
-      const formData = new FormData();
-      formData.append('image', imageFile);
-      formData.append('style', style);
-      formData.append('includeText', includeText.toString());
-      if (includeText && frontCardText.trim()) {
-        formData.append('frontCardText', frontCardText.trim());
-      }
-
-      const response = await fetch('/api/gpt-image/transform', {
+      const response = await fetch('/api/transform-style-gpt-image-1', {
         method: 'POST',
-        body: formData
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          imageData: imagePreview,
+          style: buildPromptWithText(style)
+        })
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-      }
 
       const data = await response.json();
-      console.log('Front card generated:', data);
-      setResultImage(data.imageUrl);
-      setFrontCardImage(data.imageUrl);
-      
-      toast({
-        title: "Transformation Complete",
-        description: "Your image has been transformed successfully!"
-      });
 
-      // Auto-generate inside card if text is provided
-      if (insideCardText.trim()) {
-        await generateInsideCardAuto(data.imageUrl);
+      if (!response.ok) {
+        throw new Error(data.message || 'GPT-Image-1 transformation failed');
       }
 
-    } catch (error) {
-      console.error('Error:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred during transformation');
+      setResultImage(data.imageUrl);
+      setFrontCardImage(data.imageUrl);
+      setInsideCardImage(''); // Reset inside card when new front is generated
       toast({
-        title: "Error",
-        description: "Failed to transform image. Please try again.",
+        title: "Success",
+        description: "GPT-Image-1 transformation completed successfully"
+      });
+
+      // Automatically generate inside card if inside text is provided
+      if (insideCardText.trim()) {
+        setTimeout(() => {
+          generateInsideCardAuto(data.imageUrl);
+        }, 1000);
+      }
+    } catch (err: any) {
+      console.error('GPT-Image-1 error:', err);
+      setError(err.message);
+      toast({
+        title: "GPT-Image-1 Error",
+        description: err.message,
         variant: "destructive"
       });
     } finally {
@@ -147,14 +155,22 @@ export default function GPTImageTest() {
     }
   };
 
-  const handleSceneEditing = async () => {
-    if (!imageFile) {
-      setError('Please upload an image first');
+  const testSceneEdit = async () => {
+    if (!imageFile || !imagePreview) {
+      toast({
+        title: "Error",
+        description: "Please select an image first",
+        variant: "destructive"
+      });
       return;
     }
 
     if (!scenePrompt.trim()) {
-      setError('Please enter a scene description');
+      toast({
+        title: "Error",
+        description: "Please describe the new scene",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -163,46 +179,96 @@ export default function GPTImageTest() {
     setResultImage('');
 
     try {
-      const formData = new FormData();
-      formData.append('image', imageFile);
-      formData.append('scenePrompt', scenePrompt.trim());
-      formData.append('style', sceneStyle);
-      formData.append('includeText', sceneIncludeText.toString());
-      if (sceneIncludeText && frontCardText.trim()) {
-        formData.append('frontCardText', frontCardText.trim());
-      }
-
-      const response = await fetch('/api/gpt-image/edit-scene', {
+      const response = await fetch('/api/edit-scene-gpt-image-1', {
         method: 'POST',
-        body: formData
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          imageData: imagePreview,
+          scenePrompt: scenePrompt,
+          style: sceneStyle,
+          includeText: sceneIncludeText,
+          cardText: frontCardText
+        })
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-      }
 
       const data = await response.json();
-      console.log('Scene edited:', data);
-      setResultImage(data.imageUrl);
-      setFrontCardImage(data.imageUrl);
-      
-      toast({
-        title: "Scene Editing Complete",
-        description: "Your scene has been modified successfully!"
-      });
 
-      // Auto-generate inside card if text is provided
-      if (insideCardText.trim()) {
-        await generateInsideCardAuto(data.imageUrl);
+      if (!response.ok) {
+        throw new Error(data.message || 'Scene editing failed');
       }
 
-    } catch (error) {
-      console.error('Error:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred during scene editing');
+      setResultImage(data.imageUrl);
+      setFrontCardImage(data.imageUrl);
+      setInsideCardImage(''); // Reset inside card when new front is generated
+      toast({
+        title: "Success",
+        description: "Scene editing completed successfully"
+      });
+
+      // Automatically generate inside card if inside text is provided
+      if (insideCardText.trim()) {
+        setTimeout(() => {
+          generateInsideCardAuto(data.imageUrl);
+        }, 1000);
+      }
+    } catch (err: any) {
+      console.error('Scene edit error:', err);
+      setError(err.message);
+      toast({
+        title: "Scene Edit Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const testDALLE3 = async () => {
+    if (!imageFile || !imagePreview) {
       toast({
         title: "Error",
-        description: "Failed to edit scene. Please try again.",
+        description: "Please select an image first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+    setResultImage('');
+
+    try {
+      const response = await fetch('/api/transform-style-dalle3', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          imageData: imagePreview,
+          style: buildPromptWithText(style)
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'DALL-E 3 transformation failed');
+      }
+
+      setResultImage(data.imageUrl);
+      toast({
+        title: "Success",
+        description: "DALL-E 3 transformation completed successfully"
+      });
+    } catch (err: any) {
+      console.error('DALL-E 3 error:', err);
+      setError(err.message);
+      toast({
+        title: "DALL-E 3 Error",
+        description: err.message,
         variant: "destructive"
       });
     } finally {
@@ -211,19 +277,10 @@ export default function GPTImageTest() {
   };
 
   const generateInsideCard = async () => {
-    if (!frontCardImage) {
+    if (!frontCardImage || !insideCardText.trim()) {
       toast({
         title: "Error",
-        description: "Please generate a front card first.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!insideCardText.trim()) {
-      toast({
-        title: "Error", 
-        description: "Please enter text for the inside card.",
+        description: "Please generate a front card first and enter inside text",
         variant: "destructive"
       });
       return;
@@ -232,330 +289,321 @@ export default function GPTImageTest() {
     await generateInsideCardAuto(frontCardImage);
   };
 
-  const downloadImage = (imageData: string, filename: string) => {
-    if (!imageData) return;
-    
-    // Check if we're on iOS Safari
-    const isIOSSafari = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    
-    if (isIOSSafari) {
-      // For iOS Safari, open in new tab
-      const newWindow = window.open();
-      if (newWindow) {
-        newWindow.document.write(`<img src="${imageData}" style="max-width: 100%; height: auto;" />`);
-        newWindow.document.title = filename;
-      }
-    } else {
-      // Desktop/Android download
-      try {
-        const base64Data = imageData.split(',')[1];
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'image/png' });
-        
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = filename;
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error('Download error:', error);
-        const link = document.createElement('a');
-        link.download = filename;
-        link.href = imageData;
-        link.click();
-      }
-    }
-  };
-
   return (
-    <div className="container mx-auto p-4 max-w-6xl">
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold mb-4">GPT-Image-1 Testing Platform</h1>
-        <p className="text-lg text-muted-foreground mb-6">
-          Advanced AI image transformation and scene editing with complete greeting card workflow
+    <div className="container mx-auto p-6 max-w-6xl">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">GPT-Image-1 Advanced Testing</h1>
+        <p className="text-muted-foreground">
+          Test GPT-Image-1 for style transformations and scene editing with greeting card text integration
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* Controls Panel */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Image Upload</CardTitle>
-              <CardDescription>Upload an image to transform or edit</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Input Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Upload & Configure</CardTitle>
+            <CardDescription>
+              Upload an image and choose between style transformation or scene editing
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="image-upload">Select Image</Label>
+              <Input
+                id="image-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="mt-2"
+              />
+            </div>
+
+            {imagePreview && (
+              <div className="mt-4">
+                <Label>Image Preview</Label>
+                <img 
+                  src={imagePreview} 
+                  alt="Preview" 
+                  className="mt-2 max-w-full h-48 object-contain border rounded"
+                />
+              </div>
+            )}
+
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'transform' | 'scene')} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="transform">Style Transform</TabsTrigger>
+                <TabsTrigger value="scene">Scene Editing</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="transform" className="space-y-4 mt-4">
                 <div>
-                  <Label htmlFor="image-upload">Choose Image</Label>
-                  <Input
-                    id="image-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="mt-1"
+                  <Label htmlFor="style-input">Transformation Style</Label>
+                  <Textarea
+                    id="style-input"
+                    value={style}
+                    onChange={(e) => setStyle(e.target.value)}
+                    placeholder="e.g., anime style, watercolor painting, oil painting, sketch"
+                    className="mt-2"
+                    rows={3}
                   />
                 </div>
-                
-                {imagePreview && (
-                  <div className="border rounded-lg p-4">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="max-w-full h-auto rounded"
-                      style={{ maxHeight: '200px' }}
-                    />
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
 
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'transform' | 'scene')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="transform">Style Transformation</TabsTrigger>
-              <TabsTrigger value="scene">Scene Editing</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="transform">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Style Transformation</CardTitle>
-                  <CardDescription>Transform your image into different artistic styles</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="style-select">Art Style</Label>
-                    <Select value={style} onValueChange={setStyle}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a style" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="anime style">Anime Style</SelectItem>
-                        <SelectItem value="watercolor painting">Watercolor Painting</SelectItem>
-                        <SelectItem value="oil painting">Oil Painting</SelectItem>
-                        <SelectItem value="pencil sketch">Pencil Sketch</SelectItem>
-                        <SelectItem value="digital art">Digital Art</SelectItem>
-                        <SelectItem value="cartoon style">Cartoon Style</SelectItem>
-                        <SelectItem value="realistic portrait">Realistic Portrait</SelectItem>
-                        <SelectItem value="impressionist painting">Impressionist Painting</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
+                <div className="space-y-4">
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="include-text"
                       checked={includeText}
                       onCheckedChange={setIncludeText}
                     />
-                    <Label htmlFor="include-text">Include text on front card</Label>
+                    <Label htmlFor="include-text">Include Greeting Card Text</Label>
                   </div>
 
                   {includeText && (
-                    <div>
-                      <Label htmlFor="front-card-text">Front Card Text</Label>
-                      <Input
-                        id="front-card-text"
-                        value={frontCardText}
-                        onChange={(e) => setFrontCardText(e.target.value)}
-                        placeholder="e.g., Happy Birthday!"
-                      />
-                    </div>
+                    <Card className="p-4 bg-gray-50">
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                        <p className="text-sm text-blue-800">
+                          <strong>Preview prompt:</strong> {buildPromptWithText(style)}
+                        </p>
+                        {includeText && !frontCardText && (
+                          <p className="text-sm text-amber-700 mt-2">
+                            Enter front card text above to include it in the transformation
+                          </p>
+                        )}
+                      </div>
+                    </Card>
                   )}
 
-                  <Button
-                    onClick={handleStyleTransformation}
-                    disabled={isLoading || !imageFile}
-                    className="w-full"
-                  >
-                    {isLoading ? 'Transforming...' : 'Transform Style'}
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="scene">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Scene Editing</CardTitle>
-                  <CardDescription>Modify the scene and environment in your image</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="scene-prompt">Scene Description</Label>
-                    <Textarea
-                      id="scene-prompt"
-                      value={scenePrompt}
-                      onChange={(e) => setScenePrompt(e.target.value)}
-                      placeholder="Describe the new scene (e.g., 'sitting on a beach at sunset', 'in a magical forest with fairy lights')"
-                      rows={3}
-                    />
-                  </div>
+                  <div className="space-y-3">
+                    <Button 
+                      onClick={testGPTImage1}
+                      disabled={isLoading || !imageFile}
+                      className="w-full"
+                      variant="default"
+                    >
+                      {isLoading ? 'Processing...' : 'Transform Style (GPT-Image-1)'}
+                    </Button>
 
-                  <div>
-                    <Label htmlFor="scene-style-select">Art Style</Label>
-                    <Select value={sceneStyle} onValueChange={setSceneStyle}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a style" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="watercolor painting">Watercolor Painting</SelectItem>
-                        <SelectItem value="oil painting">Oil Painting</SelectItem>
-                        <SelectItem value="digital art">Digital Art</SelectItem>
-                        <SelectItem value="anime style">Anime Style</SelectItem>
-                        <SelectItem value="realistic photo">Realistic Photo</SelectItem>
-                        <SelectItem value="cartoon style">Cartoon Style</SelectItem>
-                        <SelectItem value="impressionist painting">Impressionist Painting</SelectItem>
-                        <SelectItem value="pencil sketch">Pencil Sketch</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Button 
+                      onClick={testDALLE3}
+                      disabled={isLoading || !imageFile}
+                      className="w-full"
+                      variant="outline"
+                    >
+                      {isLoading ? 'Processing...' : 'Transform Style (DALL-E 3)'}
+                    </Button>
                   </div>
+                </div>
+              </TabsContent>
 
+              <TabsContent value="scene" className="space-y-4 mt-4">
+                <div>
+                  <Label htmlFor="scene-prompt">New Scene Description</Label>
+                  <Textarea
+                    id="scene-prompt"
+                    value={scenePrompt}
+                    onChange={(e) => setScenePrompt(e.target.value)}
+                    placeholder="e.g., Sitting in a coffee shop in Rome, Standing on a beach at sunset, Reading in a cozy library"
+                    className="mt-2"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="scene-style">Art Style</Label>
+                  <Select value={sceneStyle} onValueChange={setSceneStyle}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="watercolor painting">Watercolor Painting</SelectItem>
+                      <SelectItem value="oil painting">Oil Painting</SelectItem>
+                      <SelectItem value="anime style">Anime Style</SelectItem>
+                      <SelectItem value="digital art">Digital Art</SelectItem>
+                      <SelectItem value="sketch">Pencil Sketch</SelectItem>
+                      <SelectItem value="photorealistic">Photorealistic</SelectItem>
+                      <SelectItem value="cartoon">Cartoon</SelectItem>
+                      <SelectItem value="vintage poster">Vintage Poster</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-4">
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="scene-include-text"
                       checked={sceneIncludeText}
                       onCheckedChange={setSceneIncludeText}
                     />
-                    <Label htmlFor="scene-include-text">Include text on front card</Label>
+                    <Label htmlFor="scene-include-text">Include Greeting Card Text</Label>
                   </div>
 
                   {sceneIncludeText && (
-                    <div>
-                      <Label htmlFor="scene-front-card-text">Front Card Text</Label>
-                      <Input
-                        id="scene-front-card-text"
-                        value={frontCardText}
-                        onChange={(e) => setFrontCardText(e.target.value)}
-                        placeholder="e.g., Happy Birthday!"
-                      />
-                    </div>
+                    <Card className="p-4 bg-gray-50">
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                        <p className="text-sm text-blue-800">
+                          <strong>Preview prompt:</strong> {scenePrompt} in {sceneStyle}
+                          {sceneIncludeText && frontCardText ? `. Include the text "${frontCardText}" beautifully integrated into the composition` : ''}
+                        </p>
+                        {sceneIncludeText && !frontCardText && (
+                          <p className="text-sm text-amber-700 mt-2">
+                            Enter front card text above to include it in the scene
+                          </p>
+                        )}
+                      </div>
+                    </Card>
                   )}
 
-                  <Button
-                    onClick={handleSceneEditing}
-                    disabled={isLoading || !imageFile}
+                  <Button 
+                    onClick={testSceneEdit}
+                    disabled={isLoading || !imageFile || !scenePrompt.trim()}
                     className="w-full"
+                    variant="default"
                   >
-                    {isLoading ? 'Editing Scene...' : 'Edit Scene'}
+                    {isLoading ? 'Processing...' : 'Edit Scene (GPT-Image-1)'}
                   </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-
-          {/* Inside Card Generation */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Inside Card Generation</CardTitle>
-              <CardDescription>Generate a matching inside card with custom text</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="inside-card-text">Inside Card Text</Label>
-                <Textarea
-                  id="inside-card-text"
-                  value={insideCardText}
-                  onChange={(e) => setInsideCardText(e.target.value)}
-                  placeholder="Enter the message for inside the card (e.g., 'Wishing you all the best on your special day!')"
-                  rows={3}
-                />
-              </div>
-
-              <Button
-                onClick={generateInsideCard}
-                disabled={isGeneratingInside || !frontCardImage || !insideCardText.trim()}
-                className="w-full"
-              >
-                {isGeneratingInside ? 'Generating Inside Card...' : 'Generate Inside Card'}
-              </Button>
-
-              <div className="text-xs text-muted-foreground">
-                Inside cards are automatically generated when you create a front card with inside text filled in.
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Results Panel */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Results</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {error && (
-                <div className="text-red-600 bg-red-50 p-3 rounded mb-4">
-                  {error}
                 </div>
-              )}
+              </TabsContent>
+            </Tabs>
 
-              {isLoading && (
-                <div className="text-center p-8">
-                  <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                  <p>Processing your image...</p>
+            {/* Greeting Card Text Inputs - Always Visible */}
+            <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
+              <h4 className="font-semibold text-purple-900 mb-3">Greeting Card Messages</h4>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="front-card-text">Front Card Text (Optional)</Label>
+                  <Input
+                    id="front-card-text"
+                    value={frontCardText}
+                    onChange={(e) => setFrontCardText(e.target.value)}
+                    placeholder="e.g., Happy Birthday!"
+                    className="mt-1"
+                  />
                 </div>
-              )}
+                <div>
+                  <Label htmlFor="inside-message">Inside Card Message</Label>
+                  <Textarea
+                    id="inside-message"
+                    value={insideCardText}
+                    onChange={(e) => setInsideCardText(e.target.value)}
+                    placeholder="e.g., Hope your special day is amazing! With love from..."
+                    className="mt-1"
+                    rows={3}
+                  />
+                </div>
+                <p className="text-sm text-purple-700">
+                  The inside card will be automatically generated using your front card's style after the front is created.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-              {resultImage && (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold mb-2">Front Card</h3>
-                    <img
-                      src={resultImage}
-                      alt="Transformed result"
-                      className="max-w-full h-auto rounded border"
+        {/* Results Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Transformation Results</CardTitle>
+            <CardDescription>
+              View the AI-generated style transformations with integrated text
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {error && (
+              <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <h4 className="font-semibold text-destructive mb-2">Error Details:</h4>
+                <p className="text-sm text-destructive">{error}</p>
+                {error.includes('special access') && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                    <p className="text-sm text-blue-800">
+                      <strong>Note:</strong> GPT-Image-1 requires special access permissions from OpenAI. 
+                      Contact OpenAI support to request access to this model for image editing capabilities.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isLoading && (
+              <div className="flex items-center justify-center p-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span className="ml-3">Processing transformation...</span>
+              </div>
+            )}
+
+            {resultImage && (
+              <div className="space-y-4">
+                <div>
+                  <Label>Front Card</Label>
+                  <div className="mt-2 w-full flex justify-center">
+                    <img 
+                      src={resultImage} 
+                      alt="Front card result" 
+                      className="max-w-full max-h-96 w-auto h-auto border rounded object-contain"
                     />
-                    <Button
-                      onClick={() => downloadImage(resultImage, 'front-card.png')}
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                    >
-                      Download Front Card
-                    </Button>
                   </div>
                 </div>
-              )}
 
-              {insideCardImage && (
-                <div className="space-y-4 mt-6">
-                  <div>
-                    <h3 className="font-semibold mb-2">Inside Card</h3>
-                    <img
-                      src={insideCardImage}
-                      alt="Inside card result"
-                      className="max-w-full h-auto rounded border"
-                    />
-                    <Button
-                      onClick={() => downloadImage(insideCardImage, 'inside-card.png')}
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                    >
-                      Download Inside Card
-                    </Button>
+                {/* Auto-generating Inside Card Status */}
+                {isGeneratingInside && (
+                  <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                      <span className="ml-3 text-purple-900">Automatically generating inside card...</span>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {!isLoading && !resultImage && !error && (
-                <div className="text-center text-muted-foreground p-8">
-                  <p>Upload an image and click a transformation button to see results</p>
+                {insideCardImage && (
+                  <div className="mt-4">
+                    <Label>Inside Card</Label>
+                    <div className="mt-2 w-full flex justify-center">
+                      <img 
+                        src={insideCardImage} 
+                        alt="Inside card result" 
+                        className="max-w-full max-h-96 w-auto h-auto border rounded object-contain"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.download = `front-card-${Date.now()}.png`;
+                      link.href = resultImage;
+                      link.click();
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Download Front
+                  </Button>
+                  {insideCardImage && (
+                    <Button 
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.download = `inside-card-${Date.now()}.png`;
+                        link.href = insideCardImage;
+                        link.click();
+                      }}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      Download Inside
+                    </Button>
+                  )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </div>
+            )}
+
+            {!isLoading && !resultImage && !error && (
+              <div className="text-center text-muted-foreground p-8">
+                <p>Upload an image and click a transformation button to see results</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Implementation Status */}

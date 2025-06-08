@@ -7,7 +7,7 @@ export const buildImagePrompt = (answers: any, photoAnalyses?: Array<{personInde
   const parts = [];
   
   // Base requirements (matching test page structure)
-  parts.push("Create a square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible");
+  parts.push("Square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible");
   
   // Add photo analysis if available
   if (photoAnalyses && photoAnalyses.length > 0) {
@@ -41,7 +41,7 @@ export const buildImagePrompt = (answers: any, photoAnalyses?: Array<{personInde
                            answers.celebration === 'other' ? 'Special Day' :
                            'Special Day';
     
-    parts.push(`with "Happy ${celebrationText} ${answers.name}" text prominently displayed in the same style as the artwork, ensuring text is fully visible to read, and NO text is cut off or truncated`);
+    parts.push(`with "Happy ${celebrationText} ${answers.name}" text prominently displayed`);
   }
   
   // Quality requirements
