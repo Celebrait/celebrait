@@ -442,7 +442,7 @@ export default function GPTImageTest() {
                     <Card className="p-4 bg-gray-50">
                       <div className="p-3 bg-blue-50 border border-blue-200 rounded">
                         <p className="text-sm text-blue-800">
-                          <strong>Preview prompt:</strong> {scenePrompt} in {sceneStyle}
+                          <strong>Preview prompt:</strong> {scenePrompt}, with clothing to match the occasion in {sceneStyle}
                           {sceneIncludeText && frontCardText ? `. Include the text "${frontCardText}" beautifully integrated into the composition` : ''}
                         </p>
                         {sceneIncludeText && !frontCardText && (

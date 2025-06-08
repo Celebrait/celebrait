@@ -1505,9 +1505,9 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Card text:', cardText);
 
       // Build the complete prompt
-      let fullPrompt = scenePrompt;
+      let fullPrompt = `${scenePrompt}, with clothing to match the occasion`;
       if (style && style.trim()) {
-        fullPrompt = `${scenePrompt} in ${style}`;
+        fullPrompt = `${fullPrompt} in ${style}`;
       }
       if (includeText && cardText && cardText.trim()) {
         fullPrompt = `${fullPrompt}. Include the text "${cardText}" beautifully integrated into the composition, rendered in the same artistic style as the rest of the image, as if it were naturally part of a greeting card design.`;
