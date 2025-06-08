@@ -200,12 +200,11 @@ export default function Checkout() {
             </CardHeader>
             <CardContent>
               {cardData.frontImageUrl && (
-                <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                <div className="mb-4 flex justify-center">
                   <img 
                     src={cardData.frontImageUrl} 
                     alt="Card preview" 
-                    className="w-full rounded-lg shadow-lg"
-                    style={{ objectFit: 'contain', width: '100%', height: 'auto' }}
+                    style={{ display: 'block', maxWidth: '100%', height: 'auto' }}
                   />
                 </div>
               )}
