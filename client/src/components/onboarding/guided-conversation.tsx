@@ -1087,7 +1087,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     
     // Add front text
     if (answers.message) {
-      parts.push(`with "${answers.message}" text prominently displayed`);
+      parts.push(`with "${answers.message}" text prominently displayed and positioned within the safe printable area with adequate margins from all edges`);
     }
     
     // Final requirements

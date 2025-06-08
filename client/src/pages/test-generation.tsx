@@ -470,7 +470,7 @@ export default function TestGeneration() {
         `featuring a cheerful person named ${randomName}`,
         `${randomScene}`,
         `${randomStyle.replace('_', ' ')} art style`,
-        `with the text "${randomFrontMessage}" integrated into the design`,
+        `with the text "${randomFrontMessage}" prominently displayed and positioned within the safe printable area with adequate margins from all edges`,
         "print-ready artwork, no card mockup visible"
       ].join(', ');
 
