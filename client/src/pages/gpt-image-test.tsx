@@ -290,7 +290,7 @@ export default function GPTImageTest() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
+    <div className="container mx-auto p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">GPT-Image-1 Advanced Testing</h1>
         <p className="text-muted-foreground">
@@ -534,12 +534,20 @@ export default function GPTImageTest() {
               <div className="space-y-4">
                 <div>
                   <Label>Front Card</Label>
-                  <div className="mt-2 w-full flex justify-center">
-                    <img 
-                      src={resultImage} 
-                      alt="Front card result" 
-                      className="w-full border rounded"
-                    />
+                  <div className="mt-2 overflow-visible">
+                    <div className="w-full max-w-none">
+                      <img 
+                        src={resultImage} 
+                        alt="Front card result" 
+                        className="block w-full h-auto border rounded"
+                        style={{ 
+                          maxWidth: 'none', 
+                          width: '100%', 
+                          height: 'auto',
+                          objectFit: 'contain'
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -556,11 +564,12 @@ export default function GPTImageTest() {
                 {insideCardImage && (
                   <div className="mt-4">
                     <Label>Inside Card</Label>
-                    <div className="mt-2 w-full flex justify-center">
+                    <div className="mt-2">
                       <img 
                         src={insideCardImage} 
                         alt="Inside card result" 
-                        className="w-full border rounded"
+                        className="w-full h-auto border rounded"
+                        style={{ maxWidth: '100%', height: 'auto' }}
                       />
                     </div>
                   </div>
