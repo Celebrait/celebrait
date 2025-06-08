@@ -231,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           model: "gpt-image-1",
           prompt: frontPrompt,
           size: "1024x1024",
-          quality: "high",
+          quality: "standard",
           n: 1
         });
         console.log("Successfully used gpt-image-1 for front card generation");
@@ -242,7 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           model: "dall-e-3",
           prompt: frontPrompt,
           size: "1024x1024",
-          quality: "high",
+          quality: "standard",
           n: 1
         });
       }
@@ -266,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             model: "gpt-image-1",
             prompt: insidePrompt,
             size: "1024x1024",
-            quality: "high",
+            quality: "standard",
             n: 1
           });
           console.log("Successfully used gpt-image-1 for inside card generation");
@@ -277,7 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             model: "dall-e-3",
             prompt: insidePrompt,
             size: "1024x1024",
-            quality: "high",
+            quality: "standard",
             n: 1
           });
         }
