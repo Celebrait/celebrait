@@ -5,7 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette, Edit3 } from "lucide-react";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette, Edit3, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
@@ -18,6 +19,74 @@ const EXAMPLE_PROMPTS = [
   "Hiking to a mountain summit at sunrise, wearing adventure gear, arms raised in triumph, with misty valleys below and the first rays of sunlight painting the sky in brilliant oranges and pinks",
   "Painting on a canvas in a bright art studio, wearing paint-splattered clothes, surrounded by colorful artwork, with natural light streaming through large windows and creativity flowing freely"
 ];
+
+// Inspiration examples for the popup modal
+const INSPIRATION_EXAMPLES = {
+  sceneOnly: [
+    {
+      title: "Sunrise Dreams",
+      description: "Golden sunrise over rolling hills with floating balloons and scattered flower petals",
+      emoji: "🌅",
+      gradient: "from-pink-400 to-rose-600"
+    },
+    {
+      title: "Cozy Fireplace",
+      description: "Warm fireplace glow with floating hearts, soft blankets, and twinkling lights",
+      emoji: "🕯️",
+      gradient: "from-blue-400 to-indigo-600"
+    },
+    {
+      title: "Enchanted Garden",
+      description: "Magical garden with blooming flowers, butterflies, and soft morning mist",
+      emoji: "🌸",
+      gradient: "from-purple-400 to-violet-600"
+    },
+    {
+      title: "Starry Night",
+      description: "Peaceful night sky with twinkling stars, crescent moon, and gentle clouds",
+      emoji: "⭐",
+      gradient: "from-green-400 to-emerald-600"
+    },
+    {
+      title: "Celebration Burst",
+      description: "Vibrant confetti explosion with ribbons, sparkles, and joyful celebration elements",
+      emoji: "🎊",
+      gradient: "from-orange-400 to-amber-600"
+    }
+  ],
+  withPerson: [
+    {
+      title: "Adventure Scene",
+      description: "Standing on a mountain peak at sunrise, wearing hiking gear, with a triumphant expression and arms raised",
+      emoji: "🏔️",
+      gradient: "from-blue-400 to-blue-600"
+    },
+    {
+      title: "Cozy Café",
+      description: "Sitting in a warm café, reading a book, wearing a cozy sweater, with steaming coffee and rain outside",
+      emoji: "☕",
+      gradient: "from-green-400 to-green-600"
+    },
+    {
+      title: "Art Studio",
+      description: "Painting on a canvas in a bright studio, wearing an apron, surrounded by colorful artwork and brushes",
+      emoji: "🎨",
+      gradient: "from-purple-400 to-purple-600"
+    },
+    {
+      title: "Garden Party",
+      description: "Having a picnic in a beautiful flower garden, wearing summer clothes, with butterflies and sunshine",
+      emoji: "🌸",
+      gradient: "from-orange-400 to-orange-600"
+    },
+    {
+      title: "Chef's Kitchen",
+      description: "Cooking in a professional kitchen, wearing chef's whites, creating a masterpiece dish with passion",
+      emoji: "🍳",
+      gradient: "from-red-400 to-red-600"
+    }
+  ]
+};
 
 interface GuidedConversationProps {
   onboarding: any;
