@@ -47,16 +47,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [editingStep, setEditingStep] = useState<string | null>(null);
   const [returnToSummary, setReturnToSummary] = useState(false);
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
-  const [photoAnalyses, setPhotoAnalyses] = useState<Array<{personIndex: number, analysis: string, attempts: number}>>([]);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedVideoOption, setSelectedVideoOption] = useState<string>('');
   const [copyrightConsentOpen, setCopyrightConsentOpen] = useState(false);
   const [hasCopyrightConsent, setHasCopyrightConsent] = useState(false);
-  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
-  const [currentAnalysisIndex, setCurrentAnalysisIndex] = useState<number>(-1);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const [retryAttempt, setRetryAttempt] = useState(0);
-  const [analysisSuccess, setAnalysisSuccess] = useState(false);
   const [placeholderText, setPlaceholderText] = useState('');
   const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
   const [isTypingExample, setIsTypingExample] = useState(false);
@@ -159,11 +153,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'photo_upload',
       question: answers.photo_option === 'upload_and_transform' 
-        ? `Please upload photos for style transformation`
+        ? `Please upload one photo for style transformation`
         : `Please upload photos of ${answers.name || 'them'} (you can select multiple)`,
       aiMessage: answers.photo_option === 'upload_and_transform'
-        ? `Perfect! Please upload a clear photo that you'd like me to transform into different artistic styles. I'll apply the artistic style you choose while maintaining the essence of the original image.`
-        : `Perfect! Please upload one clear photo of ${answers.name || 'them'} + one clear photo of any other people you'd like in the scene.`,
+        ? `Perfect! Please upload one clear photo featuring ${answers.name || 'them'} that you'd like me to transform into a new artistic style. I'll transform the entire image while maintaining the essence of the original composition.`
+        : `Perfect! Please upload clear photos of ${answers.name || 'them'} and anyone else you'd like to feature on the card. I'll place them in the custom scene you describe next.`,
       type: 'photo_upload',
       required: true
     },
@@ -695,108 +689,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   };
 
-  const analyzePhotoWithRetry = async (photoData: string, personIndex: number, maxRetries = 10) => {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`Analyzing Person ${personIndex}, attempt ${attempt}/${maxRetries}`);
-        
-        // Determine which analysis endpoint to use based on photo option
-        const photoOption = answers.photo_option;
-        let endpoint = "/api/analyze-photo"; // Default to person-only analysis
-        
-        if (photoOption === 'upload_and_transform') {
-          // For transform option, analyze both person and scene composition
-          endpoint = "/api/analyze-image-composition";
-          console.log(`Using scene composition analysis for upload_and_transform option`);
-        }
-        
-        const response = await apiRequest("POST", endpoint, {
-          photoData
-        });
-        
-        const data = await response.json() as { analysis: string };
-        
-        // Check if the response is a generic refusal message
-        const isGenericRefusal = data.analysis.toLowerCase().includes("i'm sorry") || 
-                                data.analysis.toLowerCase().includes("i can't help") ||
-                                data.analysis.toLowerCase().includes("i cannot help") ||
-                                data.analysis.toLowerCase().includes("sorry, i can't") ||
-                                data.analysis.toLowerCase().includes("i'm unable") ||
-                                data.analysis.toLowerCase().includes("i can't provide") ||
-                                data.analysis.toLowerCase().includes("i can't analyze") ||
-                                data.analysis.toLowerCase().includes("i'm not able") ||
-                                data.analysis.toLowerCase().includes("unable to provide") ||
-                                data.analysis.toLowerCase().includes("cannot provide") ||
-                                (data.analysis.length < 100);
-        
-        if (isGenericRefusal) {
-          console.log(`Person ${personIndex} attempt ${attempt}: Generic refusal detected, retrying...`);
-          if (attempt === maxRetries) {
-            throw new Error(`Analysis failed after ${maxRetries} attempts - AI consistently refusing to analyze Person ${personIndex}`);
-          }
-          continue; // Try again
-        }
-        
-        // Success - return the analysis
-        console.log(`Person ${personIndex} succeeded on attempt ${attempt}`);
-        return {
-          personIndex,
-          analysis: data.analysis.startsWith(`Person ${personIndex}:`) ? data.analysis : `Person ${personIndex}: ${data.analysis}`,
-          attempts: attempt
-        };
-        
-      } catch (error: any) {
-        console.log(`Person ${personIndex} attempt ${attempt}: Error - ${error.message}`);
-        if (attempt === maxRetries) {
-          throw new Error(`Analysis failed after ${maxRetries} attempts for Person ${personIndex}: ${error.message}`);
-        }
-      }
+  // Remove photo analysis - using direct image-to-image approach instead
+
+  // Skip analysis for image-to-image approach - proceed directly to next step
+  const handlePhotosUploaded = () => {
+    // For upload_and_transform: proceed to art style selection
+    // For upload_and_scene: proceed to scene description
+    if (answers.photo_option === 'upload_and_transform') {
+      // Skip to art style selection
+      handleAnswer('photos_uploaded');
+    } else {
+      // Skip to scene description
+      handleAnswer('photos_uploaded');
     }
   };
-
-  const analyzePhotos = async (photoDataArray: string[]) => {
-    setIsAnalyzingPhoto(true);
-    setAnalysisError(null);
-    setPhotoAnalyses([]);
-    setAnalysisSuccess(false);
-    
-    try {
-      const analyses = [];
-      
-      for (let i = 0; i < photoDataArray.length; i++) {
-        setCurrentAnalysisIndex(i);
-        setRetryAttempt(0);
-        
-        try {
-          const analysis = await analyzePhotoWithRetry(photoDataArray[i], i + 1, 10);
-          if (analysis) {
-            analyses.push(analysis);
-            setPhotoAnalyses([...analyses]); // Update UI progressively
-          }
-        } catch (error: any) {
-          console.error(`Failed to analyze Person ${i + 1}:`, error);
-          setAnalysisError(`Person ${i + 1}: ${error.message}`);
-          // Continue with other photos even if one fails
-        }
-      }
-      
-      if (analyses.length > 0) {
-        setAnalysisSuccess(true);
-        // Combine all analyses for backward compatibility
-        const combinedAnalysis = analyses.map(a => a?.analysis).filter(Boolean).join('\n\n');
-        // Store combined analysis in answers for card generation
-        setAnswers(prev => ({ ...prev, character_description: combinedAnalysis }));
-      } else {
-        setAnalysisError("All photo analyses failed after multiple retry attempts");
-      }
-      
-    } catch (error: any) {
-      setAnalysisError(error.message);
-    } finally {
-      setIsAnalyzingPhoto(false);
-      setCurrentAnalysisIndex(-1);
-    }
-  };;
 
   const handlePhotoUploadClick = () => {
     if (!hasCopyrightConsent) {
@@ -821,9 +727,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           
           if (filesProcessed === files.length) {
             setUploadedPhotos(photoDataArray);
-            setAnswers(prev => ({ ...prev, photo_upload: photoDataArray[0] })); // Store first photo for backward compatibility
-            // Auto-analyze all photos
-            analyzePhotos(photoDataArray);
+            setAnswers(prev => ({ ...prev, uploaded_photos: photoDataArray }));
+            
+            // Validate photo count based on selected option
+            if (answers.photo_option === 'upload_and_transform' && photoDataArray.length > 1) {
+              toast({
+                title: "Too many photos",
+                description: "For style transformation, please upload only one photo.",
+                variant: "destructive"
+              });
+              setUploadedPhotos([]);
+              return;
+            }
+            
+            // Proceed directly to next step without analysis
+            handlePhotosUploaded();
           }
         };
         reader.readAsDataURL(file);
