@@ -1879,6 +1879,38 @@ The inside should look like a perfect companion piece created by the same artist
     }
   });
 
+  // Update card images after GPT-Image-1 generation
+  app.post("/api/update-card-images", async (req, res) => {
+    try {
+      const { cardId, frontImageUrl, insideImageUrl, status } = req.body;
+
+      if (!cardId || !frontImageUrl) {
+        return res.status(400).json({ message: "Card ID and front image URL are required" });
+      }
+
+      const updates: any = {
+        frontImageUrl,
+        status: status || 'completed'
+      };
+
+      if (insideImageUrl) {
+        updates.insideImageUrl = insideImageUrl;
+      }
+
+      const updatedCard = await storage.updateCard(cardId, updates);
+
+      if (!updatedCard) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      console.log('Card updated successfully:', updatedCard);
+      res.json(updatedCard);
+    } catch (error: any) {
+      console.error('Update card error:', error);
+      res.status(500).json({ message: "Failed to update card: " + error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

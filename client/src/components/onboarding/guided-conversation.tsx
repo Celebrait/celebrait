@@ -934,22 +934,28 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       
       console.log('Generating card with answers:', answers);
       
-      const frontPrompt = buildImagePrompt();
-      console.log('Built front prompt:', frontPrompt);
-      
-      const insidePrompt = onboarding.selectedPrintOption === 'front-and-inside' ? 
-        buildInsidePrompt() : null;
+      // Check if this is upload photo + describe scene workflow
+      if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
+        await generateCardWithGPTImage();
+      } else {
+        // Use existing DALL-E workflow
+        const frontPrompt = buildImagePrompt();
+        console.log('Built front prompt:', frontPrompt);
+        
+        const insidePrompt = onboarding.selectedPrintOption === 'front-and-inside' ? 
+          buildInsidePrompt() : null;
 
-      const response = await apiRequest("POST", "/api/generate-images", {
-        cardId,
-        frontPrompt,
-        insidePrompt,
-        photoData: answers.photo_upload || null,
-        photoAnalysis: photoAnalyses.length > 0 ? photoAnalyses.map(a => a.analysis).join('\n\n') : null
-      });
+        const response = await apiRequest("POST", "/api/generate-images", {
+          cardId,
+          frontPrompt,
+          insidePrompt,
+          photoData: answers.photo_upload || null,
+          photoAnalysis: photoAnalyses.length > 0 ? photoAnalyses.map(a => a.analysis).join('\n\n') : null
+        });
 
-      const card = await response.json();
-      onCardGenerated(card);
+        const card = await response.json();
+        onCardGenerated(card);
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -959,6 +965,54 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const generateCardWithGPTImage = async () => {
+    console.log('Using GPT-Image-1 for photo + scene workflow');
+    
+    // Use the first uploaded photo as the reference image
+    const referenceImage = uploadedPhotos[0];
+    
+    // Build scene description with style
+    const sceneDescription = answers.scene || '';
+    const artStyle = answers.art_style || 'watercolor painting';
+    const frontCardText = answers.message || '';
+    
+    // Generate front card using GPT-Image-1
+    const frontResponse = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
+      imageData: referenceImage,
+      scenePrompt: sceneDescription,
+      style: artStyle,
+      includeText: !!frontCardText,
+      cardText: frontCardText
+    });
+
+    const frontResult = await frontResponse.json();
+    console.log('Front card generated:', frontResult);
+
+    // Generate inside card if needed
+    let insideImageUrl = null;
+    if (onboarding.selectedPrintOption === 'front-and-inside' && answers.inside_message) {
+      const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
+        frontCardImage: frontResult.imageUrl,
+        insideText: answers.inside_message
+      });
+      
+      const insideResult = await insideResponse.json();
+      insideImageUrl = insideResult.imageUrl;
+      console.log('Inside card generated:', insideResult);
+    }
+
+    // Update the card in storage
+    const updateResponse = await apiRequest("POST", "/api/update-card-images", {
+      cardId,
+      frontImageUrl: frontResult.imageUrl,
+      insideImageUrl,
+      status: 'completed'
+    });
+
+    const updatedCard = await updateResponse.json();
+    onCardGenerated(updatedCard);
   };
 
   const buildImagePrompt = () => {
