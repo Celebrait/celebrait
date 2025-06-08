@@ -204,7 +204,7 @@ export default function Checkout() {
                   <img 
                     src={cardData.frontImageUrl} 
                     alt="Card preview" 
-                    style={{ display: 'block', width: '400px', height: '400px', objectFit: 'contain' }}
+                    style={{ display: 'block', width: '1028px', height: '1028px', objectFit: 'contain' }}
                   />
                 </div>
               )}
