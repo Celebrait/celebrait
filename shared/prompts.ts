@@ -41,7 +41,7 @@ export const buildImagePrompt = (answers: any, photoAnalyses?: Array<{personInde
                            answers.celebration === 'other' ? 'Special Day' :
                            'Special Day';
     
-    parts.push(`with "Happy ${celebrationText} ${answers.name}" text prominently displayed and positioned within the safe printable area with adequate margins from all edges`);
+    parts.push(`with "Happy ${celebrationText} ${answers.name}" text prominently displayed in the CENTER of the image, positioned well within the safe printable area with generous margins from ALL edges, ensuring NO text is cut off or truncated`);
   }
   
   // Quality requirements

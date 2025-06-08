@@ -470,7 +470,7 @@ export default function TestGeneration() {
         `featuring a cheerful person named ${randomName}`,
         `${randomScene}`,
         `${randomStyle.replace('_', ' ')} art style`,
-        `with the text "${randomFrontMessage}" prominently displayed and positioned within the safe printable area with adequate margins from all edges`,
+        `with the text "${randomFrontMessage}" prominently displayed in the CENTER of the image, positioned well within the safe printable area with generous margins from ALL edges, ensuring NO text is cut off or truncated`,
         "print-ready artwork, no card mockup visible"
       ].join(', ');
 
@@ -825,7 +825,7 @@ export default function TestGeneration() {
         if (includeText && preset) {
           const textMatch = preset.frontPrompt.match(/Text overlay: '(.+?)'/);
           if (textMatch) {
-            parts.push(`with the text "${textMatch[1]}" prominently displayed and positioned within the safe printable area with adequate margins from all edges`);
+            parts.push(`with the text "${textMatch[1]}" prominently displayed in the CENTER of the image, positioned well within the safe printable area with generous margins from ALL edges, ensuring NO text is cut off or truncated`);
           }
         }
         
@@ -880,7 +880,7 @@ export default function TestGeneration() {
         if (includeText && preset) {
           const textMatch = preset.frontPrompt.match(/Text overlay: '(.+?)'/);
           if (textMatch) {
-            parts.push(`with the text "${textMatch[1]}" prominently displayed and positioned within the safe printable area with adequate margins from all edges`);
+            parts.push(`with the text "${textMatch[1]}" prominently displayed in the CENTER of the image, positioned well within the safe printable area with generous margins from ALL edges, ensuring NO text is cut off or truncated`);
           }
         }
         
