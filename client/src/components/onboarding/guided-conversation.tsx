@@ -436,17 +436,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         { value: 'confident', label: 'Confident', description: 'Self-assured and bold', color: 'bg-orange-600' }
       ]
     },
-    {
-      id: 'character_summary',
-      question: 'Time to create your perfect scene!',
-      aiMessage: onboarding.selectedSceneType === 'scene-only' 
-        ? `Wonderful! Now for the creative part - designing your beautiful scene card! Browse through these inspiring card examples below to spark your imagination. Each one shows different moods, styles, and atmospheres that could work perfectly for your ${answers.celebration} celebration.`
-        : answers.photo_option === 'upload_and_scene'
-        ? `Perfect! I'm ready to create an amazing ${answers.celebration || 'celebration'} greeting card for ${answers.name || 'them'}. Browse through the inspiring card examples below to get ideas for the perfect setting and atmosphere for your ${answers.celebration || 'celebration'}.`
-        : `Excellent! I have all the details I need about ${answers.name || 'them'}. Now let's create the perfect scene! Browse through these inspiring card examples below to spark your imagination for where ${answers.name || 'they'} should be and what ${answers.gender === 'male' ? 'he' : answers.gender === 'female' ? 'she' : 'they'} should be doing.`,
-      type: 'summary',
-      placeholder: ''
-    },
+
     {
       id: 'scene',
       question: onboarding.selectedSceneType === 'scene-only' ? 'What scene or visual should the card show?' : `Where should ${answers.name || 'they'} be and what should they be doing?`,
@@ -750,12 +740,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           setCurrentStepIndex(prev => prev + 1);
         }
       }, 500);
-    }
-  };
-
-  const handleSummaryNext = () => {
-    if (currentStepIndex < steps.length - 1) {
-      setCurrentStepIndex(prev => prev + 1);
     }
   };
 
@@ -1362,19 +1346,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   </div>
                 )}
 
-                {currentStep.type === 'summary' && (
-                  <div className="space-y-4 sm:space-y-6">
-                    <div className="flex justify-center">
-                      <Button 
-                        onClick={handleSummaryNext}
-                        className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
-                      >
-                        Let's Create the Scene!
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+
 
                 {currentStep.type === 'final_summary' && (
                   <div className="space-y-6">
