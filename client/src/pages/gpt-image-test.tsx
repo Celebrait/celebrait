@@ -298,9 +298,9 @@ export default function GPTImageTest() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="flex flex-col xl:flex-row gap-6">
         {/* Input Section */}
-        <Card>
+        <Card className="xl:w-96 flex-shrink-0">
           <CardHeader>
             <CardTitle>Upload & Configure</CardTitle>
             <CardDescription>
@@ -500,8 +500,9 @@ export default function GPTImageTest() {
         </Card>
 
         {/* Results Section */}
-        <Card>
-          <CardHeader>
+        <div className="flex-1 min-w-0">
+          <Card>
+            <CardHeader>
             <CardTitle>Transformation Results</CardTitle>
             <CardDescription>
               View the AI-generated style transformations with integrated text
@@ -534,20 +535,21 @@ export default function GPTImageTest() {
               <div className="space-y-4">
                 <div>
                   <Label>Front Card</Label>
-                  <div className="mt-2 overflow-visible">
-                    <div className="w-full max-w-none">
-                      <img 
-                        src={resultImage} 
-                        alt="Front card result" 
-                        className="block w-full h-auto border rounded"
-                        style={{ 
-                          maxWidth: 'none', 
-                          width: '100%', 
-                          height: 'auto',
-                          objectFit: 'contain'
-                        }}
-                      />
-                    </div>
+                  <div className="mt-2" style={{ overflow: 'visible', width: '100%' }}>
+                    <img 
+                      src={resultImage} 
+                      alt="Front card result" 
+                      style={{ 
+                        width: 'auto',
+                        height: 'auto',
+                        maxWidth: 'none',
+                        maxHeight: 'none',
+                        display: 'block',
+                        margin: '0 auto',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '6px'
+                      }}
+                    />
                   </div>
                 </div>
 
@@ -801,6 +803,8 @@ export default function GPTImageTest() {
           </div>
         </CardContent>
       </Card>
+        </div>
+      </div>
     </div>
   );
 }
