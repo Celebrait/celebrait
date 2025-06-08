@@ -147,21 +147,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           details: 'Perfect for creating personalised scenes with custom messaging!'
         },
         { 
-          value: 'describe_person', 
-          label: `Describe ${answers.name || 'Person'} + Describe Scene`, 
-          description: `Describe ${answers.name ? `${answers.name}'s` : 'their'} visual features + anyone else you want to feature on the card. I'll then place them in a custom scene you describe.`,
-          color: 'bg-blue-500',
-          icon: 'edit',
-          details: 'Ideal when you don\'t want to upload photos but still want an amazing personalised card!'
-        },
-        { 
           value: 'upload_and_transform', 
-          label: 'Upload Photo + Transform Style', 
-          description: 'Upload a photo and I\'ll transform it into different artistic styles',
+          label: 'Upload Photo(s) + Transform Style', 
+          description: `Upload a single photo featuring ${answers.name || 'them'} and transform it into a new artistic style. Great for artistic transformation of existing photos!`,
           color: 'bg-purple-500',
           icon: 'palette',
-          details: 'Great for artistic transformations of existing photos',
-          disabled: true
+          details: 'Great for artistic transformations of existing photos!'
         }
       ]
     },
@@ -2259,7 +2250,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           <div className="space-y-6 p-2">
             <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 border border-purple-200">
               <p className="text-gray-700 text-center font-medium">
-                Watch this short video to learn more about how our "<span className="text-purple-600 font-semibold">{selectedVideoOption === 'upload_and_scene' ? 'Upload Photo(s) + Describe Scene' : `Describe ${answers.name || 'Person'} + Describe Scene`}</span>" creation process works.
+                Watch this short video to learn more about how our "<span className="text-purple-600 font-semibold">
+                {selectedVideoOption === 'upload_and_scene' ? 'Upload Photo(s) + Describe Scene' : 
+                 selectedVideoOption === 'upload_and_transform' ? 'Upload Photo(s) + Transform Style' : 
+                 `Describe ${answers.name || 'Person'} + Describe Scene`}</span>" creation process works.
               </p>
             </div>
             
