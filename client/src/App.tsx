@@ -11,6 +11,7 @@ import TestPayment from "@/pages/test-payment";
 import TestGeneration from "@/pages/test-generation";
 import StyleTest from "@/pages/style-test";
 import GPTImageTest from "@/pages/gpt-image-test";
+import Gallery from "@/pages/gallery";
 import NotFound from "@/pages/not-found";
 
 function Router() {
