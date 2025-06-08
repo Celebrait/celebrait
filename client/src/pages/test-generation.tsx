@@ -825,7 +825,7 @@ export default function TestGeneration() {
         if (includeText && preset) {
           const textMatch = preset.frontPrompt.match(/Text overlay: '(.+?)'/);
           if (textMatch) {
-            parts.push(`with the text "${textMatch[1]}" integrated into the design`);
+            parts.push(`with the text "${textMatch[1]}" prominently displayed and positioned within the safe printable area with adequate margins from all edges`);
           }
         }
         
@@ -880,7 +880,7 @@ export default function TestGeneration() {
         if (includeText && preset) {
           const textMatch = preset.frontPrompt.match(/Text overlay: '(.+?)'/);
           if (textMatch) {
-            parts.push(`with the text "${textMatch[1]}" integrated into the design`);
+            parts.push(`with the text "${textMatch[1]}" prominently displayed and positioned within the safe printable area with adequate margins from all edges`);
           }
         }
         
