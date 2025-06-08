@@ -578,33 +578,57 @@ export default function GPTImageTest() {
                 <div className="flex gap-3">
                   <Button 
                     onClick={() => {
-                      try {
-                        // Convert base64 to blob for proper download
-                        const base64Data = resultImage.split(',')[1];
-                        const byteCharacters = atob(base64Data);
-                        const byteNumbers = new Array(byteCharacters.length);
-                        for (let i = 0; i < byteCharacters.length; i++) {
-                          byteNumbers[i] = byteCharacters.charCodeAt(i);
-                        }
-                        const byteArray = new Uint8Array(byteNumbers);
-                        const blob = new Blob([byteArray], { type: 'image/png' });
+                      const downloadImage = (imageData: string, filename: string) => {
+                        // Check if we're on iOS/iPad
+                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
                         
-                        const url = URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.download = `celebrait-front-card-${Date.now()}.png`;
-                        link.href = url;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(url);
-                      } catch (error) {
-                        console.error('Download error:', error);
-                        // Fallback to direct link
-                        const link = document.createElement('a');
-                        link.download = `celebrait-front-card-${Date.now()}.png`;
-                        link.href = resultImage;
-                        link.click();
-                      }
+                        if (isIOS) {
+                          // For iOS, open image in new tab for manual save
+                          const newWindow = window.open();
+                          if (newWindow) {
+                            newWindow.document.write(`
+                              <html>
+                                <head><title>${filename}</title></head>
+                                <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#000;">
+                                  <img src="${imageData}" style="max-width:100%; max-height:100%; object-fit:contain;" />
+                                  <p style="position:fixed; top:10px; left:10px; color:white; font-family:Arial; background:rgba(0,0,0,0.7); padding:10px; border-radius:5px;">
+                                    Press and hold the image, then select "Save to Photos" or "Add to Photos"
+                                  </p>
+                                </body>
+                              </html>
+                            `);
+                          }
+                        } else {
+                          // Desktop/Android download
+                          try {
+                            const base64Data = imageData.split(',')[1];
+                            const byteCharacters = atob(base64Data);
+                            const byteNumbers = new Array(byteCharacters.length);
+                            for (let i = 0; i < byteCharacters.length; i++) {
+                              byteNumbers[i] = byteCharacters.charCodeAt(i);
+                            }
+                            const byteArray = new Uint8Array(byteNumbers);
+                            const blob = new Blob([byteArray], { type: 'image/png' });
+                            
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.download = filename;
+                            link.href = url;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(url);
+                          } catch (error) {
+                            console.error('Download error:', error);
+                            const link = document.createElement('a');
+                            link.download = filename;
+                            link.href = imageData;
+                            link.click();
+                          }
+                        }
+                      };
+                      
+                      downloadImage(resultImage, `celebrait-front-card-${Date.now()}.png`);
                     }}
                     variant="outline"
                     className="flex-1"
@@ -614,33 +638,57 @@ export default function GPTImageTest() {
                   {insideCardImage && (
                     <Button 
                       onClick={() => {
-                        try {
-                          // Convert base64 to blob for proper download
-                          const base64Data = insideCardImage.split(',')[1];
-                          const byteCharacters = atob(base64Data);
-                          const byteNumbers = new Array(byteCharacters.length);
-                          for (let i = 0; i < byteCharacters.length; i++) {
-                            byteNumbers[i] = byteCharacters.charCodeAt(i);
-                          }
-                          const byteArray = new Uint8Array(byteNumbers);
-                          const blob = new Blob([byteArray], { type: 'image/png' });
+                        const downloadImage = (imageData: string, filename: string) => {
+                          // Check if we're on iOS/iPad
+                          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
                           
-                          const url = URL.createObjectURL(blob);
-                          const link = document.createElement('a');
-                          link.download = `celebrait-inside-card-${Date.now()}.png`;
-                          link.href = url;
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                          URL.revokeObjectURL(url);
-                        } catch (error) {
-                          console.error('Download error:', error);
-                          // Fallback to direct link
-                          const link = document.createElement('a');
-                          link.download = `celebrait-inside-card-${Date.now()}.png`;
-                          link.href = insideCardImage;
-                          link.click();
-                        }
+                          if (isIOS) {
+                            // For iOS, open image in new tab for manual save
+                            const newWindow = window.open();
+                            if (newWindow) {
+                              newWindow.document.write(`
+                                <html>
+                                  <head><title>${filename}</title></head>
+                                  <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#000;">
+                                    <img src="${imageData}" style="max-width:100%; max-height:100%; object-fit:contain;" />
+                                    <p style="position:fixed; top:10px; left:10px; color:white; font-family:Arial; background:rgba(0,0,0,0.7); padding:10px; border-radius:5px;">
+                                      Press and hold the image, then select "Save to Photos" or "Add to Photos"
+                                    </p>
+                                  </body>
+                                </html>
+                              `);
+                            }
+                          } else {
+                            // Desktop/Android download
+                            try {
+                              const base64Data = imageData.split(',')[1];
+                              const byteCharacters = atob(base64Data);
+                              const byteNumbers = new Array(byteCharacters.length);
+                              for (let i = 0; i < byteCharacters.length; i++) {
+                                byteNumbers[i] = byteCharacters.charCodeAt(i);
+                              }
+                              const byteArray = new Uint8Array(byteNumbers);
+                              const blob = new Blob([byteArray], { type: 'image/png' });
+                              
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.download = filename;
+                              link.href = url;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              URL.revokeObjectURL(url);
+                            } catch (error) {
+                              console.error('Download error:', error);
+                              const link = document.createElement('a');
+                              link.download = filename;
+                              link.href = imageData;
+                              link.click();
+                            }
+                          }
+                        };
+                        
+                        downloadImage(insideCardImage, `celebrait-inside-card-${Date.now()}.png`);
                       }}
                       variant="outline"
                       className="flex-1"

@@ -47,44 +47,67 @@ export default function PaymentSuccess() {
 
   const downloadCard = async () => {
     if (order?.card?.frontImageUrl) {
-      try {
-        // Convert base64 to blob for proper download
-        const base64Data = order.card.frontImageUrl.split(',')[1];
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      
+      if (isIOS) {
+        // For iOS, open image in new tab for manual save
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`
+            <html>
+              <head><title>celebrait-card-${order.id}.png</title></head>
+              <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#000;">
+                <img src="${order.card.frontImageUrl}" style="max-width:100%; max-height:100%; object-fit:contain;" />
+                <p style="position:fixed; top:10px; left:10px; color:white; font-family:Arial; background:rgba(0,0,0,0.7); padding:10px; border-radius:5px;">
+                  Press and hold the image, then select "Save to Photos" or "Add to Photos"
+                </p>
+              </body>
+            </html>
+          `);
         }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'image/png' });
-        
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = `celebrait-card-${order.id}.png`;
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
         toast({
-          title: 'Download Started',
-          description: 'Your card is being downloaded'
+          title: 'Image Opened',
+          description: 'Press and hold the image to save it to your photos'
         });
-      } catch (error) {
-        console.error('Download error:', error);
-        // Fallback to direct link
-        const link = document.createElement('a');
-        link.href = order.card.frontImageUrl;
-        link.download = `celebrait-card-${order.id}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        toast({
-          title: 'Download Started',
-          description: 'Your card is being downloaded'
-        });
+      } else {
+        // Desktop/Android download
+        try {
+          const base64Data = order.card.frontImageUrl.split(',')[1];
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'image/png' });
+          
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.download = `celebrait-card-${order.id}.png`;
+          link.href = url;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          
+          toast({
+            title: 'Download Started',
+            description: 'Your card is being downloaded'
+          });
+        } catch (error) {
+          console.error('Download error:', error);
+          const link = document.createElement('a');
+          link.href = order.card.frontImageUrl;
+          link.download = `celebrait-card-${order.id}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          toast({
+            title: 'Download Started',
+            description: 'Your card is being downloaded'
+          });
+        }
       }
     }
   };
