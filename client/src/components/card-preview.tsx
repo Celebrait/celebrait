@@ -47,6 +47,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
               src={card.frontImageUrl} 
               alt="AI generated greeting card design" 
               className="w-full rounded-2xl shadow-lg"
+              style={{ aspectRatio: '1/1', objectFit: 'contain' }}
             />
           ) : (
             <div className="w-full aspect-square bg-gray-200 rounded-2xl flex items-center justify-center">
@@ -65,6 +66,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
               src={card.insideImageUrl} 
               alt="Card inside design" 
               className="w-full rounded-xl shadow-md"
+              style={{ aspectRatio: '1/1', objectFit: 'contain' }}
             />
           </div>
         )}

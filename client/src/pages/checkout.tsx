@@ -204,6 +204,7 @@ export default function Checkout() {
                   src={cardData.frontImageUrl} 
                   alt="Card preview" 
                   className="w-full rounded-xl shadow-lg mb-4"
+                  style={{ aspectRatio: '1/1', objectFit: 'contain' }}
                 />
               )}
               <div className="space-y-2">

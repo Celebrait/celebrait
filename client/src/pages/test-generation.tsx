@@ -1374,6 +1374,7 @@ export default function TestGeneration() {
                         src={generatedCard.frontImageUrl}
                         alt="Generated front"
                         className="w-full rounded-lg shadow-lg"
+                        style={{ aspectRatio: '1/1', objectFit: 'contain' }}
                       />
                     </div>
                     
@@ -1390,6 +1391,7 @@ export default function TestGeneration() {
                           src={generatedCard.insideImageUrl}
                           alt="Generated inside"
                           className="w-full rounded-lg shadow-lg"
+                          style={{ aspectRatio: '1/1', objectFit: 'contain' }}
                         />
                         <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700">
                           This inside card was generated using the front card image as a visual reference to ensure perfect style matching.

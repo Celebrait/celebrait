@@ -418,7 +418,7 @@ export default function StyleTest() {
                         <img 
                           src={generatedCard.frontImageUrl} 
                           alt="Generated front card" 
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain"
                         />
                       </div>
                     </div>
