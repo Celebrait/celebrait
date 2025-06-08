@@ -828,14 +828,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
             setUploadedPhotos(photoDataArray);
             setAnswers(prev => ({ ...prev, photo_upload: photoDataArray[0] })); // Store first photo for backward compatibility
             
-            if (isTransformStyle) {
-              // Skip analysis for transform style - show success message immediately
-              setAnalysisSuccess(true);
-              setAnswers(prev => ({ ...prev, character_description: 'Photo uploaded successfully for style transformation' }));
-            } else {
-              // Auto-analyze photos for upload and scene option
-              analyzePhotos(photoDataArray);
-            }
+            // Skip analysis for all photo uploads - show success message immediately
+            setAnalysisSuccess(true);
+            const successMessage = isTransformStyle 
+              ? 'Photo uploaded successfully for style transformation'
+              : `Photo${photoDataArray.length > 1 ? 's' : ''} uploaded successfully`;
+            setAnswers(prev => ({ ...prev, character_description: successMessage }));
           }
         };
         reader.readAsDataURL(file);
