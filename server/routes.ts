@@ -114,120 +114,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create card with image-to-image generation
+  // Create card
   app.post("/api/cards", async (req, res) => {
     try {
-      const { 
-        cardType, 
-        printOption, 
-        frontPrompt, 
-        insidePrompt, 
-        uploadedPhotos, 
-        imageToImageMode, 
-        transformationType,
-        userId = 1 // Default user for now
-      } = req.body;
+      const cardData = insertCardSchema.parse(req.body);
+      const { userId } = req.body;
 
-      if (!frontPrompt) {
-        return res.status(400).json({ message: "Front prompt is required" });
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
       }
 
-      if (!openai) {
-        return res.status(503).json({ message: "AI service not available - API key required" });
-      }
-
-      // Create card record first
       const card = await storage.createCard({
-        cardType: cardType || 'digital',
-        frontPrompt,
-        insidePrompt,
-        status: 'generating',
-        price: cardType === 'printed' ? 15.99 : 9.99,
+        ...cardData,
         userId
       });
 
-      // Generate front image using image-to-image approach
-      let frontImageUrl = null;
-      
-      if (imageToImageMode && uploadedPhotos && uploadedPhotos.length > 0) {
-        if (transformationType === 'upload_and_transform') {
-          // Style transformation approach - use single photo
-          const photoData = uploadedPhotos[0];
-          
-          try {
-            const response = await openai.images.edit({
-              model: "dall-e-2",
-              image: photoData,
-              prompt: frontPrompt,
-              size: "1024x1024",
-              n: 1
-            });
-            
-            frontImageUrl = response.data[0].url || `data:image/png;base64,${response.data[0].b64_json}`;
-          } catch (editError: any) {
-            console.log("Image edit failed, trying generate with reference:", editError.message);
-            
-            // Fallback to generation with text description
-            const response = await openai.images.generate({
-              model: "dall-e-3",
-              prompt: `Transform this style: ${frontPrompt}`,
-              size: "1024x1024",
-              n: 1,
-              quality: "standard"
-            });
-            
-            frontImageUrl = response.data[0].url || `data:image/png;base64,${response.data[0].b64_json}`;
-          }
-        } else {
-          // Scene creation approach - use photos as reference
-          const response = await openai.images.generate({
-            model: "dall-e-3",
-            prompt: frontPrompt,
-            size: "1024x1024",
-            n: 1,
-            quality: "standard"
-          });
-          
-          frontImageUrl = response.data[0].url || `data:image/png;base64,${response.data[0].b64_json}`;
-        }
-      } else {
-        // Standard text-to-image generation
-        const response = await openai.images.generate({
-          model: "dall-e-3",
-          prompt: frontPrompt,
-          size: "1024x1024",
-          n: 1,
-          quality: "standard"
-        });
-        
-        frontImageUrl = response.data[0].url || `data:image/png;base64,${response.data[0].b64_json}`;
-      }
-
-      // Generate inside image if needed
-      let insideImageUrl = null;
-      if (printOption === 'front-and-inside' && insidePrompt) {
-        const insideResponse = await openai.images.generate({
-          model: "dall-e-3",
-          prompt: insidePrompt,
-          size: "1024x1024",
-          n: 1,
-          quality: "standard"
-        });
-        
-        insideImageUrl = insideResponse.data[0].url || `data:image/png;base64,${insideResponse.data[0].b64_json}`;
-      }
-
-      // Update card with generated images
-      const updatedCard = await storage.updateCard(card.id, {
-        frontImageUrl,
-        insideImageUrl,
-        status: 'completed'
-      });
-
-      res.json(updatedCard);
+      res.json(card);
     } catch (error: any) {
-      console.error("Card generation error:", error);
-      res.status(500).json({ message: "Error generating card: " + error.message });
+      res.status(400).json({ message: error.message });
     }
   });
 
