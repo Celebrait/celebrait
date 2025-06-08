@@ -40,31 +40,27 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
       </div>
 
       {/* Card Display */}
-      <div className="max-w-lg mx-auto mb-8">
-        <div className="relative">
-          {card.frontImageUrl ? (
-            <div className="w-full flex justify-center bg-gray-50 rounded-lg p-4">
-              <img 
-                src={card.frontImageUrl} 
-                alt="AI generated greeting card design" 
-                className="max-w-full max-h-96 border rounded shadow-sm"
-                style={{ objectFit: 'contain', width: 'auto', height: 'auto' }}
-              />
-            </div>
-          ) : (
-            <div className="w-full aspect-square bg-gray-200 rounded-2xl flex items-center justify-center">
-              <p className="text-gray-500">Card generating...</p>
-            </div>
-          )}
-          
-
-        </div>
+      <div className="mb-8">
+        {card.frontImageUrl ? (
+          <div className="mt-2 w-full flex justify-center bg-gray-50 rounded-lg p-4">
+            <img 
+              src={card.frontImageUrl} 
+              alt="AI generated greeting card design" 
+              className="max-w-full max-h-96 border rounded shadow-sm"
+              style={{ objectFit: 'contain', width: 'auto', height: 'auto' }}
+            />
+          </div>
+        ) : (
+          <div className="w-full aspect-square bg-gray-200 rounded-2xl flex items-center justify-center">
+            <p className="text-gray-500">Card generating...</p>
+          </div>
+        )}
 
         {/* Inside preview for front-and-inside cards */}
         {card.insideImageUrl && onboarding.selectedPrintOption === 'front-and-inside' && (
           <div className="mt-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Inside Message:</h3>
-            <div className="w-full flex justify-center bg-gray-50 rounded-lg p-4">
+            <div className="mt-2 w-full flex justify-center bg-gray-50 rounded-lg p-4">
               <img 
                 src={card.insideImageUrl} 
                 alt="Card inside design" 
