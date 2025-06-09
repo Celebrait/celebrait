@@ -1777,7 +1777,7 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
 
       try {
-        console.log('Making GPT-Image-1 API request using OpenAI SDK');
+        console.log('Making GPT-Image-1 API request using form-data with proper SDK structure');
         console.log('🔍 DEBUG: Requested size parameter:', '1024x1024');
         
         console.log('📋 Parameters being sent:');
@@ -1786,35 +1786,45 @@ The inside should look like a perfect companion piece created by the same artist
         console.log('- quality:', 'high');
         console.log('- prompt length:', transformPrompt.length);
         
-        // Create a readable stream from the buffer for OpenAI SDK
-        const { Readable } = require('stream');
-        const imageStream = new Readable({
-          read() {}
-        });
-        imageStream.push(imageBuffer);
-        imageStream.push(null);
+        // Use form-data package for proper multipart form handling
+        const formData = new FormData();
         
-        // Use OpenAI SDK for GPT-Image-1 request
-        if (!openai) {
-          throw new Error('OpenAI API key not configured');
+        // Add image buffer directly with proper metadata
+        formData.append('image', imageBuffer, {
+          filename: `image.${mimeType}`,
+          contentType: `image/${mimeType}`
+        });
+        formData.append('prompt', transformPrompt);
+        formData.append('model', 'gpt-image-1');
+        formData.append('n', '1');
+        formData.append('size', '1024x1024');
+        formData.append('quality', 'high');
+        formData.append('response_format', 'b64_json');
+        
+        // Use node-fetch with proper FormData handling
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch('https://api.openai.com/v1/images/edits', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            ...formData.getHeaders()
+          },
+          body: formData
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('GPT-Image-1 API error response:', errorText);
+          throw new Error(`GPT-Image-1 API error: ${response.status} ${response.statusText} - ${errorText}`);
         }
         
-        const response = await openai.images.edit({
-          image: imageStream,
-          prompt: transformPrompt,
-          model: "gpt-image-1",
-          n: 1,
-          size: "1024x1024",
-          quality: "high",
-          response_format: "b64_json"
-        });
-        
+        const responseData: any = await response.json();
         console.log('GPT-Image-1 response received successfully');
         
         // Extract image URL from response
         let imageUrl: string = '';
-        if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
-          const imageResult = response.data[0];
+        if (responseData && responseData.data && Array.isArray(responseData.data) && responseData.data.length > 0) {
+          const imageResult = responseData.data[0];
           
           if (imageResult.b64_json) {
             imageUrl = `data:image/png;base64,${imageResult.b64_json}`;
