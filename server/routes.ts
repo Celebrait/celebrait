@@ -1772,8 +1772,8 @@ The inside should look like a perfect companion piece created by the same artist
 
       console.log('Image buffer size:', imageBuffer.length, 'bytes, MIME type:', mimeType);
 
-      // Use the style prompt directly (it already contains the full transformation instruction)
-      const transformPrompt = style;
+      // Enhance the style prompt to explicitly request square format
+      const transformPrompt = `${style} IMPORTANT: Render this as a perfectly square image with 1:1 aspect ratio (width equals height). The final output must be square-formatted, not portrait or landscape.`;
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
 
       try {
