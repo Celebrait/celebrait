@@ -1173,10 +1173,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-blue-50">
       {/* Progress Bar */}
       <div className="p-4 bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-sm font-medium text-slate-gray">Card Creation Progress</span>
-          <span className="text-sm text-slate-gray">Let's create something magical ✨</span>
-        </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div 
             className="bg-gradient-celebrait h-2 rounded-full transition-all duration-500" 
@@ -1203,7 +1199,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                     <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 ) : (
-                  <div className="text-sm sm:text-base lg:text-lg text-gray-800 leading-relaxed">
+                  <div className="text-lg sm:text-xl lg:text-2xl text-gray-800 leading-relaxed font-medium">
                     {currentStep.id === 'photo_upload' && answers.photo_option !== 'upload_and_transform' ? (
                       <span>
                         Perfect! Please upload <strong>one clear photo</strong> of {answers.name || 'them'} + <strong>one clear photo</strong> of any other people you'd like in the scene.
