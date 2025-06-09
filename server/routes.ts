@@ -1800,9 +1800,20 @@ The inside should look like a perfect companion piece created by the same artist
         console.log('- size:', '1024x1024');
         console.log('- quality:', 'high');
         console.log('- prompt length:', transformPrompt.length);
+        console.log('- moderation:', 'low');
+        console.log('- n:', '1');
+        console.log('- image filename:', `image.${mimeType}`);
+        console.log('- image content-type:', `image/${mimeType}`);
         
         // Use node-fetch with proper FormData handling
         const fetch = (await import('node-fetch')).default;
+        
+        console.log('🌐 EXACT API CALL DETAILS:');
+        console.log('   Endpoint: https://api.openai.com/v1/images/edits');
+        console.log('   Method: POST');
+        console.log('   Content-Type: multipart/form-data');
+        console.log('   Authorization: Bearer [API_KEY_PRESENT]');
+        
         const response = await fetch('https://api.openai.com/v1/images/edits', {
           method: 'POST',
           headers: {
