@@ -527,7 +527,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     // Skip steps based on photo option choice
     if (answers.photo_option === 'upload_and_transform') {
       // For style transformation, skip all description steps and go directly to art style
-      const skipSteps = ['heritage_photo', 'character_costume', 'gender', 'age', 'heritage', 'hair_color', 'hair_style', 'build', 'features', 'personality', 'character_summary', 'scene'];
+      const skipSteps = ['heritage_photo', 'character_costume', 'gender', 'age', 'heritage', 'hair_color', 'hair_style', 'build', 'features', 'personality', 'character_summary', 'scene', 'people_details'];
       if (skipSteps.includes(step.id)) {
         return false;
       }
@@ -1403,35 +1403,24 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                     {/* Complete Summary with Edit Options */}
                     <div className="grid gap-4">
                       
-                      {/* People Photos and Details */}
-                      {photoAnalyses.length > 0 && uploadedPhotos.length > 0 && (
+                      {/* Uploaded Photos */}
+                      {uploadedPhotos.length > 0 && (
                         <div className="bg-white rounded-xl p-4 border border-purple-200">
                           <div className="flex justify-between items-start">
                             <div>
-                              <h4 className="font-semibold text-purple-700 mb-4">People in Your Card</h4>
+                              <h4 className="font-semibold text-purple-700 mb-4">Uploaded Photos</h4>
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {photoAnalyses.map((analysis, index) => (
+                                {uploadedPhotos.map((photo, index) => (
                                   <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                                     <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-purple-300 flex-shrink-0">
-                                      {uploadedPhotos[index] ? (
-                                        <img 
-                                          src={uploadedPhotos[index]} 
-                                          alt={`Person ${index + 1}`}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      ) : (
-                                        <div className="w-full h-full bg-purple-100 flex items-center justify-center">
-                                          <span className="text-purple-600 font-bold text-sm">{index + 1}</span>
-                                        </div>
-                                      )}
+                                      <img 
+                                        src={photo} 
+                                        alt={`Photo ${index + 1}`}
+                                        className="w-full h-full object-cover"
+                                      />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-gray-900">Person {index + 1}</p>
-                                      <p className="text-xs text-gray-600">
-                                        {answers.people_details?.[index]?.gender || 'No gender'} • {' '}
-                                        {answers.people_details?.[index]?.custom_heritage || 
-                                         answers.people_details?.[index]?.heritage?.replace('_', ' ') || 'No background'}
-                                      </p>
+                                      <p className="text-sm font-medium text-gray-900">Photo {index + 1}</p>
                                     </div>
                                   </div>
                                 ))}
@@ -1441,7 +1430,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               onClick={() => {
                                 // Reset to photo upload step
                                 setCurrentStepIndex(filteredSteps.findIndex(step => step.id === 'photo_upload'));
-                                setAnswers(prev => ({ ...prev, current_person_index: 0 }));
                               }} 
                               variant="outline" 
                               size="sm"
@@ -1652,190 +1640,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   </div>
                 )}
 
-                {currentStep.type === 'people_details' && (
-                  <div className="space-y-6">
-
-
-                    {/* Single Person Display */}
-                    {(() => {
-                      const currentPersonIndex = answers.current_person_index || 0;
-                      const analysis = photoAnalyses[currentPersonIndex];
-                      
-                      if (!analysis) return null;
-
-                      return (
-                        <div className="bg-white border-2 border-purple-200 rounded-xl p-8">
-                          <div className="flex items-center justify-center mb-6">
-                            <div className="w-20 h-20 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden border-2 border-purple-300">
-                              {uploadedPhotos[currentPersonIndex] ? (
-                                <img 
-                                  src={uploadedPhotos[currentPersonIndex]} 
-                                  alt={`Person ${currentPersonIndex + 1}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <span className="text-purple-600 font-bold text-lg">{currentPersonIndex + 1}</span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="text-center mb-6">
-                            <h3 className="text-xl font-semibold text-gray-800 mb-1">
-                              Person {currentPersonIndex + 1} {photoAnalyses.length > 1 && `of ${photoAnalyses.length}`}
-                            </h3>
-                          </div>
-
-                          <div className="space-y-6">
-                            {/* Gender Selection */}
-                            <div>
-                              <label className="block text-base font-medium text-gray-800 mb-3">Gender</label>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                                {[
-                                  { value: 'female', label: 'Female' },
-                                  { value: 'male', label: 'Male' }
-                                ].map((option) => (
-                                  <Button
-                                    key={option.value}
-                                    onClick={() => {
-                                      const newPeopleDetails = [...(answers.people_details || [])];
-                                      newPeopleDetails[currentPersonIndex] = { ...(newPeopleDetails[currentPersonIndex] || {}), gender: option.value, custom_gender: '' };
-                                      setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
-                                    }}
-                                    variant="outline"
-                                    className={`h-auto p-3 sm:p-4 text-center transition-all hover:scale-105 hover:shadow-lg bg-white/80 border-2 rounded-xl text-sm font-medium ${
-                                      answers.people_details?.[currentPersonIndex]?.gender === option.value
-                                        ? 'border-purple-500 bg-purple-50 text-purple-700' 
-                                        : 'border-purple-200 hover:border-purple-400 text-gray-800 hover:bg-purple-50'
-                                    }`}
-                                  >
-                                    {option.label}
-                                  </Button>
-                                ))}
-                              </div>
-                              
-                              <div className="space-y-2">
-                                <p className="text-sm text-gray-600 text-center">
-                                  Want to specify different gender? Type it below:
-                                </p>
-                                <div className="flex space-x-2">
-                                  <Input
-                                    value={answers.people_details?.[currentPersonIndex]?.custom_gender || ''}
-                                    onChange={(e) => {
-                                      const newPeopleDetails = [...(answers.people_details || [])];
-                                      newPeopleDetails[currentPersonIndex] = { 
-                                        ...(newPeopleDetails[currentPersonIndex] || {}), 
-                                        custom_gender: e.target.value,
-                                        gender: e.target.value ? 'custom' : ''
-                                      };
-                                      setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
-                                    }}
-                                    placeholder="Type your answer..."
-                                    className="text-lg p-3 rounded-lg border-purple-200 focus:border-purple-400"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Cultural Background Selection */}
-                            <div>
-                              <label className="block text-base font-medium text-gray-800 mb-3">Cultural Background</label>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                                {[
-                                  { value: 'black_african', label: 'Black African' },
-                                  { value: 'coloured', label: 'Cape Coloured' },
-                                  { value: 'white', label: 'White' },
-                                  { value: 'indian', label: 'Indian' }
-                                ].map((option) => (
-                                  <Button
-                                    key={option.value}
-                                    onClick={() => {
-                                      const newPeopleDetails = [...(answers.people_details || [])];
-                                      newPeopleDetails[currentPersonIndex] = { 
-                                        ...(newPeopleDetails[currentPersonIndex] || {}), 
-                                        heritage: option.value,
-                                        custom_heritage: '' 
-                                      };
-                                      setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
-                                    }}
-                                    variant="outline"
-                                    className={`h-auto p-3 sm:p-4 text-center transition-all hover:scale-105 hover:shadow-lg bg-white/80 border-2 rounded-xl text-sm font-medium ${
-                                      answers.people_details?.[currentPersonIndex]?.heritage === option.value
-                                        ? 'border-purple-500 bg-purple-50 text-purple-700' 
-                                        : 'border-purple-200 hover:border-purple-400 text-gray-800 hover:bg-purple-50'
-                                    }`}
-                                  >
-                                    {option.label}
-                                  </Button>
-                                ))}
-                              </div>
-                              
-                              <div className="space-y-2">
-                                <p className="text-sm text-gray-600 text-center">
-                                  Don't see the cultural background you're looking for or want to be more specific? Type it below:
-                                </p>
-                                <div className="flex space-x-2">
-                                  <Input
-                                    value={answers.people_details?.[currentPersonIndex]?.custom_heritage || ''}
-                                    onChange={(e) => {
-                                      const newPeopleDetails = [...(answers.people_details || [])];
-                                      newPeopleDetails[currentPersonIndex] = { 
-                                        ...(newPeopleDetails[currentPersonIndex] || {}), 
-                                        custom_heritage: e.target.value,
-                                        heritage: e.target.value ? 'custom' : ''
-                                      };
-                                      setAnswers(prev => ({ ...prev, people_details: newPeopleDetails }));
-                                    }}
-                                    placeholder="Type your answer..."
-                                    className="text-lg p-3 rounded-lg border-purple-200 focus:border-purple-400"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Navigation Buttons */}
-                          <div className="flex justify-center pt-6">
-                            {currentPersonIndex < photoAnalyses.length - 1 ? (
-                              <Button
-                                onClick={() => {
-                                  const person = answers.people_details?.[currentPersonIndex];
-                                  if (person?.gender && (person?.heritage || person?.custom_heritage)) {
-                                    setAnswers(prev => ({ ...prev, current_person_index: currentPersonIndex + 1 }));
-                                  }
-                                }}
-                                disabled={(() => {
-                                  const person = answers.people_details?.[currentPersonIndex];
-                                  return !(person?.gender && (person?.heritage || person?.custom_heritage));
-                                })()}
-                                className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white font-medium hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
-                              >
-                                Continue to Next Person
-                                <ArrowRight className="w-4 h-4 ml-2" />
-                              </Button>
-                            ) : (
-                              <Button
-                                onClick={() => {
-                                  const person = answers.people_details?.[currentPersonIndex];
-                                  if (person?.gender && (person?.heritage || person?.custom_heritage)) {
-                                    setCurrentStepIndex(prev => prev + 1);
-                                  }
-                                }}
-                                disabled={(() => {
-                                  const person = answers.people_details?.[currentPersonIndex];
-                                  return !(person?.gender && (person?.heritage || person?.custom_heritage));
-                                })()}
-                                className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white font-medium hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
-                              >
-                                Continue to Next Step
-                                <ArrowRight className="w-4 h-4 ml-2" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
+                
 
                 {currentStep.type === 'photo_upload' && (answers.photo_option === 'upload_and_scene' || answers.photo_option === 'upload_and_transform') && (
                   <div className="space-y-6">
@@ -2019,18 +1824,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                           </div>
                         )}
 
-                        {analysisSuccess && !isAnalyzingPhoto && (
-                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <div className="flex flex-col items-center justify-center text-center space-y-2">
-                              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              <p className="text-green-700 font-medium">
-                                Photo analysis successful!
-                              </p>
-                            </div>
-                          </div>
-                        )}
+                        
 
                         {analysisError && (
                           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
@@ -2068,63 +1862,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                           </div>
                         )}
 
-                        {photoAnalyses.length > 0 && (
-                          <div className="space-y-4">
-                            {/* Reanalyze Button - Prominent Position */}
-                            <div className="flex justify-center">
-                              <Button 
-                                onClick={() => analyzePhotos(uploadedPhotos)}
-                                variant="outline"
-                                className="border-purple-300 text-purple-600 hover:bg-purple-50 px-6 py-2"
-                                disabled={isAnalyzingPhoto}
-                              >
-                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                Reanalyze Photos
-                              </Button>
-                            </div>
+                        
 
-                            {/* Analysis Results Display */}
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                              <h4 className="font-medium text-green-800 mb-2">AI Analysis Results:</h4>
-                              <div className="space-y-3">
-                                {photoAnalyses.map((analysis, index) => (
-                                  <div key={index} className="bg-white rounded p-3 border text-sm text-gray-700">
-                                    <div className="font-medium text-purple-600 mb-1">Person {analysis.personIndex}:</div>
-                                    <div>{analysis.analysis}</div>
-                                    <div className="text-xs text-gray-500 mt-1">Attempts: {analysis.attempts}</div>
-                                  </div>
-                                ))}
-                              </div>
-                              <p className="text-green-700 text-sm mt-3">
-                                These descriptions will be used to create your card.
-                              </p>
-                            </div>
-
-                            {/* Continue Button */}
-                            <div className="flex justify-center">
-                              <Button 
-                                onClick={() => {
-                                  const combinedAnalysis = photoAnalyses.map(a => a.analysis).join('\n\n');
-                                  setAnswers(prev => ({ ...prev, character_description: combinedAnalysis }));
-                                  setCurrentStepIndex(prev => prev + 1);
-                                }}
-                                className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-lg font-medium"
-                              >
-                                Continue with These Descriptions
-                                <ArrowRight className="w-5 h-5 ml-2" />
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-
-                        {!isAnalyzingPhoto && photoAnalyses.length === 0 && !analysisError && (
+                        {!isAnalyzingPhoto && (
                           <Button 
                             onClick={() => setCurrentStepIndex(prev => prev + 1)}
                             className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
                           >
-                            Continue without Analysis
+                            Continue
                             <ArrowRight className="w-4 h-4 ml-2" />
                           </Button>
                         )}
