@@ -1777,14 +1777,8 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
 
       try {
-        console.log('Making GPT-Image-1 API request using form-data with proper SDK structure');
+        console.log('Making GPT-Image-1 API request using direct HTTP form-data');
         console.log('🔍 DEBUG: Requested size parameter:', '1024x1024');
-        
-        console.log('📋 Parameters being sent:');
-        console.log('- model:', 'gpt-image-1');
-        console.log('- size:', '1024x1024');
-        console.log('- quality:', 'high');
-        console.log('- prompt length:', transformPrompt.length);
         
         // Use form-data package for proper multipart form handling
         const formData = new FormData();
@@ -1799,7 +1793,13 @@ The inside should look like a perfect companion piece created by the same artist
         formData.append('n', '1');
         formData.append('size', '1024x1024');
         formData.append('quality', 'high');
-        formData.append('response_format', 'b64_json');
+        formData.append('moderation', 'low');
+        
+        console.log('📋 Form data parameters being sent:');
+        console.log('- model:', 'gpt-image-1');
+        console.log('- size:', '1024x1024');
+        console.log('- quality:', 'high');
+        console.log('- prompt length:', transformPrompt.length);
         
         // Use node-fetch with proper FormData handling
         const fetch = (await import('node-fetch')).default;
@@ -1812,19 +1812,34 @@ The inside should look like a perfect companion piece created by the same artist
           body: formData
         });
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('GPT-Image-1 API error response:', errorText);
-          throw new Error(`GPT-Image-1 API error: ${response.status} ${response.statusText} - ${errorText}`);
-        }
+        // Add timeout handling for GPT-Image-1 requests
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('GPT-Image-1 request timed out - this model may require special OpenAI API access')), 30000);
+        });
         
-        const responseData: any = await response.json();
+        const responsePromise = (async () => {
+          if (!response.ok) {
+            const errorText = await response.text();
+            let errorData;
+            try {
+              errorData = JSON.parse(errorText);
+            } catch {
+              errorData = { error: { message: errorText } };
+            }
+            throw new Error(`GPT-Image-1 API error: ${response.status} ${errorData.error?.message || 'Unknown error'}`);
+          }
+          
+          return await response.json();
+        })();
+        
+        const responseData = await Promise.race([responsePromise, timeoutPromise]);
+        
         console.log('GPT-Image-1 response received successfully');
         
         // Extract image URL from response
         let imageUrl: string = '';
-        if (responseData && responseData.data && Array.isArray(responseData.data) && responseData.data.length > 0) {
-          const imageResult = responseData.data[0];
+        if (responseData && (responseData as any).data && Array.isArray((responseData as any).data) && (responseData as any).data.length > 0) {
+          const imageResult = (responseData as any).data[0];
           
           if (imageResult.b64_json) {
             imageUrl = `data:image/png;base64,${imageResult.b64_json}`;
