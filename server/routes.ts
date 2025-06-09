@@ -1777,69 +1777,44 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
 
       try {
-        console.log('Making GPT-Image-1 API request using direct HTTP form-data');
+        console.log('Making GPT-Image-1 API request using OpenAI SDK');
         console.log('🔍 DEBUG: Requested size parameter:', '1024x1024');
         
-        // Use form-data package for proper multipart form handling
-        const formData = new FormData();
-        
-        // Add image buffer directly with proper metadata
-        formData.append('image', imageBuffer, {
-          filename: `image.${mimeType}`,
-          contentType: `image/${mimeType}`
-        });
-        formData.append('prompt', transformPrompt);
-        formData.append('model', 'gpt-image-1');
-        formData.append('n', '1');
-        formData.append('size', '1024x1024');
-        formData.append('quality', 'high');
-        formData.append('moderation', 'low');
-        
-        console.log('📋 Form data parameters being sent:');
+        console.log('📋 Parameters being sent:');
         console.log('- model:', 'gpt-image-1');
         console.log('- size:', '1024x1024');
         console.log('- quality:', 'high');
         console.log('- prompt length:', transformPrompt.length);
         
-        // Use node-fetch with proper FormData handling
-        const fetch = (await import('node-fetch')).default;
-        const response = await fetch('https://api.openai.com/v1/images/edits', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-            ...formData.getHeaders()
-          },
-          body: formData
+        // Create a readable stream from the buffer for OpenAI SDK
+        const { Readable } = require('stream');
+        const imageStream = new Readable({
+          read() {}
         });
+        imageStream.push(imageBuffer);
+        imageStream.push(null);
         
-        // Add timeout handling for GPT-Image-1 requests
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('GPT-Image-1 request timed out - this model may require special OpenAI API access')), 30000);
+        // Use OpenAI SDK for GPT-Image-1 request
+        if (!openai) {
+          throw new Error('OpenAI API key not configured');
+        }
+        
+        const response = await openai.images.edit({
+          image: imageStream,
+          prompt: transformPrompt,
+          model: "gpt-image-1",
+          n: 1,
+          size: "1024x1024",
+          quality: "high",
+          response_format: "b64_json"
         });
-        
-        const responsePromise = (async () => {
-          if (!response.ok) {
-            const errorText = await response.text();
-            let errorData;
-            try {
-              errorData = JSON.parse(errorText);
-            } catch {
-              errorData = { error: { message: errorText } };
-            }
-            throw new Error(`GPT-Image-1 API error: ${response.status} ${errorData.error?.message || 'Unknown error'}`);
-          }
-          
-          return await response.json();
-        })();
-        
-        const responseData = await Promise.race([responsePromise, timeoutPromise]);
         
         console.log('GPT-Image-1 response received successfully');
         
         // Extract image URL from response
         let imageUrl: string = '';
-        if (responseData && (responseData as any).data && Array.isArray((responseData as any).data) && (responseData as any).data.length > 0) {
-          const imageResult = (responseData as any).data[0];
+        if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
+          const imageResult = response.data[0];
           
           if (imageResult.b64_json) {
             imageUrl = `data:image/png;base64,${imageResult.b64_json}`;

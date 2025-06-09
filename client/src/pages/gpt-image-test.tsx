@@ -540,10 +540,10 @@ export default function GPTImageTest() {
                       alt="Front card result" 
                       style={{ 
                         display: 'block',
-                        maxWidth: '100%',
-                        maxHeight: '1028px',
-                        width: 'auto',
-                        height: 'auto'
+                        width: '512px',
+                        height: '512px',
+                        objectFit: 'contain',
+                        border: '1px solid #e5e7eb'
                       }}
                     />
                   </div>
@@ -568,10 +568,10 @@ export default function GPTImageTest() {
                         alt="Inside card result" 
                         style={{ 
                           display: 'block',
-                          maxWidth: '100%',
-                          maxHeight: '1028px',
-                          width: 'auto',
-                          height: 'auto'
+                          width: '512px',
+                          height: '512px',
+                          objectFit: 'contain',
+                          border: '1px solid #e5e7eb'
                         }}
                       />
                     </div>
