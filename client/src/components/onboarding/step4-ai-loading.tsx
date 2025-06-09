@@ -1,3 +1,4 @@
+
 import { Brain, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -30,28 +31,28 @@ export default function Step4AILoading({ onboarding }: Step4Props) {
   };
 
   return (
-    <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20 text-center">
-      <div className="mb-8">
-        <div className="w-24 h-24 bg-gradient-celebrait rounded-full mx-auto mb-6 flex items-center justify-center animate-pulse-soft">
-          <Brain className="text-white text-3xl" />
+    <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-white/20 max-w-4xl mx-auto text-center">
+      <div className="mb-6 sm:mb-8">
+        <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-celebrait rounded-full mx-auto mb-4 sm:mb-6 flex items-center justify-center animate-pulse-soft">
+          <Brain className="text-white w-10 h-10 sm:w-12 sm:h-12" />
         </div>
-        <h2 className="text-3xl font-bold text-gray-800 mb-4">Our AI is warming up...</h2>
-        <p className="text-lg text-slate-gray max-w-2xl mx-auto mb-6">
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-3 sm:mb-4">Our AI is warming up...</h2>
+        <p className="text-base sm:text-lg text-slate-gray max-w-2xl mx-auto mb-6 sm:mb-8 px-4">
           Please watch this short video to understand what to expect from our tech..
         </p>
       </div>
 
       {/* Video Placeholder */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20 mb-8 max-w-2xl mx-auto">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20 mb-6 sm:mb-8 max-w-2xl mx-auto">
         <div className="aspect-video bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center">
           <div className="text-center">
-            <div className="w-16 h-16 bg-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-400 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z"/>
               </svg>
             </div>
-            <p className="text-gray-600 font-medium">Video Preview</p>
-            <p className="text-gray-500 text-sm">Your video will appear here</p>
+            <p className="text-gray-600 font-medium text-sm sm:text-base">Video Preview</p>
+            <p className="text-gray-500 text-xs sm:text-sm">Your video will appear here</p>
           </div>
         </div>
       </div>
@@ -60,7 +61,7 @@ export default function Step4AILoading({ onboarding }: Step4Props) {
         <Button 
           onClick={handleContinue}
           disabled={isLoading}
-          className="relative px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white font-medium overflow-hidden transition-all duration-200 shadow-lg min-w-[280px]"
+          className="relative px-6 sm:px-8 py-3 sm:py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white font-medium overflow-hidden transition-all duration-200 shadow-lg min-w-[250px] sm:min-w-[280px] text-sm sm:text-base"
         >
           <div className="relative z-10">
             {isLoading ? "AI Warming Up..." : "I understand, let's continue!"}
