@@ -206,8 +206,7 @@ export default function Checkout() {
                     maxWidth: '1028px', 
                     position: 'relative',
                     paddingBottom: '100%',
-                    height: 0,
-                    overflow: 'hidden'
+                    height: 0
                   }}>
                     <img 
                       src={cardData.frontImageUrl} 
