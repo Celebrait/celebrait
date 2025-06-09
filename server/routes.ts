@@ -1778,6 +1778,7 @@ The inside should look like a perfect companion piece created by the same artist
 
       try {
         console.log('Making GPT-Image-1 API request using direct HTTP form-data');
+        console.log('🔍 DEBUG: Requested size parameter:', '1024x1024');
         
         // Use form-data package for proper multipart form handling
         const formData = new FormData();
@@ -1793,6 +1794,12 @@ The inside should look like a perfect companion piece created by the same artist
         formData.append('size', '1024x1024');
         formData.append('quality', 'high');
         formData.append('moderation', 'low');
+        
+        console.log('📋 Form data parameters being sent:');
+        console.log('- model:', 'gpt-image-1');
+        console.log('- size:', '1024x1024');
+        console.log('- quality:', 'high');
+        console.log('- prompt length:', transformPrompt.length);
         
         // Use node-fetch with proper FormData handling
         const fetch = (await import('node-fetch')).default;
@@ -1842,25 +1849,60 @@ The inside should look like a perfect companion piece created by the same artist
             const imageBuffer = Buffer.from(imageResult.b64_json, 'base64');
             console.log('Generated image buffer size:', imageBuffer.length, 'bytes');
             
-            // Try to extract image dimensions from PNG header
+            // Try to extract image dimensions from image header
             if (imageBuffer.length > 24) {
-              const pngSignature = imageBuffer.toString('hex', 0, 8);
-              console.log('Image signature:', pngSignature);
+              const signature = imageBuffer.toString('hex', 0, 8);
+              console.log('🔍 Image signature:', signature);
               
-              if (pngSignature === '89504e470d0a1a0a') {
-                const width = imageBuffer.readUInt32BE(16);
-                const height = imageBuffer.readUInt32BE(20);
-                console.log('ACTUAL IMAGE DIMENSIONS FROM PNG HEADER:', width, 'x', height);
-                console.log('Image aspect ratio:', (width/height).toFixed(3));
+              let width, height;
+              
+              // PNG signature: 89504e470d0a1a0a
+              if (signature === '89504e470d0a1a0a') {
+                width = imageBuffer.readUInt32BE(16);
+                height = imageBuffer.readUInt32BE(20);
+                console.log('📏 PNG DIMENSIONS:', width, 'x', height);
+              }
+              // JPEG signature: ffd8ff
+              else if (signature.startsWith('ffd8ff')) {
+                console.log('📸 JPEG detected - checking for SOF marker');
+                // Look for SOF (Start of Frame) marker to get dimensions
+                for (let i = 2; i < imageBuffer.length - 8; i++) {
+                  if (imageBuffer[i] === 0xFF && imageBuffer[i + 1] === 0xC0) {
+                    height = imageBuffer.readUInt16BE(i + 5);
+                    width = imageBuffer.readUInt16BE(i + 7);
+                    console.log('📏 JPEG DIMENSIONS:', width, 'x', height);
+                    break;
+                  }
+                }
+              }
+              // WebP signature: 52494646
+              else if (signature.startsWith('52494646')) {
+                console.log('🖼️ WebP detected');
+                if (imageBuffer.toString('ascii', 8, 12) === 'WEBP') {
+                  // Simple WebP format
+                  width = imageBuffer.readUInt16LE(26) + 1;
+                  height = imageBuffer.readUInt16LE(28) + 1;
+                  console.log('📏 WebP DIMENSIONS:', width, 'x', height);
+                }
+              }
+              
+              if (width && height) {
+                console.log('🎯 ACTUAL IMAGE DIMENSIONS:', width, 'x', height);
+                console.log('📐 Image aspect ratio:', (width/height).toFixed(3));
+                console.log('📋 Requested dimensions: 1024x1024 (ratio: 1.000)');
                 
                 if (width !== height) {
-                  console.log('⚠️  WARNING: Image is NOT SQUARE! Width:', width, 'Height:', height);
-                  console.log('This explains why the image appears cropped in square containers.');
+                  console.log('⚠️ WARNING: OpenAI returned NON-SQUARE image!');
+                  console.log('   Requested: 1024x1024 (square)');
+                  console.log('   Received:', width, 'x', height, '(', width > height ? 'landscape' : 'portrait', ')');
+                  console.log('   This explains why the image appears cropped in UI');
+                } else if (width === 1024 && height === 1024) {
+                  console.log('✅ Perfect! Image is exactly 1024x1024 as requested');
                 } else {
-                  console.log('✅ Image is perfectly square:', width, 'x', height);
+                  console.log('⚠️ Image is square but wrong size:', width, 'x', height, '(expected 1024x1024)');
                 }
               } else {
-                console.log('Not a PNG image, signature:', pngSignature);
+                console.log('❌ Could not determine image dimensions from header');
               }
             }
           } else if (imageResult.url) {
