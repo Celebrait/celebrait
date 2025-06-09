@@ -43,11 +43,25 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
       <div className="mb-8">
         {card.frontImageUrl ? (
           <div className="w-full flex justify-center">
-            <div style={{ width: '100%', maxWidth: '1028px', aspectRatio: '1/1' }}>
+            <div style={{ 
+              width: '100%', 
+              maxWidth: '1028px', 
+              position: 'relative',
+              paddingBottom: '100%',
+              height: 0,
+              overflow: 'hidden'
+            }}>
               <img 
                 src={card.frontImageUrl} 
                 alt="AI generated greeting card design" 
-                style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+                style={{ 
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'cover' 
+                }}
               />
             </div>
           </div>
@@ -62,11 +76,25 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
           <div className="mt-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Inside Message:</h3>
             <div className="w-full flex justify-center">
-              <div style={{ width: '100%', maxWidth: '1028px', aspectRatio: '1/1' }}>
+              <div style={{ 
+                width: '100%', 
+                maxWidth: '1028px', 
+                position: 'relative',
+                paddingBottom: '100%',
+                height: 0,
+                overflow: 'hidden'
+              }}>
                 <img 
                   src={card.insideImageUrl} 
                   alt="Card inside design" 
-                  style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+                  style={{ 
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%', 
+                    height: '100%', 
+                    objectFit: 'cover' 
+                  }}
                 />
               </div>
             </div>
