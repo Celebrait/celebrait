@@ -80,7 +80,7 @@ export default function GPTImageTest() {
       return `Transform the attached image into ${baseStyle}`;
     }
 
-    return `Transform the attached image into ${baseStyle}. Include the text "${frontCardText}" beautifully integrated into the composition, rendered in the same artistic style as the rest of the image, as if it were naturally part of a greeting card design.`;
+    return `Transform the attached image into ${baseStyle}. Include the text "${frontCardText}" in the same ${baseStyle}, as if it were naturally part of a greeting card design.`;
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
