@@ -1837,6 +1837,32 @@ The inside should look like a perfect companion piece created by the same artist
           if (imageResult.b64_json) {
             imageUrl = `data:image/png;base64,${imageResult.b64_json}`;
             console.log('Generated base64 image URL successfully');
+            
+            // Check actual image dimensions by decoding the base64
+            const imageBuffer = Buffer.from(imageResult.b64_json, 'base64');
+            console.log('Generated image buffer size:', imageBuffer.length, 'bytes');
+            
+            // Try to extract image dimensions from PNG header
+            if (imageBuffer.length > 24) {
+              const pngSignature = imageBuffer.toString('hex', 0, 8);
+              console.log('Image signature:', pngSignature);
+              
+              if (pngSignature === '89504e470d0a1a0a') {
+                const width = imageBuffer.readUInt32BE(16);
+                const height = imageBuffer.readUInt32BE(20);
+                console.log('ACTUAL IMAGE DIMENSIONS FROM PNG HEADER:', width, 'x', height);
+                console.log('Image aspect ratio:', (width/height).toFixed(3));
+                
+                if (width !== height) {
+                  console.log('⚠️  WARNING: Image is NOT SQUARE! Width:', width, 'Height:', height);
+                  console.log('This explains why the image appears cropped in square containers.');
+                } else {
+                  console.log('✅ Image is perfectly square:', width, 'x', height);
+                }
+              } else {
+                console.log('Not a PNG image, signature:', pngSignature);
+              }
+            }
           } else if (imageResult.url) {
             imageUrl = imageResult.url;
             console.log('Generated image URL:', imageResult.url);
