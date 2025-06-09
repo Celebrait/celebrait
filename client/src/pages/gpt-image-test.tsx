@@ -535,26 +535,17 @@ export default function GPTImageTest() {
                 <div>
                   <Label>Front Card</Label>
                   <div className="mt-2 w-full flex justify-center">
-                    <div style={{ 
-                      width: '100%', 
-                      maxWidth: '1028px', 
-                      position: 'relative',
-                      paddingBottom: '100%',
-                      height: 0
-                    }}>
-                      <img 
-                        src={resultImage} 
-                        alt="Front card result" 
-                        style={{ 
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          width: '100%', 
-                          height: '100%', 
-                          objectFit: 'contain' 
-                        }}
-                      />
-                    </div>
+                    <img 
+                      src={resultImage} 
+                      alt="Front card result" 
+                      style={{ 
+                        display: 'block',
+                        maxWidth: '100%',
+                        maxHeight: '1028px',
+                        width: 'auto',
+                        height: 'auto'
+                      }}
+                    />
                   </div>
                 </div>
 
@@ -572,26 +563,17 @@ export default function GPTImageTest() {
                   <div className="mt-4">
                     <Label>Inside Card</Label>
                     <div className="mt-2 w-full flex justify-center">
-                      <div style={{ 
-                        width: '100%', 
-                        maxWidth: '1028px', 
-                        position: 'relative',
-                        paddingBottom: '100%',
-                        height: 0
-                      }}>
-                        <img 
-                          src={insideCardImage} 
-                          alt="Inside card result" 
-                          style={{ 
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%', 
-                            height: '100%', 
-                            objectFit: 'contain' 
-                          }}
-                        />
-                      </div>
+                      <img 
+                        src={insideCardImage} 
+                        alt="Inside card result" 
+                        style={{ 
+                          display: 'block',
+                          maxWidth: '100%',
+                          maxHeight: '1028px',
+                          width: 'auto',
+                          height: 'auto'
+                        }}
+                      />
                     </div>
                   </div>
                 )}
