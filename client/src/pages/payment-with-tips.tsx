@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -73,7 +73,7 @@ export default function PaymentWithTips() {
     if (match && params?.cardId) {
       loadCard(parseInt(params.cardId));
     }
-  }, [match, params]);
+  }, [match, params?.cardId]);
 
   const loadCard = async (cardId: number) => {
     try {
@@ -109,23 +109,19 @@ export default function PaymentWithTips() {
     }
   };
 
-  const validateForm = () => {
-    console.log('🔍 Validating form...');
+  const isFormValid = useMemo(() => {
     // Basic info always required
     const basicRequired = ['email', 'firstName', 'lastName'];
     
     for (const field of basicRequired) {
       const value = formData[field as keyof PaymentFormData];
-      console.log(`📝 ${field}:`, value);
       if (!value) {
-        console.log(`❌ Missing required field: ${field}`);
         return false;
       }
     }
 
     // Address required only for printed cards
     if (card?.cardType === 'printed') {
-      console.log('📦 Validating printed card address...');
       const addressRequired = [
         'address.line1',
         'address.city',
@@ -136,22 +132,24 @@ export default function PaymentWithTips() {
       for (const field of addressRequired) {
         const addressField = field.split('.')[1];
         const value = formData.address[addressField as keyof typeof formData.address];
-        console.log(`🏠 ${field}:`, value);
         if (!value) {
-          console.log(`❌ Missing required address field: ${field}`);
           return false;
         }
       }
 
-      console.log('📞 phone:', formData.phone);
       if (!formData.phone) {
-        console.log('❌ Missing required phone field');
         return false;
       }
     }
 
-    console.log('✅ Form validation passed');
     return true;
+  }, [formData, card?.cardType]);
+
+  const validateForm = () => {
+    console.log('🔍 Validating form...');
+    console.log('📋 Form data:', formData);
+    console.log('✅ Form validation result:', isFormValid);
+    return isFormValid;
   };
 
   const getTotalAmount = () => {
@@ -204,16 +202,9 @@ export default function PaymentWithTips() {
   };
 
   const processPayment = async () => {
-    console.log('🔄 Payment button clicked');
-    console.log('📋 Form data:', formData);
-    console.log('🎯 Selected tip:', selectedTip);
-    console.log('💳 Payment option:', paymentOption);
+    console.log('PAYMENT BUTTON CLICKED!');
     
-    const isValid = validateForm();
-    console.log('✅ Form validation result:', isValid);
-    
-    if (!isValid) {
-      console.log('❌ Form validation failed');
+    if (!isFormValid) {
       toast({
         title: 'Incomplete Information',
         description: 'Please fill in all required fields',
@@ -222,13 +213,14 @@ export default function PaymentWithTips() {
       return;
     }
 
-    console.log('🚀 Starting payment process...');
     setProcessingPayment(true);
 
     try {
       const totalAmount = getTotalAmount();
+      console.log('💰 Total amount calculated:', totalAmount);
       
       // Initialize Paystack payment
+      console.log('📡 Making API request to create payment...');
       const response = await apiRequest('POST', '/api/create-payment-with-tip', {
         cardId: card.id,
         customerInfo: formData,
@@ -238,6 +230,7 @@ export default function PaymentWithTips() {
         currency: 'ZAR'
       });
 
+      console.log('✅ API response received');
       const { paymentUrl, reference } = await response.json();
 
       // Debug logging
@@ -540,7 +533,7 @@ export default function PaymentWithTips() {
               {/* Action Button */}
               <Button
                 onClick={paymentOption === 'free' ? processFreeOption : processPayment}
-                disabled={processingPayment || !validateForm()}
+                disabled={processingPayment || !isFormValid}
                 className={`w-full py-6 text-lg font-semibold ${
                   paymentOption === 'free' 
                     ? 'bg-green-500 hover:bg-green-600' 

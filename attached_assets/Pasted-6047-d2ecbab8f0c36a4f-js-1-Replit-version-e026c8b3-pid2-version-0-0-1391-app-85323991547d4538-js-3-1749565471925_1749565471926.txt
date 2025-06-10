@@ -1,0 +1,1395 @@
+6047-d2ecbab8f0c36a4f.js:1 Replit version e026c8b3, pid2 version 0.0.1391
+_app-85323991547d4538.js:38 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+_app-85323991547d4538.js:38 [LaunchDarkly] LaunchDarkly client initialized
+analytics.tiktok.com/i18n/pixel/events.js?sdkid=D004GE3C77U8PIVDSDJG&lib=ttq:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+www.google-analytics.com/analytics.js:1  Failed to load resource: net::ERR_UNSAFE_REDIRECT
+www.googletagmanager.com/gtag/js?id=AW-11411994397:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+/~:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+_app-85323991547d4538.js:38 [ChromeTransport] connectChrome error: Error: MetaMask extension not found
+    at inpage.js:1:16512
+(anonymous) @ _app-85323991547d4538.js:38
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+ [ChromeTransport] connectChrome error: 
+connect @ inpage.js:1
+ [ChromeTransport] connectChrome error: 
+connect @ inpage.js:1
+ [ChromeTransport] connectChrome error: 
+connect @ inpage.js:1
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+ Unrecognized feature: 'ambient-light-sensor'.
+_ @ framework-a1b50436839f9071.js:1
+ Unrecognized feature: 'battery'.
+_ @ framework-a1b50436839f9071.js:1
+ Unrecognized feature: 'execution-while-not-rendered'.
+_ @ framework-a1b50436839f9071.js:1
+ Unrecognized feature: 'execution-while-out-of-viewport'.
+_ @ framework-a1b50436839f9071.js:1
+ Unrecognized feature: 'layout-animations'.
+_ @ framework-a1b50436839f9071.js:1
+ Unrecognized feature: 'legacy-image-formats'.
+_ @ framework-a1b50436839f9071.js:1
+ Unrecognized feature: 'navigation-override'.
+_ @ framework-a1b50436839f9071.js:1
+ Unrecognized feature: 'oversized-images'.
+_ @ framework-a1b50436839f9071.js:1
+ Unrecognized feature: 'publickey-credentials'.
+_ @ framework-a1b50436839f9071.js:1
+ Unrecognized feature: 'speaker-selection'.
+_ @ framework-a1b50436839f9071.js:1
+ Unrecognized feature: 'unoptimized-images'.
+_ @ framework-a1b50436839f9071.js:1
+ Unrecognized feature: 'unsized-media'.
+_ @ framework-a1b50436839f9071.js:1
+ Unrecognized feature: 'pointer-lock'.
+_ @ framework-a1b50436839f9071.js:1
+ Allow attribute will take precedence over 'allowfullscreen'.
+_ @ framework-a1b50436839f9071.js:1
+ Allow attribute will take precedence over 'allowpaymentrequest'.
+_ @ framework-a1b50436839f9071.js:1
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/diagnostic/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/diagnostic/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/diagnostic/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/diagnostic/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+_app-85323991547d4538.js:38 Invalid href 'https://71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev//test-payment' passed to next/router in page: '/replEnvironmentDesktop'. Repeated forward-slashes (//) or backslashes \ are not valid in the href.
+(anonymous) @ _app-85323991547d4538.js:38
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/diagnostic/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/diagnostic/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/diagnostic/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/diagnostic/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+ [ChromeTransport] connectChrome error: 
+connect @ inpage.js:1
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/diagnostic/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/diagnostic/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+workspace_iframe.html:32 Unrecognized feature: 'ambient-light-sensor'.
+workspace_iframe.html:32 Unrecognized feature: 'battery'.
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-not-rendered'.
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+workspace_iframe.html:32 Unrecognized feature: 'layout-animations'.
+workspace_iframe.html:32 Unrecognized feature: 'legacy-image-formats'.
+workspace_iframe.html:32 Unrecognized feature: 'navigation-override'.
+workspace_iframe.html:32 Unrecognized feature: 'oversized-images'.
+workspace_iframe.html:32 Unrecognized feature: 'publickey-credentials'.
+workspace_iframe.html:32 Unrecognized feature: 'speaker-selection'.
+workspace_iframe.html:32 Unrecognized feature: 'unoptimized-images'.
+workspace_iframe.html:32 Unrecognized feature: 'unsized-media'.
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowfullscreen'.
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+ [ChromeTransport] connectChrome error: 
+connect @ inpage.js:1
+ [ChromeTransport] connectChrome error: 
+connect @ inpage.js:1
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/diagnostic/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/diagnostic/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+ stallwart: failed ping 1
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+payment-with-tips.tsx:214 Mixed Content: The page at 'https://replit.com/@info6551/CelebrationCompanion' was loaded over HTTPS, but requested an insecure frame 'http://71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev/payment-success?reference=celebrait_tip_1749565374814_c065ztmcr&status=success'. This request has been blocked; the content must be served over HTTPS.
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔄 Payment button clicked
+ 📋 Form data: Object
+ 🎯 Selected tip: 0
+ 💳 Payment option: paid
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ ✅ Form validation result: true
+ 🚀 Starting payment process...
+ Payment URL generated: http://71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev/payment-success?reference=celebrait_tip_1749565452790_71ef8l723&status=success
+ Payment reference: celebrait_tip_1749565452790_71ef8l723
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+payment-with-tips.tsx:214 Mixed Content: The page at 'https://replit.com/@info6551/CelebrationCompanion' was loaded over HTTPS, but requested an insecure frame 'http://71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev/payment-success?reference=celebrait_tip_1749565452790_71ef8l723&status=success'. This request has been blocked; the content must be served over HTTPS.
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+Console.js:61 📝 email: aidanchant26@gmail.com
+Console.js:61 📝 firstName: Aidan
+Console.js:61 📝 lastName: Chant
+Console.js:61 📦 Validating printed card address...
+Console.js:61 🏠 address.line1: 2 patchcroft road
+Console.js:61 🏠 address.city: manchester
+Console.js:61 🏠 address.province: WC
+Console.js:61 🏠 address.postalCode: m225js
+Console.js:61 📞 phone: +447913341943
+Console.js:61 ✅ Form validation passed
+Console.js:61 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
+ 🔍 Validating form...
+ 📝 email: aidanchant26@gmail.com
+ 📝 firstName: Aidan
+ 📝 lastName: Chant
+ 📦 Validating printed card address...
+ 🏠 address.line1: 2 patchcroft road
+ 🏠 address.city: manchester
+ 🏠 address.province: WC
+ 🏠 address.postalCode: m225js
+ 📞 phone: +447913341943
+ ✅ Form validation passed
