@@ -12,7 +12,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
   const [, setLocation] = useLocation();
 
   const handleProceedToCheckout = () => {
-    setLocation(`/checkout/${card.id}`);
+    setLocation(`/payment-tips/${card.id}`);
   };
 
   const handleTryAgain = () => {
