@@ -219,8 +219,16 @@ export default function PaymentWithTips() {
 
       const { paymentUrl, reference } = await response.json();
 
+      // Debug logging
+      console.log('Payment URL generated:', paymentUrl);
+      console.log('Payment reference:', reference);
+
       // Redirect to Paystack payment page
-      window.location.href = paymentUrl;
+      if (paymentUrl) {
+        window.location.href = paymentUrl;
+      } else {
+        throw new Error('No payment URL received');
+      }
 
     } catch (error: any) {
       toast({

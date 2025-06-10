@@ -16,16 +16,15 @@ export default function PaymentSuccess() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const reference = urlParams.get('reference');
-    
-    if (reference) {
+    const status = urlParams.get('status');
+
+    console.log('Payment success page loaded with:', { reference, status });
+
+    if (reference && status === 'success') {
       verifyPayment(reference);
     } else {
-      toast({
-        title: 'Invalid Payment',
-        description: 'No payment reference found',
-        variant: 'destructive'
-      });
-      setLocation('/');
+      console.error('Invalid payment parameters:', { reference, status });
+      setError('Invalid payment parameters');
     }
   }, []);
 
@@ -54,7 +53,7 @@ export default function PaymentSuccess() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       toast({
         title: 'Download Started',
         description: 'Your card is being downloaded'
@@ -187,7 +186,7 @@ export default function PaymentSuccess() {
                       Download High-Quality Card
                     </Button>
                   </div>
-                  
+
                   <div className="text-sm text-gray-600">
                     <p>• High-resolution PNG format</p>
                     <p>• Perfect for social media sharing</p>

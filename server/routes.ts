@@ -1147,6 +1147,7 @@ The inside should look like a perfect companion piece created by the same artist
 
       if (!hasPaystack) {
         const mockPaymentUrl = `${req.protocol}://${req.get('host')}/payment-success?reference=${reference}&status=success`;
+        console.log('Generated mock payment URL:', mockPaymentUrl);
         return res.json({ 
           paymentUrl: mockPaymentUrl, 
           reference,
