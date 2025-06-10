@@ -12,7 +12,7 @@ import TestGeneration from "@/pages/test-generation";
 import StyleTest from "@/pages/style-test";
 import GPTImageTest from "@/pages/gpt-image-test";
 import NotFound from "@/pages/not-found";
-import PaymentWithTips from "@/pages/payment-tips";
+import PaymentWithTips from "@/pages/payment-with-tips";
 import OrderSuccess from "@/pages/order-success";
 
 function Router() {
