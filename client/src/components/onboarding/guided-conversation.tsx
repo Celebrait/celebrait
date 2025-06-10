@@ -937,6 +937,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       // Check if this is upload photo + describe scene workflow
       if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
         await generateCardWithGPTImage();
+      } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotos.length > 0) {
+        // Use GPT-Image-1 for transform style workflow
+        await generateCardWithGPTImageTransform();
       } else {
         // Use existing DALL-E workflow
         const frontPrompt = buildImagePrompt();
@@ -991,6 +994,56 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     console.log('Front card generated:', frontResult);
 
     // Generate inside card if needed
+    let insideImageUrl = null;
+    if (onboarding.selectedPrintOption === 'front-and-inside' && answers.inside_message) {
+      const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
+        frontCardImage: frontResult.imageUrl,
+        insideText: answers.inside_message
+      });
+      
+      const insideResult = await insideResponse.json();
+      insideImageUrl = insideResult.imageUrl;
+      console.log('Inside card generated:', insideResult);
+    }
+
+    // Update the card in storage
+    const updateResponse = await apiRequest("POST", "/api/update-card-images", {
+      cardId,
+      frontImageUrl: frontResult.imageUrl,
+      insideImageUrl,
+      status: 'completed'
+    });
+
+    const updatedCard = await updateResponse.json();
+    onCardGenerated(updatedCard);
+  };
+
+  const generateCardWithGPTImageTransform = async () => {
+    console.log('Using GPT-Image-1 for photo + transform style workflow');
+    
+    // Use the first uploaded photo as the reference image
+    const referenceImage = uploadedPhotos[0];
+    
+    // Build style transformation prompt using the exact same approach as gpt-image-test page
+    const artStyle = answers.art_style || 'watercolor painting';
+    const frontCardText = answers.message || '';
+    
+    // Create the prompt using the same structure as the test page
+    let transformPrompt = `Transform this into ${artStyle}`;
+    if (frontCardText.trim()) {
+      transformPrompt += `. Include the text "${frontCardText}" in the same ${artStyle}, as if it were naturally part of a greeting card design.`;
+    }
+    
+    // Generate front card using GPT-Image-1 transform style endpoint
+    const frontResponse = await apiRequest("POST", "/api/transform-style-gpt-image-1", {
+      imageData: referenceImage,
+      style: transformPrompt
+    });
+
+    const frontResult = await frontResponse.json();
+    console.log('Front card transformed:', frontResult);
+
+    // Generate inside card if needed using the front card as reference
     let insideImageUrl = null;
     if (onboarding.selectedPrintOption === 'front-and-inside' && answers.inside_message) {
       const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
