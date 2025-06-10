@@ -37,12 +37,15 @@ export const orders = pgTable("orders", {
   customerEmail: text("customer_email").notNull(),
   customerName: text("customer_name").notNull(),
   customerPhone: text("customer_phone").notNull(),
-  amount: integer("amount").notNull(), // in cents
+  amount: integer("amount").notNull(),
+  baseAmount: integer("base_amount").notNull().default(0),
+  tipAmount: integer("tip_amount").notNull().default(0),
   currency: text("currency").notNull().default("ZAR"),
   paymentReference: text("payment_reference").notNull().unique(),
-  paymentStatus: text("payment_status").notNull().default("pending"), // pending, successful, failed
-  orderStatus: text("order_status").notNull().default("processing"), // processing, printed, shipped, delivered
-  shippingAddress: json("shipping_address"), // for physical cards
+  paymentStatus: text("payment_status").notNull().default("pending"),
+  orderStatus: text("order_status").notNull().default("processing"),
+  orderType: text("order_type").notNull().default("regular"),
+  shippingAddress: json("shipping_address"),
   trackingNumber: text("tracking_number"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()

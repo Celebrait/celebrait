@@ -4,15 +4,15 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+
   createCard(card: InsertCard & { userId: number }): Promise<Card>;
   getCard(id: number): Promise<Card | undefined>;
   updateCard(id: number, updates: Partial<Card>): Promise<Card>;
   getUserCards(userId: number): Promise<Card[]>;
-  
+
   createLovedOne(lovedOne: InsertLovedOne & { userId: number }): Promise<LovedOne>;
   getUserLovedOnes(userId: number): Promise<LovedOne[]>;
-  
+
   createOrder(order: InsertOrder): Promise<Order>;
   getOrder(id: number): Promise<Order | undefined>;
   getOrderByReference(reference: string): Promise<Order | undefined>;
@@ -119,14 +119,16 @@ export class MemStorage implements IStorage {
     const id = this.currentOrderId++;
     const order: Order = {
       ...orderData,
-      id,
       paymentStatus: 'pending',
       orderStatus: 'processing',
       trackingNumber: null,
       currency: orderData.currency || 'ZAR',
       shippingAddress: orderData.shippingAddress || null,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      baseAmount: orderData.baseAmount || orderData.amount,
+      tipAmount: orderData.tipAmount || 0,
+      orderType: orderData.orderType || 'regular'
     };
     this.orders.set(id, order);
     return order;
@@ -147,7 +149,7 @@ export class MemStorage implements IStorage {
     if (!order) {
       throw new Error(`Order with id ${id} not found`);
     }
-    
+
     const updatedOrder = { 
       ...order, 
       ...updates, 

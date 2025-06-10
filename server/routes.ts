@@ -1118,6 +1118,130 @@ The inside should look like a perfect companion piece created by the same artist
     }
   });
 
+  // Paystack payment with tip
+  app.post("/api/create-payment-with-tip", async (req, res) => {
+    try {
+      const { cardId, customerInfo, amount, baseAmount, tipAmount, currency = 'ZAR' } = req.body;
+
+      if (!cardId || !customerInfo || amount === undefined) {
+        return res.status(400).json({ message: "Card ID, customer info, and amount are required" });
+      }
+
+      const reference = `celebrait_tip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const orderData = {
+        cardId: parseInt(cardId),
+        customerEmail: customerInfo.email,
+        customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+        customerPhone: customerInfo.phone,
+        amount: parseInt(amount),
+        baseAmount: parseInt(baseAmount),
+        tipAmount: parseInt(tipAmount || 0),
+        currency,
+        paymentReference: reference,
+        shippingAddress: customerInfo.address || null,
+        orderType: 'paid_with_tip'
+      };
+
+      const order = await storage.createOrder(orderData);
+
+      if (!hasPaystack) {
+        const mockPaymentUrl = `${req.protocol}://${req.get('host')}/payment-success?reference=${reference}&status=success`;
+        return res.json({ 
+          paymentUrl: mockPaymentUrl, 
+          reference,
+          message: "Test mode - payment with tip will be simulated"
+        });
+      }
+
+      const paystackResponse = await fetch('https://api.paystack.co/transaction/initialize', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: customerInfo.email,
+          amount: amount,
+          currency,
+          reference,
+          callback_url: `${req.protocol}://${req.get('host')}/payment-success`,
+          metadata: {
+            cardId: cardId.toString(),
+            orderId: order.id.toString(),
+            customerName: orderData.customerName,
+            cardType: 'greeting_card',
+            baseAmount: baseAmount.toString(),
+            tipAmount: (tipAmount || 0).toString(),
+            orderType: 'paid_with_tip'
+          }
+        })
+      });
+
+      const paystackData = await paystackResponse.json();
+
+      if (paystackData.status) {
+        res.json({ 
+          paymentUrl: paystackData.data.authorization_url, 
+          reference,
+          accessCode: paystackData.data.access_code
+        });
+      } else {
+        throw new Error(paystackData.message || 'Payment initialization failed');
+      }
+
+    } catch (error: any) {
+      res.status(500).json({ message: "Error creating payment with tip: " + error.message });
+    }
+  });
+
+  // Create free order
+  app.post("/api/create-free-order", async (req, res) => {
+    try {
+      const { cardId, customerInfo, paymentType = 'free' } = req.body;
+
+      if (!cardId || !customerInfo) {
+        return res.status(400).json({ message: "Card ID and customer info are required" });
+      }
+
+      const reference = `celebrait_free_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const orderData = {
+        cardId: parseInt(cardId),
+        customerEmail: customerInfo.email,
+        customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+        customerPhone: customerInfo.phone || null,
+        amount: 0,
+        baseAmount: 0,
+        tipAmount: 0,
+        currency: 'ZAR',
+        paymentReference: reference,
+        shippingAddress: customerInfo.address || null,
+        orderType: 'free',
+        paymentStatus: 'free',
+        orderStatus: 'completed'
+      };
+
+      const order = await storage.createOrder(orderData);
+
+      // Update card status to completed for free orders
+      const card = await storage.getCard(cardId);
+      if (card) {
+        await storage.updateCard(cardId, { status: 'completed' });
+      }
+
+      res.json({ 
+        orderId: order.id,
+        reference,
+        downloadUrl: card?.frontImageUrl,
+        message: "Free order created successfully"
+      });
+
+    } catch (error: any) {
+      res.status(500).json({ message: "Error creating free order: " + error.message });
+    }
+  });
+
   // Paystack payment verification
   app.post("/api/verify-payment", async (req, res) => {
     try {

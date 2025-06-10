@@ -12,6 +12,8 @@ import TestGeneration from "@/pages/test-generation";
 import StyleTest from "@/pages/style-test";
 import GPTImageTest from "@/pages/gpt-image-test";
 import NotFound from "@/pages/not-found";
+import PaymentWithTips from "@/pages/payment-tips";
+import OrderSuccess from "@/pages/order-success";
 
 function Router() {
   return (
@@ -19,7 +21,9 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/checkout/:cardId" component={Checkout} />
       <Route path="/payment/:cardId" component={Payment} />
+      <Route path="/payment-tips/:cardId" component={PaymentWithTips} />
       <Route path="/payment-success" component={PaymentSuccess} />
+      <Route path="/order-success" component={OrderSuccess} />
       <Route path="/test" component={TestGeneration} />
       <Route path="/test-payment" component={TestPayment} />
       <Route path="/test-generation" component={TestGeneration} />
