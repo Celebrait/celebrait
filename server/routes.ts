@@ -1253,7 +1253,8 @@ The inside should look like a perfect companion piece created by the same artist
 
       const order = await storage.getOrderByReference(reference);
       if (!order) {
-        return res.status(404).json({ message: "Order not found" });
+        console.log('No order found for reference:', reference);
+        return res.status(404).json({ message: "Order not found for reference: " + reference });
       }
 
       if (!hasPaystack) {
