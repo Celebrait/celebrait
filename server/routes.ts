@@ -1072,7 +1072,7 @@ The inside should look like a perfect companion piece created by the same artist
       const order = await storage.createOrder(orderData);
 
       if (!hasPaystack) {
-        const mockPaymentUrl = `${req.protocol}://${req.get('host')}/payment-success?reference=${reference}&status=success`;
+        const mockPaymentUrl = `https://${req.get('host')}/payment-success?reference=${reference}&status=success`;
         return res.json({ 
           paymentUrl: mockPaymentUrl, 
           reference,
@@ -1091,7 +1091,7 @@ The inside should look like a perfect companion piece created by the same artist
           amount: amount,
           currency,
           reference,
-          callback_url: `${req.protocol}://${req.get('host')}/payment-success`,
+          callback_url: `https://${req.get('host')}/payment-success`,
           metadata: {
             cardId: cardId.toString(),
             orderId: order.id.toString(),
@@ -1146,7 +1146,7 @@ The inside should look like a perfect companion piece created by the same artist
       const order = await storage.createOrder(orderData);
 
       if (!hasPaystack) {
-        const mockPaymentUrl = `${req.protocol}://${req.get('host')}/payment-success?reference=${reference}&status=success`;
+        const mockPaymentUrl = `https://${req.get('host')}/payment-success?reference=${reference}&status=success`;
         console.log('Generated mock payment URL:', mockPaymentUrl);
         return res.json({ 
           paymentUrl: mockPaymentUrl, 
@@ -1166,7 +1166,7 @@ The inside should look like a perfect companion piece created by the same artist
           amount: amount,
           currency,
           reference,
-          callback_url: `${req.protocol}://${req.get('host')}/payment-success`,
+          callback_url: `https://${req.get('host')}/payment-success`,
           metadata: {
             cardId: cardId.toString(),
             orderId: order.id.toString(),
