@@ -139,6 +139,7 @@ export class MemStorage implements IStorage {
   }
 
   async getOrderByReference(reference: string): Promise<Order | undefined> {
+    console.log('Looking for order with reference:', reference);
     return Array.from(this.orders.values()).find(
       (order) => order.paymentReference === reference
     );
