@@ -2106,7 +2106,7 @@ The inside should look like a perfect companion piece created by the same artist
         return res.status(404).json({ message: "Card not found" });
       }
 
-      console.log('Card updated successfully:', updatedCard);
+      console.log('Card updated successfully with images');
       res.json(updatedCard);
     } catch (error: any) {
       console.error('Update card error:', error);
