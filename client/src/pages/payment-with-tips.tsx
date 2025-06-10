@@ -110,17 +110,22 @@ export default function PaymentWithTips() {
   };
 
   const validateForm = () => {
+    console.log('🔍 Validating form...');
     // Basic info always required
     const basicRequired = ['email', 'firstName', 'lastName'];
     
     for (const field of basicRequired) {
-      if (!formData[field as keyof PaymentFormData]) {
+      const value = formData[field as keyof PaymentFormData];
+      console.log(`📝 ${field}:`, value);
+      if (!value) {
+        console.log(`❌ Missing required field: ${field}`);
         return false;
       }
     }
 
     // Address required only for printed cards
     if (card?.cardType === 'printed') {
+      console.log('📦 Validating printed card address...');
       const addressRequired = [
         'address.line1',
         'address.city',
@@ -130,16 +135,22 @@ export default function PaymentWithTips() {
 
       for (const field of addressRequired) {
         const addressField = field.split('.')[1];
-        if (!formData.address[addressField as keyof typeof formData.address]) {
+        const value = formData.address[addressField as keyof typeof formData.address];
+        console.log(`🏠 ${field}:`, value);
+        if (!value) {
+          console.log(`❌ Missing required address field: ${field}`);
           return false;
         }
       }
 
+      console.log('📞 phone:', formData.phone);
       if (!formData.phone) {
+        console.log('❌ Missing required phone field');
         return false;
       }
     }
 
+    console.log('✅ Form validation passed');
     return true;
   };
 
@@ -193,7 +204,16 @@ export default function PaymentWithTips() {
   };
 
   const processPayment = async () => {
-    if (!validateForm()) {
+    console.log('🔄 Payment button clicked');
+    console.log('📋 Form data:', formData);
+    console.log('🎯 Selected tip:', selectedTip);
+    console.log('💳 Payment option:', paymentOption);
+    
+    const isValid = validateForm();
+    console.log('✅ Form validation result:', isValid);
+    
+    if (!isValid) {
+      console.log('❌ Form validation failed');
       toast({
         title: 'Incomplete Information',
         description: 'Please fill in all required fields',
@@ -202,6 +222,7 @@ export default function PaymentWithTips() {
       return;
     }
 
+    console.log('🚀 Starting payment process...');
     setProcessingPayment(true);
 
     try {
