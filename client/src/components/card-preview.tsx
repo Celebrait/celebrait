@@ -12,6 +12,8 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
   const [, setLocation] = useLocation();
 
   const handleProceedToCheckout = () => {
+    // Store card data in sessionStorage to avoid re-fetching
+    sessionStorage.setItem('cardPreviewData', JSON.stringify(card));
     setLocation(`/payment-tips/${card.id}`);
   };
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -71,9 +70,25 @@ export default function PaymentWithTips() {
 
   useEffect(() => {
     if (match && params?.cardId) {
+      // Check for cached card data first
+      const cachedCardData = sessionStorage.getItem('cardPreviewData');
+      if (cachedCardData) {
+        try {
+          const parsedCard = JSON.parse(cachedCardData);
+          setCard(parsedCard);
+          setLoading(false);
+          // Clean up cache
+          sessionStorage.removeItem('cardPreviewData');
+          return;
+        } catch (error) {
+          console.log('Failed to parse cached card data, fetching from API');
+        }
+      }
+
+      // Fallback to API fetch
       loadCard(parseInt(params.cardId));
     }
-  }, [match, params?.cardId]);
+  }, [match, params]);
 
   const loadCard = async (cardId: number) => {
     try {
@@ -112,7 +127,7 @@ export default function PaymentWithTips() {
   const isFormValid = useMemo(() => {
     // Basic info always required
     const basicRequired = ['email', 'firstName', 'lastName'];
-    
+
     for (const field of basicRequired) {
       const value = formData[field as keyof PaymentFormData];
       if (!value) {
@@ -203,7 +218,7 @@ export default function PaymentWithTips() {
 
   const processPayment = async () => {
     console.log('PAYMENT BUTTON CLICKED!');
-    
+
     if (!isFormValid) {
       toast({
         title: 'Incomplete Information',
@@ -218,7 +233,7 @@ export default function PaymentWithTips() {
     try {
       const totalAmount = getTotalAmount();
       console.log('💰 Total amount calculated:', totalAmount);
-      
+
       // Initialize Paystack payment
       console.log('📡 Making API request to create payment...');
       const response = await apiRequest('POST', '/api/create-payment-with-tip', {
@@ -367,7 +382,7 @@ export default function PaymentWithTips() {
                   <CreditCard className="w-6 h-6" />
                   <span>Pay with Paystack</span>
                 </Button>
-                
+
                 <Button
                   type="button"
                   variant={paymentOption === 'free' ? 'default' : 'outline'}
@@ -388,7 +403,7 @@ export default function PaymentWithTips() {
                       <Heart className="w-4 h-4 text-red-500" />
                       Support the Creator (Optional Tip)
                     </h3>
-                    
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {TIP_OPTIONS.map((tip) => (
                         <Button
@@ -415,7 +430,7 @@ export default function PaymentWithTips() {
                   <User className="w-4 h-4" />
                   Your Information
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="firstName">First Name *</Label>
