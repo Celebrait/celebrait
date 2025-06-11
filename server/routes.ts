@@ -1140,14 +1140,10 @@ The inside should look like a perfect companion piece created by the same artist
         currency,
         paymentReference: reference,
         shippingAddress: customerInfo.address || null,
-        orderType: 'paid_with_tip',
-        paymentStatus: 'pending',
-        orderStatus: 'pending'
+        orderType: 'paid_with_tip'
       };
 
-      console.log('Creating order with reference:', reference);
       const order = await storage.createOrder(orderData);
-      console.log('Order created with ID:', order.id);
 
       if (!hasPaystack) {
         const mockPaymentUrl = `https://${req.get('host')}/payment-success?reference=${reference}&status=success`;
@@ -1256,42 +1252,9 @@ The inside should look like a perfect companion piece created by the same artist
         return res.status(400).json({ message: "Payment reference is required" });
       }
 
-      console.log('Verifying payment for reference:', reference);
       const order = await storage.getOrderByReference(reference);
       if (!order) {
         console.log('No order found for reference:', reference);
-        
-        // Check if this is a test payment reference
-        if (reference.includes('celebrait_tip_') || reference.includes('celebrait_')) {
-          console.log('Creating mock order for test payment reference:', reference);
-          
-          // Create a mock successful order for test mode
-          const mockOrder = {
-            id: Date.now(),
-            cardId: 1, // Use existing card
-            customerEmail: 'test@example.com',
-            customerName: 'Test User',
-            amount: 12900,
-            baseAmount: 9900,
-            tipAmount: 3000,
-            currency: 'ZAR',
-            paymentReference: reference,
-            orderType: 'paid_with_tip',
-            paymentStatus: 'successful',
-            orderStatus: 'completed',
-            createdAt: new Date(),
-            updatedAt: new Date()
-          };
-          
-          const card = await storage.getCard(1);
-          return res.json({
-            ...mockOrder,
-            card,
-            status: 'success',
-            message: 'Payment verified successfully (test mode)'
-          });
-        }
-        
         return res.status(404).json({ message: "Order not found for reference: " + reference });
       }
 

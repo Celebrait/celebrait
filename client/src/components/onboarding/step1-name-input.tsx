@@ -32,7 +32,7 @@ export default function Step1NameInput({ onboarding }: Step1Props) {
         </div>
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-3 sm:mb-4">Welcome to Celebrait! 🎉</h1>
         <p className="text-base sm:text-lg text-slate-gray max-w-2xl mx-auto px-4">
-          Let's create a personalised AI-generated greeting card that will absolutely blow someone away. 
+          Let's create a personalized AI-generated greeting card that will absolutely blow someone away. 
           First, what should we call you?
         </p>
       </div>
