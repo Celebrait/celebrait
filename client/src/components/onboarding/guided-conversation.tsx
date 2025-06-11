@@ -232,7 +232,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         ? `Please upload photos for style transformation`
         : `Please upload photos of ${answers.name || 'them'} (you can select multiple)`,
       aiMessage: answers.photo_option === 'upload_and_transform'
-        ? `Perfect! Please upload <b>ONE clear photo<b> you'd like me to transform into a new artistic style - we'll select the style next!`
+        ? `Perfect! ✨ Please upload ONE clear photo that you'd like me to transform into a new artistic style - we'll select the style next!`
         : `Perfect! Please upload one clear photo of ${answers.name || 'them'} + anyone else you'd like in the scene.`,
       type: 'photo_upload',
       required: true
@@ -1835,7 +1835,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               <h4 className="font-bold text-yellow-800">Important:</h4>
                             </div>
                             <p className="text-yellow-700 font-medium text-sm">
-                              Our AI can recognise <strong>multiple people in a single photo</strong>, so feel free to upload a group shot if you'd like all characters included. You can also <strong>upload several individual photos</strong> of different people to include in the scene.
+                              {answers.photo_option === 'upload_and_transform' ? (
+                                <>Upload <strong>one clear photo ONLY</strong>. For best results, choose a photo with good lighting and clear details!</>
+                              ) : (
+                                <>Our AI can recognise <strong>multiple people in a single photo</strong>, so feel free to upload a group shot if you'd like all characters included. You can also <strong>upload several individual photos</strong> of different people to include in the scene.</>
+                              )}
                             </p>
                           </div>
                         </div>
@@ -1882,7 +1886,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                   </svg>
-                                  Upload Different Photos
+                                  {answers.photo_option === 'upload_and_transform' ? 'Upload a Different Photo' : 'Upload Different Photos'}
                                 </span>
                               </Button>
                             </label>
