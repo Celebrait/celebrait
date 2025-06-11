@@ -28,19 +28,22 @@ export default function Step4AILoading({ onboarding }: Step4Props) {
     return () => clearInterval(interval);
   }, []);
 
-  // Typing effect for the message (slower than progress bar)
+  // Ethereal typing effect synchronized with progress bar
   useEffect(() => {
     let currentIndex = 0;
-    const typingInterval = setInterval(() => {
+    const totalDuration = 2500; // Total time for progress bar (100 steps * 100ms * 0.25 speed adjustment)
+    const typingInterval = totalDuration / fullMessage.length; // Synchronize with progress bar
+    
+    const interval = setInterval(() => {
       if (currentIndex < fullMessage.length) {
         setTypedText(fullMessage.slice(0, currentIndex + 1));
         currentIndex++;
       } else {
-        clearInterval(typingInterval);
+        clearInterval(interval);
       }
-    }, 30); // Faster typing speed (30ms per character vs 100ms for progress)
+    }, typingInterval);
 
-    return () => clearInterval(typingInterval);
+    return () => clearInterval(interval);
   }, [fullMessage]);
 
   const handleContinue = () => {
@@ -56,11 +59,27 @@ export default function Step4AILoading({ onboarding }: Step4Props) {
         <h2 className="text-3xl lg:text-4xl font-bold text-gray-800 mb-4">
           Our AI is warming up...
         </h2>
-        <p className="text-lg text-slate-gray max-w-2xl mx-auto px-4 min-h-[72px] flex items-center justify-center">
-          {typedText}
-          {typedText.length < fullMessage.length && (
-            <span className="animate-pulse">|</span>
-          )}
+        <p className="text-lg text-slate-gray max-w-2xl mx-auto px-4 min-h-[72px] flex items-center justify-center relative">
+          <span className="relative">
+            {fullMessage.split('').map((char, index) => (
+              <span
+                key={index}
+                className={`transition-all duration-700 ease-out ${
+                  index < typedText.length 
+                    ? 'opacity-100 filter-none' 
+                    : 'opacity-0 blur-sm'
+                }`}
+                style={{
+                  transitionDelay: `${index * 20}ms`,
+                }}
+              >
+                {char}
+              </span>
+            ))}
+            {typedText.length < fullMessage.length && (
+              <span className="absolute -right-2 top-0 w-0.5 h-6 bg-purple-400 animate-pulse opacity-60"></span>
+            )}
+          </span>
         </p>
       </div>
 
