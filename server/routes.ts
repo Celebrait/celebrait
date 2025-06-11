@@ -1145,7 +1145,12 @@ The inside should look like a perfect companion piece created by the same artist
 
       console.log('Creating order with data:', orderData);
       const order = await storage.createOrder(orderData);
-      console.log('Order created successfully:', order.id, 'with reference:', order.paymentReference);
+      console.log('Order created successfully:', order?.id, 'with reference:', order?.paymentReference);
+      
+      if (!order || !order.id) {
+        console.error('Order creation failed - no order returned or missing ID');
+        return res.status(500).json({ message: "Failed to create order" });
+      }
 
       if (!hasPaystack) {
         const mockPaymentUrl = `https://${req.get('host')}/payment-success?reference=${reference}&status=success`;
@@ -1266,12 +1271,16 @@ The inside should look like a perfect companion piece created by the same artist
           const allOrders = await storage.db.select().from(storage.schema.orders);
           console.log('Total orders in database:', allOrders.length);
           console.log('All payment references:', allOrders.map(o => o.paymentReference));
+          console.log('Looking for reference:', reference);
+          console.log('Exact matches:', allOrders.filter(o => o.paymentReference === reference));
         } catch (debugError) {
           console.log('Error checking orders:', debugError);
         }
         
         return res.status(404).json({ message: "Order not found for reference: " + reference });
       }
+
+      console.log('Found order:', order.id, 'for reference:', reference);
 
       console.log('Found order:', order.id, 'for reference:', reference);
 

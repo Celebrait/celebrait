@@ -130,7 +130,9 @@ export class MemStorage implements IStorage {
       tipAmount: orderData.tipAmount || 0,
       orderType: orderData.orderType || 'regular'
     };
+    console.log('Creating order with data:', order); // Added logging
     this.orders.set(id, order);
+    console.log('Order created successfully:', id, 'with reference:', order.paymentReference); // Added logging
     return order;
   }
 
@@ -145,7 +147,7 @@ export class MemStorage implements IStorage {
       (order) => order.paymentReference === reference
     );
 
-    console.log('Order found:', order ? `ID: ${order.id}` : 'None');
+    console.log('Order found:', order ? `ID: ${order.id}` : 'Not found');
     return order;
   }
 
