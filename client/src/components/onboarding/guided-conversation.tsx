@@ -453,7 +453,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       question: 'What art style should we use for the card?',
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
         ? `Perfect! Now let's choose the art style for your scene. This sets the whole mood and feel - I want to make sure it captures the perfect atmosphere for this ${answers.celebration} celebration!`
-        : `Perfect! Now let's choose the art style for ${answers.name || 'their'} card.'' This sets the whole mood and feel - I want to make sure it matches ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} personality perfectly!`,
+        : `Perfect! ✨ Now let's choose the art style for ${answers.name || 'their'}'s ${answers.celebration} card.`,
       type: 'select',
       options: [
         { value: 'realistic', label: 'Realistic', description: 'Lifelike and detailed', color: 'bg-blue-500' },
@@ -473,7 +473,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'message',
       question: 'What message should appear on the front of the card?',
-      aiMessage: `Almost there! This is your opportunity to get really personal! What heartfelt message should appear on the front of ${answers.name || 'their'} card? You can also leave this blank if you want no message at all - sometimes the image speaks for itself. Make it as meaningful and personal as you want!`,
+      aiMessage: `Now this is your opportunity to get really personal ✨ What heartfelt message should appear on the front of ${answers.name || 'their'}'s ${answers.celebration} card?`,
       type: 'text',
       placeholder: 'e.g., Happy Birthday, Celebrating You, or leave blank for no message'
     },
@@ -1589,7 +1589,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         <div className="flex justify-between items-center">
                           <div>
                             <h4 className="font-semibold text-purple-700">Card Message</h4>
-                            <p className="text-gray-700">{answers.message || 'No message'}</p>
+                            <p className="text-gray-700">{answers.message || 'no front of card text chosen'}</p>
                           </div>
                           <Button onClick={() => handleEditStep('message')} variant="outline" size="sm">
                             Edit
@@ -2023,7 +2023,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       </Button>
                       <Button 
                         onClick={handleTextSubmit}
-                        disabled={!currentInput.trim()}
+                        disabled={currentStep.required && !currentInput.trim()}
                         className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
                       >
                         <ArrowRight className="w-4 h-4 mr-2" />
