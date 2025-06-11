@@ -119,6 +119,7 @@ export class MemStorage implements IStorage {
     const id = this.currentOrderId++;
     const order: Order = {
       ...orderData,
+      id, // Explicitly set the ID
       paymentStatus: 'pending',
       orderStatus: 'processing',
       trackingNumber: null,
