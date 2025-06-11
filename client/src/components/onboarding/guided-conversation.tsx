@@ -172,7 +172,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'recipient',
       question: 'Who is this card for?',
-      aiMessage: `Perfect! Now, who is this special ${answers.celebration} card for?`,
+      aiMessage: `Perfect! ✨ Now, who is this special ${answers.celebration} card for?`,
       type: 'select',
       options: [
         { value: 'partner', label: 'My Partner', description: 'Spouse, boyfriend, girlfriend', color: 'bg-red-500', icon: 'users' },
@@ -197,7 +197,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'name',
       question: 'What\'s their name?',
-      aiMessage: `Wonderful! What's your ${answers.recipient}'s name?`,
+      aiMessage: `Wonderful! ✨ What's your ${answers.recipient}'s name?`,
       type: 'text',
       placeholder: 'Enter their name',
       required: true
@@ -205,7 +205,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'photo_option',
       question: `How would you like me to create ${answers.name || 'their'} image?`,
-      aiMessage: `Perfect! Now how do you want to create ${answers.name || 'their'}'s ${answers.celebration || 'celebration'} card?`,
+      aiMessage: `Nice! ✨ Now how do you want to create ${answers.name || 'their'}'s ${answers.celebration || 'celebration'} card?`,
       type: 'photo_creation_choice',
       options: [
         { 
@@ -490,7 +490,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       question: 'Perfect! Let\'s review everything before creating your card.',
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
         ? `Wonderful! I have everything I need to create an amazing scene card for this ${answers.celebration} celebration. Please review all the details below and make any changes you'd like. When you're happy with everything, we'll generate your beautiful card!`
-        : `Wonderful! I have everything I need to create an amazing card for ${answers.name || 'them'}. Please review all the details below and make any changes you'd like. When you're happy with everything, we'll generate your personalized card!`,
+        : `Wonderful! I have everything I need to create an amazing card for ${answers.name || 'them'}. Please review all the details below and make any changes you'd like. When you're happy with everything, we'll generate your personalised card!`,
       type: 'final_summary',
       placeholder: ''
     }
@@ -1281,7 +1281,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   <div className="text-lg sm:text-xl lg:text-2xl text-gray-800 leading-relaxed font-medium">
                     {currentStep.id === 'photo_upload' && answers.photo_option !== 'upload_and_transform' ? (
                       <span>
-                        Perfect! Please upload a photo(s) featuring {answers.name || 'them'} + anyone else you'd like in your customised scene.
+                        Perfect! ✨ Please upload a photo featuring {answers.name || 'them'} + anyone else you'd like in your customised scene.
                       </span>
                     ) : (
                       <span>{currentStep.aiMessage}</span>
