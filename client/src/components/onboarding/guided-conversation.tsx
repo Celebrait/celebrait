@@ -480,7 +480,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'inside_message',
       question: `What heartfelt message would you like inside the card?`,
-      aiMessage: `Since you chose a front + inside card, let's create a beautiful message for the inside! This will be displayed with elegant typography matching the front design.`,
+      aiMessage: `Now let's create a beautiful message for the inside! ✨ This will be displayed with styling and typography that matches the front design.`,
       type: 'textarea',
       placeholder: 'e.g., "Wishing you all the happiness in the world on your special day. You deserve all the joy and love life has to offer!"',
       required: true
