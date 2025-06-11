@@ -1224,24 +1224,50 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-blue-50">
-      {/* Progress Bar */}
-      <div className="p-4 bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10">
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className="bg-gradient-celebrait h-2 rounded-full transition-all duration-500" 
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
-
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto">
         <div className="flex items-center justify-center min-h-full p-4 sm:p-6">
           <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6">
-            {/* AI Avatar and Message */}
+            {/* AI Avatar with Circular Progress and Message */}
             <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
-                <Bot className="w-8 h-8 text-white" />
+              <div className="relative w-20 h-20 mx-auto">
+                {/* Circular Progress Ring */}
+                <svg className="absolute inset-0 w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
+                  {/* Background circle */}
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r="36"
+                    stroke="rgb(229 231 235)"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  {/* Progress circle */}
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r="36"
+                    stroke="url(#progressGradient)"
+                    strokeWidth="4"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 36}`}
+                    strokeDashoffset={`${2 * Math.PI * 36 * (1 - progress / 100)}`}
+                    className="transition-all duration-500 ease-in-out"
+                  />
+                  {/* Gradient definition */}
+                  <defs>
+                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="rgb(168 85 247)" />
+                      <stop offset="50%" stopColor="rgb(147 51 234)" />
+                      <stop offset="100%" stopColor="rgb(59 130 246)" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                {/* Robot Icon */}
+                <div className="absolute inset-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                  <Bot className="w-8 h-8 text-white" />
+                </div>
               </div>
               
               <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20">
