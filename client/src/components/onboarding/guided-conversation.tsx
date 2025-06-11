@@ -490,7 +490,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       question: 'Perfect! Let\'s review everything before creating your card.',
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
         ? `Wonderful! I have everything I need to create an amazing scene card for this ${answers.celebration} celebration. Please review all the details below and make any changes you'd like. When you're happy with everything, we'll generate your beautiful card!`
-        : `Wonderful! I have everything I need to create an amazing card for ${answers.name || 'them'}. Please review all the details below and make any changes you'd like. When you're happy with everything, we'll generate your personalised card!`,
+        : `Wonderful! ✨ I have everything I need to create an amazing ${answers.celebration} card for ${answers.name || 'them'}. Please review all the details below and make any changes you'd like. When you're happy with everything, we'll generate your personalised card!`,
       type: 'final_summary',
       placeholder: ''
     }
@@ -1484,6 +1484,27 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
                 {currentStep.type === 'final_summary' && (
                   <div className="space-y-6">
+                    {/* Generate Button - Top Position */}
+                    <div className="flex justify-center">
+                      <Button 
+                        onClick={handleGenerateCard}
+                        disabled={isLoading}
+                        className="px-8 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold text-lg shadow-lg transform hover:scale-105 transition-all duration-200"
+                      >
+                        {isLoading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-5 h-5 mr-3" />
+                            Generate My Card
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
                     {/* Complete Summary with Edit Options */}
                     <div className="grid gap-4">
                       
