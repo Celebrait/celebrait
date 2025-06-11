@@ -2165,40 +2165,37 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
       {/* Inspiration Modal with Carousel */}
       <Dialog open={showInspirationModal} onOpenChange={setShowInspirationModal}>
-        <DialogContent className="max-w-4xl bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200">
-          <DialogHeader className="text-center pb-4">
-            <div className="flex items-center justify-center space-x-3 mb-3">
-              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                <Eye className="w-6 h-6 text-white" />
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 overflow-y-auto">
+          <DialogHeader className="text-center pb-2 sm:pb-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-3 mb-2 sm:mb-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              <DialogTitle className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
                 {onboarding.selectedSceneType === 'scene-only' ? 'Scene Inspiration Gallery' : 'Card Inspiration Gallery'}
               </DialogTitle>
             </div>
-            <p className="text-gray-600 text-sm">
-              Browse through these inspiring examples to spark your creativity
-            </p>
           </DialogHeader>
           
-          <div className="px-8 py-4">
-            <Carousel className="w-full max-w-3xl mx-auto">
-              <CarouselContent>
+          <div className="px-2 sm:px-4 lg:px-8 py-2 sm:py-4">
+            <Carousel className="w-full">
+              <CarouselContent className="-ml-2 sm:-ml-4">
                 {(onboarding.selectedSceneType === 'scene-only' 
                   ? INSPIRATION_EXAMPLES.sceneOnly 
                   : INSPIRATION_EXAMPLES.withPerson
                 ).map((example, index) => (
-                  <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
-                    <div className="p-2">
+                  <CarouselItem key={index} className="pl-2 sm:pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
+                    <div className="p-1 sm:p-2">
                       <Card className="h-full">
-                        <CardContent className="p-4">
-                          <div className={`bg-gradient-to-br ${example.gradient} aspect-square rounded-xl flex items-center justify-center text-white text-5xl mb-4`}>
+                        <CardContent className="p-3 sm:p-4">
+                          <div className={`bg-gradient-to-br ${example.gradient} aspect-square rounded-xl flex items-center justify-center text-white text-3xl sm:text-4xl lg:text-5xl mb-3 sm:mb-4`}>
                             {example.emoji}
                           </div>
                           <div className="text-center">
-                            <h3 className="font-semibold text-lg text-gray-800 mb-2">
+                            <h3 className="font-semibold text-sm sm:text-base lg:text-lg text-gray-800 mb-1 sm:mb-2">
                               {example.title}
                             </h3>
-                            <p className="text-sm text-gray-600 leading-relaxed">
+                            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
                               "{example.description}"
                             </p>
                           </div>
@@ -2208,15 +2205,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="left-4" />
-              <CarouselNext className="right-4" />
+              <CarouselPrevious className="left-1 sm:left-2 lg:left-4 h-8 w-8 sm:h-10 sm:w-10" />
+              <CarouselNext className="right-1 sm:right-2 lg:right-4 h-8 w-8 sm:h-10 sm:w-10" />
             </Carousel>
           </div>
           
-          <div className="flex justify-center pt-4 pb-2">
+          <div className="flex justify-center pt-2 sm:pt-4 pb-2 px-4">
             <Button 
               onClick={() => setShowInspirationModal(false)} 
-              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-medium shadow-lg transform hover:scale-105 transition-all duration-200"
+              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-xl font-medium shadow-lg transform hover:scale-105 transition-all duration-200 text-sm sm:text-base"
             >
               Close & Continue Creating
             </Button>
