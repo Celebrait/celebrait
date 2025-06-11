@@ -1636,7 +1636,7 @@ The inside should look like a perfect companion piece created by the same artist
         fullPrompt = `${fullPrompt} in ${style}`;
       }
       if (includeText && cardText && cardText.trim()) {
-        fullPrompt = `${fullPrompt}. Include the text "${cardText}" beautifully integrated into the composition, rendered in the same artistic style as the rest of the image, as if it were naturally part of a greeting card design.`;
+        fullPrompt = `${fullPrompt}. Include the text "${cardText}" beautifully integrated into the composition, rendered in the same artistic style as the rest of the image.`;
       }
 
       console.log('Complete prompt for scene editing:', fullPrompt);
