@@ -152,7 +152,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'celebration',
       question: 'What celebration is this card for?',
-      aiMessage: `Right, ${onboarding.userName}, let's start by choosing what celebration this card is for 🎉`,
+      aiMessage: `Let's do this, ${onboarding.userName}! 🎉 So what are we celebrating with your greetings card?`,
       type: 'select',
       options: [
         { value: 'birthday', label: 'A Birthday', description: 'Celebrate another year of life', color: 'bg-pink-500', icon: 'cake' },
@@ -219,7 +219,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         { 
           value: 'upload_and_transform', 
           label: 'Upload Photo(s) + Transform Style', 
-          description: `Upload a single photo featuring ${answers.name || 'them'} and transform it into a new artistic style!`,
+          description: `Upload a single photo featuring ${answers.name || 'them'} and transform it into a new artistic style.`,
           color: 'bg-purple-500',
           icon: 'palette',
           details: 'Great for taking special photos and making them even more unique!'
