@@ -442,7 +442,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       question: onboarding.selectedSceneType === 'scene-only' ? 'What scene or visual should the card show?' : `Where should ${answers.name || 'they'} be and what should they be doing?`,
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
         ? `Now for the creative part! Since you want a scene-only card, describe the beautiful visual or scene you'd like me to create. Think about the mood, setting, and atmosphere that would be perfect for this ${answers.celebration} celebration.`
-        : `Now for the magic! This is where create the scene for ${answers.name || 'their'} ${answers.celebration || 'celebration'} card. Where should they be and what should they be doing? Think about their personality and what would make them smile!`,
+        : `Now for the real magic! ✨ This is where create the scene for ${answers.name || 'their'}'s' ${answers.celebration || 'celebration'} card. Where should they be and what should they be doing?`,
       type: 'textarea',
       placeholder: onboarding.selectedSceneType === 'scene-only' 
         ? 'e.g., a beautiful sunset over mountains with floating balloons, or a cozy fireplace with warm golden light and scattered rose petals...'
@@ -555,39 +555,44 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   useEffect(() => {
     if (!currentStep) return;
     
-    console.log('Scene effect triggered:', {
-      stepId: currentStep.id,
-      userHasTyped,
-      currentExampleIndex
-    });
-    
     if (currentStep.id === 'scene' && !userHasTyped) {
-      const typeText = async () => {
-        console.log('Starting to type example:', currentExampleIndex);
-        setIsTypingExample(true);
-        const currentPrompt = EXAMPLE_PROMPTS[currentExampleIndex];
+      let isActive = true;
+      
+      const runTypingCycle = async () => {
+        let exampleIndex = 0;
         
-        // Clear existing text
-        setPlaceholderText('');
-        
-        // Type out the text character by character
-        for (let i = 0; i <= currentPrompt.length; i++) {
-          setPlaceholderText(currentPrompt.slice(0, i));
-          await new Promise(resolve => setTimeout(resolve, 30));
+        while (isActive) {
+          setIsTypingExample(true);
+          const currentPrompt = EXAMPLE_PROMPTS[exampleIndex];
+          
+          // Clear existing text
+          setPlaceholderText('');
+          
+          // Type out the text character by character
+          for (let i = 0; i <= currentPrompt.length && isActive; i++) {
+            setPlaceholderText(currentPrompt.slice(0, i));
+            await new Promise(resolve => setTimeout(resolve, 30));
+          }
+          
+          setIsTypingExample(false);
+          
+          // Wait 3 seconds before moving to next example
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          
+          if (isActive) {
+            exampleIndex = (exampleIndex + 1) % EXAMPLE_PROMPTS.length;
+          }
         }
-        
-        setIsTypingExample(false);
-        
-        // Wait 3 seconds before moving to next example
-        setTimeout(() => {
-          setCurrentExampleIndex((prev) => (prev + 1) % EXAMPLE_PROMPTS.length);
-        }, 3000);
       };
       
-      const timer = setTimeout(typeText, 500);
-      return () => clearTimeout(timer);
+      const timer = setTimeout(runTypingCycle, 500);
+      
+      return () => {
+        isActive = false;
+        clearTimeout(timer);
+      };
     }
-  }, [currentStep?.id, currentExampleIndex, userHasTyped]);
+  }, [currentStep?.id, userHasTyped]);
 
   // Cycle through quotes every 3 seconds during loading
   useEffect(() => {
