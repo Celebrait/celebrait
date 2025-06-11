@@ -152,14 +152,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'celebration',
       question: 'What celebration is this card for?',
-      aiMessage: `Hey ${onboarding.userName}! I'm so excited to help you create an unforgettable greetings card. Let's start by choosing what celebration this card is for!`,
+      aiMessage: `Right, ${onboarding.userName}, let's start by choosing what celebration this card is for 🎉`,
       type: 'select',
       options: [
-        { value: 'birthday', label: 'Birthday', description: 'Celebrate another year of life', color: 'bg-pink-500', icon: 'cake' },
-        { value: 'anniversary', label: 'Anniversary', description: 'Mark a special milestone', color: 'bg-red-500', icon: 'heart' },
-        { value: 'graduation', label: 'Graduation', description: 'Honor academic achievement', color: 'bg-blue-500', icon: 'graduation-cap' },
-        { value: 'wedding', label: 'Wedding', description: 'Celebrate love and union', color: 'bg-purple-500', icon: 'rings' },
-        { value: 'baby_shower', label: 'Baby Shower', description: 'Welcome a new arrival', color: 'bg-green-500', icon: 'baby' },
+        { value: 'birthday', label: 'A Birthday', description: 'Celebrate another year of life', color: 'bg-pink-500', icon: 'cake' },
+        { value: 'anniversary', label: 'An Anniversary', description: 'Mark a special milestone', color: 'bg-red-500', icon: 'heart' },
+        { value: 'graduation', label: 'A Graduation', description: 'Honor academic achievement', color: 'bg-blue-500', icon: 'graduation-cap' },
+        { value: 'wedding', label: 'A Wedding', description: 'Celebrate love and union', color: 'bg-purple-500', icon: 'rings' },
+        { value: 'baby_shower', label: 'A Baby Shower', description: 'Welcome a new arrival', color: 'bg-green-500', icon: 'baby' },
         { value: 'retirement', label: 'Retirement', description: 'Honor years of dedication', color: 'bg-orange-500', icon: 'palm-tree' },
         { value: 'mothers_day', label: "Mother's Day", description: 'Honor mom', color: 'bg-pink-400', icon: 'flower' },
         { value: 'fathers_day', label: "Father's Day", description: 'Celebrate dad', color: 'bg-blue-400', icon: 'necktie' },
@@ -197,7 +197,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'name',
       question: 'What\'s their name?',
-      aiMessage: `Wonderful! What's their name?`,
+      aiMessage: `Wonderful! What's your ${answers.recipient}'s name?`,
       type: 'text',
       placeholder: 'Enter their name',
       required: true
@@ -219,10 +219,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         { 
           value: 'upload_and_transform', 
           label: 'Upload Photo(s) + Transform Style', 
-          description: `Upload a single photo featuring ${answers.name || 'them'} and transform it into a new artistic style. Great for artistic transformation of existing photos!`,
+          description: `Upload a single photo featuring ${answers.name || 'them'} and transform it into a new artistic style!`,
           color: 'bg-purple-500',
           icon: 'palette',
-          details: 'Great for artistic transformations of existing photos!'
+          details: 'Great for taking special photos and making them even more unique!'
         }
       ]
     },
@@ -233,7 +233,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         : `Please upload photos of ${answers.name || 'them'} (you can select multiple)`,
       aiMessage: answers.photo_option === 'upload_and_transform'
         ? `Perfect! Please upload <b>ONE clear photo<b> you'd like me to transform into a new artistic style - we'll select the style next!`
-        : `Perfect! Please upload one clear photo of ${answers.name || 'them'} + one clear photo of any other people you'd like in the scene.`,
+        : `Perfect! Please upload one clear photo of ${answers.name || 'them'} + anyone else you'd like in the scene.`,
       type: 'photo_upload',
       required: true
     },
