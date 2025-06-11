@@ -31,7 +31,7 @@ export default function Step4AILoading({ onboarding }: Step4Props) {
   // Ethereal typing effect synchronized with progress bar
   useEffect(() => {
     let currentIndex = 0;
-    const totalDuration = 2500; // Total time for progress bar (100 steps * 100ms * 0.25 speed adjustment)
+    const totalDuration = 1500; // Reduced from 2500ms to 1500ms for faster typing
     const typingInterval = totalDuration / fullMessage.length; // Synchronize with progress bar
     
     const interval = setInterval(() => {
@@ -70,7 +70,7 @@ export default function Step4AILoading({ onboarding }: Step4Props) {
                     : 'opacity-0 blur-sm'
                 }`}
                 style={{
-                  transitionDelay: `${index * 20}ms`,
+                  transitionDelay: `${index * 10}ms`,
                 }}
               >
                 {char}
