@@ -15,29 +15,29 @@ import { buildImagePrompt } from '@shared/prompts';
 const TEST_PROMPTS = [
   {
     title: "Birthday - Watercolor Style",
-    frontPrompt: "Full-bleed square greeting card design, no borders, no background, no card mockup. Dreamy watercolor style showing a cheerful adult woman named Sarah with blonde wavy hair, slim build, blue eyes, wearing a yellow sundress, standing in a sunflower field during golden hour. Text overlay: 'Happy Birthday Sarah!'. Print-ready artwork filling entire frame.",
-    frontPromptNoText: "Full-bleed square greeting card design, no borders, no background, no card mockup. Dreamy watercolor style showing a cheerful adult woman named Sarah with blonde wavy hair, slim build, blue eyes, wearing a yellow sundress, standing in a sunflower field during golden hour. Print-ready artwork filling entire frame.",
+    frontPrompt: "Full-bleed square design, no borders, no background, no card mockup. Dreamy watercolor style showing a cheerful adult woman named Sarah with blonde wavy hair, slim build, blue eyes, wearing a yellow sundress, standing in a sunflower field during golden hour. Text overlay: 'Happy Birthday Sarah!'. Print-ready artwork filling entire frame.",
+    frontPromptNoText: "Full-bleed square design, no borders, no background, no card mockup. Dreamy watercolor style showing a cheerful adult woman named Sarah with blonde wavy hair, slim build, blue eyes, wearing a yellow sundress, standing in a sunflower field during golden hour. Print-ready artwork filling entire frame.",
     insideMessage: "Wishing you a day filled with happiness and sunshine! May this new year of life bring you endless joy, beautiful memories, and all the love your heart can hold.",
     artStyle: "watercolor"
   },
   {
     title: "Father's Day - Cartoon Style",
-    frontPrompt: "Full-bleed square greeting card design, no borders, no background, no card mockup. Vibrant cartoon style showing a caring adult man named Mike with brown short neat hair, athletic build, beard, sitting by campfire under stars wearing casual outdoor clothes. Text overlay: 'Happy Father's Day!'. Print-ready artwork filling entire frame.",
-    frontPromptNoText: "Full-bleed square greeting card design, no borders, no background, no card mockup. Vibrant cartoon style showing a caring adult man named Mike with brown short neat hair, athletic build, beard, sitting by campfire under stars wearing casual outdoor clothes. Print-ready artwork filling entire frame.",
+    frontPrompt: "Full-bleed square design, no borders, no background, no card mockup. Vibrant cartoon style showing a caring adult man named Mike with brown short neat hair, athletic build, beard, sitting by campfire under stars wearing casual outdoor clothes. Text overlay: 'Happy Father's Day!'. Print-ready artwork filling entire frame.",
+    frontPromptNoText: "Full-bleed square design, no borders, no background, no card mockup. Vibrant cartoon style showing a caring adult man named Mike with brown short neat hair, athletic build, beard, sitting by campfire under stars wearing casual outdoor clothes. Print-ready artwork filling entire frame.",
     insideMessage: "Thank you for all the adventures and for being the best dad! Your wisdom, strength, and love have shaped who I am today. Here's to many more memories together.",
     artStyle: "cartoon"
   },
   {
     title: "Valentine's Day - Oil Painting Style",
-    frontPrompt: "Full-bleed square greeting card design, no borders, no background, no card mockup. Rich oil painting style showing a romantic teen girl named Emma with black curly hair, curvy build, dimples, walking on beach at sunset wearing a flowing dress. Text overlay: 'Be My Valentine!'. Print-ready artwork filling entire frame.",
-    frontPromptNoText: "Full-bleed square greeting card design, no borders, no background, no card mockup. Rich oil painting style showing a romantic teen girl named Emma with black curly hair, curvy build, dimples, walking on beach at sunset wearing a flowing dress. Print-ready artwork filling entire frame.",
+    frontPrompt: "Full-bleed square design, no borders, no background, no card mockup. Rich oil painting style showing a romantic teen girl named Emma with black curly hair, curvy build, dimples, walking on beach at sunset wearing a flowing dress. Text overlay: 'Be My Valentine!'. Print-ready artwork filling entire frame.",
+    frontPromptNoText: "Full-bleed square design, no borders, no background, no card mockup. Rich oil painting style showing a romantic teen girl named Emma with black curly hair, curvy build, dimples, walking on beach at sunset wearing a flowing dress. Print-ready artwork filling entire frame.",
     insideMessage: "You make every day feel like a beautiful sunset. Thank you for bringing such warmth and love into my life. I'm so grateful to have you by my side.",
     artStyle: "oil_painting"
   },
   {
     title: "Graduation - Realistic Style",
-    frontPrompt: "Full-bleed square greeting card design, no borders, no background, no card mockup. Realistic photography style showing an ambitious young adult man named Alex with brown fade hair, slim build, glasses, standing in front of university buildings wearing graduation cap and gown. Text overlay: 'Congratulations Graduate!'. Print-ready artwork filling entire frame.",
-    frontPromptNoText: "Full-bleed square greeting card design, no borders, no background, no card mockup. Realistic photography style showing an ambitious young adult man named Alex with brown fade hair, slim build, glasses, standing in front of university buildings wearing graduation cap and gown. Print-ready artwork filling entire frame.",
+    frontPrompt: "Full-bleed square design, no borders, no background, no card mockup. Realistic photography style showing an ambitious young adult man named Alex with brown fade hair, slim build, glasses, standing in front of university buildings wearing graduation cap and gown. Text overlay: 'Congratulations Graduate!'. Print-ready artwork filling entire frame.",
+    frontPromptNoText: "Full-bleed square design, no borders, no background, no card mockup. Realistic photography style showing an ambitious young adult man named Alex with brown fade hair, slim build, glasses, standing in front of university buildings wearing graduation cap and gown. Print-ready artwork filling entire frame.",
     insideMessage: "Your hard work and dedication have paid off. The future is bright! We're so proud of all you've accomplished and excited to see where your journey takes you next.",
     artStyle: "realistic"
   }

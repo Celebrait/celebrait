@@ -1036,7 +1036,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     // Create the prompt using the same structure as the test page
     let transformPrompt = `Transform this into ${artStyle}`;
     if (frontCardText.trim()) {
-      transformPrompt += `. Include the text "${frontCardText}" in the same ${artStyle}, as if it were naturally part of a greeting card design.`;
+      transformPrompt += `. Include the text "${frontCardText}" in the same ${artStyle}, beautifully integrated into the composition.`;
     }
     
     // Generate front card using GPT-Image-1 transform style endpoint
@@ -1077,7 +1077,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     const parts = [];
     
     // Base requirements (matching test page structure)
-    parts.push("Square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible");
+    parts.push("Square 1:1 aspect ratio design, full bleed with no borders or card edges visible");
     
     // Add all analyzed people with their cultural details and user-selected gender
     if (photoAnalyses.length > 0 && answers.people_details) {

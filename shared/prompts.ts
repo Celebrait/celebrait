@@ -7,7 +7,7 @@ export const buildImagePrompt = (answers: any, photoAnalyses?: Array<{personInde
   const parts = [];
   
   // Base requirements (matching test page structure)
-  parts.push("Square 1:1 aspect ratio greeting card design, full bleed with no borders or card edges visible");
+  parts.push("Square 1:1 aspect ratio design, full bleed with no borders or card edges visible");
   
   // Add photo analysis if available
   if (photoAnalyses && photoAnalyses.length > 0) {
