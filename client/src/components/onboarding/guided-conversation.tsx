@@ -152,7 +152,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'celebration',
       question: 'What celebration is this card for?',
-      aiMessage: `Hey ${onboarding.userName}! 🎉 I'm so excited to help you create something magical. Let's start by choosing what celebration this card is for!`,
+      aiMessage: `Hey ${onboarding.userName}! I'm so excited to help you create an unforgettable greetings card. Let's start by choosing what celebration this card is for!`,
       type: 'select',
       options: [
         { value: 'birthday', label: 'Birthday', description: 'Celebrate another year of life', color: 'bg-pink-500', icon: 'cake' },
@@ -172,7 +172,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'recipient',
       question: 'Who is this card for?',
-      aiMessage: `Perfect choice! Now, who is this special ${answers.celebration} card for?`,
+      aiMessage: `Perfect! Now, who is this special ${answers.celebration} card for?`,
       type: 'select',
       options: [
         { value: 'partner', label: 'My Partner', description: 'Spouse, boyfriend, girlfriend', color: 'bg-red-500', icon: 'users' },
@@ -197,7 +197,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'name',
       question: 'What\'s their name?',
-      aiMessage: `Wonderful! What's their name? I want to make sure this card feels personal and special for them.`,
+      aiMessage: `Wonderful! What's their name?`,
       type: 'text',
       placeholder: 'Enter their name',
       required: true
@@ -211,7 +211,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         { 
           value: 'upload_and_scene', 
           label: 'Upload Photo(s) + Describe Scene', 
-          description: `Upload a photo of ${answers.name || 'them'} + anyone else you want to feature on the card. I'll then place them in a custom scene you describe.`,
+          description: `Upload a photo featuring ${answers.name || 'them'} + anyone else you want to feature on their card. I'll then place them in a custom scene you describe.`,
           color: 'bg-green-500',
           icon: 'camera',
           details: 'Perfect for creating personalised scenes with custom messaging!'
@@ -232,7 +232,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         ? `Please upload photos for style transformation`
         : `Please upload photos of ${answers.name || 'them'} (you can select multiple)`,
       aiMessage: answers.photo_option === 'upload_and_transform'
-        ? `Perfect! Please upload a clear photo that you'd like me to transform into different artistic styles. I'll apply the artistic style you choose while maintaining the essence of the original image.`
+        ? `Perfect! Please upload <b>ONE clear photo<b> you'd like me to transform into a new artistic style - we'll select the style next!`
         : `Perfect! Please upload one clear photo of ${answers.name || 'them'} + one clear photo of any other people you'd like in the scene.`,
       type: 'photo_upload',
       required: true
@@ -453,7 +453,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       question: 'What art style should we use for the card?',
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
         ? `Perfect! Now let's choose the art style for your scene. This sets the whole mood and feel - I want to make sure it captures the perfect atmosphere for this ${answers.celebration} celebration!`
-        : `Perfect! Now let's choose the art style for ${answers.name || 'their'} card. This sets the whole mood and feel - I want to make sure it matches ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} personality perfectly!`,
+        : `Perfect! Now let's choose the art style for ${answers.name || 'their'} card.'' This sets the whole mood and feel - I want to make sure it matches ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} personality perfectly!`,
       type: 'select',
       options: [
         { value: 'realistic', label: 'Realistic', description: 'Lifelike and detailed', color: 'bg-blue-500' },
