@@ -1748,7 +1748,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                 <p className="text-gray-600 mt-2">
                                   {answers.photo_option === 'upload_and_transform' 
                                     ? 'Click here to select one photo that you\'d like to transform into a different artistic style.'
-                                    : 'Click here to select one or more clear photos. The AI will create artistic representations while maintaining their likeness.'
+                                    : <>Our AI can recognise <strong>multiple people in a single photo</strong>, so feel free to upload a group shot if you'd like all characters included. You can also <strong>upload several individual photos</strong> of different people to include in the scene.</>
                                   }
                                 </p>
                                 
