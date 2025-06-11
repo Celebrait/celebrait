@@ -1835,7 +1835,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               <h4 className="font-bold text-yellow-800">Important:</h4>
                             </div>
                             <p className="text-yellow-700 font-medium text-sm">
-                              Upload <strong>one clear photo ONLY</strong> of each person you want in the scene. For best results, choose portrait photos that are well lit with facial features clearly visible!
+                              Our AI can recognise <strong>multiple people in a single photo</strong>, so feel free to upload a group shot if you'd like all characters included. You can also <strong>upload several individual photos</strong> of different people to include in the scene.
                             </p>
                           </div>
                         </div>
