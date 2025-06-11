@@ -9,6 +9,9 @@ interface Step4Props {
 export default function Step4AILoading({ onboarding }: Step4Props) {
   const [progress, setProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [typedText, setTypedText] = useState("");
+  
+  const fullMessage = `Hey ${onboarding.userName || 'there'}! I'm so excited to help you create a magical AI greetings card that your loved one or friend will never forget! I'm ready, are you?`;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -25,6 +28,21 @@ export default function Step4AILoading({ onboarding }: Step4Props) {
     return () => clearInterval(interval);
   }, []);
 
+  // Typing effect for the message (slower than progress bar)
+  useEffect(() => {
+    let currentIndex = 0;
+    const typingInterval = setInterval(() => {
+      if (currentIndex < fullMessage.length) {
+        setTypedText(fullMessage.slice(0, currentIndex + 1));
+        currentIndex++;
+      } else {
+        clearInterval(typingInterval);
+      }
+    }, 60); // Slower typing speed (60ms per character vs 100ms for progress)
+
+    return () => clearInterval(typingInterval);
+  }, [fullMessage]);
+
   const handleContinue = () => {
     onboarding.nextStep();
   };
@@ -38,8 +56,11 @@ export default function Step4AILoading({ onboarding }: Step4Props) {
         <h2 className="text-3xl lg:text-4xl font-bold text-gray-800 mb-4">
           Our AI is warming up...
         </h2>
-        <p className="text-lg text-slate-gray max-w-2xl mx-auto px-4">
-          Getting ready to create magic!
+        <p className="text-lg text-slate-gray max-w-2xl mx-auto px-4 min-h-[72px] flex items-center justify-center">
+          {typedText}
+          {typedText.length < fullMessage.length && (
+            <span className="animate-pulse">|</span>
+          )}
         </p>
       </div>
 
