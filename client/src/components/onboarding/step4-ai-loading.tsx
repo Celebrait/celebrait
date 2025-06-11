@@ -38,7 +38,7 @@ export default function Step4AILoading({ onboarding }: Step4Props) {
       } else {
         clearInterval(typingInterval);
       }
-    }, 60); // Slower typing speed (60ms per character vs 100ms for progress)
+    }, 30); // Faster typing speed (30ms per character vs 100ms for progress)
 
     return () => clearInterval(typingInterval);
   }, [fullMessage]);
