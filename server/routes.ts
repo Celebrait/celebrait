@@ -1364,7 +1364,7 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Character transformation with flux-kontext-max:', { cardId, prompt, scene, artStyle });
 
       // Build transformation prompt for character in new scene
-      const transformPrompt = `Make this a ${artStyle} style image. ${prompt} ${scene}`.trim();
+      const transformPrompt = `Square 1:1 aspect ratio, full bleed design. Make this a ${artStyle} style image. ${prompt} ${scene}`.trim();
 
       console.log('Flux character transformation prompt:', transformPrompt);
       console.log('Original image data length:', originalImage.length);
@@ -1753,7 +1753,7 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Front card image buffer size:', imageBuffer.length, 'bytes, MIME type:', mimeType);
 
       // Create prompt following your exact specification
-      const insideCardPrompt = `Reference this images style, atmosphere, colour, vibe and typography to create a new image with the text "${insideText}" The reference image should be used to stylise the background with the text prominent on the screen, as if it were on a square greetings card.`;
+      const insideCardPrompt = `Square 1:1 aspect ratio design. Reference this images style, atmosphere, colour, vibe and typography to create a new image with the text "${insideText}" The reference image should be used to stylise the background with the text prominent on the screen, as a square format design.`;
 
       console.log('Inside card prompt:', insideCardPrompt);
 

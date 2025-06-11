@@ -45,7 +45,7 @@ export const buildImagePrompt = (answers: any, photoAnalyses?: Array<{personInde
   }
   
   // Quality requirements
-  parts.push('professional greeting card quality, print-ready artwork');
+  parts.push('professional artwork quality, print-ready');
   
   return parts.join(', ');
 };
@@ -54,7 +54,7 @@ export const buildInsidePrompt = (insideText: string, artStyle: string, frontPro
   const parts = [];
   
   // Base requirements for inside card
-  parts.push('Square 1:1 aspect ratio greeting card interior design, full bleed with no borders or card edges visible');
+  parts.push('Square 1:1 aspect ratio interior design, full bleed with no borders or edges visible');
   
   // Message content
   parts.push(`"${insideText}" prominently displayed as the main focus`);
@@ -65,10 +65,10 @@ export const buildInsidePrompt = (insideText: string, artStyle: string, frontPro
   }
   
   // Typography and layout requirements
-  parts.push('professional greeting card typography using same font style and treatment as front card');
+  parts.push('professional typography using same font style and treatment as front design');
   parts.push('text prominently displayed and clearly readable');
   parts.push('minimal decorative elements that complement without overwhelming the message');
-  parts.push('print-ready artwork, no card mockup visible');
+  parts.push('print-ready artwork, no mockup visible');
   
   return parts.join(', ');
 };
