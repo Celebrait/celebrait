@@ -1281,7 +1281,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   <div className="text-lg sm:text-xl lg:text-2xl text-gray-800 leading-relaxed font-medium">
                     {currentStep.id === 'photo_upload' && answers.photo_option !== 'upload_and_transform' ? (
                       <span>
-                        Perfect! Please upload a clear photo featuring <strong>{answers.name || 'them'}</strong> + anyone else you'd like in your customised scene.
+                        Perfect! Please upload a photo(s) featuring {answers.name || 'them'} + anyone else you'd like in your customised scene.
                       </span>
                     ) : (
                       <span>{currentStep.aiMessage}</span>
