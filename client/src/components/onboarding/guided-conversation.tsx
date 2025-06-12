@@ -116,16 +116,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [editingStep, setEditingStep] = useState<string | null>(null);
   const [returnToSummary, setReturnToSummary] = useState(false);
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
-  const [photoAnalyses, setPhotoAnalyses] = useState<Array<{personIndex: number, analysis: string, attempts: number}>>([]);
+
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedVideoOption, setSelectedVideoOption] = useState<string>('');
   const [copyrightConsentOpen, setCopyrightConsentOpen] = useState(false);
   const [hasCopyrightConsent, setHasCopyrightConsent] = useState(false);
-  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
-  const [currentAnalysisIndex, setCurrentAnalysisIndex] = useState<number>(-1);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const [retryAttempt, setRetryAttempt] = useState(0);
-  const [analysisSuccess, setAnalysisSuccess] = useState(false);
+
+
   const [placeholderText, setPlaceholderText] = useState('');
   const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
   const [isTypingExample, setIsTypingExample] = useState(false);
@@ -754,108 +751,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   };
 
-  const analyzePhotoWithRetry = async (photoData: string, personIndex: number, maxRetries = 10) => {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`Analyzing Person ${personIndex}, attempt ${attempt}/${maxRetries}`);
-        
-        // Determine which analysis endpoint to use based on photo option
-        const photoOption = answers.photo_option;
-        let endpoint = "/api/analyze-photo"; // Default to person-only analysis
-        
-        if (photoOption === 'upload_and_transform') {
-          // For transform option, analyze both person and scene composition
-          endpoint = "/api/analyze-image-composition";
-          console.log(`Using scene composition analysis for upload_and_transform option`);
-        }
-        
-        const response = await apiRequest("POST", endpoint, {
-          photoData
-        });
-        
-        const data = await response.json() as { analysis: string };
-        
-        // Check if the response is a generic refusal message
-        const isGenericRefusal = data.analysis.toLowerCase().includes("i'm sorry") || 
-                                data.analysis.toLowerCase().includes("i can't help") ||
-                                data.analysis.toLowerCase().includes("i cannot help") ||
-                                data.analysis.toLowerCase().includes("sorry, i can't") ||
-                                data.analysis.toLowerCase().includes("i'm unable") ||
-                                data.analysis.toLowerCase().includes("i can't provide") ||
-                                data.analysis.toLowerCase().includes("i can't analyze") ||
-                                data.analysis.toLowerCase().includes("i'm not able") ||
-                                data.analysis.toLowerCase().includes("unable to provide") ||
-                                data.analysis.toLowerCase().includes("cannot provide") ||
-                                (data.analysis.length < 100);
-        
-        if (isGenericRefusal) {
-          console.log(`Person ${personIndex} attempt ${attempt}: Generic refusal detected, retrying...`);
-          if (attempt === maxRetries) {
-            throw new Error(`Analysis failed after ${maxRetries} attempts - AI consistently refusing to analyze Person ${personIndex}`);
-          }
-          continue; // Try again
-        }
-        
-        // Success - return the analysis
-        console.log(`Person ${personIndex} succeeded on attempt ${attempt}`);
-        return {
-          personIndex,
-          analysis: data.analysis.startsWith(`Person ${personIndex}:`) ? data.analysis : `Person ${personIndex}: ${data.analysis}`,
-          attempts: attempt
-        };
-        
-      } catch (error: any) {
-        console.log(`Person ${personIndex} attempt ${attempt}: Error - ${error.message}`);
-        if (attempt === maxRetries) {
-          throw new Error(`Analysis failed after ${maxRetries} attempts for Person ${personIndex}: ${error.message}`);
-        }
-      }
-    }
-  };
 
-  const analyzePhotos = async (photoDataArray: string[]) => {
-    setIsAnalyzingPhoto(true);
-    setAnalysisError(null);
-    setPhotoAnalyses([]);
-    setAnalysisSuccess(false);
-    
-    try {
-      const analyses = [];
-      
-      for (let i = 0; i < photoDataArray.length; i++) {
-        setCurrentAnalysisIndex(i);
-        setRetryAttempt(0);
-        
-        try {
-          const analysis = await analyzePhotoWithRetry(photoDataArray[i], i + 1, 10);
-          if (analysis) {
-            analyses.push(analysis);
-            setPhotoAnalyses([...analyses]); // Update UI progressively
-          }
-        } catch (error: any) {
-          console.error(`Failed to analyze Person ${i + 1}:`, error);
-          setAnalysisError(`Person ${i + 1}: ${error.message}`);
-          // Continue with other photos even if one fails
-        }
-      }
-      
-      if (analyses.length > 0) {
-        setAnalysisSuccess(true);
-        // Combine all analyses for backward compatibility
-        const combinedAnalysis = analyses.map(a => a?.analysis).filter(Boolean).join('\n\n');
-        // Store combined analysis in answers for card generation
-        setAnswers(prev => ({ ...prev, character_description: combinedAnalysis }));
-      } else {
-        setAnalysisError("All photo analyses failed after multiple retry attempts");
-      }
-      
-    } catch (error: any) {
-      setAnalysisError(error.message);
-    } finally {
-      setIsAnalyzingPhoto(false);
-      setCurrentAnalysisIndex(-1);
-    }
-  };;
 
   const handlePhotoUploadClick = () => {
     if (!hasCopyrightConsent) {
@@ -958,7 +854,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           frontPrompt,
           insidePrompt,
           photoData: answers.photo_upload || null,
-          photoAnalysis: photoAnalyses.length > 0 ? photoAnalyses.map(a => a.analysis).join('\n\n') : null
+          photoAnalysis: null
         });
 
         const card = await response.json();
@@ -1079,28 +975,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     // Base requirements (matching test page structure)
     parts.push("Square 1:1 aspect ratio design, full bleed with no borders or card edges visible");
     
-    // Add all analyzed people with their cultural details and user-selected gender
-    if (photoAnalyses.length > 0 && answers.people_details) {
-      photoAnalyses.forEach((analysis, index) => {
-        let personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
-        const personDetails = answers.people_details[index];
-        
-        // Override gender from analysis with user selection if available
-        if (personDetails?.gender) {
-          // Remove any gender references from AI analysis and replace with user selection
-          personDescription = personDescription.replace(/\b(male|female|man|woman|boy|girl)\b/gi, '');
-          personDescription = `${personDetails.gender}, ${personDescription}`;
-        }
-        
-        let culturalText = '';
-        if (personDetails?.custom_heritage) {
-          culturalText = `, ${personDetails.custom_heritage} heritage`;
-        } else if (personDetails?.heritage) {
-          culturalText = `, ${personDetails.heritage.replace('_', ' ')} heritage`;
-        }
-        
-        parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}${culturalText}`);
-      });
+    // When photos are uploaded, use direct image-to-image processing instead of analysis
+    if (uploadedPhotos.length > 0) {
+      // Store photo data for direct image-to-image generation
+      parts.push("Use uploaded photo as direct reference for image-to-image transformation");
     } else if (answers.name) {
       // Fallback for manual descriptions
       let characterDesc = `${answers.name}`;
