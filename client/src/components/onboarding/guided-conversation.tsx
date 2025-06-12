@@ -784,7 +784,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
             setAnswers(prev => ({ ...prev, photo_upload: photoDataArray[0] })); // Store first photo for backward compatibility
             
             // Skip analysis for all photo uploads - show success message immediately
-            setAnalysisSuccess(true);
             const successMessage = isTransformStyle 
               ? 'Photo uploaded successfully for style transformation'
               : `Photo${photoDataArray.length > 1 ? 's' : ''} uploaded successfully`;
@@ -1797,71 +1796,31 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                           </div>
                         </div>
 
-                        {isAnalyzingPhoto && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <div className="flex flex-col items-center justify-center text-center space-y-2">
-                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                              <p className="text-blue-700 font-medium">
-                                {currentAnalysisIndex >= 0 ? `Analyzing Person ${currentAnalysisIndex + 1}...` : 'Starting photo analysis...'}
-                              </p>
-                              {photoAnalyses.length > 0 && (
-                                <p className="text-blue-600 text-sm">
-                                  Completed: {photoAnalyses.length}/{uploadedPhotos.length} photos
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        
-
-                        {analysisError && (
-                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                            <div className="flex items-start space-x-3">
+                        {uploadedPhotos.length > 0 && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div className="flex items-center space-x-3">
                               <div className="flex-shrink-0">
-                                <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                 </svg>
                               </div>
                               <div className="flex-1">
-                                <h4 className="font-medium text-amber-800 mb-2">Oops! My AI Vision Had a Hiccup</h4>
-                                <p className="text-amber-700 text-sm mb-3">
-                                  Don't worry - this happens sometimes! AI isn't perfect, and photo analysis can be tricky depending on lighting, angle, or image quality. Let's give it another shot!
+                                <h4 className="font-medium text-green-800">Photo uploaded successfully!</h4>
+                                <p className="text-green-700 text-sm">
+                                  Your photo will be used for direct image-to-image transformation.
                                 </p>
-                                <div className="bg-amber-100 rounded-lg p-3 mb-3">
-                                  <p className="text-amber-800 text-xs font-medium">💡 Pro Tips for Better Analysis:</p>
-                                  <ul className="text-amber-700 text-xs mt-1 space-y-1">
-                                    <li>• Make sure the face is clearly visible and well-lit</li>
-                                    <li>• Avoid shadows across the face</li>
-                                    <li>• Try a photo where they're looking toward the camera</li>
-                                  </ul>
-                                </div>
-                                <Button 
-                                  onClick={() => analyzePhotos(uploadedPhotos)}
-                                  className="w-full bg-amber-600 hover:bg-amber-700 text-white"
-                                  disabled={isAnalyzingPhoto}
-                                >
-                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                  </svg>
-                                  Let's Try That Again!
-                                </Button>
                               </div>
                             </div>
                           </div>
                         )}
 
-                        
-
-                        {!isAnalyzingPhoto && (
-                          <Button 
-                            onClick={() => setCurrentStepIndex(prev => prev + 1)}
-                            className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
-                          >
+                        <Button 
+                          onClick={() => setCurrentStepIndex(prev => prev + 1)}
+                          className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
+                        >
                             Continue
                             <ArrowRight className="w-4 h-4 ml-2" />
                           </Button>
-                        )}
                       </div>
                     )}
                   </div>

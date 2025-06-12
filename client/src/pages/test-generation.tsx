@@ -50,8 +50,7 @@ export default function TestGeneration() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCard, setGeneratedCard] = useState<any>(null);
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
-  const [photoAnalyses, setPhotoAnalyses] = useState<Array<{personIndex: number, analysis: string}>>([]);
-  const [isAnalyzingPhotos, setIsAnalyzingPhotos] = useState(false);
+
   const [currentAnalysisIndex, setCurrentAnalysisIndex] = useState<number>(-1);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [culturalBackgrounds, setCulturalBackgrounds] = useState<Array<{personIndex: number, background: string}>>([]);
@@ -632,109 +631,9 @@ export default function TestGeneration() {
     }
   };
 
-  const analyzePhotoWithRetry = async (photoData: string, personIndex: number, maxRetries = 10): Promise<{personIndex: number, analysis: string, attempts: number}> => {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`Analyzing Person ${personIndex}, attempt ${attempt}/${maxRetries}`);
-        
-        const response = await apiRequest("POST", "/api/analyze-photo", {
-          photoData
-        });
-        
-        const data = await response.json() as { analysis: string };
-        
-        // Check if the response is a generic refusal message
-        const isGenericRefusal = data.analysis.toLowerCase().includes("i'm sorry") || 
-                                data.analysis.toLowerCase().includes("i can't help") ||
-                                data.analysis.toLowerCase().includes("i cannot help") ||
-                                data.analysis.toLowerCase().includes("sorry, i can't") ||
-                                data.analysis.toLowerCase().includes("i'm unable") ||
-                                data.analysis.toLowerCase().includes("i can't provide") ||
-                                data.analysis.toLowerCase().includes("i can't analyze") ||
-                                data.analysis.toLowerCase().includes("i'm not able") ||
-                                data.analysis.toLowerCase().includes("unable to provide") ||
-                                data.analysis.toLowerCase().includes("cannot provide");
-        
-        if (isGenericRefusal) {
-          console.log(`Person ${personIndex} attempt ${attempt}: Generic refusal detected, retrying...`);
-          if (attempt === maxRetries) {
-            throw new Error(`Analysis failed after ${maxRetries} attempts - AI consistently refusing to analyze Person ${personIndex}`);
-          }
-          continue; // Try again
-        }
-        
-        // Success - return the analysis
-        console.log(`Person ${personIndex} succeeded on attempt ${attempt}`);
-        return {
-          personIndex,
-          analysis: data.analysis.startsWith(`Person ${personIndex}:`) ? data.analysis : `Person ${personIndex}: ${data.analysis}`,
-          attempts: attempt
-        };
-        
-      } catch (error: any) {
-        console.log(`Person ${personIndex} attempt ${attempt}: Error - ${error.message}`);
-        if (attempt === maxRetries) {
-          throw new Error(`Analysis failed after ${maxRetries} attempts for Person ${personIndex}: ${error.message}`);
-        }
-      }
-    }
-    
-    // This should never be reached due to the throw in the catch block, but TypeScript needs it
-    throw new Error(`Unexpected error: analysis loop completed without returning for Person ${personIndex}`);
-  };
 
-  const analyzePhotos = async (photoDataArray: string[]) => {
-    setIsAnalyzingPhotos(true);
-    setAnalysisError(null);
-    setPhotoAnalyses([]);
-    
-    try {
-      const analyses: Array<{personIndex: number, analysis: string, attempts: number}> = [];
-      
-      for (let i = 0; i < photoDataArray.length; i++) {
-        setCurrentAnalysisIndex(i);
-        
-        try {
-          const analysis = await analyzePhotoWithRetry(photoDataArray[i], i + 1, 10);
-          analyses.push(analysis);
-          setPhotoAnalyses(analyses.map(a => ({personIndex: a.personIndex, analysis: a.analysis}))); // Update UI progressively
-          
-          toast({
-            title: `Person ${i + 1} analyzed successfully`,
-            description: `Succeeded after ${analysis.attempts} attempt(s)`,
-          });
-        } catch (error: any) {
-          console.error(`Failed to analyze Person ${i + 1}:`, error);
-          toast({
-            title: `Person ${i + 1} analysis failed`,
-            description: error.message,
-            variant: "destructive"
-          });
-          // Continue with other photos even if one fails
-        }
-      }
-      
-      if (analyses.length > 0) {
-        toast({
-          title: "Photo analysis completed!",
-          description: `Successfully analyzed ${analyses.length} out of ${photoDataArray.length} photos.`
-        });
-      } else {
-        setAnalysisError("All photo analyses failed after multiple retry attempts");
-      }
-      
-    } catch (error: any) {
-      setAnalysisError(error.message);
-      toast({
-        title: "Analysis failed",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsAnalyzingPhotos(false);
-      setCurrentAnalysisIndex(-1);
-    }
-  };
+
+
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
