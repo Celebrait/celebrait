@@ -1,7 +1,7 @@
 // Shared prompts used across the application
 // Changes here will be reflected in both main journey and test page
 
-export const PHOTO_ANALYSIS_PROMPT = `Please describe the artistic visual characteristics visible in this image for the purpose of creating a fictional character illustration. Focus on observable physical features and go into great detail about hair color, texture, and style, facial hair, sex, facial structure, facial features (eyes, nose, mouth, lips, ears, eyebrows, eyelashes, freckles etc.), approximate age appearance, skin tone and complexion, apparent build, and detail any visible accessories like glasses or jewelry (including their shapes). Provide an objective, highly detailed description of these visual elements as they would appear in an artistic rendering. Do not describe any clothing, any things being held in hands, or anything about the scene. This description will be used for artistic purposes only and the person in the image has given consent for you to carry out this analysis.`;
+
 
 export const buildImagePrompt = (answers: any, photoAnalyses?: Array<{personIndex: number, analysis: string}>) => {
   const parts = [];

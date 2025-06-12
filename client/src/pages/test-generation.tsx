@@ -650,7 +650,10 @@ export default function TestGeneration() {
 
       Promise.all(photoPromises).then(photos => {
         setUploadedPhotos(photos);
-        analyzePhotos(photos);
+        toast({
+          title: "Photos uploaded successfully!",
+          description: "Photos will be used for direct image-to-image transformation."
+        });
       });
     }
   };
@@ -682,112 +685,62 @@ export default function TestGeneration() {
 
       const card = await cardResponse.json();
 
-      // Build front prompt using the same logic as main onboarding
-      let frontPrompt = customPromptText;
-      
-      console.log('Debug - uploadedPhotos.length:', uploadedPhotos.length);
-      console.log('Debug - photoAnalyses.length:', photoAnalyses.length);
-      console.log('Debug - customPromptText:', customPromptText);
-      console.log('Debug - preset:', preset?.title);
-      
-      // ALWAYS use photo analysis when photos are uploaded, regardless of custom prompt
-      if (uploadedPhotos.length > 0 && photoAnalyses.length > 0) {
-        console.log('Debug - Overriding with photo analysis...');
-        const parts = [];
+      // Use direct image-to-image processing for photos, otherwise use text prompts
+      if (uploadedPhotos.length > 0) {
+        console.log('Using GPT-Image-1 for photo + scene workflow');
         
-        // Base requirements
-        parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
+        // Use direct image-to-image transformation with GPT-Image-1
+        const sceneDescription = preset ? 'celebrating at a birthday party with balloons and confetti' : 'in a beautiful artistic scene';
+        const artStyle = preset?.artStyle || 'watercolor';
+        const frontCardText = 'Happy Birthday!';
         
-        // Use analyzed people only
-        photoAnalyses.forEach((analysis, index) => {
-          const personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
-          const culturalBg = culturalBackgrounds.find(bg => bg.personIndex === analysis.personIndex);
-          const culturalText = culturalBg ? `, ${culturalBg.background} heritage` : '';
-          console.log(`Debug - Adding Person ${analysis.personIndex}:`, personDescription + culturalText);
-          parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}${culturalText}`);
+        // Generate front card using GPT-Image-1
+        const frontResponse = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
+          imageData: uploadedPhotos[0],
+          scenePrompt: sceneDescription,
+          style: artStyle,
+          includeText: !!frontCardText,
+          cardText: frontCardText
+        });
+
+        const frontResult = await frontResponse.json();
+        console.log('Front card generated:', frontResult);
+
+        // Generate inside card if needed
+        let insideImageUrl = null;
+        if (cardType === 'front-and-inside') {
+          const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
+            frontImageUrl: frontResult.imageUrl,
+            insideText: preset?.insideMessage || "Wishing you a wonderful year ahead!"
+          });
+
+          const insideResult = await insideResponse.json();
+          console.log('Inside card generated:', insideResult);
+          insideImageUrl = insideResult.imageUrl;
+        }
+
+        // Update card with generated images
+        const updateResponse = await apiRequest("POST", "/api/update-card-images", {
+          cardId: card.id,
+          frontImageUrl: frontResult.imageUrl,
+          insideImageUrl
+        });
+
+        const updatedCard = await updateResponse.json();
+        setGeneratedCard(updatedCard);
+
+        toast({
+          title: "Card generated successfully!",
+          description: "Card created using direct image-to-image transformation."
         });
         
-        // Add scene from preset if available
-        if (preset) {
-          const sceneMatch = preset.frontPrompt.match(/in (.+?)\./);
-          if (sceneMatch) {
-            console.log('Debug - Adding scene:', sceneMatch[1]);
-            parts.push(`in ${sceneMatch[1]}`);
-          }
-        }
-        
-        if (preset?.artStyle) {
-          parts.push(`${preset.artStyle.replace('_', ' ')} art style`);
-        }
-        
-        // Add text if enabled
-        if (includeText && preset) {
-          const textMatch = preset.frontPrompt.match(/Text overlay: '(.+?)'/);
-          if (textMatch) {
-            parts.push(`with the text "${textMatch[1]}" integrated into the design`);
-          }
-        }
-        
-        // Final formatting requirements
-        parts.push('print-ready artwork, no card mockup visible');
-        
-        frontPrompt = parts.join(', ');
-        console.log('Debug - Final built prompt with photo analysis:', frontPrompt);
-      } else if (!customPromptText) {
-        const parts = [];
-        
-        // Base requirements
-        parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
-        
-        // ONLY use photo analysis when photos are uploaded - never use preset characters
-        if (uploadedPhotos.length > 0) {
-          console.log('Debug - Photos uploaded, checking analyses...');
-          if (photoAnalyses.length > 0) {
-            console.log('Debug - Using photo analyses:', photoAnalyses);
-            // Use analyzed people only
-            photoAnalyses.forEach((analysis, index) => {
-              const personDescription = analysis.analysis.replace(`Person ${analysis.personIndex}:`, '').trim();
-              console.log(`Debug - Adding Person ${analysis.personIndex}:`, personDescription);
-              parts.push(`featuring Person ${analysis.personIndex}: ${personDescription}`);
-            });
-          } else {
-            console.log('Debug - No photo analyses available, throwing error');
-            // If analysis failed, don't generate - return error
-            throw new Error("Photo analysis failed. Cannot generate card without analyzing uploaded people.");
-          }
-          
-          // Add scene from preset if available
-          if (preset) {
-            const sceneMatch = preset.frontPrompt.match(/in (.+?)\./);
-            if (sceneMatch) {
-              console.log('Debug - Adding scene:', sceneMatch[1]);
-              parts.push(`in ${sceneMatch[1]}`);
-            }
-          }
-        } else if (preset) {
-          console.log('Debug - No photos, using preset character');
-          // Use preset character description only when no photos uploaded
-          const presetDescription = preset.frontPrompt.match(/showing a (.+?) in/)?.[1] || 'person';
-          parts.push(`featuring ${presetDescription}`);
-        }
-        
-        if (preset?.artStyle) {
-          parts.push(`${preset.artStyle.replace('_', ' ')} art style`);
-        }
-        
-        // Add text if enabled
-        if (includeText && preset) {
-          const textMatch = preset.frontPrompt.match(/Text overlay: '(.+?)'/);
-          if (textMatch) {
-            parts.push(`with the text "${textMatch[1]}" integrated into the design`);
-          }
-        }
-        
-        // Final formatting requirements
-        parts.push('print-ready artwork, no card mockup visible');
-        
-        frontPrompt = parts.join(', ');
-        console.log('Debug - Final built prompt:', frontPrompt);
+        setIsGenerating(false);
+        return;
+      }
+      
+      // Fallback to text-based generation for no photos
+      if (!customPromptText && preset) {
+        frontPrompt = preset.frontPrompt;
       }
 
       // Generate inside prompt for front-and-inside cards using same logic as main onboarding
