@@ -526,18 +526,7 @@ export default function TestGeneration() {
     }
   };
 
-  const generateCardWithAnalyzedPeople = async () => {
-    if (photoAnalyses.length === 0) {
-      toast({
-        title: "No analysis available",
-        description: "Please analyze photos first before generating a card.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      setIsGenerating(true);
+  // Removed photo analysis function - now using direct image-to-image processing
 
       // Create a user
       const userResponse = await apiRequest("POST", "/api/users", {
