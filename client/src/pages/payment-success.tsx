@@ -12,6 +12,7 @@ export default function PaymentSuccess() {
   const { toast } = useToast();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -25,6 +26,7 @@ export default function PaymentSuccess() {
     } else {
       console.error('Invalid payment parameters:', { reference, status });
       setError('Invalid payment parameters');
+      setLoading(false);
     }
   }, []);
 
@@ -81,12 +83,12 @@ export default function PaymentSuccess() {
     );
   }
 
-  if (!order) {
+  if (error || !order) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Payment Not Found</h1>
-          <p className="text-gray-600">Unable to verify your payment.</p>
+          <p className="text-gray-600">{error || 'Unable to verify your payment.'}</p>
           <Button onClick={() => setLocation('/')} className="mt-4">
             Return Home
           </Button>
