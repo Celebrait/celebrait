@@ -1422,14 +1422,15 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Include text:', includeText);
       console.log('Card text:', cardText);
 
-      // Build the complete prompt
-      let fullPrompt = `${scenePrompt}, with clothing to match the occasion`;
+      // Build the complete prompt with square format specification
+      let fullPrompt = `Square 1:1 aspect ratio format. ${scenePrompt}, with clothing to match the occasion`;
       if (style && style.trim()) {
         fullPrompt = `${fullPrompt} in ${style}`;
       }
       if (includeText && cardText && cardText.trim()) {
         fullPrompt = `${fullPrompt}. Include the text "${cardText}" beautifully integrated into the composition, rendered in the same artistic style as the rest of the image.`;
       }
+      fullPrompt = `${fullPrompt}. IMPORTANT: Create a perfectly square 1:1 aspect ratio image (width equals height), not portrait or landscape format.`;
 
       console.log('Complete prompt for scene editing:', fullPrompt);
 

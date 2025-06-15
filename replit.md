@@ -80,6 +80,7 @@ Environment variables required:
 
 - June 15, 2025. Initial setup
 - June 15, 2025. Updated GPT-Image-1 API quality settings from "low" to "high" for upload photo + describe scene option (both front and inside card generation)
+- June 15, 2025. Fixed front card prompt to ensure square 1:1 aspect ratio format instead of portrait orientation
 
 ## User Preferences
 
