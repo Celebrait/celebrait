@@ -36,7 +36,7 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
           </div>
           <CardContent className="p-6">
             <img
-              src="https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400"
+              src="/images/Printed_Delivered.png"
               alt="Printed greeting cards"
               className="w-full aspect-square object-cover rounded-xl mb-4"
             />
@@ -49,7 +49,7 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
             </div>
 
             <p className="text-slate-gray mb-4">
-              A beautifully printed card featuring your AI generated artwork and personalised messaging.
+              A beautifully printed card featuring your AI generated artwork + personalised message.
             </p>
 
             <ul className="space-y-2">
@@ -82,7 +82,7 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
           <CardContent className="p-6">
             <div className="relative">
               <img
-                src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=400"
+                src="/images/Digital_Share.png"
                 alt="Digital greeting card on phone"
                 className="w-full aspect-square object-cover rounded-xl mb-4"
               />
