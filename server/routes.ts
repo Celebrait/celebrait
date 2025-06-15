@@ -220,8 +220,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate front card with text overlay
       const frontPrompt = imageAnalysis 
-        ? `Create a greeting card in ${stylePrompt} style. Recreate this exact scene: ${imageAnalysis}. Add the text "${frontText || 'Happy Birthday!'}" in elegant typography that matches the ${stylePrompt} artistic style. The text should be prominently displayed and beautifully integrated into the design.`
-        : `Create a greeting card in ${stylePrompt} style with the text "${frontText || 'Happy Birthday!'}" in elegant typography`;
+        ? `Create an image in ${stylePrompt} style. Recreate this exact scene: ${imageAnalysis}. Add the text "${frontText || 'Happy Birthday!'}" in elegant typography that matches the ${stylePrompt} artistic style. The text should be prominently displayed and beautifully integrated into the design.`
+        : `Create an image card in ${stylePrompt} style with the text "${frontText || 'Happy Birthday!'}" in elegant typography`;
 
       console.log("Generating front card with text overlay");
       
