@@ -1456,7 +1456,7 @@ The inside should look like a perfect companion piece created by the same artist
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
         formData.append('size', '1024x1024');
-        formData.append('quality', 'low');
+        formData.append('quality', 'high');
         formData.append('moderation', 'low');
         formData.append('background', 'auto');
         
@@ -1601,7 +1601,7 @@ The inside should look like a perfect companion piece created by the same artist
       formData.append('model', 'gpt-image-1');
       formData.append('n', '1');
       formData.append('size', '1024x1024');
-      formData.append('quality', 'low');
+      formData.append('quality', 'high');
       formData.append('moderation', 'low');
       formData.append('background', 'auto');
 
