@@ -1422,15 +1422,19 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Include text:', includeText);
       console.log('Card text:', cardText);
 
-      // Build the complete prompt with square format specification
-      let fullPrompt = `Square 1:1 aspect ratio format. ${scenePrompt}, with clothing to match the occasion`;
-      if (style && style.trim()) {
-        fullPrompt = `${fullPrompt} in ${style}`;
+      // Build the complete prompt with square format specification and high quality instructions
+      let fullPrompt = `SQUARE 1:1 ASPECT RATIO ONLY. HIGH QUALITY PROFESSIONAL ARTWORK. ${scenePrompt}`;
+      
+      // Only add style if it's not already in the scenePrompt
+      if (style && style.trim() && !scenePrompt.toLowerCase().includes(style.toLowerCase())) {
+        fullPrompt = `${fullPrompt} in ${style} style`;
       }
+      
       if (includeText && cardText && cardText.trim()) {
-        fullPrompt = `${fullPrompt}. Include the text "${cardText}" beautifully integrated into the composition, rendered in the same artistic style as the rest of the image.`;
+        fullPrompt = `${fullPrompt}. Include the text "${cardText}" prominently displayed with elegant typography that matches the artistic style.`;
       }
-      fullPrompt = `${fullPrompt}. IMPORTANT: Create a perfectly square 1:1 aspect ratio image (width equals height), not portrait or landscape format.`;
+      
+      fullPrompt = `${fullPrompt}. CRITICAL REQUIREMENTS: 1) Perfect square format (1024x1024), never portrait or landscape. 2) High-resolution professional quality. 3) Full-bleed design with no borders. 4) Print-ready artwork quality.`;
 
       console.log('Complete prompt for scene editing:', fullPrompt);
 
@@ -1457,7 +1461,8 @@ The inside should look like a perfect companion piece created by the same artist
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
         formData.append('size', '1024x1024');
-        formData.append('quality', 'high');
+        formData.append('quality', 'hd');
+        formData.append('style', 'vivid');
         formData.append('moderation', 'low');
         formData.append('background', 'auto');
         
@@ -1602,7 +1607,8 @@ The inside should look like a perfect companion piece created by the same artist
       formData.append('model', 'gpt-image-1');
       formData.append('n', '1');
       formData.append('size', '1024x1024');
-      formData.append('quality', 'high');
+      formData.append('quality', 'hd');
+      formData.append('style', 'vivid');
       formData.append('moderation', 'low');
       formData.append('background', 'auto');
 
