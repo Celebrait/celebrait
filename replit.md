@@ -112,11 +112,6 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- June 16, 2025. Enhanced multiple photo upload support for GPT-Image-1 API
-  - Added support for multiple image references in scene generation
-  - Improved prompts to prevent copying original positioning/poses
-  - Updated quality settings to "high" for better image generation
-  - Implemented new AI processing screen with engaging British English messages
 - June 15, 2025. Initial setup
 ```
 
