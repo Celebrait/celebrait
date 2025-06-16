@@ -1428,7 +1428,13 @@ The inside should look like a perfect companion piece created by the same artist
 
       // Build the complete prompt with enhanced character action descriptions
       const characterText = imagesToProcess.length > 1 ? 'characters from the reference images' : 'characters from the reference image';
-      let fullPrompt = `Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame. Create a brand new scene featuring the ${characterText}. The new scene should be: ${scenePrompt}, with the characters in clothing and performing actions that match the scene`;
+      let fullPrompt = `Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame. Create a completely new scene featuring the ${characterText}. CRITICAL INSTRUCTIONS: 
+1) Use the people in the reference image(s) ONLY as character appearance references (facial features, general look)
+2) DO NOT copy or replicate their original positioning, poses, spatial relationships, or interactions from the reference image
+3) CREATE AN ENTIRELY NEW COMPOSITION where characters are arranged differently and naturally for this new scene: ${scenePrompt}
+4) If multiple people were together in the reference, separate them and place them in new positions that fit the scene
+5) Give each character new poses, actions, and interactions that match the described scenario, not their original photo
+6) Completely reimagine how the characters would naturally be positioned and interact in this new environment`;
       if (style && style.trim()) {
         fullPrompt = `${fullPrompt}, rendered in ${style} art style`;
       }
