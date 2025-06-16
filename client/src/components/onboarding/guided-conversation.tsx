@@ -872,19 +872,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
   
 const generateCardWithGPTImage = async () => {
-    console.log('Using GPT-Image-1 for photo + scene workflow');
-
-    // Use the first uploaded photo as the reference image - pass directly to GPT-Image-1
-    const referenceImage = uploadedPhotos[0];
+    console.log('Using GPT-Image-1 for photo + scene workflow with multiple photos');
 
     // Build scene description with style (no photo analysis needed)
     const sceneDescription = answers.scene || '';
     const artStyle = answers.art_style || 'watercolor painting';
     const frontCardText = answers.message || '';
 
-    // Generate front card using GPT-Image-1
+    // Pass all uploaded photos to GPT-Image-1 - it can handle multiple images directly
     const frontResponse = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
-      imageData: referenceImage,
+      imageData: uploadedPhotos[0], // Primary reference image
+      additionalImages: uploadedPhotos.slice(1), // Additional reference images
       scenePrompt: sceneDescription,
       style: artStyle,
       includeText: !!frontCardText,
