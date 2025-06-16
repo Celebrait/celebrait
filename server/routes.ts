@@ -1410,7 +1410,7 @@ The inside should look like a perfect companion piece created by the same artist
     }
 
     try {
-      const { imageData, additionalImages = [], scenePrompt, style, includeText, cardText } = req.body;
+      const { imageData, scenePrompt, style, includeText, cardText } = req.body;
       
       if (!imageData || !scenePrompt) {
         return res.status(400).json({ message: "Image data and scene description are required" });
@@ -1421,19 +1421,9 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Style:', style);
       console.log('Include text:', includeText);
       console.log('Card text:', cardText);
-      console.log('Number of images:', 1 + additionalImages.length);
 
-      // Build the complete prompt for multiple people if additional images are provided
-      let fullPrompt = `Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame. Create a new scene featuring`;
-      
-      if (additionalImages.length > 0) {
-        fullPrompt += ` all the characters from the reference images (${1 + additionalImages.length} people total)`;
-      } else {
-        fullPrompt += ` the characters from the reference image`;
-      }
-      
-      fullPrompt += `. The new scene should be: ${scenePrompt}, with the characters in clothing to match the occasion`;
-      
+      // Build the complete prompt matching the successful transform style approach
+      let fullPrompt = `Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame. Create a new scene featuring the characters from the reference image. The new scene should be: ${scenePrompt}, with the characters in clothing to match the occasion`;
       if (style && style.trim()) {
         fullPrompt = `${fullPrompt} in ${style} art style`;
       }
@@ -1444,7 +1434,7 @@ The inside should look like a perfect companion piece created by the same artist
 
       console.log('Complete prompt for scene editing:', fullPrompt);
 
-      // Extract MIME type and base64 data for primary image
+      // Extract MIME type and base64 data
       const mimeMatch = imageData.match(/^data:image\/([a-z]+);base64,/);
       const mimeType = mimeMatch ? mimeMatch[1] : 'png';
       const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
@@ -1458,30 +1448,11 @@ The inside should look like a perfect companion piece created by the same artist
         // Use form-data package for proper multipart form handling
         const formData = new FormData();
         
-        // Add primary image buffer directly with proper metadata
+        // Add image buffer directly with proper metadata
         formData.append('image', imageBuffer, {
           filename: `image.${mimeType}`,
           contentType: `image/${mimeType}`
         });
-
-        // Add additional images if provided
-        if (additionalImages.length > 0) {
-          for (let i = 0; i < additionalImages.length; i++) {
-            const additionalImageData = additionalImages[i];
-            const additionalMimeMatch = additionalImageData.match(/^data:image\/([a-z]+);base64,/);
-            const additionalMimeType = additionalMimeMatch ? additionalMimeMatch[1] : 'png';
-            const additionalBase64Data = additionalImageData.replace(/^data:image\/[a-z]+;base64,/, '');
-            const additionalImageBuffer = Buffer.from(additionalBase64Data, 'base64');
-            
-            // Use indexed parameter names instead of array syntax
-            formData.append(`additional_image_${i + 1}`, additionalImageBuffer, {
-              filename: `additional_image_${i + 1}.${additionalMimeType}`,
-              contentType: `image/${additionalMimeType}`
-            });
-          }
-          console.log(`Added ${additionalImages.length} additional images to form data`);
-        }
-        
         formData.append('prompt', fullPrompt);
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');

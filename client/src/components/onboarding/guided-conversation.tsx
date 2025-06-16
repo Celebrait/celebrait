@@ -511,7 +511,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     if (step.id === 'inside_message' && onboarding.selectedPrintOption !== 'front-and-inside') {
       return false;
     }
-
+    
     // Skip person-related steps for scene-only cards
     if (onboarding.selectedSceneType === 'scene-only') {
       const personSteps = ['photo_option', 'photo_upload', 'heritage_photo', 'character_costume', 
@@ -520,7 +520,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         return false;
       }
     }
-
+    
     // Skip steps based on photo option choice
     if (answers.photo_option === 'upload_and_transform') {
       // For style transformation, skip all description steps and go directly to art style
@@ -541,7 +541,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         return false;
       }
     }
-
+    
     return true;
   });
 
@@ -551,39 +551,39 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   // Handle rotating example prompts for scene description
   useEffect(() => {
     if (!currentStep) return;
-
+    
     if (currentStep.id === 'scene' && !userHasTyped) {
       let isActive = true;
-
+      
       const runTypingCycle = async () => {
         let exampleIndex = 0;
-
+        
         while (isActive) {
           setIsTypingExample(true);
           const currentPrompt = EXAMPLE_PROMPTS[exampleIndex];
-
+          
           // Clear existing text
           setPlaceholderText('');
-
+          
           // Type out the text character by character
           for (let i = 0; i <= currentPrompt.length && isActive; i++) {
             setPlaceholderText(currentPrompt.slice(0, i));
             await new Promise(resolve => setTimeout(resolve, 30));
           }
-
+          
           setIsTypingExample(false);
-
+          
           // Wait 3 seconds before moving to next example
           await new Promise(resolve => setTimeout(resolve, 3000));
-
+          
           if (isActive) {
             exampleIndex = (exampleIndex + 1) % EXAMPLE_PROMPTS.length;
           }
         }
       };
-
+      
       const timer = setTimeout(runTypingCycle, 500);
-
+      
       return () => {
         isActive = false;
         clearTimeout(timer);
@@ -597,7 +597,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       const quoteInterval = setInterval(() => {
         setCurrentQuoteIndex((prev) => (prev + 1) % aiQuotes.length);
       }, 3000);
-
+      
       return () => clearInterval(quoteInterval);
     }
   }, [isLoading, aiQuotes.length]);
@@ -659,7 +659,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const handleAnswer = (value: string) => {
     setAnswers(prev => ({ ...prev, [currentStep.id]: value }));
     setCurrentInput('');
-
+    
     // If we're editing a step, return to summary after saving
     if (editingStep && returnToSummary) {
       setEditingStep(null);
@@ -670,12 +670,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       }
       return;
     }
-
+    
     // Handle photo option choice - let the filtering logic handle the flow
     if (currentStep.id === 'photo_option') {
       // Just proceed to next step - filtering will handle what shows up next
     }
-
+    
     // Handle heritage after photo upload - go to costume selection
     if (currentStep.id === 'heritage_photo') {
       // After selecting heritage, go to character costume
@@ -685,7 +685,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         return;
       }
     }
-
+    
     // Handle character/costume choice - go to scene after selection
     if (currentStep.id === 'character_costume') {
       // After selecting costume, go to scene
@@ -695,7 +695,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         return;
       }
     }
-
+    
     // Move to next step after a brief delay for better UX
     setTimeout(() => {
       if (currentStepIndex < filteredSteps.length - 1) {
@@ -724,13 +724,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       const newSelection = prev.includes(value)
         ? prev.filter(p => p !== value)
         : [...prev, value];
-
+      
       // Update answers with comma-separated personality list
       setAnswers(prevAnswers => ({ 
         ...prevAnswers, 
         personality: newSelection.join(', ') 
       }));
-
+      
       return newSelection;
     });
   };
@@ -765,24 +765,24 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     const files = event.target.files;
     if (files && files.length > 0) {
       const isTransformStyle = answers.photo_option === 'upload_and_transform';
-
+      
       // Limit to one file for transform style option
       const filesToProcess = isTransformStyle ? [files[0]] : Array.from(files);
-
+      
       const photoDataArray: string[] = [];
       let filesProcessed = 0;
-
+      
       filesToProcess.forEach((file) => {
         const reader = new FileReader();
         reader.onload = (e) => {
           const photoData = e.target?.result as string;
           photoDataArray.push(photoData);
           filesProcessed++;
-
+          
           if (filesProcessed === filesToProcess.length) {
             setUploadedPhotos(photoDataArray);
             setAnswers(prev => ({ ...prev, photo_upload: photoDataArray[0] })); // Store first photo for backward compatibility
-
+            
             // Skip analysis for all photo uploads - show success message immediately
             const successMessage = isTransformStyle 
               ? 'Photo uploaded successfully for style transformation'
@@ -831,9 +831,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const generateCard = async () => {
     try {
       setIsLoading(true);
-
+      
       console.log('Generating card with answers:', answers);
-
+      
       // Check if this is upload photo + describe scene workflow
       if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
         await generateCardWithGPTImage();
@@ -844,7 +844,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         // Use existing DALL-E workflow
         const frontPrompt = buildImagePrompt();
         console.log('Built front prompt:', frontPrompt);
-
+        
         const insidePrompt = onboarding.selectedPrintOption === 'front-and-inside' ? 
           buildInsidePrompt() : null;
 
@@ -870,19 +870,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   };
 
-  
-const generateCardWithGPTImage = async () => {
-    console.log('Using GPT-Image-1 for photo + scene workflow with multiple photos');
-
-    // Build scene description with style (no photo analysis needed)
+  const generateCardWithGPTImage = async () => {
+    console.log('Using GPT-Image-1 for photo + scene workflow');
+    
+    // Use the first uploaded photo as the reference image
+    const referenceImage = uploadedPhotos[0];
+    
+    // Build scene description with style
     const sceneDescription = answers.scene || '';
     const artStyle = answers.art_style || 'watercolor painting';
     const frontCardText = answers.message || '';
-
-    // Pass all uploaded photos to GPT-Image-1 - it can handle multiple images directly
+    
+    // Generate front card using GPT-Image-1
     const frontResponse = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
-      imageData: uploadedPhotos[0], // Primary reference image
-      additionalImages: uploadedPhotos.slice(1), // Additional reference images
+      imageData: referenceImage,
       scenePrompt: sceneDescription,
       style: artStyle,
       includeText: !!frontCardText,
@@ -899,7 +900,7 @@ const generateCardWithGPTImage = async () => {
         frontCardImage: frontResult.imageUrl,
         insideText: answers.inside_message
       });
-
+      
       const insideResult = await insideResponse.json();
       insideImageUrl = insideResult.imageUrl;
       console.log('Inside card generated:', insideResult);
@@ -919,20 +920,20 @@ const generateCardWithGPTImage = async () => {
 
   const generateCardWithGPTImageTransform = async () => {
     console.log('Using GPT-Image-1 for photo + transform style workflow');
-
+    
     // Use the first uploaded photo as the reference image
     const referenceImage = uploadedPhotos[0];
-
+    
     // Build style transformation prompt using the exact same approach as gpt-image-test page
     const artStyle = answers.art_style || 'watercolor painting';
     const frontCardText = answers.message || '';
-
+    
     // Create the prompt using the same structure as the test page
     let transformPrompt = `Transform this into ${artStyle}`;
     if (frontCardText.trim()) {
       transformPrompt += `. Include the text "${frontCardText}" in the same ${artStyle}, beautifully integrated into the composition.`;
     }
-
+    
     // Generate front card using GPT-Image-1 transform style endpoint
     const frontResponse = await apiRequest("POST", "/api/transform-style-gpt-image-1", {
       imageData: referenceImage,
@@ -949,7 +950,7 @@ const generateCardWithGPTImage = async () => {
         frontCardImage: frontResult.imageUrl,
         insideText: answers.inside_message
       });
-
+      
       const insideResult = await insideResponse.json();
       insideImageUrl = insideResult.imageUrl;
       console.log('Inside card generated:', insideResult);
@@ -969,10 +970,10 @@ const generateCardWithGPTImage = async () => {
 
   const buildImagePrompt = () => {
     const parts = [];
-
+    
     // Base requirements (matching test page structure)
     parts.push("Square 1:1 aspect ratio design, full bleed with no borders or card edges visible");
-
+    
     // When photos are uploaded, use direct image-to-image processing instead of analysis
     if (uploadedPhotos.length > 0) {
       // Store photo data for direct image-to-image generation
@@ -980,7 +981,7 @@ const generateCardWithGPTImage = async () => {
     } else if (answers.name) {
       // Fallback for manual descriptions
       let characterDesc = `${answers.name}`;
-
+      
       if (answers.gender) characterDesc += `, ${answers.gender}`;
       if (answers.age) characterDesc += `, ${answers.age.replace('_', ' ')}`;
       if (answers.heritage) characterDesc += `, ${answers.heritage} heritage`;
@@ -991,10 +992,10 @@ const generateCardWithGPTImage = async () => {
       if (answers.features && answers.features !== 'skip') {
         characterDesc += `, ${answers.features}`;
       }
-
+      
       parts.push(`featuring ${characterDesc}`);
     }
-
+    
     // Add scene description
     if (answers.scene) {
       parts.push(answers.scene);
@@ -1009,51 +1010,51 @@ const generateCardWithGPTImage = async () => {
         'mothers_day': 'celebrating in a beautiful garden setting',
         'fathers_day': 'celebrating in a warm family setting'
       };
-
+      
       const defaultScene = celebrationScenes[answers.celebration] || 'celebrating in a joyful setting';
       parts.push(defaultScene);
     }
-
+    
     // Add art style
     if (answers.art_style) {
       parts.push(`${answers.art_style.replace('_', ' ')} style`);
     }
-
+    
     // Add front text
     if (answers.message) {
       parts.push(`with "${answers.message}" text prominently displayed`);
     }
-
+    
     // Final requirements
     parts.push('professional greeting card quality, print-ready artwork');
-
+    
     return parts.join(', ');
   };
 
   const buildInsidePrompt = () => {
     const insideMessage = answers.inside_message || "Hope your special day brings you joy and happiness!";
     const parts = [];
-
+    
     // Base requirements
     parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
-
+    
     // Greeting card interior layout focusing on typography
     parts.push(`Greeting card interior with elegant typography displaying: "${insideMessage}"`);
-
+    
     // Subtle aesthetic matching without character elements
     parts.push('subtle complementary background that matches the front card color palette and overall mood');
-
+    
     // Art style consistency
     if (answers.art_style) {
       parts.push(`${answers.art_style} art style with same visual treatment as front`);
     }
-
+    
     // Typography and layout requirements
     parts.push('professional greeting card typography using same font style and treatment as front card');
     parts.push('text prominently displayed and clearly readable');
     parts.push('minimal decorative elements that complement without overwhelming the message');
     parts.push('print-ready artwork, no card mockup visible');
-
+    
     return parts.join(', ');
   };
 
@@ -1064,18 +1065,18 @@ const generateCardWithGPTImage = async () => {
         <div className="p-4 bg-white border-b">
           <Progress value={100} className="h-3 bg-gradient-to-r from-purple-500 to-pink-500" />
         </div>
-
+        
         <div className="flex-1 flex items-center justify-center">
           <div className="max-w-4xl mx-auto text-center p-8">
             <Sparkles className="w-16 h-16 mx-auto text-purple-500 animate-pulse mb-6" />
             <h2 className="text-3xl font-bold mb-4">
               Generating {answers.name ? `${answers.name}'s` : 'Your'} {answers.celebration ? answers.celebration.charAt(0).toUpperCase() + answers.celebration.slice(1) : ''} Card
             </h2>
-
+            
             <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
               Please watch this short video to understand what to expect from our tech..
             </p>
-
+            
             {/* Video Placeholder */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20 mb-8 max-w-2xl mx-auto">
               <div className="aspect-video bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center">
@@ -1090,7 +1091,7 @@ const generateCardWithGPTImage = async () => {
                 </div>
               </div>
             </div>
-
+            
             {/* Animated loading dots */}
             <div className="flex justify-center space-x-2">
               <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"></div>
@@ -1150,7 +1151,7 @@ const generateCardWithGPTImage = async () => {
                   <Bot className="w-8 h-8 text-white" />
                 </div>
               </div>
-
+              
               <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20">
                 {isTyping ? (
                   <div className="flex justify-center space-x-2">
@@ -1383,7 +1384,7 @@ const generateCardWithGPTImage = async () => {
 
                     {/* Complete Summary with Edit Options */}
                     <div className="grid gap-4">
-
+                      
                       {/* Uploaded Photos */}
                       {uploadedPhotos.length > 0 && (
                         <div className="bg-white rounded-xl p-4 border border-purple-200">
@@ -1577,7 +1578,7 @@ const generateCardWithGPTImage = async () => {
                             }`}
                           >
                             {isDisabled && (
-                              <div className="absolute inset-0 bg-black/40 rounded-xl flex items-centerjustify-center z-10">
+                              <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center z-10">
                                 <div className="bg-white rounded-lg px-6 py-3 shadow-lg">
                                   <span className="text-lg font-bold text-gray-800">Coming Soon</span>
                                 </div>
@@ -1593,7 +1594,7 @@ const generateCardWithGPTImage = async () => {
                                 <h3 className="font-bold text-lg text-gray-800 mb-2">{option.label}</h3>
                                 <p className="text-gray-600 mb-3">{option.description}</p>
                                 <p className="text-sm text-purple-600 font-medium mb-4">{option.details}</p>
-
+                                
                                 {/* Video Explainer Button - only for enabled options */}
                                 {!isDisabled && (
                                   <Button
@@ -1621,7 +1622,7 @@ const generateCardWithGPTImage = async () => {
                   </div>
                 )}
 
-
+                
 
                 {currentStep.type === 'photo_upload' && (answers.photo_option === 'upload_and_scene' || answers.photo_option === 'upload_and_transform') && (
                   <div className="space-y-6">
@@ -1653,7 +1654,7 @@ const generateCardWithGPTImage = async () => {
                                     : 'Click here to select one or more clear photos. The AI will create artistic representations while maintaining their likeness.'
                                   }
                                 </p>
-
+                                
                                 {/* Important Single Person Warning */}
                                 <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 mt-4">
                                   <div className="text-center">
@@ -1685,7 +1686,7 @@ const generateCardWithGPTImage = async () => {
                               </svg>
                               {answers.photo_option === 'upload_and_transform' ? 'Style Transformation Requirements' : 'Photo Requirements & Best Practices'}
                             </h4>
-
+                            
                             <div className="grid md:grid-cols-2 gap-4 text-sm max-w-2xl mx-auto">
                               <div>
                                 <h5 className="font-medium text-blue-700 mb-2">Accepted Formats:</h5>
@@ -1696,7 +1697,7 @@ const generateCardWithGPTImage = async () => {
                                   <li>• Max file size: 10MB</li>
                                 </ul>
                               </div>
-
+                              
                               <div>
                                 <h5 className="font-medium text-blue-700 mb-2">
                                   {answers.photo_option === 'upload_and_transform' ? 'For Best Transformation:' : 'For Best Results:'}
@@ -1767,7 +1768,7 @@ const generateCardWithGPTImage = async () => {
                           <p className="text-green-600 font-medium mt-2">
                             {uploadedPhotos.length === 1 ? 'Photo uploaded successfully!' : `${uploadedPhotos.length} photos uploaded successfully!`}
                           </p>
-
+                          
                           <div className="flex gap-2 mt-4 justify-center">
                             <input
                               type="file"
@@ -1932,7 +1933,7 @@ const generateCardWithGPTImage = async () => {
               </DialogTitle>
             </div>
           </DialogHeader>
-
+          
           <div className="space-y-6 p-2">
             <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 border border-purple-200">
               <p className="text-gray-700 text-center font-medium">
@@ -1942,7 +1943,7 @@ const generateCardWithGPTImage = async () => {
                  `Describe ${answers.name || 'Person'} + Describe Scene`}</span>" creation process works.
               </p>
             </div>
-
+            
             {/* Video Placeholder */}
             <div className="w-full aspect-video bg-gradient-to-br from-white to-purple-50 rounded-xl flex items-center justify-center border-2 border-dashed border-purple-300 shadow-inner">
               <div className="text-center">
@@ -1955,7 +1956,7 @@ const generateCardWithGPTImage = async () => {
                 <p className="text-purple-500 text-sm">Explainer video will be available here</p>
               </div>
             </div>
-
+            
             <div className="flex justify-center pt-4">
               <Button 
                 onClick={() => setVideoModalOpen(false)} 
@@ -1983,14 +1984,14 @@ const generateCardWithGPTImage = async () => {
               </DialogTitle>
             </div>
           </DialogHeader>
-
+          
           <div className="space-y-4 p-2">
             <div className="bg-red-50 rounded-xl p-4 border border-red-200">
               <p className="text-gray-800 text-sm font-medium text-center leading-relaxed">
                 By uploading any images on the Celebrait platform, you confirm that you own its copyright or have the legitimate right to use it. Any use of copyrighted material is strictly prohibited.
               </p>
             </div>
-
+            
             <div className="flex flex-col space-y-3 pt-2">
               <Button 
                 onClick={handleCopyrightConsent}
@@ -2023,7 +2024,7 @@ const generateCardWithGPTImage = async () => {
               </DialogTitle>
             </div>
           </DialogHeader>
-
+          
           <div className="px-2 sm:px-4 lg:px-8 py-2 sm:py-4">
             <Carousel className="w-full">
               <CarouselContent className="-ml-2 sm:-ml-4">
@@ -2056,7 +2057,7 @@ const generateCardWithGPTImage = async () => {
               <CarouselNext className="right-1 sm:right-2 lg:right-4 h-8 w-8 sm:h-10 sm:w-10" />
             </Carousel>
           </div>
-
+          
           <div className="flex justify-center pt-2 sm:pt-4 pb-2 px-4">
             <Button 
               onClick={() => setShowInspirationModal(false)} 
