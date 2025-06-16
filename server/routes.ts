@@ -1426,16 +1426,16 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Include text:', includeText);
       console.log('Card text:', cardText);
 
-      // Build the complete prompt with enhanced character action descriptions
+      // Build the complete prompt with enhanced character action descriptions and repositioning instructions
       const characterText = imagesToProcess.length > 1 ? 'characters from the reference images' : 'characters from the reference image';
-      let fullPrompt = `Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame. Create a brand new scene featuring the ${characterText}. The new scene should be: ${scenePrompt}, with the characters in clothing and performing actions that match the scene`;
+      let fullPrompt = `Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame. Create a brand new scene featuring the ${characterText}. IMPORTANT: Use the people in the reference images only as visual references for their appearance, facial features, and clothing style. Do NOT replicate their original positioning, poses, or spatial arrangement. Instead, creatively reposition and rearrange all people to naturally fit the new scene context. The new scene should be: ${scenePrompt}, with the characters wearing appropriate clothing and performing actions that naturally match this new scene environment`;
       if (style && style.trim()) {
         fullPrompt = `${fullPrompt}, rendered in ${style} art style`;
       }
       if (includeText && cardText && cardText.trim()) {
         fullPrompt = `${fullPrompt}. Add the text "${cardText}" in elegant typography that matches the ${style || 'artistic'} style. The text should be prominently displayed and beautifully integrated into the design.`;
       }
-      fullPrompt = `${fullPrompt}. High-quality artistic rendering, professional artwork.`;
+      fullPrompt = `${fullPrompt}. High-quality artistic rendering, professional artwork with natural, contextually appropriate character positioning.`;
 
       console.log('Complete prompt for scene editing:', fullPrompt);
 
@@ -1696,8 +1696,8 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('GPT-Image-1 style transformation with style:', style);
       console.log('Number of images:', imagesToProcess.length);
 
-      // Enhance the style prompt to explicitly request square format
-      const transformPrompt = `${style} IMPORTANT: Render this as a perfectly square image with 1:1 aspect ratio (width equals height). The final output must be square-formatted, not portrait or landscape.`;
+      // Enhance the style prompt to explicitly request square format and repositioning
+      const transformPrompt = `${style} IMPORTANT: Render this as a perfectly square image with 1:1 aspect ratio (width equals height). Use the people in the reference images only as visual references for their appearance, facial features, and clothing style. Do NOT replicate their original positioning, poses, or spatial arrangement. Instead, creatively reposition and rearrange all people to naturally fit the new artistic style and composition. The final output must be square-formatted, not portrait or landscape.`;
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
 
       try {
