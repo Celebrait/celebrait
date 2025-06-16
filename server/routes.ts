@@ -1472,9 +1472,17 @@ The inside should look like a perfect companion piece created by the same artist
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
         formData.append('size', '1024x1024');
-        formData.append('quality', 'high');
+        formData.append('quality', 'hd');
         formData.append('moderation', 'low');
         formData.append('background', 'auto');
+        
+        console.log('📋 Scene Edit API Parameters:');
+        console.log('- model: gpt-image-1');
+        console.log('- size: 1024x1024');
+        console.log('- quality: high');
+        console.log('- moderation: low');
+        console.log('- background: auto');
+        console.log('- prompt length:', fullPrompt.length);
         
         // Use node-fetch with proper FormData handling
         const fetch = (await import('node-fetch')).default;
@@ -1620,6 +1628,14 @@ The inside should look like a perfect companion piece created by the same artist
       formData.append('quality', 'high');
       formData.append('moderation', 'low');
       formData.append('background', 'auto');
+
+      console.log('📋 Inside Card API Parameters:');
+      console.log('- model: gpt-image-1');
+      console.log('- size: 1024x1024');
+      console.log('- quality: high');
+      console.log('- moderation: low');
+      console.log('- background: auto');
+      console.log('- prompt length:', insideCardPrompt.length);
 
       const fetch = (await import('node-fetch')).default;
       const response = await fetch('https://api.openai.com/v1/images/edits', {
