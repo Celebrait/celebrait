@@ -1648,8 +1648,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('GPT-Image-1 style transformation with style:', style);
       console.log('Number of images:', imagesToProcess.length);
 
-      // Enhance the style prompt to explicitly request square format
-      const transformPrompt = `${style} IMPORTANT: Render this as a perfectly square image with 1:1 aspect ratio (width equals height). The final output must be square-formatted, not portrait or landscape.`;
+      // Enhance the style prompt to explicitly preserve photo content while transforming style
+      const transformPrompt = `Transform this image into ${style} art style. CRITICAL REQUIREMENTS: 1) Keep the EXACT same person, pose, composition, background, and all visual elements from the original photo - DO NOT change anything about the content, scene, or subject matter. 2) ONLY transform the artistic style/rendering technique to ${style} while preserving every detail of the original image. 3) The person must look identical to the original photo - same facial features, expression, clothing, positioning. 4) Render as a perfectly square image with 1:1 aspect ratio (width equals height). The final output must be square-formatted, not portrait or landscape.`;
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
 
       try {
