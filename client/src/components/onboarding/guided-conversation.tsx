@@ -922,8 +922,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const generateCardWithGPTImageTransform = async () => {
     console.log('Using GPT-Image-1 for photo + transform style workflow');
     
-    // Use the first uploaded photo as the reference image
-    const referenceImage = uploadedPhotos[0];
+    // Use all uploaded photos for GPT-Image-1 style transformation
+    const referenceImages = uploadedPhotos;
     
     // Build style transformation prompt using the exact same approach as gpt-image-test page
     const artStyle = answers.art_style || 'watercolor painting';
@@ -935,9 +935,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       transformPrompt += `. Include the text "${frontCardText}" in the same ${artStyle}, beautifully integrated into the composition.`;
     }
     
-    // Generate front card using GPT-Image-1 transform style endpoint
+    // Generate front card using GPT-Image-1 transform style endpoint with multiple images
     const frontResponse = await apiRequest("POST", "/api/transform-style-gpt-image-1", {
-      imageData: referenceImage,
+      imageData: referenceImages[0], // Keep for backward compatibility
+      imageDataArray: referenceImages, // Send all images
       style: transformPrompt
     });
 

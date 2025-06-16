@@ -519,7 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Process the response to create frontImageGeneration-like object
           frontImageGeneration = {
-            data: responseData.data || []
+            data: (responseData as any).data || []
           };
           
           console.log('Successfully generated image using GPT-Image-1 edits API');
@@ -1684,21 +1684,17 @@ The inside should look like a perfect companion piece created by the same artist
         return res.status(503).json({ message: "OpenAI API is not configured" });
       }
 
-      const { imageData, style } = req.body;
+      const { imageData, imageDataArray, style } = req.body;
+      
+      // Support both single image (legacy) and multiple images (new)
+      const imagesToProcess = imageDataArray || (imageData ? [imageData] : []);
 
-      if (!imageData || !style) {
+      if (imagesToProcess.length === 0 || !style) {
         return res.status(400).json({ message: "Image data and style are required" });
       }
 
       console.log('GPT-Image-1 style transformation with style:', style);
-
-      // Extract MIME type and base64 data
-      const mimeMatch = imageData.match(/^data:image\/([a-z]+);base64,/);
-      const mimeType = mimeMatch ? mimeMatch[1] : 'png';
-      const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
-      const imageBuffer = Buffer.from(base64Data, 'base64');
-
-      console.log('Image buffer size:', imageBuffer.length, 'bytes, MIME type:', mimeType);
+      console.log('Number of images:', imagesToProcess.length);
 
       // Enhance the style prompt to explicitly request square format
       const transformPrompt = `${style} IMPORTANT: Render this as a perfectly square image with 1:1 aspect ratio (width equals height). The final output must be square-formatted, not portrait or landscape.`;
@@ -1711,11 +1707,23 @@ The inside should look like a perfect companion piece created by the same artist
         // Use form-data package for proper multipart form handling
         const formData = new FormData();
         
-        // Add image buffer directly with proper metadata
-        formData.append('image', imageBuffer, {
-          filename: `image.${mimeType}`,
-          contentType: `image/${mimeType}`
+        // Add all images to the form data with image[] parameter names
+        imagesToProcess.forEach((imageData: string, index: number) => {
+          // Extract MIME type and base64 data
+          const mimeMatch = imageData.match(/^data:image\/([a-z]+);base64,/);
+          const mimeType = mimeMatch ? mimeMatch[1] : 'png';
+          const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
+          const imageBuffer = Buffer.from(base64Data, 'base64');
+          
+          console.log(`Image ${index + 1} buffer size:`, imageBuffer.length, 'bytes, MIME type:', mimeType);
+          
+          // Add image buffer with proper metadata using image[] parameter name
+          formData.append('image[]', imageBuffer, {
+            filename: `image${index + 1}.${mimeType}`,
+            contentType: `image/${mimeType}`
+          });
         });
+        
         formData.append('prompt', transformPrompt);
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
@@ -1730,8 +1738,6 @@ The inside should look like a perfect companion piece created by the same artist
         console.log('- prompt length:', transformPrompt.length);
         console.log('- moderation:', 'low');
         console.log('- n:', '1');
-        console.log('- image filename:', `image.${mimeType}`);
-        console.log('- image content-type:', `image/${mimeType}`);
         
         // Use node-fetch with proper FormData handling
         const fetch = (await import('node-fetch')).default;
