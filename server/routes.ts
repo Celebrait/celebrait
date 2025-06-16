@@ -151,6 +151,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug: List all cards (for testing)
+  app.get("/api/debug/cards", async (req, res) => {
+    try {
+      const allCards = Array.from((storage as any).cards.values());
+      res.json({ 
+        totalCards: allCards.length,
+        cards: allCards 
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // AI Chat completion
   app.post("/api/chat", async (req, res) => {
     try {
