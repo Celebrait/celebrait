@@ -464,29 +464,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
           size: "1024x1024"
         });
       } else if (photoData) {
-        // Direct image-to-image transformation using GPT-Image-1 edits API
-        console.log('Using direct image-to-image transformation with uploaded photo as reference');
+        // Direct GPT-Image-1 transformation with multiple photo references (no GPT Vision analysis needed)
+        console.log('Using direct GPT-Image-1 edits API with photo reference');
         
         try {
-          console.log('Using GPT-Image-1 edits API for direct image-to-image transformation');
+          console.log('Using GPT-Image-1 edits API for direct transformation with multiple photo support');
           
-          // Extract MIME type and base64 data from uploaded photo
-          const mimeMatch = photoData.match(/^data:image\/([a-z]+);base64,/);
-          const mimeType = mimeMatch ? mimeMatch[1] : 'png';
-          const base64Data = photoData.replace(/^data:image\/[a-z]+;base64,/, '');
-          const imageBuffer = Buffer.from(base64Data, 'base64');
-          
-          console.log('Photo buffer size:', imageBuffer.length, 'bytes, MIME type:', mimeType);
+          // Support both single photo and multiple photos
+          const photosToProcess = Array.isArray(photoData) ? photoData : [photoData];
           
           // Use form-data approach with GPT-Image-1 edits API
           const FormData = (await import('form-data')).default;
           const formData = new FormData();
           
-          // Add image buffer with proper metadata
-          formData.append('image', imageBuffer, {
-            filename: `photo.${mimeType}`,
-            contentType: `image/${mimeType}`
+          // Add all photos to the form data
+          photosToProcess.forEach((photo: string, index: number) => {
+            // Extract MIME type and base64 data from uploaded photo
+            const mimeMatch = photo.match(/^data:image\/([a-z]+);base64,/);
+            const mimeType = mimeMatch ? mimeMatch[1] : 'png';
+            const base64Data = photo.replace(/^data:image\/[a-z]+;base64,/, '');
+            const imageBuffer = Buffer.from(base64Data, 'base64');
+            
+            console.log(`Photo ${index + 1} buffer size:`, imageBuffer.length, 'bytes, MIME type:', mimeType);
+            
+            // Add image buffer with proper metadata using image[] parameter for multiple photos
+            formData.append('image[]', imageBuffer, {
+              filename: `photo${index + 1}.${mimeType}`,
+              contentType: `image/${mimeType}`
+            });
           });
+          
           formData.append('prompt', frontPrompt);
           formData.append('model', 'gpt-image-1');
           formData.append('n', '1');
@@ -522,26 +529,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             data: (responseData as any).data || []
           };
           
-          console.log('Successfully generated image using GPT-Image-1 edits API');
+          console.log('Successfully generated image using GPT-Image-1 edits API with multiple photo support');
         } catch (imageEditError: any) {
-          console.log('GPT-Image-1 edits API failed, falling back to enhanced text prompt:', imageEditError.message);
+          console.log('GPT-Image-1 edits API failed, falling back to standard text generation:', imageEditError.message);
           
-          // Fallback: Create enhanced text prompt
-          let enhancedPrompt = frontPrompt;
-          
-          // Add style transformation instructions without photo analysis
-          if (frontPrompt.includes('Create an artistic representation of the person in the uploaded photo')) {
-            enhancedPrompt = frontPrompt.replace(
-              'Create an artistic representation of the person in the uploaded photo',
-              'Create an artistic representation of a person'
-            );
-          }
-          
-          enhancedPrompt += '. CRITICAL REQUIREMENTS: 1) Use the uploaded photo as visual reference for the person and scene. 2) Transform the artistic style while maintaining the essence of the original. 3) Text must be large, bold, and clearly readable - positioned prominently.';
-          
+          // Fallback to standard text-only generation
           frontImageGeneration = await openai.images.generate({
             model: "gpt-image-1",
-            prompt: enhancedPrompt,
+            prompt: frontPrompt,
             n: 1,
             size: "1024x1024"
           });
@@ -594,136 +589,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Failed to find data array in frontResponse');
       }
 
-      // Generate inside image if provided, using GPT Vision analysis for perfect style matching
+      // Generate inside image if provided, using direct style reference approach
       if (insidePrompt && frontImageUrl) {
-        console.log('Generating inside card using GPT Vision style matching approach');
+        console.log('Generating inside card using direct GPT-Image-1 style reference approach');
         
         try {
-          // Analyze the front card with GPT Vision for detailed style analysis
-          const styleAnalysisResponse = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "text",
-                    text: "Analyze this greeting card image for visual style consistency. Please describe in detail: 1) The artistic style (watercolor, digital art, cartoon, realistic, etc.) 2) Color palette (dominant colors, mood, saturation levels) 3) Typography style (font family, weight, size, color, positioning, decorative elements) 4) Lighting and atmosphere (bright, soft, dramatic, warm, cool) 5) Background elements and textures 6) Overall visual mood and artistic treatment. Be very specific about visual elements that would help recreate the same artistic style for a companion piece."
-                  },
-                  {
-                    type: "image_url",
-                    image_url: {
-                      url: frontImageUrl
-                    }
-                  }
-                ]
-              }
-            ],
-            max_tokens: 800
-          });
-          
-          const styleAnalysis = styleAnalysisResponse.choices[0].message.content;
-          console.log('Front card style analysis completed');
-          
-          if (styleAnalysis) {
-            // Extract the message text from the inside prompt
-            const messageMatch = insidePrompt.match(/"([^"]+)"/);
-            const insideMessage = messageMatch ? messageMatch[1] : 'Happy Birthday!';
-            
-            // Generate inside card using the detailed style analysis
-            const styleMatchedInsidePrompt = `Create the interior of a greeting card that perfectly matches this visual style analysis: ${styleAnalysis}. 
-
-CRITICAL REQUIREMENTS FOR PERFECT STYLE MATCHING:
-1) Use the EXACT same artistic style, technique, and visual treatment described in the analysis
-2) Apply the IDENTICAL color palette, saturation levels, and mood from the front card
-3) Use the SAME typography style - match font family, weight, sizing, color, and positioning approach exactly
-4) Match the lighting, atmosphere, and overall visual mood precisely
-5) Display this message prominently and beautifully: "${insideMessage}"
-6) Create a subtle, complementary background that references the front card's visual elements without overwhelming the text
-7) Maintain the same artistic quality and professional appearance as the front card
-8) Square 1:1 aspect ratio, full bleed design, no borders
-9) The inside should look like it was created by the same artist using identical design principles
-
-The result should be a perfect visual companion to the front card with seamless style consistency.`;
-            
-            console.log('Generating inside card with style-matched prompt');
-            const insideGeneration = await openai.images.generate({
-              model: "gpt-image-1",
-              prompt: styleMatchedInsidePrompt,
-              n: 1,
-              size: "1024x1024"
-            });
-            
-            const insideResponse = insideGeneration as any;
-            if (insideResponse.data && Array.isArray(insideResponse.data) && insideResponse.data.length > 0) {
-              const imageData = insideResponse.data[0];
-              
-              if (typeof imageData === 'string') {
-                insideImageUrl = `data:image/png;base64,${imageData}`;
-              } else if (imageData.b64_json) {
-                insideImageUrl = `data:image/png;base64,${imageData.b64_json}`;
-              } else if (imageData.url) {
-                insideImageUrl = imageData.url;
-              }
-              console.log('Successfully generated style-matched inside card using GPT Vision analysis');
-            }
-          } else {
-            throw new Error('GPT Vision analysis failed to provide style description');
-          }
-        } catch (visionError: any) {
-          console.log('GPT Vision style matching failed, using enhanced fallback approach:', visionError.message);
-          
-          // Enhanced fallback approach with better style inference
+          // Extract the message text from the inside prompt
           const messageMatch = insidePrompt.match(/"([^"]+)"/);
           const insideMessage = messageMatch ? messageMatch[1] : 'Happy Birthday!';
           
-          // Extract style clues from the front prompt
-          const artStyle = frontPrompt.includes('watercolor') ? 'watercolor' : 
-                          frontPrompt.includes('cartoon') ? 'cartoon' :
-                          frontPrompt.includes('realistic') ? 'realistic' :
-                          frontPrompt.includes('digital art') ? 'digital art' :
-                          frontPrompt.includes('pop art') ? 'pop art' :
-                          frontPrompt.includes('oil painting') ? 'oil painting' :
-                          frontPrompt.includes('whimsical') ? 'whimsical' :
-                          frontPrompt.includes('dreamy') ? 'dreamy watercolor' : 'artistic';
+          // Use the same pattern as line 1431 - direct style reference with front card image
+          const insideCardPrompt = `Square 1:1 aspect ratio design. Reference this images style, atmosphere, colour, vibe and typography to create a new image with the text "${insideMessage}" The reference image should be used to stylise the background with the text prominent on the screen, as a square format design.`;
           
-          const frontTextMatch = frontPrompt.match(/(?:text|message)[^"]*"([^"]+)"/i);
-          const frontText = frontTextMatch ? frontTextMatch[1] : 'Happy Birthday!';
+          console.log('Using direct GPT-Image-1 style reference for inside card');
           
-          const enhancedFallbackPrompt = `Create the interior of a greeting card in ${artStyle} style that perfectly matches the front card design. 
+          // Convert front card image to buffer for GPT-Image-1 edits API
+          const base64Data = frontImageUrl.replace(/^data:image\/[a-z]+;base64,/, '');
+          const imageBuffer = Buffer.from(base64Data, 'base64');
+          
+          // Detect MIME type from the front card image
+          const mimeMatch = frontImageUrl.match(/^data:image\/([a-z]+);base64,/);
+          const mimeType = mimeMatch ? mimeMatch[1] : 'png';
+          
+          console.log('Front card image buffer size:', imageBuffer.length, 'bytes, MIME type:', mimeType);
 
-STYLE CONSISTENCY REQUIREMENTS:
-1) Use identical ${artStyle} artistic technique and visual treatment
-2) Match the exact color palette, mood, and saturation from the front card  
-3) Use the same typography style as "${frontText}" - identical font family, weight, color, and positioning approach
-4) Create complementary background elements that reference the front card without overwhelming the message
-5) Display this message prominently: "${insideMessage}"
-6) Maintain consistent lighting, atmosphere, and artistic quality
-7) Square 1:1 aspect ratio, full bleed design, no borders
-
-The inside should look like a perfect companion piece created by the same artist.`;
+          // Use form-data approach with GPT-Image-1 edits API
+          const formData = new FormData();
           
-          console.log('Generating inside card with enhanced fallback prompt');
-          const fallbackGeneration = await openai.images.generate({
-            model: "gpt-image-1", 
-            prompt: enhancedFallbackPrompt,
-            n: 1,
-            size: "1024x1024"
+          // Add image buffer with proper metadata
+          formData.append('image', imageBuffer, {
+            filename: `front-card.${mimeType}`,
+            contentType: `image/${mimeType}`
           });
-          
-          const fallbackResponse = fallbackGeneration as any;
-          if (fallbackResponse.data && Array.isArray(fallbackResponse.data) && fallbackResponse.data.length > 0) {
-            const imageData = fallbackResponse.data[0];
-            
-            if (typeof imageData === 'string') {
-              insideImageUrl = `data:image/png;base64,${imageData}`;
-            } else if (imageData.b64_json) {
-              insideImageUrl = `data:image/png;base64,${imageData.b64_json}`;
-            } else if (imageData.url) {
-              insideImageUrl = imageData.url;
+          formData.append('prompt', insideCardPrompt);
+          formData.append('model', 'gpt-image-1');
+          formData.append('n', '1');
+          formData.append('size', '1024x1024');
+          formData.append('quality', 'high');
+          formData.append('moderation', 'low');
+
+          const fetch = (await import('node-fetch')).default;
+          const response = await fetch('https://api.openai.com/v1/images/edits', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+              ...formData.getHeaders()
+            },
+            body: formData
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            let errorData;
+            try {
+              errorData = JSON.parse(errorText);
+            } catch {
+              errorData = { error: { message: errorText } };
             }
-            console.log('Successfully generated inside card using enhanced fallback approach');
+            throw new Error(`GPT-Image-1 API error: ${response.status} ${errorData.error?.message || 'Unknown error'}`);
           }
+
+          const responseData = await response.json();
+          
+          if (responseData && (responseData as any).data && Array.isArray((responseData as any).data) && (responseData as any).data.length > 0) {
+            const imageResult = (responseData as any).data[0];
+            
+            if (imageResult.b64_json) {
+              insideImageUrl = `data:image/png;base64,${imageResult.b64_json}`;
+              console.log('Generated inside card using direct style reference approach');
+            } else if (imageResult.url) {
+              insideImageUrl = imageResult.url;
+              console.log('Generated inside card image URL:', imageResult.url);
+            } else {
+              throw new Error('No image data received from GPT-Image-1');
+            }
+          } else {
+            throw new Error('Invalid response format from GPT-Image-1 API');
+          }
+        } catch (styleReferenceError: any) {
+          console.log('Direct style reference approach failed:', styleReferenceError.message);
+          // Skip inside card generation if it fails
+          insideImageUrl = null;
         }
       }
       
