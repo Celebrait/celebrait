@@ -39,8 +39,8 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
   return (
     <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20 max-w-4xl mx-auto">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-4">Perfect choice! 🎨</h2>
-        <p className="text-lg text-slate-gray">Now, what part of your card would you like us to design?</p>
+        <h2 className="text-3xl font-bold text-gray-800 mb-4">Nice!</h2>
+        <p className="text-lg text-slate-gray">Now, which part of the card would you like us to design?</p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">

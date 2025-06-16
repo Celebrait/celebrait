@@ -20,9 +20,9 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
     <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20 max-w-4xl mx-auto">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-800 mb-4">
-          Hey <span className="text-ethereal-purple">{onboarding.userName}</span>!
+          Greetings, <span className="text-ethereal-purple">{onboarding.userName}</span>!
         </h2>
-        <p className="text-lg text-slate-gray">How would you like to share your greeting card?</p>
+        <p className="text-lg text-slate-gray">How would you like your card delivered?</p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
