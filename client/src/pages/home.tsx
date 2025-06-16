@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-import ProgressIndicator from "@/components/progress-indicator";
+
 import Step1NameInput from "@/components/onboarding/step1-name-input";
 import Step2DeliveryChoice from "@/components/onboarding/step2-delivery-choice";
 import Step3PrintedOptions from "@/components/onboarding/step3-printed-options";
@@ -51,14 +51,9 @@ export default function Home() {
       
       <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
         {!generatedCard && (
-          <>
-            {onboarding.currentStep <= 4 && (
-              <ProgressIndicator currentStep={onboarding.currentStep} />
-            )}
-            <div className="animate-slide-up">
-              {renderCurrentStep()}
-            </div>
-          </>
+          <div className="animate-slide-up">
+            {renderCurrentStep()}
+          </div>
         )}
 
         {generatedCard && (
