@@ -30,7 +30,7 @@ export default function Step1NameInput({ onboarding }: Step1Props) {
         <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-celebrait rounded-full mx-auto mb-4 sm:mb-6 flex items-center justify-center animate-float">
           <User className="text-white w-8 h-8 sm:w-10 sm:h-10" />
         </div>
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-3 sm:mb-4">Welcome to Celebrait! 🎉</h1>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-3 sm:mb-4">Welcome to Celebrait!</h1>
         <p className="text-base sm:text-lg text-slate-gray max-w-2xl mx-auto px-4">
           Let's create a personalised AI-generated greeting card that will absolutely blow someone away. 
           First, what should we call you?
