@@ -1473,7 +1473,8 @@ The inside should look like a perfect companion piece created by the same artist
             const additionalBase64Data = additionalImageData.replace(/^data:image\/[a-z]+;base64,/, '');
             const additionalImageBuffer = Buffer.from(additionalBase64Data, 'base64');
             
-            formData.append('additional_image[]', additionalImageBuffer, {
+            // Use indexed parameter names instead of array syntax
+            formData.append(`additional_image_${i + 1}`, additionalImageBuffer, {
               filename: `additional_image_${i + 1}.${additionalMimeType}`,
               contentType: `image/${additionalMimeType}`
             });
