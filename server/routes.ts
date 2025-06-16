@@ -1410,20 +1410,25 @@ The inside should look like a perfect companion piece created by the same artist
     }
 
     try {
-      const { imageData, scenePrompt, style, includeText, cardText } = req.body;
+      const { imageData, imageDataArray, scenePrompt, style, includeText, cardText } = req.body;
       
-      if (!imageData || !scenePrompt) {
+      // Support both single image (legacy) and multiple images (new)
+      const imagesToProcess = imageDataArray || (imageData ? [imageData] : []);
+      
+      if (imagesToProcess.length === 0 || !scenePrompt) {
         return res.status(400).json({ message: "Image data and scene description are required" });
       }
 
       console.log('Processing GPT-Image-1 scene edit request');
+      console.log('Number of images:', imagesToProcess.length);
       console.log('Scene prompt:', scenePrompt);
       console.log('Style:', style);
       console.log('Include text:', includeText);
       console.log('Card text:', cardText);
 
       // Build the complete prompt with enhanced character action descriptions
-      let fullPrompt = `Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame. Create a brand new scene featuring the characters from the reference image. The new scene should be: ${scenePrompt}, with the characters in clothing and performing actions that match the scene`;
+      const characterText = imagesToProcess.length > 1 ? 'characters from the reference images' : 'characters from the reference image';
+      let fullPrompt = `Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame. Create a brand new scene featuring the ${characterText}. The new scene should be: ${scenePrompt}, with the characters in clothing and performing actions that match the scene`;
       if (style && style.trim()) {
         fullPrompt = `${fullPrompt}, rendered in ${style} art style`;
       }
@@ -1434,25 +1439,29 @@ The inside should look like a perfect companion piece created by the same artist
 
       console.log('Complete prompt for scene editing:', fullPrompt);
 
-      // Extract MIME type and base64 data
-      const mimeMatch = imageData.match(/^data:image\/([a-z]+);base64,/);
-      const mimeType = mimeMatch ? mimeMatch[1] : 'png';
-      const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
-      const imageBuffer = Buffer.from(base64Data, 'base64');
-      
-      console.log('Image buffer size:', imageBuffer.length, 'bytes, MIME type:', mimeType);
-
       try {
         console.log('Making GPT-Image-1 scene edit API request using direct HTTP form-data');
         
         // Use form-data package for proper multipart form handling
         const formData = new FormData();
         
-        // Add image buffer directly with proper metadata
-        formData.append('image', imageBuffer, {
-          filename: `image.${mimeType}`,
-          contentType: `image/${mimeType}`
+        // Add all images to the form data with image[] parameter names
+        imagesToProcess.forEach((imageData: string, index: number) => {
+          // Extract MIME type and base64 data
+          const mimeMatch = imageData.match(/^data:image\/([a-z]+);base64,/);
+          const mimeType = mimeMatch ? mimeMatch[1] : 'png';
+          const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
+          const imageBuffer = Buffer.from(base64Data, 'base64');
+          
+          console.log(`Image ${index + 1} buffer size:`, imageBuffer.length, 'bytes, MIME type:', mimeType);
+          
+          // Add image buffer with proper metadata using image[] parameter name
+          formData.append('image[]', imageBuffer, {
+            filename: `image${index + 1}.${mimeType}`,
+            contentType: `image/${mimeType}`
+          });
         });
+        
         formData.append('prompt', fullPrompt);
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
