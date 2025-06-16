@@ -1422,10 +1422,10 @@ The inside should look like a perfect companion piece created by the same artist
       console.log('Include text:', includeText);
       console.log('Card text:', cardText);
 
-      // Build the complete prompt matching the successful transform style approach
-      let fullPrompt = `Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame. Create a new scene featuring the characters from the reference image. The new scene should be: ${scenePrompt}, with the characters in clothing to match the occasion`;
+      // Build the complete prompt with enhanced character action descriptions
+      let fullPrompt = `Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame. Create a brand new scene featuring the characters from the reference image. The new scene should be: ${scenePrompt}, with the characters in clothing and performing actions that match the scene`;
       if (style && style.trim()) {
-        fullPrompt = `${fullPrompt} in ${style} art style`;
+        fullPrompt = `${fullPrompt}, rendered in ${style} art style`;
       }
       if (includeText && cardText && cardText.trim()) {
         fullPrompt = `${fullPrompt}. Add the text "${cardText}" in elegant typography that matches the ${style || 'artistic'} style. The text should be prominently displayed and beautifully integrated into the design.`;
