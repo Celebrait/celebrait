@@ -10,6 +10,7 @@ import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
+import AIProcessingScreen from "./ai-processing-screen";
 
 // Example prompts for the scene description
 const EXAMPLE_PROMPTS = [
@@ -1061,49 +1062,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   };
 
   if (isLoading) {
-    return (
-      <div className="h-screen flex flex-col">
-        {/* Progress Bar */}
-        <div className="p-4 bg-white border-b">
-          <Progress value={100} className="h-3 bg-gradient-to-r from-purple-500 to-pink-500" />
-        </div>
-        
-        <div className="flex-1 flex items-center justify-center">
-          <div className="max-w-4xl mx-auto text-center p-8">
-            <Sparkles className="w-16 h-16 mx-auto text-purple-500 animate-pulse mb-6" />
-            <h2 className="text-3xl font-bold mb-4">
-              Generating {answers.name ? `${answers.name}'s` : 'Your'} {answers.celebration ? answers.celebration.charAt(0).toUpperCase() + answers.celebration.slice(1) : ''} Card
-            </h2>
-            
-            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-              Please watch this short video to understand what to expect from our tech..
-            </p>
-            
-            {/* Video Placeholder */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20 mb-8 max-w-2xl mx-auto">
-              <div className="aspect-video bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z"/>
-                    </svg>
-                  </div>
-                  <p className="text-gray-600 font-medium">Video Preview</p>
-                  <p className="text-gray-500 text-sm">Your video will appear here</p>
-                </div>
-              </div>
-            </div>
-            
-            {/* Animated loading dots */}
-            <div className="flex justify-center space-x-2">
-              <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"></div>
-              <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <AIProcessingScreen 
+      recipientName={answers.name} 
+      celebration={answers.celebration}
+      onEmailSignup={async (email: string) => {
+        // Store email for notification when card is ready
+        // For now, just log it - will implement proper storage later
+        console.log('Email signup for notification:', email);
+        toast({
+          title: "Brilliant!",
+          description: "We'll email you when your card is ready. Feel free to close this tab!",
+        });
+      }}
+    />;
   }
 
   return (
