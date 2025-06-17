@@ -1380,12 +1380,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 3) CREATE AN ENTIRELY NEW COMPOSITION where characters are arranged differently and naturally for this new scene: ${scenePrompt}
 4) If multiple people were together in the reference, separate them and place them in new positions that fit the scene
 5) Give each character new poses, actions, and interactions that match the described scenario, not their original photo
-6) Completely reimagine how the characters would naturally be positioned and interact in this new environment`;
+6) Choose NEW CLOTHING for each person that appropriately matches the occasion and setting described in the scene
+7) Completely reimagine how the characters would naturally be positioned and interact in this new environment`;
       if (style && style.trim()) {
         fullPrompt = `${fullPrompt}, rendered in ${style} art style`;
       }
       if (includeText && cardText && cardText.trim()) {
-        fullPrompt = `${fullPrompt}. Add the text "${cardText}" in elegant typography that matches the ${style || 'artistic'} style. The text should be prominently displayed and beautifully integrated into the design.`;
+        fullPrompt = `${fullPrompt}. Add EXACTLY the text "${cardText}" and NO OTHER TEXT. Use typography that matches the ${style || 'artistic'} style and complements the overall vibe of the image. The text should be prominently displayed and well-integrated into the design.`;
       }
       fullPrompt = `${fullPrompt}. High-quality artistic rendering, professional artwork.`;
 
