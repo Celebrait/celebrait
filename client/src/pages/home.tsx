@@ -24,14 +24,14 @@ export default function Home() {
     if (displayStep !== onboarding.currentStep) {
       setIsTransitioning(true);
       
-      // Start fade out
+      // Wait for complete fade out before changing content
       setTimeout(() => {
         setDisplayStep(onboarding.currentStep);
-        // Start fade in
-        setTimeout(() => {
+        // Wait a frame before starting fade in
+        requestAnimationFrame(() => {
           setIsTransitioning(false);
-        }, 50);
-      }, 150);
+        });
+      }, 200);
     }
   }, [onboarding.currentStep, displayStep]);
 
@@ -70,7 +70,7 @@ export default function Home() {
       <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
         {!generatedCard && (
           <div 
-            className="transition-opacity duration-200 ease-in-out"
+            className="transition-opacity duration-300 ease-in-out"
             style={{
               opacity: isTransitioning ? 0 : 1,
             }}
