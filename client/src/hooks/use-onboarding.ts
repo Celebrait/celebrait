@@ -23,19 +23,11 @@ export function useOnboarding(): OnboardingState {
   const [selectedPrintOption, setSelectedPrintOption] = useState<'front-only' | 'front-and-inside' | null>(null);
   const [selectedSceneType, setSelectedSceneType] = useState<'with-person' | 'scene-only' | null>(null);
 
-  // Scroll to top whenever the step changes
+  // Instantly position at top whenever the step changes
   useEffect(() => {
-    const scrollToTop = () => {
-      window.scrollTo({
-        top: 0,
-        left: 0,
-        behavior: 'smooth'
-      });
-    };
-
-    // Small delay to ensure DOM has updated
-    const timeoutId = setTimeout(scrollToTop, 100);
-    return () => clearTimeout(timeoutId);
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   }, [currentStep]);
 
   const nextStep = () => {
