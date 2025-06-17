@@ -116,6 +116,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [editingStep, setEditingStep] = useState<string | null>(null);
   const [returnToSummary, setReturnToSummary] = useState(false);
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+  
+  // Fade transition states
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [displayStepIndex, setDisplayStepIndex] = useState(0);
 
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedVideoOption, setSelectedVideoOption] = useState<string>('');
@@ -545,8 +549,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     return true;
   });
 
-  const currentStep = filteredSteps[currentStepIndex];
-  const progress = ((currentStepIndex + 1) / filteredSteps.length) * 100;
+  const currentStep = filteredSteps[displayStepIndex];
+  const progress = ((displayStepIndex + 1) / filteredSteps.length) * 100;
 
   // Handle rotating example prompts for scene description
   useEffect(() => {
@@ -630,6 +634,26 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   useEffect(() => {
     scrollToBottom();
   }, [currentStepIndex, isTyping]);
+
+  // Handle step transition with fade effect and scroll to top
+  useEffect(() => {
+    if (displayStepIndex !== currentStepIndex) {
+      setIsTransitioning(true);
+      
+      // Wait for complete fade out before changing content
+      setTimeout(() => {
+        setDisplayStepIndex(currentStepIndex);
+        // Scroll to top instantly
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        // Wait a frame before starting fade in
+        requestAnimationFrame(() => {
+          setIsTransitioning(false);
+        });
+      }, 200);
+    }
+  }, [currentStepIndex, displayStepIndex]);
 
   const initializeCard = async () => {
     try {
@@ -1111,7 +1135,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto">
         <div className="flex items-center justify-center min-h-full p-4 sm:p-6">
-          <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6">
+          <div 
+            className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6 transition-opacity duration-300 ease-in-out"
+            style={{
+              opacity: isTransitioning ? 0 : 1,
+            }}
+          >
             {/* AI Avatar with Circular Progress and Message */}
             <div className="text-center space-y-4">
               <div className="relative w-20 h-20 mx-auto">
