@@ -126,13 +126,19 @@ export default function Home() {
       
       <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
         {!generatedCard && (
-          <div 
-            className="transition-opacity duration-300 ease-in-out"
-            style={{
-              opacity: isTransitioning ? 0 : 1,
-            }}
-          >
-            {renderCurrentStep()}
+          <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-white/20 max-w-4xl mx-auto">
+            {/* Header text renders instantly */}
+            {renderStepHeader()}
+            
+            {/* Only interactive content fades */}
+            <div 
+              className="transition-opacity duration-300 ease-in-out"
+              style={{
+                opacity: isTransitioning ? 0 : 1,
+              }}
+            >
+              {renderStepCard()}
+            </div>
           </div>
         )}
 
