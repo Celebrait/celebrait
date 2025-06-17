@@ -112,12 +112,6 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- June 16, 2025. Enhanced user experience with smooth fade transitions
-  * Added automatic scroll-to-top functionality for onboarding steps
-  * Implemented selective fade transitions in guided conversation
-  * Static elements (robot icon, progress bar, question box) maintain visual continuity
-  * Answer sections fade smoothly between questions
-  * Entrance animations for static elements when transitioning from lower page positions
 - June 15, 2025. Initial setup
 ```
 

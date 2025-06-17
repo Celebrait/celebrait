@@ -116,10 +116,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [editingStep, setEditingStep] = useState<string | null>(null);
   const [returnToSummary, setReturnToSummary] = useState(false);
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
-  
-  // Fade transition states
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [displayStepIndex, setDisplayStepIndex] = useState(0);
 
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedVideoOption, setSelectedVideoOption] = useState<string>('');
@@ -549,8 +545,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     return true;
   });
 
-  const currentStep = filteredSteps[displayStepIndex];
-  const progress = ((displayStepIndex + 1) / filteredSteps.length) * 100;
+  const currentStep = filteredSteps[currentStepIndex];
+  const progress = ((currentStepIndex + 1) / filteredSteps.length) * 100;
 
   // Handle rotating example prompts for scene description
   useEffect(() => {
@@ -634,26 +630,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   useEffect(() => {
     scrollToBottom();
   }, [currentStepIndex, isTyping]);
-
-  // Handle step transition with fade effect and scroll to top
-  useEffect(() => {
-    if (displayStepIndex !== currentStepIndex) {
-      setIsTransitioning(true);
-      
-      // Wait for complete fade out before changing content
-      setTimeout(() => {
-        setDisplayStepIndex(currentStepIndex);
-        // Scroll to top instantly
-        window.scrollTo(0, 0);
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-        // Wait a frame before starting fade in
-        requestAnimationFrame(() => {
-          setIsTransitioning(false);
-        });
-      }, 200);
-    }
-  }, [currentStepIndex, displayStepIndex]);
 
   const initializeCard = async () => {
     try {
@@ -1137,13 +1113,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         <div className="flex items-center justify-center min-h-full p-4 sm:p-6">
           <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6">
             {/* AI Avatar with Circular Progress and Message */}
-            <div 
-              className="text-center space-y-4 transition-all duration-500 ease-out"
-              style={{
-                transform: isTransitioning ? 'translateY(-20px)' : 'translateY(0)',
-                opacity: isTransitioning ? 0 : 1,
-              }}
-            >
+            <div className="text-center space-y-4">
               <div className="relative w-20 h-20 mx-auto">
                 {/* Circular Progress Ring */}
                 <svg className="absolute inset-0 w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
@@ -1207,12 +1177,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
             {/* Answer Options */}
             {!isTyping && (
-              <div 
-                className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-white/20 transition-opacity duration-300 ease-in-out"
-                style={{
-                  opacity: isTransitioning ? 0 : 1,
-                }}
-              >
+              <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-white/20">
                 {currentStep.type === 'select' && currentStep.options && (
                   <div className="space-y-4 sm:space-y-6">
                     {/* Compact Options Grid */}
@@ -1566,12 +1531,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 )}
 
                 {currentStep.type === 'text' && (
-                  <div 
-                    className="space-y-4 transition-opacity duration-300 ease-in-out"
-                    style={{
-                      opacity: isTransitioning ? 0 : 1,
-                    }}
-                  >
+                  <div className="space-y-4">
                     <div className="flex space-x-3">
                       <Input
                         value={currentInput}
@@ -1667,12 +1627,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 
 
                 {currentStep.type === 'photo_upload' && (answers.photo_option === 'upload_and_scene' || answers.photo_option === 'upload_and_transform') && (
-                  <div 
-                    className="space-y-6 transition-opacity duration-300 ease-in-out"
-                    style={{
-                      opacity: isTransitioning ? 0 : 1,
-                    }}
-                  >
+                  <div className="space-y-6">
                     {uploadedPhotos.length === 0 ? (
                       <div className="space-y-6">
                         <div className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center bg-purple-50 hover:bg-purple-100 transition-colors">
@@ -1874,12 +1829,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 )}
 
                 {currentStep.type === 'textarea' && (
-                  <div 
-                    className="space-y-4 transition-opacity duration-300 ease-in-out"
-                    style={{
-                      opacity: isTransitioning ? 0 : 1,
-                    }}
-                  >
+                  <div className="space-y-4">
                     {currentStep.id === 'scene' && (
                       <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-4 rounded-lg">
                         <div className="flex items-start">
