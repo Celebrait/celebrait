@@ -44,7 +44,64 @@ export default function Home() {
     setShowSignupModal(false);
   };
 
-  const renderCurrentStep = () => {
+  const renderStepHeader = () => {
+    switch (onboarding.currentStep) {
+      case 1:
+        return (
+          <div className="text-center mb-6 sm:mb-8">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-celebrait rounded-full mx-auto mb-4 sm:mb-6 flex items-center justify-center animate-float">
+              <div className="text-white w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">👋</div>
+            </div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-3 sm:mb-4">Welcome to Celebrait!</h1>
+            <p className="text-base sm:text-lg text-slate-gray max-w-2xl mx-auto px-4">
+              Let's create a personalised AI-generated greeting card that will absolutely blow someone away. 
+              First, what should we call you?
+            </p>
+          </div>
+        );
+      case 2:
+        return (
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">
+              Hey <span className="text-ethereal-purple">{onboarding.userName}</span>!
+            </h2>
+            <p className="text-lg text-slate-gray">How would you like to share your greeting card?</p>
+          </div>
+        );
+      case 3:
+        return (
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">Perfect choice!</h2>
+            <p className="text-lg text-slate-gray">Would you like text on the front only, or front and inside?</p>
+          </div>
+        );
+      case 4:
+        return (
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">Choose Your Scene Style</h2>
+            <p className="text-lg text-slate-gray">How would you like your card to look?</p>
+          </div>
+        );
+      case 5:
+        return (
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">Preparing Your Experience</h2>
+            <p className="text-lg text-slate-gray">Getting ready to create something amazing...</p>
+          </div>
+        );
+      case 6:
+        return (
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">Let's Create Magic</h2>
+            <p className="text-lg text-slate-gray">Tell me about the person this card is for...</p>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const renderStepCard = () => {
     switch (displayStep) {
       case 1:
         return <Step1NameInput onboarding={onboarding} />;
