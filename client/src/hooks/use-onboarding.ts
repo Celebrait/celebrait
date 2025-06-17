@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export interface OnboardingState {
   currentStep: number;
@@ -22,6 +22,21 @@ export function useOnboarding(): OnboardingState {
   const [selectedDelivery, setSelectedDelivery] = useState<'printed' | 'digital' | null>(null);
   const [selectedPrintOption, setSelectedPrintOption] = useState<'front-only' | 'front-and-inside' | null>(null);
   const [selectedSceneType, setSelectedSceneType] = useState<'with-person' | 'scene-only' | null>(null);
+
+  // Scroll to top whenever the step changes
+  useEffect(() => {
+    const scrollToTop = () => {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'smooth'
+      });
+    };
+
+    // Small delay to ensure DOM has updated
+    const timeoutId = setTimeout(scrollToTop, 100);
+    return () => clearTimeout(timeoutId);
+  }, [currentStep]);
 
   const nextStep = () => {
     setCurrentStep(prev => Math.min(prev + 1, 6));
