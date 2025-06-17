@@ -1137,7 +1137,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         <div className="flex items-center justify-center min-h-full p-4 sm:p-6">
           <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6">
             {/* AI Avatar with Circular Progress and Message */}
-            <div className="text-center space-y-4">
+            <div 
+              className="text-center space-y-4 transition-all duration-500 ease-out"
+              style={{
+                transform: isTransitioning ? 'translateY(-20px)' : 'translateY(0)',
+                opacity: isTransitioning ? 0 : 1,
+              }}
+            >
               <div className="relative w-20 h-20 mx-auto">
                 {/* Circular Progress Ring */}
                 <svg className="absolute inset-0 w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
