@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 
@@ -16,6 +16,24 @@ export default function Home() {
   const onboarding = useOnboarding();
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [generatedCard, setGeneratedCard] = useState(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [displayStep, setDisplayStep] = useState(onboarding.currentStep);
+
+  // Handle step transition with fade effect
+  useEffect(() => {
+    if (displayStep !== onboarding.currentStep) {
+      setIsTransitioning(true);
+      
+      // Start fade out
+      setTimeout(() => {
+        setDisplayStep(onboarding.currentStep);
+        // Start fade in
+        setTimeout(() => {
+          setIsTransitioning(false);
+        }, 50);
+      }, 150);
+    }
+  }, [onboarding.currentStep, displayStep]);
 
   const handleCardGenerated = (card: any) => {
     setGeneratedCard(card);
@@ -27,7 +45,7 @@ export default function Home() {
   };
 
   const renderCurrentStep = () => {
-    switch (onboarding.currentStep) {
+    switch (displayStep) {
       case 1:
         return <Step1NameInput onboarding={onboarding} />;
       case 2:
@@ -51,7 +69,12 @@ export default function Home() {
       
       <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
         {!generatedCard && (
-          <div className="animate-slide-up">
+          <div 
+            className="transition-opacity duration-200 ease-in-out"
+            style={{
+              opacity: isTransitioning ? 0 : 1,
+            }}
+          >
             {renderCurrentStep()}
           </div>
         )}
