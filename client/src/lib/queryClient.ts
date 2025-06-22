@@ -66,20 +66,30 @@ export const queryClient = new QueryClient({
 // Helper function to clear cache before payment to prevent quota errors
 export function clearCacheForPayment() {
   try {
-    // Clear query cache to free up storage
+    // Clear all React Query caches aggressively
     queryClient.clear();
+    queryClient.removeQueries();
+    queryClient.invalidateQueries();
     
-    // Clear any localStorage items that might be taking up space
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && (key.includes('card') || key.includes('image') || key.includes('query'))) {
-        keysToRemove.push(key);
-      }
+    // Clear all localStorage and sessionStorage
+    try {
+      localStorage.clear();
+    } catch (e) {
+      console.warn('Could not clear localStorage:', e);
     }
-    keysToRemove.forEach(key => localStorage.removeItem(key));
     
-    console.log('Cache cleared for payment processing');
+    try {
+      sessionStorage.clear();
+    } catch (e) {
+      console.warn('Could not clear sessionStorage:', e);
+    }
+    
+    // Force garbage collection if available
+    if (window.gc) {
+      window.gc();
+    }
+    
+    console.log('Aggressive cache clearing completed for payment processing');
   } catch (error) {
     console.warn('Cache clearing failed:', error);
   }

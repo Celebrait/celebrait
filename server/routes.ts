@@ -52,30 +52,39 @@ async function applyWatermark(imageData: string, opacity: number = 0.3): Promise
     // Apply watermark
     ctx.save();
     
-    // Set up diagonal watermark text
+    // Set up readable watermark text
     const text = 'CELEBRAIT PREVIEW';
-    const fontSize = Math.min(originalImage.width, originalImage.height) * 0.06; // Reduced to 6% for better spacing
+    const fontSize = Math.min(originalImage.width, originalImage.height) * 0.08;
     ctx.font = `bold ${fontSize}px Arial`;
-    ctx.fillStyle = `rgba(255, 255, 255, ${opacity + 0.2})`; // Slightly more opaque for legibility
-    ctx.strokeStyle = `rgba(0, 0, 0, ${opacity * 0.8})`; // Stronger stroke for contrast
-    ctx.lineWidth = 3; // Thicker stroke for better visibility
+    ctx.fillStyle = `rgba(255, 255, 255, 0.7)`; // High opacity white text
+    ctx.strokeStyle = `rgba(0, 0, 0, 0.9)`; // Strong black outline
+    ctx.lineWidth = 4; // Thick outline for readability
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
     // Rotate canvas for diagonal text
     ctx.translate(originalImage.width / 2, originalImage.height / 2);
-    ctx.rotate(-Math.PI / 6); // -30 degrees
+    ctx.rotate(-Math.PI / 8); // Reduced angle for better readability
     
-    // Draw watermark text with proper spacing to avoid overlap
-    const spacing = fontSize * 4; // Increased spacing for better legibility
-    const xStart = -originalImage.width * 0.5;
-    const xEnd = originalImage.width * 0.5;
-    const yStart = -originalImage.height * 0.5;
-    const yEnd = originalImage.height * 0.5;
+    // Calculate text dimensions
+    const textWidth = ctx.measureText(text).width;
+    const textHeight = fontSize;
     
-    for (let x = xStart; x < xEnd; x += spacing) {
-      for (let y = yStart; y < yEnd; y += spacing) {
-        // Add stroke for better contrast
+    // Draw fewer, larger, more readable watermarks
+    const spacingX = textWidth * 1.5;
+    const spacingY = textHeight * 3;
+    const numCols = Math.ceil((originalImage.width * 1.5) / spacingX);
+    const numRows = Math.ceil((originalImage.height * 1.5) / spacingY);
+    
+    const startX = -(numCols * spacingX) / 2;
+    const startY = -(numRows * spacingY) / 2;
+    
+    for (let col = 0; col < numCols; col++) {
+      for (let row = 0; row < numRows; row++) {
+        const x = startX + col * spacingX;
+        const y = startY + row * spacingY;
+        
+        // Draw text with strong outline for maximum readability
         ctx.strokeText(text, x, y);
         ctx.fillText(text, x, y);
       }
