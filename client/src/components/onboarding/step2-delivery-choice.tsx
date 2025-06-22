@@ -21,7 +21,7 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
       description: 'A beautifully printed card featuring your AI generated artwork + personalised message.',
       image: '/images/Printed_Delivered.png',
       icon: <Printer className="text-white w-5 h-5" />,
-      badge: 'Most Popular',
+      badge: '',
       price: 'R89 – R129',
       features: [
         'Personalised AI image of a loved one/friend',
@@ -39,7 +39,7 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
       icon: <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
       </svg>,
-      badge: 'Coming Soon',
+      badge: '',
       price: 'R39 – R59',
       features: [
         'Instant digital delivery',
@@ -127,13 +127,7 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
                     } relative`}
                     onClick={() => option.available && handleDeliverySelect(option.id as 'printed' | 'digital')}
                   >
-                    {option.badge && (
-                      <div className={`absolute -top-3 left-1/2 transform -translate-x-1/2 ${
-                        option.available ? 'bg-gradient-to-r from-purple-500 to-blue-500' : 'bg-gray-400'
-                      } text-white px-4 py-1 rounded-full text-sm font-bold shadow-lg z-10`}>
-                        {option.badge}
-                      </div>
-                    )}
+
                     <CardContent className="p-4">
                       <div className="relative">
                         <img

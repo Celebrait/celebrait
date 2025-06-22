@@ -33,7 +33,7 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
       id: 'front-and-inside',
       title: 'Front + Inside',
       description: 'Fully designed outside and inside. Ideal for delivering a complete message.',
-      badge: 'Complete Package',
+      badge: '',
       icon: <Layers className="text-white w-5 h-5" />,
       features: [
         'AI-designed front and inside',
@@ -48,7 +48,7 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
       id: 'front-only',
       title: 'Front Only',
       description: 'Only the front cover is printed. Great for adding your own handwritten message inside.',
-      badge: 'Coming Soon',
+      badge: '',
       icon: <Image className="text-white w-5 h-5" />,
       features: [
         'AI-designed front cover',
@@ -139,13 +139,7 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
                     } relative`}
                     onClick={() => option.available && handlePrintOptionSelect(option.id as 'front-only' | 'front-and-inside')}
                   >
-                    {option.badge && (
-                      <div className={`absolute -top-3 left-1/2 transform -translate-x-1/2 ${
-                        option.available ? 'bg-gradient-to-r from-purple-500 to-blue-500' : 'bg-gray-400'
-                      } text-white px-4 py-1 rounded-full text-sm font-bold shadow-lg z-10`}>
-                        {option.badge}
-                      </div>
-                    )}
+
                     <CardContent className="p-4">
                       {/* Image or Carousel */}
                       {option.carousel ? (
