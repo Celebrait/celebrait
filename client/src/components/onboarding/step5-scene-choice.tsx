@@ -91,7 +91,7 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
     return (
       <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20 max-w-4xl mx-auto animate-in fade-in-0 slide-in-from-bottom-4 duration-700">
         {/* Question Section */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-6 animate-in fade-in-0 slide-in-from-top-2 duration-500 delay-100">
           <div className="w-16 h-16 bg-gradient-celebrait rounded-full mx-auto mb-4 flex items-center justify-center animate-float">
             <Users className="text-white w-8 h-8" />
           </div>
@@ -102,7 +102,7 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
         </div>
 
         {/* Swipeable Options */}
-        <div className="relative">
+        <div className="relative animate-in fade-in-0 slide-in-from-bottom-2 duration-600 delay-200">
           <div 
             className="overflow-hidden"
             onTouchStart={handleTouchStart}
@@ -171,14 +171,14 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
           {/* Navigation Arrows */}
           <button
             onClick={prevOption}
-            className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white rounded-full p-2 z-10"
+            className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white rounded-full p-2 z-10 transition-all duration-300 hover:scale-110 backdrop-blur-sm"
             disabled={currentOption === 0}
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             onClick={nextOption}
-            className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white rounded-full p-2 z-10"
+            className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white rounded-full p-2 z-10 transition-all duration-300 hover:scale-110 backdrop-blur-sm"
             disabled={currentOption === options.length - 1}
           >
             <ChevronRight className="w-4 h-4" />

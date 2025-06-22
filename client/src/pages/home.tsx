@@ -19,7 +19,7 @@ export default function Home() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayStep, setDisplayStep] = useState(onboarding.currentStep);
 
-  // Handle step transition with fade effect
+  // Handle step transition with ethereal fade effect
   useEffect(() => {
     if (displayStep !== onboarding.currentStep) {
       setIsTransitioning(true);
@@ -29,9 +29,11 @@ export default function Home() {
         setDisplayStep(onboarding.currentStep);
         // Wait a frame before starting fade in
         requestAnimationFrame(() => {
-          setIsTransitioning(false);
+          setTimeout(() => {
+            setIsTransitioning(false);
+          }, 50);
         });
-      }, 200);
+      }, 300);
     }
   }, [onboarding.currentStep, displayStep]);
 
