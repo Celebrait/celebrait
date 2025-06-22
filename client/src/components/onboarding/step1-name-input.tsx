@@ -14,10 +14,8 @@ export default function Step1NameInput({ onboarding }: Step1Props) {
   const handleSubmit = () => {
     if (name.trim()) {
       onboarding.setUserName(name.trim());
-      // Use a smooth fade transition instead of immediate step change
-      setTimeout(() => {
-        onboarding.nextStep();
-      }, 200);
+      // Immediate step change for seamless transition
+      onboarding.nextStep();
     }
   };
 
