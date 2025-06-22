@@ -969,23 +969,46 @@ When you have all the information, confirm with the user and then say "GENERATE_
 
   return (
     <div className="bg-white/60 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden animate-fade-in">
-      {/* Chat Header */}
-      <div className="bg-gradient-celebrait p-6 text-white">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-            <Bot className="text-white text-xl" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold">Celebrait AI</h3>
-            <p className="text-white/80 text-sm">Your creative assistant • Online</p>
+      {/* Sticky Header - Robot and Current Question */}
+      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-gray-200 md:relative md:bg-gradient-celebrait md:text-white">
+        {/* Robot Icon and Info */}
+        <div className="p-4 md:p-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-celebrait md:bg-white/20 rounded-full flex items-center justify-center">
+              <Bot className="text-white text-xl" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-800 md:text-white">Celebrait AI</h3>
+              <p className="text-gray-600 md:text-white/80 text-sm">Your creative assistant • Online</p>
+            </div>
           </div>
         </div>
+
+        {/* Current AI Question - Sticky on Mobile */}
+        {messages.length > 0 && (
+          <div className="px-4 pb-4 md:hidden">
+            <div className="bg-gray-100 rounded-2xl p-4">
+              <div className="flex items-start space-x-3">
+                <div className="w-8 h-8 bg-gradient-celebrait rounded-full flex items-center justify-center flex-shrink-0">
+                  <Bot className="text-white text-xs" />
+                </div>
+                <div className="text-gray-800 text-sm leading-relaxed">
+                  {messages[messages.length - 1]?.role === 'assistant' 
+                    ? messages[messages.length - 1].content 
+                    : messages[messages.length - 2]?.content || ''}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Chat Messages */}
-      <div className="p-6 h-96 overflow-y-auto space-y-4">
+      <div className="p-6 h-96 overflow-y-auto space-y-4 md:h-96">
         {messages.map((message, index) => (
-          <div key={index} className={`flex items-start space-x-3 ${message.role === 'user' ? 'justify-end' : ''}`}>
+          <div key={index} className={`flex items-start space-x-3 ${message.role === 'user' ? 'justify-end' : ''} ${
+            index === messages.length - 1 && message.role === 'assistant' ? 'md:block hidden' : ''
+          }`}>
             {message.role === 'assistant' && (
               <div className="w-10 h-10 bg-gradient-celebrait rounded-full flex items-center justify-center flex-shrink-0">
                 <Bot className="text-white text-sm" />
