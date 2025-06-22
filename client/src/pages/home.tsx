@@ -72,9 +72,11 @@ export default function Home() {
       <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
         {!generatedCard && (
           <div 
-            className="transition-opacity duration-300 ease-in-out"
+            className="transition-all duration-500 ease-out transform"
             style={{
               opacity: isTransitioning ? 0 : 1,
+              transform: isTransitioning ? 'translateY(20px) scale(0.98)' : 'translateY(0px) scale(1)',
+              filter: isTransitioning ? 'blur(4px)' : 'blur(0px)',
             }}
           >
             {renderCurrentStep()}
