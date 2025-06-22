@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Download, Truck, Sparkles } from 'lucide-react';
-import { clearCacheForPayment } from '@/lib/queryClient';
+import { emergencyStorageCleanup } from '@/lib/queryClient';
 
 interface DeliveryChoiceProps {
   onDeliverySelected: (delivery: 'printed' | 'digital') => void;
@@ -12,8 +12,8 @@ export default function DeliveryChoice({ onDeliverySelected }: DeliveryChoicePro
   const [selectedDelivery, setSelectedDelivery] = useState<'printed' | 'digital' | null>(null);
 
   const handleSelection = (delivery: 'printed' | 'digital') => {
-    // Clear cache before proceeding to prevent quota errors
-    clearCacheForPayment();
+    // Emergency storage cleanup before proceeding to prevent quota errors
+    emergencyStorageCleanup();
     setSelectedDelivery(delivery);
     onDeliverySelected(delivery);
   };

@@ -129,3 +129,40 @@ export function handleQuotaError(error: Error) {
 
 // Monitor storage usage periodically
 setInterval(checkStorageQuota, 30000); // Check every 30 seconds
+
+// Emergency storage cleanup for critical navigation points
+export function emergencyStorageCleanup() {
+  try {
+    // Clear all caches immediately
+    clearCacheForPayment();
+    
+    // Clear any IndexedDB storage
+    if ('indexedDB' in window) {
+      indexedDB.databases().then(databases => {
+        databases.forEach(db => {
+          if (db.name && (db.name.includes('keyval') || db.name.includes('react-query'))) {
+            indexedDB.deleteDatabase(db.name);
+          }
+        });
+      }).catch(() => {});
+    }
+    
+    // Clear service worker caches
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => caches.delete(name));
+      }).catch(() => {});
+    }
+    
+    // Force immediate garbage collection
+    if (window.gc) {
+      window.gc();
+    }
+    
+    console.log('Emergency storage cleanup completed');
+    return true;
+  } catch (error) {
+    console.warn('Emergency cleanup failed:', error);
+    return false;
+  }
+}

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocation } from "wouter";
 import DeliveryChoice from "./delivery-choice";
-import { clearCacheForPayment } from "@/lib/queryClient";
+import { emergencyStorageCleanup } from "@/lib/queryClient";
 
 interface CardPreviewProps {
   card: any;
@@ -22,9 +22,40 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
       // Handle digital download
       setLocation('/order-success');
     } else {
-      // Store card data and proceed to checkout
-      sessionStorage.setItem('cardPreviewData', JSON.stringify(card));
-      setLocation(`/payment-tips/${card.id}`);
+      // Emergency storage cleanup before navigation to prevent quota errors
+      const cleanupSuccess = emergencyStorageCleanup();
+      
+      // Store minimal card data only
+      const minimalCardData = {
+        id: card.id,
+        cardType: card.cardType,
+        price: card.price
+      };
+      
+      try {
+        sessionStorage.setItem('cardPreviewData', JSON.stringify(minimalCardData));
+      } catch (e) {
+        console.warn('Could not store card data, clearing more storage:', e);
+        // If storage fails, clear everything and try again
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+          sessionStorage.setItem('cardPreviewData', JSON.stringify(minimalCardData));
+        } catch (e2) {
+          console.error('Storage completely full:', e2);
+        }
+      }
+      
+      // Navigate with a delay to ensure cleanup completes
+      setTimeout(() => {
+        try {
+          setLocation(`/payment-tips/${card.id}`);
+        } catch (error) {
+          console.error('Navigation failed:', error);
+          // Force page reload as fallback
+          window.location.href = `/payment-tips/${card.id}`;
+        }
+      }, cleanupSuccess ? 200 : 500);
     }
   };
 
