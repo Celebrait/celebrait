@@ -54,11 +54,11 @@ async function applyWatermark(imageData: string, opacity: number = 0.3): Promise
     
     // Set up diagonal watermark text
     const text = 'CELEBRAIT PREVIEW';
-    const fontSize = Math.min(originalImage.width, originalImage.height) * 0.08; // 8% of smaller dimension
+    const fontSize = Math.min(originalImage.width, originalImage.height) * 0.06; // Reduced to 6% for better spacing
     ctx.font = `bold ${fontSize}px Arial`;
-    ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
-    ctx.strokeStyle = `rgba(0, 0, 0, ${opacity * 0.5})`;
-    ctx.lineWidth = 2;
+    ctx.fillStyle = `rgba(255, 255, 255, ${opacity + 0.2})`; // Slightly more opaque for legibility
+    ctx.strokeStyle = `rgba(0, 0, 0, ${opacity * 0.8})`; // Stronger stroke for contrast
+    ctx.lineWidth = 3; // Thicker stroke for better visibility
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
@@ -66,10 +66,16 @@ async function applyWatermark(imageData: string, opacity: number = 0.3): Promise
     ctx.translate(originalImage.width / 2, originalImage.height / 2);
     ctx.rotate(-Math.PI / 6); // -30 degrees
     
-    // Draw watermark text multiple times across the image
-    const spacing = fontSize * 3;
-    for (let x = -originalImage.width; x < originalImage.width; x += spacing) {
-      for (let y = -originalImage.height; y < originalImage.height; y += spacing) {
+    // Draw watermark text with proper spacing to avoid overlap
+    const spacing = fontSize * 4; // Increased spacing for better legibility
+    const xStart = -originalImage.width * 0.5;
+    const xEnd = originalImage.width * 0.5;
+    const yStart = -originalImage.height * 0.5;
+    const yEnd = originalImage.height * 0.5;
+    
+    for (let x = xStart; x < xEnd; x += spacing) {
+      for (let y = yStart; y < yEnd; y += spacing) {
+        // Add stroke for better contrast
         ctx.strokeText(text, x, y);
         ctx.fillText(text, x, y);
       }
@@ -1985,7 +1991,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update card images after GPT-Image-1 generation
   app.post("/api/update-card-images", async (req, res) => {
     try {
-      const { cardId, frontImageUrl, insideImageUrl, status } = req.body;
+      const { cardId, frontImageUrl, insideImageUrl, conversationData, status } = req.body;
 
       if (!cardId || !frontImageUrl) {
         return res.status(400).json({ message: "Card ID and front image URL are required" });
@@ -1998,6 +2004,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (insideImageUrl) {
         updates.insideImageUrl = insideImageUrl;
+      }
+
+      if (conversationData) {
+        updates.conversationData = conversationData;
       }
 
       const updatedCard = await storage.updateCard(cardId, updates);
