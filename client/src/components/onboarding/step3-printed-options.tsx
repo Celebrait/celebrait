@@ -107,7 +107,7 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
 
   if (isMobile) {
     return (
-      <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20 max-w-4xl mx-auto">
+      <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20 max-w-4xl mx-auto animate-in fade-in-0 slide-in-from-bottom-4 duration-700">
         {/* Question Section */}
         <div className="text-center mb-6">
           <div className="w-16 h-16 bg-gradient-celebrait rounded-full mx-auto mb-4 flex items-center justify-center animate-float">
@@ -126,7 +126,7 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
             onTouchEnd={handleTouchEnd}
           >
             <div 
-              className="flex transition-transform duration-300 ease-in-out"
+              className="flex transition-transform duration-500 ease-out"
               style={{ transform: `translateX(-${currentOption * 100}%)` }}
             >
               {options.map((option, index) => (
@@ -134,9 +134,9 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
                   <Card 
                     className={`${
                       option.available 
-                        ? 'bg-white/80 border-2 border-purple-200 hover:border-ethereal-purple cursor-pointer transition-all duration-300 hover:shadow-lg' 
+                        ? 'bg-white/80 border-2 border-purple-200 hover:border-ethereal-purple cursor-pointer transition-all duration-500 hover:shadow-2xl hover:shadow-purple-200/30 hover:scale-[1.02] backdrop-blur-sm' 
                         : 'bg-white/80 border-2 border-gray-300 cursor-not-allowed opacity-75'
-                    } relative`}
+                    } relative transform-gpu`}
                     onClick={() => option.available && handlePrintOptionSelect(option.id as 'front-only' | 'front-and-inside')}
                   >
 
