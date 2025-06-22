@@ -668,12 +668,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       if (summaryStepIndex !== -1) {
         setTimeout(() => {
           setCurrentStepIndex(summaryStepIndex);
-          // Scroll to top of content area after state update
+          // Scroll to top after state update
           setTimeout(() => {
-            const contentArea = document.querySelector('.flex-1.overflow-y-auto');
-            if (contentArea) {
-              contentArea.scrollTo({ top: 0, behavior: 'smooth' });
-            }
+            scrollToTop();
           }, 100);
         }, 200);
       }
@@ -692,12 +689,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       if (costumeIndex !== -1) {
         setTimeout(() => {
           setCurrentStepIndex(costumeIndex);
-          // Scroll to top of content area after state update
+          // Scroll to top after state update
           setTimeout(() => {
-            const contentArea = document.querySelector('.flex-1.overflow-y-auto');
-            if (contentArea) {
-              contentArea.scrollTo({ top: 0, behavior: 'smooth' });
-            }
+            scrollToTop();
           }, 100);
         }, 200);
         return;
@@ -730,12 +724,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       } else {
         generateCard();
       }
-      // Scroll to top of content area after state update
+      // Scroll to top after state update
       setTimeout(() => {
-        const contentArea = document.querySelector('.flex-1.overflow-y-auto');
-        if (contentArea) {
-          contentArea.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        scrollToTop();
       }, 100);
     }, 200);
   };
@@ -746,12 +737,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       setEditingStep(stepId);
       setReturnToSummary(true);
       setCurrentStepIndex(stepIndex);
-      // Scroll to top of content area
+      // Scroll to top
       setTimeout(() => {
-        const contentArea = document.querySelector('.flex-1.overflow-y-auto');
-        if (contentArea) {
-          contentArea.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        scrollToTop();
       }, 100);
     }
   };
@@ -858,12 +846,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       setCurrentStepIndex(prev => prev - 1);
       setEditingStep(null);
       setReturnToSummary(false);
-      // Scroll to top of content area
+      // Scroll to top
       setTimeout(() => {
-        const contentArea = document.querySelector('.flex-1.overflow-y-auto');
-        if (contentArea) {
-          contentArea.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        scrollToTop();
       }, 100);
     }
   };
