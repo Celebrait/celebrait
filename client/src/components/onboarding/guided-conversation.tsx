@@ -121,6 +121,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [selectedVideoOption, setSelectedVideoOption] = useState<string>('');
   const [copyrightConsentOpen, setCopyrightConsentOpen] = useState(false);
   const [hasCopyrightConsent, setHasCopyrightConsent] = useState(false);
+  const [photoRequirementsOpen, setPhotoRequirementsOpen] = useState(false);
 
 
   const [placeholderText, setPlaceholderText] = useState('');
@@ -824,7 +825,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const handleCopyrightConsent = () => {
     setHasCopyrightConsent(true);
     setCopyrightConsentOpen(false);
-    // Trigger file input after consent
+    // Show photo requirements modal after copyright consent
+    setTimeout(() => {
+      setPhotoRequirementsOpen(true);
+    }, 100);
+  };
+
+  const handlePhotoRequirementsAcknowledge = () => {
+    setPhotoRequirementsOpen(false);
+    // Trigger file input after acknowledgment
     setTimeout(() => {
       document.getElementById('photo-upload')?.click();
     }, 100);
@@ -1720,54 +1729,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                           </label>
                         </div>
 
-                        {/* Image Requirements and Best Practices */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                          <div className="text-center">
-                            <h4 className="font-semibold text-blue-800 mb-4 flex items-center justify-center">
-                              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              {answers.photo_option === 'upload_and_transform' ? 'Style Transformation Requirements' : 'Photo Requirements & Best Practices'}
-                            </h4>
-                            
-                            <div className="grid md:grid-cols-2 gap-4 text-sm max-w-2xl mx-auto">
-                              <div>
-                                <h5 className="font-medium text-blue-700 mb-2">Accepted Formats:</h5>
-                                <ul className="text-blue-600 space-y-1">
-                                  <li>• JPEG (.jpg, .jpeg)</li>
-                                  <li>• PNG (.png)</li>
-                                  <li>• WebP (.webp)</li>
-                                  <li>• Max file size: 10MB</li>
-                                </ul>
-                              </div>
-                              
-                              <div>
-                                <h5 className="font-medium text-blue-700 mb-2">
-                                  {answers.photo_option === 'upload_and_transform' ? 'For Best Transformation:' : 'For Best Results:'}
-                                </h5>
-                                <ul className="text-blue-600 space-y-1">
-                                  {answers.photo_option === 'upload_and_transform' ? (
-                                    <>
-                                      <li>• Clear, high-quality image</li>
-                                      <li>• Good lighting and contrast</li>
-                                      <li>• Interesting composition</li>
-                                      <li>• High resolution (at least 512x512)</li>
-                                      <li>• Avoid heavily processed images</li>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <li>• Face clearly visible and well-lit</li>
-                                      <li>• Person looking toward camera</li>
-                                      <li>• Minimal shadows on face</li>
-                                      <li>• High resolution (at least 512x512)</li>
-                                      <li>• Single person in focus</li>
-                                    </>
-                                  )}
-                                </ul>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+
                       </div>
                     ) : (
                       <div className="space-y-6">
@@ -1962,6 +1924,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       {/* Video Explainer Modal */}
       <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
         <DialogContent className="max-w-4xl bg-white border-2 border-gray-200">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Video Explainer</DialogTitle>
+          </DialogHeader>
           <div className="space-y-6 p-4">
             
             {/* Video Placeholder */}
