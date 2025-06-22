@@ -1961,30 +1961,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
       {/* Video Explainer Modal */}
       <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
-        <DialogContent className="max-w-4xl bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200">
-          <DialogHeader className="text-center pb-4">
-            <div className="flex items-center justify-center space-x-3 mb-3">
-              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                {selectedVideoOption === 'upload_and_scene' && 'Upload Photo(s) + Describe Scene'}
-                {selectedVideoOption === 'describe_person' && `Describe ${answers.name || 'Person'} + Describe Scene`}
-              </DialogTitle>
-            </div>
-          </DialogHeader>
-          
-          <div className="space-y-6 p-2">
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 border border-purple-200">
-              <p className="text-gray-700 text-center font-medium">
-                Watch this short video to learn more about how our "<span className="text-purple-600 font-semibold">
-                {selectedVideoOption === 'upload_and_scene' ? 'Upload Photo(s) + Describe Scene' : 
-                 selectedVideoOption === 'upload_and_transform' ? 'Upload Photo(s) + Transform Style' : 
-                 `Describe ${answers.name || 'Person'} + Describe Scene`}</span>" creation process works.
-              </p>
-            </div>
+        <DialogContent className="max-w-4xl bg-white border-2 border-gray-200">
+          <div className="space-y-6 p-4">
             
             {/* Video Placeholder */}
             <div className="w-full aspect-video bg-gradient-to-br from-white to-purple-50 rounded-xl flex items-center justify-center border-2 border-dashed border-purple-300 shadow-inner">
@@ -1999,7 +1977,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
               </div>
             </div>
             
-            <div className="flex justify-center pt-4">
+            <div className="flex justify-center">
               <Button 
                 onClick={() => setVideoModalOpen(false)} 
                 className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-medium shadow-lg transform hover:scale-105 transition-all duration-200"
