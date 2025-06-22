@@ -985,9 +985,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     const frontResult = await frontResponse.json();
     console.log('Front card transformed:', frontResult);
 
-    // Generate inside card if needed using the front card as reference
+    // Always generate inside card for all cards now
     let insideImageUrl = null;
-    if (onboarding.selectedPrintOption === 'front-and-inside' && answers.inside_message) {
+    if (answers.inside_message) {
       const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
         frontCardImage: frontResult.imageUrl,
         insideText: answers.inside_message

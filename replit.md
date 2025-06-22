@@ -112,6 +112,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- June 22, 2025. Unified card generation system:
+  * All cards now require both front and inside messaging
+  * Removed conditional logic for inside message based on print options
+  * Updated pricing to reflect front-and-inside for all printed cards ($129 vs $29 digital)
+  * Modified conversational flow to always ask for inside message
+  * Updated all card generation workflows to include inside content
 - June 22, 2025. Major onboarding flow restructure:
   * Removed card selection process from initial flow
   * Simplified to 3-step process: Name Input → AI Loading → Card Creation
