@@ -117,20 +117,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create card
   app.post("/api/cards", async (req, res) => {
     try {
-      const cardData = insertCardSchema.parse(req.body);
-      const { userId } = req.body;
+      const { userId, ...cardData } = req.body;
 
       if (!userId) {
         return res.status(400).json({ message: "User ID is required" });
       }
 
+      // Validate the card data structure
+      const validatedCardData = insertCardSchema.parse(cardData);
+
       const card = await storage.createCard({
-        ...cardData,
+        ...validatedCardData,
         userId
       });
 
       res.json(card);
     } catch (error: any) {
+      console.error('Card creation error:', error);
       res.status(400).json({ message: error.message });
     }
   });

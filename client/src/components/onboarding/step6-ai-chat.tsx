@@ -194,8 +194,8 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
       };
 
       const cardResponse = await apiRequest("POST", "/api/cards", {
-        ...cardData,
-        userId: 1 // Mock user ID for development
+        userId: 1, // Mock user ID for development
+        ...cardData
       });
 
       if (!cardResponse.ok) {
