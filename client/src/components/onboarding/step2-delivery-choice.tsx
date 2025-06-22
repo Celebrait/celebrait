@@ -62,6 +62,7 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientX);
+    setTouchEnd(0);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -72,8 +73,8 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
     if (!touchStart || !touchEnd) return;
     
     const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
+    const isLeftSwipe = distance > 75;
+    const isRightSwipe = distance < -75;
 
     if (isLeftSwipe && currentOption < options.length - 1) {
       setCurrentOption(currentOption + 1);
@@ -81,6 +82,10 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
     if (isRightSwipe && currentOption > 0) {
       setCurrentOption(currentOption - 1);
     }
+    
+    // Reset touch values
+    setTouchStart(0);
+    setTouchEnd(0);
   };
 
   const nextOption = () => {
@@ -106,9 +111,9 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
         </div>
 
         {/* Swipeable Options */}
-        <div className="relative">
+        <div className="relative overflow-hidden">
           <div 
-            className="overflow-visible"
+            className="overflow-hidden"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -118,7 +123,7 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
               style={{ transform: `translateX(-${currentOption * 100}%)` }}
             >
               {options.map((option, index) => (
-                <div key={option.id} className="w-full flex-shrink-0 px-2">
+                <div key={option.id} className="w-full flex-shrink-0 px-4">
                   <Card 
                     className={`${
                       option.available 

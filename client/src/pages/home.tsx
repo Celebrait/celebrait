@@ -19,10 +19,13 @@ export default function Home() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayStep, setDisplayStep] = useState(onboarding.currentStep);
 
-  // Handle step transition with clean fade effect
+  // Handle step transition with clean fade effect and scroll to top
   useEffect(() => {
     if (displayStep !== onboarding.currentStep) {
       setIsTransitioning(true);
+      
+      // Scroll to top immediately when transitioning
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       
       // Wait for complete fade out before changing content
       setTimeout(() => {
