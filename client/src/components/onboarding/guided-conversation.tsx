@@ -666,7 +666,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       setReturnToSummary(false);
       const summaryStepIndex = filteredSteps.findIndex(step => step.id === 'final_summary');
       if (summaryStepIndex !== -1) {
-        setCurrentStepIndex(summaryStepIndex);
+        setTimeout(() => {
+          setCurrentStepIndex(summaryStepIndex);
+          // Scroll to top of content area after state update
+          setTimeout(() => {
+            const contentArea = document.querySelector('.flex-1.overflow-y-auto');
+            if (contentArea) {
+              contentArea.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }, 100);
+        }, 200);
       }
       return;
     }
@@ -681,7 +690,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       // After selecting heritage, go to character costume
       const costumeIndex = filteredSteps.findIndex(step => step.id === 'character_costume');
       if (costumeIndex !== -1) {
-        setTimeout(() => setCurrentStepIndex(costumeIndex), 500);
+        setTimeout(() => {
+          setCurrentStepIndex(costumeIndex);
+          // Scroll to top of content area after state update
+          setTimeout(() => {
+            const contentArea = document.querySelector('.flex-1.overflow-y-auto');
+            if (contentArea) {
+              contentArea.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }, 100);
+        }, 200);
         return;
       }
     }
@@ -691,7 +709,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       // After selecting costume, go to scene
       const sceneIndex = filteredSteps.findIndex(step => step.id === 'scene');
       if (sceneIndex !== -1) {
-        setTimeout(() => setCurrentStepIndex(sceneIndex), 500);
+        setTimeout(() => {
+          setCurrentStepIndex(sceneIndex);
+          // Scroll to top of content area after state update
+          setTimeout(() => {
+            const contentArea = document.querySelector('.flex-1.overflow-y-auto');
+            if (contentArea) {
+              contentArea.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }, 100);
+        }, 200);
         return;
       }
     }
@@ -703,7 +730,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       } else {
         generateCard();
       }
-    }, 500);
+      // Scroll to top of content area after state update
+      setTimeout(() => {
+        const contentArea = document.querySelector('.flex-1.overflow-y-auto');
+        if (contentArea) {
+          contentArea.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
+    }, 200);
   };
 
   const handleEditStep = (stepId: string) => {
@@ -712,6 +746,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       setEditingStep(stepId);
       setReturnToSummary(true);
       setCurrentStepIndex(stepIndex);
+      // Scroll to top of content area
+      setTimeout(() => {
+        const contentArea = document.querySelector('.flex-1.overflow-y-auto');
+        if (contentArea) {
+          contentArea.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
     }
   };
 
@@ -817,6 +858,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       setCurrentStepIndex(prev => prev - 1);
       setEditingStep(null);
       setReturnToSummary(false);
+      // Scroll to top of content area
+      setTimeout(() => {
+        const contentArea = document.querySelector('.flex-1.overflow-y-auto');
+        if (contentArea) {
+          contentArea.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
     }
   };
 
@@ -825,6 +873,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       setCurrentStepIndex(prev => prev + 1);
       setEditingStep(null);
       setReturnToSummary(false);
+      // Scroll to top of content area
+      setTimeout(() => {
+        const contentArea = document.querySelector('.flex-1.overflow-y-auto');
+        if (contentArea) {
+          contentArea.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
     }
   };
 
@@ -1108,76 +1163,83 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-blue-50">
-      {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="flex items-center justify-center min-h-full p-4 sm:p-6">
-          <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6">
-            {/* AI Avatar with Circular Progress and Message */}
-            <div className="text-center space-y-4">
-              <div className="relative w-20 h-20 mx-auto">
-                {/* Circular Progress Ring */}
-                <svg className="absolute inset-0 w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
-                  {/* Background circle */}
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r="36"
-                    stroke="rgb(229 231 235)"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  {/* Progress circle */}
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r="36"
-                    stroke="url(#progressGradient)"
-                    strokeWidth="4"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeDasharray={`${2 * Math.PI * 36}`}
-                    strokeDashoffset={`${2 * Math.PI * 36 * (1 - progress / 100)}`}
-                    className="transition-all duration-500 ease-in-out"
-                  />
-                  {/* Gradient definition */}
-                  <defs>
-                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="rgb(168 85 247)" />
-                      <stop offset="50%" stopColor="rgb(147 51 234)" />
-                      <stop offset="100%" stopColor="rgb(59 130 246)" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                {/* Robot Icon */}
-                <div className="absolute inset-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
-                  <Bot className="w-8 h-8 text-white" />
-                </div>
-              </div>
-              
-              <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20">
-                {isTyping ? (
-                  <div className="flex justify-center space-x-2">
-                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  </div>
-                ) : (
-                  <div className="text-lg sm:text-xl lg:text-2xl text-gray-800 leading-relaxed font-medium">
-                    {currentStep.id === 'photo_upload' && answers.photo_option !== 'upload_and_transform' ? (
-                      <span>
-                        Perfect! ✨ Please upload a photo featuring {answers.name || 'them'} + anyone else you'd like in your customised scene.
-                      </span>
-                    ) : (
-                      <span>{currentStep.aiMessage}</span>
-                    )}
-                  </div>
-                )}
+      {/* Sticky Header - Robot and Question */}
+      <div className="sticky top-0 z-50 bg-gradient-to-br from-purple-50 to-blue-50 border-b border-white/20 backdrop-blur-md">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6">
+          {/* AI Avatar with Circular Progress and Message */}
+          <div className="text-center space-y-4">
+            <div className="relative w-20 h-20 mx-auto">
+              {/* Circular Progress Ring */}
+              <svg className="absolute inset-0 w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
+                {/* Background circle */}
+                <circle
+                  cx="40"
+                  cy="40"
+                  r="36"
+                  stroke="rgb(229 231 235)"
+                  strokeWidth="4"
+                  fill="none"
+                />
+                {/* Progress circle */}
+                <circle
+                  cx="40"
+                  cy="40"
+                  r="36"
+                  stroke="url(#progressGradient)"
+                  strokeWidth="4"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 36}`}
+                  strokeDashoffset={`${2 * Math.PI * 36 * (1 - progress / 100)}`}
+                  className="transition-all duration-500 ease-in-out"
+                />
+                {/* Gradient definition */}
+                <defs>
+                  <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="rgb(168 85 247)" />
+                    <stop offset="50%" stopColor="rgb(147 51 234)" />
+                    <stop offset="100%" stopColor="rgb(59 130 246)" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              {/* Robot Icon */}
+              <div className="absolute inset-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                <Bot className="w-8 h-8 text-white" />
               </div>
             </div>
+            
+            <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20">
+              {isTyping ? (
+                <div className="flex justify-center space-x-2">
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
+              ) : (
+                <div className="text-lg sm:text-xl lg:text-2xl text-gray-800 leading-relaxed font-medium">
+                  {currentStep.id === 'photo_upload' && answers.photo_option !== 'upload_and_transform' ? (
+                    <span>
+                      Perfect! ✨ Please upload a photo featuring {answers.name || 'them'} + anyone else you'd like in your customised scene.
+                    </span>
+                  ) : (
+                    <span>{currentStep.aiMessage}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
-            {/* Answer Options */}
-            {!isTyping && (
-              <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-white/20">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6">
+          {/* Answer Options with Fade Transition */}
+          {!isTyping && (
+            <div 
+              key={currentStepIndex} 
+              className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-white/20 animate-fade-in"
+            >
                 {currentStep.type === 'select' && currentStep.options && (
                   <div className="space-y-4 sm:space-y-6">
                     {/* Compact Options Grid */}
@@ -1890,32 +1952,33 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
               </div>
             )}
 
-            {/* Back Buttons */}
-            {(currentStepIndex > 0 || currentStep.id === 'celebration') && !isTyping && (
-              <div className="flex flex-col items-center space-y-2 pt-4 sm:pt-6">
-                {currentStepIndex > 0 && (
-                  <Button
-                    onClick={handlePrevious}
-                    variant="ghost"
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Go Back a Step
-                  </Button>
-                )}
+            ))}
+
+          {/* Back Buttons */}
+          {(currentStepIndex > 0 || currentStep.id === 'celebration') && !isTyping && (
+            <div className="flex flex-col items-center space-y-2 pt-4 sm:pt-6 mt-6">
+              {currentStepIndex > 0 && (
                 <Button
-                  onClick={() => {
-                    onboarding.setCurrentStep(2);
-                  }}
-                  variant="outline"
-                  className="px-6 py-2 rounded-xl border-purple-300 text-purple-600 hover:bg-purple-50 font-medium shadow-sm"
+                  onClick={handlePrevious}
+                  variant="ghost"
+                  className="text-gray-500 hover:text-gray-700"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Card Selection
+                  Go Back a Step
                 </Button>
-              </div>
-            )}
-          </div>
+              )}
+              <Button
+                onClick={() => {
+                  onboarding.setCurrentStep(2);
+                }}
+                variant="outline"
+                className="px-6 py-2 rounded-xl border-purple-300 text-purple-600 hover:bg-purple-50 font-medium shadow-sm"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Card Selection
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
