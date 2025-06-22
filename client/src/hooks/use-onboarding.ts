@@ -4,13 +4,9 @@ export interface OnboardingState {
   currentStep: number;
   userName: string;
   selectedDelivery: 'printed' | 'digital' | null;
-  selectedPrintOption: 'front-only' | 'front-and-inside' | null;
-  selectedSceneType: 'with-person' | 'scene-only' | null;
   setCurrentStep: (step: number) => void;
   setUserName: (name: string) => void;
   setSelectedDelivery: (delivery: 'printed' | 'digital') => void;
-  setSelectedPrintOption: (option: 'front-only' | 'front-and-inside') => void;
-  setSelectedSceneType: (type: 'with-person' | 'scene-only') => void;
   nextStep: () => void;
   previousStep: () => void;
   reset: () => void;
