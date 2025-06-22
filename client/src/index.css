@@ -146,6 +146,40 @@
     animation: fade-in 0.4s ease-out forwards;
   }
 
+  /* Seamless fade transitions for step changes */
+  @keyframes fade-out {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-10px); }
+  }
+
+  @keyframes fade-in-smooth {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-out {
+    animation: fade-out 0.3s ease-in forwards;
+  }
+
+  .animate-fade-in-smooth {
+    animation: fade-in-smooth 0.4s ease-out forwards;
+  }
+
+  /* Step transition container */
+  .step-transition {
+    transition: all 0.4s ease-in-out;
+  }
+
+  .step-transition.fade-out {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  .step-transition.fade-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
   @keyframes pulse-soft {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.7; }

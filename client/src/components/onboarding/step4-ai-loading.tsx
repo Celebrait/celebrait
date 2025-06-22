@@ -49,10 +49,10 @@ export default function Step4AILoading({ onboarding }: Step4Props) {
   const handleContinue = () => {
     // Scroll to top before transitioning
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    // Small delay for smooth transition
+    // Smooth fade transition instead of spinning animation
     setTimeout(() => {
       onboarding.nextStep();
-    }, 300);
+    }, 200);
   };
 
   return (

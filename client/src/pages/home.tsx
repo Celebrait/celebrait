@@ -19,19 +19,21 @@ export default function Home() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayStep, setDisplayStep] = useState(onboarding.currentStep);
 
-  // Handle step transition with overlay and scroll to top
+  // Handle seamless fade transitions between steps
   useEffect(() => {
     if (displayStep !== onboarding.currentStep) {
       setIsTransitioning(true);
 
-      // Immediate scroll to top and content change
-      window.scrollTo({ top: 0, behavior: 'instant' });
-      setDisplayStep(onboarding.currentStep);
-
-      // Brief overlay display then fade in
+      // Smooth scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Fade out current step, then fade in new step
       setTimeout(() => {
-        setIsTransitioning(false);
-      }, 300);
+        setDisplayStep(onboarding.currentStep);
+        setTimeout(() => {
+          setIsTransitioning(false);
+        }, 100);
+      }, 200);
     }
   }, [onboarding.currentStep, displayStep]);
 
@@ -70,7 +72,7 @@ export default function Home() {
 
       <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
         {!generatedCard && (
-          <div className="transition-opacity duration-200 ease-out">
+          <div className={`step-transition ${isTransitioning ? 'fade-out' : 'fade-in animate-fade-in-smooth'}`}>
             {renderCurrentStep()}
           </div>
         )}
