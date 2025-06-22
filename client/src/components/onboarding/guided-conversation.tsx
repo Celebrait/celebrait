@@ -508,10 +508,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
   // Filter steps based on scene type and card options
   const filteredSteps = steps.filter(step => {
-    // Skip inside message for front-only cards
-    if (step.id === 'inside_message' && onboarding.selectedPrintOption !== 'front-and-inside') {
-      return false;
-    }
+    // Always include inside message for all cards now
     
     // Skip person-related steps for scene-only cards
     if (onboarding.selectedSceneType === 'scene-only') {
@@ -634,13 +631,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
   const initializeCard = async () => {
     try {
-      const price = onboarding.selectedDelivery === 'digital' ? 2900 : 
-                   onboarding.selectedPrintOption === 'front-and-inside' ? 12900 : 8900;
+      // All cards now include front and inside content
+      const price = onboarding.selectedDelivery === 'digital' ? 2900 : 12900;
 
       const cardResponse = await apiRequest("POST", "/api/cards", {
         userId: 1,
         cardType: onboarding.selectedDelivery,
-        printOption: onboarding.selectedPrintOption,
+        printOption: 'front-and-inside', // Always front and inside now
         sceneType: onboarding.selectedSceneType,
         conversationData: {},
         price
@@ -888,8 +885,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         const frontPrompt = buildImagePrompt();
         console.log('Built front prompt:', frontPrompt);
         
-        const insidePrompt = onboarding.selectedPrintOption === 'front-and-inside' ? 
-          buildInsidePrompt() : null;
+        // Always generate inside content for all cards now
+        const insidePrompt = buildInsidePrompt();
 
         const response = await apiRequest("POST", "/api/generate-images", {
           cardId,
@@ -937,9 +934,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     const frontResult = await frontResponse.json();
     console.log('Front card generated:', frontResult);
 
-    // Generate inside card if needed
+    // Always generate inside card for all cards now
     let insideImageUrl = null;
-    if (onboarding.selectedPrintOption === 'front-and-inside' && answers.inside_message) {
+    if (answers.inside_message) {
       const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
         frontCardImage: frontResult.imageUrl,
         insideText: answers.inside_message
@@ -1552,20 +1549,18 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         </div>
                       </div>
 
-                      {/* Inside Message (if printed with inside) */}
-                      {onboarding.selectedDelivery === 'printed' && onboarding.selectedPrintOption === 'front-and-inside' && (
-                        <div className="bg-white rounded-xl p-4 border border-purple-200">
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <h4 className="font-semibold text-purple-700">Inside Message</h4>
-                              <p className="text-gray-700">{answers.inside_message || 'No inside message'}</p>
-                            </div>
-                            <Button onClick={() => handleEditStep('inside_message')} variant="outline" size="sm">
-                              Edit
-                            </Button>
+                      {/* Inside Message (always included now) */}
+                      <div className="bg-white rounded-xl p-4 border border-purple-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold text-purple-700">Inside Message</h4>
+                            <p className="text-gray-700">{answers.inside_message || 'No inside message'}</p>
                           </div>
+                          <Button onClick={() => handleEditStep('inside_message')} variant="outline" size="sm">
+                            Edit
+                          </Button>
                         </div>
-                      )}
+                      </div>
                     </div>
 
                     <div className="flex justify-center">
