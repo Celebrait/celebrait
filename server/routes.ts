@@ -11,6 +11,7 @@ import OpenAI from "openai";
 import Stripe from "stripe";
 import Replicate from "replicate";
 import FormData from "form-data";
+import { createCanvas, loadImage } from "canvas";
 
 // Temporarily allow running without API keys for testing
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
@@ -30,6 +31,61 @@ const replicate = hasReplicate ? new Replicate({
 const stripe = hasStripe ? new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-05-28.basil",
 }) : null;
+
+// Watermark utility function
+async function applyWatermark(imageData: string, opacity: number = 0.3): Promise<string> {
+  try {
+    // Remove data URL prefix if present
+    const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
+    const imageBuffer = Buffer.from(base64Data, 'base64');
+    
+    // Load the original image
+    const originalImage = await loadImage(imageBuffer);
+    
+    // Create canvas with same dimensions
+    const canvas = createCanvas(originalImage.width, originalImage.height);
+    const ctx = canvas.getContext('2d');
+    
+    // Draw original image
+    ctx.drawImage(originalImage, 0, 0);
+    
+    // Apply watermark
+    ctx.save();
+    
+    // Set up diagonal watermark text
+    const text = 'CELEBRAIT PREVIEW';
+    const fontSize = Math.min(originalImage.width, originalImage.height) * 0.08; // 8% of smaller dimension
+    ctx.font = `bold ${fontSize}px Arial`;
+    ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+    ctx.strokeStyle = `rgba(0, 0, 0, ${opacity * 0.5})`;
+    ctx.lineWidth = 2;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Rotate canvas for diagonal text
+    ctx.translate(originalImage.width / 2, originalImage.height / 2);
+    ctx.rotate(-Math.PI / 6); // -30 degrees
+    
+    // Draw watermark text multiple times across the image
+    const spacing = fontSize * 3;
+    for (let x = -originalImage.width; x < originalImage.width; x += spacing) {
+      for (let y = -originalImage.height; y < originalImage.height; y += spacing) {
+        ctx.strokeText(text, x, y);
+        ctx.fillText(text, x, y);
+      }
+    }
+    
+    ctx.restore();
+    
+    // Convert back to base64
+    const watermarkedBuffer = canvas.toBuffer('image/png');
+    return `data:image/png;base64,${watermarkedBuffer.toString('base64')}`;
+  } catch (error) {
+    console.error('Watermark application failed:', error);
+    // Return original image if watermarking fails
+    return imageData;
+  }
+}
 
 // Helper function to process Replicate flux binary output
 async function processFluxBinaryOutput(output: any): Promise<string> {
@@ -1495,8 +1551,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         console.log('GPT-Image-1 scene editing completed successfully');
+        
+        // Apply watermark to the generated image
+        const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
+        
+        console.log('Watermark applied to front image');
         res.json({ 
-          imageUrl,
+          imageUrl: watermarkedImageUrl,
+          originalImageUrl: imageUrl, // Store original for secure access
           usage: (responseData as any).usage
         });
         
@@ -1627,8 +1689,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log('Inside card generation completed successfully');
+      
+      // Apply watermark to the generated inside card
+      const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
+      
+      console.log('Watermark applied to inside card');
       res.json({ 
-        imageUrl,
+        imageUrl: watermarkedImageUrl,
+        originalImageUrl: imageUrl, // Store original for secure access
         usage: (responseData as any).usage
       });
 
@@ -1832,7 +1900,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         console.log('GPT-Image-1 transformation completed successfully');
-        res.json({ imageUrl });
+        
+        // Apply watermark to the generated image
+        const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
+        
+        console.log('Watermark applied to transformed image');
+        res.json({ 
+          imageUrl: watermarkedImageUrl,
+          originalImageUrl: imageUrl // Store original for secure access
+        });
         
       } catch (error: any) {
         

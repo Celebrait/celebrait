@@ -936,6 +936,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
     // Always generate inside card for all cards now
     let insideImageUrl = null;
+    let insideOriginalUrl = null;
     if (answers.inside_message) {
       const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
         frontCardImage: frontResult.imageUrl,
@@ -944,14 +945,26 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       
       const insideResult = await insideResponse.json();
       insideImageUrl = insideResult.imageUrl;
+      insideOriginalUrl = insideResult.originalImageUrl;
       console.log('Inside card generated:', insideResult);
     }
+
+    // Store original unwatermarked images in conversationData for secure access
+    const conversationData = {
+      ...answers,
+      uploadedPhotos,
+      originalFrontImageUrl: frontResult.originalImageUrl,
+      originalInsideImageUrl: insideOriginalUrl,
+      watermarkedFrontImageUrl: frontResult.imageUrl,
+      watermarkedInsideImageUrl: insideImageUrl
+    };
 
     // Update the card in storage
     const updateResponse = await apiRequest("POST", "/api/update-card-images", {
       cardId,
       frontImageUrl: frontResult.imageUrl,
       insideImageUrl,
+      conversationData,
       status: 'completed'
     });
 
