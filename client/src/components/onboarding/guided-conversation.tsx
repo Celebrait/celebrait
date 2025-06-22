@@ -623,13 +623,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   }, [currentStep.id]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [currentStepIndex, isTyping]);
+    scrollToTop();
+  }, [currentStepIndex]);
 
   const initializeCard = async () => {
     try {
@@ -1163,8 +1163,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-blue-50">
-      {/* Sticky Header - Robot and Question */}
-      <div className="sticky top-0 z-50 bg-gradient-to-br from-purple-50 to-blue-50 border-b border-white/20 backdrop-blur-md">
+      {/* Header - Robot and Question */}
+      <div className="bg-gradient-to-br from-purple-50 to-blue-50 border-b border-white/20">
         <div className="max-w-4xl mx-auto p-4 sm:p-6">
           {/* AI Avatar with Circular Progress and Message */}
           <div className="text-center space-y-4">
