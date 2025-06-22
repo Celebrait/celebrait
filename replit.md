@@ -112,6 +112,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- June 22, 2025. Canvas-based watermark system implementation:
+  * Added Canvas library with system dependencies for server-side image processing
+  * Implemented diagonal "CELEBRAIT PREVIEW" watermarks applied to all generated images
+  * Updated all image generation endpoints (edit-scene, transform-style, generate-inside) to apply watermarks
+  * Stored original unwatermarked images securely in card conversationData
+  * Built watermark removal system that activates automatically after payment verification
+  * Integrated watermark removal into payment success and order success workflows
 - June 22, 2025. Unified card generation system:
   * All cards now require both front and inside messaging
   * Removed conditional logic for inside message based on print options
