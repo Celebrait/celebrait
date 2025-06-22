@@ -22,16 +22,20 @@ export default function Home() {
   // Handle step transition with overlay and scroll to top
   useEffect(() => {
     if (displayStep !== onboarding.currentStep) {
+      // Show overlay immediately for instant feedback
       setIsTransitioning(true);
       
-      // Immediate scroll to top and content change
-      window.scrollTo({ top: 0, behavior: 'instant' });
-      setDisplayStep(onboarding.currentStep);
-      
-      // Brief overlay display then fade in
-      setTimeout(() => {
-        setIsTransitioning(false);
-      }, 300);
+      // Use requestAnimationFrame to ensure overlay renders first
+      requestAnimationFrame(() => {
+        // Then scroll to top and change content
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        setDisplayStep(onboarding.currentStep);
+        
+        // Keep overlay visible long enough to feel smooth
+        setTimeout(() => {
+          setIsTransitioning(false);
+        }, 400);
+      });
     }
   }, [onboarding.currentStep, displayStep]);
 
@@ -69,8 +73,11 @@ export default function Home() {
       
       {/* Full screen transition overlay */}
       {isTransitioning && (
-        <div className="fixed inset-0 bg-gradient-to-br from-orange-50 to-blue-50 z-50 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-orange-300 border-t-orange-500 rounded-full animate-spin"></div>
+        <div className="fixed inset-0 bg-gradient-to-br from-orange-50 to-blue-50 z-50 flex items-center justify-center transition-opacity duration-100">
+          <div className="flex flex-col items-center space-y-3">
+            <div className="w-8 h-8 border-3 border-orange-200 border-t-orange-500 rounded-full animate-spin"></div>
+            <p className="text-sm text-gray-600 font-medium">Loading next step...</p>
+          </div>
         </div>
       )}
       
