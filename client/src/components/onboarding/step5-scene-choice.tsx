@@ -89,9 +89,9 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
 
   if (isMobile) {
     return (
-      <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20 max-w-4xl mx-auto animate-in fade-in-0 slide-in-from-bottom-4 duration-700">
+      <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20 max-w-4xl mx-auto">
         {/* Question Section */}
-        <div className="text-center mb-6 animate-in fade-in-0 slide-in-from-top-2 duration-500 delay-100">
+        <div className="text-center mb-6">
           <div className="w-16 h-16 bg-gradient-celebrait rounded-full mx-auto mb-4 flex items-center justify-center animate-float">
             <Users className="text-white w-8 h-8" />
           </div>
@@ -102,15 +102,15 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
         </div>
 
         {/* Swipeable Options */}
-        <div className="relative animate-in fade-in-0 slide-in-from-bottom-2 duration-600 delay-200">
+        <div className="relative">
           <div 
-            className="overflow-hidden"
+            className="overflow-visible"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
             <div 
-              className="flex transition-transform duration-500 ease-out"
+              className="flex transition-transform duration-300 ease-out"
               style={{ transform: `translateX(-${currentOption * 100}%)` }}
             >
               {options.map((option, index) => (
