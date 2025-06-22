@@ -1875,7 +1875,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         }
                       }}
                       placeholder={currentStep.id === 'scene' && !userHasTyped && placeholderText ? placeholderText : currentStep.placeholder}
-                      className="text-lg p-4 min-h-[120px] rounded-xl border-purple-200 focus:border-purple-400"
+                      className="text-lg p-4 min-h-[200px] rounded-xl border-purple-200 focus:border-purple-400 resize-y"
                       autoFocus={currentStep.id !== 'scene'}
                     />
                     <div className="flex justify-center">
@@ -2066,34 +2066,27 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
       {/* Inspiration Modal with Carousel */}
       <Dialog open={showInspirationModal} onOpenChange={setShowInspirationModal}>
-        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 overflow-y-auto">
-          <DialogHeader className="text-center pb-2 sm:pb-4">
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-3 mb-2 sm:mb-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-              </div>
-              <DialogTitle className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                {onboarding.selectedSceneType === 'scene-only' ? 'Scene Inspiration Gallery' : 'Card Inspiration Gallery'}
-              </DialogTitle>
-            </div>
+        <DialogContent className="w-[95vw] max-w-5xl max-h-[95vh] bg-white border-2 border-gray-200 overflow-y-auto">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Scene Inspiration Examples</DialogTitle>
           </DialogHeader>
           
-          <div className="px-2 sm:px-4 lg:px-8 py-2 sm:py-4">
+          <div className="p-3 sm:p-4 md:p-6">
             <Carousel className="w-full">
-              <CarouselContent className="-ml-2 sm:-ml-4">
+              <CarouselContent className="-ml-1 sm:-ml-2 md:-ml-3">
                 {(onboarding.selectedSceneType === 'scene-only' 
                   ? INSPIRATION_EXAMPLES.sceneOnly 
                   : INSPIRATION_EXAMPLES.withPerson
                 ).map((example, index) => (
-                  <CarouselItem key={index} className="pl-2 sm:pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
+                  <CarouselItem key={index} className="pl-1 sm:pl-2 md:pl-3 basis-full xs:basis-1/2 sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
                     <div className="p-1 sm:p-2">
-                      <Card className="h-full">
+                      <Card className="h-full border border-gray-200 hover:shadow-md transition-shadow">
                         <CardContent className="p-3 sm:p-4">
-                          <div className={`bg-gradient-to-br ${example.gradient} aspect-square rounded-xl flex items-center justify-center text-white text-3xl sm:text-4xl lg:text-5xl mb-3 sm:mb-4`}>
+                          <div className={`bg-gradient-to-br ${example.gradient} aspect-square rounded-lg flex items-center justify-center text-white text-2xl sm:text-3xl md:text-4xl mb-3`}>
                             {example.emoji}
                           </div>
                           <div className="text-center">
-                            <h3 className="font-semibold text-sm sm:text-base lg:text-lg text-gray-800 mb-1 sm:mb-2">
+                            <h3 className="font-semibold text-xs sm:text-sm md:text-base text-gray-800 mb-2">
                               {example.title}
                             </h3>
                             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
@@ -2106,15 +2099,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="left-1 sm:left-2 lg:left-4 h-8 w-8 sm:h-10 sm:w-10" />
-              <CarouselNext className="right-1 sm:right-2 lg:right-4 h-8 w-8 sm:h-10 sm:w-10" />
+              <CarouselPrevious className="left-1 sm:left-2 h-8 w-8 sm:h-10 sm:w-10" />
+              <CarouselNext className="right-1 sm:right-2 h-8 w-8 sm:h-10 sm:w-10" />
             </Carousel>
           </div>
           
-          <div className="flex justify-center pt-2 sm:pt-4 pb-2 px-4">
+          <div className="flex justify-center pt-4 pb-2">
             <Button 
               onClick={() => setShowInspirationModal(false)} 
-              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-xl font-medium shadow-lg transform hover:scale-105 transition-all duration-200 text-sm sm:text-base"
+              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-xl font-medium shadow-lg transform hover:scale-105 transition-all duration-200"
             >
               Close & Continue Creating
             </Button>
