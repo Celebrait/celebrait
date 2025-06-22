@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ScrollToTop from "@/components/scroll-to-top";
+import { handleQuotaError } from "./lib/queryClient";
+import { useEffect } from "react";
 import Home from "@/pages/home";
 import Checkout from "@/pages/checkout";
 import Payment from "@/pages/payment";
@@ -39,6 +41,31 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    // Global error handler for quota exceeded errors
+    const handleGlobalError = (event: ErrorEvent) => {
+      if (event.error && handleQuotaError(event.error)) {
+        event.preventDefault();
+        return true;
+      }
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (event.reason && handleQuotaError(event.reason)) {
+        event.preventDefault();
+        return true;
+      }
+    };
+
+    window.addEventListener('error', handleGlobalError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleGlobalError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

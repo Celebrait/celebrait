@@ -94,3 +94,38 @@ export function clearCacheForPayment() {
     console.warn('Cache clearing failed:', error);
   }
 }
+
+// Check storage quota and clear if approaching limit
+function checkStorageQuota() {
+  if ('storage' in navigator && 'estimate' in navigator.storage) {
+    navigator.storage.estimate().then(estimate => {
+      const usage = estimate.usage || 0;
+      const quota = estimate.quota || 0;
+      const usagePercentage = (usage / quota) * 100;
+      
+      if (usagePercentage > 80) { // If using more than 80%
+        console.warn('Storage quota approaching limit, clearing cache');
+        clearCacheForPayment();
+      }
+    });
+  }
+}
+
+// Enhanced error handler for quota errors
+export function handleQuotaError(error: Error) {
+  if (error.message && error.message.includes('quota')) {
+    console.error('Quota exceeded, attempting recovery');
+    clearCacheForPayment();
+    
+    // Wait a moment then reload the page to ensure clean state
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+    
+    return true; // Handled
+  }
+  return false; // Not handled
+}
+
+// Monitor storage usage periodically
+setInterval(checkStorageQuota, 30000); // Check every 30 seconds

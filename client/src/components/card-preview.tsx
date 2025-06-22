@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocation } from "wouter";
 import DeliveryChoice from "./delivery-choice";
+import { clearCacheForPayment } from "@/lib/queryClient";
 
 interface CardPreviewProps {
   card: any;
