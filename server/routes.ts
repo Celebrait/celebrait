@@ -1716,6 +1716,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Remove watermarks after payment verification
+  app.post("/api/remove-watermarks", async (req, res) => {
+    try {
+      const { cardId } = req.body;
+      
+      if (!cardId) {
+        return res.status(400).json({ message: "Card ID is required" });
+      }
+
+      console.log('Removing watermarks for card:', cardId);
+      
+      // Get card from storage
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      // Extract original images from conversationData
+      const conversationData = card.conversationData as any;
+      if (!conversationData || !conversationData.originalFrontImageUrl) {
+        return res.status(400).json({ message: "Original images not found in card data" });
+      }
+
+      // Update card with original unwatermarked images
+      const updatedCard = await storage.updateCard(cardId, {
+        frontImageUrl: conversationData.originalFrontImageUrl,
+        insideImageUrl: conversationData.originalInsideImageUrl || null,
+        status: 'paid'
+      });
+
+      console.log('Watermarks removed successfully');
+      res.json({ 
+        success: true,
+        card: updatedCard
+      });
+
+    } catch (error: any) {
+      console.error('Watermark removal error:', error);
+      res.status(500).json({ message: 'Failed to remove watermarks' });
+    }
+  });
+
   // GPT-Image-1 style transformation using OpenAI SDK as per documentation
   app.post("/api/transform-style-gpt-image-1", async (req, res) => {
     try {

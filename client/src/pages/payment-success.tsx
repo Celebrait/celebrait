@@ -35,6 +35,20 @@ export default function PaymentSuccess() {
       const response = await apiRequest('POST', '/api/verify-payment', { reference });
       const orderData = await response.json();
       setOrder(orderData);
+      
+      // Remove watermarks after successful payment verification
+      if (orderData?.card?.id) {
+        try {
+          console.log('Removing watermarks for paid card:', orderData.card.id);
+          await apiRequest('POST', '/api/remove-watermarks', { 
+            cardId: orderData.card.id 
+          });
+          console.log('Watermarks removed successfully');
+        } catch (watermarkError) {
+          console.error('Failed to remove watermarks:', watermarkError);
+          // Don't show error to user as payment was successful
+        }
+      }
     } catch (error) {
       toast({
         title: 'Payment Verification Failed',
