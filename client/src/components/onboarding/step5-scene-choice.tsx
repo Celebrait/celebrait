@@ -107,9 +107,9 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
         </div>
 
         {/* Swipeable Options */}
-        <div className="relative overflow-hidden">
+        <div className="relative overflow-hidden flex-1 flex items-center">
           <div 
-            className="overflow-hidden"
+            className="overflow-hidden w-full"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -119,49 +119,49 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
               style={{ transform: `translateX(-${currentOption * 100}%)` }}
             >
               {options.map((option, index) => (
-                <div key={option.id} className="w-full flex-shrink-0 px-4">
+                <div key={option.id} className="w-full flex-shrink-0 px-3">
                   <Card 
                     className={`${
                       option.available 
                         ? 'bg-white/80 border-2 border-purple-200 cursor-pointer' 
                         : 'bg-white/80 border-2 border-gray-300 cursor-not-allowed opacity-75'
-                    } relative`}
+                    } relative max-h-96`}
                     onClick={() => option.available && handleSceneTypeSelect(option.id as 'with-person' | 'scene-only')}
                   >
 
-                    <CardContent className="p-4">
+                    <CardContent className="p-3">
                       <div className="relative">
                         <img
                           src={option.image}
                           alt={option.title}
-                          className="w-full aspect-square object-cover rounded-xl mb-4"
+                          className="w-full h-28 object-cover rounded-lg mb-3"
                         />
                         {!option.available && (
-                          <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center mb-4">
-                            <div className="bg-white rounded-lg px-4 py-2 shadow-lg">
-                              <span className="text-sm font-bold text-gray-800">Coming Soon</span>
+                          <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center mb-3">
+                            <div className="bg-white rounded px-3 py-1 shadow-lg">
+                              <span className="text-xs font-bold text-gray-800">Coming Soon</span>
                             </div>
                           </div>
                         )}
                       </div>
 
-                      <div className="flex items-center mb-3">
-                        <div className={`w-8 h-8 ${
+                      <div className="flex items-center mb-2">
+                        <div className={`w-6 h-6 ${
                           option.available ? 'bg-gradient-celebrait' : option.id === 'scene-only' ? 'bg-gradient-to-r from-warm-pink to-sa-gold' : 'bg-gray-400'
-                        } rounded-full flex items-center justify-center mr-3`}>
+                        } rounded-full flex items-center justify-center mr-2`}>
                           {option.icon}
                         </div>
-                        <h3 className="text-lg font-bold text-gray-800">{option.title}</h3>
+                        <h3 className="text-base font-bold text-gray-800">{option.title}</h3>
                       </div>
 
-                      <p className="text-slate-gray mb-4 text-sm">
+                      <p className="text-slate-gray mb-2 text-xs">
                         {option.description}
                       </p>
 
-                      <ul className="space-y-2">
-                        {option.features.slice(0, 3).map((feature, idx) => (
+                      <ul className="space-y-1">
+                        {option.features.slice(0, 2).map((feature, idx) => (
                           <li key={idx} className="flex items-center text-slate-gray text-xs">
-                            <Check className="text-green-500 mr-2 w-3 h-3 flex-shrink-0" />
+                            <Check className="text-green-500 mr-1 w-3 h-3 flex-shrink-0" />
                             {feature}
                           </li>
                         ))}
