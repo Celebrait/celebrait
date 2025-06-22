@@ -98,22 +98,22 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
 
   if (isMobile) {
     return (
-      <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-3 shadow-xl border border-white/20 max-w-4xl mx-auto h-screen max-h-screen flex flex-col">
+      <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20 max-w-4xl mx-auto">
         {/* Question Section */}
-        <div className="text-center mb-4 flex-shrink-0">
-          <div className="w-12 h-12 bg-gradient-celebrait rounded-full mx-auto mb-3 flex items-center justify-center animate-float">
-            <Printer className="text-white w-6 h-6" />
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 bg-gradient-celebrait rounded-full mx-auto mb-4 flex items-center justify-center animate-float">
+            <Printer className="text-white w-8 h-8" />
           </div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">
+          <h2 className="text-2xl font-bold text-gray-800 mb-3">
             Hey <span className="text-ethereal-purple">{onboarding.userName}</span>!
           </h2>
-          <p className="text-sm text-slate-gray px-3">How would you like to share your greeting card?</p>
+          <p className="text-base text-slate-gray px-4">How would you like to share your greeting card?</p>
         </div>
 
         {/* Swipeable Options */}
-        <div className="relative overflow-hidden flex-1 flex items-center">
+        <div className="relative overflow-hidden">
           <div 
-            className="overflow-hidden w-full"
+            className="overflow-hidden"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -123,56 +123,56 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
               style={{ transform: `translateX(-${currentOption * 100}%)` }}
             >
               {options.map((option, index) => (
-                <div key={option.id} className="w-full flex-shrink-0 px-3">
+                <div key={option.id} className="w-full flex-shrink-0 px-4">
                   <Card 
                     className={`${
                       option.available 
                         ? 'bg-white/80 border-2 border-purple-200 cursor-pointer' 
-        : 'bg-white/80 border-2 border-gray-300 cursor-not-allowed opacity-75'
-                    } relative max-h-96`}
+                        : 'bg-white/80 border-2 border-gray-300 cursor-not-allowed opacity-75'
+                    } relative`}
                     onClick={() => option.available && handleDeliverySelect(option.id as 'printed' | 'digital')}
                   >
 
-                    <CardContent className="p-3">
+                    <CardContent className="p-4">
                       <div className="relative">
                         <img
                           src={option.image}
                           alt={option.title}
-                          className="w-full h-28 object-cover rounded-lg mb-3"
+                          className="w-full aspect-square object-cover rounded-xl mb-4"
                         />
                         {!option.available && (
-                          <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center mb-3">
-                            <div className="bg-white rounded px-3 py-1 shadow-lg">
-                              <span className="text-xs font-bold text-gray-800">Coming Soon</span>
+                          <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center mb-4">
+                            <div className="bg-white rounded-lg px-4 py-2 shadow-lg">
+                              <span className="text-sm font-bold text-gray-800">Coming Soon</span>
                             </div>
                           </div>
                         )}
                       </div>
 
-                      <div className="flex items-center mb-2">
-                        <div className={`w-6 h-6 ${
+                      <div className="flex items-center mb-3">
+                        <div className={`w-8 h-8 ${
                           option.available ? 'bg-gradient-celebrait' : 'bg-gray-400'
-                        } rounded-full flex items-center justify-center mr-2`}>
+                        } rounded-full flex items-center justify-center mr-3`}>
                           {option.icon}
                         </div>
-                        <h3 className="text-base font-bold text-gray-800">{option.title}</h3>
+                        <h3 className="text-lg font-bold text-gray-800">{option.title}</h3>
                       </div>
 
-                      <p className="text-slate-gray mb-2 text-xs">
+                      <p className="text-slate-gray mb-4 text-sm">
                         {option.description}
                       </p>
 
-                      <ul className="space-y-1 mb-3">
+                      <ul className="space-y-2 mb-4">
                         {option.features.slice(0, 2).map((feature, idx) => (
                           <li key={idx} className="flex items-center text-slate-gray text-xs">
-                            <Check className="text-green-500 mr-1 w-3 h-3 flex-shrink-0" />
+                            <Check className="text-green-500 mr-2 w-3 h-3 flex-shrink-0" />
                             {feature}
                           </li>
                         ))}
                       </ul>
 
                       <div className="text-center">
-                        <span className={`text-base font-bold ${
+                        <span className={`text-lg font-bold ${
                           option.available ? 'text-ethereal-purple' : 'text-gray-400'
                         }`}>
                           {option.price}

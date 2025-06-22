@@ -112,20 +112,20 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
 
   if (isMobile) {
     return (
-      <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-3 shadow-xl border border-white/20 max-w-4xl mx-auto h-screen max-h-screen flex flex-col">
+      <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20 max-w-4xl mx-auto">
         {/* Question Section */}
-        <div className="text-center mb-4 flex-shrink-0">
-          <div className="w-12 h-12 bg-gradient-celebrait rounded-full mx-auto mb-3 flex items-center justify-center animate-float">
-            <Layers className="text-white w-6 h-6" />
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 bg-gradient-celebrait rounded-full mx-auto mb-4 flex items-center justify-center animate-float">
+            <Layers className="text-white w-8 h-8" />
           </div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Perfect choice!</h2>
-          <p className="text-sm text-slate-gray px-3">What part of your card would you like us to design?</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-3">Perfect choice!</h2>
+          <p className="text-base text-slate-gray px-4">What part of your card would you like us to design?</p>
         </div>
 
         {/* Swipeable Options */}
-        <div className="relative overflow-hidden flex-1 flex items-center">
+        <div className="relative overflow-hidden">
           <div 
-            className="overflow-hidden w-full"
+            className="overflow-hidden"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -135,20 +135,20 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
               style={{ transform: `translateX(-${currentOption * 100}%)` }}
             >
               {options.map((option, index) => (
-                <div key={option.id} className="w-full flex-shrink-0 px-3">
+                <div key={option.id} className="w-full flex-shrink-0 px-4">
                   <Card 
                     className={`${
                       option.available 
                         ? 'bg-white/80 border-2 border-purple-200 cursor-pointer' 
                         : 'bg-white/80 border-2 border-gray-300 cursor-not-allowed opacity-75'
-                    } relative max-h-96`}
+                    } relative`}
                     onClick={() => option.available && handlePrintOptionSelect(option.id as 'front-only' | 'front-and-inside')}
                   >
 
-                    <CardContent className="p-3">
+                    <CardContent className="p-4">
                       {/* Image or Carousel */}
                       {option.carousel ? (
-                        <div className="relative w-full h-24 rounded-lg mb-3 overflow-hidden bg-gray-100">
+                        <div className="relative w-full aspect-square rounded-xl mb-4 overflow-hidden bg-gray-100">
                           <img 
                             src={option.carousel[currentSlide].src}
                             alt={option.carousel[currentSlide].alt}
@@ -156,17 +156,17 @@ export default function Step3PrintedOptions({ onboarding }: Step3Props) {
                           />
                           <button
                             onClick={(e) => { e.stopPropagation(); prevSlide(); }}
-                            className="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 z-10"
+                            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 z-10"
                           >
-                            <ChevronLeft className="w-2 h-2" />
+                            <ChevronLeft className="w-3 h-3" />
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); nextSlide(); }}
-                            className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 z-10"
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 z-10"
                           >
-                            <ChevronRight className="w-2 h-2" />
+                            <ChevronRight className="w-3 h-3" />
                           </button>
-                          <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-1 py-0.5 rounded text-xs">
+                          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-2 py-1 rounded-full text-xs">
                             {option.carousel[currentSlide].label}
                           </div>
                         </div>
