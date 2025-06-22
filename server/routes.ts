@@ -1369,7 +1369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Store original images separately for after payment
-      const cardData: any = {
+      const charCardData: any = {
         frontImageUrl: watermarkedImages.frontImageUrl,
         insideImageUrl: null,
         status: 'completed'
@@ -1378,7 +1378,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store unwatermarked images in conversationData for post-payment
       const existingCard = await storage.getCard(cardId);
       const conversationData = existingCard?.conversationData || {};
-      cardData.conversationData = {
+      charCardData.conversationData = {
         ...conversationData,
         originalImages: {
           frontImageUrl,
@@ -1387,7 +1387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Update card with watermarked images
-      const updatedCard = await storage.updateCard(cardId, cardData);
+      const updatedCard = await storage.updateCard(cardId, charCardData);
 
       res.json(updatedCard);
     } catch (error: any) {
@@ -1423,8 +1423,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(503).json({ message: "Replicate API not configured - REPLICATE_API_TOKEN required" });
       }
 
-      const cardData = await storage.getCard(cardId);
-      if (!cardData) {
+      const originalCard = await storage.getCard(cardId);
+      if (!originalCard) {
         return res.status(404).json({ message: "Card not found" });
       }
 
@@ -1494,7 +1494,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Store original images separately for after payment
-      const cardData: any = {
+      const styleCardData: any = {
         frontImageUrl: watermarkedImages.frontImageUrl,
         insideImageUrl: null,
         status: 'completed'
@@ -1503,7 +1503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store unwatermarked images in conversationData for post-payment
       const currentCard = await storage.getCard(cardId);
       const conversationData = currentCard?.conversationData || {};
-      cardData.conversationData = {
+      styleCardData.conversationData = {
         ...conversationData,
         originalImages: {
           frontImageUrl,
@@ -1512,7 +1512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Update card with watermarked images
-      const updatedCard = await storage.updateCard(cardId, cardData);
+      const updatedCard = await storage.updateCard(cardId, styleCardData);
 
       res.json(updatedCard);
     } catch (error: any) {
