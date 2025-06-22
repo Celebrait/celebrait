@@ -118,9 +118,9 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
                   <Card 
                     className={`${
                       option.available 
-                        ? 'bg-white/80 border-2 border-purple-200 hover:border-ethereal-purple cursor-pointer transition-all duration-500 hover:shadow-2xl hover:shadow-purple-200/30 hover:scale-[1.02] backdrop-blur-sm' 
+                        ? 'bg-white/80 border-2 border-purple-200 cursor-pointer' 
                         : 'bg-white/80 border-2 border-gray-300 cursor-not-allowed opacity-75'
-                    } relative transform-gpu`}
+                    } relative`}
                     onClick={() => option.available && handleSceneTypeSelect(option.id as 'with-person' | 'scene-only')}
                   >
 
@@ -171,14 +171,14 @@ export default function Step5SceneChoice({ onboarding }: Step5Props) {
           {/* Navigation Arrows */}
           <button
             onClick={prevOption}
-            className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white rounded-full p-2 z-10 transition-all duration-300 hover:scale-110 backdrop-blur-sm"
+            className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white rounded-full p-2 z-10"
             disabled={currentOption === 0}
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             onClick={nextOption}
-            className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white rounded-full p-2 z-10 transition-all duration-300 hover:scale-110 backdrop-blur-sm"
+            className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white rounded-full p-2 z-10"
             disabled={currentOption === options.length - 1}
           >
             <ChevronRight className="w-4 h-4" />

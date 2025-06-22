@@ -25,7 +25,7 @@ export default function Step1NameInput({ onboarding }: Step1Props) {
   };
 
   return (
-    <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-white/20 max-w-4xl mx-auto animate-in fade-in-0 slide-in-from-bottom-4 duration-700">
+    <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-white/20 max-w-4xl mx-auto">
       <div className="text-center mb-6 sm:mb-8">
         <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-celebrait rounded-full mx-auto mb-4 sm:mb-6 flex items-center justify-center animate-float">
           <User className="text-white w-8 h-8 sm:w-10 sm:h-10" />

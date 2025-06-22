@@ -19,7 +19,7 @@ export default function Home() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayStep, setDisplayStep] = useState(onboarding.currentStep);
 
-  // Handle step transition with ethereal fade effect
+  // Handle step transition with clean fade effect
   useEffect(() => {
     if (displayStep !== onboarding.currentStep) {
       setIsTransitioning(true);
@@ -29,11 +29,9 @@ export default function Home() {
         setDisplayStep(onboarding.currentStep);
         // Wait a frame before starting fade in
         requestAnimationFrame(() => {
-          setTimeout(() => {
-            setIsTransitioning(false);
-          }, 50);
+          setIsTransitioning(false);
         });
-      }, 300);
+      }, 200);
     }
   }, [onboarding.currentStep, displayStep]);
 
@@ -72,11 +70,9 @@ export default function Home() {
       <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
         {!generatedCard && (
           <div 
-            className="transition-all duration-500 ease-out transform"
+            className="transition-opacity duration-300 ease-out"
             style={{
               opacity: isTransitioning ? 0 : 1,
-              transform: isTransitioning ? 'translateY(20px) scale(0.98)' : 'translateY(0px) scale(1)',
-              filter: isTransitioning ? 'blur(4px)' : 'blur(0px)',
             }}
           >
             {renderCurrentStep()}
