@@ -1448,14 +1448,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Build the complete prompt with enhanced character action descriptions
       const characterText = imagesToProcess.length > 1 ? 'characters from the reference images' : 'characters from the reference image';
-      let fullPrompt = `Square 1:1 aspect ratio, full bleed design with no borders, fill entire frame. Create a completely new scene featuring the ${characterText}. CRITICAL INSTRUCTIONS: 
+      let fullPrompt = `MANDATORY: Create a perfectly SQUARE composition with equal width and height - NOT portrait, NOT landscape. Full bleed square design with no borders, fill entire square frame. Create a completely new scene featuring the ${characterText}. CRITICAL INSTRUCTIONS: 
 1) Use the people in the reference image(s) ONLY as character appearance references (facial features, general look)
 2) DO NOT copy or replicate their original positioning, poses, spatial relationships, or interactions from the reference image
 3) CREATE AN ENTIRELY NEW COMPOSITION where characters are arranged differently and naturally for this new scene: ${scenePrompt}
 4) If multiple people were together in the reference, separate them and place them in new positions that fit the scene
 5) Give each character new poses, actions, and interactions that match the described scenario, not their original photo
 6) Choose NEW CLOTHING for each person that appropriately matches the occasion and setting described in the scene
-7) Completely reimagine how the characters would naturally be positioned and interact in this new environment`;
+7) Completely reimagine how the characters would naturally be positioned and interact in this new environment
+8) COMPOSE FOR SQUARE FORMAT - ensure all elements fit within a square boundary`;
       if (style && style.trim()) {
         fullPrompt = `${fullPrompt}, rendered in ${style} art style`;
       }
