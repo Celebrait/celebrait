@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, clearCacheForPayment } from '@/lib/queryClient';
 import { CreditCard, Truck, MapPin, User, Mail, Phone, Heart, Gift, Download } from 'lucide-react';
 
 interface PaymentFormData {
@@ -231,6 +231,9 @@ export default function PaymentWithTips() {
     setProcessingPayment(true);
 
     try {
+      // Clear cache before payment to prevent quota errors
+      clearCacheForPayment();
+      
       const totalAmount = getTotalAmount();
       console.log('💰 Total amount calculated:', totalAmount);
 

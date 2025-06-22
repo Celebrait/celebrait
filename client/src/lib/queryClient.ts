@@ -47,11 +47,40 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      staleTime: 1000 * 60 * 5, // 5 minutes instead of Infinity
+      gcTime: 1000 * 60 * 10, // 10 minutes garbage collection
+      retry: (failureCount, error) => {
+        // Don't retry on quota exceeded errors
+        if (error.message?.includes('QuotaExceededError')) {
+          return false;
+        }
+        return failureCount < 3;
+      },
     },
     mutations: {
       retry: false,
     },
   },
 });
+
+// Helper function to clear cache before payment to prevent quota errors
+export function clearCacheForPayment() {
+  try {
+    // Clear query cache to free up storage
+    queryClient.clear();
+    
+    // Clear any localStorage items that might be taking up space
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.includes('card') || key.includes('image') || key.includes('query'))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    console.log('Cache cleared for payment processing');
+  } catch (error) {
+    console.warn('Cache clearing failed:', error);
+  }
+}
