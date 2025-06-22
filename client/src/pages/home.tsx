@@ -19,22 +19,19 @@ export default function Home() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayStep, setDisplayStep] = useState(onboarding.currentStep);
 
-  // Handle step transition with clean fade effect and scroll to top
+  // Handle step transition with overlay and scroll to top
   useEffect(() => {
     if (displayStep !== onboarding.currentStep) {
       setIsTransitioning(true);
       
-      // Scroll to top immediately when transitioning
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Immediate scroll to top and content change
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      setDisplayStep(onboarding.currentStep);
       
-      // Wait for complete fade out before changing content
+      // Brief overlay display then fade in
       setTimeout(() => {
-        setDisplayStep(onboarding.currentStep);
-        // Wait a frame before starting fade in
-        requestAnimationFrame(() => {
-          setIsTransitioning(false);
-        });
-      }, 200);
+        setIsTransitioning(false);
+      }, 300);
     }
   }, [onboarding.currentStep, displayStep]);
 
@@ -67,17 +64,19 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative">
       <Header />
+      
+      {/* Full screen transition overlay */}
+      {isTransitioning && (
+        <div className="fixed inset-0 bg-gradient-to-br from-orange-50 to-blue-50 z-50 flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-orange-300 border-t-orange-500 rounded-full animate-spin"></div>
+        </div>
+      )}
       
       <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
         {!generatedCard && (
-          <div 
-            className="transition-opacity duration-300 ease-out"
-            style={{
-              opacity: isTransitioning ? 0 : 1,
-            }}
-          >
+          <div className="transition-opacity duration-200 ease-out">
             {renderCurrentStep()}
           </div>
         )}
