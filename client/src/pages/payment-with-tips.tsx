@@ -237,29 +237,55 @@ export default function PaymentWithTips() {
       const totalAmount = getTotalAmount();
       console.log('💰 Total amount calculated:', totalAmount);
 
-      // Initialize Paystack payment
+      // Initialize Paystack payment with timeout
       console.log('📡 Making API request to create payment...');
-      const response = await apiRequest('POST', '/api/create-payment-with-tip', {
-        cardId: card.id,
-        customerInfo: formData,
-        amount: totalAmount,
-        baseAmount: card.price,
-        tipAmount: selectedTip,
-        currency: 'ZAR'
-      });
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      try {
+        const response = await fetch('/api/create-payment-with-tip', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            cardId: card.id,
+            customerInfo: formData,
+            amount: totalAmount,
+            baseAmount: card.price,
+            tipAmount: selectedTip,
+            currency: 'ZAR'
+          }),
+          signal: controller.signal
+        });
 
-      console.log('✅ API response received');
-      const { paymentUrl, reference } = await response.json();
+        clearTimeout(timeoutId);
 
-      // Debug logging
-      console.log('Payment URL generated:', paymentUrl);
-      console.log('Payment reference:', reference);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: 'Network error' }));
+          throw new Error(errorData.message || `HTTP ${response.status}`);
+        }
 
-      // Redirect to Paystack payment page
-      if (paymentUrl) {
-        window.location.href = paymentUrl;
-      } else {
-        throw new Error('No payment URL received');
+        console.log('✅ API response received');
+        const data = await response.json();
+        const { paymentUrl, reference } = data;
+
+        console.log('Payment URL generated:', paymentUrl);
+        console.log('Payment reference:', reference);
+
+        // Redirect to payment page
+        if (paymentUrl) {
+          window.location.href = paymentUrl;
+        } else {
+          throw new Error('No payment URL received from server');
+        }
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('Payment request timed out. Please try again.');
+        }
+        throw error;
       }
 
     } catch (error: any) {
