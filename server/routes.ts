@@ -1788,29 +1788,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         insideImageUrl: imageUrl
       });
 
-      // Store original images separately for after payment
-      const card = await storage.getCard(req.body.cardId);
-      const cardData: any = {
-        frontImageUrl: null,
-        insideImageUrl: watermarkedImages.insideImageUrl,
-        status: 'completed'
-      };
-
-      // Store unwatermarked images in conversationData for post-payment
-      const conversationData = card?.conversationData || {};
-      cardData.conversationData = {
-        ...conversationData,
-        originalImages: {
-          frontImageUrl: null,
-          insideImageUrl: imageUrl
-        }
-      };
-
-      // Update card with watermarked images
-      const updatedCard = await storage.updateCard(req.body.cardId, cardData);
-
+      // Return the generated inside card image
+      // Note: Card updates are handled in the frontend workflow
       res.json({ 
-        imageUrl,
+        imageUrl: watermarkedImages.insideImageUrl,
+        originalImageUrl: imageUrl,
         usage: (responseData as any).usage
       });
 
