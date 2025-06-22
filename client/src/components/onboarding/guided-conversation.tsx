@@ -1162,77 +1162,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-blue-50">
-      {/* Sticky Header - Robot and Question */}
-      <div className="sticky top-0 z-50 bg-gradient-to-br from-purple-50 to-blue-50 border-b border-white/20 backdrop-blur-md">
-        <div className="max-w-4xl mx-auto p-4 sm:p-6">
-          {/* AI Avatar with Circular Progress and Message */}
-          <div className="text-center space-y-4">
-            <div className="relative w-20 h-20 mx-auto">
-              {/* Circular Progress Ring */}
-              <svg className="absolute inset-0 w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
-                {/* Background circle */}
-                <circle
-                  cx="40"
-                  cy="40"
-                  r="36"
-                  stroke="rgb(229 231 235)"
-                  strokeWidth="4"
-                  fill="none"
-                />
-                {/* Progress circle */}
-                <circle
-                  cx="40"
-                  cy="40"
-                  r="36"
-                  stroke="url(#progressGradient)"
-                  strokeWidth="4"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * 36}`}
-                  strokeDashoffset={`${2 * Math.PI * 36 * (1 - progress / 100)}`}
-                  className="transition-all duration-500 ease-in-out"
-                />
-                {/* Gradient definition */}
-                <defs>
-                  <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="rgb(168 85 247)" />
-                    <stop offset="50%" stopColor="rgb(147 51 234)" />
-                    <stop offset="100%" stopColor="rgb(59 130 246)" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              {/* Robot Icon */}
-              <div className="absolute inset-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
-                <Bot className="w-8 h-8 text-white" />
-              </div>
-            </div>
-            
-            <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20">
-              {isTyping ? (
-                <div className="flex justify-center space-x-2">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                </div>
-              ) : (
-                <div className="text-lg sm:text-xl lg:text-2xl text-gray-800 leading-relaxed font-medium">
-                  {currentStep.id === 'photo_upload' && answers.photo_option !== 'upload_and_transform' ? (
-                    <span>
-                      Perfect! ✨ Please upload a photo featuring {answers.name || 'them'} + anyone else you'd like in your customised scene.
-                    </span>
-                  ) : (
-                    <span>{currentStep.aiMessage}</span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
+      {/* Main Content Area */}
+      <div className="min-h-screen overflow-y-auto">
         <div className="max-w-4xl mx-auto p-4 sm:p-6">
           {/* Answer Options with Fade Transition */}
           {!isTyping && (
