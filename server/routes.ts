@@ -1262,8 +1262,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(503).json({ message: "Replicate API not configured - REPLICATE_API_TOKEN required" });
       }
 
-      const card = await storage.getCard(cardId);
-      if (!card) {
+      const cardRecord = await storage.getCard(cardId);
+      if (!cardRecord) {
         return res.status(404).json({ message: "Card not found" });
       }
 
@@ -1376,8 +1376,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Store unwatermarked images in conversationData for post-payment
-      const card = await storage.getCard(cardId);
-      const conversationData = card?.conversationData || {};
+      const existingCard = await storage.getCard(cardId);
+      const conversationData = existingCard?.conversationData || {};
       cardData.conversationData = {
         ...conversationData,
         originalImages: {
@@ -1423,8 +1423,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(503).json({ message: "Replicate API not configured - REPLICATE_API_TOKEN required" });
       }
 
-      const card = await storage.getCard(cardId);
-      if (!card) {
+      const cardData = await storage.getCard(cardId);
+      if (!cardData) {
         return res.status(404).json({ message: "Card not found" });
       }
 
@@ -1501,8 +1501,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Store unwatermarked images in conversationData for post-payment
-      const card = await storage.getCard(cardId);
-      const conversationData = card?.conversationData || {};
+      const currentCard = await storage.getCard(cardId);
+      const conversationData = currentCard?.conversationData || {};
       cardData.conversationData = {
         ...conversationData,
         originalImages: {
