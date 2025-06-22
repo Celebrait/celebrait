@@ -70,8 +70,8 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
           </div>
         )}
 
-        {/* Inside preview for front-and-inside cards */}
-        {card.insideImageUrl && onboarding.selectedPrintOption === 'front-and-inside' && (
+        {/* Inside preview - always show when inside image exists */}
+        {card.insideImageUrl && (
           <div className="mt-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Inside Message:</h3>
             <div className="w-full flex justify-center">
