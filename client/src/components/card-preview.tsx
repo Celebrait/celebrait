@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, RotateCcw, Edit } from "lucide-react";
+import { RotateCcw, Edit } from "lucide-react";
 import { useLocation } from "wouter";
+import DeliveryChoice from "./delivery-choice";
 
 interface CardPreviewProps {
   card: any;
@@ -10,25 +11,31 @@ interface CardPreviewProps {
 
 export default function CardPreview({ card, onboarding }: CardPreviewProps) {
   const [, setLocation] = useLocation();
+  const [showDeliveryChoice, setShowDeliveryChoice] = useState(false);
 
-  const handleProceedToCheckout = () => {
-    // Store card data in sessionStorage to avoid re-fetching
-    sessionStorage.setItem('cardPreviewData', JSON.stringify(card));
-    setLocation(`/payment-tips/${card.id}`);
+  const handleDeliverySelected = (delivery: 'printed' | 'digital') => {
+    onboarding.setSelectedDelivery(delivery);
+    
+    if (delivery === 'digital') {
+      // Handle digital download
+      setLocation('/order-success');
+    } else {
+      // Store card data and proceed to checkout
+      sessionStorage.setItem('cardPreviewData', JSON.stringify(card));
+      setLocation(`/payment-tips/${card.id}`);
+    }
   };
 
   const handleTryAgain = () => {
-    onboarding.setCurrentStep(6);
+    onboarding.setCurrentStep(3);
     window.location.reload();
   };
 
   const handleEdit = () => {
-    onboarding.setCurrentStep(6);
+    onboarding.setCurrentStep(3);
   };
 
-  const formatPrice = (priceInCents: number) => {
-    return `R${(priceInCents / 100).toFixed(2)}`;
-  };
+
 
   return (
     <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20">
@@ -85,33 +92,38 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
       </div>
 
       {/* Action Buttons */}
-      <div className="space-y-4 max-w-md mx-auto">
-        <Button
-          onClick={handleProceedToCheckout}
-          className="w-full bg-gradient-celebrait hover:opacity-90 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105"
-        >
-          <ShoppingCart className="w-5 h-5 mr-2" />
-          Purchase & Remove Watermark - {formatPrice(card.price)}
-        </Button>
-        
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            onClick={handleTryAgain}
-            variant="outline"
-            className="border-2 border-purple-200 text-gray-700 py-3 rounded-2xl font-medium hover:border-ethereal-purple transition-all duration-300"
-          >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Try Again
-          </Button>
-          <Button
-            onClick={handleEdit}
-            variant="outline"
-            className="border-2 border-purple-200 text-gray-700 py-3 rounded-2xl font-medium hover:border-ethereal-purple transition-all duration-300"
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            Make Changes
-          </Button>
-        </div>
+      <div className="space-y-6 max-w-md mx-auto">
+        {!showDeliveryChoice ? (
+          <>
+            <Button
+              onClick={() => setShowDeliveryChoice(true)}
+              className="w-full bg-gradient-celebrait hover:opacity-90 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105"
+            >
+              Continue
+            </Button>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                onClick={handleTryAgain}
+                variant="outline"
+                className="border-2 border-purple-200 text-gray-700 py-3 rounded-2xl font-medium hover:border-ethereal-purple transition-all duration-300"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Try Again
+              </Button>
+              <Button
+                onClick={handleEdit}
+                variant="outline"
+                className="border-2 border-purple-200 text-gray-700 py-3 rounded-2xl font-medium hover:border-ethereal-purple transition-all duration-300"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Make Changes
+              </Button>
+            </div>
+          </>
+        ) : (
+          <DeliveryChoice onDeliverySelected={handleDeliverySelected} />
+        )}
       </div>
     </div>
   );

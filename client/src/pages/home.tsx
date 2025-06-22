@@ -49,14 +49,8 @@ export default function Home() {
       case 1:
         return <Step1NameInput onboarding={onboarding} />;
       case 2:
-        return <Step2DeliveryChoice onboarding={onboarding} />;
-      case 3:
-        return <Step3PrintedOptions onboarding={onboarding} />;
-      case 4:
-        return <Step5SceneChoice onboarding={onboarding} />;
-      case 5:
         return <Step4AILoading onboarding={onboarding} />;
-      case 6:
+      case 3:
         return <GuidedConversation onboarding={onboarding} onCardGenerated={handleCardGenerated} />;
       default:
         return <Step1NameInput onboarding={onboarding} />;

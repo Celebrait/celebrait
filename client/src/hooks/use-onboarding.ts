@@ -16,8 +16,7 @@ export function useOnboarding(): OnboardingState {
   const [currentStep, setCurrentStep] = useState(1);
   const [userName, setUserName] = useState("");
   const [selectedDelivery, setSelectedDelivery] = useState<'printed' | 'digital' | null>(null);
-  const [selectedPrintOption, setSelectedPrintOption] = useState<'front-only' | 'front-and-inside' | null>(null);
-  const [selectedSceneType, setSelectedSceneType] = useState<'with-person' | 'scene-only' | null>(null);
+
 
   // Instantly position at top whenever the step changes
   useEffect(() => {
@@ -38,21 +37,15 @@ export function useOnboarding(): OnboardingState {
     setCurrentStep(1);
     setUserName("");
     setSelectedDelivery(null);
-    setSelectedPrintOption(null);
-    setSelectedSceneType(null);
   };
 
   return {
     currentStep,
     userName,
     selectedDelivery,
-    selectedPrintOption,
-    selectedSceneType,
     setCurrentStep,
     setUserName,
     setSelectedDelivery,
-    setSelectedPrintOption,
-    setSelectedSceneType,
     nextStep,
     previousStep,
     reset,
