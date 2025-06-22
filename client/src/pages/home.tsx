@@ -65,7 +65,7 @@ export default function Home() {
 
       {/* Seamless transition overlay - no spinning animation */}
       {isTransitioning && (
-        <div className="fixed inset-0 bg-gradient-to-br from-orange-50 to-blue-50 z-50 opacity-80 transition-opacity duration-300"></div>
+        <div className="fixed inset-0 bg-gradient-to-br from-orange-50 to-blue-50 z-50 opacity-60"></div>
       )}
 
       <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
