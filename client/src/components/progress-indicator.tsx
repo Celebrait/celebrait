@@ -3,7 +3,7 @@ interface ProgressIndicatorProps {
 }
 
 export default function ProgressIndicator({ currentStep }: ProgressIndicatorProps) {
-  const percentage = (currentStep / 4) * 100;
+  const percentage = (currentStep / 3) * 100;
 
   return (
     <div className="mb-8">

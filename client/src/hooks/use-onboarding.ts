@@ -26,7 +26,7 @@ export function useOnboarding(): OnboardingState {
   }, [currentStep]);
 
   const nextStep = () => {
-    setCurrentStep(prev => Math.min(prev + 1, 6));
+    setCurrentStep(prev => Math.min(prev + 1, 3));
   };
 
   const previousStep = () => {

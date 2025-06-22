@@ -112,6 +112,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- June 22, 2025. Major onboarding flow restructure:
+  * Removed card selection process from initial flow
+  * Simplified to 3-step process: Name Input → AI Loading → Card Creation
+  * Moved delivery choice (printed/digital only) to post-card generation
+  * Eliminated print options and scene type selections
+  * Created new DeliveryChoice component for streamlined checkout
 - June 15, 2025. Initial setup
 ```
 
