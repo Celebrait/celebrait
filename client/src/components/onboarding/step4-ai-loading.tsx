@@ -47,7 +47,12 @@ export default function Step4AILoading({ onboarding }: Step4Props) {
   }, [fullMessage]);
 
   const handleContinue = () => {
-    onboarding.nextStep();
+    // Scroll to top before transitioning
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Small delay for smooth transition
+    setTimeout(() => {
+      onboarding.nextStep();
+    }, 300);
   };
 
   return (

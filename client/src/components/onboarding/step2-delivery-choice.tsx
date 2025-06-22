@@ -53,11 +53,16 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
 
   const handleDeliverySelect = (type: 'printed' | 'digital') => {
     onboarding.setSelectedDelivery(type);
-    if (type === 'printed') {
-      onboarding.nextStep();
-    } else {
-      onboarding.setCurrentStep(4); // Skip to digital
-    }
+    // Scroll to top before transitioning
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Small delay for smooth transition
+    setTimeout(() => {
+      if (type === 'printed') {
+        onboarding.nextStep();
+      } else {
+        onboarding.setCurrentStep(4); // Skip to digital
+      }
+    }, 300);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {

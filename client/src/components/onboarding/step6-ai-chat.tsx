@@ -176,23 +176,35 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
   }, [messages]);
 
   useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     initializeChat();
   }, []);
 
   const initializeChat = async () => {
     try {
-      // Create a new card
+      // Create a new card with proper data structure
       const price = onboarding.selectedDelivery === 'digital' ? 2900 : 
                    onboarding.selectedPrintOption === 'front-and-inside' ? 12900 : 8900;
 
-      const cardResponse = await apiRequest("POST", "/api/cards", {
-        userId: 1, // Mock user ID
-        cardType: onboarding.selectedDelivery,
-        printOption: onboarding.selectedPrintOption,
-        sceneType: onboarding.selectedSceneType,
+      const cardData = {
+        cardType: onboarding.selectedDelivery || 'printed',
+        printOption: onboarding.selectedPrintOption || 'front-only',
+        sceneType: onboarding.selectedSceneType || 'with-person',
         conversationData: {},
-        price
+        price: price,
+        status: 'draft'
+      };
+
+      const cardResponse = await apiRequest("POST", "/api/cards", {
+        ...cardData,
+        userId: 1 // Mock user ID for development
       });
+
+      if (!cardResponse.ok) {
+        const errorData = await cardResponse.json();
+        throw new Error(errorData.message || 'Failed to create card');
+      }
 
       const card = await cardResponse.json();
       setCardId(card.id);
@@ -200,10 +212,11 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
       // Start the conversation
       const welcomeMessage = getWelcomeMessage();
       setMessages([{ role: 'assistant', content: welcomeMessage }]);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Card creation error:', error);
       toast({
-        title: "Error",
-        description: "Failed to initialize chat",
+        title: "Error", 
+        description: `Failed to initialize card creation: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -954,7 +967,7 @@ When you have all the information, confirm with the user and then say "GENERATE_
   };
 
   return (
-    <div className="bg-white/60 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden">
+    <div className="bg-white/60 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden animate-fade-in">
       {/* Chat Header */}
       <div className="bg-gradient-celebrait p-6 text-white">
         <div className="flex items-center space-x-3">

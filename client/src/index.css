@@ -23,7 +23,7 @@
   --destructive-foreground: 60 9.1% 97.8%;
   --ring: 20 14.3% 4.1%;
   --radius: 0.5rem;
-  
+
   /* Celebrait Custom Colors */
   --ethereal-purple: 255 102% 68%; /* #6366F1 */
   --warm-pink: 329 86% 70%; /* #EC4899 */
@@ -71,47 +71,47 @@
   .text-ethereal-purple {
     color: hsl(var(--ethereal-purple));
   }
-  
+
   .text-warm-pink {
     color: hsl(var(--warm-pink));
   }
-  
+
   .text-sa-gold {
     color: hsl(var(--sa-gold));
   }
-  
+
   .text-soft-white {
     color: hsl(var(--soft-white));
   }
-  
+
   .text-slate-gray {
     color: hsl(var(--slate-gray));
   }
-  
+
   .bg-ethereal-purple {
     background-color: hsl(var(--ethereal-purple));
   }
-  
+
   .bg-warm-pink {
     background-color: hsl(var(--warm-pink));
   }
-  
+
   .bg-sa-gold {
     background-color: hsl(var(--sa-gold));
   }
-  
+
   .bg-soft-white {
     background-color: hsl(var(--soft-white));
   }
-  
+
   .bg-slate-gray {
     background-color: hsl(var(--slate-gray));
   }
-  
+
   .border-ethereal-purple {
     border-color: hsl(var(--ethereal-purple));
   }
-  
+
   .border-warm-pink {
     border-color: hsl(var(--warm-pink));
   }
@@ -131,6 +131,19 @@
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-10px); }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes fade-in {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.5s ease-out forwards;
   }
 
   @keyframes pulse-soft {
