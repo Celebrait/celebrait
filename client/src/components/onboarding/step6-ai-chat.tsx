@@ -183,16 +183,13 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
 
   const initializeChat = async () => {
     try {
-      // Create a new card with proper data structure
-      const price = onboarding.selectedDelivery === 'digital' ? 2900 : 
-                   onboarding.selectedPrintOption === 'front-and-inside' ? 12900 : 8900;
-
+      // Create a new card with simplified data structure
       const cardData = {
-        cardType: onboarding.selectedDelivery || 'printed',
-        printOption: onboarding.selectedPrintOption || 'front-only',
-        sceneType: onboarding.selectedSceneType || 'with-person',
+        cardType: 'printed', // Default to printed for now
+        printOption: 'front-only', // Default option
+        sceneType: 'with-person', // Default scene type
         conversationData: {},
-        price: price,
+        price: 8900, // Default price for front-only printed card
         status: 'draft'
       };
 
@@ -333,9 +330,9 @@ export default function Step6AIChat({ onboarding, onCardGenerated }: Step6Props)
 Your style is conversational and personable — like a great creative collaborator. You ask one question at a time, always offering clear, concrete examples. You must always sound human — avoid robotic tone or overly short responses.
 
 User's name: ${onboarding.userName}
-Card type: ${onboarding.selectedDelivery}
-Print option: ${onboarding.selectedPrintOption || 'N/A'}
-Scene type: ${onboarding.selectedSceneType}
+Card type: printed
+Print option: front-only
+Scene type: with-person
 Celebration type: ${celebrationType}
 
 Current step: ${currentStep}`;
