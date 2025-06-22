@@ -23,11 +23,11 @@ export default function Home() {
   useEffect(() => {
     if (displayStep !== onboarding.currentStep) {
       setIsTransitioning(true);
-      
+
       // Immediate scroll to top and content change
       window.scrollTo({ top: 0, behavior: 'instant' });
       setDisplayStep(onboarding.currentStep);
-      
+
       // Brief overlay display then fade in
       setTimeout(() => {
         setIsTransitioning(false);
@@ -60,14 +60,14 @@ export default function Home() {
   return (
     <div className="min-h-screen relative">
       <Header />
-      
+
       {/* Full screen transition overlay */}
       {isTransitioning && (
         <div className="fixed inset-0 bg-gradient-to-br from-orange-50 to-blue-50 z-50 flex items-center justify-center">
           <div className="w-6 h-6 border-2 border-orange-300 border-t-orange-500 rounded-full animate-spin"></div>
         </div>
       )}
-      
+
       <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
         {!generatedCard && (
           <div className="transition-opacity duration-200 ease-out">
