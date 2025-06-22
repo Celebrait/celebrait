@@ -98,16 +98,16 @@ export default function Step2DeliveryChoice({ onboarding }: Step2Props) {
 
   if (isMobile) {
     return (
-      <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20 max-w-4xl mx-auto">
+      <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-3 shadow-xl border border-white/20 max-w-4xl mx-auto h-screen max-h-screen flex flex-col">
         {/* Question Section */}
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-gradient-celebrait rounded-full mx-auto mb-4 flex items-center justify-center animate-float">
-            <Printer className="text-white w-8 h-8" />
+        <div className="text-center mb-4 flex-shrink-0">
+          <div className="w-12 h-12 bg-gradient-celebrait rounded-full mx-auto mb-3 flex items-center justify-center animate-float">
+            <Printer className="text-white w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-3">
+          <h2 className="text-xl font-bold text-gray-800 mb-2">
             Hey <span className="text-ethereal-purple">{onboarding.userName}</span>!
           </h2>
-          <p className="text-base text-slate-gray px-4">How would you like to share your greeting card?</p>
+          <p className="text-sm text-slate-gray px-3">How would you like to share your greeting card?</p>
         </div>
 
         {/* Swipeable Options */}
