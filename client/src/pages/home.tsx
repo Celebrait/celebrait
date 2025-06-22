@@ -63,11 +63,9 @@ export default function Home() {
     <div className="min-h-screen relative">
       <Header />
 
-      {/* Full screen transition overlay */}
+      {/* Seamless transition overlay - no spinning animation */}
       {isTransitioning && (
-        <div className="fixed inset-0 bg-gradient-to-br from-orange-50 to-blue-50 z-50 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-orange-300 border-t-orange-500 rounded-full animate-spin"></div>
-        </div>
+        <div className="fixed inset-0 bg-gradient-to-br from-orange-50 to-blue-50 z-50 opacity-80 transition-opacity duration-300"></div>
       )}
 
       <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
