@@ -1952,8 +1952,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
               </div>
             )}
 
-            ))}
-
           {/* Back Buttons */}
           {(currentStepIndex > 0 || currentStep.id === 'celebration') && !isTyping && (
             <div className="flex flex-col items-center space-y-2 pt-4 sm:pt-6 mt-6">
