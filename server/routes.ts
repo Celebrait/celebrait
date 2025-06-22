@@ -119,12 +119,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId, ...cardData } = req.body;
 
+      console.log('Card creation request body:', req.body);
+      console.log('Extracted userId:', userId);
+      console.log('Extracted cardData:', cardData);
+
       if (!userId) {
         return res.status(400).json({ message: "User ID is required" });
       }
 
+      // Ensure required fields have default values if missing
+      const sanitizedCardData = {
+        cardType: cardData.cardType || 'printed',
+        printOption: cardData.printOption || 'front-only',
+        sceneType: cardData.sceneType || 'with-person',
+        conversationData: cardData.conversationData || {},
+        price: cardData.price || 8900
+      };
+
+      console.log('Sanitized card data:', sanitizedCardData);
+
       // Validate the card data structure
-      const validatedCardData = insertCardSchema.parse(cardData);
+      const validatedCardData = insertCardSchema.parse(sanitizedCardData);
 
       const card = await storage.createCard({
         ...validatedCardData,
