@@ -1582,7 +1582,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         value={currentInput}
                         onChange={(e) => setCurrentInput(e.target.value)}
                         placeholder={currentStep.placeholder}
-                        className="text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
+                        className="text-lg sm:text-xl lg:text-2xl p-4 sm:p-5 lg:p-6 min-h-[60px] sm:min-h-[70px] lg:min-h-[80px] rounded-xl border-purple-200 focus:border-purple-400"
                         onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                         autoFocus
                       />
@@ -1870,7 +1870,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         }
                       }}
                       placeholder={currentStep.id === 'scene' && !userHasTyped && placeholderText ? placeholderText : currentStep.placeholder}
-                      className="text-lg p-4 min-h-[200px] rounded-xl border-purple-200 focus:border-purple-400 resize-y"
+                      className="text-lg sm:text-xl lg:text-2xl p-4 sm:p-5 lg:p-6 min-h-[250px] sm:min-h-[300px] lg:min-h-[350px] rounded-xl border-purple-200 focus:border-purple-400 resize-y leading-relaxed"
                       autoFocus={currentStep.id !== 'scene'}
                     />
                     <div className="flex justify-center">
