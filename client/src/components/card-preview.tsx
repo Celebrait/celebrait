@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocation } from "wouter";
 import DeliveryChoice from "./delivery-choice";
+import CardMockup from "./card-mockup";
 import { emergencyStorageCleanup } from "@/lib/queryClient";
 
 interface CardPreviewProps {
@@ -103,7 +104,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
           {onboarding.answers?.name ? `${onboarding.answers.name}'s` : 'Your'} card is ready! 🎉
         </h2>
         <p className="text-lg text-slate-gray">
-          Here's {onboarding.answers?.name ? `${onboarding.answers.name}'s` : 'your'} beautiful AI-generated {onboarding.answers?.celebration || 'greeting'} card.
+          Here's {onboarding.answers?.name ? `${onboarding.answers.name}'s` : 'your'} beautiful 5" × 5" AI-generated {onboarding.answers?.celebration || 'greeting'} card.
         </p>
       </div>
 
@@ -169,43 +170,14 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
             </>
           )}
 
-          {/* Card image display */}
+          {/* Card mockup display */}
           <div className="transition-all duration-300 ease-in-out">
-            {currentView === 'front' && card.frontImageUrl ? (
-              <div className="w-full flex justify-center">
-                <img 
-                  src={card.frontImageUrl} 
-                  alt="AI generated greeting card front" 
-                  style={{ 
-                    display: 'block',
-                    maxWidth: '100%',
-                    maxHeight: '1028px',
-                    width: 'auto',
-                    height: 'auto'
-                  }}
-                  className="rounded-lg shadow-lg"
-                />
-              </div>
-            ) : currentView === 'inside' && card.insideImageUrl ? (
-              <div className="w-full flex justify-center">
-                <img 
-                  src={card.insideImageUrl} 
-                  alt="AI generated greeting card inside" 
-                  style={{ 
-                    display: 'block',
-                    maxWidth: '100%',
-                    maxHeight: '1028px',
-                    width: 'auto',
-                    height: 'auto'
-                  }}
-                  className="rounded-lg shadow-lg"
-                />
-              </div>
-            ) : (
-              <div className="w-full aspect-square bg-gray-200 rounded-2xl flex items-center justify-center">
-                <p className="text-gray-500">Card generating...</p>
-              </div>
-            )}
+            <CardMockup
+              frontImageUrl={card.frontImageUrl}
+              insideImageUrl={card.insideImageUrl}
+              currentView={currentView}
+              showDimensions={true}
+            />
           </div>
         </div>
 
