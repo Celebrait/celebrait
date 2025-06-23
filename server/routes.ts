@@ -57,8 +57,6 @@ async function applyWatermark(imageData: string, opacity: number = 0.3): Promise
     const fontSize = Math.min(originalImage.width, originalImage.height) * 0.08;
     ctx.font = `bold ${fontSize}px Arial`;
     ctx.fillStyle = `rgba(255, 255, 255, 0.7)`; // High opacity white text
-    ctx.strokeStyle = `rgba(0, 0, 0, 0.9)`; // Strong black outline
-    ctx.lineWidth = 4; // Thick outline for readability
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
@@ -84,8 +82,7 @@ async function applyWatermark(imageData: string, opacity: number = 0.3): Promise
         const x = startX + col * spacingX;
         const y = startY + row * spacingY;
         
-        // Draw text with strong outline for maximum readability
-        ctx.strokeText(text, x, y);
+        // Draw text without outline for better image visibility
         ctx.fillText(text, x, y);
       }
     }
