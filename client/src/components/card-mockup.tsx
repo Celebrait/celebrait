@@ -34,41 +34,63 @@ export default function CardMockup({
         
         {/* Main card container */}
         <div className="relative bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
-          {/* Card content area */}
-          <div className="relative aspect-square p-3">
-            {/* Center fold line for inside view */}
-            {currentView === 'inside' && (
-              <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gray-300 opacity-50" />
-            )}
-
-            {/* Generated image overlay */}
-            <div className="relative w-full h-full rounded border-2 border-dashed border-gray-300 overflow-hidden">
-              {currentView === 'front' && frontImageUrl ? (
-                <img
-                  src={frontImageUrl}
-                  alt="AI Generated Card Front"
-                  className="w-full h-full object-cover"
-                  onLoad={() => setImageLoaded(true)}
-                />
-              ) : currentView === 'inside' && insideImageUrl ? (
-                <img
-                  src={insideImageUrl}
-                  alt="AI Generated Card Inside"
-                  className="w-full h-full object-cover"
-                  onLoad={() => setImageLoaded(true)}
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-50 flex items-center justify-center">
-                  <div className="text-center text-gray-400">
-                    <div className="text-sm font-medium mb-1">
-                      {currentView === 'front' ? 'Front Design' : 'Inside Message'}
+          {currentView === 'front' ? (
+            /* Front view - single card */
+            <div className="relative aspect-square p-3">
+              <div className="relative w-full h-full overflow-hidden">
+                {frontImageUrl ? (
+                  <img
+                    src={frontImageUrl}
+                    alt="AI Generated Card Front"
+                    className="w-full h-full object-cover"
+                    onLoad={() => setImageLoaded(true)}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-50 flex items-center justify-center border-2 border-dashed border-gray-300">
+                    <div className="text-center text-gray-400">
+                      <div className="text-sm font-medium mb-1">Front Design</div>
+                      <div className="text-xs">AI Generated Content</div>
                     </div>
-                    <div className="text-xs">AI Generated Content</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Inside view - open card layout */
+            <div className="relative aspect-[2/1] p-3">
+              <div className="flex h-full gap-1">
+                {/* Left page - blank */}
+                <div className="flex-1 bg-white border-2 border-dashed border-gray-300 flex items-center justify-center">
+                  <div className="text-center text-gray-400">
+                    <div className="text-xs font-medium mb-1">Left Page</div>
+                    <div className="text-xs opacity-75">Blank</div>
                   </div>
                 </div>
-              )}
+                
+                {/* Center fold line */}
+                <div className="w-px bg-gray-400"></div>
+                
+                {/* Right page - inside content */}
+                <div className="flex-1 overflow-hidden">
+                  {insideImageUrl ? (
+                    <img
+                      src={insideImageUrl}
+                      alt="AI Generated Card Inside"
+                      className="w-full h-full object-cover"
+                      onLoad={() => setImageLoaded(true)}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-50 flex items-center justify-center border-2 border-dashed border-gray-300">
+                      <div className="text-center text-gray-400">
+                        <div className="text-xs font-medium mb-1">Inside Message</div>
+                        <div className="text-xs">AI Generated Content</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Card edge detail */}
           <div className="absolute inset-0 rounded-lg ring-1 ring-black/5" />
