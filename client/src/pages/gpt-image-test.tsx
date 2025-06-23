@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { CardMockup } from '@/components/card-mockup';
+import CardMockup from '@/components/card-mockup';
 
 export default function GPTImageTest() {
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -539,8 +539,8 @@ export default function GPTImageTest() {
                     <CardMockup
                       frontImageUrl={resultImage}
                       insideImageUrl={null}
-                      showFront={true}
-                      className="max-w-md"
+                      currentView="front"
+                      showDimensions={true}
                     />
                   </div>
                 </div>
@@ -562,8 +562,8 @@ export default function GPTImageTest() {
                       <CardMockup
                         frontImageUrl={resultImage}
                         insideImageUrl={insideCardImage}
-                        showFront={false}
-                        className="max-w-md"
+                        currentView="inside"
+                        showDimensions={true}
                       />
                     </div>
                   </div>
