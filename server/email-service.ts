@@ -16,6 +16,10 @@ interface EmailParams {
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
+    console.log(`Attempting to send email to: ${params.to}`);
+    console.log(`From: ${params.from}`);
+    console.log(`Subject: ${params.subject}`);
+    
     await sgMail.send({
       to: params.to,
       from: params.from,
@@ -25,8 +29,14 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     });
     console.log(`Email sent successfully to ${params.to}`);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('SendGrid email error:', error);
+    
+    // Log specific error details for troubleshooting
+    if (error.response && error.response.body) {
+      console.error('SendGrid error details:', JSON.stringify(error.response.body, null, 2));
+    }
+    
     return false;
   }
 }

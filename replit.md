@@ -109,9 +109,21 @@ Celebrait is a full-stack web application that creates personalized greeting car
 - **TypeScript**: Strict configuration with path mapping
 - **Bundling**: External package handling for Node.js compatibility
 
+## Email System
+### SendGrid Integration
+- **Email Service**: Automated order confirmations, digital card delivery, and shipping notifications
+- **Templates**: Professional HTML email templates with responsive design and Celebrait branding
+- **Endpoints**: `/api/send-shipping-notification` and `/api/create-free-order` for email management
+- **Configuration**: Requires verified SendGrid sender domain/email and API key with Mail Send permissions
+
 ## Changelog
 ```
 Changelog:
+- June 25, 2025. SendGrid email system integration:
+  * Added comprehensive email service with HTML templates for order confirmations, digital deliveries, and shipping
+  * Integrated automatic email sending into payment workflows and order creation
+  * Created admin endpoints for shipping notifications and free digital card distribution
+  * Implemented responsive email templates with Celebrait branding and mobile optimization
 - June 22, 2025. Canvas-based watermark system implementation:
   * Added Canvas library with system dependencies for server-side image processing
   * Implemented diagonal "CELEBRAIT PREVIEW" watermarks applied to all generated images
