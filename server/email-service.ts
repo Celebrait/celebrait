@@ -35,6 +35,16 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     // Log specific error details for troubleshooting
     if (error.response && error.response.body) {
       console.error('SendGrid error details:', JSON.stringify(error.response.body, null, 2));
+      
+      // Check for specific error types
+      if (error.response.body.errors) {
+        error.response.body.errors.forEach((err: any) => {
+          console.error('SendGrid error:', err.message);
+          if (err.field) {
+            console.error('Field:', err.field);
+          }
+        });
+      }
     }
     
     return false;
@@ -47,7 +57,7 @@ export function generateOrderConfirmationEmail(orderData: any): EmailParams {
   
   return {
     to: customerEmail,
-    from: 'noreply@yourdomain.com', // Replace with your verified SendGrid sender email
+    from: 'greetings@celebrait.co.za',
     subject: 'Order Confirmation - Your Celebrait Card',
     html: `
       <!DOCTYPE html>
@@ -122,7 +132,7 @@ export function generateDigitalCardEmail(orderData: any, cardImageUrl: string): 
   
   return {
     to: customerEmail,
-    from: 'noreply@yourdomain.com', // Replace with your verified SendGrid sender email
+    from: 'greetings@celebrait.co.za',
     subject: 'Your Digital Celebrait Card is Ready! 🎉',
     html: `
       <!DOCTYPE html>
@@ -195,7 +205,7 @@ export function generateShippingNotificationEmail(orderData: any, trackingNumber
   
   return {
     to: customerEmail,
-    from: 'noreply@yourdomain.com', // Replace with your verified SendGrid sender email
+    from: 'greetings@celebrait.co.za',
     subject: 'Your Celebrait Card Has Shipped! 📦',
     html: `
       <!DOCTYPE html>

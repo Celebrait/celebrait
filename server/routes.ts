@@ -2163,6 +2163,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test SendGrid configuration
+  app.post("/api/test-sendgrid", async (req, res) => {
+    try {
+      const { testEmail } = req.body;
+      
+      if (!testEmail) {
+        return res.status(400).json({ message: "Test email address is required" });
+      }
+
+      const testEmailParams = {
+        to: testEmail,
+        from: 'greetings@celebrait.co.za',
+        subject: 'SendGrid Test Email - Celebrait',
+        html: `
+          <h1>SendGrid Test Email</h1>
+          <p>This is a test email to verify your SendGrid configuration.</p>
+          <p>If you receive this email, your SendGrid integration is working correctly!</p>
+        `,
+        text: 'SendGrid Test Email - If you receive this email, your SendGrid integration is working correctly!'
+      };
+
+      const success = await sendEmail(testEmailParams);
+      
+      if (success) {
+        res.json({ 
+          success: true, 
+          message: 'Test email sent successfully' 
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: 'Failed to send test email - check server logs for details' 
+        });
+      }
+
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false, 
+        message: "SendGrid test failed: " + error.message 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
