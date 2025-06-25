@@ -36,38 +36,7 @@ export default function QuickCardGenerator({ onCardGenerated }: QuickCardGenerat
   
   const { toast } = useToast();
 
-  const generateCardMutation = useMutation({
-    mutationFn: async (cardData: any) => {
-      const response = await fetch('/api/cards', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(cardData),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Network error' }));
-        throw new Error(errorData.message || `HTTP ${response.status}`);
-      }
-      
-      return response.json();
-    },
-    onSuccess: (card) => {
-      onCardGenerated(card);
-      toast({
-        title: 'Card Generated!',
-        description: 'Your card has been created successfully.',
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Generation Failed',
-        description: error.message || 'Failed to generate card',
-        variant: 'destructive'
-      });
-    }
-  });
+
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
