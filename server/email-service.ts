@@ -37,7 +37,7 @@ export function generateOrderConfirmationEmail(orderData: any): EmailParams {
   
   return {
     to: customerEmail,
-    from: 'orders@celebrait.com', // Replace with your verified sender email
+    from: 'noreply@yourdomain.com', // Replace with your verified SendGrid sender email
     subject: 'Order Confirmation - Your Celebrait Card',
     html: `
       <!DOCTYPE html>
@@ -112,7 +112,7 @@ export function generateDigitalCardEmail(orderData: any, cardImageUrl: string): 
   
   return {
     to: customerEmail,
-    from: 'cards@celebrait.com', // Replace with your verified sender email
+    from: 'noreply@yourdomain.com', // Replace with your verified SendGrid sender email
     subject: 'Your Digital Celebrait Card is Ready! 🎉',
     html: `
       <!DOCTYPE html>
@@ -185,7 +185,7 @@ export function generateShippingNotificationEmail(orderData: any, trackingNumber
   
   return {
     to: customerEmail,
-    from: 'shipping@celebrait.com', // Replace with your verified sender email
+    from: 'noreply@yourdomain.com', // Replace with your verified SendGrid sender email
     subject: 'Your Celebrait Card Has Shipped! 📦',
     html: `
       <!DOCTYPE html>

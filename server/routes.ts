@@ -1109,6 +1109,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update card status to paid
         if (card) {
           await storage.updateCard(card.id, { status: 'paid' });
+          
+          // Send appropriate email based on order type
+          try {
+            if (isDigital && card.frontImageUrl) {
+              // Send digital card email with the card image
+              const emailParams = generateDigitalCardEmail(order, card.frontImageUrl);
+              await sendEmail(emailParams);
+              console.log('Digital card email sent successfully');
+            }
+          } catch (emailError) {
+            console.error('Failed to send digital card email:', emailError);
+          }
         }
         
         return res.json({
@@ -1137,6 +1149,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (card) {
           await storage.updateCard(card.id, { status: 'paid' });
+          
+          // Send appropriate email based on order type
+          try {
+            const isDigital = !order.shippingAddress;
+            if (isDigital && card.frontImageUrl) {
+              // Send digital card email with the card image
+              const emailParams = generateDigitalCardEmail(order, card.frontImageUrl);
+              await sendEmail(emailParams);
+              console.log('Digital card email sent successfully');
+            }
+          } catch (emailError) {
+            console.error('Failed to send digital card email:', emailError);
+          }
         }
 
         res.json({
@@ -2041,6 +2066,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Update card error:', error);
       res.status(500).json({ message: "Failed to update card: " + error.message });
+    }
+  });
+
+  // Send shipping notification email
+  app.post("/api/send-shipping-notification", async (req, res) => {
+    try {
+      const { orderId, trackingNumber } = req.body;
+
+      if (!orderId || !trackingNumber) {
+        return res.status(400).json({ message: "Order ID and tracking number are required" });
+      }
+
+      const order = await storage.getOrder(parseInt(orderId));
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+
+      // Update order with tracking number
+      const updatedOrder = await storage.updateOrder(order.id, {
+        orderStatus: 'shipped',
+        trackingNumber
+      });
+
+      // Send shipping notification email
+      try {
+        const emailParams = generateShippingNotificationEmail(order, trackingNumber);
+        await sendEmail(emailParams);
+        console.log('Shipping notification email sent successfully');
+        
+        res.json({
+          ...updatedOrder,
+          message: 'Shipping notification sent successfully'
+        });
+      } catch (emailError) {
+        console.error('Failed to send shipping notification email:', emailError);
+        res.status(500).json({ message: "Failed to send shipping notification" });
+      }
+
+    } catch (error: any) {
+      res.status(500).json({ message: "Error sending shipping notification: " + error.message });
+    }
+  });
+
+  // Create free digital order
+  app.post("/api/create-free-order", async (req, res) => {
+    try {
+      const { cardId, customerEmail, customerName } = req.body;
+
+      if (!cardId || !customerEmail || !customerName) {
+        return res.status(400).json({ message: "Card ID, customer email, and name are required" });
+      }
+
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      const orderData = {
+        cardId: parseInt(cardId),
+        customerEmail,
+        customerName,
+        amount: 0,
+        baseAmount: 0,
+        tipAmount: 0,
+        currency: 'ZAR',
+        paymentReference: `free_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        shippingAddress: null,
+        orderType: 'free_digital',
+        paymentStatus: 'completed',
+        orderStatus: 'completed'
+      };
+
+      const order = await storage.createOrder(orderData);
+      await storage.updateCard(card.id, { status: 'paid' });
+
+      // Send digital card email
+      try {
+        if (card.frontImageUrl) {
+          const emailParams = generateDigitalCardEmail(order, card.frontImageUrl);
+          await sendEmail(emailParams);
+          console.log('Free digital card email sent successfully');
+        }
+      } catch (emailError) {
+        console.error('Failed to send free digital card email:', emailError);
+      }
+
+      res.json({
+        ...order,
+        card,
+        message: 'Free digital card created and sent successfully'
+      });
+
+    } catch (error: any) {
+      res.status(500).json({ message: "Error creating free order: " + error.message });
     }
   });
 
