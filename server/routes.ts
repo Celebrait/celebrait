@@ -12,6 +12,7 @@ import Stripe from "stripe";
 import Replicate from "replicate";
 import FormData from "form-data";
 import { createCanvas, loadImage } from "canvas";
+import { sendEmail, generateOrderConfirmationEmail, generateDigitalCardEmail, generateShippingNotificationEmail } from './email-service';
 
 // Temporarily allow running without API keys for testing
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
@@ -962,6 +963,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Creating order with data:', orderData);
       const order = await storage.createOrder(orderData);
       console.log('Order created successfully:', order?.id, 'with reference:', order?.paymentReference);
+      
+      // Send order confirmation email
+      try {
+        const emailParams = generateOrderConfirmationEmail(orderData);
+        await sendEmail(emailParams);
+        console.log('Order confirmation email sent successfully');
+      } catch (emailError) {
+        console.error('Failed to send order confirmation email:', emailError);
+        // Don't fail the entire request if email fails
+      }
       
       if (!order || !order.id) {
         console.error('Order creation failed - no order returned or missing ID');
