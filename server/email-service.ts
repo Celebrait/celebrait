@@ -4,6 +4,9 @@ if (!process.env.SENDGRID_API_KEY) {
   throw new Error("SENDGRID_API_KEY environment variable must be set");
 }
 
+console.log('SendGrid API Key configured:', process.env.SENDGRID_API_KEY ? 'Present' : 'Missing');
+console.log('SendGrid API Key length:', process.env.SENDGRID_API_KEY?.length || 0);
+
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 interface EmailParams {
@@ -20,13 +23,21 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     console.log(`From: ${params.from}`);
     console.log(`Subject: ${params.subject}`);
     
-    await sgMail.send({
+    const result = await sgMail.send({
       to: params.to,
       from: params.from,
       subject: params.subject,
       text: params.text,
       html: params.html,
     });
+    
+    console.log('SendGrid response status:', result[0]?.statusCode);
+    console.log('SendGrid response headers:', result[0]?.headers);
+    
+    // Check for X-Message-Id header which tracks the message
+    if (result[0]?.headers && result[0].headers['x-message-id']) {
+      console.log('SendGrid Message ID:', result[0].headers['x-message-id']);
+    }
     console.log(`Email sent successfully to ${params.to}`);
     return true;
   } catch (error: any) {

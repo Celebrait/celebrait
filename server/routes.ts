@@ -2163,7 +2163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test SendGrid configuration
+  // Test SendGrid configuration with detailed response
   app.post("/api/test-sendgrid", async (req, res) => {
     try {
       const { testEmail } = req.body;
@@ -2172,16 +2172,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Test email address is required" });
       }
 
+      console.log(`Testing SendGrid with email: ${testEmail}`);
+
+      // Test with current timestamp for tracking
+      const timestamp = new Date().toISOString();
       const testEmailParams = {
         to: testEmail,
         from: 'greetings@celebrait.co.za',
-        subject: 'SendGrid Test Email - Celebrait',
+        subject: `SendGrid Test Email - ${timestamp}`,
         html: `
           <h1>SendGrid Test Email</h1>
           <p>This is a test email to verify your SendGrid configuration.</p>
+          <p>Timestamp: ${timestamp}</p>
           <p>If you receive this email, your SendGrid integration is working correctly!</p>
         `,
-        text: 'SendGrid Test Email - If you receive this email, your SendGrid integration is working correctly!'
+        text: `SendGrid Test Email - Timestamp: ${timestamp} - If you receive this email, your SendGrid integration is working correctly!`
       };
 
       const success = await sendEmail(testEmailParams);
@@ -2189,7 +2194,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (success) {
         res.json({ 
           success: true, 
-          message: 'Test email sent successfully' 
+          message: 'Test email sent successfully',
+          timestamp,
+          note: 'Check your SendGrid Activity dashboard in 1-2 minutes for delivery status'
         });
       } else {
         res.status(500).json({ 
