@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import CardMockup from '@/components/card-mockup';
 
 export default function GPTImageTest() {
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -536,11 +535,16 @@ export default function GPTImageTest() {
                 <div>
                   <Label>Front Card</Label>
                   <div className="mt-2 w-full flex justify-center">
-                    <CardMockup
-                      frontImageUrl={resultImage}
-                      insideImageUrl={null}
-                      currentView="front"
-                      showDimensions={true}
+                    <img 
+                      src={resultImage} 
+                      alt="Front card result" 
+                      style={{ 
+                        display: 'block',
+                        maxWidth: '100%',
+                        maxHeight: '1028px',
+                        width: 'auto',
+                        height: 'auto'
+                      }}
                     />
                   </div>
                 </div>
@@ -559,11 +563,16 @@ export default function GPTImageTest() {
                   <div className="mt-4">
                     <Label>Inside Card</Label>
                     <div className="mt-2 w-full flex justify-center">
-                      <CardMockup
-                        frontImageUrl={resultImage}
-                        insideImageUrl={insideCardImage}
-                        currentView="inside"
-                        showDimensions={true}
+                      <img 
+                        src={insideCardImage} 
+                        alt="Inside card result" 
+                        style={{ 
+                          display: 'block',
+                          maxWidth: '100%',
+                          maxHeight: '1028px',
+                          width: 'auto',
+                          height: 'auto'
+                        }}
                       />
                     </div>
                   </div>
