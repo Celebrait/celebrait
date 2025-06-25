@@ -110,11 +110,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 - **Bundling**: External package handling for Node.js compatibility
 
 ## Email System
-### SendGrid Integration
+### SendGrid Integration - ACTIVE
 - **Email Service**: Automated order confirmations, digital card delivery, and shipping notifications
+- **Sender Address**: greetings@celebrait.co.za (verified and operational)
 - **Templates**: Professional HTML email templates with responsive design and Celebrait branding
-- **Endpoints**: `/api/send-shipping-notification` and `/api/create-free-order` for email management
-- **Configuration**: Requires verified SendGrid sender domain/email and API key with Mail Send permissions
+- **Endpoints**: `/api/send-shipping-notification`, `/api/create-free-order`, `/api/test-sendgrid` for email management
+- **Status**: Fully operational with successful test confirmations
 
 ## Changelog
 ```
