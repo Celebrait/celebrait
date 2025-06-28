@@ -139,37 +139,25 @@ export default function CompleteOrder() {
     try {
       if (deliveryType === 'digital') {
         // Handle digital card delivery
-        const customLink = generateCustomLink();
         const targetEmail = deliveryMethod === 'self' ? customerEmail : recipientEmail;
         
         const orderData = {
           cardId: card.id,
           customerName,
-          customerEmail,
-          deliveryType: 'digital',
-          digitalLink: customLink,
-          recipientEmail: targetEmail,
-          customMessage: customMessage.trim() || `${customerName} has sent you a beautiful greeting card created with Celebrait!`,
-          amount: 0
+          customerEmail: targetEmail
         };
 
-        // Store digital card data for the custom link
-        sessionStorage.setItem(`digitalCard_${customLink.split('/').pop()}`, JSON.stringify({
-          ...card,
-          senderName: customerName,
-          customMessage: orderData.customMessage
-        }));
-
-        // Send email notification
-        await apiRequest('POST', '/api/send-digital-card', orderData);
+        // Create free digital order
+        const response = await apiRequest('POST', '/api/create-free-order', orderData);
+        const result = await response.json();
         
         toast({
           title: 'Digital Card Sent!',
           description: `Your card has been delivered to ${targetEmail}`,
         });
 
-        // Redirect to success page
-        setLocation(`/order-success?type=digital&email=${encodeURIComponent(targetEmail)}`);
+        // Redirect to success page with order reference
+        setLocation(`/order-success?type=digital&email=${encodeURIComponent(targetEmail)}&reference=${result.paymentReference}`);
         
       } else {
         // Handle printed card - redirect to payment

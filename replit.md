@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- June 28, 2025. Fixed digital delivery "no order found" issue:
+  * Updated delivery choice flow to navigate to complete-order page for digital cards instead of directly to order-success
+  * Fixed API integration to use /api/create-free-order endpoint for digital orders
+  * Corrected order creation data structure to match schema requirements (added missing customerPhone field)
+  * Updated complete-order page to properly create free digital orders and navigate with correct reference parameter
+  * Digital cards now properly create orders, send emails, and show success page with order details
 - June 25, 2025. SendGrid email system integration:
   * Added comprehensive email service with HTML templates for order confirmations, digital deliveries, and shipping
   * Integrated automatic email sending into payment workflows and order creation
