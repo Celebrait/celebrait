@@ -120,6 +120,11 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- June 28, 2025. Fixed email domain URLs and enhanced digital card interactivity:
+  * Fixed email template URLs to use correct Replit app domain for working email links
+  * Made digital card preview clickable - both card image and button now open the card
+  * Enhanced digital card viewer with confetti animations and interactive opening experience
+  * Updated email generation to dynamically include proper host domain from request headers
 - June 28, 2025. Implemented persistent PostgreSQL storage to fix digital card links:
   * Replaced in-memory storage with PostgreSQL database storage using Drizzle ORM
   * Digital card email links now work permanently even after server restarts

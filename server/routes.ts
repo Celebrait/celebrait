@@ -1090,7 +1090,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customerEmail: customerInfo.email,
           customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
           paymentReference: reference
-        }, card?.frontImageUrl || '');
+        }, card?.frontImageUrl || '', req.get('host'));
         await sendEmail(emailParams);
         console.log('Free digital card email sent successfully to:', customerInfo.email);
       } catch (emailError) {
