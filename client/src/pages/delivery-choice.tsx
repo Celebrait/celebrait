@@ -61,13 +61,26 @@ export default function DeliveryChoice() {
     }
   }, []);
 
-  const handleDeliverySelected = (delivery: 'printed' | 'digital') => {
+  const handleDeliverySelected = async (delivery: 'printed' | 'digital') => {
     setSelectedDelivery(delivery);
     
     if (delivery === 'digital') {
-      // Handle digital download
-      setLocation('/order-success');
+      // Store delivery type for complete-order page
+      sessionStorage.setItem('selectedDeliveryType', 'digital');
+      
+      // Navigate to complete-order page to collect customer details
+      setTimeout(() => {
+        try {
+          setLocation(`/complete-order/${params?.cardId}`);
+        } catch (error) {
+          console.error('Navigation failed:', error);
+          window.location.href = `/complete-order/${params?.cardId}`;
+        }
+      }, 200);
     } else {
+      // Store delivery type for printed cards
+      sessionStorage.setItem('selectedDeliveryType', 'printed');
+      
       // Navigate to payment page for printed cards
       setTimeout(() => {
         try {

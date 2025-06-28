@@ -2124,18 +2124,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cardId: parseInt(cardId),
         customerEmail,
         customerName,
+        customerPhone: '', // Not required for digital orders
         amount: 0,
-        baseAmount: 0,
-        tipAmount: 0,
         currency: 'ZAR',
         paymentReference: `free_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        shippingAddress: null,
-        orderType: 'free_digital',
-        paymentStatus: 'completed',
-        orderStatus: 'completed'
+        shippingAddress: null
       };
 
       const order = await storage.createOrder(orderData);
+      
+      // Update order status for digital delivery
+      const updatedOrder = await storage.updateOrder(order.id, {
+        orderType: 'free_digital',
+        paymentStatus: 'completed',
+        orderStatus: 'completed',
+        baseAmount: 0,
+        tipAmount: 0
+      });
+      
       await storage.updateCard(card.id, { status: 'paid' });
 
       // Send digital card email
