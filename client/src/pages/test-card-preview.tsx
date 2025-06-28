@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useLocation } from "wouter";
 import CardPreview from "@/components/card-preview";
@@ -56,7 +55,7 @@ export default function TestCardPreview() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
       <Header />
-      
+
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Test Controls */}
         <Card className="mb-8 border-2 border-orange-200 bg-orange-50">
@@ -71,7 +70,7 @@ export default function TestCardPreview() {
               <p className="text-sm text-gray-600">
                 This page uses mock card data to test the card preview, delivery selection, and payment flow without going through onboarding.
               </p>
-              
+
               <div className="flex gap-4">
                 <Button
                   onClick={() => handleDeliveryChange('printed')}
