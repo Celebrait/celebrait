@@ -9,7 +9,10 @@ import { useEffect } from "react";
 import Home from "@/pages/home";
 import Checkout from "@/pages/checkout";
 import Payment from "@/pages/payment";
-import PaymentSuccess from "@/pages/payment-success";
+import PaymentSuccess from './pages/payment-success';
+import OrderSuccess from './pages/order-success';
+import CompleteOrder from './pages/complete-order';
+import DigitalCardViewer from './pages/digital-card-viewer';
 import TestPayment from "@/pages/test-payment";
 import TestGeneration from "@/pages/test-generation";
 import StyleTest from "@/pages/style-test";
@@ -17,7 +20,6 @@ import GPTImageTest from "@/pages/gpt-image-test";
 import TestCardPreview from "@/pages/test-card-preview";
 import NotFound from "@/pages/not-found";
 import PaymentWithTips from "@/pages/payment-with-tips";
-import OrderSuccess from "@/pages/order-success";
 import DeliveryChoice from "@/pages/delivery-choice";
 
 function Router() {
@@ -29,8 +31,11 @@ function Router() {
         <Route path="/checkout/:cardId" component={Checkout} />
         <Route path="/payment/:cardId" component={Payment} />
         <Route path="/payment-tips/:cardId" component={PaymentWithTips} />
+        <Route path="/checkout/:cardId" component={Checkout} />
         <Route path="/payment-success" component={PaymentSuccess} />
         <Route path="/order-success" component={OrderSuccess} />
+        <Route path="/complete-order/:cardId" component={CompleteOrder} />
+        <Route path="/card/:linkId" component={DigitalCardViewer} />
         <Route path="/test" component={TestGeneration} />
         <Route path="/test-payment" component={TestPayment} />
         <Route path="/test-generation" component={TestGeneration} />

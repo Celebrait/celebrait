@@ -91,18 +91,24 @@ export default function DeliveryChoice({ onDeliverySelected }: DeliveryChoicePro
         <div className="mt-6 text-center">
           <Button
             onClick={() => {
-              // Handle the next step based on selection
-              if (selectedDelivery === 'digital') {
-                // Handle digital download
-                window.location.href = '/order-success';
-              } else {
-                // Handle printed card checkout
-                window.location.href = '/payment';
+              // Store delivery type for the complete order page
+              sessionStorage.setItem('selectedDeliveryType', selectedDelivery);
+              
+              // Get card ID from session storage or use test ID
+              const cardData = sessionStorage.getItem('cardPreviewData');
+              let cardId = '999'; // Default test ID
+              
+              if (cardData) {
+                const parsed = JSON.parse(cardData);
+                cardId = parsed.id?.toString() || '999';
               }
+              
+              // Redirect to complete order page
+              window.location.href = `/complete-order/${cardId}`;
             }}
             className="w-full bg-gradient-celebrait hover:opacity-90 text-white py-3 rounded-2xl font-semibold shadow-lg transition-all duration-300"
           >
-            {selectedDelivery === 'digital' ? 'Download Now' : 'Proceed to Checkout'}
+            Continue
           </Button>
         </div>
       )}
