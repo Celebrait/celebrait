@@ -53,33 +53,56 @@ export default function DeliveryChoice() {
   useEffect(() => {
     const loadCardData = async () => {
       try {
+        // Clear any storage issues first
+        emergencyStorageCleanup();
+        
         // Try to get card data from session storage first
         const storedCardData = sessionStorage.getItem('cardPreviewData');
         if (storedCardData) {
-          setCardData(JSON.parse(storedCardData));
-          setLoading(false);
-          return;
+          try {
+            const parsedData = JSON.parse(storedCardData);
+            setCardData(parsedData);
+            setLoading(false);
+            return;
+          } catch (parseError) {
+            console.warn('Failed to parse stored card data, fetching from API');
+          }
         }
 
         // If no session data and we have a cardId, fetch from API
         if (params?.cardId) {
           try {
             const response = await apiRequest('GET', `/api/cards/${params.cardId}`);
-            const cardData = await response.json();
-            setCardData(cardData);
+            if (response.ok) {
+              const cardData = await response.json();
+              setCardData(cardData);
+              setLoading(false);
+              return;
+            }
           } catch (error) {
             console.error('Failed to load card data from API:', error);
-            // Set minimal card data to allow page to render
-            setCardData({ id: params.cardId, price: 2900 });
           }
-        } else {
-          // No cardId available, set minimal data to allow page to render
-          setCardData({ id: 'unknown', price: 2900 });
         }
+        
+        // Fallback: Set minimal card data to allow page to render
+        setCardData({ 
+          id: params?.cardId || 'test', 
+          price: 12900,
+          cardType: 'printed',
+          frontImageUrl: null,
+          insideImageUrl: null
+        });
+        
       } catch (e) {
         console.error('Error loading card data:', e);
-        // Set minimal card data to allow page to render
-        setCardData({ id: 'error', price: 2900 });
+        // Final fallback
+        setCardData({ 
+          id: 'fallback', 
+          price: 12900,
+          cardType: 'printed',
+          frontImageUrl: null,
+          insideImageUrl: null
+        });
       } finally {
         setLoading(false);
       }

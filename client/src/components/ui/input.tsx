@@ -30,8 +30,10 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
             setUserInteracted(true);
             // Remove readonly and focus after user interaction
             setTimeout(() => {
-              e.currentTarget.readOnly = false;
-              e.currentTarget.focus();
+              if (e.currentTarget) {
+                e.currentTarget.readOnly = false;
+                e.currentTarget.focus();
+              }
             }, 50);
           }
           props.onClick?.(e);

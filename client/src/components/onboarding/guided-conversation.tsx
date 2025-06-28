@@ -872,40 +872,36 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     try {
       console.log('Creating test card with mock imagery (instant mode)');
       
+      // Set loading state for immediate feedback
+      setIsLoading(true);
+      
       // Create mock front and inside images
       const mockFrontImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABQAAAALQCAMAAAD8n+HBAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAMUExURf///9zc3Ly8vJmZmTQCLLkAAAAGSURBVHhe7dUxAQAwCALRxO9f2ihSGwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAuABkwAABRMz8MgAAAABJRU5ErkJggg==";
       const mockInsideImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABQAAAALQCAMAAAD8n+HBAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAQUExURf///+np6dLS0ru7u5mZmTQCLLkAAAAGSURBVHhe7dUxAQAwCALRxO9f2ihSGwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAuABkwAABRMz8MgAAAABJRU5ErkJggg==";
       
-      // Create test conversation data
-      const conversationData = {
-        ...answers,
-        uploadedPhotos,
-        originalFrontImageUrl: mockFrontImage,
-        originalInsideImageUrl: mockInsideImage,
-        watermarkedFrontImageUrl: mockFrontImage,
-        watermarkedInsideImageUrl: mockInsideImage,
-        isTestMode: true
-      };
-
       // Update the card with mock images (immediate API call)
       const updateResponse = await apiRequest("POST", "/api/update-card-images", {
         cardId,
         frontImageUrl: mockFrontImage,
         insideImageUrl: mockInsideImage,
-        conversationData,
+        conversationData: { ...answers, isTestMode: true },
         status: 'completed'
       });
 
       const updatedCard = await updateResponse.json();
+      
+      // Clear loading state immediately  
+      setIsLoading(false);
       
       toast({
         title: "Test Card Created Instantly!",
         description: "Mock card ready for testing complete flow",
       });
       
-      // Immediately call onCardGenerated without any loading state
+      // Immediately call onCardGenerated
       onCardGenerated(updatedCard);
     } catch (error: any) {
+      setIsLoading(false);
       toast({
         title: "Error",
         description: `Failed to create test card: ${error.message}`,
