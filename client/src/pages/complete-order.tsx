@@ -157,13 +157,19 @@ export default function CompleteOrder() {
         const response = await apiRequest('POST', '/api/create-free-order', orderData);
         const result = await response.json();
         
+        console.log('Digital order API response:', result);
+        
+        if (!result.reference || !result.orderId) {
+          throw new Error('Invalid response from server - missing order details');
+        }
+        
         toast({
           title: 'Digital Card Sent!',
           description: `Your card has been delivered to ${targetEmail}`,
         });
 
         // Redirect to success page with order reference
-        setLocation(`/order-success?type=digital&email=${encodeURIComponent(targetEmail)}&reference=${result.reference || result.paymentReference}&orderId=${result.orderId}`);
+        setLocation(`/order-success?type=digital&email=${encodeURIComponent(targetEmail)}&reference=${result.reference}&orderId=${result.orderId}`);
         
       } else {
         // Handle printed card - redirect to payment
