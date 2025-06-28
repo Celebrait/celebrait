@@ -18,6 +18,7 @@ import TestCardPreview from "@/pages/test-card-preview";
 import NotFound from "@/pages/not-found";
 import PaymentWithTips from "@/pages/payment-with-tips";
 import OrderSuccess from "@/pages/order-success";
+import DeliveryChoice from "@/pages/delivery-choice";
 
 function Router() {
   return (
@@ -36,6 +37,7 @@ function Router() {
         <Route path="/style-test" component={StyleTest} />
         <Route path="/gpt-image-test" component={GPTImageTest} />
         <Route path="/test-card-preview" component={TestCardPreview} />
+        <Route path="/delivery-choice/:cardId" component={DeliveryChoice} />
         <Route component={NotFound} />
       </Switch>
     </>

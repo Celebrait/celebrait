@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface CardMockupProps {
@@ -34,98 +33,31 @@ export default function CardMockup({ frontImageUrl, insideImageUrl, deliveryType
     );
   }
 
-  // Inside view handling based on delivery type
-  if (deliveryType === 'printed') {
-    // For printed cards, show open card mockup with blank left page
-    return (
-      <div className="w-full flex justify-center">
-        <div className="flex gap-2 max-w-full">
-          {/* Left page - blank */}
-          <div 
-            className="bg-white rounded-l-lg shadow-lg border-r border-gray-200"
-            style={{
-              aspectRatio: '1/1',
-              width: 'auto',
-              maxHeight: '500px',
-              minWidth: '200px'
-            }}
-          />
-          {/* Right page - inside content */}
-          <div 
-            className="rounded-r-lg shadow-lg overflow-hidden"
-            style={{
-              aspectRatio: '1/1',
-              width: 'auto',
-              maxHeight: '500px',
-              minWidth: '200px'
-            }}
-          >
-            {insideImageUrl ? (
-              <img 
-                src={insideImageUrl} 
-                alt="AI generated greeting card inside" 
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <p className="text-gray-500 text-sm">Generating...</p>
-              </div>
-            )}
-          </div>
+  // Inside view - show open card view with blank left and content right
+  return (
+    <div className="w-full flex justify-center">
+      <div className="flex gap-1 max-w-2xl">
+        {/* Left page (blank) */}
+        <div className="w-64 h-64 bg-white border-2 border-gray-300 rounded-l-lg flex items-center justify-center shadow-lg">
+          <span className="text-gray-400 text-sm font-medium">Left side blank</span>
+        </div>
+
+        {/* Right page (inside content) */}
+        <div className="w-64 h-64 border-2 border-gray-300 rounded-r-lg overflow-hidden shadow-lg">
+          {insideImageUrl ? (
+            <img 
+              src={insideImageUrl} 
+              alt="AI generated greeting card inside" 
+              className="w-full h-full object-cover"
+              style={{ borderRadius: '0' }}
+            />
+          ) : (
+            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+              <p className="text-gray-500 text-sm">Inside generating...</p>
+            </div>
+          )}
         </div>
       </div>
-    );
-  } else {
-    // For digital cards, show both images side by side
-    return (
-      <div className="w-full flex justify-center">
-        <div className="flex gap-4 max-w-full">
-          {/* Front image */}
-          <div 
-            className="rounded-lg shadow-lg overflow-hidden"
-            style={{
-              aspectRatio: '1/1',
-              width: 'auto',
-              maxHeight: '400px',
-              minWidth: '180px'
-            }}
-          >
-            {frontImageUrl ? (
-              <img 
-                src={frontImageUrl} 
-                alt="AI generated greeting card front" 
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <p className="text-gray-500 text-sm">Generating...</p>
-              </div>
-            )}
-          </div>
-          {/* Inside image */}
-          <div 
-            className="rounded-lg shadow-lg overflow-hidden"
-            style={{
-              aspectRatio: '1/1',
-              width: 'auto',
-              maxHeight: '400px',
-              minWidth: '180px'
-            }}
-          >
-            {insideImageUrl ? (
-              <img 
-                src={insideImageUrl} 
-                alt="AI generated greeting card inside" 
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <p className="text-gray-500 text-sm">Generating...</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
+    </div>
+  );
 }

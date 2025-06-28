@@ -13,51 +13,45 @@ interface CardPreviewProps {
 
 export default function CardPreview({ card, onboarding }: CardPreviewProps) {
   const [, setLocation] = useLocation();
-  const [showDeliveryChoice, setShowDeliveryChoice] = useState(false);
   const [currentView, setCurrentView] = useState<'front' | 'inside'>('front');
 
-  const handleDeliverySelected = (delivery: 'printed' | 'digital') => {
-    onboarding.setSelectedDelivery(delivery);
+  const handleChooseDelivery = () => {
+    // Emergency storage cleanup before navigation to prevent quota errors
+    const cleanupSuccess = emergencyStorageCleanup();
     
-    if (delivery === 'digital') {
-      // Handle digital download
-      setLocation('/order-success');
-    } else {
-      // Emergency storage cleanup before navigation to prevent quota errors
-      const cleanupSuccess = emergencyStorageCleanup();
-      
-      // Store minimal card data only
-      const minimalCardData = {
-        id: card.id,
-        cardType: card.cardType,
-        price: card.price
-      };
-      
+    // Store minimal card data only
+    const minimalCardData = {
+      id: card.id,
+      cardType: card.cardType,
+      price: card.price,
+      frontImageUrl: card.frontImageUrl,
+      insideImageUrl: card.insideImageUrl
+    };
+    
+    try {
+      sessionStorage.setItem('cardPreviewData', JSON.stringify(minimalCardData));
+    } catch (e) {
+      console.warn('Could not store card data, clearing more storage:', e);
+      // If storage fails, clear everything and try again
       try {
+        localStorage.clear();
+        sessionStorage.clear();
         sessionStorage.setItem('cardPreviewData', JSON.stringify(minimalCardData));
-      } catch (e) {
-        console.warn('Could not store card data, clearing more storage:', e);
-        // If storage fails, clear everything and try again
-        try {
-          localStorage.clear();
-          sessionStorage.clear();
-          sessionStorage.setItem('cardPreviewData', JSON.stringify(minimalCardData));
-        } catch (e2) {
-          console.error('Storage completely full:', e2);
-        }
+      } catch (e2) {
+        console.error('Storage completely full:', e2);
       }
-      
-      // Navigate with a delay to ensure cleanup completes
-      setTimeout(() => {
-        try {
-          setLocation(`/payment-tips/${card.id}`);
-        } catch (error) {
-          console.error('Navigation failed:', error);
-          // Force page reload as fallback
-          window.location.href = `/payment-tips/${card.id}`;
-        }
-      }, cleanupSuccess ? 200 : 500);
     }
+    
+    // Navigate to delivery choice page
+    setTimeout(() => {
+      try {
+        setLocation(`/delivery-choice/${card.id}`);
+      } catch (error) {
+        console.error('Navigation failed:', error);
+        // Force page reload as fallback
+        window.location.href = `/delivery-choice/${card.id}`;
+      }
+    }, cleanupSuccess ? 200 : 500);
   };
 
   const handleTryAgain = () => {
@@ -131,7 +125,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
                   : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
               }`}
             >
-              {onboarding.selectedDelivery === 'printed' ? 'Open Card' : 'Inside'}
+              Open Card
             </button>
           </div>
         )}
@@ -175,7 +169,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
             <CardMockup 
               frontImageUrl={card.frontImageUrl}
               insideImageUrl={card.insideImageUrl}
-              deliveryType={onboarding.selectedDelivery || 'printed'}
+              deliveryType="printed"
               currentView={currentView}
             />
           </div>
@@ -191,37 +185,31 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
 
       {/* Action Buttons */}
       <div className="space-y-6 max-w-md mx-auto">
-        {!showDeliveryChoice ? (
-          <>
-            <Button
-              onClick={() => setShowDeliveryChoice(true)}
-              className="w-full bg-gradient-celebrait hover:opacity-90 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105"
-            >
-              Continue
-            </Button>
-            
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                onClick={handleTryAgain}
-                variant="outline"
-                className="border-2 border-purple-200 text-gray-700 py-3 rounded-2xl font-medium hover:border-ethereal-purple transition-all duration-300"
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Try Again
-              </Button>
-              <Button
-                onClick={handleEdit}
-                variant="outline"
-                className="border-2 border-purple-200 text-gray-700 py-3 rounded-2xl font-medium hover:border-ethereal-purple transition-all duration-300"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Make Changes
-              </Button>
-            </div>
-          </>
-        ) : (
-          <DeliveryChoice onDeliverySelected={handleDeliverySelected} />
-        )}
+        <Button
+          onClick={handleChooseDelivery}
+          className="w-full bg-gradient-celebrait hover:opacity-90 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105"
+        >
+          Choose Delivery Option
+        </Button>
+        
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            onClick={handleTryAgain}
+            variant="outline"
+            className="border-2 border-purple-200 text-gray-700 py-3 rounded-2xl font-medium hover:border-ethereal-purple transition-all duration-300"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Try Again
+          </Button>
+          <Button
+            onClick={handleEdit}
+            variant="outline"
+            className="border-2 border-purple-200 text-gray-700 py-3 rounded-2xl font-medium hover:border-ethereal-purple transition-all duration-300"
+          >
+            <Edit className="w-4 h-4 mr-2" />
+            Make Changes
+          </Button>
+        </div>
       </div>
     </div>
   );
