@@ -270,19 +270,24 @@ export default function DigitalCardViewer() {
             </div>
 
             {/* Card Images */}
-            <div className="space-y-6">
+            <div className="space-y-8">
               {/* Front of Card */}
               {cardData.frontImageUrl && (
-                <Card className="bg-white/60 backdrop-blur-sm border border-white/20 shadow-xl">
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
-                      Front of Card
-                    </h3>
-                    <div className="aspect-[3/4] max-w-80 mx-auto rounded-lg overflow-hidden shadow-lg border-2 border-gray-200">
+                <Card className="bg-white/80 backdrop-blur-sm border border-purple/20 shadow-2xl hover:shadow-3xl transition-all duration-500 transform hover:scale-[1.02]">
+                  <CardContent className="p-8">
+                    <div className="text-center mb-6">
+                      <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-100 to-pink-100 px-4 py-2 rounded-full">
+                        <Sparkles className="w-5 h-5 text-purple-600" />
+                        <h3 className="text-lg font-semibold text-purple-800">
+                          Front of Your Card
+                        </h3>
+                      </div>
+                    </div>
+                    <div className="aspect-[3/4] max-w-96 mx-auto rounded-xl overflow-hidden shadow-2xl border-4 border-white transform hover:rotate-1 transition-transform duration-300 group">
                       <img 
                         src={cardData.frontImageUrl} 
                         alt="Front of card" 
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     </div>
                   </CardContent>
@@ -291,16 +296,21 @@ export default function DigitalCardViewer() {
 
               {/* Inside of Card */}
               {cardData.insideImageUrl && (
-                <Card className="bg-white/60 backdrop-blur-sm border border-white/20 shadow-xl">
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
-                      Inside of Card
-                    </h3>
-                    <div className="aspect-[3/4] max-w-80 mx-auto rounded-lg overflow-hidden shadow-lg border-2 border-gray-200">
+                <Card className="bg-white/80 backdrop-blur-sm border border-purple/20 shadow-2xl hover:shadow-3xl transition-all duration-500 transform hover:scale-[1.02]">
+                  <CardContent className="p-8">
+                    <div className="text-center mb-6">
+                      <div className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-100 to-purple-100 px-4 py-2 rounded-full">
+                        <Heart className="w-5 h-5 text-pink-600" />
+                        <h3 className="text-lg font-semibold text-pink-800">
+                          Inside Message
+                        </h3>
+                      </div>
+                    </div>
+                    <div className="aspect-[3/4] max-w-96 mx-auto rounded-xl overflow-hidden shadow-2xl border-4 border-white transform hover:-rotate-1 transition-transform duration-300 group">
                       <img 
                         src={cardData.insideImageUrl} 
                         alt="Inside of card" 
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     </div>
                   </CardContent>
