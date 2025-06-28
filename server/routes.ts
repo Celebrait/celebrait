@@ -1239,6 +1239,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get order by payment reference
+  app.get("/api/orders/reference/:reference", async (req, res) => {
+    try {
+      const reference = req.params.reference;
+      console.log('Fetching order by reference:', reference);
+      
+      const order = await storage.getOrderByReference(reference);
+      
+      if (!order) {
+        console.log('Order not found for reference:', reference);
+        return res.status(404).json({ message: "Order not found" });
+      }
+
+      // Get the associated card
+      const card = await storage.getCard(order.cardId);
+      console.log('Found order and card for reference:', reference);
+      
+      res.json({
+        ...order,
+        card
+      });
+    } catch (error: any) {
+      console.error('Error fetching order by reference:', error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   // Get orders by email
   app.get("/api/orders", async (req, res) => {
     try {

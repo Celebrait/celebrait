@@ -4,7 +4,7 @@ import { useParams, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Gift, Heart, Sparkles, Home } from 'lucide-react';
+import { Gift, Heart, Sparkles, Home, Download, Share2, PartyPopper } from 'lucide-react';
 
 export default function DigitalCardViewer() {
   const { linkId } = useParams();
@@ -15,6 +15,7 @@ export default function DigitalCardViewer() {
   const [isOpened, setIsOpened] = useState(false);
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     if (linkId) {
@@ -82,7 +83,46 @@ export default function DigitalCardViewer() {
     setTimeout(() => {
       setIsOpened(true);
       setOpening(false);
+      setShowConfetti(true);
+      // Hide confetti after 3 seconds
+      setTimeout(() => setShowConfetti(false), 3000);
     }, 1000);
+  };
+
+  const downloadCard = () => {
+    if (cardData?.frontImageUrl) {
+      const link = document.createElement('a');
+      link.href = cardData.frontImageUrl;
+      link.download = `celebrait-card-${cardData.id || 'digital'}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: 'Download Started',
+        description: 'Your card is being downloaded'
+      });
+    }
+  };
+
+  const shareCard = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Check out this Celebrait card!',
+          text: 'I received this beautiful personalized greeting card',
+          url: window.location.href
+        });
+      } catch (err) {
+        console.log('Error sharing:', err);
+      }
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: 'Link Copied',
+        description: 'Card link copied to clipboard'
+      });
+    }
   };
 
   const createAnotherCard = () => {
@@ -113,8 +153,27 @@ export default function DigitalCardViewer() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-8">
-      <div className="container mx-auto px-4 max-w-2xl">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-8 relative overflow-hidden">
+      {/* Confetti Effect */}
+      {showConfetti && (
+        <div className="fixed inset-0 pointer-events-none z-50">
+          {[...Array(50)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute animate-bounce"
+              style={{
+                left: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 2}s`,
+                animationDuration: `${1 + Math.random() * 2}s`
+              }}
+            >
+              <PartyPopper className="text-purple-500 w-6 h-6 opacity-70" />
+            </div>
+          ))}
+        </div>
+      )}
+      
+      <div className="container mx-auto px-4 max-w-2xl relative z-10">
         {!isOpened ? (
           /* Closed Card State */
           <div className="text-center space-y-8">
@@ -178,18 +237,36 @@ export default function DigitalCardViewer() {
           </div>
         ) : (
           /* Opened Card State */
-          <div className="text-center space-y-8">
+          <div className="text-center space-y-8 animate-in fade-in duration-1000">
             {/* Success Animation */}
             <div className="mb-8">
-              <div className="w-16 h-16 bg-green-500 rounded-full mx-auto mb-4 flex items-center justify-center animate-bounce">
-                <Heart className="text-white w-8 h-8" />
+              <div className="w-20 h-20 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse shadow-lg">
+                <Heart className="text-white w-10 h-10" />
               </div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
                 🎊 Your Card is Open!
               </h1>
-              <p className="text-gray-600">
-                From {cardData.senderName} with love
+              <p className="text-xl text-gray-700 font-medium">
+                From {cardData.senderName} with love ❤️
               </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-4 justify-center mb-8">
+              <Button
+                onClick={downloadCard}
+                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
+              >
+                <Download className="w-5 h-5 mr-2" />
+                Download Card
+              </Button>
+              <Button
+                onClick={shareCard}
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 py-3 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
+              >
+                <Share2 className="w-5 h-5 mr-2" />
+                Share Card
+              </Button>
             </div>
 
             {/* Card Images */}
