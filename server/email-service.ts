@@ -185,7 +185,7 @@ export function generateDigitalCardEmail(orderData: any, cardImageUrl: string, h
             <div class="download-section">
               <h3>Ready to Share</h3>
               <p>Your high-quality digital card is ready to view and share with your loved ones.</p>
-              <a href="https://${host || 'celebrait.replit.dev'}/card/${paymentReference}" class="button">View Interactive Card</a>
+              <a href="https://3530-9631a80d3ab90319.ws-us116.replit.dev/card/${paymentReference}" class="button">View Interactive Card</a>
               ${cardImageUrl ? `<a href="${cardImageUrl}" class="button" download>Download Image</a>` : ''}
             </div>
             
