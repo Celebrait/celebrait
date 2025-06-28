@@ -56,6 +56,9 @@ export const buildInsidePrompt = (insideText: string, artStyle: string, frontPro
   // Base requirements for inside card
   parts.push('Square 1:1 aspect ratio interior design, full bleed with no borders or edges visible');
   
+  // Explicit instruction to NOT recreate characters
+  parts.push('DO NOT include any people, characters, or figures from the front card');
+  
   // Message content
   parts.push(`"${insideText}" prominently displayed as the main focus`);
   
