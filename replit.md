@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- June 28, 2025. Test mode functionality and email delivery fixes:
+  * Added "Test Mode (Skip AI Generation)" button for instant flow testing without OpenAI API calls
+  * Fixed test mode to bypass loading screens and immediately create mock cards
+  * Resolved email delivery issue for digital cards by adding email functionality to correct API endpoint
+  * Enhanced digital card emails with interactive viewing links to /card/{reference} route
+  * Improved order processing speed and reliability for testing purposes
 - June 28, 2025. Implemented mobile keyboard control:
   * Updated Input and Textarea components to prevent unwanted mobile keyboard activation
   * Added mobile device detection and user interaction tracking

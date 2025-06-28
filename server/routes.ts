@@ -1084,6 +1084,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateCard(cardId, { status: 'completed' });
       }
 
+      // Send digital card email
+      try {
+        const emailParams = generateDigitalCardEmail({
+          customerEmail: customerInfo.email,
+          customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
+          paymentReference: reference
+        }, card?.frontImageUrl || '');
+        await sendEmail(emailParams);
+        console.log('Free digital card email sent successfully to:', customerInfo.email);
+      } catch (emailError) {
+        console.error('Failed to send free digital card email:', emailError);
+      }
+
       res.json({ 
         orderId: order.id,
         reference,
