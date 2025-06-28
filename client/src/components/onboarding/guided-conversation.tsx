@@ -868,6 +868,55 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   };
 
+  const handleTestModeGeneration = async () => {
+    try {
+      setIsLoading(true);
+      
+      console.log('Creating test card with mock imagery');
+      
+      // Create mock front and inside images
+      const mockFrontImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABQAAAALQCAMAAAD8n+HBAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAMUExURf///9zc3Ly8vJmZmTQCLLkAAAAGSURBVHhe7dUxAQAwCALRxO9f2ihSGwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAuABkwAABRMz8MgAAAABJRU5ErkJggg==";
+      const mockInsideImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABQAAAALQCAMAAAD8n+HBAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAQUExURf///+np6dLS0ru7u5mZmSIvRk0AAAAGSURBVHhe7dUxAQAwCALRxO9f2ihSGwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAuABkwAABRMz8MgAAAABJRU5ErkJggg==";
+      
+      // Create test conversation data
+      const conversationData = {
+        ...answers,
+        uploadedPhotos,
+        originalFrontImageUrl: mockFrontImage,
+        originalInsideImageUrl: mockInsideImage,
+        watermarkedFrontImageUrl: mockFrontImage,
+        watermarkedInsideImageUrl: mockInsideImage,
+        isTestMode: true
+      };
+
+      // Update the card with mock images
+      const updateResponse = await apiRequest("POST", "/api/update-card-images", {
+        cardId,
+        frontImageUrl: mockFrontImage,
+        insideImageUrl: mockInsideImage,
+        conversationData,
+        status: 'completed'
+      });
+
+      const updatedCard = await updateResponse.json();
+      
+      toast({
+        title: "Test Card Created!",
+        description: "Mock card generated for testing the complete flow",
+      });
+      
+      onCardGenerated(updatedCard);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to create test card: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const generateCard = async () => {
     try {
       setIsLoading(true);
@@ -1437,7 +1486,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 {currentStep.type === 'final_summary' && (
                   <div className="space-y-6">
                     {/* Generate Button - Top Position */}
-                    <div className="flex justify-center">
+                    <div className="flex flex-col items-center space-y-3">
                       <Button 
                         onClick={handleGenerateCard}
                         disabled={isLoading}
@@ -1454,6 +1503,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             Generate My Card
                           </>
                         )}
+                      </Button>
+                      
+                      {/* Test Mode Button */}
+                      <Button 
+                        onClick={handleTestModeGeneration}
+                        disabled={isLoading}
+                        variant="outline"
+                        className="px-6 py-3 rounded-xl border-2 border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 text-gray-700 font-medium shadow-sm"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        Test Mode (Skip AI Generation)
                       </Button>
                     </div>
 
