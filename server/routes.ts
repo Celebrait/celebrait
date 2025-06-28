@@ -790,8 +790,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const card = await storage.getCard(cardId);
-      This code removes the black outline from the watermark text in the applyWatermark function.
-```javascript
       if (!card) {
         return res.status(404).json({ message: "Card not found" });
       }
