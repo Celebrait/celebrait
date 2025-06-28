@@ -483,14 +483,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       placeholder: 'e.g., "Wishing you all the happiness in the world on your special day. You deserve all the joy and love life has to offer!"',
       required: true
     },
-    {
-      id: 'email_notification',
-      question: 'Card generation can take a few minutes. Where should we send your card when it\'s ready?',
-      aiMessage: `Perfect! ✨ Generating your ${answers.name || 'special'} ${answers.celebration} card takes 3-5 minutes. Please provide your email address so we can notify you when it's ready for pickup!`,
-      type: 'email_collection',
-      placeholder: 'Enter your email address',
-      required: true
-    },
+
     {
       id: 'final_summary',
       question: 'Perfect! Let\'s review everything before creating your card.',
@@ -989,13 +982,32 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   };
 
-  const generateCard = async () => {
-    // Instead of showing loading screen, go to email collection step
-    const emailStepIndex = filteredSteps.findIndex(step => step.id === 'email_notification');
-    if (emailStepIndex !== -1) {
-      setCurrentStepIndex(emailStepIndex);
-      scrollToTop();
+  const generateCardInBackground = async (email: string) => {
+    try {
+      // Start background generation and send email when complete
+      setTimeout(async () => {
+        const orderResponse = await apiRequest("POST", "/api/create-free-order", {
+          cardId: cardId,
+          customerInfo: {
+            email: email,
+            firstName: answers.name || "User",
+            lastName: "",
+            phone: "",
+            address: null
+          },
+          paymentType: "free"
+        });
+        
+        console.log('Background generation and email sent:', await orderResponse.json());
+      }, 1000);
+    } catch (error) {
+      console.error('Background generation error:', error);
     }
+  };
+
+  const generateCard = async () => {
+    // Show loading screen which now contains email collection
+    setIsLoading(true);
   };
 
   const generateCardWithGPTImage = async () => {
@@ -1787,93 +1799,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   </div>
                 )}
 
-                {currentStep.type === 'email_collection' && (
-                  <div className="space-y-4">
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                      <div className="flex items-center mb-4">
-                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
-                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <h3 className="text-lg font-semibold text-blue-800">Card Generation Takes Time</h3>
-                      </div>
-                      <p className="text-blue-700 mb-4">
-                        Your personalized {answers.celebration} card for {answers.name} will take 3-5 minutes to generate. 
-                        Rather than waiting, provide your email and we'll notify you when it's ready!
-                      </p>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Email Address</label>
-                        <Input
-                          type="email"
-                          value={answers.email || ''}
-                          onChange={(e) => setAnswers(prev => ({ ...prev, email: e.target.value }))}
-                          placeholder="Enter your email address"
-                          className="text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Confirm Email Address</label>
-                        <Input
-                          type="email"
-                          value={answers.emailConfirm || ''}
-                          onChange={(e) => setAnswers(prev => ({ ...prev, emailConfirm: e.target.value }))}
-                          placeholder="Confirm your email address"
-                          className="text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
-                        />
-                      </div>
-                      
-                      {answers.email && answers.emailConfirm && answers.email !== answers.emailConfirm && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                          <p className="text-red-700 text-sm">Email addresses don't match. Please check and try again.</p>
-                        </div>
-                      )}
-                      
-                      <Button 
-                        onClick={() => {
-                          if (!answers.email || !answers.emailConfirm) {
-                            toast({
-                              title: "Email Required",
-                              description: "Please enter and confirm your email address.",
-                              variant: "destructive"
-                            });
-                            return;
-                          }
-                          if (answers.email !== answers.emailConfirm) {
-                            toast({
-                              title: "Email Mismatch",
-                              description: "Email addresses don't match. Please check and try again.",
-                              variant: "destructive"
-                            });
-                            return;
-                          }
-                          // Email validation
-                          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                          if (!emailRegex.test(answers.email)) {
-                            toast({
-                              title: "Invalid Email",
-                              description: "Please enter a valid email address.",
-                              variant: "destructive"
-                            });
-                            return;
-                          }
-                          // Start generation and show loading state  
-                          setIsLoading(true);
-                          generateCardWithEmail(answers.email);
-                        }}
-                        disabled={!answers.email || !answers.emailConfirm || answers.email !== answers.emailConfirm}
-                        className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 disabled:opacity-50"
-                      >
-                        Start Generating My Card
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
 
                 {currentStep.type === 'photo_creation_choice' && (
                   <div className="space-y-6">
