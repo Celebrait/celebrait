@@ -5,7 +5,12 @@ import { cn } from "@/lib/utils"
 const Textarea = React.forwardRef<
   HTMLTextAreaElement,
   React.ComponentProps<"textarea">
->(({ className, ...props }, ref) => {
+>(({ className, autoFocus, ...props }, ref) => {
+  const [userInteracted, setUserInteracted] = React.useState(false);
+  
+  // Detect mobile device
+  const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
   return (
     <textarea
       className={cn(
@@ -13,7 +18,32 @@ const Textarea = React.forwardRef<
         className
       )}
       ref={ref}
+      autoFocus={isMobile ? false : autoFocus} // Prevent auto-focus on mobile
+      readOnly={isMobile && !userInteracted} // Make readonly until user interacts on mobile
       {...props}
+      onTouchStart={() => {
+        if (isMobile) {
+          setUserInteracted(true);
+        }
+      }}
+      onClick={(e) => {
+        if (isMobile && !userInteracted) {
+          setUserInteracted(true);
+          // Remove readonly and focus after user interaction
+          setTimeout(() => {
+            e.currentTarget.readOnly = false;
+            e.currentTarget.focus();
+          }, 50);
+        }
+        props.onClick?.(e);
+      }}
+      onFocus={(e) => {
+        if (isMobile && !userInteracted) {
+          e.currentTarget.blur(); // Prevent focus if user hasn't interacted
+          return;
+        }
+        props.onFocus?.(e);
+      }}
     />
   )
 })

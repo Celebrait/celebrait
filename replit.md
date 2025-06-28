@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- June 28, 2025. Implemented mobile keyboard control:
+  * Updated Input and Textarea components to prevent unwanted mobile keyboard activation
+  * Added mobile device detection and user interaction tracking
+  * Inputs now remain readonly until user explicitly taps them on mobile devices
+  * Prevented autofocus on mobile while maintaining desktop functionality
+  * Enhanced mobile user experience by eliminating intrusive keyboard pop-ups
 - June 28, 2025. Fixed digital delivery "no order found" issue:
   * Updated delivery choice flow to navigate to complete-order page for digital cards instead of directly to order-success
   * Fixed API integration to use /api/create-free-order endpoint for digital orders

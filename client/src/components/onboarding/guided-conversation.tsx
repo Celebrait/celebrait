@@ -1610,7 +1610,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         placeholder={currentStep.placeholder}
                         className="text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
                         onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
-                        autoFocus
                       />
                       <Button 
                         onClick={handleTextSubmit}

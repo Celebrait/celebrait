@@ -3,7 +3,12 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+  ({ className, type, autoFocus, ...props }, ref) => {
+    const [userInteracted, setUserInteracted] = React.useState(false);
+    
+    // Detect mobile device
+    const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
     return (
       <input
         type={type}
@@ -12,7 +17,32 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className
         )}
         ref={ref}
+        autoFocus={isMobile ? false : autoFocus} // Prevent auto-focus on mobile
+        readOnly={isMobile && !userInteracted} // Make readonly until user interacts on mobile
         {...props}
+        onTouchStart={() => {
+          if (isMobile) {
+            setUserInteracted(true);
+          }
+        }}
+        onClick={(e) => {
+          if (isMobile && !userInteracted) {
+            setUserInteracted(true);
+            // Remove readonly and focus after user interaction
+            setTimeout(() => {
+              e.currentTarget.readOnly = false;
+              e.currentTarget.focus();
+            }, 50);
+          }
+          props.onClick?.(e);
+        }}
+        onFocus={(e) => {
+          if (isMobile && !userInteracted) {
+            e.currentTarget.blur(); // Prevent focus if user hasn't interacted
+            return;
+          }
+          props.onFocus?.(e);
+        }}
       />
     )
   }
