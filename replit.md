@@ -120,6 +120,11 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- June 28, 2025. Implemented persistent PostgreSQL storage to fix digital card links:
+  * Replaced in-memory storage with PostgreSQL database storage using Drizzle ORM
+  * Digital card email links now work permanently even after server restarts
+  * All card and order data persists in database instead of being lost on server restart
+  * Fixed the core issue where email links became invalid due to memory storage limitations
 - June 28, 2025. Fixed test mode and delivery choice loading issues:
   * Improved test mode button to properly set loading state and create mock cards instantly
   * Enhanced delivery choice page with better error handling and storage cleanup

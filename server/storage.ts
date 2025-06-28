@@ -1,4 +1,11 @@
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
+import { eq } from "drizzle-orm";
 import { users, cards, lovedOnes, orders, type User, type InsertUser, type Card, type InsertCard, type LovedOne, type InsertLovedOne, type Order, type InsertOrder } from "@shared/schema";
+
+// Database connection
+const sql = neon(process.env.DATABASE_URL!);
+const db = drizzle(sql);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -174,4 +181,75 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// PostgreSQL-based storage implementation
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    return result[0];
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  async createCard(cardData: InsertCard & { userId: number }): Promise<Card> {
+    const result = await db.insert(cards).values(cardData).returning();
+    return result[0];
+  }
+
+  async getCard(id: number): Promise<Card | undefined> {
+    const result = await db.select().from(cards).where(eq(cards.id, id)).limit(1);
+    return result[0];
+  }
+
+  async updateCard(id: number, updates: Partial<Card>): Promise<Card> {
+    const result = await db.update(cards).set(updates).where(eq(cards.id, id)).returning();
+    return result[0];
+  }
+
+  async getUserCards(userId: number): Promise<Card[]> {
+    return await db.select().from(cards).where(eq(cards.userId, userId));
+  }
+
+  async createLovedOne(lovedOneData: InsertLovedOne & { userId: number }): Promise<LovedOne> {
+    const result = await db.insert(lovedOnes).values(lovedOneData).returning();
+    return result[0];
+  }
+
+  async getUserLovedOnes(userId: number): Promise<LovedOne[]> {
+    return await db.select().from(lovedOnes).where(eq(lovedOnes.userId, userId));
+  }
+
+  async createOrder(orderData: InsertOrder): Promise<Order> {
+    const result = await db.insert(orders).values(orderData).returning();
+    return result[0];
+  }
+
+  async getOrder(id: number): Promise<Order | undefined> {
+    const result = await db.select().from(orders).where(eq(orders.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getOrderByReference(reference: string): Promise<Order | undefined> {
+    const result = await db.select().from(orders).where(eq(orders.paymentReference, reference)).limit(1);
+    return result[0];
+  }
+
+  async updateOrder(id: number, updates: Partial<Order>): Promise<Order> {
+    const result = await db.update(orders).set(updates).where(eq(orders.id, id)).returning();
+    return result[0];
+  }
+
+  async getOrdersByEmail(email: string): Promise<Order[]> {
+    return await db.select().from(orders).where(eq(orders.customerEmail, email));
+  }
+}
+
+// Use database storage instead of memory storage
+export const storage = new DatabaseStorage();
