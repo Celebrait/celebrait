@@ -22,9 +22,31 @@ export default function DigitalCardViewer() {
     }
   }, [linkId]);
 
-  const loadDigitalCard = () => {
+  const loadDigitalCard = async () => {
     try {
-      // Try to load from session storage first (for demo)
+      // First try to get order by reference if linkId looks like a reference
+      if (linkId?.startsWith('celebrait_free_') || linkId?.startsWith('free_')) {
+        try {
+          const response = await fetch(`/api/orders/reference/${linkId}`);
+          if (response.ok) {
+            const orderData = await response.json();
+            if (orderData.card) {
+              setCardData({
+                ...orderData.card,
+                senderName: orderData.customerName || 'Someone special',
+                customMessage: 'You have received a personalized greeting card created with Celebrait!',
+                cardType: 'digital'
+              });
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (err) {
+          console.log('Could not fetch by reference, trying other methods');
+        }
+      }
+
+      // Try to load from session storage (for immediate viewing after creation)
       const storedCard = sessionStorage.getItem(`digitalCard_${linkId}`);
       if (storedCard) {
         setCardData(JSON.parse(storedCard));
@@ -37,8 +59,8 @@ export default function DigitalCardViewer() {
         id: 999,
         frontImageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=600&fit=crop',
         insideImageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=600&fit=crop',
-        senderName: 'Aidan',
-        customMessage: 'Aidan has sent you a greetings card created with Celebrait. Click to open!',
+        senderName: 'Someone special',
+        customMessage: 'You have received a greeting card created with Celebrait. This is a preview since the original card data could not be loaded.',
         cardType: 'digital'
       };
       

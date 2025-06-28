@@ -238,6 +238,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get order by payment reference (for digital card viewing)
+  app.get("/api/orders/reference/:reference", async (req, res) => {
+    try {
+      const { reference } = req.params;
+      const order = await storage.getOrderByReference(reference);
+
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+
+      // Get the associated card
+      const card = await storage.getCard(order.cardId);
+      
+      res.json({
+        ...order,
+        card
+      });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   // AI Chat completion
   app.post("/api/chat", async (req, res) => {
     try {

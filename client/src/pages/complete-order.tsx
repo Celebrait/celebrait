@@ -143,8 +143,14 @@ export default function CompleteOrder() {
         
         const orderData = {
           cardId: card.id,
-          customerName,
-          customerEmail: targetEmail
+          customerInfo: {
+            email: targetEmail,
+            firstName: customerName.split(' ')[0] || customerName,
+            lastName: customerName.split(' ').slice(1).join(' ') || '',
+            phone: '',
+            address: null
+          },
+          paymentType: 'free'
         };
 
         // Create free digital order
@@ -157,7 +163,7 @@ export default function CompleteOrder() {
         });
 
         // Redirect to success page with order reference
-        setLocation(`/order-success?type=digital&email=${encodeURIComponent(targetEmail)}&reference=${result.paymentReference}`);
+        setLocation(`/order-success?type=digital&email=${encodeURIComponent(targetEmail)}&reference=${result.reference || result.paymentReference}&orderId=${result.orderId}`);
         
       } else {
         // Handle printed card - redirect to payment
