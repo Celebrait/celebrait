@@ -70,6 +70,25 @@ export default function PaymentWithTips() {
 
   useEffect(() => {
     if (match && params?.cardId) {
+      const cardId = parseInt(params.cardId);
+      
+      // Handle test card ID with mock data
+      if (cardId === 999) {
+        const mockCard = {
+          id: 999,
+          frontImageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=600&fit=crop',
+          insideImageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=600&fit=crop',
+          cardType: 'printed',
+          printOption: 'front-and-inside',
+          price: 15000, // R150 in cents
+          status: 'completed',
+          createdAt: new Date().toISOString()
+        };
+        setCard(mockCard);
+        setLoading(false);
+        return;
+      }
+      
       // Check for cached card data first
       const cachedCardData = sessionStorage.getItem('cardPreviewData');
       if (cachedCardData) {
@@ -86,7 +105,7 @@ export default function PaymentWithTips() {
       }
 
       // Fallback to API fetch
-      loadCard(parseInt(params.cardId));
+      loadCard(cardId);
     }
   }, [match, params]);
 
