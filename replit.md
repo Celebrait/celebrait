@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- June 28, 2025. Optimized image generation performance and fixed digital card processing:
+  * Created new fast generation endpoint (/api/generate-fast) using DALL-E 3 for reliable, faster generation
+  * Reduced image generation time from 4-5 minutes to under 60 seconds by eliminating complex fallback chains
+  * Fixed digital card order processing database constraint errors with customerPhone field
+  * Updated database schema to support all order fields and made phone number optional
+  * Streamlined image generation workflow by removing sequential API calls and complex prompt processing
 - June 28, 2025. Implemented persistent PostgreSQL storage to fix digital card links:
   * Replaced in-memory storage with PostgreSQL database storage using Drizzle ORM
   * Digital card email links now work permanently even after server restarts
