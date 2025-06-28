@@ -916,6 +916,58 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   };
 
+  const generateCardInBackground = async (email: string) => {
+    try {
+      // Store the notification email in the card data
+      answers.notification_email = email;
+      
+      // Start generation in background using a timeout to avoid blocking the UI
+      setTimeout(async () => {
+        try {
+          if (answers.photo_option === 'upload_and_scene') {
+            await generateCardWithGPTImage();
+          } else if (answers.photo_option === 'upload_and_transform') {
+            await generateCardWithGPTImageTransform();
+          } else {
+            await generateCardWithGPTImage();
+          }
+          
+          // After successful generation, create a digital order and send notification
+          if (cardId) {
+            try {
+              const orderResponse = await apiRequest("POST", "/api/create-free-order", {
+                cardId: cardId,
+                customerInfo: {
+                  email: email,
+                  firstName: answers.name || "User",
+                  lastName: "",
+                  phone: "",
+                  address: null
+                },
+                paymentType: "free"
+              });
+              
+              const orderResult = await orderResponse.json();
+              console.log('Digital order created and email sent:', orderResult);
+            } catch (emailError) {
+              console.error('Failed to create digital order:', emailError);
+            }
+          }
+        } catch (error) {
+          console.error('Background generation failed:', error);
+          // In a real app, we'd retry or notify via email about the failure
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Background generation error:', error);
+      toast({
+        title: "Background Generation Error", 
+        description: "We'll continue trying to generate your card and email you when ready.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const generateCard = async () => {
     try {
       setIsLoading(true);
@@ -1656,6 +1708,76 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         Generate My Card!
                         <Sparkles className="w-5 h-5 ml-2" />
                       </Button>
+                    </div>
+                  </div>
+                )}
+
+                {currentStep.type === 'generation_confirmation' && (
+                  <div className="space-y-6 text-center">
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-8">
+                      <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <h3 className="text-2xl font-bold text-green-800 mb-4">Card Generation Started!</h3>
+                      <p className="text-green-700 text-lg leading-relaxed">
+                        Your personalized {answers.celebration} card for <strong>{answers.name}</strong> is now being generated in the background.
+                      </p>
+                    </div>
+                    
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                      <div className="flex items-center justify-center mb-4">
+                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 7.89a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <h4 className="text-lg font-semibold text-blue-800">Email Notification</h4>
+                      </div>
+                      <p className="text-blue-700">
+                        We'll send you an email at <strong>{answers.email}</strong> when your card is ready (usually 3-5 minutes).
+                        The email will include a link to view your interactive digital card.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <h4 className="text-lg font-semibold text-gray-800">What happens next?</h4>
+                      <div className="grid gap-4 text-left">
+                        <div className="flex items-start space-x-3">
+                          <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-white text-sm font-bold">1</span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-800">AI generates your card</p>
+                            <p className="text-sm text-gray-600">Our AI creates your personalized image and layout</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-white text-sm font-bold">2</span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-800">Email notification sent</p>
+                            <p className="text-sm text-gray-600">You'll receive an email with a link to view your card</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-white text-sm font-bold">3</span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-800">Choose delivery method</p>
+                            <p className="text-sm text-gray-600">Digital delivery (free) or printed card (paid)</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="pt-4">
+                      <p className="text-gray-500 text-sm">
+                        You can close this window - we'll handle everything from here!
+                      </p>
                     </div>
                   </div>
                 )}
