@@ -492,10 +492,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       required: true
     },
     {
-      id: 'generation_started',
-      question: 'Your card is being generated!',
-      aiMessage: `Perfect! ✨ Your ${answers.celebration} card for ${answers.name} is now being generated in the background. We'll send you an email at ${answers.email_notification || answers.email} when it's ready (usually 3-5 minutes).`,
-      type: 'generation_confirmation',
+      id: 'final_summary',
+      question: 'Perfect! Let\'s review everything before creating your card.',
+      aiMessage: onboarding.selectedSceneType === 'scene-only' 
+        ? `Wonderful! I have everything I need to create an amazing scene card for this ${answers.celebration} celebration. Please review all the details below and make any changes you'd like. When you're happy with everything, we'll generate your beautiful card!`
+        : `Wonderful! ✨ I have everything I need to create an amazing ${answers.celebration} card for ${answers.name || 'them'}. Please review all the details below and make any changes you'd like. When you're happy with everything, we'll generate your personalised card!`,
+      type: 'final_summary',
       placeholder: ''
     }
   ];
@@ -916,76 +918,23 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   };
 
-  const generateCardInBackground = async (email: string) => {
+  const generateCardWithEmail = async (email: string) => {
     try {
-      // Store the notification email in the card data
+      console.log('Generating card with email notification:', email);
+      
+      // Store the notification email
       answers.notification_email = email;
       
-      // Start generation in background using a timeout to avoid blocking the UI
-      setTimeout(async () => {
-        try {
-          if (answers.photo_option === 'upload_and_scene') {
-            await generateCardWithGPTImage();
-          } else if (answers.photo_option === 'upload_and_transform') {
-            await generateCardWithGPTImageTransform();
-          } else {
-            await generateCardWithGPTImage();
-          }
-          
-          // After successful generation, create a digital order and send notification
-          if (cardId) {
-            try {
-              const orderResponse = await apiRequest("POST", "/api/create-free-order", {
-                cardId: cardId,
-                customerInfo: {
-                  email: email,
-                  firstName: answers.name || "User",
-                  lastName: "",
-                  phone: "",
-                  address: null
-                },
-                paymentType: "free"
-              });
-              
-              const orderResult = await orderResponse.json();
-              console.log('Digital order created and email sent:', orderResult);
-            } catch (emailError) {
-              console.error('Failed to create digital order:', emailError);
-            }
-          }
-        } catch (error) {
-          console.error('Background generation failed:', error);
-          // In a real app, we'd retry or notify via email about the failure
-        }
-      }, 100);
-    } catch (error) {
-      console.error('Background generation error:', error);
-      toast({
-        title: "Background Generation Error", 
-        description: "We'll continue trying to generate your card and email you when ready.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const generateCard = async () => {
-    try {
-      setIsLoading(true);
-      
-      console.log('Generating card with answers:', answers);
-      
-      // Check if this is upload photo + describe scene workflow
+      // Generate the card normally  
       if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
         await generateCardWithGPTImage();
       } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotos.length > 0) {
-        // Use GPT-Image-1 for transform style workflow
         await generateCardWithGPTImageTransform();
       } else {
         // Use existing DALL-E workflow
         const frontPrompt = buildImagePrompt();
         console.log('Built front prompt:', frontPrompt);
         
-        // Always generate inside content for all cards now
         const insidePrompt = buildInsidePrompt();
 
         const response = await apiRequest("POST", "/api/generate-images", {
@@ -997,7 +946,37 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         });
 
         const card = await response.json();
-        onCardGenerated(card);
+        
+        // After successful generation, create digital order and send email
+        try {
+          const orderResponse = await apiRequest("POST", "/api/create-free-order", {
+            cardId: cardId,
+            customerInfo: {
+              email: email,
+              firstName: answers.name || "User",
+              lastName: "",
+              phone: "",
+              address: null
+            },
+            paymentType: "free"
+          });
+          
+          const orderResult = await orderResponse.json();
+          console.log('Digital order created and email sent:', orderResult);
+          
+          // Show success message
+          toast({
+            title: "Card Generated!",
+            description: `Your card has been generated and emailed to ${email}`,
+          });
+          
+          // Still call onCardGenerated for the UI
+          onCardGenerated(card);
+        } catch (emailError) {
+          console.error('Failed to create digital order:', emailError);
+          // Still show the card even if email fails
+          onCardGenerated(card);
+        }
       }
     } catch (error: any) {
       toast({
@@ -1007,6 +986,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const generateCard = async () => {
+    // Instead of showing loading screen, go to email collection step
+    const emailStepIndex = filteredSteps.findIndex(step => step.id === 'email_notification');
+    if (emailStepIndex !== -1) {
+      setCurrentStepIndex(emailStepIndex);
+      scrollToTop();
     }
   };
 
@@ -1235,36 +1223,89 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         </div>
         
         <div className="flex-1 flex items-center justify-center">
-          <div className="max-w-4xl mx-auto text-center p-8">
-            <Sparkles className="w-16 h-16 mx-auto text-purple-500 animate-pulse mb-6" />
+          <div className="max-w-2xl mx-auto text-center p-8">
+            <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            
             <h2 className="text-3xl font-bold mb-4">
               Generating {answers.name ? `${answers.name}'s` : 'Your'} {answers.celebration ? answers.celebration.charAt(0).toUpperCase() + answers.celebration.slice(1) : ''} Card
             </h2>
             
-            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-              Please watch this short video to understand what to expect from our tech..
+            <p className="text-xl text-gray-600 mb-8">
+              This can take a few minutes. Instead of waiting, provide your email and we'll notify you when it's ready!
             </p>
             
-            {/* Video Placeholder */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20 mb-8 max-w-2xl mx-auto">
-              <div className="aspect-video bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z"/>
-                    </svg>
-                  </div>
-                  <p className="text-gray-600 font-medium">Video Preview</p>
-                  <p className="text-gray-500 text-sm">Your video will appear here</p>
+            <div className="bg-white rounded-xl p-6 shadow-lg border max-w-md mx-auto">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Email Address</label>
+                  <Input
+                    type="email"
+                    value={answers.notification_email || ''}
+                    onChange={(e) => setAnswers(prev => ({ ...prev, notification_email: e.target.value }))}
+                    placeholder="Enter your email address"
+                    className="text-lg p-3 rounded-xl"
+                  />
                 </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Confirm Email</label>
+                  <Input
+                    type="email"
+                    value={answers.notification_email_confirm || ''}
+                    onChange={(e) => setAnswers(prev => ({ ...prev, notification_email_confirm: e.target.value }))}
+                    placeholder="Confirm your email address"
+                    className="text-lg p-3 rounded-xl"
+                  />
+                </div>
+                
+                {answers.notification_email && answers.notification_email_confirm && answers.notification_email !== answers.notification_email_confirm && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-red-700 text-sm">Email addresses don't match</p>
+                  </div>
+                )}
+                
+                <Button 
+                  onClick={() => {
+                    if (!answers.notification_email || !answers.notification_email_confirm) {
+                      toast({
+                        title: "Email Required",
+                        description: "Please enter and confirm your email address.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    if (answers.notification_email !== answers.notification_email_confirm) {
+                      toast({
+                        title: "Email Mismatch", 
+                        description: "Email addresses don't match.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    
+                    // Close this screen and start background generation
+                    setIsLoading(false);
+                    generateCardInBackground(answers.notification_email);
+                    
+                    toast({
+                      title: "Generation Started!",
+                      description: `We'll email you at ${answers.notification_email} when your card is ready.`,
+                    });
+                  }}
+                  disabled={!answers.notification_email || !answers.notification_email_confirm || answers.notification_email !== answers.notification_email_confirm}
+                  className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
+                >
+                  Get Email When Ready
+                </Button>
+                
+                <p className="text-sm text-gray-500">
+                  You can close this window - we'll handle everything!
+                </p>
               </div>
-            </div>
-            
-            {/* Animated loading dots */}
-            <div className="flex justify-center space-x-2">
-              <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"></div>
-              <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
             </div>
           </div>
         </div>
@@ -1712,75 +1753,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   </div>
                 )}
 
-                {currentStep.type === 'generation_confirmation' && (
-                  <div className="space-y-6 text-center">
-                    <div className="bg-green-50 border border-green-200 rounded-xl p-8">
-                      <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <h3 className="text-2xl font-bold text-green-800 mb-4">Card Generation Started!</h3>
-                      <p className="text-green-700 text-lg leading-relaxed">
-                        Your personalized {answers.celebration} card for <strong>{answers.name}</strong> is now being generated in the background.
-                      </p>
-                    </div>
-                    
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                      <div className="flex items-center justify-center mb-4">
-                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
-                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 7.89a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                        <h4 className="text-lg font-semibold text-blue-800">Email Notification</h4>
-                      </div>
-                      <p className="text-blue-700">
-                        We'll send you an email at <strong>{answers.email}</strong> when your card is ready (usually 3-5 minutes).
-                        The email will include a link to view your interactive digital card.
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <h4 className="text-lg font-semibold text-gray-800">What happens next?</h4>
-                      <div className="grid gap-4 text-left">
-                        <div className="flex items-start space-x-3">
-                          <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-white text-sm font-bold">1</span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-800">AI generates your card</p>
-                            <p className="text-sm text-gray-600">Our AI creates your personalized image and layout</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start space-x-3">
-                          <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-white text-sm font-bold">2</span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-800">Email notification sent</p>
-                            <p className="text-sm text-gray-600">You'll receive an email with a link to view your card</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start space-x-3">
-                          <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-white text-sm font-bold">3</span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-800">Choose delivery method</p>
-                            <p className="text-sm text-gray-600">Digital delivery (free) or printed card (paid)</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="pt-4">
-                      <p className="text-gray-500 text-sm">
-                        You can close this window - we'll handle everything from here!
-                      </p>
-                    </div>
-                  </div>
-                )}
 
                 {currentStep.type === 'text' && (
                   <div className="space-y-4">
@@ -1889,9 +1861,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             });
                             return;
                           }
-                          // Start background generation immediately
-                          generateCardInBackground(answers.email);
-                          handleAnswer(answers.email);
+                          // Start generation and show loading state  
+                          setIsLoading(true);
+                          generateCardWithEmail(answers.email);
                         }}
                         disabled={!answers.email || !answers.emailConfirm || answers.email !== answers.emailConfirm}
                         className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 disabled:opacity-50"
