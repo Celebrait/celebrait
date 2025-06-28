@@ -1049,6 +1049,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fast image generation endpoint (optimized for speed)
+  app.post("/api/generate-fast", async (req, res) => {
+    try {
+      const { cardId, frontPrompt, insidePrompt } = req.body;
+
+      if (!cardId || !frontPrompt) {
+        return res.status(400).json({ message: "Card ID and front prompt are required" });
+      }
+
+      if (!openai) {
+        return res.status(503).json({ message: "AI service not available - API key required" });
+      }
+
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      console.log('Fast generation starting for card:', cardId);
+      const startTime = Date.now();
+
+      // Use simplified prompts for faster generation
+      const optimizedFrontPrompt = frontPrompt.length > 1000 ? frontPrompt.substring(0, 1000) + "..." : frontPrompt;
+      
+      // Generate front image with DALL-E 3 (more reliable than gpt-image-1)
+      const frontResponse = await openai.images.generate({
+        model: "dall-e-3",
+        prompt: optimizedFrontPrompt,
+        size: "1024x1024",
+        n: 1
+      });
+
+      let frontImageUrl = null;
+      if (frontResponse.data && frontResponse.data.length > 0) {
+        frontImageUrl = frontResponse.data[0].url;
+      }
+
+      let insideImageUrl = null;
+      if (insidePrompt) {
+        const optimizedInsidePrompt = insidePrompt.length > 1000 ? insidePrompt.substring(0, 1000) + "..." : insidePrompt;
+        
+        const insideResponse = await openai.images.generate({
+          model: "dall-e-3", 
+          prompt: optimizedInsidePrompt,
+          size: "1024x1024",
+          n: 1
+        });
+
+        if (insideResponse.data && insideResponse.data.length > 0) {
+          insideImageUrl = insideResponse.data[0].url;
+        }
+      }
+
+      // Apply watermarks
+      let watermarkedFrontUrl = frontImageUrl;
+      let watermarkedInsideUrl = insideImageUrl;
+
+      if (frontImageUrl) {
+        try {
+          watermarkedFrontUrl = await applyWatermark(frontImageUrl);
+        } catch (error) {
+          console.warn('Failed to apply watermark to front image, using original');
+        }
+      }
+
+      if (insideImageUrl) {
+        try {
+          watermarkedInsideUrl = await applyWatermark(insideImageUrl);
+        } catch (error) {
+          console.warn('Failed to apply watermark to inside image, using original');
+        }
+      }
+
+      // Update card with generated images
+      const updatedCard = await storage.updateCard(cardId, {
+        frontImageUrl: watermarkedFrontUrl,
+        insideImageUrl: watermarkedInsideUrl,
+        status: 'completed',
+        conversationData: {
+          ...(card.conversationData || {}),
+          originalFrontImageUrl: frontImageUrl,
+          originalInsideImageUrl: insideImageUrl,
+          watermarkedFrontImageUrl: watermarkedFrontUrl,
+          watermarkedInsideImageUrl: watermarkedInsideUrl
+        }
+      });
+
+      const endTime = Date.now();
+      const duration = (endTime - startTime) / 1000;
+      console.log(`Fast generation completed in ${duration} seconds`);
+
+      res.json(updatedCard);
+    } catch (error: any) {
+      console.error('Fast generation error:', error);
+      res.status(500).json({ message: "Error in fast generation: " + error.message });
+    }
+  });
+
   // Create free order
   app.post("/api/create-free-order", async (req, res) => {
     try {

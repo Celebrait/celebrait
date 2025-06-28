@@ -159,7 +159,7 @@ export default function CompleteOrder() {
         
         console.log('Digital order API response:', result);
         
-        if (!result.reference || !result.orderId) {
+        if (!result.orderId) {
           throw new Error('Invalid response from server - missing order details');
         }
         
