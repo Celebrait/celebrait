@@ -36,7 +36,7 @@ export const orders = pgTable("orders", {
   cardId: integer("card_id").notNull().references(() => cards.id),
   customerEmail: text("customer_email").notNull(),
   customerName: text("customer_name").notNull(),
-  customerPhone: text("customer_phone").notNull(),
+  customerPhone: text("customer_phone"),
   amount: integer("amount").notNull(),
   baseAmount: integer("base_amount").notNull().default(0),
   tipAmount: integer("tip_amount").notNull().default(0),
@@ -75,9 +75,15 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   customerName: true,
   customerPhone: true,
   amount: true,
+  baseAmount: true,
+  tipAmount: true,
   currency: true,
   paymentReference: true,
+  paymentStatus: true,
+  orderStatus: true,
+  orderType: true,
   shippingAddress: true,
+  trackingNumber: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
