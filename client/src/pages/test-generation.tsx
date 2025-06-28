@@ -31,7 +31,7 @@ const TEST_PROMPTS = [
     title: "Valentine's Day - Oil Painting Style",
     frontPrompt: "Full-bleed square design, no borders, no background, no card mockup. Rich oil painting style showing a romantic teen girl named Emma with black curly hair, curvy build, dimples, walking on beach at sunset wearing a flowing dress. Text overlay: 'Be My Valentine!'. Print-ready artwork filling entire frame.",
     frontPromptNoText: "Full-bleed square design, no borders, no background, no card mockup. Rich oil painting style showing a romantic teen girl named Emma with black curly hair, curvy build, dimples, walking on beach at sunset wearing a flowing dress. Print-ready artwork filling entire frame.",
-    insideMessage: "You make every day feel like a beautiful sunset. Thank you for bringing such warmth and love into my life. I'm so grateful to have you by my side.",
+    insideMessage: "You make every day feel like a beautiful sunset. Thank you for bringing such warmth and love into your life. I'm so grateful to have you by my side.",
     artStyle: "oil_painting"
   },
   {
@@ -54,7 +54,7 @@ export default function TestGeneration() {
   const [currentAnalysisIndex, setCurrentAnalysisIndex] = useState<number>(-1);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [culturalBackgrounds, setCulturalBackgrounds] = useState<Array<{personIndex: number, background: string}>>([]);
-  
+
   // Image transformation states
   const [transformPhoto, setTransformPhoto] = useState<string>('');
   const [transformScene, setTransformScene] = useState('');
@@ -65,7 +65,7 @@ export default function TestGeneration() {
   const [selectedArtStyle, setSelectedArtStyle] = useState('');
   const [isStyleTransforming, setIsStyleTransforming] = useState(false);
   const [styleTransformedImage, setStyleTransformedImage] = useState<string>('');
-  
+
   const { toast } = useToast();
 
   // Character transformation using image-to-image
@@ -120,7 +120,7 @@ export default function TestGeneration() {
       });
 
       const result = await imageResponse.json();
-      
+
       if (result && result.frontImageUrl) {
         setTransformedImage(result.frontImageUrl);
         toast({
@@ -188,7 +188,7 @@ export default function TestGeneration() {
       });
 
       const result = await fluxResponse.json();
-      
+
       if (result && result.frontImageUrl) {
         setTransformedImage(result.frontImageUrl);
         toast({
@@ -255,7 +255,7 @@ export default function TestGeneration() {
       });
 
       const result = await fluxResponse.json();
-      
+
       if (result && result.frontImageUrl) {
         setStyleTransformedImage(result.frontImageUrl);
         toast({
@@ -296,7 +296,7 @@ export default function TestGeneration() {
       });
 
       const result = await imageResponse.json();
-      
+
       if (result && result.imageUrl) {
         setStyleTransformedImage(result.imageUrl);
         toast({
@@ -370,7 +370,7 @@ export default function TestGeneration() {
       });
 
       const result = await imageResponse.json();
-      
+
       if (result && result.frontImageUrl) {
         setStyleTransformedImage(result.frontImageUrl);
         toast({
@@ -503,7 +503,7 @@ export default function TestGeneration() {
 
       const updatedCard = await imageResponse.json();
       console.log('Generated style-matched card:', updatedCard);
-      
+
       if (updatedCard && updatedCard.frontImageUrl) {
         setGeneratedCard(updatedCard);
         toast({
@@ -585,12 +585,12 @@ export default function TestGeneration() {
       // Use direct image-to-image processing for photos, otherwise use text prompts
       if (uploadedPhotos.length > 0) {
         console.log('Using GPT-Image-1 for photo + scene workflow');
-        
+
         // Use direct image-to-image transformation with GPT-Image-1
         const sceneDescription = preset ? 'celebrating at a birthday party with balloons and confetti' : 'in a beautiful artistic scene';
         const artStyle = preset?.artStyle || 'watercolor';
         const frontCardText = 'Happy Birthday!';
-        
+
         // Generate front card using GPT-Image-1
         const frontResponse = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
           imageData: uploadedPhotos[0],
@@ -630,11 +630,11 @@ export default function TestGeneration() {
           title: "Card generated successfully!",
           description: "Card created using direct image-to-image transformation."
         });
-        
+
         setIsGenerating(false);
         return;
       }
-      
+
       // Fallback to text-based generation for no photos
       if (!customPromptText && preset) {
         frontPrompt = preset.frontPrompt;
@@ -645,27 +645,27 @@ export default function TestGeneration() {
         (() => {
           const insideMessage = preset?.insideMessage || "Hope your special day brings you joy and happiness!";
           const parts = [];
-          
+
           // Base requirements
           parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
-          
+
           // Greeting card interior layout focusing on typography
           parts.push(`Greeting card interior with elegant typography displaying: "${insideMessage}"`);
-          
+
           // Subtle aesthetic matching without character elements
           parts.push('subtle complementary background that matches the front card color palette and overall mood');
-          
+
           // Art style consistency
           if (preset?.artStyle) {
             parts.push(`${preset.artStyle.replace('_', ' ')} art style with same visual treatment as front`);
           }
-          
+
           // Typography and layout requirements
           parts.push('professional greeting card typography using same font style and treatment as front card');
           parts.push('text prominently displayed and clearly readable');
           parts.push('minimal decorative elements that complement without overwhelming the message');
           parts.push('print-ready artwork, no card mockup visible');
-          
+
           return parts.join(', ');
         })() : 
         null;
@@ -683,7 +683,7 @@ export default function TestGeneration() {
 
       const updatedCard = await imageResponse.json();
       console.log('Generated card data:', updatedCard);
-      
+
       if (updatedCard && updatedCard.frontImageUrl) {
         setGeneratedCard(updatedCard);
         toast({
@@ -739,7 +739,38 @@ export default function TestGeneration() {
           <TabsContent value="prompts">
             <div className="mt-6">
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Quick Navigation */}
+          <div className="mb-6">
+            <Card className="border-2 border-blue-200 bg-blue-50">
+              <CardContent className="p-4">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => window.open('/test-card-preview', '_blank')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    size="sm"
+                  >
+                    🧪 Test Card Preview & Payment Flow
+                  </Button>
+                  <Button
+                    onClick={() => window.open('/gpt-image-test', '_blank')}
+                    variant="outline"
+                    size="sm"
+                  >
+                    🎨 GPT-Image Test
+                  </Button>
+                  <Button
+                    onClick={() => window.open('/style-test', '_blank')}
+                    variant="outline"
+                    size="sm"
+                  >
+                    🖼️ Style Test
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Controls */}
               <div className="space-y-6">
             {/* Card Type Toggle */}
@@ -894,7 +925,7 @@ export default function TestGeneration() {
                           </div>
                         ))}
                       </div>
-                      
+
                       {isAnalyzingPhotos && (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                           <div className="flex items-center space-x-2">
@@ -957,7 +988,7 @@ export default function TestGeneration() {
                             <p className="text-blue-600 text-xs mb-3">
                               Define race/cultural heritage for each person to enhance character accuracy in the generated card.
                             </p>
-                            
+
                             {photoAnalyses.map((analysis) => (
                               <div key={analysis.personIndex} className="mb-3 last:mb-0">
                                 <label className="block text-sm font-medium text-blue-700 mb-1">
@@ -992,7 +1023,7 @@ export default function TestGeneration() {
                               </div>
                             ))}
                           </div>
-                          
+
                           <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                             <p className="text-green-700 font-medium text-sm mb-2">Ready for Card Generation!</p>
                             <p className="text-green-600 text-xs mb-3">
@@ -1126,7 +1157,7 @@ export default function TestGeneration() {
                         style={{ aspectRatio: '1/1', objectFit: 'contain' }}
                       />
                     </div>
-                    
+
                     {/* Inside Image */}
                     {generatedCard.insideImageUrl && (
                       <div>
@@ -1169,7 +1200,7 @@ export default function TestGeneration() {
                         Successfully generated card featuring {photoAnalyses.length} analyzed people!
                       </p>
                     </div>
-                    
+
                     <div className="relative">
                       <img 
                         src={generatedCard.frontImageUrl} 
@@ -1177,14 +1208,14 @@ export default function TestGeneration() {
                         className="w-full max-w-md mx-auto rounded-lg border shadow-lg"
                       />
                     </div>
-                    
+
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                       <p className="text-blue-700 text-sm">
                         <strong>Card Details:</strong> This card was generated using the detailed character analysis 
                         from your uploaded photos. Each person's features were analyzed and incorporated into the final image.
                       </p>
                     </div>
-                    
+
                     <Button 
                       onClick={generateCardWithAnalyzedPeople}
                       className="w-full bg-purple-600 hover:bg-purple-700 text-white"
@@ -1312,7 +1343,7 @@ export default function TestGeneration() {
                           </>
                         )}
                       </Button>
-                      
+
                       <Button
                         onClick={transformCharacterToScene}
                         disabled={isTransforming || !transformPhoto || !transformScene}
@@ -1452,7 +1483,7 @@ export default function TestGeneration() {
                           </>
                         )}
                       </Button>
-                      
+
                       <Button
                         onClick={transformImageStyle}
                         disabled={isStyleTransforming || !styleTransformPhoto || !selectedArtStyle}
