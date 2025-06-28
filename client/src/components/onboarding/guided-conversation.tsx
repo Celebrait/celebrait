@@ -930,10 +930,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         // Always generate inside content for all cards now
         const insidePrompt = buildInsidePrompt();
 
-        const response = await apiRequest("POST", "/api/generate-fast", {
+        const response = await apiRequest("POST", "/api/generate-images", {
           cardId,
           frontPrompt,
-          insidePrompt
+          insidePrompt,
+          photoData: answers.photo_upload || null,
+          photoAnalysis: null
         });
 
         const card = await response.json();
