@@ -1,13 +1,15 @@
 import sgMail from '@sendgrid/mail';
 
-if (!process.env.SENDGRID_API_KEY) {
+const sendgridApiKey = process.env.SENDGRID_API_KEY;
+
+if (!sendgridApiKey) {
   throw new Error("SENDGRID_API_KEY environment variable must be set");
 }
 
-console.log('SendGrid API Key configured:', process.env.SENDGRID_API_KEY ? 'Present' : 'Missing');
-console.log('SendGrid API Key length:', process.env.SENDGRID_API_KEY?.length || 0);
+console.log('SendGrid API Key configured:', sendgridApiKey ? 'Present' : 'Missing');
+console.log('SendGrid API Key length:', sendgridApiKey?.length || 0);
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+sgMail.setApiKey(sendgridApiKey);
 
 interface EmailParams {
   to: string;
@@ -27,8 +29,8 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       to: params.to,
       from: params.from,
       subject: params.subject,
-      text: params.text,
-      html: params.html,
+      ...(params.text && { text: params.text }),
+      ...(params.html && { html: params.html }),
     });
     
     console.log('SendGrid response status:', result[0]?.statusCode);
@@ -144,7 +146,7 @@ Questions? Contact us at support@celebrait.com
 }
 
 export function generateDigitalCardEmail(orderData: any, cardImageUrl: string): EmailParams {
-  const { customerEmail, customerName } = orderData;
+  const { customerEmail, customerName, paymentReference } = orderData;
   
   return {
     to: customerEmail,
@@ -182,8 +184,9 @@ export function generateDigitalCardEmail(orderData: any, cardImageUrl: string): 
             
             <div class="download-section">
               <h3>Ready to Share</h3>
-              <p>Your high-quality digital card is ready to download and share with your loved ones.</p>
-              <a href="${cardImageUrl}" class="button" download>Download Your Card</a>
+              <p>Your high-quality digital card is ready to view and share with your loved ones.</p>
+              <a href="${process.env.REPLIT_DOMAIN || 'https://celebrait.replit.app'}/card/${paymentReference}" class="button">View Interactive Card</a>
+              ${cardImageUrl ? `<a href="${cardImageUrl}" class="button" download>Download Image</a>` : ''}
             </div>
             
             <p>Share this special moment with someone you care about. Your personalized card was created with love using AI technology.</p>

@@ -2168,11 +2168,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Send digital card email
       try {
-        if (card.frontImageUrl) {
-          const emailParams = generateDigitalCardEmail(order, card.frontImageUrl);
-          await sendEmail(emailParams);
-          console.log('Free digital card email sent successfully');
-        }
+        const emailParams = generateDigitalCardEmail(updatedOrder, card.frontImageUrl || '');
+        await sendEmail(emailParams);
+        console.log('Free digital card email sent successfully');
       } catch (emailError) {
         console.error('Failed to send free digital card email:', emailError);
       }
