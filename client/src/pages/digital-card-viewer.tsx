@@ -199,7 +199,10 @@ export default function DigitalCardViewer() {
                 
                 {/* Closed Card Preview */}
                 <div className="relative mb-6">
-                  <div className="aspect-[3/4] w-64 mx-auto rounded-xl overflow-hidden shadow-lg border-4 border-white transform hover:scale-105 transition-transform duration-300">
+                  <div 
+                    className="aspect-[3/4] w-64 mx-auto rounded-xl overflow-hidden shadow-lg border-4 border-white transform hover:scale-105 transition-transform duration-300 cursor-pointer"
+                    onClick={handleOpenCard}
+                  >
                     <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
                       <div className="text-center">
                         <Gift className="w-16 h-16 text-purple-400 mx-auto mb-2" />
