@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Truck, Download, Gift, ChevronLeft, ChevronRight } from "lucide-react";
 import Header from "@/components/header";
-import { emergencyStorageCleanup } from "@/lib/queryClient";
+import { emergencyStorageCleanup, apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function DeliveryChoice() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/delivery-choice/:cardId");
   const [cardData, setCardData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedDelivery, setSelectedDelivery] = useState<'printed' | 'digital' | null>(null);
   const [currentOption, setCurrentOption] = useState(0);
   const [touchStart, setTouchStart] = useState(0);
@@ -50,16 +51,42 @@ export default function DeliveryChoice() {
   ];
 
   useEffect(() => {
-    // Get card data from session storage
-    try {
-      const storedCardData = sessionStorage.getItem('cardPreviewData');
-      if (storedCardData) {
-        setCardData(JSON.parse(storedCardData));
+    const loadCardData = async () => {
+      try {
+        // Try to get card data from session storage first
+        const storedCardData = sessionStorage.getItem('cardPreviewData');
+        if (storedCardData) {
+          setCardData(JSON.parse(storedCardData));
+          setLoading(false);
+          return;
+        }
+
+        // If no session data and we have a cardId, fetch from API
+        if (params?.cardId) {
+          try {
+            const response = await apiRequest('GET', `/api/cards/${params.cardId}`);
+            const cardData = await response.json();
+            setCardData(cardData);
+          } catch (error) {
+            console.error('Failed to load card data from API:', error);
+            // Set minimal card data to allow page to render
+            setCardData({ id: params.cardId, price: 2900 });
+          }
+        } else {
+          // No cardId available, set minimal data to allow page to render
+          setCardData({ id: 'unknown', price: 2900 });
+        }
+      } catch (e) {
+        console.error('Error loading card data:', e);
+        // Set minimal card data to allow page to render
+        setCardData({ id: 'error', price: 2900 });
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      console.error('Error loading card data:', e);
-    }
-  }, []);
+    };
+
+    loadCardData();
+  }, [params?.cardId]);
 
   const handleDeliverySelected = async (delivery: 'printed' | 'digital') => {
     setSelectedDelivery(delivery);
@@ -133,12 +160,15 @@ export default function DeliveryChoice() {
     }
   };
 
-  if (!cardData) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
         <Header />
         <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">Loading...</div>
+          <div className="text-center">
+            <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p>Loading delivery options...</p>
+          </div>
         </main>
       </div>
     );
