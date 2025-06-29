@@ -362,3 +362,74 @@ Questions? Contact us at support@celebrait.com
     `
   };
 }
+
+export async function sendCardReadyEmail(email: string, cardId: number) {
+  console.log('Attempting to send card ready email to:', email, 'for card:', cardId);
+
+  if (!hasValidSendGridConfig()) {
+    console.log('SendGrid not configured, skipping email send');
+    return false;
+  }
+
+  try {
+    // Get card from storage to verify it exists and is ready
+    const card = await storage.getCard(cardId);
+    if (!card) {
+      console.error('Card not found for email notification:', cardId);
+      return false;
+    }
+
+    console.log('Card status for email notification:', card.status);
+    if (card.status !== 'completed') {
+      console.error('Card not completed, status:', card.status, 'for card:', cardId);
+      return false;
+    }
+
+    console.log('Sending email with card data:', {
+      cardId,
+      frontImageUrl: card.frontImageUrl ? 'present' : 'missing',
+      insideImageUrl: card.insideImageUrl ? 'present' : 'missing'
+    });
+
+    const msg = {
+      to: email,
+      from: {
+        email: process.env.SENDGRID_FROM_EMAIL || 'noreply@celebrait.co.za',
+        name: 'Celebrait'
+      },
+      subject: '🎉 Your Celebrait card is ready!',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+          <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h1 style="color: #4F46E5; text-align: center; margin-bottom: 30px;">Your card is ready! 🎉</h1>
+            <p style="font-size: 16px; color: #333; line-height: 1.6;">
+              Great news! Your personalized greeting card has been generated and is ready for you to view and complete your order.
+            </p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.CLIENT_URL || 'http://localhost:5000'}/complete-order?cardId=${cardId}" 
+                 style="background-color: #4F46E5; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                View Your Card & Complete Order
+              </a>
+            </div>
+            <p style="font-size: 14px; color: #666; text-align: center;">
+              This link will take you to preview your card and choose your delivery method.
+            </p>
+            <p style="font-size: 12px; color: #999; text-align: center; margin-top: 20px;">
+              Card ID: ${cardId} | Generated: ${new Date().toLocaleString()}
+            </p>
+          </div>
+        </div>
+      `
+    };
+
+    const response = await sgMail.send(msg);
+    console.log('Card ready email sent successfully to:', email, 'Response status:', response[0].statusCode);
+    return true;
+  } catch (error: any) {
+    console.error('Failed to send card ready email:', error);
+    if (error.response) {
+      console.error('SendGrid error response:', error.response.body);
+    }
+    return false;
+  }
+}
