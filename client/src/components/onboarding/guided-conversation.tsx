@@ -1042,6 +1042,70 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     return await updateResponse.json();
   };
 
+  // Background generation helper functions
+  const generateCardWithDALLEInBackground = async () => {
+    const frontPrompt = buildImagePrompt();
+    const insidePrompt = buildInsidePrompt();
+
+    // Use the working DALL-E endpoint that exists
+    const response = await apiRequest("POST", "/api/generate-images", {
+      cardId,
+      frontPrompt,
+      insidePrompt
+    });
+
+    return await response.json();
+  };
+
+  const generateCardWithGPTImageInBackground = async () => {
+    const frontPrompt = buildImagePrompt();
+    const insidePrompt = buildInsidePrompt();
+
+    const response = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
+      imageData: uploadedPhotos[0],
+      imageDataArray: uploadedPhotos,
+      scenePrompt: frontPrompt,
+      style: answers.art_style || 'watercolor painting',
+      includeText: !!answers.message,
+      cardText: answers.message || ''
+    });
+
+    const result = await response.json();
+    
+    // Update card with the generated image
+    const updateResponse = await apiRequest("POST", "/api/update-card-images", {
+      cardId,
+      frontImageUrl: result.imageUrl,
+      insideImageUrl: null // Will be generated separately if needed
+    });
+
+    return await updateResponse.json();
+  };
+
+  const generateCardWithGPTImageTransformInBackground = async () => {
+    const frontPrompt = buildImagePrompt();
+    const artStyle = answers.art_style || 'watercolor painting';
+    
+    const transformPrompt = `Transform this into ${artStyle}`;
+    
+    const response = await apiRequest("POST", "/api/transform-style-gpt-image-1", {
+      imageData: uploadedPhotos[0],
+      imageDataArray: uploadedPhotos,
+      style: transformPrompt
+    });
+
+    const result = await response.json();
+    
+    // Update card with the generated image
+    const updateResponse = await apiRequest("POST", "/api/update-card-images", {
+      cardId,
+      frontImageUrl: result.imageUrl,
+      insideImageUrl: null // Will be generated separately if needed
+    });
+
+    return await updateResponse.json();
+  };
+
   const generateCardInBackground = async (email: string) => {
     try {
       // Start actual card generation in background
@@ -1066,14 +1130,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           
           // Generate the card using existing logic
           let generatedCard;
+          console.log('Determining generation method...');
+          
           if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
-            console.log('Using GPT-Image scene generation');
+            console.log('Using GPT Image scene generation');
             generatedCard = await generateCardWithGPTImageInBackground();
           } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotos.length > 0) {
-            console.log('Using GPT-Image transform generation');
+            console.log('Using GPT Image transform generation');
             generatedCard = await generateCardWithGPTImageTransformInBackground();
           } else {
-            console.log('Using DALL-E generation');
+            console.log('Using DALLE generation');
             generatedCard = await generateCardWithDALLEInBackground();
           }
           
@@ -1091,16 +1157,26 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
             const emailResult = await cardReadyResponse.json();
             console.log('Card ready notification sent:', emailResult);
           } else {
-            console.error('Card generation failed - no card returned or missing ID:', generatedCard);
+            console.error('Card generation failed - no card returned or missing ID');
           }
         } catch (error) {
           console.error('Background generation error:', error);
-          console.error('Error details:', error.message);
-          console.error('Error stack:', error.stack);
+          console.error('Error details:', error.message, error.stack);
+          
+          // Try to send error notification email if possible
+          try {
+            await apiRequest("POST", "/api/send-error-notification", {
+              customerEmail: email,
+              customerName: answers.name || "User",
+              errorMessage: error.message || 'Unknown error during card generation'
+            });
+          } catch (emailError) {
+            console.error('Failed to send error notification:', emailError);
+          }
         }
       }, 2000); // Give 2 seconds delay to show the confirmation message
     } catch (error) {
-      console.error('Background generation setup error:', error);
+      console.error('generateCardInBackground setup error:', error);
     }
   };
 
