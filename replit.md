@@ -122,6 +122,7 @@ Celebrait is a full-stack web application that creates personalized greeting car
 Changelog:
 - June 29, 2025. Systematically fixed email timing, performance, and UI issues for seamless user experience:
   * CRITICAL FIX: Implemented polling-based email validation - emails now sent only after complete image generation verification (50KB+ size check)
+  * CRITICAL FIX: Fixed card version inconsistency - background generation now preserves original images from interactive session instead of regenerating different content
   * Fixed race conditions between immediate and background generation causing premature email notifications
   * Added 10-second interval polling with 5-minute timeout to ensure both front and inside images are fully processed before email
   * Eliminated UI duplication by removing duplicate "Your Card is Ready" headers between CardPreviewPage and CardPreview components

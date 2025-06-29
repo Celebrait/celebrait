@@ -993,20 +993,34 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   };
 
   const generateCardWithGPTImageInBackground = async () => {
-    console.log('Starting GPT Image scene generation in background');
-    const frontPrompt = buildImagePrompt();
+    console.log('Starting background processing - preserving existing images and removing watermarks');
+    
+    // Get existing card data to preserve original images
+    const existingCardResponse = await apiRequest("GET", `/api/cards/${cardId}`);
+    const existingCard = await existingCardResponse.json();
+    
+    let frontImageUrl = existingCard.frontImageUrl;
+    
+    // If no existing front image, generate one (should rarely happen)
+    if (!frontImageUrl || frontImageUrl.length < 100) {
+      console.log('No existing front image found, generating new one');
+      const frontPrompt = buildImagePrompt();
 
-    const response = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
-      imageData: uploadedPhotos[0],
-      imageDataArray: uploadedPhotos,
-      scenePrompt: frontPrompt,
-      style: answers.art_style || 'watercolor painting',
-      includeText: !!answers.message,
-      cardText: answers.message || ''
-    });
+      const response = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
+        imageData: uploadedPhotos[0],
+        imageDataArray: uploadedPhotos,
+        scenePrompt: frontPrompt,
+        style: answers.art_style || 'watercolor painting',
+        includeText: !!answers.message,
+        cardText: answers.message || ''
+      });
 
-    const frontResult = await response.json();
-    console.log('Front image generated in background:', frontResult);
+      const frontResult = await response.json();
+      frontImageUrl = frontResult.imageUrl;
+      console.log('Front image generated in background:', frontResult);
+    } else {
+      console.log('Preserving existing front image from interactive session');
+    }
     
     // Preserve existing inside image if available (to maintain consistency with interactive generation)
     let insideImageUrl = null;
@@ -1024,7 +1038,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           // Generate new inside image only if none exists
           console.log('Generating inside card in background (no existing image found)');
           const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-            frontCardImage: frontResult.imageUrl,
+            frontCardImage: frontImageUrl,
             insideText: answers.inside_message
           });
           
@@ -1036,7 +1050,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         console.error('Error checking existing card, generating new inside image:', error);
         // Fallback to generating new inside image
         const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-          frontCardImage: frontResult.imageUrl,
+          frontCardImage: frontImageUrl,
           insideText: answers.inside_message
         });
         
@@ -1060,18 +1074,32 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   };
 
   const generateCardWithGPTImageTransformInBackground = async () => {
-    console.log('Starting GPT Image transform generation in background');
-    const artStyle = answers.art_style || 'watercolor painting';
-    const transformPrompt = `Transform this into ${artStyle}`;
+    console.log('Starting background processing - preserving existing images and removing watermarks');
     
-    const response = await apiRequest("POST", "/api/transform-style-gpt-image-1", {
-      imageData: uploadedPhotos[0],
-      imageDataArray: uploadedPhotos,
-      style: transformPrompt
-    });
+    // Get existing card data to preserve original images
+    const existingCardResponse = await apiRequest("GET", `/api/cards/${cardId}`);
+    const existingCard = await existingCardResponse.json();
+    
+    let frontImageUrl = existingCard.frontImageUrl;
+    
+    // If no existing front image, generate one (should rarely happen)
+    if (!frontImageUrl || frontImageUrl.length < 100) {
+      console.log('No existing front image found, generating new one');
+      const artStyle = answers.art_style || 'watercolor painting';
+      const transformPrompt = `Transform this into ${artStyle}`;
+      
+      const response = await apiRequest("POST", "/api/transform-style-gpt-image-1", {
+        imageData: uploadedPhotos[0],
+        imageDataArray: uploadedPhotos,
+        style: transformPrompt
+      });
 
-    const frontResult = await response.json();
-    console.log('Front image transformed in background:', frontResult);
+      const frontResult = await response.json();
+      frontImageUrl = frontResult.imageUrl;
+      console.log('Front image transformed in background:', frontResult);
+    } else {
+      console.log('Preserving existing front image from interactive session');
+    }
     
     // Preserve existing inside image if available (to maintain consistency with interactive generation)
     let insideImageUrl = null;
@@ -1089,7 +1117,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           // Generate new inside image only if none exists
           console.log('Generating inside card in background (no existing image found)');
           const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-            frontCardImage: frontResult.imageUrl,
+            frontCardImage: frontImageUrl,
             insideText: answers.inside_message
           });
           
@@ -1101,7 +1129,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         console.error('Error checking existing card, generating new inside image:', error);
         // Fallback to generating new inside image
         const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-          frontCardImage: frontResult.imageUrl,
+          frontCardImage: frontImageUrl,
           insideText: answers.inside_message
         });
         
@@ -1328,7 +1356,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     let insideOriginalUrl = null;
     if (answers.inside_message) {
       const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-        frontCardImage: frontResult.imageUrl,
+        frontCardImage: frontImageUrl,
         insideText: answers.inside_message
       });
       
@@ -1392,7 +1420,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     let insideOriginalUrl = null;
     if (answers.inside_message) {
       const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-        frontCardImage: frontResult.imageUrl,
+        frontCardImage: frontImageUrl,
         insideText: answers.inside_message
       });
       
