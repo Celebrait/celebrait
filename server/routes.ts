@@ -13,6 +13,9 @@ import Replicate from "replicate";
 import FormData from "form-data";
 import { createCanvas, loadImage } from "canvas";
 import { sendEmail, generateOrderConfirmationEmail, generateDigitalCardEmail, generateCardReadyNotificationEmail, generateShippingNotificationEmail } from './email-service';
+import { setupGoogleAuth } from "./google-auth";
+import session from "express-session";
+import passport from "passport";
 
 // Temporarily allow running without API keys for testing
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
