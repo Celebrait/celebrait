@@ -1083,26 +1083,22 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           
           console.log('Background generation completed:', generatedCard);
           
-          // After card is generated, wait additional time for images to fully process before sending email
+          // Send email notification immediately when background generation completes
           if (generatedCard && generatedCard.id) {
-            console.log('Card generated, waiting for images to fully process before sending email...');
+            console.log('Sending immediate card ready notification for card ID:', generatedCard.id);
             
-            // Wait 30 seconds to ensure images are actually ready to display quickly
-            setTimeout(async () => {
-              try {
-                console.log('Now sending card ready notification for card ID:', generatedCard.id);
-                const cardReadyResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
-                  cardId: generatedCard.id,
-                  customerEmail: email,
-                  customerName: answers.name || "User"
-                });
-                
-                const emailResult = await cardReadyResponse.json();
-                console.log('Card ready notification sent:', emailResult);
-              } catch (emailError) {
-                console.error('Failed to send delayed card ready notification:', emailError);
-              }
-            }, 30000); // 30 second delay to ensure images are ready
+            try {
+              const cardReadyResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
+                cardId: generatedCard.id,
+                customerEmail: email,
+                customerName: answers.name || "User"
+              });
+              
+              const emailResult = await cardReadyResponse.json();
+              console.log('Card ready notification sent immediately:', emailResult);
+            } catch (emailError) {
+              console.error('Failed to send immediate card ready notification:', emailError);
+            }
           } else {
             console.error('Card generation failed - no card returned or missing ID');
           }

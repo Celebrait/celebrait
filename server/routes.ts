@@ -238,6 +238,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get card front image (optimized endpoint)
+  app.get("/api/cards/:id/front-image", async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      const card = await storage.getCard(cardId);
+
+      if (!card || !card.frontImageUrl) {
+        return res.status(404).json({ message: "Front image not found" });
+      }
+
+      // Extract base64 data and convert to buffer for faster serving
+      const base64Data = card.frontImageUrl.split(',')[1];
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      // Set appropriate headers for image serving
+      res.set({
+        'Content-Type': 'image/png',
+        'Content-Length': imageBuffer.length,
+        'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
+        'ETag': `"${cardId}-front"`
+      });
+      
+      res.send(imageBuffer);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error serving front image: " + error.message });
+    }
+  });
+
+  // Get card inside image (optimized endpoint)
+  app.get("/api/cards/:id/inside-image", async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      const card = await storage.getCard(cardId);
+
+      if (!card || !card.insideImageUrl) {
+        return res.status(404).json({ message: "Inside image not found" });
+      }
+
+      // Extract base64 data and convert to buffer for faster serving
+      const base64Data = card.insideImageUrl.split(',')[1];
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      // Set appropriate headers for image serving
+      res.set({
+        'Content-Type': 'image/png',
+        'Content-Length': imageBuffer.length,
+        'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
+        'ETag': `"${cardId}-inside"`
+      });
+      
+      res.send(imageBuffer);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error serving inside image: " + error.message });
+    }
+  });
+
   // Get order by payment reference (for digital card viewing)
   app.get("/api/orders/reference/:reference", async (req, res) => {
     try {
@@ -1295,8 +1351,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Card not found" });
       }
       
+      // For performance, serve images as separate endpoints to avoid massive JSON transfer
+      const optimizedCard = {
+        ...card,
+        frontImageUrl: card.frontImageUrl ? `/api/cards/${cardId}/front-image` : null,
+        insideImageUrl: card.insideImageUrl ? `/api/cards/${cardId}/inside-image` : null,
+        // Keep original URLs for direct data access if needed
+        frontImageData: card.frontImageUrl,
+        insideImageData: card.insideImageUrl
+      };
+      
       res.json({
-        card,
+        card: optimizedCard,
         reference,
         message: "Card ready for delivery choice"
       });

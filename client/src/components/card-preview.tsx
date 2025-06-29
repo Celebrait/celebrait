@@ -167,8 +167,8 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
           {/* Card mockup display */}
           <div className="transition-all duration-300 ease-in-out">
             <CardMockup 
-              frontImageUrl={card.frontImageUrl}
-              insideImageUrl={card.insideImageUrl}
+              frontImageUrl={card.frontImageUrl?.startsWith('/api/') ? card.frontImageUrl : card.frontImageData || card.frontImageUrl}
+              insideImageUrl={card.insideImageUrl?.startsWith('/api/') ? card.insideImageUrl : card.insideImageData || card.insideImageUrl}
               deliveryType="printed"
               currentView={currentView}
             />
