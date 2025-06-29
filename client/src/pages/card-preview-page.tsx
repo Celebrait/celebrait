@@ -98,15 +98,6 @@ export default function CardPreviewPage() {
       <Header />
       
       <main className="container mx-auto px-4 py-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            🎉 Your Card is Ready!
-          </h1>
-          <p className="text-lg text-gray-600">
-            Your personalized greeting card has been generated and is ready for delivery.
-          </p>
-        </div>
-        
         <CardPreview 
           card={cardData} 
           onboarding={mockOnboarding}

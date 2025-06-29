@@ -1351,15 +1351,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Card not found" });
       }
       
-      // For performance, serve images as separate endpoints to avoid massive JSON transfer
+      // For maximum performance, only send metadata and serve images as separate endpoints
       const optimizedCard = {
-        ...card,
+        id: card.id,
+        userId: card.userId,
+        cardType: card.cardType,
+        printOption: card.printOption,
+        sceneType: card.sceneType,
+        status: card.status,
+        price: card.price,
         frontImageUrl: card.frontImageUrl ? `/api/cards/${cardId}/front-image` : null,
         insideImageUrl: card.insideImageUrl ? `/api/cards/${cardId}/inside-image` : null,
-        // Keep original URLs for direct data access if needed
-        frontImageData: card.frontImageUrl,
-        insideImageData: card.insideImageUrl
+        // Remove massive base64 data to improve loading speed
+        conversationData: card.conversationData || {}
       };
+      
+      // Add caching headers for faster subsequent loads
+      res.set({
+        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+        'ETag': `"${cardId}-${card.status}"`
+      });
       
       res.json({
         card: optimizedCard,

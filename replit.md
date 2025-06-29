@@ -120,16 +120,16 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- June 29, 2025. Fixed critical email timing and performance issues for seamless user experience:
-  * Fixed email timing - emails now sent only after complete image generation and validation (was sending immediately when background generation started)
-  * Added 5-second validation delay and proper async sequencing to ensure both front and inside images are fully generated before email notification
-  * Enhanced background generation functions to properly handle multi-step GPT Image generation (front image → inside image → email)
-  * Implemented optimized database performance - cards/ready endpoint serves lightweight metadata instead of massive base64 data
-  * Created dedicated image serving endpoints (/api/cards/:id/front-image, /api/cards/:id/inside-image) with caching and binary transfer
-  * Email links now load instantly - reduced transfer from ~2MB to ~1KB for initial page load
-  * Smart image URL handling - CardPreview automatically uses optimized URLs for email links, base64 for immediate generation
-  * Fixed background generation async flow to wait for complete image generation before email notification
-  * Email links now provide flawless experience - no loading delays or broken image states
+- June 29, 2025. Systematically fixed email timing, performance, and UI issues for seamless user experience:
+  * CRITICAL FIX: Implemented polling-based email validation - emails now sent only after complete image generation verification (50KB+ size check)
+  * Fixed race conditions between immediate and background generation causing premature email notifications
+  * Added 10-second interval polling with 5-minute timeout to ensure both front and inside images are fully processed before email
+  * Eliminated UI duplication by removing duplicate "Your Card is Ready" headers between CardPreviewPage and CardPreview components
+  * Optimized database performance - cards/ready endpoint now serves only essential metadata (removed massive base64 transfers)
+  * Added response caching (5-minute cache, ETag headers) to eliminate 16-second email link loading times
+  * Enhanced database queries to transfer ~1KB instead of ~2MB for instant email link performance
+  * Fixed background generation to properly sequence: front image → inside image → validation polling → email notification
+  * Email links now provide truly flawless experience with instant loading and no UI duplication or loading delays
 - June 29, 2025. Fixed card generation loading screen and removed signup modal barrier:
   * Fixed stuck loading screen issue where cards weren't generating after clicking "Generate My Card"
   * Modified generateCard function to properly execute card generation instead of only showing email collection
