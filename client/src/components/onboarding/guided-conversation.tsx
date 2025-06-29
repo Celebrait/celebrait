@@ -1049,17 +1049,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           const existingCardResponse = await apiRequest("GET", `/api/cards/${cardId}`);
           generatedCard = await existingCardResponse.json();
           
-          // Ensure card status is set to completed for email validation
-          if (generatedCard.status !== 'completed') {
-            const statusUpdateResponse = await apiRequest("POST", "/api/update-card-images", {
-              cardId,
-              frontImageUrl: generatedCard.frontImageUrl,
-              insideImageUrl: generatedCard.insideImageUrl,
-              status: 'completed'
-            });
-            generatedCard = await statusUpdateResponse.json();
-          }
-          
           console.log('Using existing card from interactive session (no regeneration):', {
             cardId: generatedCard.id,
             hasFront: !!generatedCard.frontImageUrl,

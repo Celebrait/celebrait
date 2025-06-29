@@ -123,6 +123,7 @@ Changelog:
 - June 29, 2025. Systematically fixed email timing, performance, and UI issues for seamless user experience:
   * CRITICAL FIX: Implemented polling-based email validation - emails now sent only after complete image generation verification (50KB+ size check)
   * CRITICAL FIX: Fixed card version inconsistency - background generation now completely skips regeneration and preserves identical front and inside images from interactive session
+  * CRITICAL FIX: Fixed email notification failure - removed validation error causing background generation to fail and preventing email notifications
   * Fixed race conditions between immediate and background generation causing premature email notifications
   * Added 10-second interval polling with 5-minute timeout to ensure both front and inside images are fully processed before email
   * Eliminated UI duplication by removing duplicate "Your Card is Ready" headers between CardPreviewPage and CardPreview components
