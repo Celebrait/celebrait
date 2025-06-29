@@ -976,26 +976,85 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   };
 
+  // Background generation helper functions
+  const generateCardWithDALLEInBackground = async () => {
+    const frontPrompt = buildImagePrompt();
+    const insidePrompt = buildInsidePrompt();
+
+    const response = await apiRequest("POST", "/api/generate-images", {
+      cardId,
+      frontPrompt,
+      insidePrompt,
+      photoData: answers.photo_upload || null,
+      photoAnalysis: null
+    });
+
+    return await response.json();
+  };
+
+  const generateCardWithGPTImageInBackground = async () => {
+    const frontPrompt = buildImagePrompt();
+    const insidePrompt = buildInsidePrompt();
+
+    const response = await apiRequest("POST", "/api/generate-gpt-images", {
+      cardId,
+      frontPrompt,
+      insidePrompt,
+      photoData: uploadedPhotos,
+      photoAnalysis: null
+    });
+
+    return await response.json();
+  };
+
+  const generateCardWithGPTImageTransformInBackground = async () => {
+    const frontPrompt = buildImagePrompt();
+    const insidePrompt = buildInsidePrompt();
+
+    const response = await apiRequest("POST", "/api/transform-style", {
+      cardId,
+      frontPrompt,
+      insidePrompt,
+      photoData: uploadedPhotos[0],
+    });
+
+    return await response.json();
+  };
+
   const generateCardInBackground = async (email: string) => {
     try {
-      // Start background generation and send email when complete
+      // Start actual card generation in background
+      console.log('Starting background card generation for:', email);
+      
+      // Generate the card first (this should run in background)
       setTimeout(async () => {
-        const orderResponse = await apiRequest("POST", "/api/create-free-order", {
-          cardId: cardId,
-          customerInfo: {
-            email: email,
-            firstName: answers.name || "User",
-            lastName: "",
-            phone: "",
-            address: null
-          },
-          paymentType: "free"
-        });
-        
-        console.log('Background generation and email sent:', await orderResponse.json());
-      }, 1000);
+        try {
+          // Generate the card using existing logic
+          let generatedCard;
+          if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
+            generatedCard = await generateCardWithGPTImageInBackground();
+          } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotos.length > 0) {
+            generatedCard = await generateCardWithGPTImageTransformInBackground();
+          } else {
+            generatedCard = await generateCardWithDALLEInBackground();
+          }
+          
+          // After card is generated, send the "card ready" notification email
+          if (generatedCard) {
+            const cardReadyResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
+              cardId: generatedCard.id,
+              customerEmail: email,
+              customerName: answers.name || "User"
+            });
+            
+            console.log('Card ready notification sent:', await cardReadyResponse.json());
+          }
+        } catch (error) {
+          console.error('Background generation error:', error);
+        }
+      }, 2000); // Give 2 seconds delay to show the confirmation message
     } catch (error) {
-      console.error('Background generation error:', error);
+      console.error('Background generation setup error:', error);
     }
   };
 
