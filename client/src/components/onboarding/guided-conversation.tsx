@@ -1353,14 +1353,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       return;
                     }
                     
-                    // Close this screen and start background generation
+                    // Show email confirmation screen and start background generation
                     setIsLoading(false);
+                    setShowEmailConfirmation(true);
                     generateCardInBackground(answers.notification_email);
-                    
-                    toast({
-                      title: "Generation Started!",
-                      description: `We'll email you at ${answers.notification_email} when your card is ready.`,
-                    });
                   }}
                   disabled={!answers.notification_email || !answers.notification_email_confirm || answers.notification_email !== answers.notification_email_confirm}
                   className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"

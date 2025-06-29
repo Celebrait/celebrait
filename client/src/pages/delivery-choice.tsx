@@ -131,10 +131,10 @@ export default function DeliveryChoice() {
       // Navigate to complete-order page to collect customer details
       setTimeout(() => {
         try {
-          setLocation(`/complete-order/${params?.cardId}`);
+          setLocation(`/complete-order/${params?.reference}`);
         } catch (error) {
           console.error('Navigation failed:', error);
-          window.location.href = `/complete-order/${params?.cardId}`;
+          window.location.href = `/complete-order/${params?.reference}`;
         }
       }, 200);
     } else {
@@ -144,10 +144,10 @@ export default function DeliveryChoice() {
       // Navigate to payment page for printed cards
       setTimeout(() => {
         try {
-          setLocation(`/payment-tips/${params?.cardId}`);
+          setLocation(`/payment-tips/${params?.reference}`);
         } catch (error) {
           console.error('Navigation failed:', error);
-          window.location.href = `/payment-tips/${params?.cardId}`;
+          window.location.href = `/payment-tips/${params?.reference}`;
         }
       }, 200);
     }
