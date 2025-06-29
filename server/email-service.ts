@@ -24,7 +24,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     console.log(`Attempting to send email to: ${params.to}`);
     console.log(`From: ${params.from}`);
     console.log(`Subject: ${params.subject}`);
-    
+
     const result = await sgMail.send({
       to: params.to,
       from: params.from,
@@ -32,10 +32,10 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       ...(params.text && { text: params.text }),
       ...(params.html && { html: params.html }),
     });
-    
+
     console.log('SendGrid response status:', result[0]?.statusCode);
     console.log('SendGrid response headers:', result[0]?.headers);
-    
+
     // Check for X-Message-Id header which tracks the message
     if (result[0]?.headers && result[0].headers['x-message-id']) {
       console.log('SendGrid Message ID:', result[0].headers['x-message-id']);
@@ -44,11 +44,11 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     return true;
   } catch (error: any) {
     console.error('SendGrid email error:', error);
-    
+
     // Log specific error details for troubleshooting
     if (error.response && error.response.body) {
       console.error('SendGrid error details:', JSON.stringify(error.response.body, null, 2));
-      
+
       // Check for specific error types
       if (error.response.body.errors) {
         error.response.body.errors.forEach((err: any) => {
@@ -59,7 +59,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
         });
       }
     }
-    
+
     return false;
   }
 }
@@ -67,7 +67,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
 // Email templates
 export function generateOrderConfirmationEmail(orderData: any): EmailParams {
   const { customerEmail, customerName, paymentReference, amount, currency } = orderData;
-  
+
   return {
     to: customerEmail,
     from: 'greetings@celebrait.co.za',
@@ -80,11 +80,11 @@ export function generateOrderConfirmationEmail(orderData: any): EmailParams {
           /* CUSTOMIZABLE: Change these values to match your brand */
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          
+
           /* BRAND COLORS: Update gradient and button colors here */
           .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
           .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; }
-          
+
           /* LAYOUT: Adjust spacing and backgrounds */
           .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
           .order-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
@@ -100,18 +100,18 @@ export function generateOrderConfirmationEmail(orderData: any): EmailParams {
           <div class="content">
             <h2>Hi ${customerName}!</h2>
             <p>We're excited to confirm that your custom greeting card order has been received and is being processed.</p>
-            
+
             <div class="order-details">
               <h3>Order Details</h3>
               <p><strong>Reference:</strong> ${paymentReference}</p>
               <p><strong>Amount:</strong> ${currency} ${(amount / 100).toFixed(2)}</p>
               <p><strong>Status:</strong> Processing</p>
             </div>
-            
+
             <p>Your personalized greeting card is being carefully prepared. For printed cards, you can expect delivery within 5-7 business days.</p>
-            
+
             <p>We'll send you another email once your order ships with tracking information.</p>
-            
+
             <a href="https://celebrait.com/order-status?ref=${paymentReference}" class="button">Track Your Order</a>
           </div>
           <div class="footer">
@@ -147,7 +147,7 @@ Questions? Contact us at support@celebrait.com
 
 export function generateDigitalCardEmail(orderData: any, cardImageUrl: string, host?: string): EmailParams {
   const { customerEmail, customerName, paymentReference } = orderData;
-  
+
   return {
     to: customerEmail,
     from: 'greetings@celebrait.co.za',
@@ -172,34 +172,42 @@ export function generateDigitalCardEmail(orderData: any, cardImageUrl: string, h
         <div class="container">
           <div class="header">
             <h1>🎉 Your Card is Ready!</h1>
-            <p>Beautiful, personalized, and ready to share</p>
+            <p>Beautiful, personalized, and ready to share!</p>
           </div>
           <div class="content">
             <h2>Hi ${customerName}!</h2>
-            <p>Your custom digital greeting card has been created and is ready for download!</p>
-            
+            <p>Your custom digital greeting card has been created and is ready to view!</p>
+
             <div class="card-preview">
-              <img src="${cardImageUrl}" alt="Your Custom Card" class="card-image" />
+              <img src="${cardImageUrl}" alt="Your custom card" class="card-image" />
             </div>
-            
+
             <div class="download-section">
-              <h3>Ready to Share</h3>
-              <p>Your high-quality digital card is ready to view and share with your loved ones.</p>
-              <a href="https://www.celebrait.co.za/card/${paymentReference}" class="button">View Interactive Card</a>
-              ${cardImageUrl ? `<a href="${cardImageUrl}" class="button" download>Download Image</a>` : ''}
+              <h3>View Your Digital Card</h3>
+              <p>Click the button below to open your beautiful digital greeting card experience:</p>
+              <a href="https://${host || 'localhost:5000'}/card/${paymentReference}" class="button">View Digital Card</a>
+              <p style="margin-top: 15px; color: #666; font-size: 14px;">
+                Or copy this link: https://${host || 'localhost:5000'}/card/${paymentReference}
+              </p>
             </div>
-            
-            <p>Share this special moment with someone you care about. Your personalized card was created with love using AI technology.</p>
-            
-            <p>Thank you for choosing Celebrait to help you celebrate life's special moments!</p>
+
+            <div style="background: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h4 style="color: #2563eb; margin-bottom: 10px;">💡 How to share your card:</h4>
+              <ul style="color: #4b5563; margin: 0; padding-left: 20px;">
+                <li>Forward this email to the recipient</li>
+                <li>Copy the link above and send it via text/social media</li>
+                <li>The recipient will see a beautiful digital card experience</li>
+              </ul>
+            </div>
           </div>
+
           <div class="footer">
-            <p>Love your card? Share your experience with friends!</p>
-            <p>© 2025 Celebrait. All rights reserved.</p>
+            <p>Thank you for choosing Celebrait!</p>
+            <p style="font-size: 12px; color: #999;">
+              © 2025 Celebrait. All rights reserved.
+            </p>
           </div>
         </div>
-      </body>
-      </html>
     `,
     text: `
 Your Digital Celebrait Card is Ready!
@@ -221,7 +229,7 @@ Thank you for choosing Celebrait!
 
 export function generateShippingNotificationEmail(orderData: any, trackingNumber: string): EmailParams {
   const { customerEmail, customerName, paymentReference } = orderData;
-  
+
   return {
     to: customerEmail,
     from: 'greetings@celebrait.co.za',
@@ -249,18 +257,18 @@ export function generateShippingNotificationEmail(orderData: any, trackingNumber
           <div class="content">
             <h2>Hi ${customerName}!</h2>
             <p>Great news! Your custom Celebrait card has been carefully packed and shipped.</p>
-            
+
             <div class="shipping-details">
               <h3>Shipping Information</h3>
               <p><strong>Order Reference:</strong> ${paymentReference}</p>
               <p><strong>Tracking Number:</strong> ${trackingNumber}</p>
               <p><strong>Expected Delivery:</strong> 3-5 business days</p>
             </div>
-            
+
             <p>You can track your package using the tracking number above. Your beautifully crafted card will arrive soon!</p>
-            
+
             <a href="https://tracking-link.com/${trackingNumber}" class="button">Track Your Package</a>
-            
+
             <p>We can't wait for you to see your personalized creation. Thank you for trusting Celebrait with your special moments!</p>
           </div>
           <div class="footer">
