@@ -2182,6 +2182,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Card not found" });
       }
 
+      // Validate that images are actually ready before sending email
+      if (!card.frontImageUrl || !card.frontImageUrl.startsWith('data:image/')) {
+        console.log('Front image not ready for email notification');
+        return res.status(400).json({ message: "Front image not ready for notification" });
+      }
+      
+      if (card.insideImageUrl && !card.insideImageUrl.startsWith('data:image/')) {
+        console.log('Inside image not ready for email notification');
+        return res.status(400).json({ message: "Inside image not ready for notification" });
+      }
+
+      // Check if base64 data is substantial (not corrupted)
+      try {
+        const frontBase64Data = card.frontImageUrl.split(',')[1];
+        if (!frontBase64Data || frontBase64Data.length < 10000) { // Minimum reasonable size
+          console.log('Front image base64 data too small, likely corrupted');
+          return res.status(400).json({ message: "Front image data not ready" });
+        }
+        console.log('Images validated successfully - proceeding with email notification');
+      } catch (parseError) {
+        console.log('Failed to parse front image base64 data:', parseError);
+        return res.status(400).json({ message: "Image data not ready for notification" });
+      }
+
       // Create a temporary reference for the delivery choice flow that includes cardId
       const reference = `celebrait_ready_${cardId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       

@@ -120,14 +120,16 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- June 29, 2025. Fixed card generation and email notification display issues:
+- June 29, 2025. Fixed card generation and email notification timing issues:
   * Fixed "We're On It" generation screen not showing cards by adding missing onCardGenerated callback
   * Created dedicated CardPreviewPage component that displays the same interface as post-generation screen
   * Updated email templates to link to /card-preview/{reference} instead of digital card viewer
   * Fixed loading states in CardPreviewPage to properly stop loading when card data loads
   * Fixed generateCard function to call onCardGenerated callback when generation completes successfully
-  * Both immediate generation flow and email notification flow now display cards correctly
-  * Email workflow now matches waiting workflow: Email → Card Preview → Choose Delivery → Payment
+  * Added 90-second delay before email notifications to ensure images are fully processed and ready
+  * Added server-side image validation before sending emails to prevent premature notifications
+  * Email timing now synchronized with actual image readiness - notifications arrive when images load quickly
+  * Both immediate generation flow and email notification flow now display cards correctly with proper timing
 - June 29, 2025. Fixed card generation loading screen and removed signup modal barrier:
   * Fixed stuck loading screen issue where cards weren't generating after clicking "Generate My Card"
   * Modified generateCard function to properly execute card generation instead of only showing email collection

@@ -1083,17 +1083,26 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           
           console.log('Background generation completed:', generatedCard);
           
-          // After card is generated, send the "card ready" notification email
+          // After card is generated, wait additional time for images to fully process before sending email
           if (generatedCard && generatedCard.id) {
-            console.log('Sending card ready notification for card ID:', generatedCard.id);
-            const cardReadyResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
-              cardId: generatedCard.id,
-              customerEmail: email,
-              customerName: answers.name || "User"
-            });
+            console.log('Card generated, waiting for images to fully process before sending email...');
             
-            const emailResult = await cardReadyResponse.json();
-            console.log('Card ready notification sent:', emailResult);
+            // Wait 90 seconds to ensure images are actually ready to display quickly
+            setTimeout(async () => {
+              try {
+                console.log('Now sending card ready notification for card ID:', generatedCard.id);
+                const cardReadyResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
+                  cardId: generatedCard.id,
+                  customerEmail: email,
+                  customerName: answers.name || "User"
+                });
+                
+                const emailResult = await cardReadyResponse.json();
+                console.log('Card ready notification sent:', emailResult);
+              } catch (emailError) {
+                console.error('Failed to send delayed card ready notification:', emailError);
+              }
+            }, 90000); // 90 second delay to ensure images are ready
           } else {
             console.error('Card generation failed - no card returned or missing ID');
           }
@@ -1514,7 +1523,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 </Button>
                 
                 <p className="text-sm text-gray-500 text-center">
-                  Feel free to close this window - we'll email you when your card is ready! ✨
+                  Feel free to close this window - we'll email you when your card is ready and images have fully loaded! ✨
                 </p>
               </div>
             </div>
