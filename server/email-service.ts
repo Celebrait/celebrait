@@ -1,4 +1,5 @@
 import sgMail from '@sendgrid/mail';
+import { storage } from './storage';
 
 const sendgridApiKey = process.env.SENDGRID_API_KEY;
 
@@ -10,6 +11,10 @@ console.log('SendGrid API Key configured:', sendgridApiKey ? 'Present' : 'Missin
 console.log('SendGrid API Key length:', sendgridApiKey?.length || 0);
 
 sgMail.setApiKey(sendgridApiKey);
+
+function hasValidSendGridConfig(): boolean {
+  return !!(sendgridApiKey && sendgridApiKey.length > 0);
+}
 
 interface EmailParams {
   to: string;

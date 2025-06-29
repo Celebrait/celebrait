@@ -88,6 +88,8 @@ export default function DeliveryChoice() {
               setCardData(cardData);
               setLoading(false);
               return;
+            } else {
+              console.error('Failed to fetch card data:', response.status, response.statusText);
             }
           } catch (error) {
             console.error('Failed to load card data from API:', error);
