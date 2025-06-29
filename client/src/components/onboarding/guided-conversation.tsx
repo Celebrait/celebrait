@@ -993,8 +993,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   };
 
   const generateCardWithGPTImageInBackground = async () => {
+    console.log('Starting GPT Image scene generation in background');
     const frontPrompt = buildImagePrompt();
-    const insidePrompt = buildInsidePrompt();
 
     const response = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
       imageData: uploadedPhotos[0],
@@ -1005,23 +1005,39 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       cardText: answers.message || ''
     });
 
-    const result = await response.json();
+    const frontResult = await response.json();
+    console.log('Front image generated in background:', frontResult);
     
-    // Update card with the generated image
+    // Generate inside card if message exists
+    let insideImageUrl = null;
+    if (answers.inside_message) {
+      console.log('Generating inside card in background');
+      const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
+        frontCardImage: frontResult.imageUrl,
+        insideText: answers.inside_message
+      });
+      
+      const insideResult = await insideResponse.json();
+      insideImageUrl = insideResult.imageUrl;
+      console.log('Inside image generated in background:', insideResult);
+    }
+    
+    // Update card with both images
     const updateResponse = await apiRequest("POST", "/api/update-card-images", {
       cardId,
-      frontImageUrl: result.imageUrl,
-      insideImageUrl: null // Will be generated separately if needed
+      frontImageUrl: frontResult.imageUrl,
+      insideImageUrl,
+      status: 'completed'
     });
 
-    return await updateResponse.json();
+    const finalCard = await updateResponse.json();
+    console.log('Card updated with all images in background');
+    return finalCard;
   };
 
   const generateCardWithGPTImageTransformInBackground = async () => {
-    const frontPrompt = buildImagePrompt();
-    const insidePrompt = buildInsidePrompt();
+    console.log('Starting GPT Image transform generation in background');
     const artStyle = answers.art_style || 'watercolor painting';
-    
     const transformPrompt = `Transform this into ${artStyle}`;
     
     const response = await apiRequest("POST", "/api/transform-style-gpt-image-1", {
@@ -1030,16 +1046,34 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       style: transformPrompt
     });
 
-    const result = await response.json();
+    const frontResult = await response.json();
+    console.log('Front image transformed in background:', frontResult);
     
-    // Update card with the generated image
+    // Generate inside card if message exists
+    let insideImageUrl = null;
+    if (answers.inside_message) {
+      console.log('Generating inside card in background');
+      const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
+        frontCardImage: frontResult.imageUrl,
+        insideText: answers.inside_message
+      });
+      
+      const insideResult = await insideResponse.json();
+      insideImageUrl = insideResult.imageUrl;
+      console.log('Inside image generated in background:', insideResult);
+    }
+    
+    // Update card with both images
     const updateResponse = await apiRequest("POST", "/api/update-card-images", {
       cardId,
-      frontImageUrl: result.imageUrl,
-      insideImageUrl: null // Will be generated separately if needed
+      frontImageUrl: frontResult.imageUrl,
+      insideImageUrl,
+      status: 'completed'
     });
 
-    return await updateResponse.json();
+    const finalCard = await updateResponse.json();
+    console.log('Card updated with all images in background');
+    return finalCard;
   };
 
 
@@ -1083,9 +1117,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           
           console.log('Background generation completed:', generatedCard);
           
-          // Send email notification immediately when background generation completes
+          // Wait a moment and then validate images before sending email
           if (generatedCard && generatedCard.id) {
-            console.log('Sending immediate card ready notification for card ID:', generatedCard.id);
+            console.log('Validating images before sending email notification for card ID:', generatedCard.id);
+            
+            // Wait for images to be fully processed
+            await new Promise(resolve => setTimeout(resolve, 5000));
             
             try {
               const cardReadyResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
@@ -1095,9 +1132,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
               });
               
               const emailResult = await cardReadyResponse.json();
-              console.log('Card ready notification sent immediately:', emailResult);
+              console.log('Card ready notification sent after validation:', emailResult);
             } catch (emailError) {
-              console.error('Failed to send immediate card ready notification:', emailError);
+              console.error('Failed to send card ready notification:', emailError);
             }
           } else {
             console.error('Card generation failed - no card returned or missing ID');

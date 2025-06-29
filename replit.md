@@ -120,15 +120,16 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- June 29, 2025. Achieved perfect email-generation synchronization and instant image loading:
-  * Fixed "We're On It" generation screen by adding missing return statements in generation functions
-  * Synchronized email timing - background generation sends emails immediately when cards complete (same timing as generation screen)
+- June 29, 2025. Fixed critical email timing and performance issues for seamless user experience:
+  * Fixed email timing - emails now sent only after complete image generation and validation (was sending immediately when background generation started)
+  * Added 5-second validation delay and proper async sequencing to ensure both front and inside images are fully generated before email notification
+  * Enhanced background generation functions to properly handle multi-step GPT Image generation (front image → inside image → email)
   * Implemented optimized database performance - cards/ready endpoint serves lightweight metadata instead of massive base64 data
   * Created dedicated image serving endpoints (/api/cards/:id/front-image, /api/cards/:id/inside-image) with caching and binary transfer
   * Email links now load instantly - reduced transfer from ~2MB to ~1KB for initial page load
   * Smart image URL handling - CardPreview automatically uses optimized URLs for email links, base64 for immediate generation
-  * Perfect synchronization achieved - generation screen shows cards at exactly the same moment emails are sent
-  * Email links render images instantly without loading delays or massive data transfers
+  * Fixed background generation async flow to wait for complete image generation before email notification
+  * Email links now provide flawless experience - no loading delays or broken image states
 - June 29, 2025. Fixed card generation loading screen and removed signup modal barrier:
   * Fixed stuck loading screen issue where cards weren't generating after clicking "Generate My Card"
   * Modified generateCard function to properly execute card generation instead of only showing email collection
