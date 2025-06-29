@@ -1029,7 +1029,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         return;
       }
       
-      // Generate the card first (this should run in background)
+      // Wait for interactive generation to complete, then send email
       setTimeout(async () => {
         try {
           console.log('Starting background generation with options:', {
@@ -1092,7 +1092,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
             console.error('Failed to send error notification:', emailError);
           }
         }
-      }, 2000); // Give 2 seconds delay to show the confirmation message
+      }, 60000); // Wait 60 seconds for interactive generation to complete before sending email
     } catch (error: any) {
       console.error('generateCardInBackground setup error:', error);
     }

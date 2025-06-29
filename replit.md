@@ -125,6 +125,7 @@ Changelog:
   * CRITICAL FIX: Fixed card version inconsistency - background generation now completely skips regeneration and preserves identical front and inside images from interactive session
   * CRITICAL FIX: Fixed email notification failure - removed validation error causing background generation to fail and preventing email notifications
   * CRITICAL FIX: Removed failed polling system - background generation now sends emails immediately since cards are already complete from interactive session
+  * CRITICAL FIX: Fixed email timing - background email now waits 60 seconds for interactive generation to complete before sending, ensuring perfect synchronization
   * Fixed race conditions between immediate and background generation causing premature email notifications
   * Added 10-second interval polling with 5-minute timeout to ensure both front and inside images are fully processed before email
   * Eliminated UI duplication by removing duplicate "Your Card is Ready" headers between CardPreviewPage and CardPreview components
