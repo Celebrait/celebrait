@@ -647,7 +647,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
       const card = await cardResponse.json();
       setCardId(card.id);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
         description: "Failed to initialize card creation",
@@ -1042,69 +1042,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     return await updateResponse.json();
   };
 
-  // Background generation helper functions
-  const generateCardWithDALLEInBackground = async () => {
-    const frontPrompt = buildImagePrompt();
-    const insidePrompt = buildInsidePrompt();
 
-    // Use the working DALL-E endpoint that exists
-    const response = await apiRequest("POST", "/api/generate-images", {
-      cardId,
-      frontPrompt,
-      insidePrompt
-    });
-
-    return await response.json();
-  };
-
-  const generateCardWithGPTImageInBackground = async () => {
-    const frontPrompt = buildImagePrompt();
-    const insidePrompt = buildInsidePrompt();
-
-    const response = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
-      imageData: uploadedPhotos[0],
-      imageDataArray: uploadedPhotos,
-      scenePrompt: frontPrompt,
-      style: answers.art_style || 'watercolor painting',
-      includeText: !!answers.message,
-      cardText: answers.message || ''
-    });
-
-    const result = await response.json();
-    
-    // Update card with the generated image
-    const updateResponse = await apiRequest("POST", "/api/update-card-images", {
-      cardId,
-      frontImageUrl: result.imageUrl,
-      insideImageUrl: null // Will be generated separately if needed
-    });
-
-    return await updateResponse.json();
-  };
-
-  const generateCardWithGPTImageTransformInBackground = async () => {
-    const frontPrompt = buildImagePrompt();
-    const artStyle = answers.art_style || 'watercolor painting';
-    
-    const transformPrompt = `Transform this into ${artStyle}`;
-    
-    const response = await apiRequest("POST", "/api/transform-style-gpt-image-1", {
-      imageData: uploadedPhotos[0],
-      imageDataArray: uploadedPhotos,
-      style: transformPrompt
-    });
-
-    const result = await response.json();
-    
-    // Update card with the generated image
-    const updateResponse = await apiRequest("POST", "/api/update-card-images", {
-      cardId,
-      frontImageUrl: result.imageUrl,
-      insideImageUrl: null // Will be generated separately if needed
-    });
-
-    return await updateResponse.json();
-  };
 
   const generateCardInBackground = async (email: string) => {
     try {
@@ -2222,9 +2160,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             </div>
                             <p className="text-yellow-700 font-medium text-sm">
                               {answers.photo_option === 'upload_and_transform' ? (
-                                <>Upload <strong>one clear photo ONLY</strong>. For best results, choose a photo with good lighting and clear details!</>
+                                <span>Upload <strong>one clear photo ONLY</strong>. For best results, choose a photo with good lighting and clear details!</span>
                               ) : (
-                                <>Our AI can recognise <strong>multiple people in a single photo</strong>, so feel free to upload a group shot if you'd like all characters included. You can also <strong>upload several individual photos</strong> of different people to include in the scene.</>
+                                <span>Our AI can recognise <strong>multiple people in a single photo</strong>, so feel free to upload a group shot if you'd like all characters included. You can also <strong>upload several individual photos</strong> of different people to include in the scene.</span>
                               )}
                             </p>
                           </div>
