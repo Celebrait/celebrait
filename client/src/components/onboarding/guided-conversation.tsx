@@ -993,34 +993,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   };
 
   const generateCardWithGPTImageInBackground = async () => {
-    console.log('Starting background processing - preserving existing images and removing watermarks');
+    console.log('Background processing: preserving exact images from interactive session');
     
-    // Get existing card data to preserve original images
+    // Get existing card data - we will NEVER regenerate, only preserve
     const existingCardResponse = await apiRequest("GET", `/api/cards/${cardId}`);
     const existingCard = await existingCardResponse.json();
     
-    let frontImageUrl = existingCard.frontImageUrl;
-    
-    // If no existing front image, generate one (should rarely happen)
-    if (!frontImageUrl || frontImageUrl.length < 100) {
-      console.log('No existing front image found, generating new one');
-      const frontPrompt = buildImagePrompt();
-
-      const response = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
-        imageData: uploadedPhotos[0],
-        imageDataArray: uploadedPhotos,
-        scenePrompt: frontPrompt,
-        style: answers.art_style || 'watercolor painting',
-        includeText: !!answers.message,
-        cardText: answers.message || ''
-      });
-
-      const frontResult = await response.json();
-      frontImageUrl = frontResult.imageUrl;
-      console.log('Front image generated in background:', frontResult);
-    } else {
-      console.log('Preserving existing front image from interactive session');
-    }
+    // Use the exact same images that were generated during interactive session
+    const frontImageUrl = existingCard.frontImageUrl;
+    console.log('Preserving identical front image from interactive session');
     
     // Preserve existing inside image if available (to maintain consistency with interactive generation)
     let insideImageUrl = null;
@@ -1063,7 +1044,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     // Update card with both images
     const updateResponse = await apiRequest("POST", "/api/update-card-images", {
       cardId,
-      frontImageUrl: frontResult.imageUrl,
+      frontImageUrl: frontImageUrl,
       insideImageUrl,
       status: 'completed'
     });
@@ -1142,7 +1123,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     // Update card with both images
     const updateResponse = await apiRequest("POST", "/api/update-card-images", {
       cardId,
-      frontImageUrl: frontResult.imageUrl,
+      frontImageUrl: frontImageUrl,
       insideImageUrl,
       status: 'completed'
     });
@@ -1180,16 +1161,30 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           let generatedCard;
           console.log('Determining generation method...');
           
-          if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
-            console.log('Using GPT Image scene generation');
-            generatedCard = await generateCardWithGPTImageInBackground();
-          } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotos.length > 0) {
-            console.log('Using GPT Image transform generation');
-            generatedCard = await generateCardWithGPTImageTransformInBackground();
-          } else {
-            console.log('Using DALLE generation');
-            generatedCard = await generateCardWithDALLEInBackground();
+          // CRITICAL: Skip regeneration, use existing card to preserve identical images
+          console.log('Background processing: preserving existing card images, no regeneration');
+          
+          // Get the existing card that was generated during interactive session
+          const existingCardResponse = await apiRequest("GET", `/api/cards/${cardId}`);
+          generatedCard = await existingCardResponse.json();
+          
+          // Ensure card status is set to completed for email validation
+          if (generatedCard.status !== 'completed') {
+            const statusUpdateResponse = await apiRequest("POST", "/api/update-card-images", {
+              cardId,
+              frontImageUrl: generatedCard.frontImageUrl,
+              insideImageUrl: generatedCard.insideImageUrl,
+              status: 'completed'
+            });
+            generatedCard = await statusUpdateResponse.json();
           }
+          
+          console.log('Using existing card from interactive session (no regeneration):', {
+            cardId: generatedCard.id,
+            hasFront: !!generatedCard.frontImageUrl,
+            hasInside: !!generatedCard.insideImageUrl,
+            status: generatedCard.status
+          });
           
           console.log('Background generation completed:', generatedCard);
           
@@ -1379,7 +1374,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     // Update the card in storage
     const updateResponse = await apiRequest("POST", "/api/update-card-images", {
       cardId,
-      frontImageUrl: frontResult.imageUrl,
+      frontImageUrl: frontImageUrl,
       insideImageUrl,
       conversationData,
       status: 'completed'
@@ -1443,7 +1438,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     // Update the card in storage
     const updateResponse = await apiRequest("POST", "/api/update-card-images", {
       cardId,
-      frontImageUrl: frontResult.imageUrl,
+      frontImageUrl: frontImageUrl,
       insideImageUrl,
       conversationData,
       status: 'completed'
