@@ -982,12 +982,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     const frontPrompt = buildImagePrompt();
     const insidePrompt = buildInsidePrompt();
 
+    // Use the working DALL-E endpoint that exists
     const response = await apiRequest("POST", "/api/generate-images", {
       cardId,
       frontPrompt,
-      insidePrompt,
-      photoData: answers.photo_upload || null,
-      photoAnalysis: null
+      insidePrompt
     });
 
     return await response.json();
@@ -997,29 +996,50 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     const frontPrompt = buildImagePrompt();
     const insidePrompt = buildInsidePrompt();
 
-    const response = await apiRequest("POST", "/api/generate-gpt-images", {
-      cardId,
-      frontPrompt,
-      insidePrompt,
-      photoData: uploadedPhotos,
-      photoAnalysis: null
+    const response = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
+      imageData: uploadedPhotos[0],
+      imageDataArray: uploadedPhotos,
+      scenePrompt: frontPrompt,
+      style: answers.art_style || 'watercolor painting',
+      includeText: !!answers.message,
+      cardText: answers.message || ''
     });
 
-    return await response.json();
+    const result = await response.json();
+    
+    // Update card with the generated image
+    const updateResponse = await apiRequest("POST", "/api/update-card-images", {
+      cardId,
+      frontImageUrl: result.imageUrl,
+      insideImageUrl: null // Will be generated separately if needed
+    });
+
+    return await updateResponse.json();
   };
 
   const generateCardWithGPTImageTransformInBackground = async () => {
     const frontPrompt = buildImagePrompt();
     const insidePrompt = buildInsidePrompt();
-
-    const response = await apiRequest("POST", "/api/transform-style", {
-      cardId,
-      frontPrompt,
-      insidePrompt,
-      photoData: uploadedPhotos[0],
+    const artStyle = answers.art_style || 'watercolor painting';
+    
+    const transformPrompt = `Transform this into ${artStyle}`;
+    
+    const response = await apiRequest("POST", "/api/transform-style-gpt-image-1", {
+      imageData: uploadedPhotos[0],
+      imageDataArray: uploadedPhotos,
+      style: transformPrompt
     });
 
-    return await response.json();
+    const result = await response.json();
+    
+    // Update card with the generated image
+    const updateResponse = await apiRequest("POST", "/api/update-card-images", {
+      cardId,
+      frontImageUrl: result.imageUrl,
+      insideImageUrl: null // Will be generated separately if needed
+    });
+
+    return await updateResponse.json();
   };
 
   const generateCardInBackground = async (email: string) => {
@@ -1038,20 +1058,29 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       // Generate the card first (this should run in background)
       setTimeout(async () => {
         try {
+          console.log('Starting background generation with options:', {
+            photo_option: answers.photo_option,
+            has_photos: uploadedPhotos.length > 0,
+            cardId: cardId
+          });
+          
           // Generate the card using existing logic
           let generatedCard;
           if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
+            console.log('Using GPT-Image scene generation');
             generatedCard = await generateCardWithGPTImageInBackground();
           } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotos.length > 0) {
+            console.log('Using GPT-Image transform generation');
             generatedCard = await generateCardWithGPTImageTransformInBackground();
           } else {
+            console.log('Using DALL-E generation');
             generatedCard = await generateCardWithDALLEInBackground();
           }
           
           console.log('Background generation completed:', generatedCard);
           
           // After card is generated, send the "card ready" notification email
-          if (generatedCard) {
+          if (generatedCard && generatedCard.id) {
             console.log('Sending card ready notification for card ID:', generatedCard.id);
             const cardReadyResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
               cardId: generatedCard.id,
@@ -1062,10 +1091,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
             const emailResult = await cardReadyResponse.json();
             console.log('Card ready notification sent:', emailResult);
           } else {
-            console.error('Card generation failed - no card returned');
+            console.error('Card generation failed - no card returned or missing ID:', generatedCard);
           }
         } catch (error) {
           console.error('Background generation error:', error);
+          console.error('Error details:', error.message);
+          console.error('Error stack:', error.stack);
         }
       }, 2000); // Give 2 seconds delay to show the confirmation message
     } catch (error) {
