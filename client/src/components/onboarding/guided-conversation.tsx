@@ -1417,7 +1417,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
             
             <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 mb-8 border border-white/20">
               <p className="text-gray-700 font-medium mb-4">
-                ⏳ This usually takes 2-3 minutes. Please wait while we create your personalized card...
+                ⏳ This usually takes 2-3 minutes. You can wait here or get notified by email when ready!
               </p>
               
               {/* Progress bar */}
@@ -1425,9 +1425,92 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 <div className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full animate-pulse" style={{ width: '75%' }}></div>
               </div>
               
-              <div className="flex items-center justify-center space-x-2 text-gray-600">
+              <div className="flex items-center justify-center space-x-2 text-gray-600 mb-6">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500"></div>
                 <span className="text-sm">Generating your unique card design...</span>
+              </div>
+            </div>
+            
+            {/* Email notification option */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-xl border border-white/30 max-w-md mx-auto">
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">💡 Don't want to wait?</h3>
+                <p className="text-sm text-gray-600">Enter your email below and we'll notify you when your card is ready!</p>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Email Address</label>
+                  <Input
+                    type="email"
+                    value={answers.notification_email || ''}
+                    onChange={(e) => setAnswers(prev => ({ ...prev, notification_email: e.target.value }))}
+                    placeholder="Enter your email address"
+                    className="text-lg p-3 rounded-xl"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Confirm Email</label>
+                  <Input
+                    type="email"
+                    value={answers.notification_email_confirm || ''}
+                    onChange={(e) => setAnswers(prev => ({ ...prev, notification_email_confirm: e.target.value }))}
+                    placeholder="Confirm your email address"
+                    className="text-lg p-3 rounded-xl"
+                  />
+                </div>
+                
+                {answers.notification_email && answers.notification_email_confirm && answers.notification_email !== answers.notification_email_confirm && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-red-700 text-sm">Email addresses don't match</p>
+                  </div>
+                )}
+                
+                <Button 
+                  onClick={() => {
+                    if (!answers.notification_email || !answers.notification_email_confirm) {
+                      toast({
+                        title: "Email Required",
+                        description: "Please enter and confirm your email address.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    if (answers.notification_email !== answers.notification_email_confirm) {
+                      toast({
+                        title: "Email Mismatch", 
+                        description: "Email addresses don't match.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    
+                    // Show email confirmation screen and start background generation
+                    setIsLoading(false);
+                    setShowEmailConfirmation(true);
+                    
+                    // Ensure card is initialized before starting background generation
+                    if (cardId) {
+                      generateCardInBackground(answers.notification_email);
+                    } else {
+                      // Initialize card first, then start background generation
+                      initializeCard().then(() => {
+                        generateCardInBackground(answers.notification_email);
+                      }).catch(error => {
+                        console.error('Failed to initialize card:', error);
+                      });
+                    }
+                  }}
+                  disabled={!answers.notification_email || !answers.notification_email_confirm || answers.notification_email !== answers.notification_email_confirm}
+                  className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                >
+                  🎉 Notify Me When Ready!
+                </Button>
+                
+                <p className="text-sm text-gray-500 text-center">
+                  Feel free to close this window - we'll email you when your card is ready! ✨
+                </p>
               </div>
             </div>
           </div>
