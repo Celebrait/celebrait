@@ -1282,29 +1282,47 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
   if (isLoading) {
     return (
-      <div className="h-screen flex flex-col">
-        {/* Progress Bar */}
-        <div className="p-4 bg-white border-b">
-          <Progress value={100} className="h-3 bg-gradient-to-r from-purple-500 to-pink-500" />
-        </div>
-        
+      <div className="h-screen flex flex-col bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
         <div className="flex-1 flex items-center justify-center">
           <div className="max-w-2xl mx-auto text-center p-8">
-            <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            {/* Interactive AI Working Animation */}
+            <div className="relative mb-8">
+              <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                <Bot className="w-10 h-10 text-white animate-bounce" />
+              </div>
+              
+              {/* Floating AI working elements */}
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-8">
+                <div className="w-4 h-4 bg-purple-400 rounded-full animate-ping"></div>
+              </div>
+              <div className="absolute top-6 right-6">
+                <div className="w-3 h-3 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.5s' }}></div>
+              </div>
+              <div className="absolute bottom-6 left-6">
+                <div className="w-3 h-3 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '1s' }}></div>
+              </div>
             </div>
             
-            <h2 className="text-3xl font-bold mb-4">
-              Generating {answers.name ? `${answers.name}'s` : 'Your'} {answers.celebration ? answers.celebration.charAt(0).toUpperCase() + answers.celebration.slice(1) : ''} Card
+            <h2 className="text-3xl font-bold mb-4 text-gray-800">
+              🎨 AI is Creating {answers.name ? `${answers.name}'s` : 'Your'} {answers.celebration ? answers.celebration.charAt(0).toUpperCase() + answers.celebration.slice(1) : ''} Card
             </h2>
             
-            <p className="text-xl text-gray-600 mb-8">
-              This can take a few minutes. Instead of waiting, provide your email and we'll notify you when it's ready!
-            </p>
+            <div className="mb-8 space-y-2">
+              <p className="text-xl text-gray-600">
+                Our AI is working its magic! ✨
+              </p>
+              <p className="text-lg text-gray-500 italic">
+                "{aiQuotes[currentQuoteIndex]}"
+              </p>
+            </div>
             
-            <div className="bg-white rounded-xl p-6 shadow-lg border max-w-md mx-auto">
+            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 mb-8 border border-white/20">
+              <p className="text-gray-700 font-medium">
+                💡 Pro tip: Enter your email below to get notified when ready - no need to wait around!
+              </p>
+            </div>
+            
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-xl border border-white/30 max-w-md mx-auto">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">Email Address</label>
@@ -1359,13 +1377,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                     generateCardInBackground(answers.notification_email);
                   }}
                   disabled={!answers.notification_email || !answers.notification_email_confirm || answers.notification_email !== answers.notification_email_confirm}
-                  className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
+                  className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
-                  Get Email When Ready
+                  🎉 Notify Me When Ready!
                 </Button>
                 
                 <p className="text-sm text-gray-500">
-                  You can close this window - we'll handle everything!
+                  Feel free to close this window - we'll email you when your card is ready! ✨
                 </p>
               </div>
             </div>

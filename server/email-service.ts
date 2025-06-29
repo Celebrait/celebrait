@@ -29,7 +29,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       to: params.to,
       from: params.from,
       subject: params.subject,
-      ...(params.text && { text: params.text }),
+      text: params.text || 'Email content is available in HTML format.',
       ...(params.html && { html: params.html }),
     });
 
