@@ -999,9 +999,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     const existingCardResponse = await apiRequest("GET", `/api/cards/${cardId}`);
     const existingCard = await existingCardResponse.json();
     
-    // Use the exact same images that were generated during interactive session
-    const frontImageUrl = existingCard.frontImageUrl;
-    console.log('Preserving identical front image from interactive session');
+    console.log('Preserving identical images from interactive session');
+    return existingCard;
     
     // Preserve existing inside image if available (to maintain consistency with interactive generation)
     let insideImageUrl = null;
@@ -1344,6 +1343,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     });
 
     const frontResult = await frontResponse.json();
+    const frontImageUrl = frontResult.imageUrl;
     console.log('Front card generated:', frontResult);
 
     // Always generate inside card for all cards now
@@ -1408,6 +1408,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     });
 
     const frontResult = await frontResponse.json();
+    const frontImageUrl = frontResult.imageUrl;
     console.log('Front card transformed:', frontResult);
 
     // Always generate inside card for all cards now
