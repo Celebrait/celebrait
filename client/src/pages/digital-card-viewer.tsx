@@ -347,19 +347,50 @@ export default function DigitalCardViewer() {
             <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 shadow-lg">
               <CardContent className="p-6 text-center">
                 <Sparkles className="w-8 h-8 text-purple-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                  Love this card?
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Create your own personalized greeting cards with Celebrait's AI magic!
-                </p>
-                <Button
-                  onClick={createAnotherCard}
-                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Create Your Own Card
-                </Button>
+                
+                {cardData.cardType === 'preview' ? (
+                  <>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                      Ready to get your card?
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      Choose how you'd like to receive your personalized greeting card!
+                    </p>
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => setLocation(`/delivery-choice/${linkId}`)}
+                        className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-3"
+                      >
+                        <Gift className="w-4 h-4 mr-2" />
+                        Choose Delivery Options
+                      </Button>
+                      <Button
+                        onClick={createAnotherCard}
+                        variant="outline"
+                        className="w-full border-purple-300 text-purple-600 hover:bg-purple-50"
+                      >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Create Another Card
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                      Love this card?
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      Create your own personalized greeting cards with Celebrait's AI magic!
+                    </p>
+                    <Button
+                      onClick={createAnotherCard}
+                      className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Create Your Own Card
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
 
