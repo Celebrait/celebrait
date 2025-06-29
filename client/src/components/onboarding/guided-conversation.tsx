@@ -1008,18 +1008,42 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     const frontResult = await response.json();
     console.log('Front image generated in background:', frontResult);
     
-    // Generate inside card if message exists
+    // Preserve existing inside image if available (to maintain consistency with interactive generation)
     let insideImageUrl = null;
     if (answers.inside_message) {
-      console.log('Generating inside card in background');
-      const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-        frontCardImage: frontResult.imageUrl,
-        insideText: answers.inside_message
-      });
-      
-      const insideResult = await insideResponse.json();
-      insideImageUrl = insideResult.imageUrl;
-      console.log('Inside image generated in background:', insideResult);
+      try {
+        // Check if card already has an inside image from interactive generation
+        const existingCardResponse = await apiRequest("GET", `/api/cards/${cardId}`);
+        const existingCard = await existingCardResponse.json();
+        
+        if (existingCard.insideImageUrl && existingCard.insideImageUrl.length > 100) {
+          // Use existing inside image (preserve original from interactive session)
+          insideImageUrl = existingCard.insideImageUrl;
+          console.log('Preserving existing inside image from interactive session');
+        } else {
+          // Generate new inside image only if none exists
+          console.log('Generating inside card in background (no existing image found)');
+          const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
+            frontCardImage: frontResult.imageUrl,
+            insideText: answers.inside_message
+          });
+          
+          const insideResult = await insideResponse.json();
+          insideImageUrl = insideResult.imageUrl;
+          console.log('Inside image generated in background:', insideResult);
+        }
+      } catch (error) {
+        console.error('Error checking existing card, generating new inside image:', error);
+        // Fallback to generating new inside image
+        const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
+          frontCardImage: frontResult.imageUrl,
+          insideText: answers.inside_message
+        });
+        
+        const insideResult = await insideResponse.json();
+        insideImageUrl = insideResult.imageUrl;
+        console.log('Inside image generated in background (fallback):', insideResult);
+      }
     }
     
     // Update card with both images
@@ -1049,18 +1073,42 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     const frontResult = await response.json();
     console.log('Front image transformed in background:', frontResult);
     
-    // Generate inside card if message exists
+    // Preserve existing inside image if available (to maintain consistency with interactive generation)
     let insideImageUrl = null;
     if (answers.inside_message) {
-      console.log('Generating inside card in background');
-      const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-        frontCardImage: frontResult.imageUrl,
-        insideText: answers.inside_message
-      });
-      
-      const insideResult = await insideResponse.json();
-      insideImageUrl = insideResult.imageUrl;
-      console.log('Inside image generated in background:', insideResult);
+      try {
+        // Check if card already has an inside image from interactive generation
+        const existingCardResponse = await apiRequest("GET", `/api/cards/${cardId}`);
+        const existingCard = await existingCardResponse.json();
+        
+        if (existingCard.insideImageUrl && existingCard.insideImageUrl.length > 100) {
+          // Use existing inside image (preserve original from interactive session)
+          insideImageUrl = existingCard.insideImageUrl;
+          console.log('Preserving existing inside image from interactive session');
+        } else {
+          // Generate new inside image only if none exists
+          console.log('Generating inside card in background (no existing image found)');
+          const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
+            frontCardImage: frontResult.imageUrl,
+            insideText: answers.inside_message
+          });
+          
+          const insideResult = await insideResponse.json();
+          insideImageUrl = insideResult.imageUrl;
+          console.log('Inside image generated in background:', insideResult);
+        }
+      } catch (error) {
+        console.error('Error checking existing card, generating new inside image:', error);
+        // Fallback to generating new inside image
+        const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
+          frontCardImage: frontResult.imageUrl,
+          insideText: answers.inside_message
+        });
+        
+        const insideResult = await insideResponse.json();
+        insideImageUrl = insideResult.imageUrl;
+        console.log('Inside image generated in background (fallback):', insideResult);
+      }
     }
     
     // Update card with both images
