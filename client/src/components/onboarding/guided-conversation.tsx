@@ -131,6 +131,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [showHowItWorksModal, setShowHowItWorksModal] = useState(false);
   const [showInspirationModal, setShowInspirationModal] = useState(false);
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -1370,6 +1371,98 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 <p className="text-sm text-gray-500">
                   You can close this window - we'll handle everything!
                 </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Email confirmation screen
+  if (showEmailConfirmation) {
+    return (
+      <div className="h-screen flex flex-col bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="max-w-2xl mx-auto text-center p-8">
+            {/* Success Animation */}
+            <div className="relative mb-8">
+              <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                <svg className="w-12 h-12 text-white animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              
+              {/* Floating success elements */}
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-8">
+                <div className="w-4 h-4 bg-green-400 rounded-full animate-ping"></div>
+              </div>
+              <div className="absolute top-6 right-6">
+                <div className="w-3 h-3 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.5s' }}></div>
+              </div>
+              <div className="absolute bottom-6 left-6">
+                <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '1s' }}></div>
+              </div>
+            </div>
+            
+            <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+              Perfect! We're on it! 🎨
+            </h2>
+            
+            <div className="mb-8">
+              <p className="text-xl text-gray-700 mb-6">
+                Our AI is now working behind the scenes to create your personalized card.
+              </p>
+              
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-xl max-w-md mx-auto">
+                <div className="flex items-center justify-center space-x-3 mb-4">
+                  <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                  </svg>
+                  <span className="text-lg font-semibold text-gray-800">Email Notification Confirmed</span>
+                </div>
+                <p className="text-gray-600 mb-4">
+                  We'll email you at <span className="font-semibold text-green-600">{answers.notification_email}</span> when your card is ready.
+                </p>
+                <p className="text-sm text-gray-500">
+                  Your email will contain a link to view your card and choose delivery options.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-xl">
+                <h3 className="text-lg font-semibold mb-3 text-gray-800">What happens next?</h3>
+                <div className="space-y-3 text-left">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                    <p className="text-gray-600">Our AI analyzes your details and creates unique artwork</p>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
+                    <p className="text-gray-600">You'll receive an email notification when it's ready</p>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                    <p className="text-gray-600">Choose between digital delivery or physical printing</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button 
+                  onClick={() => setShowEmailConfirmation(false)}
+                  variant="outline"
+                  className="px-6 py-3 rounded-xl border-2 border-gray-300 hover:border-gray-400 bg-white/80"
+                >
+                  Continue Watching Progress
+                </Button>
+                <Button 
+                  onClick={() => window.close()}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold"
+                >
+                  Close Window - I'll Wait for Email!
+                </Button>
               </div>
             </div>
           </div>

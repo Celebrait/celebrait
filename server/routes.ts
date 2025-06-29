@@ -1266,6 +1266,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get card by ready reference for delivery choice flow
+  app.get("/api/cards/ready/:reference", async (req, res) => {
+    try {
+      const reference = req.params.reference;
+      console.log('Fetching card by ready reference:', reference);
+      
+      // Extract cardId from reference if it follows pattern
+      if (!reference.startsWith('celebrait_ready_')) {
+        return res.status(400).json({ message: "Invalid ready reference format" });
+      }
+      
+      // For now, we'll need to find the card that was most recently created
+      // In a real implementation, you'd store the reference -> card mapping
+      // For this case, we'll redirect to delivery choice with the card ID from the reference data
+      const cardId = reference.split('_').pop(); // Last part might be card ID if we modify the reference creation
+      
+      if (!cardId || isNaN(parseInt(cardId))) {
+        return res.status(400).json({ message: "Cannot extract card ID from reference" });
+      }
+
+      const card = await storage.getCard(parseInt(cardId));
+      
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      res.json({
+        card,
+        reference,
+        message: "Card ready for delivery choice"
+      });
+    } catch (error: any) {
+      console.error('Error fetching card by ready reference:', error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   // Get orders by email
   app.get("/api/orders", async (req, res) => {
     try {
@@ -2142,15 +2179,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Card not found" });
       }
 
-      // Send card ready notification email
+      // Create a temporary reference for the delivery choice flow that includes cardId
+      const reference = `celebrait_ready_${cardId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Create order data structure for the email template
+      const orderData = {
+        customerEmail,
+        customerName,
+        paymentReference: reference,
+        cardId: cardId
+      };
+
+      // Send card ready notification email (this should take user to delivery choice)
       try {
-        const emailParams = generateCardReadyNotificationEmail(card, customerEmail, customerName, req.get('host'));
+        const emailParams = generateCardReadyNotificationEmail(orderData, req.get('host'));
         await sendEmail(emailParams);
         console.log('Card ready notification email sent successfully to:', customerEmail);
 
         res.json({
           success: true,
-          message: 'Card ready notification sent successfully'
+          message: 'Card ready notification sent successfully',
+          reference
         });
       } catch (emailError) {
         console.error('Failed to send card ready notification email:', emailError);
