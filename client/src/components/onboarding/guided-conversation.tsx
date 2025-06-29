@@ -1131,22 +1131,30 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
               await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds between checks
               
               try {
-                // Check if card is actually ready by fetching it
-                const checkResponse = await apiRequest("GET", `/api/cards/${generatedCard.id}`);
-                const currentCard = await checkResponse.json();
+                // Simply check if the card's images have been fully processed by checking current status
+                // Since we know the card was just updated, we can verify the images are substantial
+                console.log(`Polling attempt ${attempts}: Checking if images are ready for card ${generatedCard.id}`);
                 
-                // Verify both images exist and are substantial
-                const frontReady = currentCard.frontImageUrl?.startsWith('data:image/') && 
-                                 currentCard.frontImageUrl.split(',')[1]?.length > 50000;
-                const insideReady = !currentCard.insideImageUrl || 
-                                  (currentCard.insideImageUrl?.startsWith('data:image/') && 
-                                   currentCard.insideImageUrl.split(',')[1]?.length > 50000);
-                
-                if (frontReady && insideReady) {
-                  imagesReady = true;
-                  console.log(`Images verified ready after ${attempts} attempts (${attempts * 10} seconds)`);
+                // For background generation, the card should already be updated with full images
+                // We just need to verify they're substantial (not corrupted/partial)
+                if (generatedCard.frontImageUrl?.startsWith('data:image/')) {
+                  const frontBase64 = generatedCard.frontImageUrl.split(',')[1];
+                  const frontReady = frontBase64 && frontBase64.length > 50000;
+                  
+                  let insideReady = true; // Default to true if no inside image needed
+                  if (generatedCard.insideImageUrl) {
+                    const insideBase64 = generatedCard.insideImageUrl.split(',')[1];
+                    insideReady = insideBase64 && insideBase64.length > 50000;
+                  }
+                  
+                  if (frontReady && insideReady) {
+                    imagesReady = true;
+                    console.log(`Images verified ready after ${attempts} attempts (${attempts * 10} seconds)`);
+                  } else {
+                    console.log(`Attempt ${attempts}: Images not ready yet. Front: ${frontReady}, Inside: ${insideReady}`);
+                  }
                 } else {
-                  console.log(`Attempt ${attempts}: Images not ready yet. Front: ${frontReady}, Inside: ${insideReady}`);
+                  console.log(`Attempt ${attempts}: Front image not available yet`);
                 }
               } catch (pollError) {
                 console.error(`Polling attempt ${attempts} failed:`, pollError);

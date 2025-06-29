@@ -126,6 +126,7 @@ Changelog:
   * Added 10-second interval polling with 5-minute timeout to ensure both front and inside images are fully processed before email
   * Eliminated UI duplication by removing duplicate "Your Card is Ready" headers between CardPreviewPage and CardPreview components
   * Optimized database performance - cards/ready endpoint now serves only essential metadata (removed massive base64 transfers)
+  * Added missing /api/cards/:id endpoint with same optimization pattern to prevent excessive API polling on delivery choice screen
   * Added response caching (5-minute cache, ETag headers) to eliminate 16-second email link loading times
   * Enhanced database queries to transfer ~1KB instead of ~2MB for instant email link performance
   * Fixed background generation to properly sequence: front image → inside image → validation polling → email notification

@@ -238,6 +238,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get card by ID (optimized endpoint)
+  app.get("/api/cards/:id", async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      const card = await storage.getCard(cardId);
+
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      // For performance, only send metadata and serve images as separate endpoints
+      const optimizedCard = {
+        id: card.id,
+        userId: card.userId,
+        cardType: card.cardType,
+        printOption: card.printOption,
+        sceneType: card.sceneType,
+        status: card.status,
+        price: card.price,
+        frontImageUrl: card.frontImageUrl ? `/api/cards/${cardId}/front-image` : null,
+        insideImageUrl: card.insideImageUrl ? `/api/cards/${cardId}/inside-image` : null,
+        conversationData: card.conversationData || {}
+      };
+      
+      // Add caching headers for faster subsequent loads
+      res.set({
+        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+        'ETag': `"${cardId}-${card.status}"`
+      });
+      
+      res.json(optimizedCard);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching card: " + error.message });
+    }
+  });
+
   // Get card front image (optimized endpoint)
   app.get("/api/cards/:id/front-image", async (req, res) => {
     try {
