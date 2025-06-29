@@ -940,22 +940,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
         const card = await response.json();
         
-        // After successful generation, create digital order and send email
+        // After successful generation, send card ready notification email
         try {
-          const orderResponse = await apiRequest("POST", "/api/create-free-order", {
+          const emailResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
             cardId: cardId,
-            customerInfo: {
-              email: email,
-              firstName: answers.name || "User",
-              lastName: "",
-              phone: "",
-              address: null
-            },
-            paymentType: "free"
+            customerEmail: email,
+            customerName: answers.name || "User"
           });
           
-          const orderResult = await orderResponse.json();
-          console.log('Digital order created and email sent:', orderResult);
+          const emailResult = await emailResponse.json();
+          console.log('Card ready notification sent:', emailResult);
           
           // Show success message
           toast({
@@ -966,7 +960,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           // Still call onCardGenerated for the UI
           onCardGenerated(card);
         } catch (emailError) {
-          console.error('Failed to create digital order:', emailError);
+          console.error('Failed to send card ready notification:', emailError);
           // Still show the card even if email fails
           onCardGenerated(card);
         }

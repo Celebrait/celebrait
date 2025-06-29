@@ -12,7 +12,7 @@ import Stripe from "stripe";
 import Replicate from "replicate";
 import FormData from "form-data";
 import { createCanvas, loadImage } from "canvas";
-import { sendEmail, generateOrderConfirmationEmail, generateDigitalCardEmail, generateShippingNotificationEmail } from './email-service';
+import { sendEmail, generateOrderConfirmationEmail, generateDigitalCardEmail, generateCardReadyNotificationEmail, generateShippingNotificationEmail } from './email-service';
 
 // Temporarily allow running without API keys for testing
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
@@ -2125,6 +2125,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Update card error:', error);
       res.status(500).json({ message: "Failed to update card: " + error.message });
+    }
+  });
+
+  // Send card ready notification email
+  app.post("/api/send-card-ready-notification", async (req, res) => {
+    try {
+      const { cardId, customerEmail, customerName } = req.body;
+
+      if (!cardId || !customerEmail || !customerName) {
+        return res.status(400).json({ message: "Card ID, customer email, and name are required" });
+      }
+
+      const card = await storage.getCard(parseInt(cardId));
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      // Send card ready notification email
+      try {
+        const emailParams = generateCardReadyNotificationEmail(card, customerEmail, customerName, req.get('host'));
+        await sendEmail(emailParams);
+        console.log('Card ready notification email sent successfully to:', customerEmail);
+
+        res.json({
+          success: true,
+          message: 'Card ready notification sent successfully'
+        });
+      } catch (emailError) {
+        console.error('Failed to send card ready notification email:', emailError);
+        res.status(500).json({ message: "Failed to send card ready notification" });
+      }
+
+    } catch (error: any) {
+      res.status(500).json({ message: "Error sending card ready notification: " + error.message });
     }
   });
 

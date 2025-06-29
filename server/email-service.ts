@@ -227,6 +227,69 @@ Thank you for choosing Celebrait!
   };
 }
 
+export function generateCardReadyNotificationEmail(orderData: any, host?: string): EmailParams {
+  const { customerEmail, customerName, paymentReference } = orderData;
+
+  return {
+    to: customerEmail,
+    from: 'greetings@celebrait.co.za',
+    subject: 'Your Celebrait Card is Ready to View! 🎉',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .button-section { text-align: center; margin: 30px 0; }
+          .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px; }
+          .footer { text-align: center; margin-top: 30px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🎉 Your Card is Ready!</h1>
+            <p>Time to view your personalized Celebrait card!</p>
+          </div>
+          <div class="content">
+            <h2>Hi ${customerName}!</h2>
+            <p>Your custom greeting card has been generated and is ready for you to view. Choose your delivery options and complete your order!</p>
+
+            <div class="button-section">
+              <a href="https://${host || 'localhost:5000'}/card/${paymentReference}" class="button">View Your Card</a>
+              <p style="margin-top: 15px; color: #666; font-size: 14px;">
+                Or copy this link: https://${host || 'localhost:5000'}/card/${paymentReference}
+              </p>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>Thank you for choosing Celebrait!</p>
+            <p style="font-size: 12px; color: #999;">
+              © 2025 Celebrait. All rights reserved.
+            </p>
+          </div>
+        </div>
+    `,
+    text: `
+Your Celebrait Card is Ready to View!
+
+Hi ${customerName}!
+
+Your custom greeting card has been generated and is ready for you to view. Choose your delivery options and complete your order!
+
+View your card: https://${host || 'localhost:5000'}/card/${paymentReference}
+
+Thank you for choosing Celebrait!
+
+© 2025 Celebrait. All rights reserved.
+    `
+  };
+}
+
 export function generateShippingNotificationEmail(orderData: any, trackingNumber: string): EmailParams {
   const { customerEmail, customerName, paymentReference } = orderData;
 
@@ -299,3 +362,10 @@ Questions? Contact us at support@celebrait.com
     `
   };
 }
+```
+
+```
+Begin line-by-line analysis of the code.
+The code is an email service utility for a card creation platform, with functions for sending emails and generating email templates.
+The change involves importing a new function `generateCardReadyNotificationEmail` to support the new workflow where users are notified when their card is ready to view.
+```
