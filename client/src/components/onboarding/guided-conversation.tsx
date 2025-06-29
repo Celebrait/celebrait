@@ -1026,6 +1026,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     try {
       // Start actual card generation in background
       console.log('Starting background card generation for:', email);
+      console.log('Current cardId:', cardId);
+      console.log('Current answers:', answers);
+      
+      // Ensure cardId exists before proceeding
+      if (!cardId) {
+        console.error('No cardId available for background generation');
+        return;
+      }
       
       // Generate the card first (this should run in background)
       setTimeout(async () => {
@@ -1040,15 +1048,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
             generatedCard = await generateCardWithDALLEInBackground();
           }
           
+          console.log('Background generation completed:', generatedCard);
+          
           // After card is generated, send the "card ready" notification email
           if (generatedCard) {
+            console.log('Sending card ready notification for card ID:', generatedCard.id);
             const cardReadyResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
               cardId: generatedCard.id,
               customerEmail: email,
               customerName: answers.name || "User"
             });
             
-            console.log('Card ready notification sent:', await cardReadyResponse.json());
+            const emailResult = await cardReadyResponse.json();
+            console.log('Card ready notification sent:', emailResult);
+          } else {
+            console.error('Card generation failed - no card returned');
           }
         } catch (error) {
           console.error('Background generation error:', error);

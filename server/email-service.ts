@@ -259,9 +259,9 @@ export function generateCardReadyNotificationEmail(orderData: any, host?: string
             <p>Your custom greeting card has been generated and is ready for you to view. Choose your delivery options and complete your order!</p>
 
             <div class="button-section">
-              <a href="https://${host || 'localhost:5000'}/delivery-choice/${paymentReference}" class="button">View Your Card & Choose Delivery</a>
+              <a href="https://${host || 'localhost:5000'}/card/${paymentReference}" class="button">View Your Card</a>
               <p style="margin-top: 15px; color: #666; font-size: 14px;">
-                Or copy this link: https://${host || 'localhost:5000'}/delivery-choice/${paymentReference}
+                Or copy this link: https://${host || 'localhost:5000'}/card/${paymentReference}
               </p>
             </div>
           </div>
@@ -281,7 +281,7 @@ Hi ${customerName}!
 
 Your custom greeting card has been generated and is ready for you to view. Choose your delivery options and complete your order!
 
-View your card: https://${host || 'localhost:5000'}/delivery-choice/${paymentReference}
+View your card: https://${host || 'localhost:5000'}/card/${paymentReference}
 
 Thank you for choosing Celebrait!
 

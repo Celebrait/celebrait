@@ -47,6 +47,28 @@ export default function DigitalCardViewer() {
         }
       }
 
+      // Handle card ready references (from email notifications)
+      if (linkId?.startsWith('celebrait_ready_')) {
+        try {
+          const response = await fetch(`/api/cards/ready/${linkId}`);
+          if (response.ok) {
+            const readyData = await response.json();
+            if (readyData.card) {
+              setCardData({
+                ...readyData.card,
+                senderName: 'Celebrait AI',
+                customMessage: 'Your personalized greeting card has been generated and is ready!',
+                cardType: 'preview'
+              });
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (err) {
+          console.log('Could not fetch card ready reference, trying other methods');
+        }
+      }
+
       // Try to load from session storage (for immediate viewing after creation)
       const storedCard = sessionStorage.getItem(`digitalCard_${linkId}`);
       if (storedCard) {
