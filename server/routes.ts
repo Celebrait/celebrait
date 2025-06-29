@@ -1277,10 +1277,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid ready reference format" });
       }
       
-      // For now, we'll need to find the card that was most recently created
-      // In a real implementation, you'd store the reference -> card mapping
-      // For this case, we'll redirect to delivery choice with the card ID from the reference data
-      const cardId = reference.split('_').pop(); // Last part might be card ID if we modify the reference creation
+      // Extract cardId from reference pattern: celebrait_ready_{cardId}_{timestamp}_{random}
+      const parts = reference.split('_');
+      if (parts.length < 4) {
+        return res.status(400).json({ message: "Invalid ready reference format" });
+      }
+      
+      const cardId = parts[2]; // Third part is the cardId
       
       if (!cardId || isNaN(parseInt(cardId))) {
         return res.status(400).json({ message: "Cannot extract card ID from reference" });

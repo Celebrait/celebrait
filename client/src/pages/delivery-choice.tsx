@@ -10,7 +10,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function DeliveryChoice() {
   const [, setLocation] = useLocation();
-  const [match, params] = useRoute("/delivery-choice/:cardId");
+  const [match, params] = useRoute("/delivery-choice/:reference");
   const [cardData, setCardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDelivery, setSelectedDelivery] = useState<'printed' | 'digital' | null>(null);
@@ -69,12 +69,22 @@ export default function DeliveryChoice() {
           }
         }
 
-        // If no session data and we have a cardId, fetch from API
-        if (params?.cardId) {
+        // If no session data and we have a reference, fetch from API
+        if (params?.reference) {
           try {
-            const response = await apiRequest('GET', `/api/cards/${params.cardId}`);
+            let response;
+            
+            // Check if this is a card ready reference (starts with celebrait_ready_)
+            if (params.reference.startsWith('celebrait_ready_')) {
+              response = await apiRequest('GET', `/api/cards/ready/${params.reference}`);
+            } else {
+              // Regular card ID
+              response = await apiRequest('GET', `/api/cards/${params.reference}`);
+            }
+            
             if (response.ok) {
-              const cardData = await response.json();
+              const data = await response.json();
+              const cardData = data.card || data; // Handle both response formats
               setCardData(cardData);
               setLoading(false);
               return;
@@ -86,7 +96,7 @@ export default function DeliveryChoice() {
         
         // Fallback: Set minimal card data to allow page to render
         setCardData({ 
-          id: params?.cardId || 'test', 
+          id: params?.reference || 'test', 
           price: 12900,
           cardType: 'printed',
           frontImageUrl: null,
@@ -109,7 +119,7 @@ export default function DeliveryChoice() {
     };
 
     loadCardData();
-  }, [params?.cardId]);
+  }, [params?.reference]);
 
   const handleDeliverySelected = async (delivery: 'printed' | 'digital') => {
     setSelectedDelivery(delivery);
