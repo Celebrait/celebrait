@@ -1001,135 +1001,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     
     console.log('Preserving identical images from interactive session');
     return existingCard;
-    
-    // Preserve existing inside image if available (to maintain consistency with interactive generation)
-    let insideImageUrl = null;
-    if (answers.inside_message) {
-      try {
-        // Check if card already has an inside image from interactive generation
-        const existingCardResponse = await apiRequest("GET", `/api/cards/${cardId}`);
-        const existingCard = await existingCardResponse.json();
-        
-        if (existingCard.insideImageUrl && existingCard.insideImageUrl.length > 100) {
-          // Use existing inside image (preserve original from interactive session)
-          insideImageUrl = existingCard.insideImageUrl;
-          console.log('Preserving existing inside image from interactive session');
-        } else {
-          // Generate new inside image only if none exists
-          console.log('Generating inside card in background (no existing image found)');
-          const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-            frontCardImage: frontImageUrl,
-            insideText: answers.inside_message
-          });
-          
-          const insideResult = await insideResponse.json();
-          insideImageUrl = insideResult.imageUrl;
-          console.log('Inside image generated in background:', insideResult);
-        }
-      } catch (error) {
-        console.error('Error checking existing card, generating new inside image:', error);
-        // Fallback to generating new inside image
-        const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-          frontCardImage: frontImageUrl,
-          insideText: answers.inside_message
-        });
-        
-        const insideResult = await insideResponse.json();
-        insideImageUrl = insideResult.imageUrl;
-        console.log('Inside image generated in background (fallback):', insideResult);
-      }
-    }
-    
-    // Update card with both images
-    const updateResponse = await apiRequest("POST", "/api/update-card-images", {
-      cardId,
-      frontImageUrl: frontImageUrl,
-      insideImageUrl,
-      status: 'completed'
-    });
-
-    const finalCard = await updateResponse.json();
-    console.log('Card updated with all images in background');
-    return finalCard;
   };
 
   const generateCardWithGPTImageTransformInBackground = async () => {
-    console.log('Starting background processing - preserving existing images and removing watermarks');
+    console.log('Background processing: preserving exact images from interactive session');
     
-    // Get existing card data to preserve original images
+    // Get existing card data - we will NEVER regenerate, only preserve
     const existingCardResponse = await apiRequest("GET", `/api/cards/${cardId}`);
     const existingCard = await existingCardResponse.json();
     
-    let frontImageUrl = existingCard.frontImageUrl;
-    
-    // If no existing front image, generate one (should rarely happen)
-    if (!frontImageUrl || frontImageUrl.length < 100) {
-      console.log('No existing front image found, generating new one');
-      const artStyle = answers.art_style || 'watercolor painting';
-      const transformPrompt = `Transform this into ${artStyle}`;
-      
-      const response = await apiRequest("POST", "/api/transform-style-gpt-image-1", {
-        imageData: uploadedPhotos[0],
-        imageDataArray: uploadedPhotos,
-        style: transformPrompt
-      });
-
-      const frontResult = await response.json();
-      frontImageUrl = frontResult.imageUrl;
-      console.log('Front image transformed in background:', frontResult);
-    } else {
-      console.log('Preserving existing front image from interactive session');
-    }
-    
-    // Preserve existing inside image if available (to maintain consistency with interactive generation)
-    let insideImageUrl = null;
-    if (answers.inside_message) {
-      try {
-        // Check if card already has an inside image from interactive generation
-        const existingCardResponse = await apiRequest("GET", `/api/cards/${cardId}`);
-        const existingCard = await existingCardResponse.json();
-        
-        if (existingCard.insideImageUrl && existingCard.insideImageUrl.length > 100) {
-          // Use existing inside image (preserve original from interactive session)
-          insideImageUrl = existingCard.insideImageUrl;
-          console.log('Preserving existing inside image from interactive session');
-        } else {
-          // Generate new inside image only if none exists
-          console.log('Generating inside card in background (no existing image found)');
-          const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-            frontCardImage: frontImageUrl,
-            insideText: answers.inside_message
-          });
-          
-          const insideResult = await insideResponse.json();
-          insideImageUrl = insideResult.imageUrl;
-          console.log('Inside image generated in background:', insideResult);
-        }
-      } catch (error) {
-        console.error('Error checking existing card, generating new inside image:', error);
-        // Fallback to generating new inside image
-        const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-          frontCardImage: frontImageUrl,
-          insideText: answers.inside_message
-        });
-        
-        const insideResult = await insideResponse.json();
-        insideImageUrl = insideResult.imageUrl;
-        console.log('Inside image generated in background (fallback):', insideResult);
-      }
-    }
-    
-    // Update card with both images
-    const updateResponse = await apiRequest("POST", "/api/update-card-images", {
-      cardId,
-      frontImageUrl: frontImageUrl,
-      insideImageUrl,
-      status: 'completed'
-    });
-
-    const finalCard = await updateResponse.json();
-    console.log('Card updated with all images in background');
-    return finalCard;
+    console.log('Preserving identical images from interactive session');
+    return existingCard;
   };
 
 
