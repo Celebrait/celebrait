@@ -1058,65 +1058,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           
           console.log('Background generation completed:', generatedCard);
           
-          // Poll for completion before sending email - wait for both images to be fully ready
+          // Card already complete from interactive session, send email immediately
           if (generatedCard && generatedCard.id) {
-            console.log('Polling for complete image generation before sending email for card ID:', generatedCard.id);
+            console.log('Card already complete from interactive session, sending email notification immediately');
             
-            // Poll until both images are actually ready (not just updated)
-            let attempts = 0;
-            let maxAttempts = 30; // 30 attempts = 5 minutes max
-            let imagesReady = false;
-            
-            while (!imagesReady && attempts < maxAttempts) {
-              attempts++;
-              await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds between checks
+            try {
+              const cardReadyResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
+                cardId: generatedCard.id,
+                customerEmail: email,
+                customerName: answers.name || "User"
+              });
               
-              try {
-                // Simply check if the card's images have been fully processed by checking current status
-                // Since we know the card was just updated, we can verify the images are substantial
-                console.log(`Polling attempt ${attempts}: Checking if images are ready for card ${generatedCard.id}`);
-                
-                // For background generation, the card should already be updated with full images
-                // We just need to verify they're substantial (not corrupted/partial)
-                if (generatedCard.frontImageUrl?.startsWith('data:image/')) {
-                  const frontBase64 = generatedCard.frontImageUrl.split(',')[1];
-                  const frontReady = frontBase64 && frontBase64.length > 50000;
-                  
-                  let insideReady = true; // Default to true if no inside image needed
-                  if (generatedCard.insideImageUrl) {
-                    const insideBase64 = generatedCard.insideImageUrl.split(',')[1];
-                    insideReady = insideBase64 && insideBase64.length > 50000;
-                  }
-                  
-                  if (frontReady && insideReady) {
-                    imagesReady = true;
-                    console.log(`Images verified ready after ${attempts} attempts (${attempts * 10} seconds)`);
-                  } else {
-                    console.log(`Attempt ${attempts}: Images not ready yet. Front: ${frontReady}, Inside: ${insideReady}`);
-                  }
-                } else {
-                  console.log(`Attempt ${attempts}: Front image not available yet`);
-                }
-              } catch (pollError) {
-                console.error(`Polling attempt ${attempts} failed:`, pollError);
-              }
-            }
-            
-            if (imagesReady) {
-              try {
-                const cardReadyResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
-                  cardId: generatedCard.id,
-                  customerEmail: email,
-                  customerName: answers.name || "User"
-                });
-                
-                const emailResult = await cardReadyResponse.json();
-                console.log('Card ready notification sent after complete validation:', emailResult);
-              } catch (emailError) {
-                console.error('Failed to send card ready notification:', emailError);
-              }
-            } else {
-              console.error('Images never became ready after maximum attempts');
+              const emailResult = await cardReadyResponse.json();
+              console.log('Card ready notification sent immediately (no polling needed):', emailResult);
+            } catch (emailError) {
+              console.error('Failed to send card ready notification:', emailError);
             }
           } else {
             console.error('Card generation failed - no card returned or missing ID');
