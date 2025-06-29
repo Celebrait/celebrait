@@ -362,10 +362,3 @@ Questions? Contact us at support@celebrait.com
     `
   };
 }
-```
-
-```
-Begin line-by-line analysis of the code.
-The code is an email service utility for a card creation platform, with functions for sending emails and generating email templates.
-The change involves importing a new function `generateCardReadyNotificationEmail` to support the new workflow where users are notified when their card is ready to view.
-```
