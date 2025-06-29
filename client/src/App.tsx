@@ -21,6 +21,7 @@ import TestCardPreview from "@/pages/test-card-preview";
 import NotFound from "@/pages/not-found";
 import PaymentWithTips from "@/pages/payment-with-tips";
 import DeliveryChoice from "@/pages/delivery-choice";
+import CardPreviewPage from "@/pages/card-preview-page";
 
 function Router() {
   return (
@@ -36,6 +37,7 @@ function Router() {
         <Route path="/order-success" component={OrderSuccess} />
         <Route path="/complete-order/:cardId" component={CompleteOrder} />
         <Route path="/card/:linkId" component={DigitalCardViewer} />
+        <Route path="/card-preview/:reference" component={CardPreviewPage} />
         <Route path="/test" component={TestGeneration} />
         <Route path="/test-payment" component={TestPayment} />
         <Route path="/test-generation" component={TestGeneration} />
