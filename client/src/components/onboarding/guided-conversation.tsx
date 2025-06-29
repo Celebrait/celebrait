@@ -1014,6 +1014,23 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     return existingCard;
   };
 
+  const sendBackgroundEmail = async (cardId: number, customerEmail: string, customerName: string) => {
+    try {
+      console.log('Sending email notification for completed card:', cardId);
+      
+      const cardReadyResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
+        cardId: cardId,
+        customerEmail: customerEmail,
+        customerName: customerName
+      });
+      
+      const emailResult = await cardReadyResponse.json();
+      console.log('Email notification sent successfully:', emailResult);
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+    }
+  };
+
 
 
   const generateCardInBackground = async (email: string) => {
@@ -1134,6 +1151,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       // Call the callback to notify parent component and show the card
       if (generatedCard) {
         onCardGenerated(generatedCard);
+        
+        // Trigger email notification now that card is complete and showing on-site
+        if (answers.notification_email && answers.notification_email.trim()) {
+          console.log('Card now showing on-site, triggering email notification...');
+          setTimeout(() => {
+            sendBackgroundEmail(generatedCard.id, answers.notification_email, answers.name || "User");
+          }, 3000); // 3 second delay to ensure card is fully displayed
+        }
       }
       
     } catch (error: any) {
