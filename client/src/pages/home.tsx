@@ -9,12 +9,12 @@ import Step4AILoading from "@/components/onboarding/step4-ai-loading";
 import Step5SceneChoice from "@/components/onboarding/step5-scene-choice";
 import GuidedConversation from "@/components/onboarding/guided-conversation";
 import CardPreview from "@/components/card-preview";
-import SignupModal from "@/components/signup-modal";
+
 import { useOnboarding } from "@/hooks/use-onboarding";
 
 export default function Home() {
   const onboarding = useOnboarding();
-  const [showSignupModal, setShowSignupModal] = useState(false);
+
   const [generatedCard, setGeneratedCard] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayStep, setDisplayStep] = useState(onboarding.currentStep);
@@ -39,11 +39,6 @@ export default function Home() {
 
   const handleCardGenerated = (card: any) => {
     setGeneratedCard(card);
-    setShowSignupModal(true);
-  };
-
-  const handleSignupComplete = () => {
-    setShowSignupModal(false);
   };
 
   const renderCurrentStep = () => {
@@ -82,12 +77,7 @@ export default function Home() {
 
       <Footer />
 
-      {showSignupModal && (
-        <SignupModal
-          onSignupComplete={handleSignupComplete}
-          onClose={() => setShowSignupModal(false)}
-        />
-      )}
+
     </div>
   );
 }
