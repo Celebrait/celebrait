@@ -1087,7 +1087,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           if (generatedCard && generatedCard.id) {
             console.log('Card generated, waiting for images to fully process before sending email...');
             
-            // Wait 90 seconds to ensure images are actually ready to display quickly
+            // Wait 30 seconds to ensure images are actually ready to display quickly
             setTimeout(async () => {
               try {
                 console.log('Now sending card ready notification for card ID:', generatedCard.id);
@@ -1102,7 +1102,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
               } catch (emailError) {
                 console.error('Failed to send delayed card ready notification:', emailError);
               }
-            }, 90000); // 90 second delay to ensure images are ready
+            }, 30000); // 30 second delay to ensure images are ready
           } else {
             console.error('Card generation failed - no card returned or missing ID');
           }
@@ -1236,7 +1236,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     });
 
     const updatedCard = await updateResponse.json();
-    onCardGenerated(updatedCard);
+    return updatedCard;
   };
 
   const generateCardWithGPTImageTransform = async () => {
@@ -1300,7 +1300,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     });
 
     const updatedCard = await updateResponse.json();
-    onCardGenerated(updatedCard);
+    return updatedCard;
   };
 
   const buildImagePrompt = () => {
