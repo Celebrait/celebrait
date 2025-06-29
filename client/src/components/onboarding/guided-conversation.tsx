@@ -1151,6 +1151,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       
       console.log('Card generation completed:', generatedCard);
       
+      // Call the callback to notify parent component and show the card
+      if (generatedCard && onCardGenerated) {
+        onCardGenerated(generatedCard);
+      }
+      
     } catch (error: any) {
       console.error('Card generation error:', error);
       toast({

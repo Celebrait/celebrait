@@ -34,8 +34,10 @@ export default function CardPreviewPage() {
         const data = await response.json();
         const card = data.card || data; // Handle both response formats
         setCardData(card);
+        setLoading(false);
       } else {
         console.error('Failed to fetch card data:', response.status, response.statusText);
+        setLoading(false);
         toast({
           title: 'Error',
           description: 'Unable to load card data',
