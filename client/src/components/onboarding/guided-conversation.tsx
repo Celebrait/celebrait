@@ -1097,7 +1097,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           } else {
             console.error('Card generation failed - no card returned or missing ID');
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('Background generation error:', error);
           console.error('Error details:', error.message, error.stack);
           
@@ -1106,14 +1106,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
             await apiRequest("POST", "/api/send-error-notification", {
               customerEmail: email,
               customerName: answers.name || "User",
-              errorMessage: error.message || 'Unknown error during card generation'
+              errorMessage: (error as any).message || 'Unknown error during card generation'
             });
           } catch (emailError) {
             console.error('Failed to send error notification:', emailError);
           }
         }
       }, 2000); // Give 2 seconds delay to show the confirmation message
-    } catch (error) {
+    } catch (error: any) {
       console.error('generateCardInBackground setup error:', error);
     }
   };
