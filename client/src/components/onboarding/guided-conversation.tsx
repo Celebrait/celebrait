@@ -1034,8 +1034,85 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
 
   const generateCardInBackground = async (email: string) => {
-    // OLD SYSTEM DISABLED - Email now triggered after interactive generation completes
-    console.log('Old background generation system disabled - email now triggered from interactive completion');
+    try {
+      // Start actual card generation in background
+      console.log('Starting background card generation for:', email);
+      console.log('Current cardId:', cardId);
+      console.log('Current answers:', answers);
+      
+      // Ensure cardId exists before proceeding
+      if (!cardId) {
+        console.error('No cardId available for background generation');
+        return;
+      }
+      
+      // Wait for interactive generation to complete, then send email
+      setTimeout(async () => {
+        try {
+          console.log('Starting background generation with options:', {
+            photo_option: answers.photo_option,
+            has_photos: uploadedPhotos.length > 0,
+            cardId: cardId
+          });
+          
+          // Generate the card using existing logic
+          let generatedCard;
+          console.log('Determining generation method...');
+          
+          // CRITICAL: Skip regeneration, use existing card to preserve identical images
+          console.log('Background processing: preserving existing card images, no regeneration');
+          
+          // Get the existing card that was generated during interactive session
+          const existingCardResponse = await apiRequest("GET", `/api/cards/${cardId}`);
+          generatedCard = await existingCardResponse.json();
+          
+          console.log('Using existing card from interactive session (no regeneration):', {
+            cardId: generatedCard.id,
+            hasFront: !!generatedCard.frontImageUrl,
+            hasInside: !!generatedCard.insideImageUrl,
+            status: generatedCard.status
+          });
+          
+          console.log('Background generation completed:', generatedCard);
+          
+          // Card already complete from interactive session, send email immediately
+          if (generatedCard && generatedCard.id) {
+            console.log('Card already complete from interactive session, sending email notification immediately');
+            
+            try {
+              const cardReadyResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
+                cardId: generatedCard.id,
+                customerEmail: email,
+                customerName: answers.name || "User"
+              });
+              
+              const emailResult = await cardReadyResponse.json();
+              console.log('Card ready notification sent immediately (no polling needed):', emailResult);
+            } catch (emailError) {
+              console.error('Failed to send card ready notification:', emailError);
+            }
+          } else {
+            console.error('Card generation failed - no card returned or missing ID');
+          }
+        } catch (error: any) {
+          console.error('Background generation error:', error);
+          console.error('Error details:', error.message, error.stack);
+          
+          // Try to send error notification email if possible
+          try {
+            await apiRequest("POST", "/api/send-error-notification", {
+              customerEmail: email,
+              customerName: answers.name || "User",
+              errorMessage: (error as any).message || 'Unknown error during card generation'
+            });
+          } catch (emailError) {
+            console.error('Failed to send error notification:', emailError);
+          }
+        }
+      }, 60000); // Wait 60 seconds for interactive generation to complete before sending email
+    } catch (error: any) {
+      console.error('generateCardInBackground setup error:', error);
+    }
   };
 
   const generateCard = async () => {
@@ -1076,44 +1153,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         onCardGenerated(generatedCard);
         
         // Trigger email notification now that card is complete and showing on-site
-        // Extract email from various possible fields
-        const extractEmail = (answers: any): string | null => {
-          // Check notification_email first
-          if (answers.notification_email && answers.notification_email.trim()) {
-            return answers.notification_email.trim();
-          }
-          
-          // Check if message field contains an email
-          if (answers.message && answers.message.includes('@')) {
-            const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-            const emailMatch = answers.message.match(emailRegex);
-            if (emailMatch) {
-              return emailMatch[0];
-            }
-          }
-          
-          // Check other fields for email patterns
-          for (const [key, value] of Object.entries(answers)) {
-            if (typeof value === 'string' && value.includes('@')) {
-              const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-              const emailMatch = value.match(emailRegex);
-              if (emailMatch) {
-                return emailMatch[0];
-              }
-            }
-          }
-          
-          return null;
-        };
-        
-        const emailAddress = extractEmail(answers);
-        if (emailAddress) {
-          console.log('Card now showing on-site, triggering email notification for:', emailAddress);
+        if (answers.notification_email && answers.notification_email.trim()) {
+          console.log('Card now showing on-site, triggering email notification...');
           setTimeout(() => {
-            sendBackgroundEmail(generatedCard.id, emailAddress, answers.name || "User");
+            sendBackgroundEmail(generatedCard.id, answers.notification_email, answers.name || "User");
           }, 3000); // 3 second delay to ensure card is fully displayed
-        } else {
-          console.log('No email address found in answers, skipping email notification');
         }
       }
       
