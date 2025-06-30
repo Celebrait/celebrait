@@ -1098,11 +1098,26 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         onCardGenerated(generatedCard);
         
         // Trigger email notification now that card is complete and showing on-site
-        if (answers.notification_email && answers.notification_email.trim()) {
-          console.log('Card now showing on-site, triggering email notification...');
+        const emailToNotify = answers.notification_email || 
+                            (typeof window !== 'undefined' && sessionStorage.getItem('userNotificationEmail')) ||
+                            answers.email ||
+                            answers.customerEmail;
+                            
+        if (emailToNotify && emailToNotify.trim()) {
+          console.log('Card now showing on-site, triggering email notification to:', emailToNotify);
           setTimeout(() => {
-            sendBackgroundEmail(generatedCard.id, answers.notification_email, answers.name || "User");
-          }, 3000); // 3 second delay to ensure card is fully displayed
+            sendBackgroundEmail(generatedCard.id, emailToNotify, answers.name || "User");
+          }, 2000); // 2 second delay to ensure card is fully displayed
+        } else {
+          console.log('No email found for notification. Checked:', {
+            notification_email: answers.notification_email,
+            sessionStorage: typeof window !== 'undefined' ? sessionStorage.getItem('userNotificationEmail') : null,
+            email: answers.email,
+            customerEmail: answers.customerEmail
+          });
+          
+          // Log all answers to debug email collection
+          console.log('All answers object:', answers);
         }
       }
       
