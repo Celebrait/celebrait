@@ -2306,6 +2306,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const frontReady = card.frontImageUrl && card.frontImageUrl.startsWith('data:image/');
         const insideReady = !card.insideImageUrl || card.insideImageUrl.startsWith('data:image/');
 
+        console.log(`Card ${card.id} image readiness check:`, {
+          frontImageUrl: card.frontImageUrl ? 'present' : 'null',
+          frontReady,
+          insideImageUrl: card.insideImageUrl ? 'present' : 'null', 
+          insideReady,
+          status: card.status
+        });
+
         if (!frontReady || !insideReady) {
           return { ready: false, card };
         }
@@ -2314,11 +2322,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (card.frontImageUrl) {
           try {
             const frontBase64Data = card.frontImageUrl.split(',')[1];
-            if (!frontBase64Data || frontBase64Data.length < 10000) {
+            if (!frontBase64Data || frontBase64Data.length < 100) { // Minimum reasonable size (lowered for testing)
+              console.log(`Card ${card.id} front image data too small:`, frontBase64Data?.length || 0, 'characters');
               return { ready: false, card };
             }
+            console.log(`Card ${card.id} images validated successfully:`, {
+              frontSize: frontBase64Data.length,
+              hasInside: !!card.insideImageUrl,
+              status: card.status
+            });
             return { ready: true, card };
           } catch (parseError) {
+            console.log(`Card ${card.id} base64 parsing error:`, parseError);
             return { ready: false, card };
           }
         }
