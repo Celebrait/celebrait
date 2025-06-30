@@ -1063,11 +1063,28 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const generateCard = async () => {
     setIsLoading(true);
     
+    // URGENT FIX: Capture any notification email that might have been entered
+    // This ensures email notifications work even if user clicks main generate button
+    const notificationEmailInputs = document.querySelectorAll('input[type="email"]');
+    let enteredEmail = '';
+    notificationEmailInputs.forEach(input => {
+      const inputValue = (input as HTMLInputElement).value;
+      if (inputValue && inputValue.includes('@') && inputValue.length > 5) {
+        enteredEmail = inputValue;
+      }
+    });
+    
+    // Store in answers for email notification
+    if (enteredEmail && !answers.notification_email) {
+      setAnswers(prev => ({ ...prev, notification_email: enteredEmail }));
+    }
+    
     try {
       console.log('Starting card generation with options:', {
         photo_option: answers.photo_option,
         has_photos: uploadedPhotos.length > 0,
-        cardId: cardId
+        cardId: cardId,
+        notification_email: enteredEmail || answers.notification_email
       });
       
       // Ensure card is initialized
@@ -1098,18 +1115,31 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         onCardGenerated(generatedCard);
         
         // Trigger email notification now that card is complete and showing on-site
-        const emailToNotify = answers.notification_email || 
+        // Check multiple sources for email including any just captured
+        const notificationEmailInputs = document.querySelectorAll('input[type="email"]');
+        let capturedEmail = '';
+        notificationEmailInputs.forEach(input => {
+          const inputValue = (input as HTMLInputElement).value;
+          if (inputValue && inputValue.includes('@') && inputValue.length > 5) {
+            capturedEmail = inputValue;
+          }
+        });
+        
+        const emailToNotify = capturedEmail || 
+                            answers.notification_email || 
                             (typeof window !== 'undefined' && sessionStorage.getItem('userNotificationEmail')) ||
                             answers.email ||
                             answers.customerEmail;
                             
         if (emailToNotify && emailToNotify.trim()) {
           console.log('Card now showing on-site, triggering email notification to:', emailToNotify);
+          console.log('Email source:', capturedEmail ? 'captured from form' : 'from answers object');
           setTimeout(() => {
             sendBackgroundEmail(generatedCard.id, emailToNotify, answers.name || "User");
           }, 2000); // 2 second delay to ensure card is fully displayed
         } else {
           console.log('No email found for notification. Checked:', {
+            capturedEmail: capturedEmail,
             notification_email: answers.notification_email,
             sessionStorage: typeof window !== 'undefined' ? sessionStorage.getItem('userNotificationEmail') : null,
             email: answers.email,
