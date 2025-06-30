@@ -120,13 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- June 30, 2025. Implemented mandatory email collection step in conversation flow:
-  * Added required email collection step before final summary screen to ensure all users provide email
-  * Enhanced conversation flow to explain AI generation takes up to 2 minutes, requiring email for notification
-  * Replaced optional loading screen email collection with mandatory conversation step
-  * Users must now enter and confirm email address twice before proceeding to card generation
-  * Simplified loading screen to show confirmed email and generation progress
-  * Email notifications now guaranteed to work since email is collected upfront in conversation flow
+- June 30, 2025. Implemented popup modal email collection triggered by "Generate My Card" button:
+  * Removed mandatory email collection step from conversation flow per user request
+  * Created popup modal that appears when users click "Generate My Card" on summary page
+  * Modal requires email entry and confirmation before starting card generation
+  * Changed popup button text to "GENERATE MY CARD" as requested
+  * Card generation now starts only after email collection via popup modal
+  * Simplified email notification logic to use only popup-collected email address
 - June 29, 2025. Systematically fixed email timing, performance, and UI issues for seamless user experience:
   * CRITICAL FIX: Implemented polling-based email validation - emails now sent only after complete image generation verification (50KB+ size check)
   * CRITICAL FIX: Fixed card version inconsistency - background generation now completely skips regeneration and preserves identical front and inside images from interactive session
