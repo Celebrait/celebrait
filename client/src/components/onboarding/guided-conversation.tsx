@@ -486,6 +486,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     },
 
     {
+      id: 'email_collection',
+      question: 'We need your email to send you the finished card.',
+      aiMessage: `Almost ready! 🎨 Our AI takes up to 2 minutes to create your custom artwork, so we'll email you when it's ready instead of making you wait. This way, you can close the window and we'll notify you the moment your personalized card is complete!`,
+      type: 'email_collection',
+      required: true
+    },
+
+    {
       id: 'final_summary',
       question: 'Perfect! Let\'s review everything before creating your card.',
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
@@ -1121,20 +1129,29 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         
         // Trigger email notification now that card is complete and showing on-site
         // Check multiple sources for email including any just captured
+        console.log('Card completion - checking for email notification requests...');
         const notificationEmailInputs = document.querySelectorAll('input[type="email"]');
         let capturedEmail = '';
-        notificationEmailInputs.forEach(input => {
+        console.log('Found', notificationEmailInputs.length, 'email inputs on page');
+        notificationEmailInputs.forEach((input, index) => {
           const inputValue = (input as HTMLInputElement).value;
+          console.log(`Email input ${index}:`, inputValue);
           if (inputValue && inputValue.includes('@') && inputValue.length > 5) {
             capturedEmail = inputValue;
           }
         });
         
-        const emailToNotify = capturedEmail || 
+        const emailToNotify = answers.email || 
+                            capturedEmail || 
                             answers.notification_email || 
                             (typeof window !== 'undefined' && sessionStorage.getItem('userNotificationEmail')) ||
-                            answers.email ||
                             answers.customerEmail;
+        
+        console.log('Email notification decision:', {
+          capturedEmail,
+          answersNotificationEmail: answers.notification_email,
+          finalEmailToNotify: emailToNotify
+        });
                             
         if (emailToNotify && emailToNotify.trim()) {
           console.log('Card now showing on-site, triggering email notification to:', emailToNotify);
@@ -1387,6 +1404,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   };
 
   if (isLoading) {
+    console.log('Loading screen displayed - email notification option is available');
     return (
       <div className="h-screen flex flex-col bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
         <div className="flex-1 flex items-center justify-center">
@@ -2372,6 +2390,97 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         Continue
                         <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
+                    </div>
+                  </div>
+                )}
+
+                {currentStep.type === 'email_collection' && (
+                  <div className="space-y-6">
+                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-6 rounded-xl">
+                      <div className="flex items-start space-x-4">
+                        <div className="flex-shrink-0">
+                          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-800 mb-2">📧 Email Required for Card Delivery</h3>
+                          <p className="text-gray-700 text-sm leading-relaxed">
+                            Our AI creates incredible custom artwork, but it takes up to 2 minutes to generate. Instead of making you wait, 
+                            we'll email you the moment your personalized card is ready! This way you can close this window and continue 
+                            with your day while we work our magic.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">Email Address</label>
+                        <Input
+                          type="email"
+                          value={answers.email || ''}
+                          onChange={(e) => {
+                            console.log('Email entered during mandatory step:', e.target.value);
+                            setAnswers(prev => ({ ...prev, email: e.target.value }));
+                          }}
+                          placeholder="Enter your email address"
+                          className="text-lg p-3 rounded-xl border-purple-200 focus:border-purple-400"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">Confirm Email Address</label>
+                        <Input
+                          type="email"
+                          value={answers.email_confirm || ''}
+                          onChange={(e) => {
+                            console.log('Email confirmation entered during mandatory step:', e.target.value);
+                            setAnswers(prev => ({ ...prev, email_confirm: e.target.value }));
+                          }}
+                          placeholder="Confirm your email address"
+                          className="text-lg p-3 rounded-xl border-purple-200 focus:border-purple-400"
+                        />
+                      </div>
+
+                      {answers.email && answers.email_confirm && answers.email !== answers.email_confirm && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                          <p className="text-red-700 text-sm">Email addresses don't match</p>
+                        </div>
+                      )}
+
+                      <div className="flex justify-center pt-4">
+                        <Button 
+                          onClick={() => {
+                            if (!answers.email || !answers.email_confirm) {
+                              toast({
+                                title: "Email Required",
+                                description: "Please enter and confirm your email address.",
+                                variant: "destructive"
+                              });
+                              return;
+                            }
+                            if (answers.email !== answers.email_confirm) {
+                              toast({
+                                title: "Email Mismatch", 
+                                description: "Email addresses don't match.",
+                                variant: "destructive"
+                              });
+                              return;
+                            }
+                            
+                            console.log('Email collection completed, proceeding to next step');
+                            setCurrentStepIndex(prev => prev + 1);
+                          }}
+                          disabled={!answers.email || !answers.email_confirm || answers.email !== answers.email_confirm}
+                          className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold"
+                        >
+                          Continue to Review
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
