@@ -1016,7 +1016,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
   const sendBackgroundEmail = async (cardId: number, customerEmail: string, customerName: string) => {
     try {
-      console.log('Sending email notification for completed card:', cardId);
+      console.log('Sending email notification for completed card:', cardId, 'to:', customerEmail);
       
       const cardReadyResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
         cardId: cardId,
@@ -1024,95 +1024,40 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         customerName: customerName
       });
       
+      if (!cardReadyResponse.ok) {
+        const errorText = await cardReadyResponse.text();
+        console.error('Email notification API error:', cardReadyResponse.status, errorText);
+        throw new Error(`Email API error: ${cardReadyResponse.status} - ${errorText}`);
+      }
+      
       const emailResult = await cardReadyResponse.json();
       console.log('Email notification sent successfully:', emailResult);
+      
+      // Show success toast to user
+      toast({
+        title: "Email Sent!",
+        description: "We've sent you an email with your card link.",
+        variant: "default",
+      });
+      
     } catch (emailError) {
       console.error('Failed to send email notification:', emailError);
+      
+      // Show error toast to user
+      toast({
+        title: "Email Issue",
+        description: "There was an issue sending your email. Please try again or wait for the card to load.",
+        variant: "destructive",
+      });
     }
   };
 
 
 
   const generateCardInBackground = async (email: string) => {
-    try {
-      // Start actual card generation in background
-      console.log('Starting background card generation for:', email);
-      console.log('Current cardId:', cardId);
-      console.log('Current answers:', answers);
-      
-      // Ensure cardId exists before proceeding
-      if (!cardId) {
-        console.error('No cardId available for background generation');
-        return;
-      }
-      
-      // Wait for interactive generation to complete, then send email
-      setTimeout(async () => {
-        try {
-          console.log('Starting background generation with options:', {
-            photo_option: answers.photo_option,
-            has_photos: uploadedPhotos.length > 0,
-            cardId: cardId
-          });
-          
-          // Generate the card using existing logic
-          let generatedCard;
-          console.log('Determining generation method...');
-          
-          // CRITICAL: Skip regeneration, use existing card to preserve identical images
-          console.log('Background processing: preserving existing card images, no regeneration');
-          
-          // Get the existing card that was generated during interactive session
-          const existingCardResponse = await apiRequest("GET", `/api/cards/${cardId}`);
-          generatedCard = await existingCardResponse.json();
-          
-          console.log('Using existing card from interactive session (no regeneration):', {
-            cardId: generatedCard.id,
-            hasFront: !!generatedCard.frontImageUrl,
-            hasInside: !!generatedCard.insideImageUrl,
-            status: generatedCard.status
-          });
-          
-          console.log('Background generation completed:', generatedCard);
-          
-          // Card already complete from interactive session, send email immediately
-          if (generatedCard && generatedCard.id) {
-            console.log('Card already complete from interactive session, sending email notification immediately');
-            
-            try {
-              const cardReadyResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
-                cardId: generatedCard.id,
-                customerEmail: email,
-                customerName: answers.name || "User"
-              });
-              
-              const emailResult = await cardReadyResponse.json();
-              console.log('Card ready notification sent immediately (no polling needed):', emailResult);
-            } catch (emailError) {
-              console.error('Failed to send card ready notification:', emailError);
-            }
-          } else {
-            console.error('Card generation failed - no card returned or missing ID');
-          }
-        } catch (error: any) {
-          console.error('Background generation error:', error);
-          console.error('Error details:', error.message, error.stack);
-          
-          // Try to send error notification email if possible
-          try {
-            await apiRequest("POST", "/api/send-error-notification", {
-              customerEmail: email,
-              customerName: answers.name || "User",
-              errorMessage: (error as any).message || 'Unknown error during card generation'
-            });
-          } catch (emailError) {
-            console.error('Failed to send error notification:', emailError);
-          }
-        }
-      }, 60000); // Wait 60 seconds for interactive generation to complete before sending email
-    } catch (error: any) {
-      console.error('generateCardInBackground setup error:', error);
-    }
+    // This is now handled directly in the generateCard function when the card is complete
+    // No separate background process needed since email is sent when card becomes visible
+    console.log('Email notification will be sent when card generation completes and card is visible to user');
   };
 
   const generateCard = async () => {

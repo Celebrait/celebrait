@@ -2284,7 +2284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Send card ready notification email
+  // Send card ready notification email with polling
   app.post("/api/send-card-ready-notification", async (req, res) => {
     try {
       const { cardId, customerEmail, customerName } = req.body;
@@ -2293,34 +2293,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Card ID, customer email, and name are required" });
       }
 
-      const card = await storage.getCard(parseInt(cardId));
-      if (!card) {
-        return res.status(404).json({ message: "Card not found" });
-      }
+      console.log('Starting email notification process for card:', cardId);
 
-      // Validate that images are actually ready before sending email
-      if (!card.frontImageUrl || !card.frontImageUrl.startsWith('data:image/')) {
-        console.log('Front image not ready for email notification');
-        return res.status(400).json({ message: "Front image not ready for notification" });
-      }
-      
-      if (card.insideImageUrl && !card.insideImageUrl.startsWith('data:image/')) {
-        console.log('Inside image not ready for email notification');
-        return res.status(400).json({ message: "Inside image not ready for notification" });
-      }
-
-      // Check if base64 data is substantial (not corrupted)
-      try {
-        const frontBase64Data = card.frontImageUrl.split(',')[1];
-        if (!frontBase64Data || frontBase64Data.length < 10000) { // Minimum reasonable size
-          console.log('Front image base64 data too small, likely corrupted');
-          return res.status(400).json({ message: "Front image data not ready" });
+      // Function to check if card is ready
+      const isCardReady = async () => {
+        const card = await storage.getCard(parseInt(cardId));
+        if (!card) {
+          return { ready: false, error: "Card not found" };
         }
-        console.log('Images validated successfully - proceeding with email notification');
-      } catch (parseError) {
-        console.log('Failed to parse front image base64 data:', parseError);
-        return res.status(400).json({ message: "Image data not ready for notification" });
-      }
+
+        // Check if both front and inside images are ready
+        const frontReady = card.frontImageUrl && card.frontImageUrl.startsWith('data:image/');
+        const insideReady = !card.insideImageUrl || card.insideImageUrl.startsWith('data:image/');
+
+        if (!frontReady || !insideReady) {
+          return { ready: false, card };
+        }
+
+        // Check if base64 data is substantial (not corrupted)
+        if (card.frontImageUrl) {
+          try {
+            const frontBase64Data = card.frontImageUrl.split(',')[1];
+            if (!frontBase64Data || frontBase64Data.length < 10000) {
+              return { ready: false, card };
+            }
+            return { ready: true, card };
+          } catch (parseError) {
+            return { ready: false, card };
+          }
+        }
+        
+        return { ready: false, card };
+      };
+
+      // Poll for card completion with 10-second intervals, 5-minute timeout
+      const maxAttempts = 30; // 5 minutes total
+      let attempts = 0;
+
+      const pollForCard = async (): Promise<any> => {
+        attempts++;
+        console.log(`Polling attempt ${attempts}/${maxAttempts} for card ${cardId}`);
+
+        const { ready, card, error } = await isCardReady();
+
+        if (error) {
+          throw new Error(error);
+        }
+
+        if (ready && card) {
+          console.log('Card is ready for email notification:', {
+            cardId: card.id,
+            hasFront: !!card.frontImageUrl,
+            hasInside: !!card.insideImageUrl,
+            status: card.status
+          });
+          return card;
+        }
+
+        if (attempts >= maxAttempts) {
+          throw new Error('Card generation timeout - images not ready after 5 minutes');
+        }
+
+        // Wait 10 seconds before next check
+        await new Promise(resolve => setTimeout(resolve, 10000));
+        return pollForCard();
+      };
+
+      const card = await pollForCard();
+      console.log('Images validated successfully - proceeding with email notification');
 
       // Create a temporary reference for the delivery choice flow that includes cardId
       const reference = `celebrait_ready_${cardId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
