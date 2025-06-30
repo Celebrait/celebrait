@@ -132,6 +132,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [showInspirationModal, setShowInspirationModal] = useState(false);
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [showEmailPopup, setShowEmailPopup] = useState(false);
+  const [popupEmail, setPopupEmail] = useState('');
+  const [popupEmailConfirm, setPopupEmailConfirm] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -1063,30 +1066,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   };
 
   const generateCard = async () => {
+    // Show email popup instead of directly generating
+    setShowEmailPopup(true);
+  };
+
+  const actuallyGenerateCard = async () => {
     setIsLoading(true);
-    
-    // URGENT FIX: Capture any notification email that might have been entered
-    // This ensures email notifications work even if user clicks main generate button
-    const notificationEmailInputs = document.querySelectorAll('input[type="email"]');
-    let enteredEmail = '';
-    notificationEmailInputs.forEach(input => {
-      const inputValue = (input as HTMLInputElement).value;
-      if (inputValue && inputValue.includes('@') && inputValue.length > 5) {
-        enteredEmail = inputValue;
-      }
-    });
-    
-    // Store in answers for email notification
-    if (enteredEmail && !answers.notification_email) {
-      setAnswers(prev => ({ ...prev, notification_email: enteredEmail }));
-    }
+    setShowEmailPopup(false);
     
     try {
       console.log('Starting card generation with options:', {
         photo_option: answers.photo_option,
         has_photos: uploadedPhotos.length > 0,
         cardId: cardId,
-        notification_email: enteredEmail || answers.notification_email
+        notification_email: popupEmail
       });
       
       // Ensure card is initialized
@@ -1121,29 +1114,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       if (generatedCard) {
         onCardGenerated(generatedCard);
         
-        // Trigger email notification now that card is complete and showing on-site
-        // Check multiple sources for email including any just captured
-        console.log('Card completion - checking for email notification requests...');
-        const notificationEmailInputs = document.querySelectorAll('input[type="email"]');
-        let capturedEmail = '';
-        console.log('Found', notificationEmailInputs.length, 'email inputs on page');
-        notificationEmailInputs.forEach((input, index) => {
-          const inputValue = (input as HTMLInputElement).value;
-          console.log(`Email input ${index}:`, inputValue);
-          if (inputValue && inputValue.includes('@') && inputValue.length > 5) {
-            capturedEmail = inputValue;
-          }
-        });
-        
-        const emailToNotify = answers.email || 
-                            capturedEmail || 
-                            answers.notification_email || 
-                            (typeof window !== 'undefined' && sessionStorage.getItem('userNotificationEmail')) ||
-                            answers.customerEmail;
+        // Send email notification using the popup email
+        const emailToNotify = popupEmail;
         
         console.log('Email notification decision:', {
-          capturedEmail,
-          answersNotificationEmail: answers.notification_email,
           finalEmailToNotify: emailToNotify
         });
                             
