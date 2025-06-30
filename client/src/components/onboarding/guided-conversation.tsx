@@ -1109,6 +1109,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       }
       
       console.log('Card generation completed:', generatedCard);
+      console.log('Current answers state at completion:', answers);
+      console.log('Checking for notification email at completion:', {
+        notification_email: answers.notification_email,
+        notification_email_confirm: answers.notification_email_confirm
+      });
       
       // Call the callback to notify parent component and show the card
       if (generatedCard) {
@@ -1446,7 +1451,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   <Input
                     type="email"
                     value={answers.notification_email || ''}
-                    onChange={(e) => setAnswers(prev => ({ ...prev, notification_email: e.target.value }))}
+                    onChange={(e) => {
+                      console.log('Email notification address entered:', e.target.value);
+                      setAnswers(prev => ({ ...prev, notification_email: e.target.value }));
+                    }}
                     placeholder="Enter your email address"
                     className="text-lg p-3 rounded-xl"
                   />
@@ -1457,7 +1465,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   <Input
                     type="email"
                     value={answers.notification_email_confirm || ''}
-                    onChange={(e) => setAnswers(prev => ({ ...prev, notification_email_confirm: e.target.value }))}
+                    onChange={(e) => {
+                      console.log('Email notification confirmation entered:', e.target.value);
+                      setAnswers(prev => ({ ...prev, notification_email_confirm: e.target.value }));
+                    }}
                     placeholder="Confirm your email address"
                     className="text-lg p-3 rounded-xl"
                   />
