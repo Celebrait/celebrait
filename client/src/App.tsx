@@ -32,29 +32,28 @@ function Router() {
     <>
       <ScrollToTop />
       <Switch>
-        {isLoading || !isAuthenticated ? (
-          <Route path="/" component={Landing} />
-        ) : (
-          <>
-            <Route path="/" component={Home} />
-            <Route path="/checkout/:cardId" component={Checkout} />
-            <Route path="/payment/:cardId" component={Payment} />
-            <Route path="/payment-tips/:cardId" component={PaymentWithTips} />
-            <Route path="/payment-success" component={PaymentSuccess} />
-            <Route path="/order-success" component={OrderSuccess} />
-            <Route path="/complete-order/:cardId" component={CompleteOrder} />
-            <Route path="/delivery-choice/:cardId" component={DeliveryChoice} />
-            <Route path="/test" component={TestGeneration} />
-            <Route path="/test-payment" component={TestPayment} />
-            <Route path="/test-generation" component={TestGeneration} />
-            <Route path="/style-test" component={StyleTest} />
-            <Route path="/gpt-image-test" component={GPTImageTest} />
-            <Route path="/test-card-preview" component={TestCardPreview} />
-          </>
-        )}
+        {/* Allow everyone to access the card creation flow */}
+        <Route path="/" component={Home} />
+        <Route path="/checkout/:cardId" component={Checkout} />
+        <Route path="/payment/:cardId" component={Payment} />
+        <Route path="/payment-tips/:cardId" component={PaymentWithTips} />
+        <Route path="/payment-success" component={PaymentSuccess} />
+        <Route path="/order-success" component={OrderSuccess} />
+        <Route path="/complete-order/:cardId" component={CompleteOrder} />
+        <Route path="/delivery-choice/:cardId" component={DeliveryChoice} />
+        
         {/* Public routes accessible to everyone */}
         <Route path="/card/:linkId" component={DigitalCardViewer} />
         <Route path="/card-preview/:reference" component={CardPreviewPage} />
+        
+        {/* Test routes */}
+        <Route path="/test" component={TestGeneration} />
+        <Route path="/test-payment" component={TestPayment} />
+        <Route path="/test-generation" component={TestGeneration} />
+        <Route path="/style-test" component={StyleTest} />
+        <Route path="/gpt-image-test" component={GPTImageTest} />
+        <Route path="/test-card-preview" component={TestCardPreview} />
+        
         <Route component={NotFound} />
       </Switch>
     </>

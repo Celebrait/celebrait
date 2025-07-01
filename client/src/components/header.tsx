@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function Header() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   return (
     <header className="bg-white/80 backdrop-blur-sm border-b border-purple-100 sticky top-0 z-50">
@@ -30,7 +30,9 @@ export default function Header() {
           </nav>
           
           <div className="flex items-center space-x-4">
-            {isAuthenticated && user ? (
+            {isLoading ? (
+              <div className="w-20 h-8 bg-gray-200 rounded-xl animate-pulse"></div>
+            ) : isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center space-x-2">

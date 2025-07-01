@@ -122,8 +122,39 @@ export default function GuidedConversationClean({ onboarding, onCardGenerated }:
   const currentStep = steps[currentStepIndex];
 
   useEffect(() => {
+    // Check for pending card data after authentication
+    const pendingData = sessionStorage.getItem('pendingCardData');
+    if (pendingData && user?.id) {
+      try {
+        const { answers: savedAnswers, onboardingData } = JSON.parse(pendingData);
+        setAnswers(savedAnswers);
+        
+        // Update onboarding state if needed
+        if (onboardingData.selectedDelivery) {
+          onboarding.setSelectedDelivery(onboardingData.selectedDelivery);
+        }
+        
+        // Go to final summary step
+        const summaryIndex = steps.findIndex(step => step.id === 'final_summary');
+        if (summaryIndex !== -1) {
+          setCurrentStepIndex(summaryIndex);
+        }
+        
+        // Clear the pending data
+        sessionStorage.removeItem('pendingCardData');
+        
+        toast({
+          title: "Welcome back!",
+          description: "Your card details have been restored. Ready to generate your card!",
+        });
+      } catch (error) {
+        console.error('Failed to restore pending card data:', error);
+        sessionStorage.removeItem('pendingCardData');
+      }
+    }
+    
     initializeCard();
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     setIsTyping(true);
@@ -133,12 +164,8 @@ export default function GuidedConversationClean({ onboarding, onCardGenerated }:
 
   const initializeCard = async () => {
     try {
+      // Skip card initialization for anonymous users - we'll create it when they authenticate
       if (!user?.id) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to create cards",
-          variant: "destructive",
-        });
         return;
       }
 
@@ -149,7 +176,7 @@ export default function GuidedConversationClean({ onboarding, onCardGenerated }:
         cardType: onboarding.selectedDelivery,
         printOption: 'front-and-inside',
         sceneType: onboarding.selectedSceneType,
-        conversationData: {},
+        conversationData: answers,
         price
       });
 
@@ -199,9 +226,26 @@ export default function GuidedConversationClean({ onboarding, onCardGenerated }:
   };
 
   const generateCard = async () => {
+    // If user is not authenticated, redirect to login first
+    if (!user?.id) {
+      // Store conversation data in session storage so we can restore it after login
+      sessionStorage.setItem('pendingCardData', JSON.stringify({
+        answers,
+        onboardingData: {
+          selectedDelivery: onboarding.selectedDelivery,
+          selectedSceneType: onboarding.selectedSceneType
+        }
+      }));
+      
+      // Redirect to Replit auth
+      window.location.href = '/api/login';
+      return;
+    }
+
     setIsLoading(true);
     
     try {
+      // Initialize card if not already done
       if (!cardId) {
         await initializeCard();
       }
@@ -392,7 +436,16 @@ export default function GuidedConversationClean({ onboarding, onCardGenerated }:
                         <div><span className="font-medium">For:</span> {answers.name} ({answers.relationship})</div>
                         <div><span className="font-medium">Scene:</span> {answers.scene}</div>
                         <div><span className="font-medium">Inside Message:</span> {answers.inside_message}</div>
-                        <div><span className="font-medium">Your Email:</span> {user?.email}</div>
+                        {user?.email ? (
+                          <div><span className="font-medium">Your Email:</span> {user.email}</div>
+                        ) : (
+                          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mt-4">
+                            <p className="text-sm text-blue-800">
+                              <strong>Sign in required:</strong> To generate your card and receive email notifications, 
+                              you'll need to sign in with your account when you click "Generate My Card".
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                     
@@ -401,7 +454,7 @@ export default function GuidedConversationClean({ onboarding, onCardGenerated }:
                       className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-4 rounded-xl font-semibold text-lg"
                     >
                       <Sparkles className="w-5 h-5 mr-2" />
-                      Generate My Card
+                      {user?.id ? 'Generate My Card' : 'Sign In & Generate Card'}
                     </Button>
                   </div>
                 )}
