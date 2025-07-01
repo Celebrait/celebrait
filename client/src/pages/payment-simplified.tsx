@@ -126,22 +126,25 @@ export default function PaymentSimplified() {
 
     setProcessingPayment(true);
     try {
-      // Create order with Paystack
-      const orderData = {
+      // Use existing Paystack payment endpoint
+      const customerInfo = {
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        address: formData.address
+      };
+
+      const paymentData = {
         cardId: card.id,
-        deliveryType: 'printed',
-        customerEmail: formData.email,
-        customerName: `${formData.firstName} ${formData.lastName}`,
-        customerPhone: formData.phone,
+        customerInfo: customerInfo,
+        amount: 12900, // R129.00 in cents
+        currency: 'ZAR',
         shippingAddress: formData.address,
         deliverTo: deliverTo
       };
 
-      const response = await apiRequest('POST', '/api/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
-      });
+      const response = await apiRequest('POST', '/api/create-payment', paymentData);
 
       if (response.ok) {
         const result = await response.json();
@@ -149,11 +152,15 @@ export default function PaymentSimplified() {
         // Redirect to Paystack payment
         if (result.authorization_url) {
           window.location.href = result.authorization_url;
+        } else if (result.paymentUrl) {
+          // Fallback for test mode
+          window.location.href = result.paymentUrl;
         } else {
           throw new Error('No payment URL received');
         }
       } else {
-        throw new Error('Failed to create order');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create payment');
       }
     } catch (error) {
       console.error('Payment error:', error);

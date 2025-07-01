@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 1, 2025. Redesigned delivery and payment flow for printed cards:
+  * Created new delivery details page asking users to choose between delivering to themselves or the recipient
+  * Simplified payment page focused only on gathering customer information with Paystack integration
+  * Removed payment options and support creator sections as requested
+  * Added order summary with front/inside card image toggles for mobile users
+  * Updated delivery choice flow to navigate through: delivery choice → delivery details → simplified payment
+  * Integrated with existing Paystack payment endpoints for seamless checkout experience
 - June 30, 2025. Implemented mandatory email collection step in conversation flow:
   * Added required email collection step before final summary screen to ensure all users provide email
   * Enhanced conversation flow to explain AI generation takes up to 2 minutes, requiring email for notification

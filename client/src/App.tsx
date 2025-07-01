@@ -8,7 +8,7 @@ import { handleQuotaError } from "./lib/queryClient";
 import { useEffect } from "react";
 import Home from "@/pages/home";
 import Checkout from "@/pages/checkout";
-import Payment from "@/pages/payment";
+import Payment from "@/pages/payment-simplified";
 import PaymentSuccess from './pages/payment-success';
 import OrderSuccess from './pages/order-success';
 import CompleteOrder from './pages/complete-order';
