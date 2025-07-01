@@ -203,9 +203,11 @@ export default function CompleteOrder() {
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
         <Header />
         <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p>Loading order details...</p>
+          <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20">
+            <div className="text-center">
+              <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p>Loading order details...</p>
+            </div>
           </div>
         </main>
       </div>
@@ -471,11 +473,7 @@ export default function CompleteOrder() {
               <Button
                 onClick={handleSubmit}
                 disabled={submitting || !isFormValid()}
-                className={`w-full py-6 text-lg font-semibold ${
-                  deliveryType === 'digital' 
-                    ? 'bg-green-500 hover:bg-green-600' 
-                    : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:opacity-90'
-                }`}
+                className="w-full py-6 text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-500 hover:opacity-90 text-white shadow-lg"
               >
                 {submitting ? (
                   <div className="flex items-center gap-2">

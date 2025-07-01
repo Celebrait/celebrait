@@ -120,15 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 1, 2025. Extended delivery choice system to include digital cards with unified recipient selection:
-  * Updated delivery choice flow so both printed and digital cards go to delivery details page
-  * Enhanced delivery details page to handle both delivery types with dynamic content and icons
-  * Digital delivery shows "Send to Me" vs "Send to [Recipient]" with email-focused features
-  * Printed delivery shows "Deliver to Me" vs "Deliver to [Recipient]" with physical delivery features
-  * Dynamic page headers change to "Email Details" for digital and "Delivery Details" for printed
-  * Digital cards navigate to complete-order for email collection, printed cards go to payment page
-  * Maintained consistent swipeable mobile interface and styling across both delivery types
-  * Users now choose recipient for both digital and printed cards using same elegant interface
+- July 1, 2025. Unified styling across complete delivery journey with frosted glass design:
+  * Fixed cache clearing function to preserve delivery type selection during navigation
+  * Updated complete-order page ("Your Information") to match journey styling with frosted glass background
+  * Applied consistent gradient backgrounds (purple-50 via pink-50 to orange-50) across all delivery pages
+  * Enhanced form cards with backdrop-blur and white/80 transparency for cohesive visual design
+  * Updated submit button to use consistent purple-to-pink gradient matching delivery choice buttons
+  * Added Header component and proper loading screens with frosted glass containers
+  * Fixed digital delivery flow to correctly show email-focused options vs printed delivery options
+  * Delivery details page now dynamically shows "Email Details" vs "Delivery Details" with appropriate icons
 - July 1, 2025. Enhanced art style selection with interactive carousel interface:
   * Replaced grid with carousel showing 4 art styles at a time with smooth navigation
   * Added 12 new art styles including Anime, Cyberpunk, LEGO, Pixar, Renaissance, Fantasy Realism, Pixel Art, Barbie/Glam, Grunge, Vaporwave, and Mythical Creature fusion
