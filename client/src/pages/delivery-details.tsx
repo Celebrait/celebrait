@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Heart, ArrowLeft, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
+import { User, Heart, ArrowLeft, MapPin, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
 import Header from '@/components/header';
 import { emergencyStorageCleanup } from '@/lib/queryClient';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -17,11 +17,44 @@ export default function DeliveryDetails() {
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
   const isMobile = useIsMobile();
+  
+  // Get delivery type from session storage
+  const deliveryType = sessionStorage.getItem('selectedDeliveryType') || 'printed';
+  const isDigital = deliveryType === 'digital';
 
   // Get recipient name from card data for dynamic text
   const recipientName = cardData?.conversationData?.recipient || cardData?.conversationData?.name || 'the recipient';
 
-  const options = [
+  const options = isDigital ? [
+    {
+      id: 'self',
+      title: 'Send to Me',
+      subtitle: `I'll share the card with ${recipientName} myself`,
+      icon: User,
+      features: [
+        'Digital card link sent to your email',
+        'You control when to share it',
+        'Perfect for timing the surprise',
+        'Easy forwarding options'
+      ],
+      gradient: 'from-purple-500 to-blue-500',
+      available: true
+    },
+    {
+      id: 'recipient',
+      title: `Send to ${recipientName}`,
+      subtitle: `Email the digital card directly to ${recipientName}`,
+      icon: Heart,
+      features: [
+        'Direct email to recipient',
+        'Instant surprise delivery',
+        'No coordination needed',
+        'Professional presentation'
+      ],
+      gradient: 'from-pink-500 to-rose-500',
+      available: true
+    }
+  ] : [
     {
       id: 'self',
       title: 'Deliver to Me',
@@ -90,13 +123,23 @@ export default function DeliveryDetails() {
     // Store delivery choice
     sessionStorage.setItem('deliverTo', deliverTo);
     
-    // Navigate to simplified payment page
+    // Navigate based on delivery type
     setTimeout(() => {
       try {
-        setLocation(`/payment/${reference}`);
+        if (isDigital) {
+          // Digital cards go to complete-order to collect email details
+          setLocation(`/complete-order/${reference}`);
+        } else {
+          // Printed cards go to payment page to collect address and payment
+          setLocation(`/payment/${reference}`);
+        }
       } catch (error) {
         console.error('Navigation failed:', error);
-        window.location.href = `/payment/${reference}`;
+        if (isDigital) {
+          window.location.href = `/complete-order/${reference}`;
+        } else {
+          window.location.href = `/payment/${reference}`;
+        }
       }
     }, 200);
   };
@@ -175,10 +218,17 @@ export default function DeliveryDetails() {
             {/* Header Section */}
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-4 flex items-center justify-center animate-float">
-                <MapPin className="text-white w-8 h-8" />
+                {isDigital ? <Mail className="text-white w-8 h-8" /> : <MapPin className="text-white w-8 h-8" />}
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-3">Delivery Details</h2>
-              <p className="text-base text-slate-gray px-4">Where should we deliver your printed card?</p>
+              <h2 className="text-2xl font-bold text-gray-800 mb-3">
+                {isDigital ? 'Email Details' : 'Delivery Details'}
+              </h2>
+              <p className="text-base text-slate-gray px-4">
+                {isDigital 
+                  ? 'Who should receive the digital card link?' 
+                  : 'Where should we deliver your printed card?'
+                }
+              </p>
             </div>
 
             {/* Navigation Dots */}
@@ -293,10 +343,17 @@ export default function DeliveryDetails() {
           {/* Header Section */}
           <div className="text-center mb-8">
             <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
-              <MapPin className="text-white w-10 h-10" />
+              {isDigital ? <Mail className="text-white w-10 h-10" /> : <MapPin className="text-white w-10 h-10" />}
             </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Delivery Details</h1>
-            <p className="text-lg text-slate-gray">Where should we deliver your printed card?</p>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              {isDigital ? 'Email Details' : 'Delivery Details'}
+            </h1>
+            <p className="text-lg text-slate-gray">
+              {isDigital 
+                ? 'Who should receive the digital card link?' 
+                : 'Where should we deliver your printed card?'
+              }
+            </p>
           </div>
 
           {/* Delivery Options */}

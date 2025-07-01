@@ -155,33 +155,18 @@ export default function DeliveryChoice() {
   const handleDeliverySelected = async (delivery: 'printed' | 'digital') => {
     setSelectedDelivery(delivery);
     
-    if (delivery === 'digital') {
-      // Store delivery type for complete-order page
-      sessionStorage.setItem('selectedDeliveryType', 'digital');
-      
-      // Navigate to complete-order page to collect customer details
-      setTimeout(() => {
-        try {
-          setLocation(`/complete-order/${params?.reference}`);
-        } catch (error) {
-          console.error('Navigation failed:', error);
-          window.location.href = `/complete-order/${params?.reference}`;
-        }
-      }, 200);
-    } else {
-      // Store delivery type for printed cards
-      sessionStorage.setItem('selectedDeliveryType', 'printed');
-      
-      // Navigate to delivery details page for printed cards
-      setTimeout(() => {
-        try {
-          setLocation(`/delivery-details/${params?.reference}`);
-        } catch (error) {
-          console.error('Navigation failed:', error);
-          window.location.href = `/delivery-details/${params?.reference}`;
-        }
-      }, 200);
-    }
+    // Store delivery type for both printed and digital cards
+    sessionStorage.setItem('selectedDeliveryType', delivery);
+    
+    // Both delivery types now go to delivery details page to choose recipient
+    setTimeout(() => {
+      try {
+        setLocation(`/delivery-details/${params?.reference}`);
+      } catch (error) {
+        console.error('Navigation failed:', error);
+        window.location.href = `/delivery-details/${params?.reference}`;
+      }
+    }, 200);
   };
 
   const handleBack = () => {
