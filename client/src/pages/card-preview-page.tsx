@@ -34,6 +34,17 @@ export default function CardPreviewPage() {
         const data = await response.json();
         const card = data.card || data; // Handle both response formats
         setCardData(card);
+        
+        // Preload data for delivery choice page
+        try {
+          sessionStorage.setItem('cardPreviewData', JSON.stringify(card));
+          sessionStorage.setItem(`ready_${reference}`, JSON.stringify(data));
+          sessionStorage.setItem(`card_${reference}`, JSON.stringify(card));
+          console.log('[PREVIEW] Preloaded data for delivery choice page');
+        } catch (storageError) {
+          console.warn('Failed to preload delivery choice data:', storageError);
+        }
+        
         setLoading(false);
       } else {
         console.error('Failed to fetch card data:', response.status, response.statusText);

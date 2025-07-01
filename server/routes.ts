@@ -1574,6 +1574,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Lightweight card metadata endpoint for instant delivery choice loading
+  app.get("/api/cards/:id/metadata", async (req, res) => {
+    const startTime = Date.now();
+    try {
+      const cardId = parseInt(req.params.id);
+      const cacheKey = `metadata-${cardId}`;
+      
+      // Check cache first
+      const cached = cardMetadataCache.get(cacheKey);
+      if (cached && (Date.now() - cached.timestamp) < METADATA_CACHE_TTL) {
+        console.log(`[CACHE] Serving metadata from cache for card ${cardId}`);
+        res.set({
+          'Cache-Control': 'public, max-age=300',
+          'ETag': `"${cardId}-meta"`
+        });
+        return res.json(cached.data);
+      }
+      
+      console.log(`[PERF] Cache miss - fetching lightweight metadata for card ${cardId}`);
+      const dbStartTime = Date.now();
+      const card = await storage.getCard(cardId);
+      const dbEndTime = Date.now();
+      console.log(`[PERF] Lightweight metadata query took: ${dbEndTime - dbStartTime}ms`);
+      
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      // Return only essential metadata - no images
+      const metadata = {
+        id: card.id,
+        userId: card.userId,
+        cardType: card.cardType,
+        printOption: card.printOption,
+        sceneType: card.sceneType,
+        status: card.status,
+        price: card.price,
+        hasImages: !!(card.frontImageUrl && card.insideImageUrl)
+      };
+      
+      // Cache the lightweight response
+      cardMetadataCache.set(cacheKey, {
+        data: metadata,
+        timestamp: Date.now()
+      });
+      
+      res.set({
+        'Cache-Control': 'public, max-age=300',
+        'ETag': `"${cardId}-meta"`
+      });
+      
+      const endTime = Date.now();
+      console.log(`[PERF] Total metadata serving time: ${endTime - startTime}ms`);
+      
+      res.json(metadata);
+    } catch (error: any) {
+      const endTime = Date.now();
+      console.error(`[PERF] Metadata error after ${endTime - startTime}ms:`, error);
+      res.status(500).json({ message: "Error fetching metadata: " + error.message });
+    }
+  });
+
   // Get orders by email
   app.get("/api/orders", async (req, res) => {
     try {

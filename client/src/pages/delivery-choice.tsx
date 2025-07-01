@@ -52,25 +52,39 @@ export default function DeliveryChoice() {
 
   useEffect(() => {
     const loadCardData = async () => {
+      console.log('[DELIVERY] Starting optimized card data load for reference:', params?.reference);
+      const startTime = Date.now();
+      
       try {
-        // Clear any storage issues first
-        emergencyStorageCleanup();
+        // First, check multiple storage locations for cached data
+        const storageKeys = [
+          'cardPreviewData',
+          `card_${params?.reference}`,
+          `ready_${params?.reference}`
+        ];
         
-        // Try to get card data from session storage first
-        const storedCardData = sessionStorage.getItem('cardPreviewData');
-        if (storedCardData) {
-          try {
-            const parsedData = JSON.parse(storedCardData);
-            setCardData(parsedData);
-            setLoading(false);
-            return;
-          } catch (parseError) {
-            console.warn('Failed to parse stored card data, fetching from API');
+        for (const key of storageKeys) {
+          const storedData = sessionStorage.getItem(key);
+          if (storedData) {
+            try {
+              const parsedData = JSON.parse(storedData);
+              console.log(`[DELIVERY] Found cached data in ${key}, loading instantly`);
+              setCardData(parsedData.card || parsedData);
+              setLoading(false);
+              const endTime = Date.now();
+              console.log(`[DELIVERY] Cached load completed in ${endTime - startTime}ms`);
+              return;
+            } catch (parseError) {
+              console.warn(`Failed to parse stored data from ${key}`);
+            }
           }
         }
 
-        // If no session data and we have a reference, fetch from API
+        // Only fetch from API if absolutely necessary
         if (params?.reference) {
+          console.log('[DELIVERY] No cache found, making API request...');
+          const apiStartTime = Date.now();
+          
           try {
             let response;
             
@@ -85,8 +99,19 @@ export default function DeliveryChoice() {
             if (response.ok) {
               const data = await response.json();
               const cardData = data.card || data; // Handle both response formats
+              
+              // Cache the result for future use
+              try {
+                sessionStorage.setItem(`ready_${params.reference}`, JSON.stringify(data));
+                sessionStorage.setItem('cardPreviewData', JSON.stringify(cardData));
+                console.log('[DELIVERY] Cached API response for future use');
+              } catch (storageError) {
+                console.warn('Failed to cache response:', storageError);
+              }
+              
               setCardData(cardData);
-              setLoading(false);
+              const apiEndTime = Date.now();
+              console.log(`[DELIVERY] API request completed in ${apiEndTime - apiStartTime}ms`);
               return;
             } else {
               console.error('Failed to fetch card data:', response.status, response.statusText);
@@ -116,12 +141,16 @@ export default function DeliveryChoice() {
           insideImageUrl: null
         });
       } finally {
+        const endTime = Date.now();
+        console.log(`[DELIVERY] Total delivery choice load time: ${endTime - startTime}ms`);
         setLoading(false);
       }
     };
 
-    loadCardData();
-  }, [params?.reference]);
+    if (match) {
+      loadCardData();
+    }
+  }, [match, params?.reference]);
 
   const handleDeliverySelected = async (delivery: 'printed' | 'digital') => {
     setSelectedDelivery(delivery);
