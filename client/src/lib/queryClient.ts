@@ -71,6 +71,18 @@ export function clearCacheForPayment() {
     queryClient.removeQueries();
     queryClient.invalidateQueries();
     
+    // Preserve important delivery flow data before clearing
+    const preserveKeys = ['selectedDeliveryType', 'deliverTo'];
+    const preservedData: { [key: string]: string | null } = {};
+    
+    preserveKeys.forEach(key => {
+      try {
+        preservedData[key] = sessionStorage.getItem(key);
+      } catch (e) {
+        // Ignore errors reading individual keys
+      }
+    });
+    
     // Clear all localStorage and sessionStorage
     try {
       localStorage.clear();
@@ -83,6 +95,17 @@ export function clearCacheForPayment() {
     } catch (e) {
       console.warn('Could not clear sessionStorage:', e);
     }
+    
+    // Restore preserved delivery flow data
+    preserveKeys.forEach(key => {
+      if (preservedData[key] !== null) {
+        try {
+          sessionStorage.setItem(key, preservedData[key]);
+        } catch (e) {
+          // Ignore errors restoring individual keys
+        }
+      }
+    });
     
     // Force garbage collection if available
     if (window.gc) {

@@ -157,6 +157,7 @@ export default function DeliveryChoice() {
     
     // Store delivery type for both printed and digital cards
     sessionStorage.setItem('selectedDeliveryType', delivery);
+    console.log('[DELIVERY CHOICE] Setting delivery type:', delivery);
     
     // Both delivery types now go to delivery details page to choose recipient
     setTimeout(() => {

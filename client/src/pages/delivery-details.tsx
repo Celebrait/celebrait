@@ -21,6 +21,10 @@ export default function DeliveryDetails() {
   // Get delivery type from session storage
   const deliveryType = sessionStorage.getItem('selectedDeliveryType') || 'printed';
   const isDigital = deliveryType === 'digital';
+  
+  // Debug logging
+  console.log('[DELIVERY DETAILS] Delivery type:', deliveryType);
+  console.log('[DELIVERY DETAILS] Is digital:', isDigital);
 
   // Get recipient name from card data for dynamic text
   const recipientName = cardData?.conversationData?.recipient || cardData?.conversationData?.name || 'the recipient';
@@ -223,6 +227,13 @@ export default function DeliveryDetails() {
               <h2 className="text-2xl font-bold text-gray-800 mb-3">
                 {isDigital ? 'Email Details' : 'Delivery Details'}
               </h2>
+              <div className="mb-2">
+                <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                  isDigital ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
+                }`}>
+                  {isDigital ? 'Digital Download' : 'Printed & Delivered'}
+                </span>
+              </div>
               <p className="text-base text-slate-gray px-4">
                 {isDigital 
                   ? 'Who should receive the digital card link?' 
