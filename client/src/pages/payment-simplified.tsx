@@ -383,7 +383,7 @@ export default function PaymentSimplified() {
               <Button
                 onClick={handlePayment}
                 disabled={processingPayment}
-                className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg transition-all duration-300"
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:opacity-90 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg transition-all duration-300"
               >
                 {processingPayment ? 'Processing...' : 'Pay with Paystack'}
               </Button>
@@ -472,5 +472,4 @@ export default function PaymentSimplified() {
       </main>
     </div>
   );
-}
 }
