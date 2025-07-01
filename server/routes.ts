@@ -277,58 +277,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get card front image (optimized endpoint)
+  // Get card front image (optimized endpoint with performance monitoring)
   app.get("/api/cards/:id/front-image", async (req, res) => {
+    const startTime = Date.now();
     try {
       const cardId = parseInt(req.params.id);
+      
+      // Check ETag for cache validation
+      const clientETag = req.headers['if-none-match'];
+      const etag = `"${cardId}-front"`;
+      
+      if (clientETag === etag) {
+        return res.status(304).end();
+      }
+      
+      console.log(`[PERF] Fetching card ${cardId} for front image...`);
+      const dbStartTime = Date.now();
       const card = await storage.getCard(cardId);
+      const dbEndTime = Date.now();
+      console.log(`[PERF] Database query took: ${dbEndTime - dbStartTime}ms`);
 
       if (!card || !card.frontImageUrl) {
         return res.status(404).json({ message: "Front image not found" });
       }
 
       // Extract base64 data and convert to buffer for faster serving
+      const conversionStartTime = Date.now();
       const base64Data = card.frontImageUrl.split(',')[1];
       const imageBuffer = Buffer.from(base64Data, 'base64');
+      const conversionEndTime = Date.now();
+      console.log(`[PERF] Base64 conversion took: ${conversionEndTime - conversionStartTime}ms`);
       
       // Set appropriate headers for image serving
       res.set({
         'Content-Type': 'image/png',
-        'Content-Length': imageBuffer.length,
+        'Content-Length': imageBuffer.length.toString(),
         'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
-        'ETag': `"${cardId}-front"`
+        'ETag': etag
       });
+      
+      const endTime = Date.now();
+      console.log(`[PERF] Total front image serving time: ${endTime - startTime}ms`);
       
       res.send(imageBuffer);
     } catch (error: any) {
+      const endTime = Date.now();
+      console.error(`[PERF] Front image error after ${endTime - startTime}ms:`, error);
       res.status(500).json({ message: "Error serving front image: " + error.message });
     }
   });
 
-  // Get card inside image (optimized endpoint)
+  // Get card inside image (optimized endpoint with performance monitoring)
   app.get("/api/cards/:id/inside-image", async (req, res) => {
+    const startTime = Date.now();
     try {
       const cardId = parseInt(req.params.id);
+      
+      // Check ETag for cache validation
+      const clientETag = req.headers['if-none-match'];
+      const etag = `"${cardId}-inside"`;
+      
+      if (clientETag === etag) {
+        return res.status(304).end();
+      }
+      
+      console.log(`[PERF] Fetching card ${cardId} for inside image...`);
+      const dbStartTime = Date.now();
       const card = await storage.getCard(cardId);
+      const dbEndTime = Date.now();
+      console.log(`[PERF] Database query took: ${dbEndTime - dbStartTime}ms`);
 
       if (!card || !card.insideImageUrl) {
         return res.status(404).json({ message: "Inside image not found" });
       }
 
       // Extract base64 data and convert to buffer for faster serving
+      const conversionStartTime = Date.now();
       const base64Data = card.insideImageUrl.split(',')[1];
       const imageBuffer = Buffer.from(base64Data, 'base64');
+      const conversionEndTime = Date.now();
+      console.log(`[PERF] Base64 conversion took: ${conversionEndTime - conversionStartTime}ms`);
       
       // Set appropriate headers for image serving
       res.set({
         'Content-Type': 'image/png',
-        'Content-Length': imageBuffer.length,
+        'Content-Length': imageBuffer.length.toString(),
         'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
-        'ETag': `"${cardId}-inside"`
+        'ETag': etag
       });
+      
+      const endTime = Date.now();
+      console.log(`[PERF] Total inside image serving time: ${endTime - startTime}ms`);
       
       res.send(imageBuffer);
     } catch (error: any) {
+      const endTime = Date.now();
+      console.error(`[PERF] Inside image error after ${endTime - startTime}ms:`, error);
       res.status(500).json({ message: "Error serving inside image: " + error.message });
     }
   });
