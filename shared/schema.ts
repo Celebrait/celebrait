@@ -1,32 +1,17 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, json, varchar, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Session storage table for Replit Auth
-export const sessions = pgTable(
-  "sessions",
-  {
-    sid: varchar("sid").primaryKey(),
-    sess: jsonb("sess").notNull(),
-    expire: timestamp("expire").notNull(),
-  },
-  (table) => [index("IDX_session_expire").on(table.expire)],
-);
-
-// Updated users table for Replit Auth
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(), // Replit user ID as string
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
+  id: serial("id").primaryKey(),
+  username: text("username").notNull(),
+  email: text("email").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const cards = pgTable("cards", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id),
+  userId: integer("user_id").references(() => users.id),
   cardType: text("card_type").notNull(), // 'printed' | 'digital'
   printOption: text("print_option"), // 'front-only' | 'front-and-inside'
   sceneType: text("scene_type").notNull(), // 'with-person' | 'scene-only'
@@ -40,7 +25,7 @@ export const cards = pgTable("cards", {
 
 export const lovedOnes = pgTable("loved_ones", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id),
+  userId: integer("user_id").references(() => users.id),
   name: text("name").notNull(),
   birthday: text("birthday").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -67,11 +52,8 @@ export const orders = pgTable("orders", {
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
-  id: true,
+  username: true,
   email: true,
-  firstName: true,
-  lastName: true,
-  profileImageUrl: true,
 });
 
 export const insertCardSchema = createInsertSchema(cards).pick({
@@ -106,7 +88,6 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
-export type UpsertUser = typeof users.$inferInsert; // For Replit Auth upsert operations
 export type InsertCard = z.infer<typeof insertCardSchema>;
 export type Card = typeof cards.$inferSelect;
 export type InsertLovedOne = z.infer<typeof insertLovedOneSchema>;

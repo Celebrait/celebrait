@@ -120,16 +120,6 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- January 1, 2025. Implemented seamless Replit authentication for first-time users:
-  * Anonymous users can start creating cards immediately without barriers
-  * Full conversation flow accessible to everyone (celebration, name, relationship, scene, inside message)
-  * Replit authentication triggers at final step when user clicks "Generate My Card"
-  * Conversation data preserved across authentication via session storage
-  * Users return to final summary after sign-in with all details intact
-  * Email notifications automatically sent to authenticated user's account email
-  * Cards saved to user account whether payment is completed or not
-  * Replaced dual email input system with secure Replit authentication
-  * Maintained optimal first-time user experience while ensuring data security
 - June 30, 2025. Implemented mandatory email collection step in conversation flow:
   * Added required email collection step before final summary screen to ensure all users provide email
   * Enhanced conversation flow to explain AI generation takes up to 2 minutes, requiring email for notification

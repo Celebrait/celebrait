@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette, Edit3, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
 
@@ -123,7 +122,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [copyrightConsentOpen, setCopyrightConsentOpen] = useState(false);
   const [hasCopyrightConsent, setHasCopyrightConsent] = useState(false);
   const [photoRequirementsOpen, setPhotoRequirementsOpen] = useState(false);
-  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
 
 
   const [placeholderText, setPlaceholderText] = useState('');
@@ -133,42 +131,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [showHowItWorksModal, setShowHowItWorksModal] = useState(false);
   const [showInspirationModal, setShowInspirationModal] = useState(false);
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [showEmailPopup, setShowEmailPopup] = useState(false);
+  const [popupEmail, setPopupEmail] = useState('');
+  const [popupEmailConfirm, setPopupEmailConfirm] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
-
-  // Restore conversation data after authentication
-  useEffect(() => {
-    const pendingData = sessionStorage.getItem('pendingCardData');
-    if (pendingData && user?.id) {
-      try {
-        const { answers: savedAnswers, onboardingData } = JSON.parse(pendingData);
-        setAnswers(savedAnswers);
-        
-        // Update onboarding state if needed
-        if (onboardingData.selectedDelivery) {
-          onboarding.setSelectedDelivery(onboardingData.selectedDelivery);
-        }
-        
-        // Go to final summary step
-        const summaryIndex = steps.findIndex(step => step.id === 'email_notification');
-        if (summaryIndex !== -1) {
-          setCurrentStepIndex(summaryIndex);
-        }
-        
-        // Clear the pending data
-        sessionStorage.removeItem('pendingCardData');
-        
-        toast({
-          title: "Welcome back!",
-          description: "Your card details have been restored. Ready to generate your card!",
-        });
-      } catch (error) {
-        console.error('Failed to restore pending card data:', error);
-        sessionStorage.removeItem('pendingCardData');
-      }
-    }
-  }, [user?.id]);
 
   // AI design quotes for loading screen
   const aiQuotes = [
@@ -670,20 +638,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
   const initializeCard = async () => {
     try {
-      if (!user?.id) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to create cards",
-          variant: "destructive",
-        });
-        return;
-      }
-
       // All cards now include front and inside content
       const price = onboarding.selectedDelivery === 'digital' ? 2900 : 12900;
 
       const cardResponse = await apiRequest("POST", "/api/cards", {
-        userId: user.id,
+        userId: 1,
         cardType: onboarding.selectedDelivery,
         printOption: 'front-and-inside', // Always front and inside now
         sceneType: onboarding.selectedSceneType,
@@ -1107,19 +1066,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   };
 
   const generateCard = async () => {
-    // Generate card directly for authenticated users
-    await actuallyGenerateCard();
+    // Show email popup instead of directly generating
+    setShowEmailPopup(true);
   };
 
   const actuallyGenerateCard = async () => {
     setIsLoading(true);
+    setShowEmailPopup(false);
     
     try {
       console.log('Starting card generation with options:', {
         photo_option: answers.photo_option,
         has_photos: uploadedPhotos.length > 0,
         cardId: cardId,
-        user_email: user?.email
+        notification_email: popupEmail
       });
       
       // Ensure card is initialized
@@ -1155,7 +1115,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         onCardGenerated(generatedCard);
         
         // Send email notification using the popup email
-        const emailToNotify = user?.email;
+        const emailToNotify = popupEmail;
         
         console.log('Email notification decision:', {
           finalEmailToNotify: emailToNotify
@@ -1463,40 +1423,79 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
               </div>
               
               <div className="space-y-4">
-                {user?.email ? (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <p className="text-green-800 font-medium">Email notifications will be sent to: {user.email}</p>
-                  </div>
-                ) : (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-blue-800">To generate your card and receive email notifications, you'll need to sign in with your account.</p>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Email Address</label>
+                  <Input
+                    type="email"
+                    value={answers.notification_email || ''}
+                    onChange={(e) => {
+                      console.log('Email notification address entered:', e.target.value);
+                      setAnswers(prev => ({ ...prev, notification_email: e.target.value }));
+                    }}
+                    placeholder="Enter your email address"
+                    className="text-lg p-3 rounded-xl"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Confirm Email</label>
+                  <Input
+                    type="email"
+                    value={answers.notification_email_confirm || ''}
+                    onChange={(e) => {
+                      console.log('Email notification confirmation entered:', e.target.value);
+                      setAnswers(prev => ({ ...prev, notification_email_confirm: e.target.value }));
+                    }}
+                    placeholder="Confirm your email address"
+                    className="text-lg p-3 rounded-xl"
+                  />
+                </div>
+                
+                {answers.notification_email && answers.notification_email_confirm && answers.notification_email !== answers.notification_email_confirm && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-red-700 text-sm">Email addresses don't match</p>
                   </div>
                 )}
                 
                 <Button 
-                  onClick={async () => {
-                    // Check if user is authenticated, if not redirect to login
-                    if (!user?.id) {
-                      // Store conversation data
-                      sessionStorage.setItem('pendingCardData', JSON.stringify({
-                        answers,
-                        onboardingData: {
-                          selectedDelivery: onboarding.selectedDelivery,
-                          selectedSceneType: onboarding.selectedSceneType
-                        }
-                      }));
-                      
-                      // Redirect to authentication
-                      window.location.href = '/api/login';
+                  onClick={() => {
+                    if (!answers.notification_email || !answers.notification_email_confirm) {
+                      toast({
+                        title: "Email Required",
+                        description: "Please enter and confirm your email address.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    if (answers.notification_email !== answers.notification_email_confirm) {
+                      toast({
+                        title: "Email Mismatch", 
+                        description: "Email addresses don't match.",
+                        variant: "destructive"
+                      });
                       return;
                     }
                     
-                    // Generate the card for authenticated users
-                    await actuallyGenerateCard();
+                    // Show email confirmation screen and start background generation
+                    setIsLoading(false);
+                    setShowEmailConfirmation(true);
+                    
+                    // Ensure card is initialized before starting background generation
+                    if (cardId) {
+                      generateCardInBackground(answers.notification_email);
+                    } else {
+                      // Initialize card first, then start background generation
+                      initializeCard().then(() => {
+                        generateCardInBackground(answers.notification_email);
+                      }).catch(error => {
+                        console.error('Failed to initialize card:', error);
+                      });
+                    }
                   }}
+                  disabled={!answers.notification_email || !answers.notification_email_confirm || answers.notification_email !== answers.notification_email_confirm}
                   className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
-                  {user?.id ? '🎉 Generate My Card!' : '🔐 Sign In & Generate Card'}
+                  🎉 Notify Me When Ready!
                 </Button>
                 
                 <p className="text-sm text-gray-500 text-center">
@@ -2580,7 +2579,101 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         </DialogContent>
       </Dialog>
 
+      {/* Email Collection Popup Modal */}
+      <Dialog open={showEmailPopup} onOpenChange={setShowEmailPopup}>
+        <DialogContent className="max-w-2xl bg-white border-2 border-gray-200">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Email Required for Card Delivery</DialogTitle>
+            <DialogDescription>We need your email to notify you when your card is ready</DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 p-4">
+            {/* Header Section - Matching Your Screenshot */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-6 rounded-xl">
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">📧 Email Required for Card Delivery</h3>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    Our AI creates incredible custom artwork, but it takes up to 2 minutes to generate. Instead of making you wait, 
+                    we'll email you the moment your personalized card is ready! This way you can close this window and continue 
+                    with your day while we work our magic.
+                  </p>
+                </div>
+              </div>
+            </div>
 
+            {/* Email Form - Matching Your Screenshot */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Email Address</label>
+                <Input
+                  type="email"
+                  value={popupEmail}
+                  onChange={(e) => setPopupEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Confirm Email Address</label>
+                <Input
+                  type="email"
+                  value={popupEmailConfirm}
+                  onChange={(e) => setPopupEmailConfirm(e.target.value)}
+                  placeholder="Confirm your email address"
+                  className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                />
+              </div>
+
+              {popupEmail && popupEmailConfirm && popupEmail !== popupEmailConfirm && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-700 text-sm">Email addresses don't match</p>
+                </div>
+              )}
+
+              {/* Generate Button - Matching Your Screenshot */}
+              <div className="flex justify-center pt-4">
+                <Button 
+                  onClick={() => {
+                    if (!popupEmail || !popupEmailConfirm) {
+                      toast({
+                        title: "Email Required",
+                        description: "Please enter and confirm your email address.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    if (popupEmail !== popupEmailConfirm) {
+                      toast({
+                        title: "Email Mismatch", 
+                        description: "Email addresses don't match.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    
+                    // Start actual card generation
+                    actuallyGenerateCard();
+                  }}
+                  disabled={!popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
+                  className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                >
+                  GENERATE MY CARD
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

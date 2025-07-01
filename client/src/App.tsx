@@ -6,8 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ScrollToTop from "@/components/scroll-to-top";
 import { handleQuotaError } from "./lib/queryClient";
 import { useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Checkout from "@/pages/checkout";
 import Payment from "@/pages/payment";
@@ -26,34 +24,27 @@ import DeliveryChoice from "@/pages/delivery-choice";
 import CardPreviewPage from "@/pages/card-preview-page";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
-
   return (
     <>
       <ScrollToTop />
       <Switch>
-        {/* Allow everyone to access the card creation flow */}
         <Route path="/" component={Home} />
         <Route path="/checkout/:cardId" component={Checkout} />
         <Route path="/payment/:cardId" component={Payment} />
         <Route path="/payment-tips/:cardId" component={PaymentWithTips} />
+        <Route path="/checkout/:cardId" component={Checkout} />
         <Route path="/payment-success" component={PaymentSuccess} />
         <Route path="/order-success" component={OrderSuccess} />
         <Route path="/complete-order/:cardId" component={CompleteOrder} />
-        <Route path="/delivery-choice/:cardId" component={DeliveryChoice} />
-        
-        {/* Public routes accessible to everyone */}
         <Route path="/card/:linkId" component={DigitalCardViewer} />
         <Route path="/card-preview/:reference" component={CardPreviewPage} />
-        
-        {/* Test routes */}
         <Route path="/test" component={TestGeneration} />
         <Route path="/test-payment" component={TestPayment} />
         <Route path="/test-generation" component={TestGeneration} />
         <Route path="/style-test" component={StyleTest} />
         <Route path="/gpt-image-test" component={GPTImageTest} />
         <Route path="/test-card-preview" component={TestCardPreview} />
-        
+        <Route path="/delivery-choice/:cardId" component={DeliveryChoice} />
         <Route component={NotFound} />
       </Switch>
     </>
