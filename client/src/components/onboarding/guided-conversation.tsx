@@ -1964,21 +1964,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         ) : (
                           <>
                             <Sparkles className="w-5 h-5 mr-3" />
-                            Generate My Card
+                            I'm Happy, Let's Create!
                           </>
                         )}
                       </Button>
                       
-                      {/* Test Mode Button */}
-                      <Button 
-                        onClick={handleTestModeGeneration}
-                        disabled={isLoading}
-                        variant="outline"
-                        className="px-6 py-3 rounded-xl border-2 border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 text-gray-700 font-medium shadow-sm"
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        Test Mode (Skip AI Generation)
-                      </Button>
+
                     </div>
 
                     {/* Complete Summary with Edit Options */}
@@ -2021,57 +2012,22 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         </div>
                       )}
 
-                      {/* Celebration */}
-                      <div className="bg-white rounded-xl p-4 border border-purple-200">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <h4 className="font-semibold text-purple-700">Celebration</h4>
-                            <p className="text-gray-700">{answers.celebration?.replace('_', ' ') || 'Not specified'}</p>
-                          </div>
-                          <Button onClick={() => handleEditStep('celebration')} variant="outline" size="sm">
-                            Edit
-                          </Button>
-                        </div>
-                      </div>
 
-                      {/* Recipient */}
-                      <div className="bg-white rounded-xl p-4 border border-purple-200">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <h4 className="font-semibold text-purple-700">Recipient</h4>
-                            <p className="text-gray-700">{answers.recipient || 'Not specified'}</p>
-                          </div>
-                          <Button onClick={() => handleEditStep('recipient')} variant="outline" size="sm">
-                            Edit
-                          </Button>
-                        </div>
-                      </div>
 
-                      {/* Name */}
-                      <div className="bg-white rounded-xl p-4 border border-purple-200">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <h4 className="font-semibold text-purple-700">Name</h4>
-                            <p className="text-gray-700 font-medium">{answers.name || 'Not specified'}</p>
+                      {/* Scene - Only show when user selected upload photo + describe scene */}
+                      {answers.photo_option === 'upload_and_describe' && (
+                        <div className="bg-white rounded-xl p-4 border border-purple-200">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <h4 className="font-semibold text-purple-700">Scene Description</h4>
+                              <p className="text-gray-700">{answers.scene || 'Not specified'}</p>
+                            </div>
+                            <Button onClick={() => handleEditStep('scene')} variant="outline" size="sm">
+                              Edit
+                            </Button>
                           </div>
-                          <Button onClick={() => handleEditStep('name')} variant="outline" size="sm">
-                            Edit
-                          </Button>
                         </div>
-                      </div>
-
-                      {/* Scene */}
-                      <div className="bg-white rounded-xl p-4 border border-purple-200">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <h4 className="font-semibold text-purple-700">Scene Description</h4>
-                            <p className="text-gray-700">{answers.scene || 'Not specified'}</p>
-                          </div>
-                          <Button onClick={() => handleEditStep('scene')} variant="outline" size="sm">
-                            Edit
-                          </Button>
-                        </div>
-                      </div>
+                      )}
 
                       {/* Art Style */}
                       <div className="bg-white rounded-xl p-4 border border-purple-200">
@@ -2090,7 +2046,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       <div className="bg-white rounded-xl p-4 border border-purple-200">
                         <div className="flex justify-between items-center">
                           <div>
-                            <h4 className="font-semibold text-purple-700">Card Message</h4>
+                            <h4 className="font-semibold text-purple-700">Front of Card Message</h4>
                             <p className="text-gray-700">{answers.message || 'no front of card text chosen'}</p>
                           </div>
                           <Button onClick={() => handleEditStep('message')} variant="outline" size="sm">
@@ -2103,7 +2059,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       <div className="bg-white rounded-xl p-4 border border-purple-200">
                         <div className="flex justify-between items-center">
                           <div>
-                            <h4 className="font-semibold text-purple-700">Inside Message</h4>
+                            <h4 className="font-semibold text-purple-700">Inside of Card Message</h4>
                             <p className="text-gray-700">{answers.inside_message || 'No inside message'}</p>
                           </div>
                           <Button onClick={() => handleEditStep('inside_message')} variant="outline" size="sm">
@@ -2118,7 +2074,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                         onClick={handleGenerateCard}
                         className="px-8 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-lg font-semibold"
                       >
-                        Generate My Card!
+                        I'm Happy, Let's Create!
                         <Sparkles className="w-5 h-5 ml-2" />
                       </Button>
                     </div>
