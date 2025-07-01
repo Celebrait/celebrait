@@ -2279,6 +2279,95 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
                 {currentStep.type === 'text' && (
                   <div className="space-y-4">
+                    {/* Typography Examples for Front Card Message */}
+                    {currentStep.id === 'message' && (
+                      <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 p-4 rounded-lg">
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0">
+                            <svg className="w-5 h-5 text-purple-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="ml-3 flex-1">
+                            <h3 className="text-sm font-semibold text-purple-800">💡 Typography Magic:</h3>
+                            <p className="text-sm text-purple-700 mt-1 mb-3">
+                              The AI will artistically render your text to match your chosen art style. View examples of how different messages look on greeting cards!
+                            </p>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="bg-white border-purple-300 text-purple-600 hover:bg-purple-50 hover:border-purple-400 hover:text-purple-700 text-xs font-medium"
+                                >
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  View Typography Examples
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+                                <DialogHeader>
+                                  <DialogTitle className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center text-lg">
+                                      ✨
+                                    </div>
+                                    Front Card Typography Examples
+                                  </DialogTitle>
+                                  <DialogDescription>
+                                    See how the AI renders text to match different art styles
+                                  </DialogDescription>
+                                </DialogHeader>
+                                
+                                <div className="overflow-y-auto max-h-[70vh] p-4">
+                                  <Carousel className="w-full">
+                                    <CarouselContent className="-ml-4">
+                                      {[
+                                        { message: "Happy Birthday", style: "Watercolor", bg: "bg-gradient-to-br from-pink-100 to-blue-100", color: "text-purple-800" },
+                                        { message: "Congratulations", style: "Modern", bg: "bg-gradient-to-br from-gray-100 to-white", color: "text-gray-800" },
+                                        { message: "With Love", style: "Script", bg: "bg-gradient-to-br from-rose-100 to-pink-100", color: "text-rose-800" },
+                                        { message: "Best Wishes", style: "Elegant", bg: "bg-gradient-to-br from-amber-100 to-yellow-100", color: "text-amber-800" },
+                                        { message: "Thinking of You", style: "Casual", bg: "bg-gradient-to-br from-green-100 to-emerald-100", color: "text-green-800" },
+                                        { message: "Thank You", style: "Bold", bg: "bg-gradient-to-br from-blue-100 to-indigo-100", color: "text-blue-800" }
+                                      ].map((example, index) => (
+                                        <CarouselItem key={index} className="pl-4 basis-1/2 md:basis-1/3">
+                                          <div className="space-y-2">
+                                            <div className={`aspect-square ${example.bg} rounded-2xl flex items-center justify-center border-2 border-white shadow-lg`}>
+                                              <div className="text-center p-4">
+                                                <div className={`text-2xl font-bold ${example.color} mb-2`}>
+                                                  {example.message}
+                                                </div>
+                                                <div className="text-xs text-gray-500">
+                                                  {example.style} Style
+                                                </div>
+                                              </div>
+                                            </div>
+                                            <p className="text-sm text-center text-gray-600 font-medium">
+                                              "{example.message}"
+                                            </p>
+                                          </div>
+                                        </CarouselItem>
+                                      ))}
+                                    </CarouselContent>
+                                    <CarouselPrevious className="left-0" />
+                                    <CarouselNext className="right-0" />
+                                  </Carousel>
+                                  
+                                  <div className="mt-6 bg-purple-50 rounded-lg p-4">
+                                    <h4 className="font-medium text-purple-800 mb-2">Typography Features:</h4>
+                                    <ul className="text-purple-700 text-sm space-y-1">
+                                      <li>• Text automatically styled to match your chosen art theme</li>
+                                      <li>• Perfect font pairing for visual harmony</li>
+                                      <li>• Optimal sizing and positioning</li>
+                                      <li>• Leave blank for image-only cards</li>
+                                    </ul>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="flex space-x-3">
                       <Input
                         value={currentInput}
@@ -2552,6 +2641,125 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                               <Eye className="w-3 h-3 mr-1" />
                               View Inspiration Examples
                             </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Typography Examples for Inside Card Message */}
+                    {currentStep.id === 'inside_message' && (
+                      <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 p-4 rounded-lg">
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0">
+                            <svg className="w-5 h-5 text-green-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="ml-3 flex-1">
+                            <h3 className="text-sm font-semibold text-green-800">💡 Inside Card Typography:</h3>
+                            <p className="text-sm text-green-700 mt-1 mb-3">
+                              The AI will artistically render your inside message to match your chosen art style. See how different messages look inside greeting cards!
+                            </p>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="bg-white border-green-300 text-green-600 hover:bg-green-50 hover:border-green-400 hover:text-green-700 text-xs font-medium"
+                                >
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  View Inside Card Examples
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+                                <DialogHeader>
+                                  <DialogTitle className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center text-lg">
+                                      💝
+                                    </div>
+                                    Inside Card Typography Examples
+                                  </DialogTitle>
+                                  <DialogDescription>
+                                    See how the AI renders inside messages to match your art style
+                                  </DialogDescription>
+                                </DialogHeader>
+                                
+                                <div className="overflow-y-auto max-h-[70vh] p-4">
+                                  <Carousel className="w-full">
+                                    <CarouselContent className="-ml-4">
+                                      {[
+                                        { 
+                                          message: "Wishing you all the happiness in the world on your special day!", 
+                                          style: "Elegant Script",
+                                          bg: "bg-gradient-to-br from-rose-100 to-pink-100", 
+                                          color: "text-rose-800" 
+                                        },
+                                        { 
+                                          message: "Hope your birthday is as amazing as you are! With love from the family.", 
+                                          style: "Modern Clean",
+                                          bg: "bg-gradient-to-br from-blue-100 to-indigo-100", 
+                                          color: "text-blue-800" 
+                                        },
+                                        { 
+                                          message: "Celebrating another year of your wonderful friendship. Thank you for being you!", 
+                                          style: "Handwritten",
+                                          bg: "bg-gradient-to-br from-amber-100 to-orange-100", 
+                                          color: "text-amber-800" 
+                                        },
+                                        { 
+                                          message: "May this special day bring you joy, laughter, and all your heart desires.", 
+                                          style: "Classic Serif",
+                                          bg: "bg-gradient-to-br from-purple-100 to-violet-100", 
+                                          color: "text-purple-800" 
+                                        },
+                                        { 
+                                          message: "Here's to new adventures, sweet memories, and dreams coming true!", 
+                                          style: "Playful Sans",
+                                          bg: "bg-gradient-to-br from-green-100 to-emerald-100", 
+                                          color: "text-green-800" 
+                                        },
+                                        { 
+                                          message: "Sending you warm wishes and big hugs on your special celebration!", 
+                                          style: "Brush Script",
+                                          bg: "bg-gradient-to-br from-teal-100 to-cyan-100", 
+                                          color: "text-teal-800" 
+                                        }
+                                      ].map((example, index) => (
+                                        <CarouselItem key={index} className="pl-4 basis-1/2 md:basis-1/3">
+                                          <div className="space-y-2">
+                                            <div className={`aspect-square ${example.bg} rounded-2xl flex items-center justify-center border-2 border-white shadow-lg p-4`}>
+                                              <div className="text-center">
+                                                <div className={`text-sm font-medium ${example.color} leading-relaxed mb-2`}>
+                                                  {example.message}
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-2">
+                                                  {example.style}
+                                                </div>
+                                              </div>
+                                            </div>
+                                            <p className="text-xs text-center text-gray-600 font-medium line-clamp-2">
+                                              "{example.message.split(' ').slice(0, 5).join(' ')}..."
+                                            </p>
+                                          </div>
+                                        </CarouselItem>
+                                      ))}
+                                    </CarouselContent>
+                                    <CarouselPrevious className="left-0" />
+                                    <CarouselNext className="right-0" />
+                                  </Carousel>
+                                  
+                                  <div className="mt-6 bg-green-50 rounded-lg p-4">
+                                    <h4 className="font-medium text-green-800 mb-2">Inside Card Features:</h4>
+                                    <ul className="text-green-700 text-sm space-y-1">
+                                      <li>• Typography matches your chosen front card style</li>
+                                      <li>• Optimized text layout for readability</li>
+                                      <li>• Complementary decorative elements</li>
+                                      <li>• Professional printing quality</li>
+                                    </ul>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
                           </div>
                         </div>
                       </div>
