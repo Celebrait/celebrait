@@ -57,7 +57,7 @@ export default function Step1NameInput({ onboarding }: Step1Props) {
           disabled={!name.trim()}
           className="w-full mt-4 sm:mt-6 bg-gradient-celebrait hover:opacity-90 text-white py-3 sm:py-4 rounded-2xl font-semibold text-base sm:text-lg shadow-lg transition-all duration-300 transform hover:scale-105"
         >
-          Let's Go! 🚀
+          Get Started
         </Button>
 
         {/* Back Button */}
