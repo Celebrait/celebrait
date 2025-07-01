@@ -2127,105 +2127,139 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
                 {currentStep.type === 'art_style_grid' && currentStep.options && (
                   <div className="space-y-6">
-                    {/* Interactive Art Style Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-                      {currentStep.options.map((style) => (
-                        <div key={style.value} className="relative group">
-                          <Button
-                            onClick={() => handleAnswer(style.value)}
-                            variant="outline"
-                            className="h-auto p-0 overflow-hidden border-2 border-gray-200 hover:border-purple-400 transition-all duration-200 rounded-2xl group-hover:scale-105 group-hover:shadow-lg bg-white"
-                          >
-                            <div className="flex flex-col items-center p-4 w-full">
-                              {/* Color indicator & emoji */}
-                              <div className={`w-16 h-16 ${style.color} rounded-xl flex items-center justify-center text-2xl mb-3 shadow-lg`}>
-                                {style.emoji}
-                              </div>
-                              
-                              {/* Style name */}
-                              <h3 className="font-semibold text-sm text-center text-gray-800 mb-1 leading-tight">
-                                {style.label}
-                              </h3>
-                              
-                              {/* Short description */}
-                              <p className="text-xs text-gray-600 text-center leading-tight px-1">
-                                {style.description}
-                              </p>
+                    {/* Carousel Navigation for 4 styles at a time */}
+                    <Carousel className="w-full">
+                      <CarouselContent>
+                        {Array.from({ length: Math.ceil(currentStep.options.length / 4) }).map((_, pageIndex) => (
+                          <CarouselItem key={pageIndex}>
+                            <div className="grid grid-cols-2 gap-4">
+                              {currentStep.options
+                                .slice(pageIndex * 4, pageIndex * 4 + 4)
+                                .map((style) => (
+                                  <div key={style.value} className="space-y-3">
+                                    {/* Main style button */}
+                                    <Button
+                                      onClick={() => handleAnswer(style.value)}
+                                      variant="outline"
+                                      className="h-auto p-0 w-full overflow-hidden border-2 border-gray-200 hover:border-purple-400 transition-all duration-200 rounded-2xl hover:scale-105 hover:shadow-lg bg-white"
+                                    >
+                                      <div className="flex flex-col items-center p-4 w-full">
+                                        {/* Color indicator & emoji */}
+                                        <div className={`w-16 h-16 ${style.color} rounded-xl flex items-center justify-center text-2xl mb-3 shadow-lg`}>
+                                          {style.emoji}
+                                        </div>
+                                        
+                                        {/* Style name */}
+                                        <h3 className="font-semibold text-sm text-center text-gray-800 mb-1 leading-tight">
+                                          {style.label}
+                                        </h3>
+                                        
+                                        {/* Short description */}
+                                        <p className="text-xs text-gray-600 text-center leading-tight px-1">
+                                          {style.description}
+                                        </p>
+                                      </div>
+                                    </Button>
+                                    
+                                    {/* Preview button - separate and below */}
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="w-full bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-600 hover:text-gray-800 py-2 text-xs"
+                                        >
+                                          <Eye className="w-3 h-3 mr-1" />
+                                          View Example
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="max-w-lg">
+                                        <DialogHeader>
+                                          <DialogTitle className="flex items-center gap-3">
+                                            <div className={`w-8 h-8 ${style.color} rounded-lg flex items-center justify-center text-lg`}>
+                                              {style.emoji}
+                                            </div>
+                                            {style.label}
+                                          </DialogTitle>
+                                          <DialogDescription>
+                                            {style.description}
+                                          </DialogDescription>
+                                        </DialogHeader>
+                                        
+                                        <div className="space-y-4">
+                                          {/* Example preview placeholder */}
+                                          <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center">
+                                            <div className="text-center">
+                                              <div className={`w-16 h-16 ${style.color} rounded-xl flex items-center justify-center text-3xl mb-3 mx-auto shadow-lg`}>
+                                                {style.emoji}
+                                              </div>
+                                              <p className="text-gray-600 text-sm">
+                                                Example {style.label} Preview
+                                              </p>
+                                              <p className="text-xs text-gray-500 mt-1">
+                                                Coming soon...
+                                              </p>
+                                            </div>
+                                          </div>
+                                          
+                                          {/* Inspiration info */}
+                                          <div className="bg-purple-50 rounded-lg p-4">
+                                            <h4 className="font-medium text-purple-800 mb-2">Inspired by:</h4>
+                                            <p className="text-purple-700 text-sm">{style.inspiration}</p>
+                                          </div>
+                                          
+                                          {/* Select button */}
+                                          <Button
+                                            onClick={() => {
+                                              handleAnswer(style.value);
+                                              // Close dialog
+                                              document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+                                            }}
+                                            className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-3 rounded-xl font-semibold"
+                                          >
+                                            Choose {style.label}
+                                          </Button>
+                                        </div>
+                                      </DialogContent>
+                                    </Dialog>
+                                  </div>
+                                ))}
                             </div>
-                          </Button>
-                          
-                          {/* Preview eye icon */}
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="absolute top-2 right-2 p-1 bg-white/80 hover:bg-white rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Eye className="w-4 h-4 text-gray-600" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-lg">
-                              <DialogHeader>
-                                <DialogTitle className="flex items-center gap-3">
-                                  <div className={`w-8 h-8 ${style.color} rounded-lg flex items-center justify-center text-lg`}>
-                                    {style.emoji}
-                                  </div>
-                                  {style.label}
-                                </DialogTitle>
-                                <DialogDescription>
-                                  {style.description}
-                                </DialogDescription>
-                              </DialogHeader>
-                              
-                              <div className="space-y-4">
-                                {/* Example preview placeholder */}
-                                <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center">
-                                  <div className="text-center">
-                                    <div className={`w-16 h-16 ${style.color} rounded-xl flex items-center justify-center text-3xl mb-3 mx-auto shadow-lg`}>
-                                      {style.emoji}
-                                    </div>
-                                    <p className="text-gray-600 text-sm">
-                                      Example {style.label} Preview
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      Coming soon...
-                                    </p>
-                                  </div>
-                                </div>
-                                
-                                {/* Inspiration info */}
-                                <div className="bg-purple-50 rounded-lg p-4">
-                                  <h4 className="font-medium text-purple-800 mb-2">Inspired by:</h4>
-                                  <p className="text-purple-700 text-sm">{style.inspiration}</p>
-                                </div>
-                                
-                                {/* Select button */}
-                                <Button
-                                  onClick={() => {
-                                    handleAnswer(style.value);
-                                    // Close dialog
-                                    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-                                  }}
-                                  className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-3 rounded-xl font-semibold"
-                                >
-                                  Choose {style.label}
-                                </Button>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      ))}
-                    </div>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious className="left-0" />
+                      <CarouselNext className="right-0" />
+                    </Carousel>
                     
-                    {/* Help text */}
-                    <div className="text-center">
-                      <p className="text-sm text-gray-600 mb-2">
-                        💡 Tap the <Eye className="w-4 h-4 inline mx-1" /> icon to preview each style
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Each style will transform your card with a unique artistic look
+                    {/* Custom text input section */}
+                    <div className="space-y-3 border-t pt-6">
+                      <div className="text-center">
+                        <h4 className="font-semibold text-gray-800 mb-2">Create Your Own Style</h4>
+                        <p className="text-sm text-gray-600 mb-4">
+                          AI is amazing at creating unique styles! Describe any artistic vision you have in mind.
+                        </p>
+                      </div>
+                      
+                      <div className="flex space-x-2">
+                        <Input
+                          value={currentInput}
+                          onChange={(e) => setCurrentInput(e.target.value)}
+                          placeholder="e.g., watercolor painting, gothic art, minimalist line drawing..."
+                          className="text-lg p-3 rounded-lg border-purple-200 focus:border-purple-400"
+                          onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
+                        />
+                        <Button 
+                          onClick={handleTextSubmit}
+                          disabled={!currentInput.trim()}
+                          className="px-4 py-3 rounded-lg bg-gradient-to-r from-purple-500 to-blue-500"
+                        >
+                          <ArrowRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      
+                      <p className="text-xs text-gray-500 text-center">
+                        Try: "vintage oil painting", "cyberpunk neon", "hand-drawn sketch", or anything creative!
                       </p>
                     </div>
                   </div>
