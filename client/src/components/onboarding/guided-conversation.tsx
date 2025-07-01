@@ -1482,21 +1482,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       return;
                     }
                     
-                    // Show email confirmation screen and start background generation
-                    setIsLoading(false);
-                    setShowEmailConfirmation(true);
-                    
-                    // Ensure card is initialized before starting background generation
-                    if (cardId) {
-                      generateCardInBackground(answers.notification_email);
-                    } else {
-                      // Initialize card first, then start background generation
-                      initializeCard().then(() => {
-                        generateCardInBackground(answers.notification_email);
-                      }).catch(error => {
-                        console.error('Failed to initialize card:', error);
-                      });
-                    }
+                    // Generate the card directly for authenticated users
+                    await actuallyGenerateCard();
                   }}
                   disabled={!answers.notification_email || !answers.notification_email_confirm || answers.notification_email !== answers.notification_email_confirm}
                   className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
