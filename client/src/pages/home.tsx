@@ -50,10 +50,12 @@ export default function Home() {
     setIsCreatingMockCard(true);
     try {
       // Create a mock card with test data
-      const response = await apiRequest({
+      const response = await fetch("/api/cards", {
         method: "POST",
-        endpoint: "/api/cards",
-        body: {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           userId: 1, // Mock user ID
           cardType: "printed",
           printOption: "front-and-inside",
@@ -67,11 +69,13 @@ export default function Home() {
             scene: "A beautiful garden party with balloons and cake"
           },
           price: 12900 // $129 in cents
-        }
+        })
       });
+      
+      const mockCard = await response.json();
 
       // Redirect to delivery choice with the new card ID
-      setLocation(`/delivery-choice/${response.id}`);
+      setLocation(`/delivery-choice/${mockCard.id}`);
     } catch (error) {
       console.error("Error creating mock card:", error);
       setIsCreatingMockCard(false);

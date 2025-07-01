@@ -23,7 +23,7 @@ import PaymentWithTips from "@/pages/payment-with-tips";
 import DeliveryChoice from "@/pages/delivery-choice";
 import DeliveryDetails from "@/pages/delivery-details";
 import CardPreviewPage from "@/pages/card-preview-page";
-import TestDeliveryFlow from "@/pages/test-delivery-flow";
+
 
 function Router() {
   return (
@@ -48,7 +48,7 @@ function Router() {
         <Route path="/test-card-preview" component={TestCardPreview} />
         <Route path="/delivery-choice/:cardId" component={DeliveryChoice} />
         <Route path="/delivery-details/:reference" component={DeliveryDetails} />
-        <Route path="/test-delivery-flow" component={() => <TestDeliveryFlow />} />
+
         <Route component={NotFound} />
       </Switch>
     </>
