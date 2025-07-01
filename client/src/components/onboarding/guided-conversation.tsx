@@ -154,7 +154,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'celebration',
       question: 'What celebration is this card for?',
-      aiMessage: `Let's do this, ${onboarding.userName}! 🎉 So what are we celebrating with your greetings card?`,
+      aiMessage: `Let's do this, ${onboarding.userName}! So what are we celebrating with your greetings card?`,
       type: 'select',
       options: [
         { value: 'birthday', label: 'A Birthday', description: 'Celebrate another year of life', color: 'bg-pink-500', icon: 'cake' },
@@ -2127,11 +2127,27 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
                 {currentStep.type === 'art_style_grid' && currentStep.options && (
                   <div className="space-y-6 overflow-visible">
+                    {/* Navigation Instructions */}
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600 mb-4">
+                        💡 Swipe left/right or use the arrows to browse all art styles
+                      </p>
+                    </div>
+                    
                     {/* Carousel Navigation for 4 styles at a time */}
-                    <Carousel className="w-full overflow-visible">
-                      <CarouselContent className="overflow-visible">
+                    <Carousel 
+                      className="w-full overflow-visible"
+                      opts={{
+                        align: "start",
+                        loop: false,
+                        skipSnaps: false,
+                        dragFree: true,
+                        containScroll: "trimSnaps"
+                      }}
+                    >
+                      <CarouselContent className="overflow-visible -ml-2 md:-ml-4">
                         {Array.from({ length: Math.ceil(currentStep.options.length / 4) }).map((_, pageIndex) => (
-                          <CarouselItem key={pageIndex} className="overflow-visible">
+                          <CarouselItem key={pageIndex} className="overflow-visible pl-2 md:pl-4">
                             <div className="grid grid-cols-2 gap-6 p-4 overflow-visible">
                               {currentStep.options
                                 .slice(pageIndex * 4, pageIndex * 4 + 4)
