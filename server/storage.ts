@@ -8,17 +8,19 @@ const sql = neon(process.env.DATABASE_URL!);
 const db = drizzle(sql);
 
 export interface IStorage {
-  getUser(id: number): Promise<User | undefined>;
+  // User operations for Replit Auth
+  getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  upsertUser(user: UpsertUser): Promise<User>; // For Replit Auth
 
-  createCard(card: InsertCard & { userId: number }): Promise<Card>;
+  createCard(card: InsertCard & { userId: string }): Promise<Card>;
   getCard(id: number): Promise<Card | undefined>;
   updateCard(id: number, updates: Partial<Card>): Promise<Card>;
-  getUserCards(userId: number): Promise<Card[]>;
+  getUserCards(userId: string): Promise<Card[]>;
 
-  createLovedOne(lovedOne: InsertLovedOne & { userId: number }): Promise<LovedOne>;
-  getUserLovedOnes(userId: number): Promise<LovedOne[]>;
+  createLovedOne(lovedOne: InsertLovedOne & { userId: string }): Promise<LovedOne>;
+  getUserLovedOnes(userId: string): Promise<LovedOne[]>;
 
   createOrder(order: InsertOrder): Promise<Order>;
   getOrder(id: number): Promise<Order | undefined>;
