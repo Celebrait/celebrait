@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, emergencyStorageCleanup } from '@/lib/queryClient';
 import { ArrowLeft, User, Mail, Phone, MapPin } from 'lucide-react';
+import Header from '@/components/header';
 
 interface PaymentFormData {
   email: string;
@@ -202,8 +203,16 @@ export default function PaymentSimplified() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-celebrait flex items-center justify-center">
-        <div className="text-white text-xl">Loading payment details...</div>
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+        <Header />
+        <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20">
+            <div className="text-center">
+              <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p>Loading payment details...</p>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -212,34 +221,41 @@ export default function PaymentSimplified() {
   const deliveryTarget = deliverTo === 'self' ? 'yourself' : recipientName;
 
   return (
-    <div className="min-h-screen bg-gradient-celebrait">
-      <div className="container mx-auto px-4 py-8">
-        {/* Back Button */}
-        <Button
-          onClick={handleBack}
-          variant="ghost"
-          className="text-white hover:bg-white/10 mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Delivery Details
-        </Button>
-
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+      <Header />
+      
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20">
+          {/* Back Button */}
+          <Button
+            onClick={handleBack}
+            variant="ghost"
+            className="mb-6"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          
+          {/* Header Section */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-4">
-              Your Information
-            </h1>
-            <p className="text-xl text-white/90">
-              Delivering to: <span className="font-semibold">{deliveryTarget}</span>
-            </p>
+            <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
+              <User className="text-white w-10 h-10" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Your Information</h1>
+            <p className="text-lg text-slate-gray">Enter your details and shipping address</p>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8">
+            {/* Delivery Info */}
+            <div className="text-center lg:col-span-2 mb-6">
+              <p className="text-lg text-gray-600">
+                Delivering to: <span className="font-semibold text-gray-800">{deliveryTarget}</span>
+              </p>
+            </div>
             {/* Left Column - Form */}
             <div className="space-y-6">
               {/* Personal Information */}
-              <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-xl">
+              <Card className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center text-gray-800">
                     <User className="w-5 h-5 mr-2" />
@@ -293,7 +309,7 @@ export default function PaymentSimplified() {
               </Card>
 
               {/* Delivery Address */}
-              <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-xl">
+              <Card className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center text-gray-800">
                     <MapPin className="w-5 h-5 mr-2" />
@@ -375,7 +391,7 @@ export default function PaymentSimplified() {
 
             {/* Right Column - Order Summary (Mobile: Bottom) */}
             <div className="lg:sticky lg:top-8 lg:h-fit">
-              <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-xl">
+              <Card className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-gray-800">Order Summary</CardTitle>
                 </CardHeader>
@@ -453,7 +469,8 @@ export default function PaymentSimplified() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
+}
 }
