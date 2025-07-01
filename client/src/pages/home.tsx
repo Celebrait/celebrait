@@ -7,7 +7,7 @@ import Step2DeliveryChoice from "@/components/onboarding/step2-delivery-choice";
 import Step3PrintedOptions from "@/components/onboarding/step3-printed-options";
 import Step4AILoading from "@/components/onboarding/step4-ai-loading";
 import Step5SceneChoice from "@/components/onboarding/step5-scene-choice";
-import GuidedConversation from "@/components/onboarding/guided-conversation-clean";
+import GuidedConversation from "@/components/onboarding/guided-conversation";
 import CardPreview from "@/components/card-preview";
 
 import { useOnboarding } from "@/hooks/use-onboarding";
