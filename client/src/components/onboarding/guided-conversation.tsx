@@ -2128,20 +2128,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 {currentStep.type === 'art_style_grid' && currentStep.options && (
                   <div className="space-y-6">
                     {/* Carousel Navigation for 4 styles at a time */}
-                    <Carousel className="w-full">
+                    <Carousel className="w-full overflow-visible">
                       <CarouselContent>
                         {Array.from({ length: Math.ceil(currentStep.options.length / 4) }).map((_, pageIndex) => (
                           <CarouselItem key={pageIndex}>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-4 overflow-visible">
                               {currentStep.options
                                 .slice(pageIndex * 4, pageIndex * 4 + 4)
                                 .map((style) => (
-                                  <div key={style.value} className="space-y-3">
+                                  <div key={style.value} className="space-y-3 relative z-10">
                                     {/* Main style button */}
                                     <Button
                                       onClick={() => handleAnswer(style.value)}
                                       variant="outline"
-                                      className="h-auto p-0 w-full overflow-hidden border-2 border-gray-200 hover:border-purple-400 transition-all duration-200 rounded-2xl hover:scale-105 hover:shadow-lg bg-white"
+                                      className="h-auto p-0 w-full overflow-hidden border-2 border-gray-200 hover:border-purple-400 transition-all duration-200 rounded-2xl hover:scale-105 hover:shadow-lg bg-white relative z-20"
                                     >
                                       <div className="flex flex-col items-center p-4 w-full">
                                         {/* Color indicator & emoji */}
@@ -2149,27 +2149,22 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                           {style.emoji}
                                         </div>
                                         
-                                        {/* Style name */}
-                                        <h3 className="font-semibold text-sm text-center text-gray-800 mb-1 leading-tight">
+                                        {/* Style name only */}
+                                        <h3 className="font-semibold text-sm text-center text-gray-800 leading-tight">
                                           {style.label}
                                         </h3>
-                                        
-                                        {/* Short description */}
-                                        <p className="text-xs text-gray-600 text-center leading-tight px-1">
-                                          {style.description}
-                                        </p>
                                       </div>
                                     </Button>
                                     
-                                    {/* Preview button - separate and below */}
+                                    {/* Preview button - more prominent */}
                                     <Dialog>
                                       <DialogTrigger asChild>
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="w-full bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-600 hover:text-gray-800 py-2 text-xs"
+                                          className="w-full bg-purple-50 hover:bg-purple-100 border-purple-200 hover:border-purple-300 text-purple-700 hover:text-purple-800 py-3 text-sm font-medium"
                                         >
-                                          <Eye className="w-3 h-3 mr-1" />
+                                          <Eye className="w-4 h-4 mr-2" />
                                           View Example
                                         </Button>
                                       </DialogTrigger>
