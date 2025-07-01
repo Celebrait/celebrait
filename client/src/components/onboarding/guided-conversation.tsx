@@ -97,8 +97,8 @@ interface ConversationStep {
   id: string;
   question: string;
   aiMessage: string | JSX.Element;
-  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload' | 'photo_creation_choice' | 'people_details' | 'email_collection' | 'generation_confirmation';
-  options?: Array<{ value: string; label: string; description?: string; color?: string; icon?: string; details?: string; disabled?: boolean }>;
+  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload' | 'photo_creation_choice' | 'people_details' | 'email_collection' | 'generation_confirmation' | 'art_style_grid';
+  options?: Array<{ value: string; label: string; description?: string; color?: string; icon?: string; details?: string; disabled?: boolean; inspiration?: string; emoji?: string }>;
   placeholder?: string;
   required?: boolean;
 }
@@ -456,20 +456,104 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
         ? `Perfect! Now let's choose the art style for your scene. This sets the whole mood and feel - I want to make sure it captures the perfect atmosphere for this ${answers.celebration} celebration!`
         : `Perfect! ✨ Now let's choose the art style for ${answers.name || 'their'}'s ${answers.celebration} card.`,
-      type: 'select',
+      type: 'art_style_grid',
       options: [
-        { value: 'realistic', label: 'Realistic', description: 'Lifelike and detailed', color: 'bg-blue-500' },
-        { value: 'cartoon', label: 'Cartoon', description: 'Fun and playful', color: 'bg-orange-500' },
-        { value: 'watercolor', label: 'Watercolor', description: 'Soft and artistic', color: 'bg-purple-500' },
-        { value: 'minimalist', label: 'Minimalist', description: 'Clean and simple', color: 'bg-green-500' },
-        { value: 'oil_painting', label: 'Oil Painting', description: 'Classic and elegant', color: 'bg-amber-500' },
-        { value: 'digital_art', label: 'Digital Art', description: 'Modern and vibrant', color: 'bg-cyan-500' },
-        { value: 'vintage', label: 'Vintage', description: 'Retro and nostalgic', color: 'bg-rose-500' },
-        { value: 'anime', label: 'Anime', description: 'Japanese animation style', color: 'bg-pink-500' },
-        { value: 'sketch', label: 'Pencil Sketch', description: 'Hand-drawn and artistic', color: 'bg-gray-500' },
-        { value: 'pop_art', label: 'Pop Art', description: 'Bold and colorful', color: 'bg-red-500' },
-        { value: 'impressionist', label: 'Impressionist', description: 'Dreamy and painterly', color: 'bg-indigo-500' },
-        { value: 'geometric', label: 'Geometric', description: 'Abstract and modern', color: 'bg-teal-500' }
+        { 
+          value: 'ai_painterly', 
+          label: 'AI-Painterly / Oil Portrait', 
+          description: 'Classical oil painting with AI-enhanced realism',
+          inspiration: 'Classical oil painting',
+          color: 'bg-amber-600',
+          emoji: '🎨'
+        },
+        { 
+          value: 'anime', 
+          label: 'Anime', 
+          description: 'Studio Ghibli and modern anime character design',
+          inspiration: 'Studio Ghibli, anime',
+          color: 'bg-pink-500',
+          emoji: '🌸'
+        },
+        { 
+          value: 'cyberpunk', 
+          label: 'Cyberpunk', 
+          description: 'Neon, dystopian sci-fi environments',
+          inspiration: 'Blade Runner, Cyberpunk 2077',
+          color: 'bg-cyan-500',
+          emoji: '🌆'
+        },
+        { 
+          value: 'lego', 
+          label: 'LEGO', 
+          description: 'LEGO character aesthetics',
+          inspiration: 'LEGO minifigures',
+          color: 'bg-red-500',
+          emoji: '🧱'
+        },
+        { 
+          value: 'pixar', 
+          label: 'Pixar', 
+          description: 'Pixar-style facial proportions and textures',
+          inspiration: 'Pixar animation',
+          color: 'bg-blue-500',
+          emoji: '🎬'
+        },
+        { 
+          value: 'renaissance', 
+          label: 'Renaissance Painting', 
+          description: 'Old Masters, dramatic lighting, elaborate outfits',
+          inspiration: 'Classical Renaissance art',
+          color: 'bg-purple-700',
+          emoji: '🏛️'
+        },
+        { 
+          value: 'fantasy_realism', 
+          label: 'Fantasy Realism', 
+          description: 'Elven characters, fantasy worlds',
+          inspiration: 'LOTR, Zelda',
+          color: 'bg-emerald-600',
+          emoji: '🧝'
+        },
+        { 
+          value: 'pixel_art', 
+          label: 'Pixel Art', 
+          description: 'Retro video games',
+          inspiration: '8-bit gaming',
+          color: 'bg-indigo-500',
+          emoji: '🎮'
+        },
+        { 
+          value: 'barbie_glam', 
+          label: 'Barbie / Glam Doll', 
+          description: 'Hyper-feminine, glossy doll-like styles',
+          inspiration: 'Barbie aesthetics',
+          color: 'bg-pink-400',
+          emoji: '💖'
+        },
+        { 
+          value: 'grunge', 
+          label: 'Grunge Aesthetic', 
+          description: 'Y2K and 90s fashion, dark filters, and edgy tones',
+          inspiration: '90s grunge culture',
+          color: 'bg-gray-700',
+          emoji: '⚡'
+        },
+        { 
+          value: 'vaporwave', 
+          label: 'Vaporwave', 
+          description: '80s/90s digital nostalgia, chrome, pastel tones, VHS textures',
+          inspiration: '80s/90s aesthetics',
+          color: 'bg-violet-500',
+          emoji: '📼'
+        },
+        { 
+          value: 'mythical_creature', 
+          label: 'Mythical Creature / Creature Fusion', 
+          description: 'AI mashups of people with mythical beings',
+          inspiration: 'Mermaids, dragons, fantasy creatures',
+          color: 'bg-orange-600',
+          emoji: '🐉'
+        }
       ]
     },
     {
@@ -2041,6 +2125,111 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                   </div>
                 )}
 
+                {currentStep.type === 'art_style_grid' && currentStep.options && (
+                  <div className="space-y-6">
+                    {/* Interactive Art Style Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                      {currentStep.options.map((style) => (
+                        <div key={style.value} className="relative group">
+                          <Button
+                            onClick={() => handleAnswer(style.value)}
+                            variant="outline"
+                            className="h-auto p-0 overflow-hidden border-2 border-gray-200 hover:border-purple-400 transition-all duration-200 rounded-2xl group-hover:scale-105 group-hover:shadow-lg bg-white"
+                          >
+                            <div className="flex flex-col items-center p-4 w-full">
+                              {/* Color indicator & emoji */}
+                              <div className={`w-16 h-16 ${style.color} rounded-xl flex items-center justify-center text-2xl mb-3 shadow-lg`}>
+                                {style.emoji}
+                              </div>
+                              
+                              {/* Style name */}
+                              <h3 className="font-semibold text-sm text-center text-gray-800 mb-1 leading-tight">
+                                {style.label}
+                              </h3>
+                              
+                              {/* Short description */}
+                              <p className="text-xs text-gray-600 text-center leading-tight px-1">
+                                {style.description}
+                              </p>
+                            </div>
+                          </Button>
+                          
+                          {/* Preview eye icon */}
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="absolute top-2 right-2 p-1 bg-white/80 hover:bg-white rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Eye className="w-4 h-4 text-gray-600" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-lg">
+                              <DialogHeader>
+                                <DialogTitle className="flex items-center gap-3">
+                                  <div className={`w-8 h-8 ${style.color} rounded-lg flex items-center justify-center text-lg`}>
+                                    {style.emoji}
+                                  </div>
+                                  {style.label}
+                                </DialogTitle>
+                                <DialogDescription>
+                                  {style.description}
+                                </DialogDescription>
+                              </DialogHeader>
+                              
+                              <div className="space-y-4">
+                                {/* Example preview placeholder */}
+                                <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center">
+                                  <div className="text-center">
+                                    <div className={`w-16 h-16 ${style.color} rounded-xl flex items-center justify-center text-3xl mb-3 mx-auto shadow-lg`}>
+                                      {style.emoji}
+                                    </div>
+                                    <p className="text-gray-600 text-sm">
+                                      Example {style.label} Preview
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Coming soon...
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                {/* Inspiration info */}
+                                <div className="bg-purple-50 rounded-lg p-4">
+                                  <h4 className="font-medium text-purple-800 mb-2">Inspired by:</h4>
+                                  <p className="text-purple-700 text-sm">{style.inspiration}</p>
+                                </div>
+                                
+                                {/* Select button */}
+                                <Button
+                                  onClick={() => {
+                                    handleAnswer(style.value);
+                                    // Close dialog
+                                    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+                                  }}
+                                  className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-3 rounded-xl font-semibold"
+                                >
+                                  Choose {style.label}
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Help text */}
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600 mb-2">
+                        💡 Tap the <Eye className="w-4 h-4 inline mx-1" /> icon to preview each style
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Each style will transform your card with a unique artistic look
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {currentStep.type === 'text' && (
                   <div className="space-y-4">
