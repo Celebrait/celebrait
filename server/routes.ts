@@ -1483,11 +1483,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get card by ready reference for delivery choice flow
+  // Get card by ready reference for delivery choice flow (cached with performance monitoring)
   app.get("/api/cards/ready/:reference", async (req, res) => {
+    const startTime = Date.now();
     try {
       const reference = req.params.reference;
-      console.log('Fetching card by ready reference:', reference);
+      
+      // Check cache first
+      const cacheKey = `ready-${reference}`;
+      const cached = cardMetadataCache.get(cacheKey);
+      if (cached && (Date.now() - cached.timestamp) < METADATA_CACHE_TTL) {
+        console.log(`[CACHE] Serving ready card from metadata cache for reference: ${reference}`);
+        res.set({
+          'Cache-Control': 'public, max-age=300',
+          'ETag': `"${reference}"`
+        });
+        return res.json(cached.data);
+      }
+      
+      console.log(`[PERF] Cache miss - fetching card by ready reference: ${reference}`);
       
       // Extract cardId from reference if it follows pattern
       if (!reference.startsWith('celebrait_ready_')) {
@@ -1506,7 +1520,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Cannot extract card ID from reference" });
       }
 
+      const dbStartTime = Date.now();
       const card = await storage.getCard(parseInt(cardId));
+      const dbEndTime = Date.now();
+      console.log(`[PERF] Database query for ready card took: ${dbEndTime - dbStartTime}ms`);
       
       if (!card) {
         return res.status(404).json({ message: "Card not found" });
@@ -1527,19 +1544,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         conversationData: card.conversationData || {}
       };
       
-      // Add caching headers for faster subsequent loads
-      res.set({
-        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
-        'ETag': `"${cardId}-${card.status}"`
-      });
-      
-      res.json({
+      const responseData = {
         card: optimizedCard,
         reference,
         message: "Card ready for delivery choice"
+      };
+      
+      // Cache the response
+      cardMetadataCache.set(cacheKey, {
+        data: responseData,
+        timestamp: Date.now()
       });
+      console.log(`[CACHE] Cached ready card metadata for reference: ${reference}`);
+      
+      // Add caching headers for faster subsequent loads
+      res.set({
+        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+        'ETag': `"${reference}"`
+      });
+      
+      const endTime = Date.now();
+      console.log(`[PERF] Total ready card serving time: ${endTime - startTime}ms`);
+      
+      res.json(responseData);
     } catch (error: any) {
-      console.error('Error fetching card by ready reference:', error);
+      const endTime = Date.now();
+      console.error(`[PERF] Ready card error after ${endTime - startTime}ms:`, error);
       res.status(400).json({ message: error.message });
     }
   });
