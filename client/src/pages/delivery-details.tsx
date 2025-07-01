@@ -1,17 +1,56 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { User, Heart, ArrowLeft } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { User, Heart, ArrowLeft, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import Header from '@/components/header';
-import Footer from '@/components/footer';
 import { emergencyStorageCleanup } from '@/lib/queryClient';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function DeliveryDetails() {
   const { reference } = useParams();
   const [, setLocation] = useLocation();
   const [cardData, setCardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedOption, setSelectedOption] = useState<'self' | 'recipient' | null>(null);
+  const [currentOption, setCurrentOption] = useState(0);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
+  const isMobile = useIsMobile();
+
+  // Get recipient name from card data for dynamic text
+  const recipientName = cardData?.conversationData?.recipient || cardData?.conversationData?.name || 'the recipient';
+
+  const options = [
+    {
+      id: 'self',
+      title: 'Deliver to Me',
+      subtitle: `I'll give it to ${recipientName} myself`,
+      icon: User,
+      features: [
+        'Card delivered to your address',
+        'You handle the surprise moment',
+        'Perfect for personal delivery',
+        'Control the timing'
+      ],
+      gradient: 'from-purple-500 to-blue-500',
+      available: true
+    },
+    {
+      id: 'recipient',
+      title: `Deliver to ${recipientName}`,
+      subtitle: `Send directly to ${recipientName}'s address`,
+      icon: Heart,
+      features: [
+        'Direct delivery to recipient',
+        'Complete surprise delivery',
+        'No coordination needed',
+        'Professional presentation'
+      ],
+      gradient: 'from-pink-500 to-rose-500',
+      available: true
+    }
+  ];
 
   useEffect(() => {
     loadCardData();
@@ -46,6 +85,8 @@ export default function DeliveryDetails() {
   };
 
   const handleDeliveryChoice = (deliverTo: 'self' | 'recipient') => {
+    setSelectedOption(deliverTo);
+    
     // Store delivery choice
     sessionStorage.setItem('deliverTo', deliverTo);
     
@@ -60,106 +101,244 @@ export default function DeliveryDetails() {
     }, 200);
   };
 
+  // Touch handlers for mobile swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe && currentOption < options.length - 1) {
+      setCurrentOption(currentOption + 1);
+    }
+    if (isRightSwipe && currentOption > 0) {
+      setCurrentOption(currentOption - 1);
+    }
+  };
+
+  const nextOption = () => {
+    if (currentOption < options.length - 1) {
+      setCurrentOption(currentOption + 1);
+    }
+  };
+
+  const prevOption = () => {
+    if (currentOption > 0) {
+      setCurrentOption(currentOption - 1);
+    }
+  };
+
   const handleBack = () => {
     window.history.back();
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-celebrait flex items-center justify-center">
-        <div className="text-white text-xl">Loading delivery options...</div>
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+        <Header />
+        <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p>Loading delivery options...</p>
+          </div>
+        </main>
       </div>
     );
   }
 
-  // Get recipient name from card data
-  const recipientName = cardData?.conversationData?.recipient || cardData?.conversationData?.name || 'the recipient';
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+        <Header />
+        
+        <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20">
+            {/* Back Button */}
+            <Button 
+              onClick={handleBack} 
+              variant="ghost" 
+              className="mb-4"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
 
+            {/* Header Section */}
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-4 flex items-center justify-center animate-float">
+                <MapPin className="text-white w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-3">Delivery Details</h2>
+              <p className="text-base text-slate-gray px-4">Where should we deliver your printed card?</p>
+            </div>
+
+            {/* Navigation Dots */}
+            <div className="flex justify-center mb-4 space-x-2">
+              {options.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentOption(index)}
+                  className={`w-3 h-3 rounded-full transition-all duration-200 ${
+                    index === currentOption 
+                      ? 'bg-purple-600 scale-125' 
+                      : 'bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Swipeable Options */}
+            <div className="relative overflow-hidden">
+              <div 
+                className="overflow-hidden"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+              >
+                <div 
+                  className="flex transition-transform duration-300 ease-out"
+                  style={{ transform: `translateX(-${currentOption * 100}%)` }}
+                >
+                  {options.map((option, index) => (
+                    <div key={option.id} className="w-full flex-shrink-0 px-4">
+                      <Card 
+                        className="bg-white/80 border-2 border-purple-200 cursor-pointer relative"
+                        onClick={() => handleDeliveryChoice(option.id as 'self' | 'recipient')}
+                      >
+                        <CardHeader className="text-center pb-4">
+                          <div className={`w-16 h-16 bg-gradient-to-r ${option.gradient} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                            <option.icon className="text-white w-8 h-8" />
+                          </div>
+                          <CardTitle className="text-xl">{option.title}</CardTitle>
+                          <p className="text-sm text-gray-600 mt-2">{option.subtitle}</p>
+                        </CardHeader>
+                        <CardContent className="text-center">
+                          <ul className="space-y-2 text-sm text-gray-600 mb-6">
+                            {option.features.map((feature, featureIndex) => (
+                              <li key={featureIndex}>✓ {feature}</li>
+                            ))}
+                          </ul>
+                          <Button 
+                            className={`w-full bg-gradient-to-r ${option.gradient} hover:opacity-90`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeliveryChoice(option.id as 'self' | 'recipient');
+                            }}
+                          >
+                            Choose This Option
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Navigation Arrows */}
+              <button
+                onClick={prevOption}
+                disabled={currentOption === 0}
+                className={`absolute left-0 top-1/2 transform -translate-y-1/2 z-10 p-2 rounded-full shadow-lg transition-all duration-200 ${
+                  currentOption === 0
+                    ? 'bg-gray-300 text-gray-400 cursor-not-allowed'
+                    : 'bg-white text-purple-600 hover:bg-purple-50 hover:scale-110'
+                }`}
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={nextOption}
+                disabled={currentOption === options.length - 1}
+                className={`absolute right-0 top-1/2 transform -translate-y-1/2 z-10 p-2 rounded-full shadow-lg transition-all duration-200 ${
+                  currentOption === options.length - 1
+                    ? 'bg-gray-300 text-gray-400 cursor-not-allowed'
+                    : 'bg-white text-purple-600 hover:bg-purple-50 hover:scale-110'
+                }`}
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Desktop version
   return (
-    <div className="min-h-screen bg-gradient-celebrait">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
       <Header />
       
-      <div className="container mx-auto px-4 py-8">
-        {/* Back Button */}
-        <Button
-          onClick={handleBack}
-          variant="ghost"
-          className="text-white hover:bg-white/10 mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Delivery Options
-        </Button>
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20">
+          {/* Back Button */}
+          <Button 
+            onClick={handleBack} 
+            variant="ghost" 
+            className="mb-6"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
 
-        <div className="max-w-2xl mx-auto">
-          {/* Header */}
+          {/* Header Section */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-4">
-              Delivery Details
-            </h1>
-            <p className="text-xl text-white/90">
-              Where should we deliver your printed card?
-            </p>
+            <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
+              <MapPin className="text-white w-10 h-10" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Delivery Details</h1>
+            <p className="text-lg text-slate-gray">Where should we deliver your printed card?</p>
           </div>
 
           {/* Delivery Options */}
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Deliver to Self */}
-            <Card 
-              className="bg-white/95 backdrop-blur-sm border-0 shadow-xl cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
-              onClick={() => handleDeliveryChoice('self')}
-            >
-              <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <User className="w-8 h-8 text-purple-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-3">
-                  Deliver to Me
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  I'll receive the card and give it to {recipientName} myself
-                </p>
-                <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-semibold">
-                  Choose This Option
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Deliver to Recipient */}
-            <Card 
-              className="bg-white/95 backdrop-blur-sm border-0 shadow-xl cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
-              onClick={() => handleDeliveryChoice('recipient')}
-            >
-              <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Heart className="w-8 h-8 text-pink-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-3">
-                  Deliver to {recipientName}
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Send the card directly to {recipientName}'s address
-                </p>
-                <Button className="w-full bg-pink-600 hover:bg-pink-700 text-white py-3 rounded-xl font-semibold">
-                  Choose This Option
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Info Section */}
-          <div className="mt-12 bg-white/10 backdrop-blur-sm rounded-2xl p-6">
-            <h4 className="text-white font-semibold mb-3">📦 What happens next?</h4>
-            <ul className="text-white/90 space-y-2">
-              <li>• You'll provide the delivery address on the next page</li>
-              <li>• Your card will be professionally printed and shipped</li>
-              <li>• Delivery typically takes 3-5 business days</li>
-              <li>• You'll receive tracking information via email</li>
-            </ul>
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {options.map((option) => (
+              <Card 
+                key={option.id}
+                className={`cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-105 ${
+                  selectedOption === option.id 
+                    ? `border-2 ${option.id === 'self' ? 'border-purple-500 bg-purple-50' : 'border-pink-500 bg-pink-50'}` 
+                    : 'border-2 border-gray-200 bg-white/80'
+                }`}
+                onClick={() => handleDeliveryChoice(option.id as 'self' | 'recipient')}
+              >
+                <CardHeader className="text-center pb-4">
+                  <div className={`w-16 h-16 bg-gradient-to-r ${option.gradient} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                    <option.icon className="text-white w-8 h-8" />
+                  </div>
+                  <CardTitle className="text-xl">{option.title}</CardTitle>
+                  <p className="text-sm text-gray-600 mt-2">{option.subtitle}</p>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <ul className="space-y-2 text-sm text-gray-600 mb-6">
+                    {option.features.map((feature, featureIndex) => (
+                      <li key={featureIndex}>✓ {feature}</li>
+                    ))}
+                  </ul>
+                  <Button 
+                    className={`w-full bg-gradient-to-r ${option.gradient} hover:opacity-90`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeliveryChoice(option.id as 'self' | 'recipient');
+                    }}
+                  >
+                    Choose This Option
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
-      </div>
-
-      <Footer />
+      </main>
     </div>
   );
 }

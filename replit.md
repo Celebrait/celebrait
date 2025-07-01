@@ -120,6 +120,16 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 1, 2025. Redesigned delivery details page with mobile-first swipeable interface:
+  * Completely redesigned delivery details page to match delivery choice page styling
+  * Implemented swipeable mobile interface with navigation dots and arrow controls
+  * Added consistent gradient backgrounds and frosted glass effects
+  * Created two delivery options: "Deliver to Me" and "Deliver to [Recipient]" with dynamic recipient names
+  * Each option includes feature lists, gradient icon backgrounds, and clear action buttons
+  * Mobile version shows one option at a time with smooth swipe gestures
+  * Desktop version shows both options side by side with hover effects
+  * Enhanced test delivery flow with red test button accessible via URL parameter (?test=delivery)
+  * Unified design language across delivery choice and delivery details pages for seamless user experience
 - July 1, 2025. Enhanced art style selection with interactive carousel interface:
   * Replaced grid with carousel showing 4 art styles at a time with smooth navigation
   * Added 12 new art styles including Anime, Cyberpunk, LEGO, Pixar, Renaissance, Fantasy Realism, Pixel Art, Barbie/Glam, Grunge, Vaporwave, and Mythical Creature fusion
