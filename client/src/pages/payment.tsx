@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
-import { CreditCard, Truck, MapPin, User, Mail, Phone } from 'lucide-react';
+import { apiRequest, emergencyStorageCleanup } from '@/lib/queryClient';
+import { ArrowLeft, User, Mail, Phone, MapPin } from 'lucide-react';
 
 interface PaymentFormData {
   email: string;
@@ -31,6 +31,8 @@ export default function Payment() {
   const [card, setCard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [deliverTo, setDeliverTo] = useState<'self' | 'recipient'>('self');
+  const [currentView, setCurrentView] = useState<'front' | 'inside'>('front');
   const [formData, setFormData] = useState<PaymentFormData>({
     email: '',
     firstName: '',

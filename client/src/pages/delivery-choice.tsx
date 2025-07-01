@@ -172,13 +172,13 @@ export default function DeliveryChoice() {
       // Store delivery type for printed cards
       sessionStorage.setItem('selectedDeliveryType', 'printed');
       
-      // Navigate to payment page for printed cards
+      // Navigate to delivery details page for printed cards
       setTimeout(() => {
         try {
-          setLocation(`/payment-tips/${params?.reference}`);
+          setLocation(`/delivery-details/${params?.reference}`);
         } catch (error) {
           console.error('Navigation failed:', error);
-          window.location.href = `/payment-tips/${params?.reference}`;
+          window.location.href = `/delivery-details/${params?.reference}`;
         }
       }, 200);
     }
