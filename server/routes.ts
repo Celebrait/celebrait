@@ -36,6 +36,45 @@ const stripe = hasStripe ? new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-05-28.basil",
 }) : null;
 
+// Performance cache for card images
+const imageCache = new Map<string, {
+  data: Buffer;
+  timestamp: number;
+  etag: string;
+}>();
+
+// Performance cache for card metadata
+const cardMetadataCache = new Map<string, {
+  data: any;
+  timestamp: number;
+}>();
+
+const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
+const METADATA_CACHE_TTL = 5 * 60 * 1000; // 5 minutes for metadata
+
+// Clear expired cache entries periodically
+setInterval(() => {
+  const now = Date.now();
+  
+  // Clean image cache
+  const imageKeysToDelete: string[] = [];
+  imageCache.forEach((value, key) => {
+    if (now - value.timestamp > CACHE_TTL) {
+      imageKeysToDelete.push(key);
+    }
+  });
+  imageKeysToDelete.forEach(key => imageCache.delete(key));
+  
+  // Clean metadata cache
+  const metadataKeysToDelete: string[] = [];
+  cardMetadataCache.forEach((value, key) => {
+    if (now - value.timestamp > METADATA_CACHE_TTL) {
+      metadataKeysToDelete.push(key);
+    }
+  });
+  metadataKeysToDelete.forEach(key => cardMetadataCache.delete(key));
+}, 10 * 60 * 1000); // Clean every 10 minutes
+
 // Watermark utility function
 async function applyWatermark(imageData: string, opacity: number = 0.3): Promise<string> {
   try {
@@ -225,27 +264,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get card
+  // Get card by ID (optimized endpoint with performance monitoring)
   app.get("/api/cards/:id", async (req, res) => {
+    const startTime = Date.now();
     try {
       const cardId = parseInt(req.params.id);
+      
+      console.log(`[PERF] Fetching card ${cardId} metadata...`);
+      const dbStartTime = Date.now();
       const card = await storage.getCard(cardId);
-
-      if (!card) {
-        return res.status(404).json({ message: "Card not found" });
-      }
-
-      res.json(card);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // Get card by ID (optimized endpoint)
-  app.get("/api/cards/:id", async (req, res) => {
-    try {
-      const cardId = parseInt(req.params.id);
-      const card = await storage.getCard(cardId);
+      const dbEndTime = Date.now();
+      console.log(`[PERF] Card metadata query took: ${dbEndTime - dbStartTime}ms`);
 
       if (!card) {
         return res.status(404).json({ message: "Card not found" });
@@ -271,27 +300,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'ETag': `"${cardId}-${card.status}"`
       });
       
+      const endTime = Date.now();
+      console.log(`[PERF] Total card metadata serving time: ${endTime - startTime}ms`);
+      
       res.json(optimizedCard);
     } catch (error: any) {
+      const endTime = Date.now();
+      console.error(`[PERF] Card metadata error after ${endTime - startTime}ms:`, error);
       res.status(500).json({ message: "Error fetching card: " + error.message });
     }
   });
 
-  // Get card front image (optimized endpoint with performance monitoring)
+  // Get card front image (cached endpoint with performance monitoring)
   app.get("/api/cards/:id/front-image", async (req, res) => {
     const startTime = Date.now();
     try {
       const cardId = parseInt(req.params.id);
-      
-      // Check ETag for cache validation
-      const clientETag = req.headers['if-none-match'];
+      const cacheKey = `front-${cardId}`;
       const etag = `"${cardId}-front"`;
       
+      // Check client cache first
+      const clientETag = req.headers['if-none-match'];
       if (clientETag === etag) {
+        console.log(`[CACHE] 304 Not Modified for front image ${cardId}`);
         return res.status(304).end();
       }
       
-      console.log(`[PERF] Fetching card ${cardId} for front image...`);
+      // Check server cache
+      const cached = imageCache.get(cacheKey);
+      if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+        console.log(`[CACHE] Serving front image ${cardId} from memory cache (${cached.data.length} bytes)`);
+        res.set({
+          'Content-Type': 'image/png',
+          'Content-Length': cached.data.length.toString(),
+          'Cache-Control': 'public, max-age=31536000',
+          'ETag': etag
+        });
+        return res.send(cached.data);
+      }
+      
+      console.log(`[PERF] Cache miss - fetching card ${cardId} for front image...`);
       const dbStartTime = Date.now();
       const card = await storage.getCard(cardId);
       const dbEndTime = Date.now();
@@ -301,18 +349,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Front image not found" });
       }
 
-      // Extract base64 data and convert to buffer for faster serving
+      // Extract base64 data and convert to buffer
       const conversionStartTime = Date.now();
       const base64Data = card.frontImageUrl.split(',')[1];
       const imageBuffer = Buffer.from(base64Data, 'base64');
       const conversionEndTime = Date.now();
       console.log(`[PERF] Base64 conversion took: ${conversionEndTime - conversionStartTime}ms`);
       
-      // Set appropriate headers for image serving
+      // Cache the processed image
+      imageCache.set(cacheKey, {
+        data: imageBuffer,
+        timestamp: Date.now(),
+        etag
+      });
+      console.log(`[CACHE] Cached front image ${cardId} (${imageBuffer.length} bytes)`);
+      
+      // Set headers and send
       res.set({
         'Content-Type': 'image/png',
         'Content-Length': imageBuffer.length.toString(),
-        'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
+        'Cache-Control': 'public, max-age=31536000',
         'ETag': etag
       });
       
@@ -327,21 +383,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get card inside image (optimized endpoint with performance monitoring)
+  // Get card inside image (cached endpoint with performance monitoring)  
   app.get("/api/cards/:id/inside-image", async (req, res) => {
     const startTime = Date.now();
     try {
       const cardId = parseInt(req.params.id);
-      
-      // Check ETag for cache validation
-      const clientETag = req.headers['if-none-match'];
+      const cacheKey = `inside-${cardId}`;
       const etag = `"${cardId}-inside"`;
       
+      // Check client cache first
+      const clientETag = req.headers['if-none-match'];
       if (clientETag === etag) {
+        console.log(`[CACHE] 304 Not Modified for inside image ${cardId}`);
         return res.status(304).end();
       }
       
-      console.log(`[PERF] Fetching card ${cardId} for inside image...`);
+      // Check server cache
+      const cached = imageCache.get(cacheKey);
+      if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+        console.log(`[CACHE] Serving inside image ${cardId} from memory cache (${cached.data.length} bytes)`);
+        res.set({
+          'Content-Type': 'image/png',
+          'Content-Length': cached.data.length.toString(), 
+          'Cache-Control': 'public, max-age=31536000',
+          'ETag': etag
+        });
+        return res.send(cached.data);
+      }
+      
+      console.log(`[PERF] Cache miss - fetching card ${cardId} for inside image...`);
       const dbStartTime = Date.now();
       const card = await storage.getCard(cardId);
       const dbEndTime = Date.now();
@@ -351,18 +421,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Inside image not found" });
       }
 
-      // Extract base64 data and convert to buffer for faster serving
+      // Extract base64 data and convert to buffer
       const conversionStartTime = Date.now();
       const base64Data = card.insideImageUrl.split(',')[1];
       const imageBuffer = Buffer.from(base64Data, 'base64');
       const conversionEndTime = Date.now();
       console.log(`[PERF] Base64 conversion took: ${conversionEndTime - conversionStartTime}ms`);
       
-      // Set appropriate headers for image serving
+      // Cache the processed image
+      imageCache.set(cacheKey, {
+        data: imageBuffer,
+        timestamp: Date.now(),
+        etag
+      });
+      console.log(`[CACHE] Cached inside image ${cardId} (${imageBuffer.length} bytes)`);
+      
+      // Set headers and send
       res.set({
         'Content-Type': 'image/png',
         'Content-Length': imageBuffer.length.toString(),
-        'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
+        'Cache-Control': 'public, max-age=31536000',
         'ETag': etag
       });
       
