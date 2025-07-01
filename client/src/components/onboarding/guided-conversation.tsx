@@ -1686,7 +1686,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-blue-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-blue-50 overflow-visible">
       {/* Header - Robot and Question */}
       <div className="bg-gradient-to-br from-purple-50 to-blue-50 border-b border-white/20">
         <div className="max-w-4xl mx-auto p-4 sm:p-6">
@@ -1756,13 +1756,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       </div>
 
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto p-4 sm:p-6">
+      <div className="flex-1 overflow-y-auto overflow-x-visible">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6 overflow-visible">
           {/* Answer Options with Fade Transition */}
           {!isTyping && (
             <div 
               key={currentStepIndex} 
-              className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-white/20 animate-fade-in"
+              className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-white/20 animate-fade-in overflow-visible"
             >
                 {currentStep.type === 'select' && currentStep.options && (
                   <div className="space-y-4 sm:space-y-6">
@@ -2126,22 +2126,23 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 )}
 
                 {currentStep.type === 'art_style_grid' && currentStep.options && (
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-visible">
                     {/* Carousel Navigation for 4 styles at a time */}
                     <Carousel className="w-full overflow-visible">
-                      <CarouselContent>
+                      <CarouselContent className="overflow-visible">
                         {Array.from({ length: Math.ceil(currentStep.options.length / 4) }).map((_, pageIndex) => (
-                          <CarouselItem key={pageIndex}>
-                            <div className="grid grid-cols-2 gap-4 overflow-visible">
+                          <CarouselItem key={pageIndex} className="overflow-visible">
+                            <div className="grid grid-cols-2 gap-6 p-4 overflow-visible">
                               {currentStep.options
                                 .slice(pageIndex * 4, pageIndex * 4 + 4)
                                 .map((style) => (
-                                  <div key={style.value} className="space-y-3 relative z-10">
+                                  <div key={style.value} className="space-y-3 relative transform-gpu">
                                     {/* Main style button */}
                                     <Button
                                       onClick={() => handleAnswer(style.value)}
                                       variant="outline"
-                                      className="h-auto p-0 w-full overflow-hidden border-2 border-gray-200 hover:border-purple-400 transition-all duration-200 rounded-2xl hover:scale-105 hover:shadow-lg bg-white relative z-20"
+                                      className="h-auto p-0 w-full overflow-visible border-2 border-gray-200 hover:border-purple-400 transition-all duration-300 rounded-2xl hover:scale-110 hover:shadow-2xl bg-white relative hover:z-50 transform-gpu"
+                                      style={{ transformOrigin: 'center' }}
                                     >
                                       <div className="flex flex-col items-center p-4 w-full">
                                         {/* Color indicator & emoji */}
