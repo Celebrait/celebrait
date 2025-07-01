@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, Edit, ChevronLeft, ChevronRight } from "lucide-react";
+import { RotateCcw, Edit } from "lucide-react";
 import { useLocation } from "wouter";
-import DeliveryChoice from "./delivery-choice";
-import CardMockup from "./card-mockup";
 import { emergencyStorageCleanup } from "@/lib/queryClient";
 
 interface CardPreviewProps {
@@ -13,7 +11,7 @@ interface CardPreviewProps {
 
 export default function CardPreview({ card, onboarding }: CardPreviewProps) {
   const [, setLocation] = useLocation();
-  const [currentView, setCurrentView] = useState<'front' | 'inside'>('front');
+  const [currentView, setCurrentView] = useState<'front' | 'inside' | 'open'>('front');
 
   const handleChooseDelivery = () => {
     // Emergency storage cleanup before navigation to prevent quota errors
@@ -63,31 +61,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
     onboarding.setCurrentStep(3);
   };
 
-  // Touch and swipe handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    setTouchStart({ x: touch.clientX, y: touch.clientY });
-  };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!touchStart) return;
-    
-    const touch = e.changedTouches[0];
-    const deltaX = touch.clientX - touchStart.x;
-    const deltaY = Math.abs(touch.clientY - touchStart.y);
-    
-    // Only trigger swipe if horizontal movement is greater than vertical
-    if (Math.abs(deltaX) > 50 && deltaY < 100) {
-      if (deltaX > 0 && currentView === 'inside') {
-        setCurrentView('front');
-      } else if (deltaX < 0 && currentView === 'front' && card.insideImageUrl) {
-        setCurrentView('inside');
-      }
-    }
-    setTouchStart(null);
-  };
-
-  const [touchStart, setTouchStart] = useState<{x: number, y: number} | null>(null);
 
 
 
@@ -102,85 +76,89 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
         </p>
       </div>
 
-      {/* Swipeable Card Display */}
+      {/* Card Display with Toggle Options */}
       <div className="mb-8">
-        {/* Navigation indicators */}
-        {card.insideImageUrl && (
-          <div className="flex justify-center mb-4 space-x-6">
-            <button
-              onClick={() => setCurrentView('front')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                currentView === 'front'
-                  ? 'bg-purple-600 text-white shadow-lg'
-                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-              }`}
-            >
-              Front
-            </button>
+        {/* Three Toggle Options */}
+        <div className="flex justify-center mb-6 space-x-2 bg-gray-100 p-1 rounded-2xl max-w-fit mx-auto">
+          <button
+            onClick={() => setCurrentView('front')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+              currentView === 'front'
+                ? 'bg-white text-purple-600 shadow-md'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            Front Design
+          </button>
+          {card.insideImageUrl && (
             <button
               onClick={() => setCurrentView('inside')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+              className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
                 currentView === 'inside'
-                  ? 'bg-purple-600 text-white shadow-lg'
-                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                  ? 'bg-white text-purple-600 shadow-md'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Inside Design
+            </button>
+          )}
+          {card.insideImageUrl && (
+            <button
+              onClick={() => setCurrentView('open')}
+              className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                currentView === 'open'
+                  ? 'bg-white text-purple-600 shadow-md'
+                  : 'text-gray-600 hover:text-gray-800'
               }`}
             >
               Open Card
             </button>
-          </div>
-        )}
-
-        {/* Swipeable card container */}
-        <div 
-          className="relative w-full flex justify-center touch-pan-y"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-        >
-          {/* Navigation arrows for desktop */}
-          {card.insideImageUrl && (
-            <>
-              <button
-                onClick={() => setCurrentView('front')}
-                disabled={currentView === 'front'}
-                className={`absolute left-2 top-1/2 transform -translate-y-1/2 z-10 p-3 rounded-full shadow-lg transition-all duration-200 ${
-                  currentView === 'front'
-                    ? 'bg-gray-300 text-gray-400 cursor-not-allowed'
-                    : 'bg-white text-purple-600 hover:bg-purple-50 hover:scale-110'
-                }`}
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-              <button
-                onClick={() => setCurrentView('inside')}
-                disabled={currentView === 'inside'}
-                className={`absolute right-2 top-1/2 transform -translate-y-1/2 z-10 p-3 rounded-full shadow-lg transition-all duration-200 ${
-                  currentView === 'inside'
-                    ? 'bg-gray-300 text-gray-400 cursor-not-allowed'
-                    : 'bg-white text-purple-600 hover:bg-purple-50 hover:scale-110'
-                }`}
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-            </>
           )}
-
-          {/* Card mockup display */}
-          <div className="transition-all duration-300 ease-in-out">
-            <CardMockup 
-              frontImageUrl={card.frontImageUrl?.startsWith('/api/') ? card.frontImageUrl : card.frontImageData || card.frontImageUrl}
-              insideImageUrl={card.insideImageUrl?.startsWith('/api/') ? card.insideImageUrl : card.insideImageData || card.insideImageUrl}
-              deliveryType="printed"
-              currentView={currentView}
-            />
-          </div>
         </div>
 
-        {/* Swipe instruction for mobile */}
-        {card.insideImageUrl && (
-          <div className="text-center mt-4 text-sm text-gray-500 md:hidden">
-            Swipe left or right to view front/inside
+        {/* Card Display Area */}
+        <div className="w-full flex justify-center">
+          <div className="transition-all duration-300 ease-in-out max-w-2xl">
+            {currentView === 'front' && (
+              <div className="w-full">
+                <img 
+                  src={card.frontImageUrl?.startsWith('/api/') ? card.frontImageUrl : card.frontImageData || card.frontImageUrl}
+                  alt="Card Front Design"
+                  className="w-full h-auto rounded-2xl shadow-2xl border border-gray-200"
+                />
+              </div>
+            )}
+            
+            {currentView === 'inside' && card.insideImageUrl && (
+              <div className="w-full">
+                <img 
+                  src={card.insideImageUrl?.startsWith('/api/') ? card.insideImageUrl : card.insideImageData || card.insideImageUrl}
+                  alt="Card Inside Design"
+                  className="w-full h-auto rounded-2xl shadow-2xl border border-gray-200"
+                />
+              </div>
+            )}
+            
+            {currentView === 'open' && card.insideImageUrl && (
+              <div className="w-full">
+                <div className="flex bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+                  {/* Left side - blank */}
+                  <div className="w-1/2 bg-gray-50 aspect-square flex items-center justify-center">
+                    <p className="text-gray-400 text-sm">Inside Left</p>
+                  </div>
+                  {/* Right side - inside image */}
+                  <div className="w-1/2">
+                    <img 
+                      src={card.insideImageUrl?.startsWith('/api/') ? card.insideImageUrl : card.insideImageData || card.insideImageUrl}
+                      alt="Card Inside Design"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Action Buttons */}
@@ -189,7 +167,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
           onClick={handleChooseDelivery}
           className="w-full bg-gradient-celebrait hover:opacity-90 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105"
         >
-          Choose Delivery Option
+          Choose Delivery Options
         </Button>
         
         <div className="grid grid-cols-2 gap-3">
