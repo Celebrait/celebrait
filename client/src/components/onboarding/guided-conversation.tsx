@@ -123,6 +123,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [copyrightConsentOpen, setCopyrightConsentOpen] = useState(false);
   const [hasCopyrightConsent, setHasCopyrightConsent] = useState(false);
   const [photoRequirementsOpen, setPhotoRequirementsOpen] = useState(false);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
 
 
   const [placeholderText, setPlaceholderText] = useState('');
@@ -135,6 +136,39 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Restore conversation data after authentication
+  useEffect(() => {
+    const pendingData = sessionStorage.getItem('pendingCardData');
+    if (pendingData && user?.id) {
+      try {
+        const { answers: savedAnswers, onboardingData } = JSON.parse(pendingData);
+        setAnswers(savedAnswers);
+        
+        // Update onboarding state if needed
+        if (onboardingData.selectedDelivery) {
+          onboarding.setSelectedDelivery(onboardingData.selectedDelivery);
+        }
+        
+        // Go to final summary step
+        const summaryIndex = steps.findIndex(step => step.id === 'email_notification');
+        if (summaryIndex !== -1) {
+          setCurrentStepIndex(summaryIndex);
+        }
+        
+        // Clear the pending data
+        sessionStorage.removeItem('pendingCardData');
+        
+        toast({
+          title: "Welcome back!",
+          description: "Your card details have been restored. Ready to generate your card!",
+        });
+      } catch (error) {
+        console.error('Failed to restore pending card data:', error);
+        sessionStorage.removeItem('pendingCardData');
+      }
+    }
+  }, [user?.id]);
 
   // AI design quotes for loading screen
   const aiQuotes = [
@@ -1429,66 +1463,40 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
               </div>
               
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Email Address</label>
-                  <Input
-                    type="email"
-                    value={answers.notification_email || ''}
-                    onChange={(e) => {
-                      console.log('Email notification address entered:', e.target.value);
-                      setAnswers(prev => ({ ...prev, notification_email: e.target.value }));
-                    }}
-                    placeholder="Enter your email address"
-                    className="text-lg p-3 rounded-xl"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Confirm Email</label>
-                  <Input
-                    type="email"
-                    value={answers.notification_email_confirm || ''}
-                    onChange={(e) => {
-                      console.log('Email notification confirmation entered:', e.target.value);
-                      setAnswers(prev => ({ ...prev, notification_email_confirm: e.target.value }));
-                    }}
-                    placeholder="Confirm your email address"
-                    className="text-lg p-3 rounded-xl"
-                  />
-                </div>
-                
-                {answers.notification_email && answers.notification_email_confirm && answers.notification_email !== answers.notification_email_confirm && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-red-700 text-sm">Email addresses don't match</p>
+                {user?.email ? (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <p className="text-green-800 font-medium">Email notifications will be sent to: {user.email}</p>
+                  </div>
+                ) : (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-blue-800">To generate your card and receive email notifications, you'll need to sign in with your account.</p>
                   </div>
                 )}
                 
                 <Button 
-                  onClick={() => {
-                    if (!answers.notification_email || !answers.notification_email_confirm) {
-                      toast({
-                        title: "Email Required",
-                        description: "Please enter and confirm your email address.",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-                    if (answers.notification_email !== answers.notification_email_confirm) {
-                      toast({
-                        title: "Email Mismatch", 
-                        description: "Email addresses don't match.",
-                        variant: "destructive"
-                      });
+                  onClick={async () => {
+                    // Check if user is authenticated, if not redirect to login
+                    if (!user?.id) {
+                      // Store conversation data
+                      sessionStorage.setItem('pendingCardData', JSON.stringify({
+                        answers,
+                        onboardingData: {
+                          selectedDelivery: onboarding.selectedDelivery,
+                          selectedSceneType: onboarding.selectedSceneType
+                        }
+                      }));
+                      
+                      // Redirect to authentication
+                      window.location.href = '/api/login';
                       return;
                     }
                     
-                    // Generate the card directly for authenticated users
+                    // Generate the card for authenticated users
                     await actuallyGenerateCard();
                   }}
-                  disabled={!answers.notification_email || !answers.notification_email_confirm || answers.notification_email !== answers.notification_email_confirm}
                   className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
-                  🎉 Notify Me When Ready!
+                  {user?.id ? '🎉 Generate My Card!' : '🔐 Sign In & Generate Card'}
                 </Button>
                 
                 <p className="text-sm text-gray-500 text-center">
