@@ -13,9 +13,7 @@ import Replicate from "replicate";
 import FormData from "form-data";
 import { createCanvas, loadImage } from "canvas";
 import { sendEmail, generateOrderConfirmationEmail, generateDigitalCardEmail, generateCardReadyNotificationEmail, generateShippingNotificationEmail } from './email-service';
-import { setupGoogleAuth } from "./google-auth";
-import session from "express-session";
-import passport from "passport";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
 // Temporarily allow running without API keys for testing
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
@@ -153,43 +151,33 @@ async function processFluxBinaryOutput(output: any): Promise<string> {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // User registration
-  app.post("/api/users", async (req, res) => {
+  // Auth middleware setup
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
-
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(userData.email);
-      if (existingUser) {
-        // Return the existing user instead of error
-        return res.json(existingUser);
+      const userId = req.user.claims.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found in token" });
       }
-
-      const user = await storage.createUser(userData);
-
-      // Create loved ones if provided
-      if (req.body.lovedOnes && Array.isArray(req.body.lovedOnes)) {
-        for (const lovedOneData of req.body.lovedOnes) {
-          if (lovedOneData.name && lovedOneData.birthday) {
-            await storage.createLovedOne({
-              userId: user.id,
-              name: lovedOneData.name,
-              birthday: lovedOneData.birthday
-            });
-          }
-        }
-      }
-
+      const user = await storage.getUser(userId);
       res.json(user);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
     }
   });
 
-  // Create card
-  app.post("/api/cards", async (req, res) => {
+  // Create card (protected route)
+  app.post("/api/cards", isAuthenticated, async (req: any, res) => {
     try {
-      const { userId, ...cardData } = req.body;
+      const userId = req.user.claims.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found in token" });
+      }
+
+      const cardData = req.body;
 
       console.log('Card creation request body:', req.body);
       console.log('Extracted userId:', userId);

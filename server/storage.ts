@@ -1,7 +1,7 @@
-import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 import { eq } from "drizzle-orm";
-import { users, cards, lovedOnes, orders, type User, type InsertUser, type Card, type InsertCard, type LovedOne, type InsertLovedOne, type Order, type InsertOrder } from "@shared/schema";
+import { users, cards, lovedOnes, orders, type User, type InsertUser, type UpsertUser, type Card, type InsertCard, type LovedOne, type InsertLovedOne, type Order, type InsertOrder } from "@shared/schema";
 
 // Database connection
 const sql = neon(process.env.DATABASE_URL!);
@@ -29,223 +29,103 @@ export interface IStorage {
   getOrdersByEmail(email: string): Promise<Order[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private cards: Map<number, Card>;
-  private lovedOnes: Map<number, LovedOne>;
-  private orders: Map<number, Order>;
-  private currentUserId: number;
-  private currentCardId: number;
-  private currentLovedOneId: number;
-  private currentOrderId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.cards = new Map();
-    this.lovedOnes = new Map();
-    this.orders = new Map();
-    this.currentUserId = 1;
-    this.currentCardId = 1;
-    this.currentLovedOneId = 1;
-    this.currentOrderId = 1;
-  }
-
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+export class DatabaseStorage implements IStorage {
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.email === email,
-    );
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { 
-      ...insertUser, 
-      id,
-      createdAt: new Date()
-    };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
-  async createCard(cardData: InsertCard & { userId: number }): Promise<Card> {
-    const id = this.currentCardId++;
-    const card: Card = {
-      ...cardData,
-      printOption: cardData.printOption || null,
-      conversationData: cardData.conversationData || {},
-      id,
-      frontImageUrl: null,
-      insideImageUrl: null,
-      status: 'generating',
-      createdAt: new Date()
-    };
-    this.cards.set(id, card);
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+
+  async createCard(cardData: InsertCard & { userId: string }): Promise<Card> {
+    const [card] = await db
+      .insert(cards)
+      .values(cardData)
+      .returning();
     return card;
   }
 
   async getCard(id: number): Promise<Card | undefined> {
-    return this.cards.get(id);
+    const [card] = await db.select().from(cards).where(eq(cards.id, id));
+    return card || undefined;
   }
 
   async updateCard(id: number, updates: Partial<Card>): Promise<Card> {
-    const card = this.cards.get(id);
-    if (!card) {
-      throw new Error('Card not found');
-    }
-    const updatedCard = { ...card, ...updates };
-    this.cards.set(id, updatedCard);
-    return updatedCard;
+    const [card] = await db
+      .update(cards)
+      .set(updates)
+      .where(eq(cards.id, id))
+      .returning();
+    return card;
   }
 
-  async getUserCards(userId: number): Promise<Card[]> {
-    return Array.from(this.cards.values()).filter(
-      (card) => card.userId === userId,
-    );
-  }
-
-  async createLovedOne(lovedOneData: InsertLovedOne & { userId: number }): Promise<LovedOne> {
-    const id = this.currentLovedOneId++;
-    const lovedOne: LovedOne = {
-      ...lovedOneData,
-      id,
-      createdAt: new Date()
-    };
-    this.lovedOnes.set(id, lovedOne);
-    return lovedOne;
-  }
-
-  async getUserLovedOnes(userId: number): Promise<LovedOne[]> {
-    return Array.from(this.lovedOnes.values()).filter(
-      (lovedOne) => lovedOne.userId === userId,
-    );
-  }
-
-  async createOrder(orderData: InsertOrder): Promise<Order> {
-    const id = this.currentOrderId++;
-    const order: Order = {
-      ...orderData,
-      id, // Explicitly set the ID
-      paymentStatus: 'pending',
-      orderStatus: 'processing',
-      trackingNumber: null,
-      currency: orderData.currency || 'ZAR',
-      shippingAddress: orderData.shippingAddress || null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      baseAmount: orderData.baseAmount || orderData.amount,
-      tipAmount: orderData.tipAmount || 0,
-      orderType: orderData.orderType || 'regular'
-    };
-    console.log('Creating order with data:', order); // Added logging
-    this.orders.set(id, order);
-    console.log('Order created successfully:', id, 'with reference:', order.paymentReference); // Added logging
-    return order;
-  }
-
-  async getOrder(id: number): Promise<Order | undefined> {
-    return this.orders.get(id);
-  }
-
-  async getOrderByReference(reference: string): Promise<Order | undefined> {
-    console.log('Searching for order with reference:', reference);
-
-    const order = Array.from(this.orders.values()).find(
-      (order) => order.paymentReference === reference
-    );
-
-    console.log('Order found:', order ? `ID: ${order.id}` : 'Not found');
-    return order;
-  }
-
-  async updateOrder(id: number, updates: Partial<Order>): Promise<Order> {
-    const order = this.orders.get(id);
-    if (!order) {
-      throw new Error(`Order with id ${id} not found`);
-    }
-
-    const updatedOrder = { 
-      ...order, 
-      ...updates, 
-      updatedAt: new Date() 
-    };
-    this.orders.set(id, updatedOrder);
-    return updatedOrder;
-  }
-
-  async getOrdersByEmail(email: string): Promise<Order[]> {
-    return Array.from(this.orders.values()).filter(
-      (order) => order.customerEmail === email
-    );
-  }
-}
-
-// PostgreSQL-based storage implementation
-export class DatabaseStorage implements IStorage {
-  async getUser(id: number): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
-    return result[0];
-  }
-
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    return result[0];
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const result = await db.insert(users).values(insertUser).returning();
-    return result[0];
-  }
-
-  async createCard(cardData: InsertCard & { userId: number }): Promise<Card> {
-    const result = await db.insert(cards).values(cardData).returning();
-    return result[0];
-  }
-
-  async getCard(id: number): Promise<Card | undefined> {
-    const result = await db.select().from(cards).where(eq(cards.id, id)).limit(1);
-    return result[0];
-  }
-
-  async updateCard(id: number, updates: Partial<Card>): Promise<Card> {
-    const result = await db.update(cards).set(updates).where(eq(cards.id, id)).returning();
-    return result[0];
-  }
-
-  async getUserCards(userId: number): Promise<Card[]> {
+  async getUserCards(userId: string): Promise<Card[]> {
     return await db.select().from(cards).where(eq(cards.userId, userId));
   }
 
-  async createLovedOne(lovedOneData: InsertLovedOne & { userId: number }): Promise<LovedOne> {
-    const result = await db.insert(lovedOnes).values(lovedOneData).returning();
-    return result[0];
+  async createLovedOne(lovedOneData: InsertLovedOne & { userId: string }): Promise<LovedOne> {
+    const [lovedOne] = await db
+      .insert(lovedOnes)
+      .values(lovedOneData)
+      .returning();
+    return lovedOne;
   }
 
-  async getUserLovedOnes(userId: number): Promise<LovedOne[]> {
+  async getUserLovedOnes(userId: string): Promise<LovedOne[]> {
     return await db.select().from(lovedOnes).where(eq(lovedOnes.userId, userId));
   }
 
   async createOrder(orderData: InsertOrder): Promise<Order> {
-    const result = await db.insert(orders).values(orderData).returning();
-    return result[0];
+    const [order] = await db
+      .insert(orders)
+      .values(orderData)
+      .returning();
+    return order;
   }
 
   async getOrder(id: number): Promise<Order | undefined> {
-    const result = await db.select().from(orders).where(eq(orders.id, id)).limit(1);
-    return result[0];
+    const [order] = await db.select().from(orders).where(eq(orders.id, id));
+    return order || undefined;
   }
 
   async getOrderByReference(reference: string): Promise<Order | undefined> {
-    const result = await db.select().from(orders).where(eq(orders.paymentReference, reference)).limit(1);
-    return result[0];
+    const [order] = await db.select().from(orders).where(eq(orders.paymentReference, reference));
+    return order || undefined;
   }
 
   async updateOrder(id: number, updates: Partial<Order>): Promise<Order> {
-    const result = await db.update(orders).set(updates).where(eq(orders.id, id)).returning();
-    return result[0];
+    const [order] = await db
+      .update(orders)
+      .set(updates)
+      .where(eq(orders.id, id))
+      .returning();
+    return order;
   }
 
   async getOrdersByEmail(email: string): Promise<Order[]> {
@@ -253,5 +133,4 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Use database storage instead of memory storage
 export const storage = new DatabaseStorage();
