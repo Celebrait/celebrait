@@ -16,8 +16,11 @@ export const cards = pgTable("cards", {
   printOption: text("print_option"), // 'front-only' | 'front-and-inside'
   sceneType: text("scene_type").notNull(), // 'with-person' | 'scene-only'
   conversationData: jsonb("conversation_data"),
-  frontImageUrl: text("front_image_url"),
-  insideImageUrl: text("inside_image_url"),
+  frontImageUrl: text("front_image_url"), // File path or legacy base64
+  insideImageUrl: text("inside_image_url"), // File path or legacy base64
+  frontImagePath: text("front_image_path"), // NEW: File system path
+  insideImagePath: text("inside_image_path"), // NEW: File system path
+  printReadyPath: text("print_ready_path"), // NEW: PDF/print-ready file path
   status: text("status").default('generating'), // 'generating' | 'completed' | 'paid'
   price: integer("price").notNull(), // in cents
   createdAt: timestamp("created_at").defaultNow(),

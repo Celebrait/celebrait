@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { Readable } from "stream";
 import { spawn } from "child_process";
@@ -13,6 +14,13 @@ import Replicate from "replicate";
 import FormData from "form-data";
 import { createCanvas, loadImage } from "canvas";
 import { sendEmail, generateOrderConfirmationEmail, generateDigitalCardEmail, generateCardReadyNotificationEmail, generateShippingNotificationEmail } from './email-service';
+import { 
+  storeImageFromBase64, 
+  getStoredImage, 
+  generateCardPDF, 
+  getImageUrl, 
+  imageExists 
+} from "./image-storage";
 import { setupGoogleAuth } from "./google-auth";
 import session from "express-session";
 import passport from "passport";
@@ -200,6 +208,19 @@ async function processFluxBinaryOutput(output: any): Promise<string> {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Serve stored images statically
+  app.use('/images', (req, res, next) => {
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
+    next();
+  }, (req, res) => {
+    const imagePath = path.join(process.cwd(), 'stored_images', req.path);
+    res.sendFile(imagePath, (err) => {
+      if (err) {
+        res.status(404).send('Image not found');
+      }
+    });
+  });
   // User registration
   app.post("/api/users", async (req, res) => {
     try {
