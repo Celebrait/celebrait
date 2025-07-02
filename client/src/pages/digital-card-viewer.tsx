@@ -47,19 +47,25 @@ export default function DigitalCardViewer() {
         }
       }
 
-      // Handle card ready references (from email notifications)
+      // Handle card ready references (from email notifications) - ULTRA-FAST loading
       if (linkId?.startsWith('celebrait_ready_')) {
         try {
           const response = await fetch(`/api/cards/ready/${linkId}`);
           if (response.ok) {
             const readyData = await response.json();
             if (readyData.card) {
-              setCardData({
+              const cardWithOptimizedImages = {
                 ...readyData.card,
                 senderName: 'Celebrait AI',
                 customMessage: 'Your personalized greeting card has been generated and is ready!',
-                cardType: 'preview'
-              });
+                cardType: 'preview',
+                // Use preloaded base64 images for INSTANT display
+                frontImageUrl: readyData.card.frontImageBase64 || readyData.card.frontImageUrl,
+                insideImageUrl: readyData.card.insideImageBase64 || readyData.card.insideImageUrl
+              };
+              
+              console.log('INSTANT LOAD: Using preloaded images from email cache');
+              setCardData(cardWithOptimizedImages);
               setLoading(false);
               return;
             }

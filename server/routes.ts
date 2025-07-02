@@ -1546,7 +1546,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           card: {
             ...emailCached.card,
             frontImageUrl: `/api/cards/${emailCached.card.id}/front-image`,
-            insideImageUrl: emailCached.insideImage ? `/api/cards/${emailCached.card.id}/inside-image` : null
+            insideImageUrl: emailCached.insideImage ? `/api/cards/${emailCached.card.id}/inside-image` : null,
+            // INSTANT LOADING: Include base64 images directly for immediate display
+            frontImageBase64: emailCached.frontImage ? `data:image/png;base64,${emailCached.frontImage.toString('base64')}` : null,
+            insideImageBase64: emailCached.insideImage ? `data:image/png;base64,${emailCached.insideImage.toString('base64')}` : null
           },
           reference,
           message: "Card ready for delivery choice"
@@ -1555,7 +1558,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.set({
           'Cache-Control': 'public, max-age=600',
           'ETag': `"${reference}"`,
-          'X-Cache': 'HIT-PRELOADED'
+          'X-Cache': 'HIT-PRELOADED',
+          'X-Response-Time': `${Date.now() - startTime}ms`,
+          'Content-Type': 'application/json; charset=utf-8',
+          'Connection': 'keep-alive'
         });
         return res.json(responseData);
       }
@@ -2710,6 +2716,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
             insideImage: insideImageBuffer,
             timestamp: Date.now()
           });
+          
+          // AGGRESSIVE PRELOADING: Also cache individual images for ultra-fast API serving
+          imageCache.set(`front-${card.id}`, {
+            data: frontImageBuffer,
+            timestamp: Date.now(),
+            etag: `"${card.id}-front"`
+          });
+          
+          if (insideImageBuffer) {
+            imageCache.set(`inside-${card.id}`, {
+              data: insideImageBuffer,
+              timestamp: Date.now(),
+              etag: `"${card.id}-inside"`
+            });
+          }
+          
+          console.log(`[PRELOAD] Aggressively cached all data for reference: ${reference} (front: ${frontImageBuffer.length} bytes, inside: ${insideImageBuffer ? insideImageBuffer.length : 0} bytes)`);
         }
         
         console.log('Card data preloaded successfully for reference:', reference);

@@ -100,6 +100,16 @@ export default function DeliveryChoice() {
               const data = await response.json();
               const cardData = data.card || data; // Handle both response formats
               
+              // ULTRA-FAST: Use preloaded base64 images if available
+              if (cardData.frontImageBase64) {
+                cardData.frontImageUrl = cardData.frontImageBase64;
+                console.log('[DELIVERY] Using preloaded front image for instant display');
+              }
+              if (cardData.insideImageBase64) {
+                cardData.insideImageUrl = cardData.insideImageBase64;
+                console.log('[DELIVERY] Using preloaded inside image for instant display');
+              }
+              
               // Cache the result for future use
               try {
                 sessionStorage.setItem(`ready_${params.reference}`, JSON.stringify(data));
