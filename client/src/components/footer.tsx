@@ -1,4 +1,5 @@
 import { Heart, Instagram, Facebook, Twitter } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Footer() {
   return (
@@ -51,8 +52,21 @@ export default function Footer() {
           </div>
         </div>
         
-        <div className="border-t border-purple-100 mt-8 pt-8 text-center">
-          <p className="text-slate-gray text-sm">© 2024 Celebrait. Made with ❤️ in South Africa. All rights reserved.</p>
+        <div className="border-t border-purple-100 mt-8 pt-8">
+          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <p className="text-slate-gray text-sm">
+              © 2025 Wezign Media (PTY) LTD trading as Celebrait.co.za. Made with ❤️ in South Africa. All rights reserved.
+            </p>
+            <div className="flex space-x-4 text-sm">
+              <Link href="/privacy-policy" className="text-slate-gray hover:text-ethereal-purple transition-colors">
+                Privacy Policy
+              </Link>
+              <span className="text-slate-gray">•</span>
+              <Link href="/terms-of-service" className="text-slate-gray hover:text-ethereal-purple transition-colors">
+                Terms of Service
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </footer>

@@ -23,6 +23,8 @@ import PaymentWithTips from "@/pages/payment-with-tips";
 import DeliveryChoice from "@/pages/delivery-choice";
 import DeliveryDetails from "@/pages/delivery-details";
 import CardPreviewPage from "@/pages/card-preview-page";
+import PrivacyPolicy from "@/pages/privacy-policy";
+import TermsOfService from "@/pages/terms-of-service";
 
 
 function Router() {
@@ -48,6 +50,8 @@ function Router() {
         <Route path="/test-card-preview" component={TestCardPreview} />
         <Route path="/delivery-choice/:cardId" component={DeliveryChoice} />
         <Route path="/delivery-details/:reference" component={DeliveryDetails} />
+        <Route path="/privacy-policy" component={PrivacyPolicy} />
+        <Route path="/terms-of-service" component={TermsOfService} />
 
         <Route component={NotFound} />
       </Switch>
