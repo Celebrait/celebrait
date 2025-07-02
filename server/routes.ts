@@ -49,6 +49,14 @@ const cardMetadataCache = new Map<string, {
   timestamp: number;
 }>();
 
+// Performance cache for complete card data (for email links)
+const emailLinkCache = new Map<string, {
+  card: any;
+  frontImage: Buffer;
+  insideImage: Buffer | null;
+  timestamp: number;
+}>();
+
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
 const METADATA_CACHE_TTL = 5 * 60 * 1000; // 5 minutes for metadata
 
@@ -1483,20 +1491,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get card by ready reference for delivery choice flow (cached with performance monitoring)
+  // Get card by ready reference for delivery choice flow (ULTRA-FAST with preloaded cache)
   app.get("/api/cards/ready/:reference", async (req, res) => {
     const startTime = Date.now();
     try {
       const reference = req.params.reference;
       
-      // Check cache first
+      // PRIORITY 1: Check preloaded email link cache for instant loading
+      const emailCached = emailLinkCache.get(reference);
+      if (emailCached && (Date.now() - emailCached.timestamp) < 900000) { // 15 minutes cache
+        console.log(`[INSTANT] Serving from preloaded email cache: ${reference} (${Date.now() - startTime}ms)`);
+        
+        const responseData = {
+          card: {
+            ...emailCached.card,
+            frontImageUrl: `/api/cards/${emailCached.card.id}/front-image`,
+            insideImageUrl: emailCached.insideImage ? `/api/cards/${emailCached.card.id}/inside-image` : null
+          },
+          reference,
+          message: "Card ready for delivery choice"
+        };
+        
+        res.set({
+          'Cache-Control': 'public, max-age=600',
+          'ETag': `"${reference}"`,
+          'X-Cache': 'HIT-PRELOADED'
+        });
+        return res.json(responseData);
+      }
+      
+      // PRIORITY 2: Check metadata cache
       const cacheKey = `ready-${reference}`;
       const cached = cardMetadataCache.get(cacheKey);
       if (cached && (Date.now() - cached.timestamp) < METADATA_CACHE_TTL) {
         console.log(`[CACHE] Serving ready card from metadata cache for reference: ${reference}`);
         res.set({
           'Cache-Control': 'public, max-age=300',
-          'ETag': `"${reference}"`
+          'ETag': `"${reference}"`,
+          'X-Cache': 'HIT-METADATA'
         });
         return res.json(cached.data);
       }
@@ -1560,6 +1592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add caching headers for faster subsequent loads
       res.set({
         'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+        'X-Cache': 'MISS',
         'ETag': `"${reference}"`
       });
       
@@ -2601,6 +2634,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentReference: reference,
         cardId: cardId
       };
+
+      // Preload card data into cache for instant email link access
+      try {
+        console.log('Preloading card data for instant email access...');
+        
+        // Convert base64 images to buffers for caching
+        let frontImageBuffer: Buffer | null = null;
+        let insideImageBuffer: Buffer | null = null;
+        
+        if (card.frontImageUrl && card.frontImageUrl.startsWith('data:image/')) {
+          const frontBase64 = card.frontImageUrl.split(',')[1];
+          frontImageBuffer = Buffer.from(frontBase64, 'base64');
+        }
+        
+        if (card.insideImageUrl && card.insideImageUrl.startsWith('data:image/')) {
+          const insideBase64 = card.insideImageUrl.split(',')[1];
+          insideImageBuffer = Buffer.from(insideBase64, 'base64');
+        }
+        
+        // Cache complete card data for instant email link loading
+        if (frontImageBuffer) {
+          emailLinkCache.set(reference, {
+            card: {
+              id: card.id,
+              userId: card.userId,
+              cardType: card.cardType,
+              printOption: card.printOption,
+              sceneType: card.sceneType,
+              status: card.status,
+              price: card.price,
+              conversationData: card.conversationData || {}
+            },
+            frontImage: frontImageBuffer,
+            insideImage: insideImageBuffer,
+            timestamp: Date.now()
+          });
+        }
+        
+        console.log('Card data preloaded successfully for reference:', reference);
+      } catch (cacheError) {
+        console.error('Failed to preload card data, but continuing with email:', cacheError);
+      }
 
       // Send card ready notification email (this should take user to delivery choice)
       try {
