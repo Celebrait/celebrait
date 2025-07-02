@@ -19,11 +19,7 @@ import {
   getStoredImage, 
   generateCardPDF, 
   getImageUrl, 
-  imageExists,
-  cleanupOldImages,
-  scheduleAutomaticCleanup,
-  getStorageStats,
-  type CleanupConfig
+  imageExists 
 } from "./image-storage";
 import { migrateCardImages, cardNeedsMigration } from "./image-migration";
 import { setupGoogleAuth } from "./google-auth";
@@ -226,58 +222,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   });
-
-  // Start automatic image cleanup scheduler (runs daily)
-  const cleanupConfig: CleanupConfig = {
-    retentionDays: 90,        // Keep images for 90 days
-    preservePaidCards: true,  // Never delete paid card images
-    preserveRecentOrders: true,
-    dryRun: false
-  };
-  
-  scheduleAutomaticCleanup(cleanupConfig);
-  console.log(`[CLEANUP] Automatic cleanup scheduled: ${cleanupConfig.retentionDays} day retention, preserve paid cards: ${cleanupConfig.preservePaidCards}`);
-
-  // Storage management endpoints
-  
-  // Get storage statistics
-  app.get("/api/admin/storage/stats", async (req, res) => {
-    try {
-      const stats = await getStorageStats();
-      res.json({
-        ...stats,
-        totalSizeMB: (stats.totalSize / 1024 / 1024).toFixed(2),
-        avgFileSizeMB: (stats.avgFileSize / 1024 / 1024).toFixed(2)
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: "Error getting storage stats: " + error.message });
-    }
-  });
-  
-  // Manual cleanup trigger
-  app.post("/api/admin/storage/cleanup", async (req, res) => {
-    try {
-      const config: CleanupConfig = {
-        retentionDays: req.body.retentionDays || 90,
-        preservePaidCards: req.body.preservePaidCards !== false,
-        preserveRecentOrders: req.body.preserveRecentOrders !== false,
-        dryRun: req.body.dryRun === true
-      };
-      
-      console.log(`[CLEANUP] Manual cleanup triggered:`, config);
-      const results = await cleanupOldImages(config);
-      
-      res.json({
-        success: true,
-        results,
-        config,
-        message: `${config.dryRun ? 'Simulation: Would delete' : 'Deleted'} ${results.deleted} files, freed ${(results.size / 1024 / 1024).toFixed(2)}MB`
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: "Error running cleanup: " + error.message });
-    }
-  });
-
   // User registration
   app.post("/api/users", async (req, res) => {
     try {

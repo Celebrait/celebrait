@@ -159,180 +159,25 @@ export async function generateCardPDF(
   }
 }
 
-export interface CleanupConfig {
-  retentionDays: number;
-  preservePaidCards: boolean;
-  preserveRecentOrders: boolean;
-  dryRun: boolean;
-}
-
 /**
- * Clean up old image files with configurable retention policy
+ * Clean up old image files (older than 30 days)
  */
-export async function cleanupOldImages(config: CleanupConfig = {
-  retentionDays: 90,
-  preservePaidCards: true,
-  preserveRecentOrders: true,
-  dryRun: false
-}): Promise<{ deleted: number; preserved: number; size: number }> {
-  
-  console.log(`[CLEANUP] Starting image cleanup (${config.dryRun ? 'DRY RUN' : 'LIVE'})`, config);
-  
+export async function cleanupOldImages(): Promise<void> {
   try {
-    const results = { deleted: 0, preserved: 0, size: 0 };
-    const cutoffDate = Date.now() - (config.retentionDays * 24 * 60 * 60 * 1000);
+    const files = await fs.readdir(IMAGES_DIR);
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
     
-    // Process stored images
-    const imageFiles = await fs.readdir(IMAGES_DIR);
-    for (const file of imageFiles) {
-      const result = await processFileForCleanup(IMAGES_DIR, file, cutoffDate, config);
-      results.deleted += result.deleted;
-      results.preserved += result.preserved;
-      results.size += result.size;
-    }
-    
-    // Process print files
-    try {
-      const printFiles = await fs.readdir(path.join(process.cwd(), 'print_files'));
-      for (const file of printFiles) {
-        const result = await processFileForCleanup(path.join(process.cwd(), 'print_files'), file, cutoffDate, config);
-        results.deleted += result.deleted;
-        results.preserved += result.preserved;
-        results.size += result.size;
-      }
-    } catch (error) {
-      console.log('[CLEANUP] Print files directory not found, skipping');
-    }
-    
-    console.log(`[CLEANUP] Completed: ${results.deleted} deleted, ${results.preserved} preserved, ${(results.size / 1024 / 1024).toFixed(2)}MB freed`);
-    return results;
-    
-  } catch (error) {
-    console.error('[CLEANUP] Failed to cleanup images:', error);
-    throw error;
-  }
-}
-
-async function processFileForCleanup(
-  directory: string, 
-  file: string, 
-  cutoffDate: number, 
-  config: CleanupConfig
-): Promise<{ deleted: number; preserved: number; size: number }> {
-  
-  const filepath = path.join(directory, file);
-  const stats = await fs.stat(filepath);
-  const fileAge = Date.now() - stats.mtime.getTime();
-  const fileSizeMB = (stats.size / 1024 / 1024).toFixed(2);
-  
-  // Skip if file is newer than retention period
-  if (stats.mtime.getTime() > cutoffDate) {
-    console.log(`[CLEANUP] Preserving recent file: ${file} (${(fileAge / 24 / 60 / 60 / 1000).toFixed(1)} days old)`);
-    return { deleted: 0, preserved: 1, size: 0 };
-  }
-  
-  // Extract card ID from filename
-  const cardIdMatch = file.match(/card_(\d+)_/);
-  const cardId = cardIdMatch ? parseInt(cardIdMatch[1]) : null;
-  
-  // Check preservation rules
-  if (cardId && config.preservePaidCards) {
-    const shouldPreserve = await shouldPreserveCard(cardId);
-    if (shouldPreserve) {
-      console.log(`[CLEANUP] Preserving paid card: ${file} (card ${cardId})`);
-      return { deleted: 0, preserved: 1, size: 0 };
-    }
-  }
-  
-  // Delete the file
-  if (!config.dryRun) {
-    await fs.unlink(filepath);
-  }
-  
-  console.log(`[CLEANUP] ${config.dryRun ? 'Would delete' : 'Deleted'}: ${file} (${fileSizeMB}MB, ${(fileAge / 24 / 60 / 60 / 1000).toFixed(1)} days old)`);
-  return { deleted: 1, preserved: 0, size: stats.size };
-}
-
-async function shouldPreserveCard(cardId: number): Promise<boolean> {
-  try {
-    // This would integrate with your storage system to check if card has been paid for
-    // For now, return false to allow cleanup
-    // TODO: Integrate with storage.getCard() and check order status
-    return false;
-  } catch (error) {
-    console.error(`[CLEANUP] Error checking card ${cardId} preservation status:`, error);
-    return true; // Preserve on error to be safe
-  }
-}
-
-/**
- * Schedule automatic cleanup to run daily
- */
-export function scheduleAutomaticCleanup(config: CleanupConfig): NodeJS.Timeout {
-  const DAILY_MS = 24 * 60 * 60 * 1000;
-  
-  console.log(`[CLEANUP] Scheduling automatic cleanup every 24 hours with ${config.retentionDays} day retention`);
-  
-  return setInterval(async () => {
-    try {
-      console.log('[CLEANUP] Running scheduled cleanup...');
-      await cleanupOldImages(config);
-    } catch (error) {
-      console.error('[CLEANUP] Scheduled cleanup failed:', error);
-    }
-  }, DAILY_MS);
-}
-
-/**
- * Get storage statistics
- */
-export async function getStorageStats(): Promise<{
-  totalFiles: number;
-  totalSize: number;
-  oldestFile: Date | null;
-  newestFile: Date | null;
-  avgFileSize: number;
-}> {
-  try {
-    const stats = {
-      totalFiles: 0,
-      totalSize: 0,
-      oldestFile: null as Date | null,
-      newestFile: null as Date | null,
-      avgFileSize: 0
-    };
-    
-    const directories = [IMAGES_DIR, path.join(process.cwd(), 'print_files')];
-    
-    for (const dir of directories) {
-      try {
-        const files = await fs.readdir(dir);
-        for (const file of files) {
-          const filepath = path.join(dir, file);
-          const fileStat = await fs.stat(filepath);
-          
-          stats.totalFiles++;
-          stats.totalSize += fileStat.size;
-          
-          if (!stats.oldestFile || fileStat.mtime < stats.oldestFile) {
-            stats.oldestFile = fileStat.mtime;
-          }
-          
-          if (!stats.newestFile || fileStat.mtime > stats.newestFile) {
-            stats.newestFile = fileStat.mtime;
-          }
-        }
-      } catch (error) {
-        console.log(`[STATS] Directory ${dir} not accessible, skipping`);
+    for (const file of files) {
+      const filepath = path.join(IMAGES_DIR, file);
+      const stats = await fs.stat(filepath);
+      
+      if (stats.mtime.getTime() < thirtyDaysAgo) {
+        await fs.unlink(filepath);
+        console.log(`[CLEANUP] Removed old image file: ${file}`);
       }
     }
-    
-    stats.avgFileSize = stats.totalFiles > 0 ? stats.totalSize / stats.totalFiles : 0;
-    
-    return stats;
   } catch (error) {
-    console.error('[STATS] Failed to get storage stats:', error);
-    throw error;
+    console.error('Failed to cleanup old images:', error);
   }
 }
 
