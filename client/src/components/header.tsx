@@ -13,11 +13,7 @@ export default function Header() {
             <span className="text-2xl font-bold text-gradient-celebrait">Celebrait</span>
           </div>
           
-          <nav className="hidden md:flex space-x-8">
-            <a href="#" className="text-slate-gray hover:text-ethereal-purple transition-colors">How it works</a>
-            <a href="#" className="text-slate-gray hover:text-ethereal-purple transition-colors">Gallery</a>
-            <a href="#" className="text-slate-gray hover:text-ethereal-purple transition-colors">Pricing</a>
-          </nav>
+
           
           <div className="flex items-center space-x-4">
             <Button className="bg-gradient-celebrait hover:opacity-90 text-white px-6 py-2 rounded-xl shadow-lg transition-all duration-300">
