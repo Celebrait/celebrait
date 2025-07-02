@@ -120,6 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 2, 2025. Successfully replaced dual email input system with Replit Auth OAuth integration:
+  * Completely removed dual email input popup that required users to enter email twice
+  * Integrated comprehensive Replit Auth system supporting GitHub, Google, and other OAuth providers
+  * Added smart header with login/logout functionality and user avatar display
+  * Created user account dashboard with order history and card management features
+  * Updated card generation flow to use authenticated user's email for notifications
+  * Fixed server authentication middleware and database session storage
+  * Enhanced user experience with one-click OAuth login instead of manual email entry
+  * Users now have full account functionality with persistent login sessions and order tracking
 - July 1, 2025. Unified styling across complete delivery journey with frosted glass design:
   * Fixed cache clearing function to preserve delivery type selection during navigation
   * Updated both information pages (digital and printed) to match journey styling with frosted glass background
