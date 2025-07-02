@@ -6,7 +6,7 @@ import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
 import { storage } from "./storage";
-import { insertUserSchema, insertCardSchema, insertLovedOneSchema, insertOrderSchema } from "@shared/schema";
+import { upsertUserSchema, insertCardSchema, insertLovedOneSchema, insertOrderSchema } from "@shared/schema";
 
 import OpenAI from "openai";
 import Stripe from "stripe";
@@ -23,6 +23,7 @@ import {
 } from "./image-storage";
 import { migrateCardImages, cardNeedsMigration } from "./image-migration";
 import { setupGoogleAuth } from "./google-auth";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import session from "express-session";
 import passport from "passport";
 
@@ -210,6 +211,45 @@ async function processFluxBinaryOutput(output: any): Promise<string> {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Auth middleware
+  await setupAuth(app);
+  
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Get user's cards (protected route)
+  app.get('/api/my-cards', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const cards = await storage.getUserCards(userId);
+      res.json(cards);
+    } catch (error) {
+      console.error("Error fetching user cards:", error);
+      res.status(500).json({ message: "Failed to fetch cards" });
+    }
+  });
+
+  // Get user's orders (protected route)
+  app.get('/api/my-orders', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const orders = await storage.getUserOrders(userId);
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching user orders:", error);
+      res.status(500).json({ message: "Failed to fetch orders" });
+    }
+  });
+  
   // Serve stored images statically
   app.use('/images', (req, res, next) => {
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
@@ -222,37 +262,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   });
-  // User registration
+  // Legacy endpoint - now handled by Replit Auth automatically
   app.post("/api/users", async (req, res) => {
-    try {
-      const userData = insertUserSchema.parse(req.body);
-
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(userData.email);
-      if (existingUser) {
-        // Return the existing user instead of error
-        return res.json(existingUser);
-      }
-
-      const user = await storage.createUser(userData);
-
-      // Create loved ones if provided
-      if (req.body.lovedOnes && Array.isArray(req.body.lovedOnes)) {
-        for (const lovedOneData of req.body.lovedOnes) {
-          if (lovedOneData.name && lovedOneData.birthday) {
-            await storage.createLovedOne({
-              userId: user.id,
-              name: lovedOneData.name,
-              birthday: lovedOneData.birthday
-            });
-          }
-        }
-      }
-
-      res.json(user);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
+    res.status(410).json({ 
+      message: "User registration is now handled via OAuth. Please use /api/login to authenticate." 
+    });
   });
 
   // Create card
