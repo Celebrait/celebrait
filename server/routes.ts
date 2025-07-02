@@ -319,7 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get card front image (cached endpoint with performance monitoring)
+  // Get card front image (ULTRA-FAST with preloaded email cache)
   app.get("/api/cards/:id/front-image", async (req, res) => {
     const startTime = Date.now();
     try {
@@ -334,7 +334,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(304).end();
       }
       
-      // Check server cache
+      // PRIORITY 1: Check preloaded email link cache for instant serving
+      emailLinkCache.forEach((emailData, reference) => {
+        if (emailData.card.id === cardId && emailData.frontImage && (Date.now() - emailData.timestamp) < 900000) {
+          console.log(`[INSTANT] Serving front image ${cardId} from preloaded email cache (${emailData.frontImage.length} bytes) - ${Date.now() - startTime}ms`);
+          res.set({
+            'Content-Type': 'image/png',
+            'Content-Length': emailData.frontImage.length.toString(),
+            'Cache-Control': 'public, max-age=31536000',
+            'ETag': etag,
+            'X-Cache': 'HIT-PRELOADED'
+          });
+          res.send(emailData.frontImage);
+          return;
+        }
+      });
+      
+      // If we already sent a response from the cache, return early
+      if (res.headersSent) return;
+      
+      // PRIORITY 2: Check server cache
       const cached = imageCache.get(cacheKey);
       if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
         console.log(`[CACHE] Serving front image ${cardId} from memory cache (${cached.data.length} bytes)`);
@@ -342,7 +361,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'Content-Type': 'image/png',
           'Content-Length': cached.data.length.toString(),
           'Cache-Control': 'public, max-age=31536000',
-          'ETag': etag
+          'ETag': etag,
+          'X-Cache': 'HIT-MEMORY'
         });
         return res.send(cached.data);
       }
@@ -391,7 +411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get card inside image (cached endpoint with performance monitoring)  
+  // Get card inside image (ULTRA-FAST with preloaded email cache)  
   app.get("/api/cards/:id/inside-image", async (req, res) => {
     const startTime = Date.now();
     try {
@@ -406,7 +426,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(304).end();
       }
       
-      // Check server cache
+      // PRIORITY 1: Check preloaded email link cache for instant serving
+      emailLinkCache.forEach((emailData, reference) => {
+        if (emailData.card.id === cardId && emailData.insideImage && (Date.now() - emailData.timestamp) < 900000) {
+          console.log(`[INSTANT] Serving inside image ${cardId} from preloaded email cache (${emailData.insideImage.length} bytes) - ${Date.now() - startTime}ms`);
+          res.set({
+            'Content-Type': 'image/png',
+            'Content-Length': emailData.insideImage.length.toString(),
+            'Cache-Control': 'public, max-age=31536000',
+            'ETag': etag,
+            'X-Cache': 'HIT-PRELOADED'
+          });
+          res.send(emailData.insideImage);
+          return;
+        }
+      });
+      
+      // If we already sent a response from the cache, return early
+      if (res.headersSent) return;
+      
+      // PRIORITY 2: Check server cache
       const cached = imageCache.get(cacheKey);
       if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
         console.log(`[CACHE] Serving inside image ${cardId} from memory cache (${cached.data.length} bytes)`);
@@ -414,7 +453,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'Content-Type': 'image/png',
           'Content-Length': cached.data.length.toString(), 
           'Cache-Control': 'public, max-age=31536000',
-          'ETag': etag
+          'ETag': etag,
+          'X-Cache': 'HIT-MEMORY'
         });
         return res.send(cached.data);
       }
