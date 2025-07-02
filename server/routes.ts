@@ -21,6 +21,7 @@ import {
   getImageUrl, 
   imageExists 
 } from "./image-storage";
+import { migrateCardImages, cardNeedsMigration } from "./image-migration";
 import { setupGoogleAuth } from "./google-auth";
 import session from "express-session";
 import passport from "passport";
