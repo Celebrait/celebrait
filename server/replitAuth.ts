@@ -84,10 +84,16 @@ export async function setupAuth(app: Express) {
     verified(null, user);
   };
 
-  const domains = process.env.REPLIT_DOMAINS!.split(",");
+  // Use your actual production domains
+  const productionDomains = [
+    "celebration-companion-info6551.replit.app",
+    "www.celebrait.co.za",
+    "celebrait.co.za"
+  ];
   
-  // Add localhost for development
-  const allDomains = [...domains, "localhost"];
+  // Add localhost for development and current Replit domain
+  const currentDomains = process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(",") : [];
+  const allDomains = [...productionDomains, ...currentDomains, "localhost"];
   
   for (const domain of allDomains) {
     const isLocalhost = domain === "localhost";
