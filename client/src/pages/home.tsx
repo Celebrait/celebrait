@@ -93,25 +93,24 @@ export default function Home() {
 
   return (
     <div className="min-h-screen relative">
-      {/* AI Loading Animation - replaces entire content */}
-      {isTransitioning ? (
-        <AILoading message="Processing your request..." />
-      ) : (
-        <>
-          <Header />
-          <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
-            {!generatedCard && (
-              <div>
-                {renderCurrentStep()}
-              </div>
-            )}
+      <Header />
 
-            {generatedCard && (
-              <CardPreview card={generatedCard} onboarding={onboarding} />
-            )}
-          </main>
-        </>
+      {/* AI Loading Animation */}
+      {isTransitioning && (
+        <AILoading message="Processing your request..." />
       )}
+
+      <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
+        {!generatedCard && !isTransitioning && (
+          <div>
+            {renderCurrentStep()}
+          </div>
+        )}
+
+        {generatedCard && (
+          <CardPreview card={generatedCard} onboarding={onboarding} />
+        )}
+      </main>
 
       {/* Hidden Test Button - Accessible via URL param or keyboard shortcut */}
       {(window.location.search.includes('test=delivery') || window.location.hash.includes('test')) && (
