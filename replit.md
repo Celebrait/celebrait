@@ -120,6 +120,10 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 3, 2025. Removed duplicate IMPORTANT box from photo upload section:
+  * Deleted redundant yellow "Important" box at line 2785 that was duplicating guidance
+  * Streamlined photo upload interface by removing unnecessary duplicate messaging
+  * Maintained single IMPORTANT box positioning after "Upload a Different Photo" button for cleaner UI
 - July 3, 2025. Replaced FILE REQUIREMENTS boxes with IMPORTANT boxes on photo upload screens:
   * Replaced yellow "File Requirements" boxes with yellow "Important" boxes containing user-friendly guidance
   * IMPORTANT boxes now provide contextual help about photo uploads (single vs multiple people)
