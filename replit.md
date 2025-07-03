@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 3, 2025. Implemented recipient name personalization throughout delivery flow:
+  * Updated delivery details page to show "Deliver to Aidan" instead of "Deliver to friend"
+  * Modified complete-order page to display "Aidan's Information" and "Aidan's Details" when delivering to recipient
+  * Updated payment page to show "Aidan's Address" and "Aidan's Contact Details" for recipient deliveries
+  * Enhanced all delivery-related headers and labels to use actual recipient name from conversation data
+  * Improved user experience with personalized messaging throughout checkout process
 - July 3, 2025. Fixed delivery choice page loading performance for instant display:
   * Changed initial loading state from true to false for immediate page rendering
   * Modified card data loading to run in background without blocking UI display

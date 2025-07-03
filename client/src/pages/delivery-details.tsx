@@ -27,7 +27,7 @@ export default function DeliveryDetails() {
   console.log('[DELIVERY DETAILS] Is digital:', isDigital);
 
   // Get recipient name from card data for dynamic text
-  const recipientName = cardData?.conversationData?.recipient || cardData?.conversationData?.name || 'the recipient';
+  const recipientName = cardData?.conversationData?.name || 'the recipient';
 
   const options = isDigital ? [
     {

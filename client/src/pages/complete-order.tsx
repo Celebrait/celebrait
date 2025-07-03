@@ -56,6 +56,12 @@ export default function CompleteOrder() {
 
   // Get delivery type from session storage
   const deliveryType = sessionStorage.getItem('selectedDeliveryType') as 'printed' | 'digital' || 'digital';
+  
+  // Get delivery method (who to deliver to) from session storage
+  const deliverTo = sessionStorage.getItem('deliverTo') as 'self' | 'recipient' || 'self';
+  
+  // Get recipient name from card data for dynamic text
+  const recipientName = card?.conversationData?.name || 'the recipient';
 
   useEffect(() => {
     if (cardId) {
@@ -233,11 +239,20 @@ export default function CompleteOrder() {
             <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
               <User className="text-white w-10 h-10" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Your Information</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              {deliverTo === 'recipient' 
+                ? `${recipientName}'s Information`
+                : 'Your Information'
+              }
+            </h1>
             <p className="text-lg text-slate-gray">
               {deliveryType === 'digital' 
-                ? 'Enter details to send your digital card' 
-                : 'Enter your details and shipping address'
+                ? (deliverTo === 'recipient' 
+                    ? `Enter details to send the digital card to ${recipientName}` 
+                    : 'Enter details to send your digital card')
+                : (deliverTo === 'recipient' 
+                    ? `Enter ${recipientName}'s details and address for delivery` 
+                    : 'Enter your details and shipping address')
               }
             </p>
           </div>
@@ -299,7 +314,10 @@ export default function CompleteOrder() {
                 ) : (
                   <MapPin className="w-5 h-5" />
                 )}
-                {deliveryType === 'digital' ? 'Delivery Details' : 'Shipping & Contact Details'}
+                {deliveryType === 'digital' 
+                  ? (deliverTo === 'recipient' ? `Deliver to ${recipientName}` : 'Delivery Details')
+                  : (deliverTo === 'recipient' ? `Deliver to ${recipientName}` : 'Shipping & Contact Details')
+                }
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -307,12 +325,14 @@ export default function CompleteOrder() {
               <div className="space-y-4">
                 <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                   <User className="w-4 h-4" />
-                  Your Information
+                  {deliverTo === 'recipient' ? `${recipientName}'s Details` : 'Your Information'}
                 </h3>
                 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="customerName">Your Name *</Label>
+                    <Label htmlFor="customerName">
+                      {deliverTo === 'recipient' ? `${recipientName}'s Name *` : 'Your Name *'}
+                    </Label>
                     <Input
                       id="customerName"
                       value={customerName}
@@ -407,7 +427,7 @@ export default function CompleteOrder() {
                   <div className="space-y-4">
                     <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
-                      Shipping Address
+                      {deliverTo === 'recipient' ? `${recipientName}'s Address` : 'Shipping Address'}
                     </h3>
                     
                     <div className="space-y-4">

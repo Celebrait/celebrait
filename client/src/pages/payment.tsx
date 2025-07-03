@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, emergencyStorageCleanup } from '@/lib/queryClient';
-import { ArrowLeft, User, Mail, Phone, MapPin } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, MapPin, CreditCard } from 'lucide-react';
 
 interface PaymentFormData {
   email: string;
@@ -31,7 +31,7 @@ export default function Payment() {
   const [card, setCard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [processingPayment, setProcessingPayment] = useState(false);
-  const [deliverTo, setDeliverTo] = useState<'self' | 'recipient'>('self');
+
   const [currentView, setCurrentView] = useState<'front' | 'inside'>('front');
   const [formData, setFormData] = useState<PaymentFormData>({
     email: '',
@@ -59,6 +59,12 @@ export default function Payment() {
     { value: 'NW', label: 'North West' },
     { value: 'WC', label: 'Western Cape' }
   ];
+
+  // Get delivery method (who to deliver to) from session storage
+  const deliverTo = sessionStorage.getItem('deliverTo') as 'self' | 'recipient' || 'self';
+  
+  // Get recipient name from card data for dynamic text
+  const recipientName = card?.conversationData?.name || 'the recipient';
 
   useEffect(() => {
     if (match && params?.cardId) {
@@ -255,7 +261,7 @@ export default function Payment() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="w-5 h-5" />
-                Customer Information
+                {deliverTo === 'recipient' ? `${recipientName}'s Information` : 'Customer Information'}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -263,7 +269,7 @@ export default function Payment() {
               <div className="space-y-4">
                 <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                   <Mail className="w-4 h-4" />
-                  Contact Details
+                  {deliverTo === 'recipient' ? `${recipientName}'s Contact Details` : 'Contact Details'}
                 </h3>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -316,7 +322,7 @@ export default function Payment() {
                   <div className="space-y-4">
                     <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
-                      Shipping Address
+                      {deliverTo === 'recipient' ? `${recipientName}'s Address` : 'Shipping Address'}
                     </h3>
 
                     <div>
