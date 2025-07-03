@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 3, 2025. Made images swipable in photo creation modals with carousel functionality:
+  * Added swipable carousel to both "Upload Photo + Describe Scene" and "Upload Photo + Transform Style" modals
+  * Each modal now contains two swipable image placeholders ready for actual images
+  * First image labeled "Photo Upload Example" with camera icon (blue themed)
+  * Second image labeled "Final Scene Example" with image icon (green themed)
+  * Added navigation arrows for smooth swiping between example images
+  * Maintained same clean modal design pattern as art style selection screen
 - July 3, 2025. Redesigned card generation loading screen with ethereal typing effect:
   * Replaced card generation loading screen with same design approach as AI loading screen
   * Added ethereal character-by-character typing animation referencing user's name and celebration

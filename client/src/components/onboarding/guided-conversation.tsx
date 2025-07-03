@@ -2361,16 +2361,44 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                       </DialogHeader>
                                       
                                       <div className="overflow-y-auto max-h-[70vh] p-4 space-y-6">
-                                        {/* Image Placeholder */}
-                                        <div className="w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
-                                          <div className="text-center">
-                                            <div className="w-16 h-16 bg-gray-400 rounded-lg flex items-center justify-center mx-auto mb-3">
-                                              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                              </svg>
-                                            </div>
-                                            <p className="text-gray-500 text-sm">Example image will be added here</p>
-                                          </div>
+                                        {/* Swipable Image Examples */}
+                                        <div className="w-full">
+                                          <Carousel className="w-full">
+                                            <CarouselContent className="-ml-4">
+                                              {/* Photo Upload Example */}
+                                              <CarouselItem className="pl-4">
+                                                <div className="w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
+                                                  <div className="text-center">
+                                                    <div className="w-16 h-16 bg-blue-500 rounded-lg flex items-center justify-center mx-auto mb-3">
+                                                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                      </svg>
+                                                    </div>
+                                                    <p className="text-gray-600 font-medium mb-1">Photo Upload Example</p>
+                                                    <p className="text-gray-500 text-sm">Example image will be added here</p>
+                                                  </div>
+                                                </div>
+                                              </CarouselItem>
+                                              
+                                              {/* Final Scene Example */}
+                                              <CarouselItem className="pl-4">
+                                                <div className="w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
+                                                  <div className="text-center">
+                                                    <div className="w-16 h-16 bg-green-500 rounded-lg flex items-center justify-center mx-auto mb-3">
+                                                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                      </svg>
+                                                    </div>
+                                                    <p className="text-gray-600 font-medium mb-1">Final Scene Example</p>
+                                                    <p className="text-gray-500 text-sm">Example image will be added here</p>
+                                                  </div>
+                                                </div>
+                                              </CarouselItem>
+                                            </CarouselContent>
+                                            <CarouselPrevious className="left-2" />
+                                            <CarouselNext className="right-2" />
+                                          </Carousel>
                                         </div>
 
                                         {/* Process Description */}
