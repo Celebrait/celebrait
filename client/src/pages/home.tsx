@@ -9,6 +9,7 @@ import Step3PrintedOptions from "@/components/onboarding/step3-printed-options";
 import Step5SceneChoice from "@/components/onboarding/step5-scene-choice";
 import GuidedConversation from "@/components/onboarding/guided-conversation";
 import CardPreview from "@/components/card-preview";
+import AILoading from "@/components/ai-loading";
 
 import { useOnboarding } from "@/hooks/use-onboarding";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ export default function Home() {
   const [displayStep, setDisplayStep] = useState(onboarding.currentStep);
   const [isCreatingMockCard, setIsCreatingMockCard] = useState(false);
 
-  // Handle seamless fade transitions between steps
+  // Handle clean AI loading transitions between steps
   useEffect(() => {
     if (displayStep !== onboarding.currentStep) {
       setIsTransitioning(true);
@@ -31,13 +32,11 @@ export default function Home() {
       // Instant scroll to top to avoid stagger
       window.scrollTo({ top: 0, behavior: 'instant' });
       
-      // Immediate content change with smoother timing
-      setDisplayStep(onboarding.currentStep);
-      
-      // Quick fade-in after content change
+      // Brief AI loading animation, then immediate content change
       setTimeout(() => {
+        setDisplayStep(onboarding.currentStep);
         setIsTransitioning(false);
-      }, 50);
+      }, 400); // Brief 400ms AI loading animation
     }
   }, [onboarding.currentStep, displayStep]);
 
@@ -96,14 +95,14 @@ export default function Home() {
     <div className="min-h-screen relative">
       <Header />
 
-      {/* Seamless transition overlay - no spinning animation */}
+      {/* AI Loading Animation */}
       {isTransitioning && (
-        <div className="fixed inset-0 bg-gradient-to-br from-orange-50 to-blue-50 z-50 opacity-60"></div>
+        <AILoading message="Processing your request..." />
       )}
 
       <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
-        {!generatedCard && (
-          <div className={`step-transition ${isTransitioning ? 'fade-out' : 'fade-in animate-fade-in-smooth'}`}>
+        {!generatedCard && !isTransitioning && (
+          <div>
             {renderCurrentStep()}
           </div>
         )}
