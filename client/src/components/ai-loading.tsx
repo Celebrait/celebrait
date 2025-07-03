@@ -6,7 +6,7 @@ interface AILoadingProps {
 
 export default function AILoading({ message = "Processing..." }: AILoadingProps) {
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 z-50 flex items-start justify-center pt-32">
+    <div className="fixed inset-0 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 z-50 flex items-center justify-center">
       <div className="text-center">
         <div className="relative mb-6">
           {/* Animated brain icon */}
