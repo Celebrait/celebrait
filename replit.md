@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 3, 2025. Fixed transition glitch with positioned AI loading animation:
+  * Replaced annoying fade transitions with clean AI brain loading animation
+  * Positioned loading animation to match onboarding layout instead of dead center
+  * Updated AI loading component to use same container positioning as content (max-w-4xl mx-auto)
+  * Added frosted glass background matching onboarding step design
+  * Enhanced visual consistency throughout the entire user journey
 - July 3, 2025. Implemented recipient name personalization throughout delivery flow:
   * Updated delivery details page to show "Deliver to Aidan" instead of "Deliver to friend"
   * Modified complete-order page to display "Aidan's Information" and "Aidan's Details" when delivering to recipient
