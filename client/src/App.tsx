@@ -6,7 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ScrollToTop from "@/components/scroll-to-top";
 import { handleQuotaError } from "./lib/queryClient";
 import { useEffect } from "react";
-import LandingPage from "@/pages/landing";
 import Home from "@/pages/home";
 import Checkout from "@/pages/checkout";
 import Payment from "@/pages/payment-simplified";
@@ -33,8 +32,7 @@ function Router() {
     <>
       <ScrollToTop />
       <Switch>
-        <Route path="/" component={LandingPage} />
-        <Route path="/onboarding" component={Home} />
+        <Route path="/" component={Home} />
         <Route path="/checkout/:cardId" component={Checkout} />
         <Route path="/payment/:cardId" component={Payment} />
         <Route path="/payment-tips/:cardId" component={PaymentWithTips} />

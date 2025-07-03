@@ -723,7 +723,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     } else {
       setTypedText('');
     }
-  }, [isLoading, answers.celebration, answers.userName]);
+  }, [isLoading, answers.celebration, answers.name]);
 
   // Safety check to prevent undefined currentStep errors
   if (!currentStep) {
@@ -3009,19 +3009,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
               </div>
             </div>
 
-            {/* Name and Email Form */}
+            {/* Email Form - Matching Your Screenshot */}
             <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Your Name</label>
-                <Input
-                  type="text"
-                  value={answers.userName || ''}
-                  onChange={(e) => setAnswers({...answers, userName: e.target.value})}
-                  placeholder="Enter your full name"
-                  className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
-                />
-              </div>
-              
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Email Address</label>
                 <Input
@@ -3054,14 +3043,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
               <div className="flex justify-center pt-4">
                 <Button 
                   onClick={() => {
-                    if (!answers.userName?.trim()) {
-                      toast({
-                        title: "Name Required",
-                        description: "Please enter your name.",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
                     if (!popupEmail || !popupEmailConfirm) {
                       toast({
                         title: "Email Required",
@@ -3082,7 +3063,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                     // Start actual card generation
                     actuallyGenerateCard();
                   }}
-                  disabled={!answers.userName?.trim() || !popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
+                  disabled={!popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
                   className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   GENERATE MY CARD
