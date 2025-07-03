@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 3, 2025. Added comprehensive file format guidance across all photo upload screens:
+  * Added accepted file formats to yellow box for both upload + describe scene and upload + transform style options
+  * Created dedicated "File Requirements" yellow box that appears after AI messages on photo upload screens
+  * Added format info to both "Perfect! ✨ Please upload a photo featuring TEST" and "Perfect! ✨ Please upload ONE clear photo" AI message screens
+  * Consistent formatting: "Accepted formats: JPEG, PNG, WebP • Max size: 10MB" across all upload screens
+  * Enhanced user guidance with clear file requirements before they attempt uploads
 - July 3, 2025. Removed style transformation requirements modal and streamlined photo upload:
   * Completely removed "Style Transformation Requirements" modal from workflow
   * Added accepted file formats directly to yellow box in photo upload step for transform option
