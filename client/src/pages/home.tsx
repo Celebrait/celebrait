@@ -6,7 +6,6 @@ import Footer from "@/components/footer";
 import Step1NameInput from "@/components/onboarding/step1-name-input";
 import Step2DeliveryChoice from "@/components/onboarding/step2-delivery-choice";
 import Step3PrintedOptions from "@/components/onboarding/step3-printed-options";
-import Step4AILoading from "@/components/onboarding/step4-ai-loading";
 import Step5SceneChoice from "@/components/onboarding/step5-scene-choice";
 import GuidedConversation from "@/components/onboarding/guided-conversation";
 import CardPreview from "@/components/card-preview";
@@ -87,8 +86,6 @@ export default function Home() {
       case 1:
         return <Step1NameInput onboarding={onboarding} />;
       case 2:
-        return <Step4AILoading onboarding={onboarding} />;
-      case 3:
         return <GuidedConversation onboarding={onboarding} onCardGenerated={handleCardGenerated} />;
       default:
         return <Step1NameInput onboarding={onboarding} />;

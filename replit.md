@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 3, 2025. Removed AI warming up loading screen from onboarding flow:
+  * Simplified onboarding to 2 steps: Name Input → Guided Conversation
+  * Removed Step4AILoading component from the flow entirely
+  * Updated onboarding hook to limit steps to 2 maximum
+  * Modified guided conversation back button to reference step 1 instead of step 2
+  * Streamlined user experience by eliminating unnecessary waiting screen
 - July 1, 2025. Unified styling across complete delivery journey with frosted glass design:
   * Fixed cache clearing function to preserve delivery type selection during navigation
   * Updated both information pages (digital and printed) to match journey styling with frosted glass background
