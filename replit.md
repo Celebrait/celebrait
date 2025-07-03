@@ -120,6 +120,14 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 3, 2025. Fixed photo creation choice bugs and enhanced mobile experience:
+  * Fixed event propagation issues preventing modal navigation bugs when swiping or closing
+  * Moved "How it works" buttons outside clickable option containers to prevent accidental selection
+  * Added mobile swipeable carousel for both photo creation options matching delivery choice design
+  * Added "Swipe to see both options" instruction for mobile users with arrow icons
+  * Implemented responsive design: desktop shows grid view, mobile shows swipeable carousel
+  * Added stopPropagation handlers to prevent unwanted navigation during modal interactions
+  * Enhanced modal carousel with proper click event handling to prevent dialog closure
 - July 3, 2025. Made images swipable in photo creation modals with carousel functionality:
   * Added swipable carousel to both "Upload Photo + Describe Scene" and "Upload Photo + Transform Style" modals
   * Each modal now contains two swipable image placeholders ready for actual images
