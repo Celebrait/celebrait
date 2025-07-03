@@ -117,6 +117,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [returnToSummary, setReturnToSummary] = useState(false);
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const [typedText, setTypedText] = useState('');
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedVideoOption, setSelectedVideoOption] = useState<string>('');
@@ -591,6 +592,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     initializeCard();
   }, []);
 
+  // Initialize component to prevent glitches
+  useEffect(() => {
+    // Small delay to ensure smooth transition from name input
+    const timer = setTimeout(() => {
+      setIsInitialized(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     // Simulate AI typing when moving to new step
     setIsTyping(true);
@@ -715,11 +725,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     }
   }, [isLoading, answers.celebration, answers.name]);
 
-  // Safety check to prevent undefined currentStep errors
-  if (!currentStep) {
+  // Safety check to prevent undefined currentStep errors or initialization glitches
+  if (!currentStep || !isInitialized) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20 max-w-4xl mx-auto">
         <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-celebrait rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse">
+            <Bot className="text-white w-8 h-8" />
+          </div>
           <p className="text-gray-600">Loading conversation...</p>
         </div>
       </div>
@@ -2708,7 +2721,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 className="px-6 py-2 rounded-xl border-purple-300 text-purple-600 hover:bg-purple-50 font-medium shadow-sm"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Name Input
+                Start Fresh
               </Button>
             </div>
           )}
