@@ -104,6 +104,19 @@ interface ConversationStep {
 }
 
 export default function GuidedConversation({ onboarding, onCardGenerated }: GuidedConversationProps) {
+  // Early return if onboarding is not initialized
+  if (!onboarding) {
+    return (
+      <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20 max-w-4xl mx-auto">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-celebrait rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse">
+            <Bot className="text-white w-8 h-8" />
+          </div>
+          <p className="text-gray-600">Initializing conversation...</p>
+        </div>
+      </div>
+    );
+  }
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [selectedPersonalities, setSelectedPersonalities] = useState<string[]>([]);
@@ -156,7 +169,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'celebration',
       question: 'What celebration is this card for?',
-      aiMessage: `Let's do this, ${onboarding.userName}! So what are we celebrating with your greetings card?`,
+      aiMessage: `Let's do this, ${onboarding?.userName || 'there'}! So what are we celebrating with your greetings card?`,
       type: 'select',
       options: [
         { value: 'birthday', label: 'A Birthday', description: 'Celebrate another year of life', color: 'bg-pink-500' },
@@ -443,19 +456,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
 
     {
       id: 'scene',
-      question: onboarding.selectedSceneType === 'scene-only' ? 'What scene or visual should the card show?' : `Where should ${answers.name || 'they'} be and what should they be doing?`,
-      aiMessage: onboarding.selectedSceneType === 'scene-only' 
+      question: onboarding?.selectedSceneType === 'scene-only' ? 'What scene or visual should the card show?' : `Where should ${answers.name || 'they'} be and what should they be doing?`,
+      aiMessage: onboarding?.selectedSceneType === 'scene-only' 
         ? `Now for the creative part! Since you want a scene-only card, describe the beautiful visual or scene you'd like me to create. Think about the mood, setting, and atmosphere that would be perfect for this ${answers.celebration} celebration.`
         : `Now for the real magic! ✨ This is where create the scene for ${answers.name || 'their'}'s' ${answers.celebration || 'celebration'} card. Where should they be and what should they be doing?`,
       type: 'textarea',
-      placeholder: onboarding.selectedSceneType === 'scene-only' 
+      placeholder: onboarding?.selectedSceneType === 'scene-only' 
         ? 'e.g., a beautiful sunset over mountains with floating balloons, or a cozy fireplace with warm golden light and scattered rose petals...'
         : 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...'
     },
     {
       id: 'art_style',
       question: 'What art style should we use for the card?',
-      aiMessage: onboarding.selectedSceneType === 'scene-only' 
+      aiMessage: onboarding?.selectedSceneType === 'scene-only' 
         ? `Perfect! Now let's choose the art style for your scene. This sets the whole mood and feel - I want to make sure it captures the perfect atmosphere for this ${answers.celebration} celebration!`
         : `Perfect! ✨ Now let's choose the art style for ${answers.name || 'their'}'s ${answers.celebration} card.`,
       type: 'art_style_grid',
@@ -579,7 +592,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     {
       id: 'final_summary',
       question: 'Perfect! Let\'s review everything before creating your card.',
-      aiMessage: onboarding.selectedSceneType === 'scene-only' 
+      aiMessage: onboarding?.selectedSceneType === 'scene-only' 
         ? `Wonderful! I have everything I need to create an amazing scene card for this ${answers.celebration} celebration. Please review all the details below and make any changes you'd like. When you're happy with everything, we'll generate your beautiful card!`
         : `Wonderful! ✨ I have everything I need to create an amazing ${answers.celebration} card for ${answers.name || 'them'}. Please review all the details below and make any changes you'd like. When you're happy with everything, we'll generate your personalised card!`,
       type: 'final_summary',
@@ -613,7 +626,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
     // Always include inside message for all cards now
     
     // Skip person-related steps for scene-only cards
-    if (onboarding.selectedSceneType === 'scene-only') {
+    if (onboarding?.selectedSceneType === 'scene-only') {
       const personSteps = ['photo_option', 'photo_upload', 'heritage_photo', 'character_costume', 
                           'gender', 'age', 'heritage', 'hair_color', 'hair_style', 'build', 'features', 'personality'];
       if (personSteps.includes(step.id)) {
@@ -760,13 +773,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const initializeCard = async () => {
     try {
       // All cards now include front and inside content
-      const price = onboarding.selectedDelivery === 'digital' ? 2900 : 12900;
+      const price = onboarding?.selectedDelivery === 'digital' ? 2900 : 12900;
 
       const cardResponse = await apiRequest("POST", "/api/cards", {
         userId: 1,
-        cardType: onboarding.selectedDelivery,
+        cardType: onboarding?.selectedDelivery || 'printed',
         printOption: 'front-and-inside', // Always front and inside now
-        sceneType: onboarding.selectedSceneType,
+        sceneType: onboarding?.selectedSceneType || 'with-person',
         conversationData: {},
         price
       });
@@ -2881,7 +2894,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
           <div className="p-3 sm:p-4 md:p-6">
             <Carousel className="w-full">
               <CarouselContent className="-ml-1 sm:-ml-2 md:-ml-3">
-                {(onboarding.selectedSceneType === 'scene-only' 
+                {(onboarding?.selectedSceneType === 'scene-only' 
                   ? INSPIRATION_EXAMPLES.sceneOnly 
                   : INSPIRATION_EXAMPLES.withPerson
                 ).map((example, index) => (
