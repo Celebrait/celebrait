@@ -2738,7 +2738,40 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                                     : 'Click here to select one or more clear photos. The AI will create artistic representations while maintaining their likeness.'
                                   }
                                 </p>
-
+                                
+                                {/* Important Single Person Warning */}
+                                <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 mt-4">
+                                  <div className="text-center">
+                                    <div className="flex items-center justify-center space-x-2 mb-2">
+                                      <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                      </svg>
+                                      <h4 className="font-bold text-yellow-800">Important:</h4>
+                                    </div>
+                                    <p className="text-yellow-700 font-medium text-sm">
+                                      {answers.photo_option === 'upload_and_transform' 
+                                        ? (
+                                          <>
+                                            Upload <strong>one clear photo ONLY</strong>. For best results, choose a photo with good lighting and clear details!
+                                            <br />
+                                            <span className="text-xs text-yellow-600 mt-2 block">
+                                              Accepted formats: JPEG, PNG, WebP • Max size: 10MB
+                                            </span>
+                                          </>
+                                        )
+                                        : (
+                                          <>
+                                            Our AI can recognise <strong>multiple people in a single photo</strong>, so feel free to upload a group shot if you'd like all characters included. You can also <strong>upload several individual photos</strong> of different people to include in the scene.
+                                            <br />
+                                            <span className="text-xs text-yellow-600 mt-2 block">
+                                              Accepted formats: JPEG, PNG, WebP • Max size: 10MB
+                                            </span>
+                                          </>
+                                        )
+                                      }
+                                    </p>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </label>
@@ -2748,7 +2781,30 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                       </div>
                     ) : (
                       <div className="space-y-6">
-
+                        {/* Important Box */}
+                        <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
+                          <div className="text-center">
+                            <div className="flex items-center justify-center space-x-2 mb-2">
+                              <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                              </svg>
+                              <h4 className="font-bold text-yellow-800">Important:</h4>
+                            </div>
+                            <p className="text-yellow-700 font-medium text-sm">
+                              {answers.photo_option === 'upload_and_transform' ? (
+                                <>
+                                  <span>Upload <strong>one clear photo ONLY</strong>. For best results, choose a photo with good lighting and clear details!</span>
+                                  <br />
+                                  <span className="text-xs text-yellow-600 mt-2 block">
+                                    Accepted formats: JPEG, PNG, WebP • Max size: 10MB
+                                  </span>
+                                </>
+                              ) : (
+                                <span>Our AI can recognise <strong>multiple people in a single photo</strong>, so feel free to upload a group shot if you'd like all characters included. You can also <strong>upload several individual photos</strong> of different people to include in the scene.</span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
 
                         <div className="text-center">
                           <div className={`flex justify-center items-center gap-4 flex-wrap ${
