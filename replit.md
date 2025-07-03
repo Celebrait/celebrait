@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 3, 2025. Repositioned file format guidance and removed success notifications:
+  * Moved "File Requirements" yellow boxes to appear directly under "Upload a Different Photo" button
+  * Removed green "Photo uploaded successfully!" success boxes from both upload screens
+  * Added file format info to yellow boxes on both photo upload pages with consistent messaging
+  * Streamlined upload interface by removing redundant success notifications
+  * Enhanced user guidance placement for better visibility during upload process
 - July 3, 2025. Added comprehensive file format guidance across all photo upload screens:
   * Added accepted file formats to yellow box for both upload + describe scene and upload + transform style options
   * Created dedicated "File Requirements" yellow box that appears after AI messages on photo upload screens
