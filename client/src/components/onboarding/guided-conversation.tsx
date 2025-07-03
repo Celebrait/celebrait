@@ -2019,39 +2019,42 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 {currentStep.type === 'art_style_grid' && currentStep.options && (
                   <div className="space-y-6">
                     {/* Primary text input section */}
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <div className="text-center">
-                        <h3 className="text-xl font-bold text-gray-800 mb-2">Describe Your Artistic Vision</h3>
-                        <p className="text-gray-600 mb-4">
+                        <h3 className="text-2xl font-bold text-heading text-gradient-primary mb-3">Describe Your Artistic Vision</h3>
+                        <p className="text-body text-muted-foreground text-lg max-w-2xl mx-auto">
                           Our AI can recreate any artistic style you can imagine. Simply describe what you envision!
                         </p>
                       </div>
                       
-                      <div className="flex space-x-3">
-                        <Input
-                          value={currentInput}
-                          onChange={(e) => setCurrentInput(e.target.value)}
-                          placeholder="e.g., watercolor painting, vintage poster, anime style, oil painting..."
-                          className="text-lg p-4 rounded-xl border-2 border-purple-200 focus:border-purple-400 bg-white shadow-sm"
-                          onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
-                        />
+                      <div className="flex space-x-4">
+                        <div className="relative flex-1 group">
+                          <div className="absolute inset-0 bg-gradient-modern rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
+                          <Input
+                            value={currentInput}
+                            onChange={(e) => setCurrentInput(e.target.value)}
+                            placeholder="e.g., watercolor painting, vintage poster, anime style, oil painting..."
+                            className="input-modern text-lg p-5 relative z-10"
+                            onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
+                          />
+                        </div>
                         <Button 
                           onClick={handleTextSubmit}
                           disabled={!currentInput.trim()}
-                          className="px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 shadow-lg"
+                          className="btn-primary px-8 py-5 interactive-button disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                         >
-                          <ArrowRight className="w-5 h-5" />
+                          <ArrowRight className="w-6 h-6" />
                         </Button>
                       </div>
                       
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <div className="flex items-start">
-                          <div className="flex-shrink-0">
-                            <Sparkles className="w-5 h-5 text-blue-500 mt-0.5" />
+                      <div className="card-modern p-6 bg-card/30">
+                        <div className="flex items-start space-x-4">
+                          <div className="w-10 h-10 bg-gradient-accent rounded-xl flex items-center justify-center flex-shrink-0">
+                            <Sparkles className="w-5 h-5 text-white" />
                           </div>
-                          <div className="ml-3">
-                            <h4 className="text-sm font-semibold text-blue-800">Examples that work great:</h4>
-                            <p className="text-sm text-blue-700 mt-1">
+                          <div>
+                            <h4 className="text-sm font-semibold text-heading text-foreground mb-2">Examples that work great:</h4>
+                            <p className="text-body text-muted-foreground leading-relaxed">
                               "watercolor with soft pastels", "vintage travel poster", "anime manga style", "realistic oil painting", 
                               "minimalist line art", "cyberpunk neon", "impressionist brushstrokes"
                             </p>

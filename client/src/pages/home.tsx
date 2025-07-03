@@ -92,7 +92,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative bg-gradient-to-br from-background via-muted to-background bg-noise">
       <Header />
 
       {/* AI Loading Animation */}
@@ -100,25 +100,35 @@ export default function Home() {
         <AILoading message="Processing your request..." />
       )}
 
-      <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
+      <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-12" : "max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12"}>
         {!generatedCard && !isTransitioning && (
-          <div>
+          <div className="animate-fade-in">
             {renderCurrentStep()}
           </div>
         )}
 
         {generatedCard && (
-          <CardPreview card={generatedCard} onboarding={onboarding} />
+          <div className="animate-scale-in">
+            <CardPreview card={generatedCard} onboarding={onboarding} />
+          </div>
         )}
       </main>
 
+      {/* Floating geometric elements for tech aesthetic */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-20 left-10 w-20 h-20 bg-cyber-purple/10 rounded-full animate-float" />
+        <div className="absolute top-40 right-20 w-16 h-16 bg-electric-blue/10 rounded-lg rotate-45 animate-float" style={{ animationDelay: '2s' }} />
+        <div className="absolute bottom-40 left-20 w-12 h-12 bg-neon-green/10 rounded-full animate-float" style={{ animationDelay: '4s' }} />
+        <div className="absolute bottom-20 right-32 w-24 h-24 bg-bright-orange/10 rounded-lg animate-float" style={{ animationDelay: '1s' }} />
+      </div>
+
       {/* Hidden Test Button - Accessible via URL param or keyboard shortcut */}
       {(window.location.search.includes('test=delivery') || window.location.hash.includes('test')) && (
-        <div className="fixed bottom-4 right-4 z-50">
+        <div className="fixed bottom-6 right-6 z-50">
           <Button
             onClick={createMockCardAndSkipToDelivery}
             disabled={isCreatingMockCard}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg"
+            className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white px-6 py-3 rounded-xl shadow-lg glow-effect interactive-button"
           >
             {isCreatingMockCard ? "Creating..." : "Test Delivery Flow"}
           </Button>
@@ -126,8 +136,6 @@ export default function Home() {
       )}
 
       <Footer />
-
-
     </div>
   );
 }
