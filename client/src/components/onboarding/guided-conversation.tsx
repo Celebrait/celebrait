@@ -117,6 +117,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [returnToSummary, setReturnToSummary] = useState(false);
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const [typedText, setTypedText] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
 
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedVideoOption, setSelectedVideoOption] = useState<string>('');
@@ -691,6 +692,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       return () => clearInterval(quoteInterval);
     }
   }, [isLoading, aiQuotes.length]);
+
+  // Component mounting effect to prevent glitches
+  useEffect(() => {
+    const mountTimer = setTimeout(() => {
+      setIsMounted(true);
+    }, 100);
+
+    return () => clearTimeout(mountTimer);
+  }, []);
 
   // Ethereal typing effect for loading screen
   useEffect(() => {
@@ -1619,7 +1629,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-blue-50 overflow-visible">
       {/* Header - Robot and Question */}
-      <div className="bg-gradient-to-br from-purple-50 to-blue-50 border-b border-white/20">
+      <div className={`bg-gradient-to-br from-purple-50 to-blue-50 border-b border-white/20 transition-all duration-500 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
         <div className="max-w-4xl mx-auto p-4 sm:p-6">
           {/* AI Avatar with Circular Progress and Message */}
           <div className="text-center space-y-4">
@@ -1690,10 +1700,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       <div className="flex-1 overflow-y-auto overflow-x-visible">
         <div className="max-w-4xl mx-auto p-4 sm:p-6 overflow-visible">
           {/* Answer Options with Fade Transition */}
-          {!isTyping && (
+          {!isTyping && isMounted && (
             <div 
               key={currentStepIndex} 
-              className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-white/20 animate-fade-in overflow-visible"
+              className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-white/20 animate-fade-in overflow-visible transition-all duration-500"
             >
                 {currentStep.type === 'select' && currentStep.options && (
                   <div className="space-y-4 sm:space-y-6">
