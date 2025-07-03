@@ -123,7 +123,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [selectedVideoOption, setSelectedVideoOption] = useState<string>('');
   const [copyrightConsentOpen, setCopyrightConsentOpen] = useState(false);
   const [hasCopyrightConsent, setHasCopyrightConsent] = useState(false);
-  const [photoRequirementsOpen, setPhotoRequirementsOpen] = useState(false);
+
 
 
   const [placeholderText, setPlaceholderText] = useState('');
@@ -947,15 +947,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const handleCopyrightConsent = () => {
     setHasCopyrightConsent(true);
     setCopyrightConsentOpen(false);
-    // Show photo requirements modal after copyright consent
-    setTimeout(() => {
-      setPhotoRequirementsOpen(true);
-    }, 100);
-  };
-
-  const handlePhotoRequirementsAcknowledge = () => {
-    setPhotoRequirementsOpen(false);
-    // Trigger file input after acknowledgment
+    // Directly trigger file input after copyright consent
     setTimeout(() => {
       document.getElementById('photo-upload')?.click();
     }, 100);
@@ -2782,7 +2774,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                             </div>
                             <p className="text-yellow-700 font-medium text-sm">
                               {answers.photo_option === 'upload_and_transform' ? (
-                                <span>Upload <strong>one clear photo ONLY</strong>. For best results, choose a photo with good lighting and clear details!</span>
+                                <>
+                                  <span>Upload <strong>one clear photo ONLY</strong>. For best results, choose a photo with good lighting and clear details!</span>
+                                  <br />
+                                  <span className="text-xs text-yellow-600 mt-2 block">
+                                    Accepted formats: JPEG, PNG, WebP • Max size: 10MB
+                                  </span>
+                                </>
                               ) : (
                                 <span>Our AI can recognise <strong>multiple people in a single photo</strong>, so feel free to upload a group shot if you'd like all characters included. You can also <strong>upload several individual photos</strong> of different people to include in the scene.</span>
                               )}
@@ -3155,73 +3153,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
         </DialogContent>
       </Dialog>
 
-      {/* Photo Requirements Modal */}
-      <Dialog open={photoRequirementsOpen} onOpenChange={setPhotoRequirementsOpen}>
-        <DialogContent className="max-w-2xl bg-white border-2 border-blue-200">
-          <DialogHeader className="text-center pb-4">
-            <div className="flex items-center justify-center space-x-3 mb-3">
-              <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <DialogTitle className="text-xl font-bold text-blue-600">
-                {answers.photo_option === 'upload_and_transform' ? 'Style Transformation Requirements' : 'Photo Requirements & Best Practices'}
-              </DialogTitle>
-            </div>
-          </DialogHeader>
-          
-          <div className="space-y-6 p-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-              <div className="grid md:grid-cols-2 gap-4 text-sm max-w-2xl mx-auto">
-                <div>
-                  <h5 className="font-medium text-blue-700 mb-2">Accepted Formats:</h5>
-                  <ul className="text-blue-600 space-y-1">
-                    <li>• JPEG (.jpg, .jpeg)</li>
-                    <li>• PNG (.png)</li>
-                    <li>• WebP (.webp)</li>
-                    <li>• Max file size: 10MB</li>
-                  </ul>
-                </div>
-                
-                <div>
-                  <h5 className="font-medium text-blue-700 mb-2">
-                    {answers.photo_option === 'upload_and_transform' ? 'For Best Transformation:' : 'For Best Results:'}
-                  </h5>
-                  <ul className="text-blue-600 space-y-1">
-                    {answers.photo_option === 'upload_and_transform' ? (
-                      <>
-                        <li>• Clear, high-quality image</li>
-                        <li>• Good lighting and contrast</li>
-                        <li>• Interesting composition</li>
-                        <li>• High resolution (at least 512x512)</li>
-                        <li>• Avoid heavily processed images</li>
-                      </>
-                    ) : (
-                      <>
-                        <li>• Face clearly visible and well-lit</li>
-                        <li>• Person looking toward camera</li>
-                        <li>• Minimal shadows on face</li>
-                        <li>• High resolution (at least 512x512)</li>
-                        <li>• Single person in focus</li>
-                      </>
-                    )}
-                  </ul>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex justify-center">
-              <Button 
-                onClick={handlePhotoRequirementsAcknowledge}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-medium"
-              >
-                Got it! Let me upload my photo
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+
 
       {/* Inspiration Modal with Carousel */}
       <Dialog open={showInspirationModal} onOpenChange={setShowInspirationModal}>

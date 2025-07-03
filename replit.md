@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 3, 2025. Removed style transformation requirements modal and streamlined photo upload:
+  * Completely removed "Style Transformation Requirements" modal from workflow
+  * Added accepted file formats directly to yellow box in photo upload step for transform option
+  * Streamlined photo upload process to go directly from copyright consent to file selection
+  * Updated upload instruction to include "Accepted formats: JPEG, PNG, WebP • Max size: 10MB" below main text
+  * Simplified user flow by eliminating unnecessary requirement acknowledgment step
 - July 3, 2025. Fixed photo creation choice bugs and enhanced mobile experience:
   * Fixed event propagation issues preventing modal navigation bugs when swiping or closing
   * Moved "How it works" buttons outside clickable option containers to prevent accidental selection
