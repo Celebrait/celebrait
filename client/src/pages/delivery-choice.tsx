@@ -12,7 +12,7 @@ export default function DeliveryChoice() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/delivery-choice/:reference");
   const [cardData, setCardData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<'printed' | 'digital' | null>(null);
   const [currentOption, setCurrentOption] = useState(0);
   const [touchStart, setTouchStart] = useState(0);
@@ -51,16 +51,19 @@ export default function DeliveryChoice() {
   ];
 
   useEffect(() => {
+    // Load card data in background without blocking UI
     const loadCardData = async () => {
-      console.log('[DELIVERY] Starting optimized card data load for reference:', params?.reference);
+      if (!params?.reference) return;
+      
+      console.log('[DELIVERY] Loading card data in background for reference:', params.reference);
       const startTime = Date.now();
       
       try {
-        // First, check multiple storage locations for cached data
+        // Check cache first
         const storageKeys = [
           'cardPreviewData',
-          `card_${params?.reference}`,
-          `ready_${params?.reference}`
+          `card_${params.reference}`,
+          `ready_${params.reference}`
         ];
         
         for (const key of storageKeys) {
@@ -68,11 +71,8 @@ export default function DeliveryChoice() {
           if (storedData) {
             try {
               const parsedData = JSON.parse(storedData);
-              console.log(`[DELIVERY] Found cached data in ${key}, loading instantly`);
+              console.log(`[DELIVERY] Found cached data in ${key}`);
               setCardData(parsedData.card || parsedData);
-              setLoading(false);
-              const endTime = Date.now();
-              console.log(`[DELIVERY] Cached load completed in ${endTime - startTime}ms`);
               return;
             } catch (parseError) {
               console.warn(`Failed to parse stored data from ${key}`);
@@ -80,84 +80,54 @@ export default function DeliveryChoice() {
           }
         }
 
-        // Only fetch from API if absolutely necessary
-        if (params?.reference) {
-          console.log('[DELIVERY] No cache found, making API request...');
-          const apiStartTime = Date.now();
-          
-          try {
-            let response;
-            
-            // Check if this is a card ready reference (starts with celebrait_ready_)
-            if (params.reference.startsWith('celebrait_ready_')) {
-              response = await apiRequest('GET', `/api/cards/ready/${params.reference}`);
-            } else {
-              // Regular card ID
-              response = await apiRequest('GET', `/api/cards/${params.reference}`);
-            }
-            
-            if (response.ok) {
-              const data = await response.json();
-              const cardData = data.card || data; // Handle both response formats
-              
-              // ULTRA-FAST: Use preloaded base64 images if available
-              if (cardData.frontImageBase64) {
-                cardData.frontImageUrl = cardData.frontImageBase64;
-                console.log('[DELIVERY] Using preloaded front image for instant display');
-              }
-              if (cardData.insideImageBase64) {
-                cardData.insideImageUrl = cardData.insideImageBase64;
-                console.log('[DELIVERY] Using preloaded inside image for instant display');
-              }
-              
-              // Cache the result for future use
-              try {
-                sessionStorage.setItem(`ready_${params.reference}`, JSON.stringify(data));
-                sessionStorage.setItem('cardPreviewData', JSON.stringify(cardData));
-                console.log('[DELIVERY] Cached API response for future use');
-              } catch (storageError) {
-                console.warn('Failed to cache response:', storageError);
-              }
-              
-              setCardData(cardData);
-              const apiEndTime = Date.now();
-              console.log(`[DELIVERY] API request completed in ${apiEndTime - apiStartTime}ms`);
-              return;
-            } else {
-              console.error('Failed to fetch card data:', response.status, response.statusText);
-            }
-          } catch (error) {
-            console.error('Failed to load card data from API:', error);
-          }
+        // Background API request - doesn't block UI
+        let response;
+        if (params.reference.startsWith('celebrait_ready_')) {
+          response = await apiRequest('GET', `/api/cards/ready/${params.reference}`);
+        } else {
+          response = await apiRequest('GET', `/api/cards/${params.reference}`);
         }
         
-        // Fallback: Set minimal card data to allow page to render
-        setCardData({ 
-          id: params?.reference || 'test', 
-          price: 12900,
-          cardType: 'printed',
-          frontImageUrl: null,
-          insideImageUrl: null
-        });
+        if (response.ok) {
+          const data = await response.json();
+          const cardData = data.card || data;
+          
+          // Use preloaded images if available
+          if (cardData.frontImageBase64) {
+            cardData.frontImageUrl = cardData.frontImageBase64;
+          }
+          if (cardData.insideImageBase64) {
+            cardData.insideImageUrl = cardData.insideImageBase64;
+          }
+          
+          // Cache for future use
+          try {
+            sessionStorage.setItem(`ready_${params.reference}`, JSON.stringify(data));
+            sessionStorage.setItem('cardPreviewData', JSON.stringify(cardData));
+          } catch (storageError) {
+            console.warn('Failed to cache response:', storageError);
+          }
+          
+          setCardData(cardData);
+          const endTime = Date.now();
+          console.log(`[DELIVERY] Background load completed in ${endTime - startTime}ms`);
+        }
         
-      } catch (e) {
-        console.error('Error loading card data:', e);
-        // Final fallback
+      } catch (error) {
+        console.error('Background card data load failed:', error);
+        // Set minimal fallback data
         setCardData({ 
-          id: 'fallback', 
+          id: params.reference, 
           price: 12900,
           cardType: 'printed',
           frontImageUrl: null,
           insideImageUrl: null
         });
-      } finally {
-        const endTime = Date.now();
-        console.log(`[DELIVERY] Total delivery choice load time: ${endTime - startTime}ms`);
-        setLoading(false);
       }
     };
 
     if (match) {
+      // Show delivery options immediately, load card data in background
       loadCardData();
     }
   }, [match, params?.reference]);

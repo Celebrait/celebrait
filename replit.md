@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 3, 2025. Fixed delivery choice page loading performance for instant display:
+  * Changed initial loading state from true to false for immediate page rendering
+  * Modified card data loading to run in background without blocking UI display
+  * Delivery options now show instantly while card data loads asynchronously
+  * Eliminated 10+ second "Loading delivery options..." spinner that frustrated users
+  * Enhanced user experience with immediate page responsiveness
 - July 3, 2025. Removed duplicate IMPORTANT box from photo upload section:
   * Deleted redundant yellow "Important" box at line 2785 that was duplicating guidance
   * Streamlined photo upload interface by removing unnecessary duplicate messaging
