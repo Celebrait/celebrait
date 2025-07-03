@@ -99,7 +99,7 @@ export async function generatePrintReadyPDF(options: PrintOptions): Promise<stri
     const filepath = path.join(PRINT_DIR, filename);
     
     // Convert to high-quality PNG buffer
-    const buffer = canvas.toBuffer('image/png', { compressionLevel: 1, filters: canvas.PNG_FILTER_NONE });
+    const buffer = canvas.toBuffer('image/png');
     
     await fs.writeFile(filepath, buffer);
     

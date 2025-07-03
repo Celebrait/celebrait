@@ -6,7 +6,7 @@ import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
 import { storage } from "./storage";
-import { upsertUserSchema, insertCardSchema, insertLovedOneSchema, insertOrderSchema } from "@shared/schema";
+import { insertUserSchema, insertCardSchema, insertLovedOneSchema, insertOrderSchema } from "@shared/schema";
 
 import OpenAI from "openai";
 import Stripe from "stripe";
@@ -19,11 +19,14 @@ import {
   getStoredImage, 
   generateCardPDF, 
   getImageUrl, 
-  imageExists 
+  imageExists,
+  cleanupOldImages,
+  scheduleAutomaticCleanup,
+  getStorageStats,
+  type CleanupConfig
 } from "./image-storage";
 import { migrateCardImages, cardNeedsMigration } from "./image-migration";
 import { setupGoogleAuth } from "./google-auth";
-import { setupAuth, isAuthenticated } from "./replitAuth";
 import session from "express-session";
 import passport from "passport";
 
@@ -211,45 +214,6 @@ async function processFluxBinaryOutput(output: any): Promise<string> {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Auth middleware
-  await setupAuth(app);
-  
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
-
-  // Get user's cards (protected route)
-  app.get('/api/my-cards', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const cards = await storage.getUserCards(userId);
-      res.json(cards);
-    } catch (error) {
-      console.error("Error fetching user cards:", error);
-      res.status(500).json({ message: "Failed to fetch cards" });
-    }
-  });
-
-  // Get user's orders (protected route)
-  app.get('/api/my-orders', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const orders = await storage.getUserOrders(userId);
-      res.json(orders);
-    } catch (error) {
-      console.error("Error fetching user orders:", error);
-      res.status(500).json({ message: "Failed to fetch orders" });
-    }
-  });
-  
   // Serve stored images statically
   app.use('/images', (req, res, next) => {
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
@@ -262,11 +226,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   });
-  // Legacy endpoint - now handled by Replit Auth automatically
+
+  // Start automatic image cleanup scheduler (runs daily)
+  const cleanupConfig: CleanupConfig = {
+    retentionDays: 90,        // Keep images for 90 days
+    preservePaidCards: true,  // Never delete paid card images
+    preserveRecentOrders: true,
+    dryRun: false
+  };
+  
+  scheduleAutomaticCleanup(cleanupConfig);
+  console.log(`[CLEANUP] Automatic cleanup scheduled: ${cleanupConfig.retentionDays} day retention, preserve paid cards: ${cleanupConfig.preservePaidCards}`);
+
+  // Storage management endpoints
+  
+  // Get storage statistics
+  app.get("/api/admin/storage/stats", async (req, res) => {
+    try {
+      const stats = await getStorageStats();
+      res.json({
+        ...stats,
+        totalSizeMB: (stats.totalSize / 1024 / 1024).toFixed(2),
+        avgFileSizeMB: (stats.avgFileSize / 1024 / 1024).toFixed(2)
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error getting storage stats: " + error.message });
+    }
+  });
+  
+  // Manual cleanup trigger
+  app.post("/api/admin/storage/cleanup", async (req, res) => {
+    try {
+      const config: CleanupConfig = {
+        retentionDays: req.body.retentionDays || 90,
+        preservePaidCards: req.body.preservePaidCards !== false,
+        preserveRecentOrders: req.body.preserveRecentOrders !== false,
+        dryRun: req.body.dryRun === true
+      };
+      
+      console.log(`[CLEANUP] Manual cleanup triggered:`, config);
+      const results = await cleanupOldImages(config);
+      
+      res.json({
+        success: true,
+        results,
+        config,
+        message: `${config.dryRun ? 'Simulation: Would delete' : 'Deleted'} ${results.deleted} files, freed ${(results.size / 1024 / 1024).toFixed(2)}MB`
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error running cleanup: " + error.message });
+    }
+  });
+
+  // User registration
   app.post("/api/users", async (req, res) => {
-    res.status(410).json({ 
-      message: "User registration is now handled via OAuth. Please use /api/login to authenticate." 
-    });
+    try {
+      const userData = insertUserSchema.parse(req.body);
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(userData.email);
+      if (existingUser) {
+        // Return the existing user instead of error
+        return res.json(existingUser);
+      }
+
+      const user = await storage.createUser(userData);
+
+      // Create loved ones if provided
+      if (req.body.lovedOnes && Array.isArray(req.body.lovedOnes)) {
+        for (const lovedOneData of req.body.lovedOnes) {
+          if (lovedOneData.name && lovedOneData.birthday) {
+            await storage.createLovedOne({
+              userId: user.id,
+              name: lovedOneData.name,
+              birthday: lovedOneData.birthday
+            });
+          }
+        }
+      }
+
+      res.json(user);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
   });
 
   // Create card
