@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 3, 2025. Redesigned art style selection to prioritize custom text input with inspiration popup:
+  * Completely redesigned art style screen to focus on text input for describing custom artistic visions
+  * Replaced overwhelming grid of style options with clean, prominent text input as primary interface
+  * Added "Browse Art Style Inspiration" popup button with swipeable carousel of style examples
+  * Users can now describe any artistic style they envision instead of being limited to preset options
+  * Inspiration popup uses same modal design pattern with square placeholder areas for future style images
+  * Enhanced user creativity by encouraging custom descriptions while providing inspiration when needed
 - July 3, 2025. Removed swipeable feature from photo creation choice and fixed transition glitches:
   * Replaced annoying fade transitions between name input and conversation screens with clean AI-themed loading animation
   * Created new AILoading component with brain icon and spinning ring for smooth transitions

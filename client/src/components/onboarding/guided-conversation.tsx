@@ -2017,153 +2017,140 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
                 )}
 
                 {currentStep.type === 'art_style_grid' && currentStep.options && (
-                  <div className="space-y-6 overflow-visible">
-                    {/* Navigation Instructions */}
-                    <div className="text-center">
-                      <p className="text-sm text-gray-600 mb-4">
-                        💡 Swipe left/right or use the arrows to browse all art styles
-                      </p>
-                    </div>
-                    
-                    {/* Carousel Navigation for 4 styles at a time */}
-                    <Carousel 
-                      className="w-full overflow-visible"
-                      opts={{
-                        align: "start",
-                        loop: false,
-                        skipSnaps: false,
-                        dragFree: true,
-                        containScroll: "trimSnaps"
-                      }}
-                    >
-                      <CarouselContent className="overflow-visible -ml-2 md:-ml-4">
-                        {Array.from({ length: Math.ceil(currentStep.options.length / 4) }).map((_, pageIndex) => (
-                          <CarouselItem key={pageIndex} className="overflow-visible pl-2 md:pl-4">
-                            <div className="grid grid-cols-2 gap-6 p-4 overflow-visible">
-                              {currentStep.options
-                                .slice(pageIndex * 4, pageIndex * 4 + 4)
-                                .map((style) => (
-                                  <div key={style.value} className="space-y-3 relative transform-gpu">
-                                    {/* Main style button */}
-                                    <Button
-                                      onClick={() => handleAnswer(style.value)}
-                                      variant="outline"
-                                      className="h-auto p-0 w-full overflow-visible border-2 border-gray-200 hover:border-purple-400 transition-all duration-300 rounded-2xl hover:scale-110 hover:shadow-2xl bg-white relative hover:z-50 transform-gpu"
-                                      style={{ transformOrigin: 'center' }}
-                                    >
-                                      <div className="flex flex-col items-center p-4 w-full">
-                                        {/* Color indicator & emoji */}
-                                        <div className={`w-16 h-16 ${style.color} rounded-xl flex items-center justify-center text-2xl mb-3 shadow-lg`}>
-                                          {style.emoji}
-                                        </div>
-                                        
-                                        {/* Style name only */}
-                                        <h3 className="font-semibold text-sm text-center text-gray-800 leading-tight">
-                                          {style.label}
-                                        </h3>
-                                      </div>
-                                    </Button>
-                                    
-                                    {/* Preview button - more prominent */}
-                                    <Dialog>
-                                      <DialogTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="w-full bg-purple-50 hover:bg-purple-100 border-purple-200 hover:border-purple-300 text-purple-700 hover:text-purple-800 py-3 text-sm font-medium"
-                                        >
-                                          <Eye className="w-4 h-4 mr-2" />
-                                          View Example
-                                        </Button>
-                                      </DialogTrigger>
-                                      <DialogContent className="max-w-lg">
-                                        <DialogHeader>
-                                          <DialogTitle className="flex items-center gap-3">
-                                            <div className={`w-8 h-8 ${style.color} rounded-lg flex items-center justify-center text-lg`}>
-                                              {style.emoji}
-                                            </div>
-                                            {style.label}
-                                          </DialogTitle>
-                                          <DialogDescription>
-                                            {style.description}
-                                          </DialogDescription>
-                                        </DialogHeader>
-                                        
-                                        <div className="space-y-4">
-                                          {/* Example preview placeholder */}
-                                          <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center">
-                                            <div className="text-center">
-                                              <div className={`w-16 h-16 ${style.color} rounded-xl flex items-center justify-center text-3xl mb-3 mx-auto shadow-lg`}>
-                                                {style.emoji}
-                                              </div>
-                                              <p className="text-gray-600 text-sm">
-                                                Example {style.label} Preview
-                                              </p>
-                                              <p className="text-xs text-gray-500 mt-1">
-                                                Coming soon...
-                                              </p>
-                                            </div>
-                                          </div>
-                                          
-                                          {/* Inspiration info */}
-                                          <div className="bg-purple-50 rounded-lg p-4">
-                                            <h4 className="font-medium text-purple-800 mb-2">Inspired by:</h4>
-                                            <p className="text-purple-700 text-sm">{style.inspiration}</p>
-                                          </div>
-                                          
-                                          {/* Select button */}
-                                          <Button
-                                            onClick={() => {
-                                              handleAnswer(style.value);
-                                              // Close dialog
-                                              document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-                                            }}
-                                            className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white py-3 rounded-xl font-semibold"
-                                          >
-                                            Choose {style.label}
-                                          </Button>
-                                        </div>
-                                      </DialogContent>
-                                    </Dialog>
-                                  </div>
-                                ))}
-                            </div>
-                          </CarouselItem>
-                        ))}
-                      </CarouselContent>
-                      <CarouselPrevious className="left-0" />
-                      <CarouselNext className="right-0" />
-                    </Carousel>
-                    
-                    {/* Custom text input section */}
-                    <div className="space-y-3 border-t pt-6">
+                  <div className="space-y-6">
+                    {/* Primary text input section */}
+                    <div className="space-y-4">
                       <div className="text-center">
-                        <h4 className="font-semibold text-gray-800 mb-2">Create Your Own Style</h4>
-                        <p className="text-sm text-gray-600 mb-4">
-                          AI is amazing at creating unique styles! Describe any artistic vision you have in mind.
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">Describe Your Artistic Vision</h3>
+                        <p className="text-gray-600 mb-4">
+                          Our AI can recreate any artistic style you can imagine. Simply describe what you envision!
                         </p>
                       </div>
                       
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-3">
                         <Input
                           value={currentInput}
                           onChange={(e) => setCurrentInput(e.target.value)}
-                          placeholder="e.g., watercolor painting, gothic art, minimalist line drawing..."
-                          className="text-lg p-3 rounded-lg border-purple-200 focus:border-purple-400"
+                          placeholder="e.g., watercolor painting, vintage poster, anime style, oil painting..."
+                          className="text-lg p-4 rounded-xl border-2 border-purple-200 focus:border-purple-400 bg-white shadow-sm"
                           onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                         />
                         <Button 
                           onClick={handleTextSubmit}
                           disabled={!currentInput.trim()}
-                          className="px-4 py-3 rounded-lg bg-gradient-to-r from-purple-500 to-blue-500"
+                          className="px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 shadow-lg"
                         >
-                          <ArrowRight className="w-4 h-4" />
+                          <ArrowRight className="w-5 h-5" />
                         </Button>
                       </div>
                       
-                      <p className="text-xs text-gray-500 text-center">
-                        Try: "vintage oil painting", "cyberpunk neon", "hand-drawn sketch", or anything creative!
-                      </p>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0">
+                            <Sparkles className="w-5 h-5 text-blue-500 mt-0.5" />
+                          </div>
+                          <div className="ml-3">
+                            <h4 className="text-sm font-semibold text-blue-800">Examples that work great:</h4>
+                            <p className="text-sm text-blue-700 mt-1">
+                              "watercolor with soft pastels", "vintage travel poster", "anime manga style", "realistic oil painting", 
+                              "minimalist line art", "cyberpunk neon", "impressionist brushstrokes"
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Inspiration section */}
+                    <div className="border-t pt-6">
+                      <div className="text-center mb-4">
+                        <p className="text-gray-600 mb-3">
+                          Need some inspiration? Browse through different artistic styles to spark your creativity.
+                        </p>
+                        
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 hover:border-purple-300 text-purple-700 hover:text-purple-800 px-6 py-3 rounded-xl font-semibold shadow-sm"
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              Browse Art Style Inspiration
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center gap-3">
+                                <Palette className="w-6 h-6 text-purple-600" />
+                                Art Style Inspiration Gallery
+                              </DialogTitle>
+                              <DialogDescription>
+                                Swipe through different artistic styles to find inspiration for your custom description
+                              </DialogDescription>
+                            </DialogHeader>
+                            
+                            <div className="overflow-y-auto max-h-[70vh] p-4">
+                              <Carousel className="w-full">
+                                <CarouselContent className="-ml-4">
+                                  {currentStep.options.map((style) => (
+                                    <CarouselItem key={style.value} className="pl-4 md:basis-1/2 lg:basis-1/3">
+                                      <div className="space-y-3">
+                                        {/* Style preview card */}
+                                        <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center border-2 border-gray-200">
+                                          <div className="text-center">
+                                            <div className={`w-16 h-16 ${style.color} rounded-xl flex items-center justify-center text-3xl mb-3 mx-auto shadow-lg`}>
+                                              {style.emoji}
+                                            </div>
+                                            <p className="text-gray-600 font-medium">
+                                              {style.label}
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                              Style preview image
+                                            </p>
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Style info */}
+                                        <div className="text-center">
+                                          <h4 className="font-semibold text-gray-800 mb-1">{style.label}</h4>
+                                          <p className="text-sm text-gray-600 mb-2">{style.description}</p>
+                                          
+                                          {/* Use this style button */}
+                                          <Button
+                                            onClick={() => {
+                                              setCurrentInput(style.label.toLowerCase());
+                                              // Close dialog
+                                              document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+                                            }}
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full border-purple-200 text-purple-600 hover:bg-purple-50"
+                                          >
+                                            Use This Style
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </CarouselItem>
+                                  ))}
+                                </CarouselContent>
+                                <CarouselPrevious className="left-2" />
+                                <CarouselNext className="right-2" />
+                              </Carousel>
+                              
+                              <div className="mt-6 text-center">
+                                <p className="text-sm text-gray-600 mb-3">
+                                  Found something you like? You can use these as starting points and customize them further!
+                                </p>
+                                <Button 
+                                  onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))}
+                                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2 rounded-xl"
+                                >
+                                  Close & Continue Creating
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     </div>
                   </div>
                 )}
