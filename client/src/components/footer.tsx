@@ -1,83 +1,46 @@
-import { Heart, Instagram, Cpu, Zap } from "lucide-react";
+import { Heart, Instagram, Facebook } from "lucide-react";
 import { FaTiktok } from "react-icons/fa";
 import { Link } from "wouter";
 
 export default function Footer() {
   return (
-    <footer className="glass-effect border-t border-border/20 mt-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
-            <div className="flex items-center space-x-4 mb-6">
-              <div className="w-10 h-10 bg-gradient-modern rounded-2xl flex items-center justify-center shadow-lg">
-                <Heart className="text-white text-lg" fill="currentColor" />
+    <footer className="bg-white/80 backdrop-blur-sm border-t border-purple-100 mt-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid md:grid-cols-2 gap-8">
+          <div>
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-8 h-8 bg-gradient-celebrait rounded-lg flex items-center justify-center">
+                <Heart className="text-white text-sm" fill="currentColor" />
               </div>
-              <div>
-                <span className="text-xl font-bold text-gradient-primary text-display">Celebrait</span>
-                <div className="flex items-center space-x-2 mt-1">
-                  <Cpu className="w-3 h-3 text-cyber-purple" />
-                  <span className="text-xs text-muted-foreground text-label tracking-wider">AI-POWERED</span>
-                  <Zap className="w-3 h-3 text-electric-blue" />
-                </div>
-              </div>
+              <span className="text-xl font-bold text-gradient-celebrait">Celebrait</span>
             </div>
-            <p className="text-muted-foreground text-body mb-6 max-w-md">
-              Creating magical moments through cutting-edge AI technology. 
-              Every greeting card is uniquely generated using advanced machine learning models.
-            </p>
-            
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-label text-muted-foreground">CONNECT:</span>
-              <div className="flex space-x-3">
-                <a 
-                  href="https://www.instagram.com/celebrait.co.za/" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="w-10 h-10 bg-card border border-border rounded-xl flex items-center justify-center hover:bg-gradient-modern hover:border-transparent transition-all duration-300 interactive-button group"
-                >
-                  <Instagram className="w-4 h-4 text-muted-foreground group-hover:text-white" />
-                </a>
-                <a 
-                  href="https://www.tiktok.com/@celebrait.co.za" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="w-10 h-10 bg-card border border-border rounded-xl flex items-center justify-center hover:bg-gradient-modern hover:border-transparent transition-all duration-300 interactive-button group"
-                >
-                  <FaTiktok className="w-4 h-4 text-muted-foreground group-hover:text-white" />
-                </a>
-              </div>
-            </div>
+            <p className="text-slate-gray text-sm">Creating magical moments through AI-powered greeting cards, one celebration at a time.</p>
           </div>
           
           <div>
-            <h4 className="font-semibold text-foreground text-heading mb-4">Technology</h4>
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-cyber-purple rounded-full" />
-                <span className="text-muted-foreground text-body">GPT-4 Vision</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-electric-blue rounded-full" />
-                <span className="text-muted-foreground text-body">FLUX Pro</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-neon-green rounded-full" />
-                <span className="text-muted-foreground text-body">Custom AI Models</span>
-              </div>
+            <h4 className="font-semibold text-gray-800 mb-3">Connect</h4>
+            <div className="flex space-x-3">
+              <a href="https://www.instagram.com/celebrait.co.za/" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-ethereal-purple hover:text-white transition-all duration-300">
+                <Instagram className="text-sm" />
+              </a>
+              <a href="https://www.tiktok.com/@celebrait.co.za" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-ethereal-purple hover:text-white transition-all duration-300">
+                <FaTiktok className="text-sm" />
+              </a>
             </div>
           </div>
         </div>
         
-        <div className="border-t border-border/30 mt-12 pt-8">
+        <div className="border-t border-purple-100 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <p className="text-muted-foreground text-sm text-body">
-              © 2025 Wezign Media (PTY) LTD trading as Celebrait.co.za. Built in South Africa.
+            <p className="text-slate-gray text-sm">
+              © 2025 Wezign Media (PTY) LTD trading as Celebrait.co.za. Made with ❤️ in South Africa. All rights reserved.
             </p>
-            <div className="flex space-x-6 text-sm">
-              <Link href="/privacy-policy" className="text-muted-foreground hover:text-foreground transition-colors text-body">
+            <div className="flex space-x-4 text-sm">
+              <Link href="/privacy-policy" className="text-slate-gray hover:text-ethereal-purple transition-colors">
                 Privacy Policy
               </Link>
-              <Link href="/terms-of-service" className="text-muted-foreground hover:text-foreground transition-colors text-body">
+              <span className="text-slate-gray">•</span>
+              <Link href="/terms-of-service" className="text-slate-gray hover:text-ethereal-purple transition-colors">
                 Terms of Service
               </Link>
             </div>

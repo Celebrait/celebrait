@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { User, Sparkles, ArrowLeft, Zap } from "lucide-react";
+import { User, Sparkles, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -26,68 +26,50 @@ export default function Step1NameInput({ onboarding }: Step1Props) {
   };
 
   return (
-    <div className="card-modern p-8 sm:p-12 lg:p-16 max-w-5xl mx-auto">
-      <div className="text-center mb-12">
-        <div className="relative mb-8">
-          <div className="w-24 h-24 bg-gradient-modern rounded-3xl mx-auto flex items-center justify-center shadow-2xl glow-effect animate-float">
-            <User className="text-white w-12 h-12" />
-          </div>
-          <div className="absolute -top-2 -right-2 w-8 h-8 bg-neon-green rounded-full flex items-center justify-center animate-pulse-glow">
-            <Zap className="w-4 h-4 text-white" />
-          </div>
+    <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-white/20 max-w-4xl mx-auto">
+      <div className="text-center mb-6 sm:mb-8">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-celebrait rounded-full mx-auto mb-4 sm:mb-6 flex items-center justify-center animate-float">
+          <User className="text-white w-8 h-8 sm:w-10 sm:h-10" />
         </div>
-        
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-display text-gradient-primary mb-6">
-          Welcome to Celebrait
-        </h1>
-        
-        <div className="flex items-center justify-center space-x-2 mb-8">
-          <div className="h-px bg-gradient-modern flex-1 max-w-20" />
-          <span className="text-sm text-label text-muted-foreground tracking-wider">AI-POWERED CREATIVITY</span>
-          <div className="h-px bg-gradient-modern flex-1 max-w-20" />
-        </div>
-        
-        <p className="text-lg sm:text-xl text-body text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-          Let's create a personalized AI-generated greeting card that will absolutely blow someone away. 
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-3 sm:mb-4">Welcome to Celebrait!</h1>
+        <p className="text-base sm:text-lg text-slate-gray max-w-2xl mx-auto px-4">
+          Let's create a personalised AI-generated greeting card that will absolutely blow someone away. 
           First, what should we call you?
         </p>
       </div>
 
-      <div className="max-w-lg mx-auto">
-        <div className="relative group">
-          <div className="absolute inset-0 bg-gradient-modern rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
+      <div className="max-w-md mx-auto px-4">
+        <div className="relative">
           <Input
             type="text"
             placeholder="Enter your name..."
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyPress={handleKeyPress}
-            className="input-modern w-full px-6 py-5 text-lg placeholder:text-muted-foreground/50 relative z-10"
+            className="w-full px-4 sm:px-6 py-3 sm:py-4 text-base sm:text-lg border-2 border-purple-200 rounded-2xl focus:border-ethereal-purple transition-all duration-300 bg-white/80"
           />
-          <div className="absolute right-5 top-1/2 transform -translate-y-1/2 z-20">
-            <Sparkles className="text-cyber-purple w-6 h-6 animate-pulse" />
+          <div className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2">
+            <Sparkles className="text-ethereal-purple w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
-        
         <Button
           onClick={handleSubmit}
           disabled={!name.trim()}
-          className="btn-primary w-full mt-8 py-5 text-lg font-semibold interactive-button disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          className="w-full mt-4 sm:mt-6 bg-gradient-celebrait hover:opacity-90 text-white py-3 sm:py-4 rounded-2xl font-semibold text-base sm:text-lg shadow-lg transition-all duration-300 transform hover:scale-105"
         >
-          <Zap className="w-5 h-5 mr-3" />
-          Initialize AI Experience
+          Get Started
         </Button>
 
         {/* Back Button */}
         {onboarding.currentStep > 1 && (
-          <div className="flex justify-center mt-8">
+          <div className="flex justify-center mt-4 sm:mt-6">
             <Button
               onClick={onboarding.previousStep}
               variant="ghost"
-              className="btn-secondary interactive-button text-muted-foreground hover:text-foreground"
+              className="text-gray-500 hover:text-gray-700 text-sm sm:text-base"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Previous Step
+              Go Back a Step
             </Button>
           </div>
         )}
