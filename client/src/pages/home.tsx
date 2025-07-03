@@ -23,6 +23,21 @@ export default function Home() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayStep, setDisplayStep] = useState(onboarding.currentStep);
   const [isCreatingMockCard, setIsCreatingMockCard] = useState(false);
+  const [selectedDelivery, setSelectedDelivery] = useState<'printed' | 'digital' | null>(null);
+
+  // Get delivery choice from session storage on component mount
+  useEffect(() => {
+    const deliveryChoice = sessionStorage.getItem('selectedDelivery') as 'printed' | 'digital' | null;
+    if (deliveryChoice) {
+      setSelectedDelivery(deliveryChoice);
+      onboarding.setSelectedDelivery(deliveryChoice);
+      // Start directly with guided conversation (step 2) since we skip name input
+      onboarding.setCurrentStep(2);
+    } else {
+      // If no delivery choice, redirect back to landing
+      setLocation('/');
+    }
+  }, []);
 
   // Handle clean AI loading transitions between steps
   useEffect(() => {
@@ -87,7 +102,7 @@ export default function Home() {
       case 2:
         return <GuidedConversation onboarding={onboarding} onCardGenerated={handleCardGenerated} />;
       default:
-        return <Step1NameInput onboarding={onboarding} />;
+        return <GuidedConversation onboarding={onboarding} onCardGenerated={handleCardGenerated} />;
     }
   };
 
