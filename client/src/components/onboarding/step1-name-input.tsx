@@ -14,6 +14,7 @@ export default function Step1NameInput({ onboarding }: Step1Props) {
   const handleSubmit = () => {
     if (name.trim()) {
       onboarding.setUserName(name.trim());
+      // Immediate step change for seamless transition
       onboarding.nextStep();
     }
   };

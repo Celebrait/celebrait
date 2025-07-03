@@ -137,30 +137,49 @@
     animation: float 3s ease-in-out infinite;
   }
 
-  /* AI Brain Loading Animation */
-  @keyframes brain-pulse {
-    0%, 100% { 
-      transform: scale(1); 
-      box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.4);
-    }
-    50% { 
-      transform: scale(1.05); 
-      box-shadow: 0 0 0 10px rgba(147, 51, 234, 0);
-    }
+  @keyframes fade-in {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
   }
 
-  @keyframes brain-bounce {
-    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-    40% { transform: translateY(-8px); }
-    60% { transform: translateY(-4px); }
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out forwards;
   }
 
-  .animate-brain-pulse {
-    animation: brain-pulse 2s infinite;
+  /* Seamless fade transitions for step changes */
+  @keyframes fade-out {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-10px); }
   }
 
-  .animate-brain-bounce {
-    animation: brain-bounce 1s infinite;
+  @keyframes fade-in-smooth {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-out {
+    animation: fade-out 0.3s ease-in forwards;
+  }
+
+  .animate-fade-in-smooth {
+    animation: fade-in-smooth 0.4s ease-out forwards;
+  }
+
+  /* Step transition container */
+  .step-transition {
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .step-transition.fade-out {
+    opacity: 0;
+    transform: translateY(0);
+  }
+
+  .step-transition.fade-in {
+    opacity: 1;
+    transform: translateY(0);
   }
 
   @keyframes pulse-soft {
