@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 3, 2025. Redesigned card generation loading screen with ethereal typing effect:
+  * Replaced card generation loading screen with same design approach as AI loading screen
+  * Added ethereal character-by-character typing animation referencing user's name and celebration
+  * Removed email input section and "Don't want to wait" box from generation screen
+  * Maintained 2-3 minute timing note while AI works
+  * Enhanced personalization by dynamically incorporating recipient details into AI's message
+  * Card preview already properly references recipient's name and celebration from captured data
 - July 3, 2025. Removed AI warming up loading screen from onboarding flow:
   * Simplified onboarding to 2 steps: Name Input → Guided Conversation
   * Removed Step4AILoading component from the flow entirely

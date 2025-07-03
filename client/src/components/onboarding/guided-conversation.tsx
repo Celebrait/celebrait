@@ -116,6 +116,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   const [editingStep, setEditingStep] = useState<string | null>(null);
   const [returnToSummary, setReturnToSummary] = useState(false);
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+  const [typedText, setTypedText] = useState('');
 
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedVideoOption, setSelectedVideoOption] = useState<string>('');
@@ -690,6 +691,29 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
       return () => clearInterval(quoteInterval);
     }
   }, [isLoading, aiQuotes.length]);
+
+  // Ethereal typing effect for loading screen
+  useEffect(() => {
+    if (isLoading) {
+      const fullMessage = `I'm creating an absolutely magical ${answers.celebration || 'greeting'} card for ${answers.name || 'them'}! Every detail is being carefully crafted to make this card truly special and unforgettable. This is going to be amazing!`;
+      let currentIndex = 0;
+      const totalDuration = 2500; // 2.5 seconds for typing
+      const typingInterval = totalDuration / fullMessage.length;
+      
+      const interval = setInterval(() => {
+        if (currentIndex < fullMessage.length) {
+          setTypedText(fullMessage.slice(0, currentIndex + 1));
+          currentIndex++;
+        } else {
+          clearInterval(interval);
+        }
+      }, typingInterval);
+
+      return () => clearInterval(interval);
+    } else {
+      setTypedText('');
+    }
+  }, [isLoading, answers.celebration, answers.name]);
 
   // Safety check to prevent undefined currentStep errors
   if (!currentStep) {
@@ -1449,144 +1473,51 @@ export default function GuidedConversation({ onboarding, onCardGenerated }: Guid
   if (isLoading) {
     console.log('Loading screen displayed - email notification option is available');
     return (
-      <div className="h-screen flex flex-col bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="max-w-2xl mx-auto text-center p-8">
-            {/* Interactive AI Working Animation */}
-            <div className="relative mb-8">
-              <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
-                <Bot className="w-10 h-10 text-white animate-bounce" />
-              </div>
-              
-              {/* Floating AI working elements */}
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-8">
-                <div className="w-4 h-4 bg-purple-400 rounded-full animate-ping"></div>
-              </div>
-              <div className="absolute top-6 right-6">
-                <div className="w-3 h-3 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.5s' }}></div>
-              </div>
-              <div className="absolute bottom-6 left-6">
-                <div className="w-3 h-3 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '1s' }}></div>
-              </div>
-            </div>
-            
-            <h2 className="text-3xl font-bold mb-4 text-gray-800">
-              🎨 AI is Creating {answers.name ? `${answers.name}'s` : 'Your'} {answers.celebration ? answers.celebration.charAt(0).toUpperCase() + answers.celebration.slice(1) : ''} Card
-            </h2>
-            
-            <div className="mb-8 space-y-2">
-              <p className="text-xl text-gray-600">
-                Our AI is working its magic! ✨
-              </p>
-              <p className="text-lg text-gray-500 italic">
-                "{aiQuotes[currentQuoteIndex]}"
-              </p>
-            </div>
-            
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 mb-8 border border-white/20">
-              <p className="text-gray-700 font-medium mb-4">
-                ⏳ This usually takes 2-3 minutes. You can wait here or get notified by email when ready!
-              </p>
-              
-              {/* Progress bar */}
-              <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                <div className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full animate-pulse" style={{ width: '75%' }}></div>
-              </div>
-              
-              <div className="flex items-center justify-center space-x-2 text-gray-600 mb-6">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500"></div>
-                <span className="text-sm">Generating your unique card design...</span>
-              </div>
-            </div>
-            
-            {/* Email notification option */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-xl border border-white/30 max-w-md mx-auto">
-              <div className="text-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">💡 Don't want to wait?</h3>
-                <p className="text-sm text-gray-600">Enter your email below and we'll notify you when your card is ready!</p>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Email Address</label>
-                  <Input
-                    type="email"
-                    value={answers.notification_email || ''}
-                    onChange={(e) => {
-                      console.log('Email notification address entered:', e.target.value);
-                      setAnswers(prev => ({ ...prev, notification_email: e.target.value }));
-                    }}
-                    placeholder="Enter your email address"
-                    className="text-lg p-3 rounded-xl"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Confirm Email</label>
-                  <Input
-                    type="email"
-                    value={answers.notification_email_confirm || ''}
-                    onChange={(e) => {
-                      console.log('Email notification confirmation entered:', e.target.value);
-                      setAnswers(prev => ({ ...prev, notification_email_confirm: e.target.value }));
-                    }}
-                    placeholder="Confirm your email address"
-                    className="text-lg p-3 rounded-xl"
-                  />
-                </div>
-                
-                {answers.notification_email && answers.notification_email_confirm && answers.notification_email !== answers.notification_email_confirm && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-red-700 text-sm">Email addresses don't match</p>
-                  </div>
-                )}
-                
-                <Button 
-                  onClick={() => {
-                    if (!answers.notification_email || !answers.notification_email_confirm) {
-                      toast({
-                        title: "Email Required",
-                        description: "Please enter and confirm your email address.",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-                    if (answers.notification_email !== answers.notification_email_confirm) {
-                      toast({
-                        title: "Email Mismatch", 
-                        description: "Email addresses don't match.",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-                    
-                    // Show email confirmation screen and start background generation
-                    setIsLoading(false);
-                    setShowEmailConfirmation(true);
-                    
-                    // Ensure card is initialized before starting background generation
-                    if (cardId) {
-                      generateCardInBackground(answers.notification_email);
-                    } else {
-                      // Initialize card first, then start background generation
-                      initializeCard().then(() => {
-                        generateCardInBackground(answers.notification_email);
-                      }).catch(error => {
-                        console.error('Failed to initialize card:', error);
-                      });
-                    }
+      <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20 max-w-4xl mx-auto text-center">
+        <div className="mb-8">
+          <div className="w-24 h-24 bg-gradient-celebrait rounded-full mx-auto mb-6 flex items-center justify-center animate-pulse-soft">
+            <Bot className="text-white w-12 h-12" />
+          </div>
+          <h2 className="text-3xl lg:text-4xl font-bold text-gray-800 mb-4">
+            🎨 AI is Creating {answers.name ? `${answers.name}'s` : 'Your'} {answers.celebration ? answers.celebration.charAt(0).toUpperCase() + answers.celebration.slice(1) : ''} Card
+          </h2>
+          <p className="text-lg text-slate-gray max-w-2xl mx-auto px-4 min-h-[72px] flex items-center justify-center relative">
+            <span className="relative">
+              {`I'm creating an absolutely magical ${answers.celebration || 'greeting'} card for ${answers.name || 'them'}! Every detail is being carefully crafted to make this card truly special and unforgettable. This is going to be amazing!`.split('').map((char, index) => (
+                <span
+                  key={index}
+                  className={`transition-all duration-700 ease-out ${
+                    index < typedText.length 
+                      ? 'opacity-100 filter-none' 
+                      : 'opacity-0 blur-sm'
+                  }`}
+                  style={{
+                    transitionDelay: `${index * 10}ms`,
                   }}
-                  disabled={!answers.notification_email || !answers.notification_email_confirm || answers.notification_email !== answers.notification_email_confirm}
-                  className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
-                  🎉 Notify Me When Ready!
-                </Button>
-                
-                <p className="text-sm text-gray-500 text-center">
-                  Feel free to close this window - we'll email you when your card is ready and images have fully loaded! ✨
-                </p>
-              </div>
-            </div>
+                  {char}
+                </span>
+              ))}
+              {typedText.length < `I'm creating an absolutely magical ${answers.celebration || 'greeting'} card for ${answers.name || 'them'}! Every detail is being carefully crafted to make this card truly special and unforgettable. This is going to be amazing!`.length && (
+                <span className="absolute -right-2 top-0 w-0.5 h-6 bg-purple-400 animate-pulse opacity-60"></span>
+              )}
+            </span>
+          </p>
+        </div>
+
+        <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+          <p className="text-gray-700 font-medium mb-4">
+            ⏳ This usually takes 2-3 minutes while our AI works its magic.
+          </p>
+          
+          {/* Progress bar */}
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+            <div className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full animate-pulse" style={{ width: '75%' }}></div>
+          </div>
+          
+          <div className="flex items-center justify-center space-x-2 text-gray-600">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500"></div>
+            <span className="text-sm">Generating your unique card design...</span>
           </div>
         </div>
       </div>
