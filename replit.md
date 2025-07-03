@@ -120,12 +120,6 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 3, 2025. Fixed step transition glitches and improved navigation:
-  * Improved step transition timing with proper fade-out/fade-in sequence (150ms + 100ms delays)
-  * Enhanced CSS transitions with smoother easing and subtle transform effects
-  * Added initialization state to prevent rendering glitches during conversation component mount
-  * Changed "Back to Name Input" button to "Start Fresh" for better user experience
-  * Added loading state with matching design during conversation initialization
 - July 3, 2025. Redesigned card generation loading screen with ethereal typing effect:
   * Replaced card generation loading screen with same design approach as AI loading screen
   * Added ethereal character-by-character typing animation referencing user's name and celebration

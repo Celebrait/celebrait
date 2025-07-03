@@ -28,18 +28,16 @@ export default function Home() {
     if (displayStep !== onboarding.currentStep) {
       setIsTransitioning(true);
 
-      // Smooth scroll to top
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Instant scroll to top to avoid stagger
+      window.scrollTo({ top: 0, behavior: 'instant' });
       
-      // Wait for fade-out animation before changing content
+      // Immediate content change with smoother timing
+      setDisplayStep(onboarding.currentStep);
+      
+      // Quick fade-in after content change
       setTimeout(() => {
-        setDisplayStep(onboarding.currentStep);
-        
-        // Allow time for content change then fade in
-        setTimeout(() => {
-          setIsTransitioning(false);
-        }, 100);
-      }, 150);
+        setIsTransitioning(false);
+      }, 50);
     }
   }, [onboarding.currentStep, displayStep]);
 
