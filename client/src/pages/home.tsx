@@ -10,6 +10,8 @@ import Step5SceneChoice from "@/components/onboarding/step5-scene-choice";
 import GuidedConversation from "@/components/onboarding/guided-conversation";
 import CardPreview from "@/components/card-preview";
 import AILoading from "@/components/ai-loading";
+import DeliverySelection from "@/components/onboarding/delivery-selection";
+import PhotoCreationChoice from "@/components/onboarding/photo-creation-choice";
 
 import { useOnboarding } from "@/hooks/use-onboarding";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,11 @@ export default function Home() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayStep, setDisplayStep] = useState(onboarding.currentStep);
   const [isCreatingMockCard, setIsCreatingMockCard] = useState(false);
+  
+  // New streamlined flow state
+  const [newFlowStep, setNewFlowStep] = useState<'delivery' | 'photo-choice' | 'conversation'>('delivery');
+  const [selectedDeliveryType, setSelectedDeliveryType] = useState<'printed' | 'digital' | null>(null);
+  const [selectedPhotoOption, setSelectedPhotoOption] = useState<'upload_and_scene' | 'upload_and_transform' | null>(null);
 
   // Handle clean AI loading transitions between steps
   useEffect(() => {
@@ -42,6 +49,21 @@ export default function Home() {
 
   const handleCardGenerated = (card: any) => {
     setGeneratedCard(card);
+  };
+
+  // New flow handlers
+  const handleDeliverySelected = (delivery: 'printed' | 'digital') => {
+    setSelectedDeliveryType(delivery);
+    // Store delivery type for later use
+    sessionStorage.setItem('selectedDeliveryType', delivery);
+    setNewFlowStep('photo-choice');
+  };
+
+  const handlePhotoOptionSelected = (option: 'upload_and_scene' | 'upload_and_transform') => {
+    setSelectedPhotoOption(option);
+    // Store photo option and start conversation with AI
+    sessionStorage.setItem('selectedPhotoOption', option);
+    setNewFlowStep('conversation');
   };
 
   const createMockCardAndSkipToDelivery = async () => {
@@ -91,6 +113,24 @@ export default function Home() {
     }
   };
 
+  const renderNewFlow = () => {
+    switch (newFlowStep) {
+      case 'delivery':
+        return <DeliverySelection onDeliverySelected={handleDeliverySelected} />;
+      case 'photo-choice':
+        return <PhotoCreationChoice onOptionSelected={handlePhotoOptionSelected} />;
+      case 'conversation':
+        return <GuidedConversation 
+          onboarding={onboarding} 
+          onCardGenerated={handleCardGenerated}
+          streamlinedFlow={true}
+          selectedPhotoOption={selectedPhotoOption}
+        />;
+      default:
+        return <DeliverySelection onDeliverySelected={handleDeliverySelected} />;
+    }
+  };
+
   return (
     <div className="min-h-screen relative">
       <Header />
@@ -102,8 +142,42 @@ export default function Home() {
 
       <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
         {!generatedCard && !isTransitioning && (
-          <div>
-            {renderCurrentStep()}
+          <div className="space-y-16">
+            {/* Original Flow */}
+            <div>
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium mb-4">
+                  Current Flow
+                </div>
+                <h2 className="text-xl font-semibold text-gray-600 mb-2">Original Journey</h2>
+                <p className="text-gray-500">Name input → Guided conversation → Card generation</p>
+              </div>
+              {renderCurrentStep()}
+            </div>
+
+            {/* Visual Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-6 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 text-gray-500 font-medium">
+                  New Streamlined Flow (Testing)
+                </span>
+              </div>
+            </div>
+
+            {/* New Streamlined Flow */}
+            <div>
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium mb-4">
+                  New Flow
+                </div>
+                <h2 className="text-xl font-semibold text-gray-600 mb-2">Streamlined Journey</h2>
+                <p className="text-gray-500">Delivery choice → Photo option → Quick details → Card generation</p>
+              </div>
+              {renderNewFlow()}
+            </div>
           </div>
         )}
 
