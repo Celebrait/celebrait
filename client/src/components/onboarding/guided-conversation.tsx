@@ -156,6 +156,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const steps: ConversationStep[] = [
     {
+      id: 'name',
+      question: 'What\'s the recipient\'s first name?',
+      aiMessage: streamlinedFlow ? 
+        'Greetings ✨ Let\'s start by getting the recipient\'s first name. Who\'s this card for?' :
+        `Wonderful! ✨ What's your ${answers.recipient}'s name?`,
+      type: 'text',
+      placeholder: 'Enter their first name',
+      required: true
+    },
+    {
       id: 'celebration',
       question: 'What celebration is this card for?',
       aiMessage: streamlinedFlow ? 
@@ -201,16 +211,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         { value: 'teacher', label: 'My Teacher', description: 'Teacher, professor, mentor', color: 'bg-emerald-500' },
         { value: 'neighbor', label: 'My Neighbor', description: 'Next door, community friend', color: 'bg-lime-500' }
       ]
-    },
-    {
-      id: 'name',
-      question: 'What\'s the recipient\'s first name?',
-      aiMessage: streamlinedFlow ? 
-        'Greetings ✨ Let\'s start by getting the recipient\'s first name. Who\'s this card for?' :
-        `Wonderful! ✨ What's your ${answers.recipient}'s name?`,
-      type: 'text',
-      placeholder: 'Enter their first name',
-      required: true
     },
     {
       id: 'photo_option',
