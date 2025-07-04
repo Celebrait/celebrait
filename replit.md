@@ -120,6 +120,14 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 4, 2025. EMAIL FLOW FIX: Fixed card ready notification emails to show proper viewing sequence:
+  * EMAIL ROUTING: Card ready notification emails now link to /card-preview/{reference} instead of directly to delivery details
+  * USER EXPERIENCE: Users now see their card first, then proceed to email delivery options - proper sequence restored
+  * PREVENTS SKIPPING: No longer skips the card viewing step when users click email links
+- July 4, 2025. RECIPIENT NAME PERSONALIZATION: Fixed "the recipient" text throughout delivery details page:
+  * METADATA ENDPOINT: Updated to include conversationData with recipient names for proper personalization
+  * DYNAMIC NAMES: Delivery options now show actual recipient names (e.g., "Send to Michael and me") instead of generic text
+  * FALLBACK SYSTEM: Added multiple fallback sources for recipient name extraction from card data and session storage
 - July 4, 2025. DUAL DELIVERY SYSTEM COMPLETION: Separated user and recipient information collection for proper dual email delivery:
   * FORM RESTRUCTURE: Complete-order page now separates recipient details from user details when delivering to recipients
   * RECIPIENT FIELDS: Recipient name and email fields are now blank and require manual input instead of pre-populating with user data

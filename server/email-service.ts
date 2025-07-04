@@ -235,19 +235,11 @@ Thank you for choosing Celebrait!
 export function generateCardReadyNotificationEmail(orderData: any, host?: string): EmailParams {
   const { customerEmail, customerName, paymentReference, cardType } = orderData;
 
-  // Determine the appropriate next step based on delivery method selected in streamlined flow
-  const isDigital = cardType === 'digital';
-  const nextStepUrl = isDigital 
-    ? `https://${host || 'localhost:5000'}/delivery-details/${paymentReference}?type=digital`
-    : `https://${host || 'localhost:5000'}/delivery-details/${paymentReference}?type=printed`;
-  
-  const nextStepText = isDigital 
-    ? 'Complete Your Digital Card Order'
-    : 'Complete Your Printed Card Order';
+  // Send users to card preview first, then they'll proceed to delivery details
+  const nextStepUrl = `https://${host || 'localhost:5000'}/card-preview/${paymentReference}`;
+  const nextStepText = 'View Your Card';
     
-  const descriptionText = isDigital
-    ? 'Your digital greeting card is ready! Choose who should receive the final card and complete your order.'
-    : 'Your printed greeting card is ready! Complete your order and we\'ll have it printed and shipped to you.';
+  const descriptionText = 'Your personalized greeting card has been generated and is ready to view! Click the button below to see your creation.';
 
   return {
     to: customerEmail,
