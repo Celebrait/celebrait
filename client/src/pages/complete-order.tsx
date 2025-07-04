@@ -543,8 +543,8 @@ export default function CompleteOrder() {
                     <span className="font-medium text-blue-800">Digital Card Experience</span>
                   </div>
                   <p className="text-sm text-blue-700">
-                    The recipient will receive a custom link that opens a beautiful digital greeting card experience. 
-                    They'll see your message and can click to "open" the card to view your creation.
+                    You'll receive a custom link that opens a beautiful digital greeting card experience. 
+                    You can then share this link with your recipient - they'll see your message and can click to "open" the card to view your creation.
                   </p>
                 </div>
               )}
