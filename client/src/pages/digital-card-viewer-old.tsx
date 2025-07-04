@@ -53,75 +53,149 @@ export default function DigitalCardViewer() {
               return;
             }
           }
-        } catch (error) {
-          console.log('[DIGITAL CARD] Failed to load from order reference, trying direct card lookup');
+        } catch (err) {
+          console.log('Could not fetch by reference, trying other methods');
         }
       }
-      
-      // Fallback: Try direct card lookup if linkId is numeric
-      const cardResponse = await fetch(`/api/cards/${linkId}`);
-      if (cardResponse.ok) {
-        const card = await cardResponse.json();
-        const cardWithMetadata = {
-          ...card,
-          senderName: 'Someone special',
-          customMessage: extractCustomMessage(card.conversationData),
-          celebration: extractCelebration(card.conversationData),
-          recipientName: extractRecipientName(card.conversationData),
-          cardType: card.cardType || 'digital'
-        };
-        setCardData(cardWithMetadata);
-      } else {
-        console.error('[DIGITAL CARD] No card data found for linkId:', linkId);
+
+      // Handle card ready references (from email notifications)
+      if (linkId?.startsWith('celebrait_ready_')) {
+        try {
+          const response = await fetch(`/api/cards/ready/${linkId}`);
+          if (response.ok) {
+            const readyData = await response.json();
+            if (readyData.card) {
+              console.log('[DIGITAL CARD] Loaded from ready reference');
+              const cardWithMetadata = {
+                ...readyData.card,
+                senderName: 'Celebrait AI',
+                customMessage: extractCustomMessage(readyData.card.conversationData),
+                celebration: extractCelebration(readyData.card.conversationData),
+                recipientName: extractRecipientName(readyData.card.conversationData),
+                cardType: 'preview',
+                // Use optimized digital image endpoints for faster loading
+                frontImageUrl: `/api/cards/${readyData.card.id}/digital-front-image`,
+                insideImageUrl: readyData.card.insideImageUrl ? `/api/cards/${readyData.card.id}/digital-inside-image` : null
+              };
+              setCardData(cardWithMetadata);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (err) {
+          console.log('Could not fetch card ready reference, trying other methods');
+        }
       }
+
+      // Try to load from session storage (for immediate viewing after creation)
+      const storedCard = sessionStorage.getItem(`digitalCard_${linkId}`);
+      if (storedCard) {
+        const parsedCard = JSON.parse(storedCard);
+        console.log('[DIGITAL CARD] Loaded from session storage');
+        setCardData({
+          ...parsedCard,
+          customMessage: extractCustomMessage(parsedCard.conversationData),
+          celebration: extractCelebration(parsedCard.conversationData),
+          recipientName: extractRecipientName(parsedCard.conversationData),
+          // Use optimized digital image endpoints for faster loading
+          frontImageUrl: `/api/cards/${parsedCard.id}/digital-front-image`,
+          insideImageUrl: parsedCard.insideImageUrl ? `/api/cards/${parsedCard.id}/digital-inside-image` : null
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Fallback - show error
+      console.error('[DIGITAL CARD] No card data found for linkId:', linkId);
+      toast({
+        title: 'Card Not Found',
+        description: 'The digital card link may be expired or invalid',
+        variant: 'destructive'
+      });
+      setLoading(false);
     } catch (error) {
       console.error('[DIGITAL CARD] Error loading card:', error);
-    } finally {
+      toast({
+        title: 'Error',
+        description: 'Unable to load digital card',
+        variant: 'destructive'
+      });
       setLoading(false);
     }
   };
 
   const extractCustomMessage = (conversationData: any) => {
-    return conversationData?.message || conversationData?.custom_message || 'A special message just for you';
+    if (!conversationData || !conversationData.answers) return null;
+    const messageAnswer = conversationData.answers.find((answer: any) => 
+      answer.question?.includes('message') || answer.question?.includes('write')
+    );
+    return messageAnswer?.answer || null;
   };
 
   const extractCelebration = (conversationData: any) => {
-    return conversationData?.celebration || 'special occasion';
+    if (!conversationData || !conversationData.answers) return 'celebration';
+    const celebrationAnswer = conversationData.answers.find((answer: any) => 
+      answer.question?.includes('celebrating') || answer.question?.includes('occasion')
+    );
+    return celebrationAnswer?.answer || 'celebration';
   };
 
   const extractRecipientName = (conversationData: any) => {
-    return conversationData?.name || conversationData?.recipient_name || 'friend';
+    if (!conversationData || !conversationData.answers) return 'friend';
+    const nameAnswer = conversationData.answers.find((answer: any) => 
+      answer.question?.includes('name') || answer.question?.includes('Who')
+    );
+    return nameAnswer?.answer || 'friend';
   };
 
-  const handleOpenCard = async () => {
+  const handleOpenCard = () => {
     setOpening(true);
-    
-    // Add a nice delay to make the opening feel special
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setOpening(false);
-    setIsOpened(true);
+    setTimeout(() => {
+      setIsOpened(true);
+      setOpening(false);
+    }, 1000);
   };
 
-  const downloadCard = (imageType: 'front' | 'inside') => {
-    const imageUrl = imageType === 'front' ? cardData.frontImageUrl : cardData.insideImageUrl;
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = `${cardData.recipientName}-${cardData.celebration}-card-${imageType}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const downloadCard = async () => {
+    if (!cardData) return;
     
-    toast({
-      title: 'Download Started',
-      description: `${imageType} card image is downloading`
-    });
+    try {
+      const images = [
+        { url: cardData.frontImageUrl, name: 'front' },
+        ...(cardData.insideImageUrl ? [{ url: cardData.insideImageUrl, name: 'inside' }] : [])
+      ];
+
+      for (const img of images) {
+        const response = await fetch(img.url);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${cardData.recipientName || 'celebrait'}-card-${img.name}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }
+      
+      toast({
+        title: 'Download Complete',
+        description: `${images.length} image${images.length > 1 ? 's' : ''} downloaded successfully`
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: 'Download Failed',
+        description: 'Unable to download images',
+        variant: 'destructive'
+      });
+    }
   };
 
-  const shareCard = () => {
+  const shareCard = async () => {
     if (navigator.share) {
       try {
-        navigator.share({
+        await navigator.share({
           title: `${cardData.recipientName}'s ${cardData.celebration} Card`,
           text: `Check out this beautiful personalized ${cardData.celebration} card created with Celebrait!`,
           url: window.location.href
@@ -253,7 +327,7 @@ export default function DigitalCardViewer() {
             </div>
           </div>
         ) : (
-          /* Opened Card State - Card Viewing Interface */
+          /* Opened Card State - Swipeable Interface */
           <div className="space-y-8 animate-in fade-in duration-1000">
             {/* Header */}
             <div className="text-center space-y-4">
@@ -261,140 +335,152 @@ export default function DigitalCardViewer() {
                 <Heart className="text-white w-8 h-8" />
               </div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Your {cardData.celebration} Card
+                🎊 {cardData.recipientName}'s {cardData.celebration} Card
               </h1>
-              <p className="text-gray-600">From {cardData.senderName} to {cardData.recipientName}</p>
-            </div>
-
-            {/* Card Image Display */}
-            <div className="relative max-w-2xl mx-auto">
-              <div className="bg-white rounded-2xl shadow-2xl p-4">
-                <img 
-                  src={images[currentImageIndex]} 
-                  alt={`Card ${currentImageIndex === 0 ? 'front' : 'inside'}`}
-                  className="w-full h-auto rounded-xl"
-                />
-                
-                {/* Navigation arrows */}
-                {images.length > 1 && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white"
-                      onClick={() => setCurrentImageIndex(currentImageIndex > 0 ? currentImageIndex - 1 : images.length - 1)}
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white"
-                      onClick={() => setCurrentImageIndex(currentImageIndex < images.length - 1 ? currentImageIndex + 1 : 0)}
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </>
-                )}
-              </div>
-
-              {/* Image indicators */}
-              {images.length > 1 && (
-                <div className="flex justify-center space-x-2 mt-4">
-                  {images.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentImageIndex(index)}
-                      className={`w-3 h-3 rounded-full transition-colors ${
-                        currentImageIndex === index ? 'bg-purple-600' : 'bg-gray-300'
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
+              <p className="text-lg text-gray-700">
+                From {cardData.senderName} with love
+              </p>
             </div>
 
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-4 justify-center">
               <Button
-                onClick={() => downloadCard(currentImageIndex === 0 ? 'front' : 'inside')}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={downloadCard}
+                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
               >
-                <Download className="w-4 h-4 mr-2" />
-                Download {currentImageIndex === 0 ? 'Front' : 'Inside'}
+                <Download className="w-5 h-5 mr-2" />
+                Download
               </Button>
               <Button
                 onClick={shareCard}
-                variant="outline"
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 py-3 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
               >
-                <Share2 className="w-4 h-4 mr-2" />
-                Share Card
+                <Share2 className="w-5 h-5 mr-2" />
+                Share
               </Button>
             </div>
 
-            {/* Back to envelope button */}
+            {/* Card Images - Swipeable */}
+            <div className="relative">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-purple/20">
+                <div className="flex items-center justify-between mb-4">
+                  <Button
+                    onClick={() => setCurrentImageIndex(Math.max(0, currentImageIndex - 1))}
+                    disabled={currentImageIndex === 0}
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  
+                  <div className="text-center">
+                    <span className="text-sm font-medium text-purple-800">
+                      {currentImageIndex === 0 ? 'Front' : 'Inside Message'}
+                    </span>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {currentImageIndex + 1} of {images.length}
+                    </div>
+                  </div>
+                  
+                  <Button
+                    onClick={() => setCurrentImageIndex(Math.min(images.length - 1, currentImageIndex + 1))}
+                    disabled={currentImageIndex === images.length - 1}
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {/* Square Image Display */}
+                <div className="aspect-square max-w-md mx-auto rounded-xl overflow-hidden shadow-xl border-4 border-white">
+                  <img 
+                    src={images[currentImageIndex]} 
+                    alt={currentImageIndex === 0 ? 'Front of card' : 'Inside message'}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                {/* Swipe Indicator */}
+                <div className="flex justify-center mt-4 space-x-2">
+                  {images.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`w-3 h-3 rounded-full transition-all ${
+                        index === currentImageIndex ? 'bg-purple-500' : 'bg-gray-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Back Button */}
             <div className="text-center">
               <Button
-                onClick={() => setIsOpened(false)}
-                variant="ghost"
-                className="text-gray-600 hover:text-gray-800"
+                onClick={() => setLocation('/')}
+                variant="outline"
+                className="rounded-xl"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to envelope
+                Create Another Card
               </Button>
             </div>
           </div>
         )}
+      </div>
 
-        {/* Share Dialog */}
-        <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Share this beautiful card</DialogTitle>
-            </DialogHeader>
+      {/* Share Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">Share Your Card</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <Button
                 onClick={() => shareToSocial('whatsapp')}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-green-500 hover:bg-green-600 text-white"
               >
-                <MessageCircle className="w-4 h-4 mr-2" />
+                <MessageCircle className="w-5 h-5 mr-2" />
                 WhatsApp
               </Button>
               <Button
                 onClick={() => shareToSocial('facebook')}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
-                <Facebook className="w-4 h-4 mr-2" />
+                <Facebook className="w-5 h-5 mr-2" />
                 Facebook
               </Button>
               <Button
                 onClick={() => shareToSocial('twitter')}
                 className="bg-blue-400 hover:bg-blue-500 text-white"
               >
-                <Twitter className="w-4 h-4 mr-2" />
+                <Twitter className="w-5 h-5 mr-2" />
                 Twitter
               </Button>
               <Button
                 onClick={() => shareToSocial('instagram')}
-                className="bg-pink-600 hover:bg-pink-700 text-white"
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
               >
-                <Instagram className="w-4 h-4 mr-2" />
+                <Instagram className="w-5 h-5 mr-2" />
                 Instagram
               </Button>
             </div>
-            <div className="mt-4">
-              <Button
-                onClick={copyLink}
-                variant="outline"
-                className="w-full"
-              >
-                <Copy className="w-4 h-4 mr-2" />
-                Copy Link
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            <Button
+              onClick={copyLink}
+              variant="outline"
+              className="w-full"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copy Link
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
