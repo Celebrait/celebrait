@@ -1580,13 +1580,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Send digital card email
       try {
+        // Always send to the user who created the card
         const emailParams = generateDigitalCardEmail({
           customerEmail: customerInfo.email,
           customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
           paymentReference: reference
         }, card?.frontImageUrl || '', req.get('host'));
         await sendEmail(emailParams);
-        console.log('Free digital card email sent successfully to:', customerInfo.email);
+        console.log('Free digital card email sent successfully to user:', customerInfo.email);
+        
+        // If there's a recipient email, also send to the recipient
+        if (customerInfo.recipientEmail && customerInfo.recipientEmail !== customerInfo.email) {
+          const recipientEmailParams = generateDigitalCardEmail({
+            customerEmail: customerInfo.recipientEmail,
+            customerName: customerInfo.recipientName || 'Recipient',
+            paymentReference: reference
+          }, card?.frontImageUrl || '', req.get('host'));
+          await sendEmail(recipientEmailParams);
+          console.log('Free digital card email sent successfully to recipient:', customerInfo.recipientEmail);
+        }
       } catch (emailError) {
         console.error('Failed to send free digital card email:', emailError);
       }

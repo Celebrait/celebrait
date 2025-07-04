@@ -146,16 +146,19 @@ export default function CompleteOrder() {
     try {
       if (deliveryType === 'digital') {
         // Handle digital card delivery
-        const targetEmail = deliverTo === 'self' ? customerEmail : recipientEmail;
-        
         const orderData = {
           cardId: card.id,
           customerInfo: {
-            email: targetEmail,
+            email: customerEmail, // Always include user's email
             firstName: customerName.split(' ')[0] || customerName,
             lastName: customerName.split(' ').slice(1).join(' ') || '',
             phone: '',
-            address: null
+            address: null,
+            // Include recipient details if sending to recipient
+            ...(deliverTo === 'recipient' && {
+              recipientEmail: recipientEmail,
+              recipientName: recipientName
+            })
           },
           paymentType: 'free'
         };
@@ -172,11 +175,16 @@ export default function CompleteOrder() {
         
         toast({
           title: 'Digital Card Sent!',
-          description: `Your card has been delivered to ${targetEmail}`,
+          description: deliverTo === 'recipient' 
+            ? `Your card has been delivered to both ${recipientName} and you`
+            : `Your card has been delivered to ${customerEmail}`,
         });
 
         // Redirect to success page with order reference
-        setLocation(`/order-success?type=digital&email=${encodeURIComponent(targetEmail)}&reference=${result.reference}&orderId=${result.orderId}`);
+        const successEmail = deliverTo === 'recipient' 
+          ? `${recipientName} and you`
+          : customerEmail;
+        setLocation(`/order-success?type=digital&email=${encodeURIComponent(successEmail)}&reference=${result.reference}&orderId=${result.orderId}`);
         
       } else {
         // Handle printed card - redirect to payment
@@ -392,12 +400,15 @@ export default function CompleteOrder() {
                         <div className="ml-3">
                           <p className="text-sm text-blue-800 font-medium">
                             {deliverTo === 'recipient' 
-                              ? `Your digital card will be emailed directly to ${recipientName}` 
+                              ? `Your digital card will be emailed to both ${recipientName} and you` 
                               : 'Your digital card will be emailed to you instantly'
                             }
                           </p>
                           <p className="text-xs text-blue-600 mt-1">
-                            The email will include an interactive link to view and download the card
+                            {deliverTo === 'recipient' 
+                              ? `${recipientName} will receive the card link, and you'll also get a copy for your records`
+                              : 'The email will include an interactive link to view and download the card'
+                            }
                           </p>
                         </div>
                       </div>

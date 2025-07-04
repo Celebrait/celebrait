@@ -54,14 +54,14 @@ export default function DeliveryDetails() {
     },
     {
       id: 'recipient',
-      title: `Send to ${recipientName}`,
-      subtitle: `Email the digital card directly to ${recipientName}`,
+      title: `Send to ${recipientName} and me`,
+      subtitle: `Email the digital card to both ${recipientName} and yourself`,
       icon: Heart,
       features: [
-        'Direct email to recipient',
+        `Direct email to ${recipientName}`,
+        'You also receive a copy',
         'Instant surprise delivery',
-        'No coordination needed',
-        'Professional presentation'
+        'No coordination needed'
       ],
       gradient: 'from-pink-500 to-rose-500',
       available: true
