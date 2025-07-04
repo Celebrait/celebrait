@@ -158,7 +158,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     {
       id: 'celebration',
       question: 'What celebration is this card for?',
-      aiMessage: `Let's do this, ${onboarding.userName}! So what are we celebrating with your greetings card?`,
+      aiMessage: streamlinedFlow ? 
+        `Perfect! ✨ What is ${answers.name || 'they'} celebrating?` :
+        `Let's do this, ${onboarding.userName}! So what are we celebrating with your greetings card?`,
       type: 'select',
       options: [
         { value: 'birthday', label: 'A Birthday', description: 'Celebrate another year of life', color: 'bg-pink-500' },
@@ -202,10 +204,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     },
     {
       id: 'name',
-      question: 'What\'s their name?',
-      aiMessage: `Wonderful! ✨ What's your ${answers.recipient}'s name?`,
+      question: 'What\'s the recipient\'s first name?',
+      aiMessage: streamlinedFlow ? 
+        'Hi there! ✨ Let\'s start by getting the recipient\'s first name. What should I call them on the card?' :
+        `Wonderful! ✨ What's your ${answers.recipient}'s name?`,
       type: 'text',
-      placeholder: 'Enter their name',
+      placeholder: 'Enter their first name',
       required: true
     },
     {
@@ -239,7 +243,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         : `Please upload photos of ${answers.name || 'them'} (you can select multiple)`,
       aiMessage: answers.photo_option === 'upload_and_transform'
         ? `Perfect! ✨ Please upload ONE clear photo that you'd like me to transform into a new artistic style - we'll select the style next!`
-        : `Perfect! Please upload one clear photo of ${answers.name || 'them'} + anyone else you'd like in the scene.`,
+        : streamlinedFlow 
+          ? `Great! ✨ Please upload a photo featuring ${answers.name || 'them'} + anyone else you'd like in your customised scene.`
+          : `Perfect! Please upload one clear photo of ${answers.name || 'them'} + anyone else you'd like in the scene.`,
       type: 'photo_upload',
       required: true
     },
@@ -1700,13 +1706,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                 </div>
               ) : (
                 <div className="text-lg sm:text-xl lg:text-2xl text-gray-800 leading-relaxed font-medium">
-                  {currentStep.id === 'photo_upload' && answers.photo_option !== 'upload_and_transform' ? (
-                    <span>
-                      Perfect! ✨ Please upload a photo featuring {answers.name || 'them'} + anyone else you'd like in your customised scene.
-                    </span>
-                  ) : (
-                    <span>{currentStep.aiMessage}</span>
-                  )}
+                  <span>{currentStep.aiMessage}</span>
                 </div>
               )}
             </div>
