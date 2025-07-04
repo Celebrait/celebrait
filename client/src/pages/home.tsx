@@ -68,10 +68,10 @@ export default function Home() {
     setNewFlowStep('conversation');
   };
 
-  const createMockCardAndSkipToDelivery = async () => {
+  const createMockCardAndSkipToDelivery = async (cardType: 'digital' | 'printed' = 'digital') => {
     setIsCreatingMockCard(true);
     try {
-      // Create a mock card with test data
+      // Create a mock card with test data for streamlined flow testing
       const response = await fetch("/api/cards", {
         method: "POST",
         headers: {
@@ -79,27 +79,33 @@ export default function Home() {
         },
         body: JSON.stringify({
           userId: 1, // Mock user ID
-          cardType: "printed",
+          cardType: cardType,
           printOption: "front-and-inside",
           conversationData: {
             celebration: "birthday",
             recipient: "friend",
-            name: "Test Person",
+            name: "Aidan",
             message: "Happy Birthday!",
             inside_message: "Hope you have an amazing day filled with joy and laughter!",
             art_style: "watercolor",
-            scene: "A beautiful garden party with balloons and cake"
+            scene: "A beautiful garden party with balloons and cake",
+            email: "test@example.com" // Add email for delivery testing
           },
-          price: 12900 // $129 in cents
+          price: cardType === 'digital' ? 0 : 12900 // Free for digital cards, $129 for printed
         })
       });
       
       const mockCard = await response.json();
 
-      // Redirect to delivery choice with the new card ID
-      setLocation(`/delivery-choice/${mockCard.id}`);
+      // Set up streamlined flow state for testing
+      sessionStorage.setItem('selectedDeliveryType', cardType);
+      sessionStorage.setItem('selectedPhotoOption', 'upload_and_scene');
+      
+      // Go directly to delivery details to test the new flow
+      setLocation(`/delivery-details/${mockCard.id}`);
     } catch (error) {
       console.error("Error creating mock card:", error);
+    } finally {
       setIsCreatingMockCard(false);
     }
   };
@@ -192,15 +198,25 @@ export default function Home() {
         )}
       </main>
 
-      {/* Hidden Test Button - Accessible via URL param or keyboard shortcut */}
+      {/* Hidden Test Buttons - Accessible via URL param or keyboard shortcut */}
       {(window.location.search.includes('test=delivery') || window.location.hash.includes('test')) && (
-        <div className="fixed bottom-4 right-4 z-50">
+        <div className="fixed bottom-4 right-4 z-50 space-y-2">
+          <div className="bg-black/80 backdrop-blur-sm rounded-lg p-3 text-white text-xs">
+            New Streamlined Flow Testing
+          </div>
           <Button
-            onClick={createMockCardAndSkipToDelivery}
+            onClick={(e) => { e.preventDefault(); createMockCardAndSkipToDelivery('digital'); }}
             disabled={isCreatingMockCard}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg"
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg"
           >
-            {isCreatingMockCard ? "Creating..." : "Test Delivery Flow"}
+            {isCreatingMockCard ? "Creating..." : "Test Digital Flow"}
+          </Button>
+          <Button
+            onClick={(e) => { e.preventDefault(); createMockCardAndSkipToDelivery('printed'); }}
+            disabled={isCreatingMockCard}
+            className="w-full bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg shadow-lg"
+          >
+            {isCreatingMockCard ? "Creating..." : "Test Printed Flow"}
           </Button>
         </div>
       )}
