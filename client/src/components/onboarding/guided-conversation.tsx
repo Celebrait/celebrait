@@ -603,16 +603,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   // Filter steps based on streamlined flow, scene type and card options
   const filteredSteps = steps.filter(step => {
-    // For streamlined flow, skip initial personal questions and jump to photo upload
+    // For streamlined flow, include recipient name and celebration before photo upload
     if (streamlinedFlow) {
       const streamlinedPhotoOption = selectedPhotoOption || answers.photo_option;
       
       // For streamlined flow, only show relevant steps based on photo option
       if (streamlinedPhotoOption === 'upload_and_scene') {
-        const allowedSteps = ['photo_upload', 'scene', 'art_style_grid', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
+        const allowedSteps = ['name', 'celebration', 'photo_upload', 'scene', 'art_style_grid', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
         return allowedSteps.includes(step.id);
       } else if (streamlinedPhotoOption === 'upload_and_transform') {
-        const allowedSteps = ['photo_upload', 'art_style_grid', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
+        const allowedSteps = ['name', 'celebration', 'photo_upload', 'art_style_grid', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
         return allowedSteps.includes(step.id);
       }
     }

@@ -120,6 +120,11 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 4, 2025. Enhanced streamlined flow with recipient name and celebration questions:
+  * Added recipient name and celebration questions to streamlined conversation flow before photo upload
+  * Updated flow sequence: delivery choice → photo option → recipient name → celebration → photo upload → remaining steps
+  * Modified step filtering to include 'name' and 'celebration' steps for both upload_and_scene and upload_and_transform options
+  * Streamlined journey now captures essential personalization details before diving into photo creation process
 - July 4, 2025. Updated photo creation choice styling to match delivery selection design:
   * Redesigned photo creation choice component with 2-column grid layout matching delivery selection cards
   * Enhanced buttons with full-width styling and consistent gradient colors per option
