@@ -39,7 +39,7 @@ export default function DigitalCardViewer() {
               console.log('[DIGITAL CARD] Loaded from order reference');
               const cardWithMetadata = {
                 ...orderData.card,
-                senderName: orderData.customerName || 'Someone special',
+                senderName: (orderData.customerName || 'Someone special').split(' ')[0],
                 customMessage: extractCustomMessage(orderData.card.conversationData),
                 celebration: extractCelebration(orderData.card.conversationData),
                 recipientName: extractRecipientName(orderData.card.conversationData),
@@ -202,27 +202,38 @@ export default function DigitalCardViewer() {
               <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight">
                 {cardData.senderName} has sent you a personalised {cardData.celebration} card
               </h1>
-              <p className="text-gray-600 text-lg">
-                A special message just for you
-              </p>
             </div>
 
-            {/* Simple Square Envelope */}
+            {/* Envelope Design */}
             <div className="relative max-w-md mx-auto mb-8">
-              <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 aspect-square flex flex-col items-center justify-center space-y-6 hover:shadow-3xl transition-all duration-300">
-                {/* Envelope Icon */}
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center">
-                  <MailOpen className="w-8 h-8 text-purple-600" />
+              <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl shadow-2xl border border-gray-200 p-8 aspect-square flex flex-col items-center justify-center space-y-6 hover:shadow-3xl transition-all duration-300">
+                {/* Envelope flap (top triangle) */}
+                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 w-0 h-0 border-l-[100px] border-r-[100px] border-b-[60px] border-l-transparent border-r-transparent border-b-gray-200"></div>
+                
+                {/* Envelope flap shadow */}
+                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 translate-y-3 w-0 h-0 border-l-[90px] border-r-[90px] border-b-[50px] border-l-transparent border-r-transparent border-b-gray-300/30"></div>
+                
+                {/* Postal stamp */}
+                <div className="absolute top-4 right-4 bg-gradient-to-br from-purple-400 to-pink-400 rounded-sm p-2 text-white text-xs font-bold shadow-lg">
+                  LOVE
                 </div>
                 
-                {/* Handwritten Message */}
-                <div className="text-center space-y-2">
-                  <p className="text-2xl font-semibold text-gray-800 font-['Caveat',cursive] leading-relaxed">
-                    For {cardData.recipientName},
-                  </p>
-                  <p className="text-xl text-gray-600 font-['Caveat',cursive]">
-                    from {cardData.senderName} x
-                  </p>
+                {/* Address area background */}
+                <div className="bg-white/50 rounded-lg p-6 w-full border border-gray-200/50 backdrop-blur-sm">
+                  {/* Handwritten Message */}
+                  <div className="text-center space-y-3">
+                    <p className="text-2xl font-semibold text-gray-800 font-['Caveat',cursive] leading-relaxed">
+                      For {cardData.recipientName},
+                    </p>
+                    <p className="text-xl text-gray-600 font-['Caveat',cursive]">
+                      from {cardData.senderName} x
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Envelope seal/wax stamp */}
+                <div className="absolute bottom-6 right-6 w-8 h-8 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
+                  ❤
                 </div>
               </div>
             </div>
