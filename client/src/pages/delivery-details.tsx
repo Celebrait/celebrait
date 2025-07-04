@@ -30,12 +30,17 @@ export default function DeliveryDetails() {
     sessionStorage.setItem('selectedDeliveryType', urlDeliveryType);
   }
   
+  // Get recipient name from card data for dynamic text
+  const recipientName = cardData?.conversationData?.name || 
+                       cardData?.conversationData?.recipient_name || 
+                       sessionStorage.getItem('recipientName') || 
+                       'the recipient';
+
   // Debug logging
   console.log('[DELIVERY DETAILS] Delivery type:', deliveryType);
   console.log('[DELIVERY DETAILS] Is digital:', isDigital);
-
-  // Get recipient name from card data for dynamic text
-  const recipientName = cardData?.conversationData?.name || 'the recipient';
+  console.log('[DELIVERY DETAILS] Card data:', cardData);
+  console.log('[DELIVERY DETAILS] Recipient name:', recipientName);
 
   const options = isDigital ? [
     {

@@ -1931,7 +1931,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sceneType: card.sceneType,
         status: card.status,
         price: card.price,
-        hasImages: !!(card.frontImageUrl && card.insideImageUrl)
+        hasImages: !!(card.frontImageUrl && card.insideImageUrl),
+        conversationData: card.conversationData
       };
       
       // Cache the lightweight response
