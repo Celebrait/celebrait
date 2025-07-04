@@ -118,13 +118,17 @@ export default function Home() {
       case 'delivery':
         return <DeliverySelection onDeliverySelected={handleDeliverySelected} />;
       case 'photo-choice':
-        return <PhotoCreationChoice onOptionSelected={handlePhotoOptionSelected} />;
+        return <PhotoCreationChoice 
+          onOptionSelected={handlePhotoOptionSelected} 
+          onBack={() => setNewFlowStep('delivery')}
+        />;
       case 'conversation':
         return <GuidedConversation 
           onboarding={onboarding} 
           onCardGenerated={handleCardGenerated}
           streamlinedFlow={true}
           selectedPhotoOption={selectedPhotoOption}
+          onStartFresh={() => setNewFlowStep('delivery')}
         />;
       default:
         return <DeliverySelection onDeliverySelected={handleDeliverySelected} />;

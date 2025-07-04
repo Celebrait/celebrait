@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 4, 2025. Enhanced navigation throughout streamlined flow:
+  * Changed "Back to Name Input" button text to "Start Fresh" across all conversation screens
+  * Added "Start Fresh" button to first question screen (recipient name) for consistency
+  * Added back button to photo creation choice screen allowing users to return to delivery selection
+  * Added onStartFresh callback to properly reset streamlined flow back to delivery choice when "Start Fresh" is clicked
+  * Enhanced navigation flow: users can now go back from photo options to delivery choice, and restart entire flow from any conversation step
 - July 4, 2025. Added missing art style question to streamlined flow:
   * BUGFIX: Fixed art style step ID mismatch in filtering logic (was looking for 'art_style_grid', actual ID is 'art_style')
   * Art style question now appears in both streamlined flow options (upload+scene and upload+transform)

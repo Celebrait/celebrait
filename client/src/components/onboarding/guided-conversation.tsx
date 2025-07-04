@@ -93,6 +93,7 @@ interface GuidedConversationProps {
   onCardGenerated: (card: any) => void;
   streamlinedFlow?: boolean;
   selectedPhotoOption?: 'upload_and_scene' | 'upload_and_transform' | null;
+  onStartFresh?: () => void;
 }
 
 interface ConversationStep {
@@ -105,7 +106,7 @@ interface ConversationStep {
   required?: boolean;
 }
 
-export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null }: GuidedConversationProps) {
+export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, onStartFresh }: GuidedConversationProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [selectedPersonalities, setSelectedPersonalities] = useState<string[]>([]);
@@ -2850,7 +2851,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
             )}
 
           {/* Back Buttons */}
-          {(currentStepIndex > 0 || currentStep.id === 'celebration') && !isTyping && (
+          {(currentStepIndex > 0 || currentStep.id === 'name' || currentStep.id === 'celebration') && !isTyping && (
             <div className="flex flex-col items-center space-y-2 pt-4 sm:pt-6 mt-6">
               {currentStepIndex > 0 && (
                 <Button
@@ -2864,13 +2865,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
               )}
               <Button
                 onClick={() => {
-                  onboarding.setCurrentStep(1);
+                  if (streamlinedFlow && onStartFresh) {
+                    onStartFresh();
+                  } else {
+                    onboarding.setCurrentStep(1);
+                  }
                 }}
                 variant="outline"
                 className="px-6 py-2 rounded-xl border-purple-300 text-purple-600 hover:bg-purple-50 font-medium shadow-sm"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Name Input
+                Start Fresh
               </Button>
             </div>
           )}

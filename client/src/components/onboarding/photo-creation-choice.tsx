@@ -1,12 +1,13 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Camera, Palette, Eye } from 'lucide-react';
+import { Camera, Palette, Eye, ArrowLeft } from 'lucide-react';
 
 interface PhotoCreationChoiceProps {
   onOptionSelected: (option: 'upload_and_scene' | 'upload_and_transform') => void;
+  onBack?: () => void;
 }
 
-export default function PhotoCreationChoice({ onOptionSelected }: PhotoCreationChoiceProps) {
+export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoCreationChoiceProps) {
   const options = [
     {
       value: 'upload_and_scene',
@@ -95,6 +96,20 @@ export default function PhotoCreationChoice({ onOptionSelected }: PhotoCreationC
           </Card>
         ))}
       </div>
+
+      {/* Back Button */}
+      {onBack && (
+        <div className="flex justify-center pt-4">
+          <Button
+            onClick={onBack}
+            variant="outline"
+            className="px-6 py-2 rounded-xl border-purple-300 text-purple-600 hover:bg-purple-50 font-medium shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Delivery Choice
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
