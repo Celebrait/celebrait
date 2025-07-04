@@ -143,30 +143,6 @@ export default function Home() {
       <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
         {!generatedCard && !isTransitioning && (
           <div className="space-y-16">
-            {/* Original Flow */}
-            <div>
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium mb-4">
-                  Current Flow
-                </div>
-                <h2 className="text-xl font-semibold text-gray-600 mb-2">Original Journey</h2>
-                <p className="text-gray-500">Name input → Guided conversation → Card generation</p>
-              </div>
-              {renderCurrentStep()}
-            </div>
-
-            {/* Visual Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-6 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 text-gray-500 font-medium">
-                  New Streamlined Flow (Testing)
-                </span>
-              </div>
-            </div>
-
             {/* New Streamlined Flow */}
             <div>
               <div className="text-center mb-8">
@@ -177,6 +153,30 @@ export default function Home() {
                 <p className="text-gray-500">Delivery choice → Photo option → Quick details → Card generation</p>
               </div>
               {renderNewFlow()}
+            </div>
+
+            {/* Visual Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-6 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 text-gray-500 font-medium">
+                  Original Flow (Testing)
+                </span>
+              </div>
+            </div>
+
+            {/* Original Flow */}
+            <div>
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium mb-4">
+                  Current Flow
+                </div>
+                <h2 className="text-xl font-semibold text-gray-600 mb-2">Original Journey</h2>
+                <p className="text-gray-500">Name input → Guided conversation → Card generation</p>
+              </div>
+              {renderCurrentStep()}
             </div>
           </div>
         )}

@@ -120,6 +120,11 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 4, 2025. Swapped flow order on homepage for easier testing:
+  * Moved new streamlined flow to top of homepage for immediate access
+  * Moved original flow to bottom section for comparison testing
+  * Updated divider text to reflect new positioning
+  * Makes it easier to test the streamlined flow without scrolling past original flow
 - July 4, 2025. Updated AI message wording throughout streamlined flow:
   * Changed celebration question to: "Perfect! ✨ Now what's [NAME]'s big celebration?"
   * Updated transform photo upload message to: "Cool! ✨ Now please upload ONE clear photo that you'd like me to transform into a new artistic style for the front of [NAME]'s card"
