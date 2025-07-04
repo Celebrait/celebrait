@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Gift, Heart, Download, Share2, ChevronLeft, ChevronRight, Mail, X, Facebook, Twitter, Instagram, MessageCircle, Copy, ArrowLeft, MailOpen } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import Header from '@/components/header';
+import envelopeImage from '@assets/Envelope_1751643597232.png';
 
 export default function DigitalCardViewer() {
   const { linkId } = useParams();
@@ -207,16 +208,21 @@ export default function DigitalCardViewer() {
               </h1>
             </div>
 
-            {/* Simple Card Preview */}
+            {/* Envelope Card Preview */}
             <div className="relative max-w-md mx-auto mb-8">
-              <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-8 aspect-square flex flex-col items-center justify-center hover:shadow-3xl transition-all duration-300">
-                <div className="text-center space-y-6">
-                  <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto">
-                    <Mail className="w-10 h-10 text-purple-600" />
+              <div className="relative aspect-square hover:scale-105 transition-all duration-300 cursor-pointer">
+                <img 
+                  src={envelopeImage} 
+                  alt="Envelope" 
+                  className="w-full h-full object-cover rounded-2xl shadow-2xl"
+                />
+                {/* Overlay text on envelope */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center space-y-2">
+                    <p className="text-lg text-black font-['Caveat',cursive] font-semibold">
+                      For {cardData.recipientName}
+                    </p>
                   </div>
-                  <p className="text-lg text-gray-600 font-['Caveat',cursive]">
-                    For {cardData.recipientName}
-                  </p>
                 </div>
               </div>
             </div>

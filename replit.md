@@ -125,7 +125,9 @@ Changelog:
   * PERSONALIZED HEADLINE: Shows "[First Name] has sent you a personalised [celebration] card" using only sender's first name
   * SIMPLIFIED MESSAGING: Removed subtitle text and sender information for cleaner presentation
   * ICON UPDATES: Closed Mail icon for unopened state, open MailOpen icon for opened card state
-  * CLEAN DESIGN: Simple white card with centered Mail icon instead of complex envelope elements
+  * CUSTOM ENVELOPE: Integrated user-provided purple gradient envelope image as background
+  * OVERLAY TEXT: Added handwritten-style recipient name overlay on envelope using Caveat font
+  * INTERACTIVE DESIGN: Hover scale animation and cursor pointer for engaging user experience
   * CONSISTENT BRANDING: Added Header component and site-wide gradient styling
 - July 4, 2025. EMAIL FLOW FIX: Fixed card ready notification emails to show proper viewing sequence:
   * EMAIL ROUTING: Card ready notification emails now link to /card-preview/{reference} instead of directly to delivery details
