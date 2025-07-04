@@ -246,7 +246,7 @@ export function generateCardReadyNotificationEmail(orderData: any, host?: string
     : 'Complete Your Printed Card Order';
     
   const descriptionText = isDigital
-    ? 'Your digital greeting card is ready! Complete your order to receive the final card without watermarks.'
+    ? 'Your digital greeting card is ready! Choose who should receive the final card and complete your order.'
     : 'Your printed greeting card is ready! Complete your order and we\'ll have it printed and shipped to you.';
 
   return {
