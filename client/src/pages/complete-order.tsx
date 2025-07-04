@@ -116,7 +116,7 @@ export default function CompleteOrder() {
     if (!customerName.trim() || !customerEmail.trim()) return false;
     
     if (deliveryType === 'digital') {
-      if (deliveryMethod === 'recipient' && !recipientEmail.trim()) return false;
+      if (deliverTo === 'recipient' && !recipientEmail.trim()) return false;
     } else {
       // Printed cards need address
       if (!address.line1.trim() || !address.city.trim() || 
@@ -146,7 +146,7 @@ export default function CompleteOrder() {
     try {
       if (deliveryType === 'digital') {
         // Handle digital card delivery
-        const targetEmail = deliveryMethod === 'self' ? customerEmail : recipientEmail;
+        const targetEmail = deliverTo === 'self' ? customerEmail : recipientEmail;
         
         const orderData = {
           cardId: card.id,
@@ -267,15 +267,34 @@ export default function CompleteOrder() {
                 </CardTitle>
               </CardHeader>
             <CardContent className="space-y-4">
-              {card?.frontImageUrl && (
-                <div className="aspect-square w-full max-w-64 mx-auto rounded-lg overflow-hidden border-2 border-gray-200">
-                  <img 
-                    src={card.frontImageUrl} 
-                    alt="Card preview" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
+              {/* Front and Inside Images */}
+              <div className="space-y-4">
+                {card?.frontImageUrl && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Front of Card</p>
+                    <div className="aspect-square w-full max-w-64 mx-auto rounded-lg overflow-hidden border-2 border-gray-200">
+                      <img 
+                        src={card.frontImageUrl} 
+                        alt="Card front preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {card?.insideImageUrl && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Inside of Card</p>
+                    <div className="aspect-square w-full max-w-64 mx-auto rounded-lg overflow-hidden border-2 border-gray-200">
+                      <img 
+                        src={card.insideImageUrl} 
+                        alt="Card inside preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div className="space-y-3">
                 <div className="flex justify-between">
@@ -358,42 +377,35 @@ export default function CompleteOrder() {
                 <>
                   <Separator />
                   
-                  {/* Digital Delivery Options */}
+                  {/* Digital Delivery Confirmation */}
                   <div className="space-y-4">
                     <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                       <Mail className="w-4 h-4" />
                       Digital Delivery
                     </h3>
                     
-                    <div className="space-y-3">
-                      <label className="flex items-center space-x-3">
-                        <input
-                          type="radio"
-                          name="deliveryMethod"
-                          value="self"
-                          checked={deliveryMethod === 'self'}
-                          onChange={(e) => setDeliveryMethod(e.target.value as 'self' | 'recipient')}
-                          className="w-4 h-4 text-purple-600"
-                        />
-                        <span>Email to myself (I'll forward it later)</span>
-                      </label>
-                      
-                      <label className="flex items-center space-x-3">
-                        <input
-                          type="radio"
-                          name="deliveryMethod"
-                          value="recipient"
-                          checked={deliveryMethod === 'recipient'}
-                          onChange={(e) => setDeliveryMethod(e.target.value as 'self' | 'recipient')}
-                          className="w-4 h-4 text-purple-600"
-                        />
-                        <span>Email directly to recipient</span>
-                      </label>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                          <Mail className="w-5 h-5 text-blue-500 mt-0.5" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-sm text-blue-800 font-medium">
+                            {deliverTo === 'recipient' 
+                              ? `Your digital card will be emailed directly to ${recipientName}` 
+                              : 'Your digital card will be emailed to you instantly'
+                            }
+                          </p>
+                          <p className="text-xs text-blue-600 mt-1">
+                            The email will include an interactive link to view and download the card
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
-                    {deliveryMethod === 'recipient' && (
+                    {deliverTo === 'recipient' && (
                       <div>
-                        <Label htmlFor="recipientEmail">Recipient's Email *</Label>
+                        <Label htmlFor="recipientEmail">{recipientName}'s Email *</Label>
                         <Input
                           id="recipientEmail"
                           type="email"
