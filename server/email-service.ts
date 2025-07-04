@@ -233,7 +233,21 @@ Thank you for choosing Celebrait!
 }
 
 export function generateCardReadyNotificationEmail(orderData: any, host?: string): EmailParams {
-  const { customerEmail, customerName, paymentReference } = orderData;
+  const { customerEmail, customerName, paymentReference, cardType } = orderData;
+
+  // Determine the appropriate next step based on delivery method selected in streamlined flow
+  const isDigital = cardType === 'digital';
+  const nextStepUrl = isDigital 
+    ? `https://${host || 'localhost:5000'}/delivery-details/${paymentReference}?type=digital`
+    : `https://${host || 'localhost:5000'}/delivery-details/${paymentReference}?type=printed`;
+  
+  const nextStepText = isDigital 
+    ? 'Complete Your Digital Card Order'
+    : 'Complete Your Printed Card Order';
+    
+  const descriptionText = isDigital
+    ? 'Your digital greeting card is ready! Complete your order to receive the final card without watermarks.'
+    : 'Your printed greeting card is ready! Complete your order and we\'ll have it printed and shipped to you.';
 
   return {
     to: customerEmail,
@@ -261,12 +275,12 @@ export function generateCardReadyNotificationEmail(orderData: any, host?: string
           </div>
           <div class="content">
             <h2>Hi ${customerName}!</h2>
-            <p>Your custom greeting card has been generated and is ready for you to view. Choose your delivery options and complete your order!</p>
+            <p>${descriptionText}</p>
 
             <div class="button-section">
-              <a href="https://${host || 'localhost:5000'}/card-preview/${paymentReference}" class="button">View Your Card & Choose Delivery</a>
+              <a href="${nextStepUrl}" class="button">${nextStepText}</a>
               <p style="margin-top: 15px; color: #666; font-size: 14px;">
-                Or copy this link: https://${host || 'localhost:5000'}/card-preview/${paymentReference}
+                Or copy this link: ${nextStepUrl}
               </p>
             </div>
           </div>
@@ -284,9 +298,9 @@ Your Celebrait Card is Ready to View!
 
 Hi ${customerName}!
 
-Your custom greeting card has been generated and is ready for you to view. Choose your delivery options and complete your order!
+${descriptionText}
 
-View your card: https://${host || 'localhost:5000'}/card-preview/${paymentReference}
+${nextStepText}: ${nextStepUrl}
 
 Thank you for choosing Celebrait!
 

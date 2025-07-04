@@ -2907,7 +2907,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerEmail,
         customerName,
         paymentReference: reference,
-        cardId: cardId
+        cardId: cardId,
+        cardType: card.cardType // Include delivery method to skip delivery choice page
       };
 
       // Preload card data into cache for instant email link access

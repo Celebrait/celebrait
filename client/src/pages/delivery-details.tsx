@@ -18,9 +18,17 @@ export default function DeliveryDetails() {
   const [touchEnd, setTouchEnd] = useState(0);
   const isMobile = useIsMobile();
   
-  // Get delivery type from session storage
-  const deliveryType = sessionStorage.getItem('selectedDeliveryType') || 'printed';
+  // Get delivery type from URL parameters (for email links) or session storage
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlDeliveryType = urlParams.get('type');
+  const sessionDeliveryType = sessionStorage.getItem('selectedDeliveryType');
+  const deliveryType = urlDeliveryType || sessionDeliveryType || 'printed';
   const isDigital = deliveryType === 'digital';
+  
+  // Store delivery type in session storage for consistency
+  if (urlDeliveryType && urlDeliveryType !== sessionDeliveryType) {
+    sessionStorage.setItem('selectedDeliveryType', urlDeliveryType);
+  }
   
   // Debug logging
   console.log('[DELIVERY DETAILS] Delivery type:', deliveryType);

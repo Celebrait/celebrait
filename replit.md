@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 4, 2025. CRITICAL EMAIL FLOW FIX: Eliminated duplicate delivery choice from email notification workflow:
+  * FIXED EMAIL FLOW: Card ready notification emails now skip delivery choice page and go directly to delivery details based on user's pre-selected delivery method
+  * EMAIL ROUTING: Digital cards link to `/delivery-details/{reference}?type=digital`, printed cards link to `/delivery-details/{reference}?type=printed`
+  * DELIVERY DETAILS: Updated page to read delivery type from URL parameters (for email links) and session storage (for main site flow)
+  * CONSISTENT EXPERIENCE: Users no longer see "Choose Your Delivery Option" page after clicking email links when they already selected delivery method in streamlined flow
+  * EMAIL TEMPLATES: Updated card ready notification to show "Complete Your Digital Card Order" or "Complete Your Printed Card Order" based on card type
 - July 4, 2025. MAJOR DIGITAL CARD VIEWING EXPERIENCE OVERHAUL: Complete redesign with performance optimization and enhanced UX:
   * CRITICAL FIX: Added watermark removal to free digital card orders - watermarks now automatically removed after successful order completion
   * PERFORMANCE: Created optimized digital image endpoints (`/api/cards/:id/digital-front-image`) with Sharp compression (max 800x800, 85% quality, progressive JPEG)
