@@ -40,14 +40,28 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
       }
     }
     
-    // Navigate to delivery choice page
+    // Check if delivery type was already selected in streamlined flow
+    const selectedDeliveryType = sessionStorage.getItem('selectedDeliveryType');
+    
     setTimeout(() => {
       try {
-        setLocation(`/delivery-choice/${card.id}`);
+        if (selectedDeliveryType) {
+          // Skip delivery choice and go directly to delivery details
+          console.log('[STREAMLINED FLOW] Skipping delivery choice, using pre-selected:', selectedDeliveryType);
+          sessionStorage.setItem('selectedDeliveryType', selectedDeliveryType);
+          setLocation(`/delivery-details/${card.id}`);
+        } else {
+          // Original flow - go to delivery choice page
+          setLocation(`/delivery-choice/${card.id}`);
+        }
       } catch (error) {
         console.error('Navigation failed:', error);
         // Force page reload as fallback
-        window.location.href = `/delivery-choice/${card.id}`;
+        if (selectedDeliveryType) {
+          window.location.href = `/delivery-details/${card.id}`;
+        } else {
+          window.location.href = `/delivery-choice/${card.id}`;
+        }
       }
     }, cleanupSuccess ? 200 : 500);
   };

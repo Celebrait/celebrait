@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 4, 2025. CRITICAL FIX: Removed duplicate delivery choice from streamlined flow:
+  * Fixed streamlined flow to remember initial delivery selection and skip "CHOOSE DELIVERY" step in conversation
+  * Updated card preview to automatically bypass delivery choice page when delivery type was pre-selected
+  * Modified email notification text to reflect delivery choice already made in streamlined flow
+  * Added proper delivery type storage and retrieval from sessionStorage for flow continuity
+  * Streamlined flow now goes: delivery choice → photo option → conversation → card generation → delivery details (skips duplicate delivery choice)
 - July 4, 2025. Enhanced navigation throughout streamlined flow:
   * Changed "Back to Name Input" button text to "Start Fresh" across all conversation screens
   * Added "Start Fresh" button to first question screen (recipient name) for consistency

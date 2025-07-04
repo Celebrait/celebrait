@@ -56,6 +56,8 @@ export default function Home() {
     setSelectedDeliveryType(delivery);
     // Store delivery type for later use
     sessionStorage.setItem('selectedDeliveryType', delivery);
+    // Set delivery type in onboarding state
+    onboarding.setSelectedDelivery(delivery);
     setNewFlowStep('photo-choice');
   };
 

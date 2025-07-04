@@ -1605,7 +1605,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   We'll email you at <span className="font-semibold text-green-600">{answers.notification_email}</span> when your card is ready.
                 </p>
                 <p className="text-sm text-gray-500">
-                  Your email will contain a link to view your card and choose delivery options.
+                  {streamlinedFlow 
+                    ? `Your email will contain a link to view your card and complete your ${onboarding.selectedDelivery || 'selected'} delivery.`
+                    : "Your email will contain a link to view your card and choose delivery options."
+                  }
                 </p>
               </div>
             </div>
@@ -1624,7 +1627,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   </div>
                   <div className="flex items-start space-x-3">
                     <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                    <p className="text-gray-600">Choose between digital delivery or physical printing</p>
+                    <p className="text-gray-600">
+                      {streamlinedFlow 
+                        ? `Complete your ${onboarding.selectedDelivery || 'selected'} delivery setup`
+                        : "Choose between digital delivery or physical printing"
+                      }
+                    </p>
                   </div>
                 </div>
               </div>
