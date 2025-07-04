@@ -120,6 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 4, 2025. MAJOR DIGITAL CARD VIEWING EXPERIENCE OVERHAUL: Complete redesign with performance optimization and enhanced UX:
+  * CRITICAL FIX: Added watermark removal to free digital card orders - watermarks now automatically removed after successful order completion
+  * PERFORMANCE: Created optimized digital image endpoints (`/api/cards/:id/digital-front-image`) with Sharp compression (max 800x800, 85% quality, progressive JPEG)
+  * UI/UX: Completely redesigned digital card viewer with square envelope design, custom message display, and celebration-specific button text
+  * NAVIGATION: Added swipeable card interface with navigation arrows and progress indicators for seamless viewing experience
+  * DOWNLOAD: Enhanced download functionality - supports both front and inside images with proper mobile compatibility
+  * SHARING: Comprehensive social media sharing integration (WhatsApp, Facebook, Twitter, Instagram) plus native mobile sharing and copy link
+  * DESIGN: Square image display, handwritten envelope styling with Caveat font, gradient backgrounds, and smooth animations
+  * METADATA: Smart extraction of recipient name, celebration type, and custom message from conversation data for personalized experience
 - July 4, 2025. CRITICAL PERFORMANCE FIX: Eliminated slow loading screens and optimized image serving:
   * Fixed "Loading delivery options..." taking too long by removing unnecessary loading state and using cached data first
   * Replaced all base64 image loading with optimized `/api/cards/:id/front-image` and `/api/cards/:id/inside-image` endpoints

@@ -13,6 +13,7 @@ import Stripe from "stripe";
 import Replicate from "replicate";
 import FormData from "form-data";
 import { createCanvas, loadImage } from "canvas";
+import sharp from "sharp";
 import { sendEmail, generateOrderConfirmationEmail, generateDigitalCardEmail, generateCardReadyNotificationEmail, generateShippingNotificationEmail } from './email-service';
 import { 
   storeImageFromBase64, 
@@ -163,7 +164,33 @@ async function applyWatermark(imageData: string, opacity: number = 0.3): Promise
   }
 }
 
+// Compress image for digital sharing (optimized size and quality)
+async function compressImageForDigital(imageBuffer: Buffer): Promise<Buffer> {
+  try {
+    // Resize to max 800x800 and compress to JPEG with 85% quality
+    const compressedBuffer = await sharp(imageBuffer)
+      .resize(800, 800, {
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .jpeg({ 
+        quality: 85,
+        progressive: true,
+        mozjpeg: true // Use mozjpeg encoder for better compression
+      })
+      .toBuffer();
+    
+    console.log(`[COMPRESSION] Compressed image from ${imageBuffer.length} to ${compressedBuffer.length} bytes (${Math.round(compressedBuffer.length / imageBuffer.length * 100)}% of original)`);
+    return compressedBuffer;
+  } catch (error) {
+    console.error('[COMPRESSION] Error compressing image:', error);
+    // Return original buffer if compression fails
+    return imageBuffer;
+  }
+}
+
 // Helper function to process Replicate flux binary output
+
 async function processFluxBinaryOutput(output: any): Promise<string> {
   console.log('processFluxBinaryOutput called with output type:', typeof output);
   const binaryChunks: Uint8Array[] = [];
@@ -578,6 +605,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endTime = Date.now();
       console.error(`[PERF] Inside image error after ${endTime - startTime}ms:`, error);
       res.status(500).json({ message: "Error serving inside image: " + error.message });
+    }
+  });
+
+  // Get optimized digital card front image (smaller size for digital sharing)
+  app.get("/api/cards/:id/digital-front-image", async (req, res) => {
+    const startTime = Date.now();
+    try {
+      const cardId = parseInt(req.params.id);
+      const etag = `"${cardId}-digital-front"`;
+      
+      // Check client cache first
+      const clientETag = req.headers['if-none-match'];
+      if (clientETag === etag) {
+        console.log(`[CACHE] 304 Not Modified for digital front image ${cardId}`);
+        return res.status(304).end();
+      }
+      
+      console.log(`[DIGITAL] Fetching optimized digital front image for card ${cardId}`);
+      
+      // Get the card and check if it exists
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      // Check if migration is needed
+      if (cardNeedsMigration(card)) {
+        console.log(`[MIGRATION] Migrating card ${cardId} images on-demand`);
+        await migrateCardImages(card);
+      }
+      
+      // Get the stored image
+      const imageBuffer = await getStoredImage(cardId, 'front');
+      if (!imageBuffer) {
+        return res.status(404).json({ message: "Front image not found" });
+      }
+      
+      // Compress and resize for digital sharing (max 800x800, 85% quality)
+      const optimizedBuffer = await compressImageForDigital(imageBuffer);
+      
+      // Set caching headers
+      res.set({
+        'Content-Type': 'image/jpeg',
+        'Content-Length': optimizedBuffer.length.toString(),
+        'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+        'ETag': etag
+      });
+      
+      const endTime = Date.now();
+      console.log(`[DIGITAL] Digital front image served in ${endTime - startTime}ms (${optimizedBuffer.length} bytes)`);
+      
+      res.send(optimizedBuffer);
+    } catch (error: any) {
+      const endTime = Date.now();
+      console.error(`[DIGITAL] Error serving digital front image after ${endTime - startTime}ms:`, error);
+      res.status(500).json({ message: "Error serving digital front image: " + error.message });
+    }
+  });
+
+  // Get optimized digital card inside image (smaller size for digital sharing)
+  app.get("/api/cards/:id/digital-inside-image", async (req, res) => {
+    const startTime = Date.now();
+    try {
+      const cardId = parseInt(req.params.id);
+      const etag = `"${cardId}-digital-inside"`;
+      
+      // Check client cache first
+      const clientETag = req.headers['if-none-match'];
+      if (clientETag === etag) {
+        console.log(`[CACHE] 304 Not Modified for digital inside image ${cardId}`);
+        return res.status(304).end();
+      }
+      
+      console.log(`[DIGITAL] Fetching optimized digital inside image for card ${cardId}`);
+      
+      // Get the card and check if it exists
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      // Check if migration is needed
+      if (cardNeedsMigration(card)) {
+        console.log(`[MIGRATION] Migrating card ${cardId} images on-demand`);
+        await migrateCardImages(card);
+      }
+      
+      // Get the stored image
+      const imageBuffer = await getStoredImage(cardId, 'inside');
+      if (!imageBuffer) {
+        return res.status(404).json({ message: "Inside image not found" });
+      }
+      
+      // Compress and resize for digital sharing (max 800x800, 85% quality)
+      const optimizedBuffer = await compressImageForDigital(imageBuffer);
+      
+      // Set caching headers
+      res.set({
+        'Content-Type': 'image/jpeg',
+        'Content-Length': optimizedBuffer.length.toString(),
+        'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+        'ETag': etag
+      });
+      
+      const endTime = Date.now();
+      console.log(`[DIGITAL] Digital inside image served in ${endTime - startTime}ms (${optimizedBuffer.length} bytes)`);
+      
+      res.send(optimizedBuffer);
+    } catch (error: any) {
+      const endTime = Date.now();
+      console.error(`[DIGITAL] Error serving digital inside image after ${endTime - startTime}ms:`, error);
+      res.status(500).json({ message: "Error serving digital inside image: " + error.message });
     }
   });
 
@@ -1421,10 +1560,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const order = await storage.createOrder(orderData);
 
-      // Update card status to completed for free orders
+      // Update card status to completed for free orders and remove watermarks
       const card = await storage.getCard(cardId);
       if (card) {
-        await storage.updateCard(cardId, { status: 'completed' });
+        // Remove watermarks by extracting original images from conversationData
+        const conversationData = card.conversationData as any;
+        let updateData: any = { status: 'completed' };
+        
+        if (conversationData && conversationData.originalFrontImageUrl) {
+          updateData.frontImageUrl = conversationData.originalFrontImageUrl;
+          if (conversationData.originalInsideImageUrl) {
+            updateData.insideImageUrl = conversationData.originalInsideImageUrl;
+          }
+          console.log('Watermarks removed for free digital card:', cardId);
+        }
+        
+        await storage.updateCard(cardId, updateData);
       }
 
       // Send digital card email
