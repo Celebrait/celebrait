@@ -121,11 +121,11 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ```
 Changelog:
 - July 4, 2025. DIGITAL CARD VIEWER REDESIGN: Complete overhaul of digital card opening experience:
-  * CLEAN ENVELOPE DESIGN: Replaced complex UI with realistic envelope styling including flap, postal stamp, and wax seal
+  * CONSISTENT STYLING: Matched card viewing page design with closed letter icon and smaller black font
   * PERSONALIZED HEADLINE: Shows "[First Name] has sent you a personalised [celebration] card" using only sender's first name
-  * SIMPLIFIED MESSAGING: Removed subtitle text for cleaner presentation
-  * HANDWRITTEN STYLE: "For [recipient], from [sender] x" message in Caveat cursive font
-  * ENGAGING INTERACTION: "Click to Open" button with smooth opening animation
+  * SIMPLIFIED MESSAGING: Removed subtitle text and sender information for cleaner presentation
+  * ICON UPDATES: Closed Mail icon for unopened state, open MailOpen icon for opened card state
+  * CLEAN DESIGN: Simple white card with centered Mail icon instead of complex envelope elements
   * CONSISTENT BRANDING: Added Header component and site-wide gradient styling
 - July 4, 2025. EMAIL FLOW FIX: Fixed card ready notification emails to show proper viewing sequence:
   * EMAIL ROUTING: Card ready notification emails now link to /card-preview/{reference} instead of directly to delivery details
