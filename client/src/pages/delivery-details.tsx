@@ -11,7 +11,7 @@ export default function DeliveryDetails() {
   const { reference } = useParams();
   const [, setLocation] = useLocation();
   const [cardData, setCardData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [selectedOption, setSelectedOption] = useState<'self' | 'recipient' | null>(null);
   const [currentOption, setCurrentOption] = useState(0);
   const [touchStart, setTouchStart] = useState(0);
@@ -102,16 +102,21 @@ export default function DeliveryDetails() {
       if (storedData) {
         const parsedData = JSON.parse(storedData);
         setCardData(parsedData);
-        setLoading(false);
+        console.log('[DELIVERY DETAILS] Using cached card data - instant load');
         return;
       }
 
-      // Fallback to API if no cached data
+      // Fallback to API if no cached data - load in background without blocking UI
       if (reference) {
-        const response = await fetch(`/api/cards/${reference}`);
+        console.log('[DELIVERY DETAILS] Loading card data from API...');
+        setLoading(true);
+        const response = await fetch(`/api/cards/${reference}/metadata`);
         if (response.ok) {
           const data = await response.json();
           setCardData(data);
+          console.log('[DELIVERY DETAILS] Card data loaded from API');
+        } else {
+          console.error('[DELIVERY DETAILS] Failed to load card data:', response.status);
         }
       }
     } catch (error) {

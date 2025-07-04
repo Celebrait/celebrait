@@ -136,7 +136,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
             {currentView === 'front' && (
               <div className="w-full">
                 <img 
-                  src={card.frontImageUrl?.startsWith('/api/') ? card.frontImageUrl : card.frontImageData || card.frontImageUrl}
+                  src={`/api/cards/${card.id}/front-image`}
                   alt="Card Front Design"
                   className="w-full h-auto rounded-2xl shadow-2xl border border-gray-200"
                 />
@@ -146,7 +146,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
             {currentView === 'inside' && card.insideImageUrl && (
               <div className="w-full">
                 <img 
-                  src={card.insideImageUrl?.startsWith('/api/') ? card.insideImageUrl : card.insideImageData || card.insideImageUrl}
+                  src={`/api/cards/${card.id}/inside-image`}
                   alt="Card Inside Design"
                   className="w-full h-auto rounded-2xl shadow-2xl border border-gray-200"
                 />
@@ -163,7 +163,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
                   {/* Right side - inside image */}
                   <div className="w-1/2">
                     <img 
-                      src={card.insideImageUrl?.startsWith('/api/') ? card.insideImageUrl : card.insideImageData || card.insideImageUrl}
+                      src={`/api/cards/${card.id}/inside-image`}
                       alt="Card Inside Design"
                       className="w-full h-full object-cover"
                     />

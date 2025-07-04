@@ -426,14 +426,14 @@ export default function PaymentSimplified() {
                   <div className="w-full">
                     {currentView === 'front' && card?.frontImageUrl && (
                       <img 
-                        src={card.frontImageUrl?.startsWith('/api/') ? card.frontImageUrl : card.frontImageData || card.frontImageUrl}
+                        src={`/api/cards/${card.id}/front-image`}
                         alt="Card Front"
                         className="w-full h-auto rounded-xl shadow-lg border border-gray-200"
                       />
                     )}
                     {currentView === 'inside' && card?.insideImageUrl && (
                       <img 
-                        src={card.insideImageUrl?.startsWith('/api/') ? card.insideImageUrl : card.insideImageData || card.insideImageUrl}
+                        src={`/api/cards/${card.id}/inside-image`}
                         alt="Card Inside"
                         className="w-full h-auto rounded-xl shadow-lg border border-gray-200"
                       />

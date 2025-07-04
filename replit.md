@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 4, 2025. CRITICAL PERFORMANCE FIX: Eliminated slow loading screens and optimized image serving:
+  * Fixed "Loading delivery options..." taking too long by removing unnecessary loading state and using cached data first
+  * Replaced all base64 image loading with optimized `/api/cards/:id/front-image` and `/api/cards/:id/inside-image` endpoints
+  * Updated delivery details page to use ultra-fast `/api/cards/:id/metadata` endpoint instead of full card data
+  * Optimized card preview, payment pages, and complete-order pages to use image endpoints instead of transferring large base64 data
+  * Images now load instantly from cached endpoints instead of multi-megabyte API responses
+  * Delivery options page loads instantly using sessionStorage cache with background API updates only when needed
 - July 4, 2025. CRITICAL FIX: Removed duplicate delivery choice from streamlined flow:
   * Fixed streamlined flow to remember initial delivery selection and skip "CHOOSE DELIVERY" step in conversation
   * Updated card preview to automatically bypass delivery choice page when delivery type was pre-selected
