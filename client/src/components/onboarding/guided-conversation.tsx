@@ -169,7 +169,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       id: 'celebration',
       question: 'What celebration is this card for?',
       aiMessage: streamlinedFlow ? 
-        `Perfect! ✨ What is ${answers.name || 'NAME'} celebrating?` :
+        `Perfect! ✨ Now what's ${answers.name || 'NAME'}'s big celebration?` :
         `Let's do this, ${onboarding.userName}! So what are we celebrating with your greetings card?`,
       type: 'select',
       options: [
@@ -242,9 +242,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         ? `Please upload photos for style transformation`
         : `Please upload photos of ${answers.name || 'them'} (you can select multiple)`,
       aiMessage: answers.photo_option === 'upload_and_transform'
-        ? `Perfect! ✨ Please upload ONE clear photo that you'd like me to transform into a new artistic style - we'll select the style next!`
+        ? `Cool! ✨ Now please upload ONE clear photo that you'd like me to transform into a new artistic style for the front of ${answers.name || 'NAME'}'s card`
         : streamlinedFlow 
-          ? `Great! ✨ Please upload a photo featuring ${answers.name || 'them'} + anyone else you'd like in your customised scene.`
+          ? `Great! ✨ Please upload your photo(s) featuring ${answers.name || 'them'} + anyone else you'd like in the scene on the front of your card`
           : `Perfect! Please upload one clear photo of ${answers.name || 'them'} + anyone else you'd like in the scene.`,
       type: 'photo_upload',
       required: true
