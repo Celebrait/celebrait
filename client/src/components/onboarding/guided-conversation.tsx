@@ -140,6 +140,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [showEmailPopup, setShowEmailPopup] = useState(false);
   const [popupEmail, setPopupEmail] = useState('');
   const [popupEmailConfirm, setPopupEmailConfirm] = useState('');
+  const [popupFirstName, setPopupFirstName] = useState('');
+  const [popupLastName, setPopupLastName] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -3038,18 +3040,41 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">📧 Email Required for Card Delivery</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">📧 Your Details for Card Delivery</h3>
                   <p className="text-gray-700 text-sm leading-relaxed">
-                    Our AI creates incredible custom artwork, but it takes up to 2 minutes to generate. Instead of making you wait, 
-                    we'll email you the moment your personalized card is ready! This way you can close this window and continue 
-                    with your day while we work our magic.
+                    Our AI creates incredible custom artwork, but it takes up to 2 minutes to generate. We need your name and email 
+                    to send you the card link when it's ready! This way you can close this window and continue with your day while we work our magic.
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Email Form - Matching Your Screenshot */}
+            {/* User Details Form */}
             <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">First Name</label>
+                  <Input
+                    type="text"
+                    value={popupFirstName}
+                    onChange={(e) => setPopupFirstName(e.target.value)}
+                    placeholder="Your first name"
+                    className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Last Name</label>
+                  <Input
+                    type="text"
+                    value={popupLastName}
+                    onChange={(e) => setPopupLastName(e.target.value)}
+                    placeholder="Your last name"
+                    className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                  />
+                </div>
+              </div>
+              
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Email Address</label>
                 <Input
@@ -3082,6 +3107,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
               <div className="flex justify-center pt-4">
                 <Button 
                   onClick={() => {
+                    if (!popupFirstName || !popupLastName) {
+                      toast({
+                        title: "Name Required",
+                        description: "Please enter both your first and last name.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
                     if (!popupEmail || !popupEmailConfirm) {
                       toast({
                         title: "Email Required",
@@ -3099,10 +3132,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                       return;
                     }
                     
+                    // Store user details in answers
+                    answers.user_first_name = popupFirstName;
+                    answers.user_last_name = popupLastName;
+                    answers.user_email = popupEmail;
+                    
                     // Start actual card generation
                     actuallyGenerateCard();
                   }}
-                  disabled={!popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
+                  disabled={!popupFirstName || !popupLastName || !popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
                   className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   GENERATE MY CARD

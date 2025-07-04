@@ -69,6 +69,23 @@ export default function CompleteOrder() {
     }
   }, [cardId]);
 
+  // Pre-populate form with user data from conversation if available
+  useEffect(() => {
+    if (card?.conversationData) {
+      const userFirstName = card.conversationData.user_first_name || '';
+      const userLastName = card.conversationData.user_last_name || '';
+      const userEmail = card.conversationData.user_email || '';
+      
+      if (userFirstName || userLastName) {
+        setCustomerName(`${userFirstName} ${userLastName}`.trim());
+      }
+      
+      if (userEmail) {
+        setCustomerEmail(userEmail);
+      }
+    }
+  }, [card]);
+
   const loadCard = async () => {
     try {
       // Check for cached card data first
@@ -414,18 +431,7 @@ export default function CompleteOrder() {
                       </div>
                     </div>
 
-                    {deliverTo === 'recipient' && (
-                      <div>
-                        <Label htmlFor="recipientEmail">{recipientName}'s Email *</Label>
-                        <Input
-                          id="recipientEmail"
-                          type="email"
-                          value={recipientEmail}
-                          onChange={(e) => setRecipientEmail(e.target.value)}
-                          placeholder="recipient@email.com"
-                        />
-                      </div>
-                    )}
+
 
                     <div>
                       <Label htmlFor="customMessage">Custom Message (Optional)</Label>
@@ -543,8 +549,17 @@ export default function CompleteOrder() {
                     <span className="font-medium text-blue-800">Digital Card Experience</span>
                   </div>
                   <p className="text-sm text-blue-700">
-                    You'll receive a custom link that opens a beautiful digital greeting card experience. 
-                    You can then share this link with your recipient - they'll see your message and can click to "open" the card to view your creation.
+                    {deliverTo === 'recipient' ? (
+                      <>
+                        Both you and {recipientName} will receive a custom link that opens a beautiful digital greeting card experience. 
+                        {recipientName} can click to "open" the card to view your creation, and you'll also have your own copy of the link.
+                      </>
+                    ) : (
+                      <>
+                        You'll receive a custom link that opens a beautiful digital greeting card experience. 
+                        You can then share this link with your recipient - they'll see your message and can click to "open" the card to view your creation.
+                      </>
+                    )}
                   </p>
                 </div>
               )}

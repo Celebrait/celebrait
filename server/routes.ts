@@ -3046,10 +3046,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create free digital order
   app.post("/api/create-free-order", async (req, res) => {
     try {
-      const { cardId, customerEmail, customerName } = req.body;
+      const { cardId, customerInfo, paymentType } = req.body;
 
-      if (!cardId || !customerEmail || !customerName) {
-        return res.status(400).json({ message: "Card ID, customer email, and name are required" });
+      if (!cardId || !customerInfo || !customerInfo.email) {
+        return res.status(400).json({ message: "Card ID and customer info are required" });
       }
 
       const card = await storage.getCard(cardId);
@@ -3057,10 +3057,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Card not found" });
       }
 
+      // Get user details from card conversation data (name and email captured earlier)
+      const conversationData = (card.conversationData as any) || {};
+      const userFirstName = conversationData.user_first_name || customerInfo.firstName || '';
+      const userLastName = conversationData.user_last_name || customerInfo.lastName || '';
+      const userEmail = conversationData.user_email || customerInfo.email;
+      const userFullName = `${userFirstName} ${userLastName}`.trim();
+
       const orderData = {
         cardId: parseInt(cardId),
-        customerEmail,
-        customerName,
+        customerEmail: userEmail,
+        customerName: userFullName,
         customerPhone: '', // Not required for digital orders
         amount: 0,
         currency: 'ZAR',
@@ -3081,19 +3088,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.updateCard(card.id, { status: 'paid' });
 
-      // Send digital card email
+      // Determine delivery method
+      const isDualDelivery = customerInfo.recipientEmail && customerInfo.recipientName;
+      
+      // Always send to user
       try {
-        const emailParams = generateDigitalCardEmail(updatedOrder, card.frontImageUrl || '');
-        await sendEmail(emailParams);
-        console.log('Free digital card email sent successfully');
+        const userEmailParams = generateDigitalCardEmail(updatedOrder, card.frontImageUrl || '');
+        await sendEmail(userEmailParams);
+        console.log('Digital card email sent to user successfully');
       } catch (emailError) {
-        console.error('Failed to send free digital card email:', emailError);
+        console.error('Failed to send digital card email to user:', emailError);
+      }
+
+      // Send to recipient if dual delivery
+      if (isDualDelivery) {
+        try {
+          const recipientEmailParams = generateDigitalCardEmail(
+            { ...updatedOrder, customerEmail: customerInfo.recipientEmail, customerName: customerInfo.recipientName },
+            card.frontImageUrl || ''
+          );
+          await sendEmail(recipientEmailParams);
+          console.log('Digital card email sent to recipient successfully');
+        } catch (emailError) {
+          console.error('Failed to send digital card email to recipient:', emailError);
+        }
       }
 
       res.json({
         ...order,
         card,
-        message: 'Free digital card created and sent successfully'
+        reference: updatedOrder.paymentReference,
+        orderId: order.id,
+        message: isDualDelivery 
+          ? `Free digital card sent to both ${userFullName} and ${customerInfo.recipientName}`
+          : `Free digital card sent to ${userFullName}`
       });
 
     } catch (error: any) {
