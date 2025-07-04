@@ -126,6 +126,8 @@ Changelog:
   * CLEAR SIGNPOSTING: Enhanced Recipients Information page blue box to clarify that user will also receive copy when sending to recipient
   * BACKEND IMPLEMENTATION: Updated create-free-order endpoint to send emails to both user and recipient when dual delivery is selected
   * CONSISTENT MESSAGING: Updated success messages and email templates to reflect dual delivery functionality
+  * DYNAMIC LABELS: Email label changes to "[Name]'s Email" when delivering to recipient, "Your Email" when delivering to self
+  * USER-CENTRIC MESSAGING: Digital card experience text updated to emphasize user control over forwarding card links
 - July 4, 2025. CRITICAL EMAIL FLOW FIX: Eliminated duplicate delivery choice from email notification workflow:
   * FIXED EMAIL FLOW: Card ready notification emails now skip delivery choice page and go directly to delivery details based on user's pre-selected delivery method
   * EMAIL ROUTING: Digital cards link to `/delivery-details/{reference}?type=digital`, printed cards link to `/delivery-details/{reference}?type=printed`

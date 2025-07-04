@@ -369,7 +369,7 @@ export default function CompleteOrder() {
                   </div>
                   
                   <div>
-                    <Label htmlFor="customerEmail">Your Email *</Label>
+                    <Label htmlFor="customerEmail">{deliverTo === 'recipient' ? `${recipientName}'s Email *` : 'Your Email *'}</Label>
                     <Input
                       id="customerEmail"
                       type="email"
