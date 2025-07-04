@@ -159,7 +159,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       id: 'celebration',
       question: 'What celebration is this card for?',
       aiMessage: streamlinedFlow ? 
-        `Perfect! ✨ What is ${answers.name || 'they'} celebrating?` :
+        `Perfect! ✨ What is ${answers.name || 'NAME'} celebrating?` :
         `Let's do this, ${onboarding.userName}! So what are we celebrating with your greetings card?`,
       type: 'select',
       options: [
@@ -206,7 +206,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       id: 'name',
       question: 'What\'s the recipient\'s first name?',
       aiMessage: streamlinedFlow ? 
-        'Hi there! ✨ Let\'s start by getting the recipient\'s first name. What should I call them on the card?' :
+        'Greetings ✨ Let\'s start by getting the recipient\'s first name. Who\'s this card for?' :
         `Wonderful! ✨ What's your ${answers.recipient}'s name?`,
       type: 'text',
       placeholder: 'Enter their first name',

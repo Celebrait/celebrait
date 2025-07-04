@@ -120,12 +120,11 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 4, 2025. Reworked streamlined flow questions for better context:
-  * Updated recipient name question to ask for first name without assuming user relationship context
-  * Modified celebration question to reference the recipient's name ("What is [name] celebrating?")
-  * Fixed question order: recipient's first name comes first, then celebration, then photo upload
-  * Updated AI messages to be appropriate for streamlined flow without referencing unknown user information
-  * Enhanced photo upload messages to properly reference recipient's name in context
+- July 4, 2025. Updated streamlined flow question wording and order:
+  * Set recipient name as first question with message: "Greetings ✨ Let's start by getting the recipient's first name. Who's this card for?"
+  * Set celebration as second question with message: "Perfect! ✨ What is [NAME] celebrating?"
+  * Confirmed question order: recipient name first, celebration second, then photo upload
+  * Updated AI messages to use specific wording requested for better user experience
   * Flow sequence: delivery choice → photo option → recipient name → celebration → photo upload → remaining steps
 - July 4, 2025. Updated photo creation choice styling to match delivery selection design:
   * Redesigned photo creation choice component with 2-column grid layout matching delivery selection cards
