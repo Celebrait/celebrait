@@ -42,6 +42,7 @@ export default function CompleteOrder() {
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
+  const [actualRecipientName, setActualRecipientName] = useState('');
   const [deliveryMethod, setDeliveryMethod] = useState<'self' | 'recipient'>('self');
   const [customMessage, setCustomMessage] = useState('');
   
@@ -133,7 +134,7 @@ export default function CompleteOrder() {
     if (!customerName.trim() || !customerEmail.trim()) return false;
     
     if (deliveryType === 'digital') {
-      if (deliverTo === 'recipient' && !recipientEmail.trim()) return false;
+      if (deliverTo === 'recipient' && (!recipientEmail.trim() || !actualRecipientName.trim())) return false;
     } else {
       // Printed cards need address
       if (!address.line1.trim() || !address.city.trim() || 
@@ -174,7 +175,7 @@ export default function CompleteOrder() {
             // Include recipient details if sending to recipient
             ...(deliverTo === 'recipient' && {
               recipientEmail: recipientEmail,
-              recipientName: recipientName
+              recipientName: actualRecipientName
             })
           },
           paymentType: 'free'
@@ -193,13 +194,13 @@ export default function CompleteOrder() {
         toast({
           title: 'Digital Card Sent!',
           description: deliverTo === 'recipient' 
-            ? `Your card has been delivered to both ${recipientName} and you`
+            ? `Your card has been delivered to both ${actualRecipientName || recipientName} and you`
             : `Your card has been delivered to ${customerEmail}`,
         });
 
         // Redirect to success page with order reference
         const successEmail = deliverTo === 'recipient' 
-          ? `${recipientName} and you`
+          ? `${actualRecipientName || recipientName} and you`
           : customerEmail;
         setLocation(`/order-success?type=digital&email=${encodeURIComponent(successEmail)}&reference=${result.reference}&orderId=${result.orderId}`);
         
@@ -365,38 +366,104 @@ export default function CompleteOrder() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Customer Information */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  {deliverTo === 'recipient' ? `${recipientName}'s Details` : 'Your Information'}
-                </h3>
-                
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="customerName">
-                      {deliverTo === 'recipient' ? `${recipientName}'s Name *` : 'Your Name *'}
-                    </Label>
-                    <Input
-                      id="customerName"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Enter your full name"
-                    />
+              {deliverTo === 'recipient' ? (
+                <>
+                  {/* Recipient Information */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      {recipientName}'s Details
+                    </h3>
+                    
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="recipientName">{recipientName}'s Name *</Label>
+                        <Input
+                          id="recipientName"
+                          value={actualRecipientName}
+                          onChange={(e) => setActualRecipientName(e.target.value)}
+                          placeholder={`Enter ${recipientName}'s full name`}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="recipientEmailInput">{recipientName}'s Email *</Label>
+                        <Input
+                          id="recipientEmailInput"
+                          type="email"
+                          value={recipientEmail}
+                          onChange={(e) => setRecipientEmail(e.target.value)}
+                          placeholder={`${recipientName.toLowerCase()}@email.com`}
+                        />
+                      </div>
+                    </div>
                   </div>
+
+                  <Separator />
+
+                  {/* Your Information */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      Your Details
+                    </h3>
+                    
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="customerName">Your Name *</Label>
+                        <Input
+                          id="customerName"
+                          value={customerName}
+                          onChange={(e) => setCustomerName(e.target.value)}
+                          placeholder="Enter your full name"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="customerEmail">Your Email *</Label>
+                        <Input
+                          id="customerEmail"
+                          type="email"
+                          value={customerEmail}
+                          onChange={(e) => setCustomerEmail(e.target.value)}
+                          placeholder="your@email.com"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Self delivery - just your information */
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Your Information
+                  </h3>
                   
-                  <div>
-                    <Label htmlFor="customerEmail">{deliverTo === 'recipient' ? `${recipientName}'s Email *` : 'Your Email *'}</Label>
-                    <Input
-                      id="customerEmail"
-                      type="email"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      placeholder="your@email.com"
-                    />
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="customerName">Your Name *</Label>
+                      <Input
+                        id="customerName"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="customerEmail">Your Email *</Label>
+                      <Input
+                        id="customerEmail"
+                        type="email"
+                        value={customerEmail}
+                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        placeholder="your@email.com"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {deliveryType === 'digital' ? (
                 <>
@@ -551,8 +618,8 @@ export default function CompleteOrder() {
                   <p className="text-sm text-blue-700">
                     {deliverTo === 'recipient' ? (
                       <>
-                        Both you and {recipientName} will receive a custom link that opens a beautiful digital greeting card experience. 
-                        {recipientName} can click to "open" the card to view your creation, and you'll also have your own copy of the link.
+                        Both you and {actualRecipientName || recipientName} will receive a custom link that opens a beautiful digital greeting card experience. 
+                        {actualRecipientName || recipientName} can click to "open" the card to view your creation, and you'll also have your own copy of the link.
                       </>
                     ) : (
                       <>

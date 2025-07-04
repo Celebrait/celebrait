@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 4, 2025. DUAL DELIVERY SYSTEM COMPLETION: Separated user and recipient information collection for proper dual email delivery:
+  * FORM RESTRUCTURE: Complete-order page now separates recipient details from user details when delivering to recipients
+  * RECIPIENT FIELDS: Recipient name and email fields are now blank and require manual input instead of pre-populating with user data
+  * USER DETAILS SECTION: Added dedicated "Your Details" section that pre-populates with user's name and email captured earlier in flow
+  * DUAL VALIDATION: Form validation now checks both recipient and user information when delivering to recipients
+  * BACKEND INTEGRATION: Updated create-free-order endpoint to properly use actual recipient name and email from form inputs
+  * MESSAGING CONSISTENCY: Updated success messages and digital card experience text to use actual recipient names throughout
 - July 4, 2025. ENHANCED DIGITAL CARD DELIVERY: Improved recipient personalization and dual delivery implementation:
   * PERSONALIZED DELIVERY: Updated delivery options to show actual recipient name instead of "the recipient" throughout the flow
   * DUAL DELIVERY: Changed "Send to recipient" option to "Send to recipient and me" - both user and recipient now receive the digital card
