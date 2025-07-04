@@ -120,6 +120,11 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 4, 2025. Added missing art style question to streamlined flow:
+  * BUGFIX: Fixed art style step ID mismatch in filtering logic (was looking for 'art_style_grid', actual ID is 'art_style')
+  * Art style question now appears in both streamlined flow options (upload+scene and upload+transform)
+  * Includes all 12 art style options: AI-Painterly, Anime, Cyberpunk, LEGO, Pixar, Renaissance, Fantasy Realism, Pixel Art, Barbie/Glam, Grunge, Vaporwave, Mythical Creature
+  * Flow sequence now complete: delivery choice → photo option → recipient name → celebration → photo upload → [scene] → art style → message → inside message
 - July 4, 2025. Swapped flow order on homepage for easier testing:
   * Moved new streamlined flow to top of homepage for immediate access
   * Moved original flow to bottom section for comparison testing
