@@ -218,11 +218,27 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Create First Option - Most Prominent */}
+            {/* Quick Streamlined Flow - Primary */}
+            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-lg">
+              <div className="text-center space-y-4">
+                <div className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                  Quick Start
+                </div>
+                <h3 className="text-xl font-semibold text-gray-800">Choose Delivery First</h3>
+                <p className="text-gray-600 text-sm">
+                  Select delivery method upfront, then create your card
+                </p>
+                <div className="pt-2">
+                  {renderNewFlow()}
+                </div>
+              </div>
+            </div>
+
+            {/* Create First Option - Secondary */}
             <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-8 border-2 border-purple-200">
               <div className="text-center space-y-4">
                 <div className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-full text-sm font-medium mb-2">
-                  ✨ Recommended
+                  ✨ Alternative
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Create First, Decide Delivery Later</h2>
                 <p className="text-gray-600 max-w-xl mx-auto">
@@ -235,41 +251,6 @@ export default function Home() {
                 >
                   Start Creating Your Card
                 </Button>
-              </div>
-            </div>
-
-            {/* Alternative Flows */}
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Quick Streamlined Flow */}
-              <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                <div className="text-center space-y-4">
-                  <div className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                    Quick Start
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-800">Choose Delivery First</h3>
-                  <p className="text-gray-600 text-sm">
-                    Select delivery method upfront, then create your card
-                  </p>
-                  <div className="pt-2">
-                    {renderNewFlow()}
-                  </div>
-                </div>
-              </div>
-
-              {/* Original Flow */}
-              <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                <div className="text-center space-y-4">
-                  <div className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                    Original
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-800">Traditional Journey</h3>
-                  <p className="text-gray-600 text-sm">
-                    Start with your name and guided conversation
-                  </p>
-                  <div className="pt-2">
-                    {renderCurrentStep()}
-                  </div>
-                </div>
               </div>
             </div>
           </div>

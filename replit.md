@@ -122,10 +122,10 @@ Celebrait is a full-stack web application that creates personalized greeting car
 Changelog:
 - July 5, 2025. CREATE-FIRST FLOW IMPLEMENTATION: Added "Create First, Decide Delivery Later" option to homepage:
   * HOMEPAGE REDESIGN: Restructured homepage with clear messaging that users can create cards before purchasing
-  * PRIMARY FLOW: "Create First, Decide Delivery Later" prominently featured as recommended option with purple gradient styling
+  * FLOW ORDERING: Quick Start (delivery first) as primary option, "Create First" as secondary alternative option
+  * TRADITIONAL JOURNEY: Hidden traditional journey flow as requested to simplify homepage choices
   * FLOW LOGIC: Users go through photo options → conversation → card generation → delivery choice with both delivery options visible
   * CARD PREVIEW: After generation, users see their completed card before choosing delivery method
-  * ALTERNATIVE OPTIONS: Quick Start (delivery first) and Original (name first) flows available as secondary options
   * CLEAR MESSAGING: Hero section emphasizes "no payment required until you're happy with your card"
   * NAVIGATION: Back buttons and flow state management for seamless user experience
 - July 4, 2025. DIGITAL CARD VIEWER REDESIGN: Complete overhaul of digital card opening experience:
