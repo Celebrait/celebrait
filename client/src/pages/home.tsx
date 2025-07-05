@@ -1,17 +1,16 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { useLocation } from "wouter";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 
 import GuidedConversation from "@/components/onboarding/guided-conversation";
 import CardPreview from "@/components/card-preview";
-import AILoading from "@/components/ai-loading";
 import DeliverySelection from "@/components/onboarding/delivery-selection";
 import PhotoCreationChoice from "@/components/onboarding/photo-creation-choice";
 
 import { useOnboarding } from "@/hooks/use-onboarding";
 import { Button } from "@/components/ui/button";
-import { apiRequest } from "@/lib/queryClient";
 
 export default function Home() {
   const onboarding = useOnboarding();
@@ -32,16 +31,13 @@ export default function Home() {
   // Flow handlers
   const handleDeliverySelected = (delivery: 'printed' | 'digital') => {
     setSelectedDeliveryType(delivery);
-    // Store delivery type for later use
     sessionStorage.setItem('selectedDeliveryType', delivery);
-    // Set delivery type in onboarding state
     onboarding.setSelectedDelivery(delivery);
     setFlowStep('photo-choice');
   };
 
   const handlePhotoOptionSelected = (option: 'upload_and_scene' | 'upload_and_transform') => {
     setSelectedPhotoOption(option);
-    // Store photo option and start conversation with AI
     sessionStorage.setItem('selectedPhotoOption', option);
     setFlowStep('conversation');
   };
@@ -49,14 +45,13 @@ export default function Home() {
   const createMockCardAndSkipToDelivery = async (cardType: 'digital' | 'printed' = 'digital') => {
     setIsCreatingMockCard(true);
     try {
-      // Create a mock card with test data for streamlined flow testing
       const response = await fetch("/api/cards", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          userId: 1, // Mock user ID
+          userId: 1,
           cardType: cardType,
           printOption: "front-and-inside",
           conversationData: {
@@ -67,19 +62,17 @@ export default function Home() {
             inside_message: "Hope you have an amazing day filled with joy and laughter!",
             art_style: "watercolor",
             scene: "A beautiful garden party with balloons and cake",
-            email: "test@example.com" // Add email for delivery testing
+            email: "test@example.com"
           },
-          price: cardType === 'digital' ? 0 : 12900 // Free for digital cards, $129 for printed
+          price: cardType === 'digital' ? 0 : 12900
         })
       });
       
       const mockCard = await response.json();
 
-      // Set up streamlined flow state for testing
       sessionStorage.setItem('selectedDeliveryType', cardType);
       sessionStorage.setItem('selectedPhotoOption', 'upload_and_scene');
       
-      // Go directly to delivery details to test the new flow
       setLocation(`/delivery-details/${mockCard.id}`);
     } catch (error) {
       console.error("Error creating mock card:", error);
@@ -87,8 +80,6 @@ export default function Home() {
       setIsCreatingMockCard(false);
     }
   };
-
-
 
   const renderFlow = () => {
     switch (flowStep) {
@@ -128,11 +119,11 @@ export default function Home() {
         )}
       </main>
 
-      {/* Hidden Test Buttons - Accessible via URL param or keyboard shortcut */}
+      {/* Test Buttons for Development */}
       {(window.location.search.includes('test=delivery') || window.location.hash.includes('test')) && (
         <div className="fixed bottom-4 right-4 z-50 space-y-2">
           <div className="bg-black/80 backdrop-blur-sm rounded-lg p-3 text-white text-xs">
-            New Streamlined Flow Testing
+            Streamlined Flow Testing
           </div>
           <Button
             onClick={(e) => { e.preventDefault(); createMockCardAndSkipToDelivery('digital'); }}
@@ -152,8 +143,6 @@ export default function Home() {
       )}
 
       <Footer />
-
-
     </div>
   );
 }
