@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Camera, Palette, Eye, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { Camera, Palette, ArrowLeft } from 'lucide-react';
 
 interface PhotoCreationChoiceProps {
   onOptionSelected: (option: 'upload_and_scene' | 'upload_and_transform') => void;
@@ -10,8 +8,6 @@ interface PhotoCreationChoiceProps {
 }
 
 export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoCreationChoiceProps) {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const isMobile = useIsMobile();
 
   const options = [
     {
@@ -38,13 +34,7 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
     }
   ];
 
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % options.length);
-  };
 
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + options.length) % options.length);
-  };
 
   return (
     <div className="space-y-8">
@@ -62,126 +52,42 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
       </div>
 
       {/* Photo Options */}
-      {isMobile ? (
-        <div className="relative max-w-sm mx-auto">
-          {/* Mobile Swipeable Cards */}
-          <div className="overflow-hidden">
-            <div 
-              className="flex transition-transform duration-300 ease-in-out"
-              style={{ transform: `translateX(-${currentSlide * 100}%)` }}
-            >
-              {options.map((option) => (
-                <div key={option.value} className="w-full flex-shrink-0 px-4">
-                  <Card 
-                    onClick={() => onOptionSelected(option.value as 'upload_and_scene' | 'upload_and_transform')}
-                    className={`cursor-pointer border-2 ${option.borderColor} transition-all duration-300 hover:shadow-xl hover:scale-105 bg-white/80 backdrop-blur-sm`}
-                  >
-                    <CardContent className="p-8 text-center space-y-4">
-                      <div className={`w-16 h-16 bg-gradient-to-r ${option.gradient} rounded-full mx-auto flex items-center justify-center mb-4`}>
-                        <option.icon className="text-white w-8 h-8" />
-                      </div>
-                      
-                      <h3 className="text-xl font-bold text-gray-800">{option.label}</h3>
-                      <p className="text-gray-600 text-sm leading-relaxed">
-                        {option.description}
-                      </p>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-center text-sm text-gray-500">
-                          <span>{option.details}</span>
-                        </div>
-                      </div>
-                      
-                      <Button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOptionSelected(option.value as 'upload_and_scene' | 'upload_and_transform');
-                        }}
-                        className={`w-full bg-gradient-to-r ${option.gradient} hover:${option.hoverGradient} text-white py-3 rounded-xl font-semibold`}
-                      >
-                        Choose This Option
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Navigation Arrows */}
-          <button
-            onClick={prevSlide}
-            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-lg hover:bg-white transition-all duration-200"
+      <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        {options.map((option) => (
+          <Card 
+            key={option.value}
+            onClick={() => onOptionSelected(option.value as 'upload_and_scene' | 'upload_and_transform')}
+            className={`cursor-pointer border-2 ${option.borderColor} transition-all duration-300 hover:shadow-xl hover:scale-105 bg-white/80 backdrop-blur-sm`}
           >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
-          </button>
-          <button
-            onClick={nextSlide}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-lg hover:bg-white transition-all duration-200"
-          >
-            <ChevronRight className="w-5 h-5 text-gray-600" />
-          </button>
-
-          {/* Dots Indicator */}
-          <div className="flex justify-center mt-6 space-x-2">
-            {options.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentSlide(index)}
-                className={`w-3 h-3 rounded-full transition-all duration-200 ${
-                  index === currentSlide 
-                    ? 'bg-purple-500' 
-                    : 'bg-gray-300'
-                }`}
-              />
-            ))}
-          </div>
-
-          {/* Swipe Instruction */}
-          <div className="text-center mt-4">
-            <p className="text-sm text-gray-500">
-              Swipe to see both options →
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {options.map((option) => (
-            <Card 
-              key={option.value}
-              onClick={() => onOptionSelected(option.value as 'upload_and_scene' | 'upload_and_transform')}
-              className={`cursor-pointer border-2 ${option.borderColor} transition-all duration-300 hover:shadow-xl hover:scale-105 bg-white/80 backdrop-blur-sm`}
-            >
-              <CardContent className="p-8 text-center space-y-4">
-                <div className={`w-16 h-16 bg-gradient-to-r ${option.gradient} rounded-full mx-auto flex items-center justify-center mb-4`}>
-                  <option.icon className="text-white w-8 h-8" />
+            <CardContent className="p-8 text-center space-y-4">
+              <div className={`w-16 h-16 bg-gradient-to-r ${option.gradient} rounded-full mx-auto flex items-center justify-center mb-4`}>
+                <option.icon className="text-white w-8 h-8" />
+              </div>
+              
+              <h3 className="text-xl font-bold text-gray-800">{option.label}</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                {option.description}
+              </p>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-center text-sm text-gray-500">
+                  <span>{option.details}</span>
                 </div>
-                
-                <h3 className="text-xl font-bold text-gray-800">{option.label}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  {option.description}
-                </p>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-center text-sm text-gray-500">
-                    <span>{option.details}</span>
-                  </div>
-                </div>
-                
-                <Button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOptionSelected(option.value as 'upload_and_scene' | 'upload_and_transform');
-                  }}
-                  className={`w-full bg-gradient-to-r ${option.gradient} hover:${option.hoverGradient} text-white py-3 rounded-xl font-semibold`}
-                >
-                  Choose This Option
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+              </div>
+              
+              <Button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOptionSelected(option.value as 'upload_and_scene' | 'upload_and_transform');
+                }}
+                className={`w-full bg-gradient-to-r ${option.gradient} hover:${option.hoverGradient} text-white py-3 rounded-xl font-semibold`}
+              >
+                Choose This Option
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       {/* Back Button */}
       {onBack && (
