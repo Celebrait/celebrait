@@ -13,6 +13,7 @@ export default function GPTImageTest() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [style, setStyle] = useState('anime style');
+  const [imageSize, setImageSize] = useState<'1024x1024' | '1024x1536'>('1024x1024');
   const [isLoading, setIsLoading] = useState(false);
   const [resultImage, setResultImage] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -118,7 +119,8 @@ export default function GPTImageTest() {
         },
         body: JSON.stringify({
           imageData: imagePreview,
-          style: buildPromptWithText(style)
+          style: buildPromptWithText(style),
+          size: imageSize
         })
       });
 
@@ -189,7 +191,8 @@ export default function GPTImageTest() {
           scenePrompt: scenePrompt,
           style: sceneStyle,
           includeText: sceneIncludeText,
-          cardText: frontCardText
+          cardText: frontCardText,
+          size: imageSize
         })
       });
 
@@ -350,6 +353,19 @@ export default function GPTImageTest() {
                 </div>
 
                 <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="image-size">Output Image Size</Label>
+                    <Select value={imageSize} onValueChange={(value) => setImageSize(value as '1024x1024' | '1024x1536')}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1024x1024">1024x1024 (Square)</SelectItem>
+                        <SelectItem value="1024x1536">1024x1536 (Portrait)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="include-text"

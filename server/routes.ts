@@ -2231,7 +2231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const { imageData, imageDataArray, scenePrompt, style, includeText, cardText } = req.body;
+      const { imageData, imageDataArray, scenePrompt, style, includeText, cardText, size = '1024x1024' } = req.body;
 
       // Support both single image (legacy) and multiple images (new)
       const imagesToProcess = imageDataArray || (imageData ? [imageData] : []);
@@ -2240,16 +2240,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Image data and scene description are required" });
       }
 
+      // Validate size parameter
+      if (!['1024x1024', '1024x1536'].includes(size)) {
+        return res.status(400).json({ message: "Size must be either 1024x1024 or 1024x1536" });
+      }
+
       console.log('Processing GPT-Image-1 scene edit request');
       console.log('Number of images:', imagesToProcess.length);
       console.log('Scene prompt:', scenePrompt);
       console.log('Style:', style);
       console.log('Include text:', includeText);
       console.log('Card text:', cardText);
+      console.log('Requested size:', size);
 
       // Build the complete prompt with enhanced character action descriptions
       const characterText = imagesToProcess.length > 1 ? 'characters from the reference images' : 'characters from the reference image';
-      let fullPrompt = `MANDATORY: Create a perfectly SQUARE composition with equal width and height - NOT portrait, NOT landscape. Full bleed square design with no borders, fill entire square frame. Create a completely new scene featuring the ${characterText}. CRITICAL INSTRUCTIONS: 
+      const aspectDescription = size === '1024x1536' 
+        ? 'MANDATORY: Create a PORTRAIT composition with 2:3 aspect ratio (height is 1.5x the width). Full bleed portrait design with no borders, fill entire portrait frame.'
+        : 'MANDATORY: Create a perfectly SQUARE composition with equal width and height - NOT portrait, NOT landscape. Full bleed square design with no borders, fill entire square frame.';
+      const formatInstruction = size === '1024x1536' 
+        ? '8) COMPOSE FOR PORTRAIT FORMAT - ensure all elements fit within a portrait boundary'
+        : '8) COMPOSE FOR SQUARE FORMAT - ensure all elements fit within a square boundary';
+      
+      let fullPrompt = `${aspectDescription} Create a completely new scene featuring the ${characterText}. CRITICAL INSTRUCTIONS: 
 1) Use the people in the reference image(s) ONLY as character appearance references (facial features, general look)
 2) DO NOT copy or replicate their original positioning, poses, spatial relationships, or interactions from the reference image
 3) CREATE AN ENTIRELY NEW COMPOSITION where characters are arranged differently and naturally for this new scene: ${scenePrompt}
@@ -2257,7 +2270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 5) Give each character new poses, actions, and interactions that match the described scenario, not their original photo
 6) Choose NEW CLOTHING for each person that appropriately matches the occasion and setting described in the scene
 7) Completely reimagine how the characters would naturally be positioned and interact in this new environment
-8) COMPOSE FOR SQUARE FORMAT - ensure all elements fit within a square boundary`;
+${formatInstruction}`;
       if (style && style.trim()) {
         fullPrompt = `${fullPrompt}, rendered in ${style} art style`;
       }
@@ -2294,7 +2307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         formData.append('prompt', fullPrompt);
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
-        formData.append('size', '1024x1024');
+        formData.append('size', size);
         formData.append('quality', 'low');
         formData.append('moderation', 'low');
         formData.append('background', 'auto');
@@ -2567,7 +2580,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(503).json({ message: "OpenAI API is not configured" });
       }
 
-      const { imageData, imageDataArray, style } = req.body;
+      const { imageData, imageDataArray, style, size = '1024x1024' } = req.body;
 
       // Support both single image (legacy) and multiple images (new)
       const imagesToProcess = imageDataArray || (imageData ? [imageData] : []);
@@ -2576,16 +2589,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Image data and style are required" });
       }
 
+      // Validate size parameter
+      if (!['1024x1024', '1024x1536'].includes(size)) {
+        return res.status(400).json({ message: "Size must be either 1024x1024 or 1024x1536" });
+      }
+
       console.log('GPT-Image-1 style transformation with style:', style);
       console.log('Number of images:', imagesToProcess.length);
 
       // Enhance the style prompt to explicitly preserve photo content while transforming style
-      const transformPrompt = `Transform this image into ${style} art style. CRITICAL REQUIREMENTS: 1) Keep the EXACT same person, pose, composition, background, and all visual elements from the original photo - DO NOT change anything about the content, scene, or subject matter. 2) ONLY transform the artistic style/rendering technique to ${style} while preserving every detail of the original image. 3) The person must look identical to the original photo - same facial features, expression, clothing, positioning. 4) Render as a perfectly square image with 1:1 aspect ratio (width equals height). The final output must be square-formatted, not portrait or landscape.`;
+      const aspectDescription = size === '1024x1536' 
+        ? 'Render as a portrait image with 2:3 aspect ratio (height is 1.5x the width). The final output must be portrait-formatted.'
+        : 'Render as a perfectly square image with 1:1 aspect ratio (width equals height). The final output must be square-formatted, not portrait or landscape.';
+      
+      const transformPrompt = `Transform this image into ${style} art style. CRITICAL REQUIREMENTS: 1) Keep the EXACT same person, pose, composition, background, and all visual elements from the original photo - DO NOT change anything about the content, scene, or subject matter. 2) ONLY transform the artistic style/rendering technique to ${style} while preserving every detail of the original image. 3) The person must look identical to the original photo - same facial features, expression, clothing, positioning. 4) ${aspectDescription}`;
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
+      console.log('GPT-Image-1 requested size:', size);
 
       try {
         console.log('Making GPT-Image-1 API request using direct HTTP form-data');
-        console.log('🔍 DEBUG: Requested size parameter:', '1024x1024');
+        console.log('🔍 DEBUG: Requested size parameter:', size);
 
         // Use form-data package for proper multipart form handling
         const formData = new FormData();
@@ -2610,14 +2633,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         formData.append('prompt', transformPrompt);
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
-        formData.append('size', '1024x1024');
+        formData.append('size', size);
         formData.append('quality', 'low');
         formData.append('moderation', 'low');
 
         console.log('📋 Form data parameters being sent:');
         console.log('- model:', 'gpt-image-1');
-        console.log('- size:', '1024x1024');
-        console.log('- quality:', 'high');
+        console.log('- size:', size);
+        console.log('- quality:', 'low');
         console.log('- prompt length:', transformPrompt.length);
         console.log('- moderation:', 'low');
         console.log('- n:', '1');
