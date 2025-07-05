@@ -35,6 +35,9 @@ export default function Home() {
   const [createFirstStep, setCreateFirstStep] = useState<'photo-choice' | 'conversation' | 'delivery-choice'>('photo-choice');
   const [createFirstPhotoOption, setCreateFirstPhotoOption] = useState<'upload_and_scene' | 'upload_and_transform' | null>(null);
   const [showCreateFirstFlow, setShowCreateFirstFlow] = useState(false);
+  
+  // Demo toggle state
+  const [activeDemo, setActiveDemo] = useState<'describe' | 'transform'>('describe');
 
   // Handle clean AI loading transitions between steps
   useEffect(() => {
@@ -209,12 +212,76 @@ export default function Home() {
           <div className="space-y-16">
             {/* Main Hero Section */}
             <div className="text-center space-y-6">
-              <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Create Beautiful AI Cards
+              <h1 className="text-2xl md:text-3xl font-bold text-black leading-tight">
+                Turn your photos into "work of art" greeting cards
               </h1>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Generate personalized greeting cards with AI. Create first, then choose how to deliver - 
-                no payment required until you're happy with your card!
+              <p className="text-base md:text-lg text-gray-700 max-w-2xl mx-auto">
+                Powered by advanced AI technology to create stunning, personalized cards for any celebration
+              </p>
+              
+              {/* Toggle Options */}
+              <div className="flex justify-center items-center space-x-4 mt-8">
+                <button 
+                  onClick={() => setActiveDemo('describe')}
+                  className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                    activeDemo === 'describe' 
+                      ? 'bg-purple-600 text-white shadow-lg' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Describe the Scene
+                </button>
+                <button 
+                  onClick={() => setActiveDemo('transform')}
+                  className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                    activeDemo === 'transform' 
+                      ? 'bg-purple-600 text-white shadow-lg' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Transform the Style
+                </button>
+              </div>
+              
+              {/* Video Demo Area */}
+              <div className="mt-8 bg-gray-100 rounded-xl p-8 min-h-[300px] flex items-center justify-center">
+                {activeDemo === 'describe' ? (
+                  <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
+                      <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-800">Describe the Scene</h3>
+                    <p className="text-gray-600 max-w-md mx-auto">
+                      Upload your photos and describe the perfect scene. AI will create a beautiful greeting card with your loved ones in any setting you imagine.
+                    </p>
+                    <div className="bg-white rounded-lg p-4 text-sm text-gray-500">
+                      Video demonstration coming soon
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto">
+                      <svg className="w-8 h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-800">Transform the Style</h3>
+                    <p className="text-gray-600 max-w-md mx-auto">
+                      Upload a single photo and choose from artistic styles like watercolor, oil painting, or cartoon. AI transforms your photo into a stunning artistic greeting card.
+                    </p>
+                    <div className="bg-white rounded-lg p-4 text-sm text-gray-500">
+                      Video demonstration coming soon
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <p className="text-sm text-gray-600 mt-4">
+                <span className="font-semibold text-purple-600">
+                  No payment required until you're happy with your card!
+                </span>
               </p>
             </div>
 

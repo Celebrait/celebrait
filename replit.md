@@ -124,6 +124,10 @@ Changelog:
   * HOMEPAGE REDESIGN: Restructured homepage with clear messaging that users can create cards before purchasing
   * FLOW ORDERING: Quick Start (delivery first) as primary option, "Create First" as secondary alternative option
   * TRADITIONAL JOURNEY: Hidden traditional journey flow as requested to simplify homepage choices
+  * HERO SECTION: Updated with smaller black typography headline "Turn your photos into 'work of art' greeting cards"
+  * AI SUBTITLE: Added "Powered by advanced AI technology to create stunning, personalized cards for any celebration"
+  * DEMO TOGGLES: Added "Describe the Scene" and "Transform the Style" toggle options with video demonstration areas
+  * VIDEO PLACEHOLDERS: Interactive demo area that switches between scene description and style transformation explanations
   * FLOW LOGIC: Users go through photo options → conversation → card generation → delivery choice with both delivery options visible
   * CARD PREVIEW: After generation, users see their completed card before choosing delivery method
   * CLEAR MESSAGING: Hero section emphasizes "no payment required until you're happy with your card"
