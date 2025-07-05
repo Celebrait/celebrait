@@ -229,9 +229,15 @@ export default function DeliveryDetails() {
             <>
               {/* Header Section */}
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-800 mb-3">
+                <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
+                  <Truck className="text-white w-10 h-10" />
+                </div>
+                <h1 className="text-3xl font-bold text-gray-800 mb-2">
                   Confirm Delivery Method
-                </h2>
+                </h1>
+                <p className="text-lg text-slate-gray">
+                  Choose how you'd like to receive your personalized card
+                </p>
               </div>
 
               {/* Delivery Options */}
@@ -239,10 +245,11 @@ export default function DeliveryDetails() {
                 {deliveryOptions.map((option) => (
                   <Card 
                     key={option.id}
-                    onClick={() => handleDeliveryTypeChange(option.id as 'digital' | 'printed')}
-                    className={`cursor-pointer border-2 ${option.borderColor} transition-all duration-300 hover:shadow-xl hover:scale-105 bg-white/80 backdrop-blur-sm ${
-                      selectedDeliveryType === option.id ? 'ring-2 ring-purple-500 ring-offset-2' : ''
-                    }`}
+                    onClick={() => {
+                      handleDeliveryTypeChange(option.id as 'digital' | 'printed');
+                      setTimeout(() => handleProceedToRecipient(), 100);
+                    }}
+                    className={`cursor-pointer border-2 ${option.borderColor} transition-all duration-300 hover:shadow-xl hover:scale-105 bg-white/80 backdrop-blur-sm`}
                   >
                     <CardContent className="p-8 text-center space-y-4">
                       <div className={`w-16 h-16 bg-gradient-to-r ${option.gradient} rounded-full mx-auto flex items-center justify-center mb-4`}>
@@ -270,6 +277,7 @@ export default function DeliveryDetails() {
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeliveryTypeChange(option.id as 'digital' | 'printed');
+                          setTimeout(() => handleProceedToRecipient(), 100);
                         }}
                         className={`w-full bg-gradient-to-r ${option.gradient} hover:${option.hoverGradient} text-white py-3 rounded-xl font-semibold`}
                       >
@@ -280,16 +288,7 @@ export default function DeliveryDetails() {
                 ))}
               </div>
 
-              {/* Proceed Button */}
-              <div className="text-center">
-                <Button
-                  onClick={handleProceedToRecipient}
-                  disabled={!selectedDeliveryType}
-                  className="w-full max-w-md bg-gradient-to-r from-purple-500 to-pink-500 hover:opacity-90 text-white py-4 rounded-xl font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105"
-                >
-                  Continue
-                </Button>
-              </div>
+
             </>
           ) : (
             // Recipient Selection
