@@ -72,7 +72,7 @@ export default function DeliveryDetails() {
         return;
       }
       
-      // Fallback to API if no cache available
+      // Fallback to API if no cache available (using fast endpoints)
       setLoading(true);
       try {
         let response;

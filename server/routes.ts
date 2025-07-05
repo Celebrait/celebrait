@@ -382,6 +382,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/cards/:id/fast-metadata", async (req, res) => {
     try {
       const cardId = parseInt(req.params.id);
+      const cacheKey = `fast-metadata-${cardId}`;
+      
+      // Check memory cache first for instant response
+      const cached = cardMetadataCache.get(cacheKey);
+      if (cached && (Date.now() - cached.timestamp) < METADATA_CACHE_TTL) {
+        console.log(`[INSTANT] Fast metadata from cache for card ${cardId}`);
+        res.set({
+          'Cache-Control': 'public, max-age=3600, immutable',
+          'ETag': `"fast-${cardId}"`,
+          'X-Cache': 'HIT'
+        });
+        return res.json(cached.data);
+      }
+      
       console.log(`[PERF] Fast metadata for card ${cardId}`);
       
       const card = await storage.getCard(cardId);
@@ -396,10 +410,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         conversationData: card.conversationData || {}
       };
       
+      // Cache in memory for instant subsequent loads
+      cardMetadataCache.set(cacheKey, {
+        data: fastMetadata,
+        timestamp: Date.now()
+      });
+      
       // Aggressive caching for instant subsequent loads
       res.set({
         'Cache-Control': 'public, max-age=3600, immutable', // Cache for 1 hour
-        'ETag': `"fast-${cardId}-${card.status}"`
+        'ETag': `"fast-${cardId}-${card.status}"`,
+        'X-Cache': 'MISS'
       });
       
       res.json(fastMetadata);
@@ -666,10 +687,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const base64Data = card.frontImageUrl.split(',')[1];
       const imageBuffer = Buffer.from(base64Data, 'base64');
       
-      // Use Sharp for ultra-fast compression
+      // Use Sharp for ultra-fast compression - aggressive for email preview
       const compressedBuffer = await sharp(imageBuffer)
-        .jpeg({ quality: 70, progressive: true })
-        .resize(500, 500, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 60, progressive: true })
+        .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
         .toBuffer();
       
       // Cache aggressively
@@ -719,10 +740,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const base64Data = card.insideImageUrl.split(',')[1];
       const imageBuffer = Buffer.from(base64Data, 'base64');
       
-      // Use Sharp for ultra-fast compression
+      // Use Sharp for ultra-fast compression - aggressive for email preview
       const compressedBuffer = await sharp(imageBuffer)
-        .jpeg({ quality: 70, progressive: true })
-        .resize(500, 500, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 60, progressive: true })
+        .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
         .toBuffer();
       
       // Cache aggressively
@@ -1924,11 +1945,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const responseData = {
           card: {
             ...emailCached.card,
-            frontImageUrl: `/api/cards/${emailCached.card.id}/front-image`,
-            insideImageUrl: emailCached.insideImage ? `/api/cards/${emailCached.card.id}/inside-image` : null,
-            // INSTANT LOADING: Include base64 images directly for immediate display
-            frontImageBase64: emailCached.frontImage ? `data:image/png;base64,${emailCached.frontImage.toString('base64')}` : null,
-            insideImageBase64: emailCached.insideImage ? `data:image/png;base64,${emailCached.insideImage.toString('base64')}` : null
+            frontImageUrl: `/api/cards/${emailCached.card.id}/fast-front-image`,
+            insideImageUrl: emailCached.insideImage ? `/api/cards/${emailCached.card.id}/fast-inside-image` : null,
+            // Remove base64 images for ultra-fast loading
+            frontImageBase64: null,
+            insideImageBase64: null
           },
           reference,
           message: "Card ready for delivery choice"
@@ -1995,8 +2016,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sceneType: card.sceneType,
         status: card.status,
         price: card.price,
-        frontImageUrl: card.frontImageUrl ? `/api/cards/${cardId}/front-image` : null,
-        insideImageUrl: card.insideImageUrl ? `/api/cards/${cardId}/inside-image` : null,
+        frontImageUrl: card.frontImageUrl ? `/api/cards/${cardId}/fast-front-image` : null,
+        insideImageUrl: card.insideImageUrl ? `/api/cards/${cardId}/fast-inside-image` : null,
         // Remove massive base64 data to improve loading speed
         conversationData: card.conversationData || {}
       };
@@ -2013,6 +2034,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: Date.now()
       });
       console.log(`[CACHE] Cached ready card metadata for reference: ${reference}`);
+      
+      // Preload images into cache for instant loading
+      if (card.frontImageUrl) {
+        const frontCacheKey = `fast-front-${cardId}`;
+        if (!imageCache.has(frontCacheKey)) {
+          try {
+            const base64Data = card.frontImageUrl.split(',')[1];
+            const imageBuffer = Buffer.from(base64Data, 'base64');
+            const compressedBuffer = await sharp(imageBuffer)
+              .jpeg({ quality: 60, progressive: true })
+              .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
+              .toBuffer();
+            
+            imageCache.set(frontCacheKey, {
+              data: compressedBuffer,
+              timestamp: Date.now(),
+              etag: `"fast-front-${cardId}"`
+            });
+            console.log(`[PRELOAD] Cached front image for instant loading: ${cardId}`);
+          } catch (e) {
+            console.warn(`[PRELOAD] Failed to cache front image: ${e}`);
+          }
+        }
+      }
+      
+      if (card.insideImageUrl) {
+        const insideCacheKey = `fast-inside-${cardId}`;
+        if (!imageCache.has(insideCacheKey)) {
+          try {
+            const base64Data = card.insideImageUrl.split(',')[1];
+            const imageBuffer = Buffer.from(base64Data, 'base64');
+            const compressedBuffer = await sharp(imageBuffer)
+              .jpeg({ quality: 60, progressive: true })
+              .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
+              .toBuffer();
+            
+            imageCache.set(insideCacheKey, {
+              data: compressedBuffer,
+              timestamp: Date.now(),
+              etag: `"fast-inside-${cardId}"`
+            });
+            console.log(`[PRELOAD] Cached inside image for instant loading: ${cardId}`);
+          } catch (e) {
+            console.warn(`[PRELOAD] Failed to cache inside image: ${e}`);
+          }
+        }
+      }
       
       // Add caching headers for faster subsequent loads
       res.set({

@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 5, 2025. CRITICAL PERFORMANCE OPTIMIZATION: Resolved email preview and delivery loading performance issues:
+  * EMAIL PREVIEW SPEED: Eliminated base64 image transfers from /api/cards/ready/ endpoint, now uses ultra-fast compressed endpoints
+  * AGGRESSIVE COMPRESSION: Reduced fast endpoint compression from 500x500 70% to 400x400 60% JPEG for instant loading
+  * MEMORY CACHING: Added aggressive memory caching to fast-metadata endpoint for instant subsequent loads
+  * IMAGE PRELOADING: Added automatic image preloading to ready endpoint - images cached during metadata fetch for zero-delay image loading
+  * ENDPOINT OPTIMIZATION: All email preview links now use fast-front-image and fast-inside-image endpoints instead of large base64 transfers
+  * DELIVERY DETAILS: Confirmed delivery details page uses fast endpoints with cache-first strategy for instant loading
 - July 5, 2025. NAVIGATION UX ENHANCEMENT: Added scroll-to-top behavior and fade transitions for seamless page navigation:
   * SCROLL-TO-TOP: All navigation clicks now automatically scroll to top of destination page for optimal UX
   * FADE TRANSITIONS: Added subtle opacity fade effects (0.8 opacity) during navigation for polished experience
