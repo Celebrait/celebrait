@@ -2423,14 +2423,20 @@ ${formatInstruction}`;
     }
 
     try {
-      const { frontCardImage, insideText } = req.body;
+      const { frontCardImage, insideText, size = '1024x1024' } = req.body;
 
       if (!frontCardImage || !insideText) {
         return res.status(400).json({ message: "Front card image and inside text are required" });
       }
 
+      // Validate size parameter
+      if (!['1024x1024', '1024x1536'].includes(size)) {
+        return res.status(400).json({ message: "Size must be either 1024x1024 or 1024x1536" });
+      }
+
       console.log('Generating inside card using GPT-Image-1 image-to-image');
       console.log('Inside text:', insideText);
+      console.log('Requested size:', size);
 
       // Convert base64 front card image to buffer for upload
       const base64Data = frontCardImage.replace(/^data:image\/[a-z]+;base64,/, '');
@@ -2442,8 +2448,15 @@ ${formatInstruction}`;
 
       console.log('Front card image buffer size:', imageBuffer.length, 'bytes, MIME type:', mimeType);
 
-      // Create prompt following your exact specification
-      const insideCardPrompt = `Square 1:1 aspect ratio design. Reference this images style, atmosphere, colour, vibe and typography to create a new image with the text "${insideText}" The reference image should be used to stylise the background with the text prominent on the screen, as a square format design.`;
+      // Create prompt following the specified format and size
+      const formatDescription = size === '1024x1536' 
+        ? 'Portrait 2:3 aspect ratio design (height is 1.5x the width)'
+        : 'Square 1:1 aspect ratio design';
+      const formatInstruction = size === '1024x1536' 
+        ? 'as a portrait format design'
+        : 'as a square format design';
+      
+      const insideCardPrompt = `${formatDescription}. Reference this images style, atmosphere, colour, vibe and typography to create a new image with the text "${insideText}" The reference image should be used to stylise the background with the text prominent on the screen, ${formatInstruction}.`;
 
       console.log('Inside card prompt:', insideCardPrompt);
 
@@ -2458,7 +2471,7 @@ ${formatInstruction}`;
       formData.append('prompt', insideCardPrompt);
       formData.append('model', 'gpt-image-1');
       formData.append('n', '1');
-      formData.append('size', '1024x1024');
+      formData.append('size', size);
       formData.append('quality', 'low');
       formData.append('moderation', 'low');
       formData.append('background', 'auto');

@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 4, 2025. GPT IMAGE TEST SIZE ENHANCEMENT: Added 1024x1536 portrait testing capability:
+  * SIZE SELECTION: Added dropdown to choose between 1024x1024 (Square) and 1024x1536 (Portrait) output formats
+  * UNIFIED SIZING: Both front and inside card generation now respect the selected size parameter
+  * BACKEND SUPPORT: Updated all GPT-Image-1 endpoints (transform-style, edit-scene, generate-inside-card) to handle dynamic sizing
+  * ASPECT RATIO PROMPTS: Modified prompts to properly instruct AI for square vs portrait compositions
+  * VALIDATION: Added proper size parameter validation and logging across all endpoints
 - July 4, 2025. DIGITAL CARD VIEWER REDESIGN: Complete overhaul of digital card opening experience:
   * CONSISTENT STYLING: Matched card viewing page design with closed letter icon and smaller black font
   * PERSONALIZED HEADLINE: Shows "[First Name] has sent you a personalised [celebration] card" using only sender's first name

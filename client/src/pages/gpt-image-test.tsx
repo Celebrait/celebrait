@@ -48,7 +48,8 @@ export default function GPTImageTest() {
         },
         body: JSON.stringify({
           frontCardImage: frontImage,
-          insideText: insideCardText
+          insideText: insideCardText,
+          size: imageSize
         })
       });
 
