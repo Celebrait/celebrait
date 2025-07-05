@@ -19,6 +19,7 @@ export default function DigitalCardViewer() {
   const [opening, setOpening] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [imagesPreloaded, setImagesPreloaded] = useState(false);
 
   useEffect(() => {
     if (linkId) {
@@ -97,8 +98,35 @@ export default function DigitalCardViewer() {
   const handleOpenCard = async () => {
     setOpening(true);
     
-    // Add a nice delay to make the opening feel special
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Preload images with faster timeout for better user experience
+    const imagePromises = images.map(url => {
+      if (url) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => {
+            console.log('Image preloaded:', url);
+            resolve(url);
+          };
+          img.onerror = reject;
+          img.src = url;
+        });
+      }
+      return Promise.resolve();
+    });
+    
+    // Wait for images to preload or timeout after 1 second for faster experience
+    try {
+      await Promise.race([
+        Promise.all(imagePromises),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]);
+      setImagesPreloaded(true);
+    } catch (error) {
+      console.warn('Image preloading failed, continuing anyway:', error);
+    }
+    
+    // Shorter delay for better performance
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     setOpening(false);
     setIsOpened(true);
@@ -210,14 +238,17 @@ export default function DigitalCardViewer() {
 
             {/* Envelope Card Preview */}
             <div className="relative max-w-md mx-auto mb-8">
-              <div className="relative aspect-square hover:scale-105 transition-all duration-300 cursor-pointer">
+              <div 
+                className="relative aspect-square hover:scale-105 transition-all duration-300 cursor-pointer"
+                onClick={handleOpenCard}
+              >
                 <img 
                   src={envelopeImage} 
                   alt="Envelope" 
                   className="w-full h-full object-cover rounded-2xl shadow-2xl"
                 />
                 {/* Overlay text on envelope */}
-                <div className="absolute inset-0 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="text-center space-y-2">
                     <p className="text-lg text-black font-['Caveat',cursive] font-semibold">
                       For {cardData.recipientName}
@@ -254,7 +285,7 @@ export default function DigitalCardViewer() {
           </div>
         ) : (
           /* Opened Card State - Card Viewing Interface */
-          <div className="space-y-8 animate-in fade-in duration-1000">
+          <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header */}
             <div className="text-center space-y-4">
               <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full mx-auto flex items-center justify-center animate-pulse shadow-lg">
@@ -269,11 +300,22 @@ export default function DigitalCardViewer() {
             {/* Card Image Display */}
             <div className="relative max-w-2xl mx-auto">
               <div className="bg-white rounded-2xl shadow-2xl p-4">
-                <img 
-                  src={images[currentImageIndex]} 
-                  alt={`Card ${currentImageIndex === 0 ? 'front' : 'inside'}`}
-                  className="w-full h-auto rounded-xl"
-                />
+                <div className="relative">
+                  <img 
+                    src={images[currentImageIndex]} 
+                    alt={`Card ${currentImageIndex === 0 ? 'front' : 'inside'}`}
+                    className="w-full h-auto rounded-xl transition-opacity duration-300"
+                    onLoad={() => console.log('Card image loaded successfully')}
+                    onError={() => console.error('Failed to load card image')}
+                    loading="eager"
+                  />
+                  {/* Loading overlay while image loads */}
+                  {!imagesPreloaded && (
+                    <div className="absolute inset-0 bg-gray-100 rounded-xl flex items-center justify-center">
+                      <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full"></div>
+                    </div>
+                  )}
+                </div>
                 
                 {/* Navigation arrows */}
                 {images.length > 1 && (
@@ -324,16 +366,40 @@ export default function DigitalCardViewer() {
                 Download {currentImageIndex === 0 ? 'Front' : 'Inside'}
               </Button>
               <Button
-                onClick={shareCard}
+                onClick={copyLink}
                 variant="outline"
+                className="border-purple-200 hover:bg-purple-50"
               >
-                <Share2 className="w-4 h-4 mr-2" />
-                Share Card
+                <Copy className="w-4 h-4 mr-2" />
+                Copy Link
+              </Button>
+              <Button
+                onClick={() => shareToSocial('whatsapp')}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                WhatsApp
               </Button>
             </div>
 
-            {/* Back to envelope button */}
-            <div className="text-center">
+            {/* Create your own card CTA */}
+            <div className="text-center space-y-4">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-purple-100">
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                  Love this card? Create your own!
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Design personalized greeting cards with AI in minutes
+                </p>
+                <Button
+                  onClick={() => setLocation('/')}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <Gift className="w-5 h-5 mr-2" />
+                  Create Your Card
+                </Button>
+              </div>
+              
               <Button
                 onClick={() => setIsOpened(false)}
                 variant="ghost"

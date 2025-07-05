@@ -120,6 +120,14 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 4, 2025. DIGITAL CARD PERFORMANCE OPTIMIZATION: Enhanced digital card viewer performance and user experience:
+  * PERFORMANCE: Reduced image compression from 800x800 to 600x600 pixels and optimized quality settings for faster loading
+  * PRELOADING: Added intelligent image preloading with 1-second timeout to ensure smooth transitions when opening cards
+  * UI FIXES: Fixed envelope overlay issue by adding proper pointer events and click handlers
+  * SHARING: Replaced generic share button with dedicated "Copy Link" and "WhatsApp" sharing buttons
+  * FEATURE RESTORATION: Added "Create your own card" call-to-action section for recipients to create their own cards
+  * TRANSITIONS: Improved card opening animation timing and reduced delays for better user experience
+  * LOADING STATES: Added loading overlays and error handling for better image loading feedback
 - July 4, 2025. GPT IMAGE TEST SIZE ENHANCEMENT: Added 1024x1536 portrait testing capability:
   * SIZE SELECTION: Added dropdown to choose between 1024x1024 (Square) and 1024x1536 (Portrait) output formats
   * UNIFIED SIZING: Both front and inside card generation now respect the selected size parameter

@@ -167,16 +167,17 @@ async function applyWatermark(imageData: string, opacity: number = 0.3): Promise
 // Compress image for digital sharing (optimized size and quality)
 async function compressImageForDigital(imageBuffer: Buffer): Promise<Buffer> {
   try {
-    // Resize to max 800x800 and compress to JPEG with 85% quality
+    // Optimized compression: smaller size for faster loading
     const compressedBuffer = await sharp(imageBuffer)
-      .resize(800, 800, {
+      .resize(600, 600, {
         fit: 'inside',
         withoutEnlargement: true
       })
       .jpeg({ 
-        quality: 85,
+        quality: 82,
         progressive: true,
-        mozjpeg: true // Use mozjpeg encoder for better compression
+        mozjpeg: true, // Use mozjpeg encoder for better compression
+        optimiseScans: true // Optimize progressive scans for faster loading
       })
       .toBuffer();
     
