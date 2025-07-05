@@ -127,7 +127,8 @@ Changelog:
   * BACK NAVIGATION: Added scroll-to-top functionality to all back buttons including "Go Back a Step" and "Start Fresh" buttons
   * CONSISTENT TIMING: 150ms delay with 100ms fade restoration ensures smooth visual transitions
   * CSS OPTIMIZATION: Added body transition styling for professional fade effects across entire application
-  * PHOTO UPLOAD COLORS: Updated to purple-to-blue and blue-to-purple gradients matching conversation flow robot icon theme
+  * CONSISTENT BRAIN ICONS: Replaced all icons with Brain icon across delivery method and photo upload method screens
+  * REVERTED COLOR SCHEME: Photo upload method now uses same purple-pink and green-blue gradients as delivery method screen
   * AI LOADING ANIMATION: Added 2-second AI preparation animation after photo method selection with Brain icon, spinning ring, and encouraging messaging
 - July 5, 2025. EMAIL FLOW PERFORMANCE OPTIMIZATION: Eliminated slow loading screens with aggressive client-side caching:
   * INSTANT EMAIL LOADING: "Loading Your Card" now loads instantly using cache-first strategy with multiple fallback keys

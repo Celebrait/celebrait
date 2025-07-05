@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Camera, Palette, ArrowLeft, Brain } from 'lucide-react';
+import { Brain, ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface PhotoCreationChoiceProps {
@@ -29,10 +29,10 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
       label: 'Upload Photo + Describe Scene',
       description: 'Upload photos and describe the perfect scene to place your loved ones in',
       details: 'Perfect for creating custom scenes with multiple people',
-      color: 'bg-gradient-to-r from-purple-500 to-blue-500',
-      gradient: 'from-purple-500 to-blue-500',
-      hoverGradient: 'from-purple-600 to-blue-600',
-      icon: Camera,
+      color: 'bg-gradient-to-r from-purple-500 to-pink-500',
+      gradient: 'from-purple-500 to-pink-500',
+      hoverGradient: 'from-purple-600 to-pink-600',
+      icon: Brain,
       borderColor: 'border-purple-200 hover:border-purple-400'
     },
     {
@@ -40,11 +40,11 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
       label: 'Upload Photo + Transform Style',
       description: 'Upload one photo and transform it into beautiful artistic styles',
       details: 'Great for stylizing existing photos with artistic effects',
-      color: 'bg-gradient-to-r from-blue-500 to-purple-500',
-      gradient: 'from-blue-500 to-purple-500',
-      hoverGradient: 'from-blue-600 to-purple-600',
-      icon: Palette,
-      borderColor: 'border-blue-200 hover:border-blue-400'
+      color: 'bg-gradient-to-r from-green-500 to-blue-500',
+      gradient: 'from-green-500 to-blue-500',
+      hoverGradient: 'from-green-600 to-blue-600',
+      icon: Brain,
+      borderColor: 'border-green-200 hover:border-green-400'
     }
   ];
 
@@ -80,7 +80,7 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
       {/* Header Section */}
       <div className="text-center mb-8">
         <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
-          <Camera className="text-white w-10 h-10" />
+          <Brain className="text-white w-10 h-10" />
         </div>
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
           Choose Photo Upload Method
