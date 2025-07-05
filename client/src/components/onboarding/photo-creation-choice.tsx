@@ -16,11 +16,11 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
     setSelectedOption(option);
     setIsLoading(true);
     
-    // 3-second AI loading animation
+    // 2-second AI loading animation
     setTimeout(() => {
       setIsLoading(false);
       onOptionSelected(option);
-    }, 3000);
+    }, 2000);
   };
 
   const options = [
@@ -29,22 +29,22 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
       label: 'Upload Photo + Describe Scene',
       description: 'Upload photos and describe the perfect scene to place your loved ones in',
       details: 'Perfect for creating custom scenes with multiple people',
-      color: 'bg-gradient-to-r from-emerald-500 to-teal-500',
-      gradient: 'from-emerald-500 to-teal-500',
-      hoverGradient: 'from-emerald-600 to-teal-600',
+      color: 'bg-gradient-to-r from-purple-500 to-blue-500',
+      gradient: 'from-purple-500 to-blue-500',
+      hoverGradient: 'from-purple-600 to-blue-600',
       icon: Camera,
-      borderColor: 'border-emerald-200 hover:border-emerald-400'
+      borderColor: 'border-purple-200 hover:border-purple-400'
     },
     {
       value: 'upload_and_transform',
       label: 'Upload Photo + Transform Style',
       description: 'Upload one photo and transform it into beautiful artistic styles',
       details: 'Great for stylizing existing photos with artistic effects',
-      color: 'bg-gradient-to-r from-orange-500 to-red-500',
-      gradient: 'from-orange-500 to-red-500',
-      hoverGradient: 'from-orange-600 to-red-600',
+      color: 'bg-gradient-to-r from-blue-500 to-purple-500',
+      gradient: 'from-blue-500 to-purple-500',
+      hoverGradient: 'from-blue-600 to-purple-600',
       icon: Palette,
-      borderColor: 'border-orange-200 hover:border-orange-400'
+      borderColor: 'border-blue-200 hover:border-blue-400'
     }
   ];
 
@@ -55,7 +55,7 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
     return (
       <div className="flex flex-col items-center justify-center space-y-8 min-h-[400px]">
         {/* AI Loading Animation */}
-        <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-orange-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-pulse">
+        <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-pulse">
           <Brain className="text-white w-10 h-10 animate-bounce" />
         </div>
         <div className="text-center">
@@ -68,8 +68,8 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
         </div>
         {/* Spinning ring animation */}
         <div className="relative">
-          <div className="w-16 h-16 border-4 border-emerald-200 rounded-full"></div>
-          <div className="absolute top-0 left-0 w-16 h-16 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin"></div>
+          <div className="w-16 h-16 border-4 border-purple-200 rounded-full"></div>
+          <div className="absolute top-0 left-0 w-16 h-16 border-4 border-purple-500 rounded-full border-t-transparent animate-spin"></div>
         </div>
       </div>
     );
@@ -79,7 +79,7 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
     <div className="space-y-8">
       {/* Header Section */}
       <div className="text-center mb-8">
-        <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-orange-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
+        <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
           <Camera className="text-white w-10 h-10" />
         </div>
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
