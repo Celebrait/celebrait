@@ -32,6 +32,11 @@
   --slate-gray: 215 16% 47%; /* #64748B */
 }
 
+/* Smooth page transitions for navigation */
+body {
+  transition: opacity 0.2s ease-in-out;
+}
+
 .dark {
   --background: 240 10% 3.9%;
   --foreground: 0 0% 98%;

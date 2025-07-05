@@ -70,15 +70,25 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
     // Check if delivery type was already selected in streamlined flow
     const selectedDeliveryType = sessionStorage.getItem('selectedDeliveryType');
     
+    // Scroll to top and add fade transition
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.body.style.opacity = '0.8';
+    
     setTimeout(() => {
       try {
         // Both flows now go to delivery-details page for confirmation
         console.log('[UNIFIED FLOW] Going to delivery confirmation screen');
         setLocation(`/delivery-details/${card.id}`);
+        setTimeout(() => {
+          document.body.style.opacity = '1';
+        }, 100);
       } catch (error) {
         console.error('Navigation failed:', error);
         // Force page reload as fallback
         window.location.href = `/delivery-details/${card.id}`;
+        setTimeout(() => {
+          document.body.style.opacity = '1';
+        }, 100);
       }
     }, cleanupSuccess ? 200 : 500);
   };

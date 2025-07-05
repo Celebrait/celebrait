@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 5, 2025. NAVIGATION UX ENHANCEMENT: Added scroll-to-top behavior and fade transitions for seamless page navigation:
+  * SCROLL-TO-TOP: All navigation clicks now automatically scroll to top of destination page for optimal UX
+  * FADE TRANSITIONS: Added subtle opacity fade effects (0.8 opacity) during navigation for polished experience
+  * COMPREHENSIVE COVERAGE: Applied to delivery method selection, photo upload choice, card preview navigation, and delivery confirmation screens
+  * CONSISTENT TIMING: 150ms delay with 100ms fade restoration ensures smooth visual transitions
+  * CSS OPTIMIZATION: Added body transition styling for professional fade effects across entire application
 - July 5, 2025. EMAIL FLOW PERFORMANCE OPTIMIZATION: Eliminated slow loading screens with aggressive client-side caching:
   * INSTANT EMAIL LOADING: "Loading Your Card" now loads instantly using cache-first strategy with multiple fallback keys
   * INSTANT DELIVERY OPTIONS: "Loading delivery options" eliminated through aggressive preloading in card preview component

@@ -295,8 +295,17 @@ export default function DeliveryDetails() {
                   <Card 
                     key={option.id}
                     onClick={() => {
+                      // Scroll to top and add fade transition
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      document.body.style.opacity = '0.8';
+                      
                       handleDeliveryTypeChange(option.id as 'digital' | 'printed');
-                      setTimeout(() => handleProceedToRecipient(), 100);
+                      setTimeout(() => {
+                        handleProceedToRecipient();
+                        setTimeout(() => {
+                          document.body.style.opacity = '1';
+                        }, 100);
+                      }, 150);
                     }}
                     className={`cursor-pointer border-2 ${option.borderColor} transition-all duration-300 hover:shadow-xl hover:scale-105 bg-white/80 backdrop-blur-sm`}
                   >
@@ -325,8 +334,17 @@ export default function DeliveryDetails() {
                       <Button 
                         onClick={(e) => {
                           e.stopPropagation();
+                          // Scroll to top and add fade transition
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                          document.body.style.opacity = '0.8';
+                          
                           handleDeliveryTypeChange(option.id as 'digital' | 'printed');
-                          setTimeout(() => handleProceedToRecipient(), 100);
+                          setTimeout(() => {
+                            handleProceedToRecipient();
+                            setTimeout(() => {
+                              document.body.style.opacity = '1';
+                            }, 100);
+                          }, 150);
                         }}
                         className={`w-full bg-gradient-to-r ${option.gradient} hover:${option.hoverGradient} text-white py-3 rounded-xl font-semibold`}
                       >
@@ -364,7 +382,18 @@ export default function DeliveryDetails() {
                   <Card 
                     key={option.id}
                     className="cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-105 border-2 border-gray-200 bg-white/80"
-                    onClick={() => handleRecipientChoice(option.id as 'self' | 'recipient')}
+                    onClick={() => {
+                      // Scroll to top and add fade transition
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      document.body.style.opacity = '0.8';
+                      
+                      setTimeout(() => {
+                        handleRecipientChoice(option.id as 'self' | 'recipient');
+                        setTimeout(() => {
+                          document.body.style.opacity = '1';
+                        }, 100);
+                      }, 150);
+                    }}
                   >
                     <CardHeader className="text-center pb-4">
                       <div className={`w-16 h-16 bg-gradient-to-r ${option.gradient} rounded-full flex items-center justify-center mx-auto mb-4`}>

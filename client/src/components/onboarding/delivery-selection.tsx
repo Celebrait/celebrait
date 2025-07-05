@@ -65,7 +65,17 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
         {deliveryOptions.map((option) => (
           <Card 
             key={option.id}
-            onClick={() => onDeliverySelected(option.id as 'printed' | 'digital')}
+            onClick={() => {
+              // Scroll to top and add fade transition
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              document.body.style.opacity = '0.8';
+              setTimeout(() => {
+                onDeliverySelected(option.id as 'printed' | 'digital');
+                setTimeout(() => {
+                  document.body.style.opacity = '1';
+                }, 100);
+              }, 150);
+            }}
             className={`cursor-pointer border-2 ${option.borderColor} transition-all duration-300 hover:shadow-xl hover:scale-105 bg-white/80 backdrop-blur-sm`}
           >
             <CardContent className="p-8 text-center space-y-4">
@@ -93,7 +103,15 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
               <Button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  onDeliverySelected(option.id as 'printed' | 'digital');
+                  // Scroll to top and add fade transition
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  document.body.style.opacity = '0.8';
+                  setTimeout(() => {
+                    onDeliverySelected(option.id as 'printed' | 'digital');
+                    setTimeout(() => {
+                      document.body.style.opacity = '1';
+                    }, 100);
+                  }, 150);
                 }}
                 className={`w-full bg-gradient-to-r ${option.gradient} hover:${option.hoverGradient} text-white py-3 rounded-xl font-semibold`}
               >
