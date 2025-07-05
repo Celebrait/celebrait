@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 4, 2025. HOMEPAGE SIMPLIFICATION: Removed old flow to focus on streamlined user experience:
+  * SINGLE FLOW: Removed original multi-step flow from homepage, keeping only the streamlined delivery-first approach
+  * CLEAN INTERFACE: Eliminated dual-flow testing interface and flow comparison sections
+  * SIMPLIFIED NAVIGATION: Streamlined user journey now goes directly: delivery choice → photo option → conversation → card generation
+  * REDUCED COMPLEXITY: Removed old onboarding components and step-based navigation for cleaner codebase
+  * FOCUSED UX: Users now have one clear path through the card creation process without decision paralysis
 - July 4, 2025. EMAIL UX OPTIMIZATION: Fixed digital card email truncation issue for better user experience:
   * CONCISE EMAIL: Significantly shortened digital card email template to prevent email client truncation
   * REDUCED SIZE: Compressed email from long detailed format to compact 500px width design
