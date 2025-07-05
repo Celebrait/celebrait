@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Brain } from 'lucide-react';
+import { Brain, Truck, Download, Sparkles } from 'lucide-react';
 
 interface DeliverySelectionProps {
   onDeliverySelected: (delivery: 'printed' | 'digital') => void;
@@ -14,7 +14,7 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
       title: 'Printed & Delivered',
       description: 'High-quality physical greeting card printed and delivered to your door or directly to the recipient',
       price: 'R129',
-      icon: Brain,
+      icon: Truck,
       gradient: 'from-purple-500 to-pink-500',
       hoverGradient: 'from-purple-600 to-pink-600',
       borderColor: 'border-purple-200 hover:border-purple-400',
@@ -30,7 +30,7 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
       title: 'Digital Download',
       description: 'Instant digital card delivered via email with interactive viewing and download options',
       price: 'FREE',
-      icon: Brain,
+      icon: Download,
       gradient: 'from-green-500 to-blue-500',
       hoverGradient: 'from-green-600 to-blue-600',
       borderColor: 'border-green-200 hover:border-green-400',
@@ -49,7 +49,7 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
     <div className="space-y-8">
       {/* Header Section */}
       <div className="text-center mb-8">
-        <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
+        <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
           <Brain className="text-white w-10 h-10" />
         </div>
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -125,7 +125,7 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
       {/* Blue Information Box */}
       <div className="mt-8 p-3 bg-blue-50 border border-blue-200 rounded-lg max-w-2xl mx-auto">
         <p className="text-blue-800 text-sm">
-          <Brain className="w-4 h-4 inline mr-1" />
+          <Sparkles className="w-4 h-4 inline mr-1" />
           You'll create and preview your card before purchasing. You can change your delivery method after seeing your card.
         </p>
       </div>

@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Brain, ArrowLeft } from 'lucide-react';
+import { Brain, ArrowLeft, Camera, Palette } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface PhotoCreationChoiceProps {
@@ -29,22 +29,22 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
       label: 'Upload Photo + Describe Scene',
       description: 'Upload photos and describe the perfect scene to place your loved ones in',
       details: 'Perfect for creating custom scenes with multiple people',
-      color: 'bg-gradient-to-r from-purple-500 to-pink-500',
-      gradient: 'from-purple-500 to-pink-500',
-      hoverGradient: 'from-purple-600 to-pink-600',
-      icon: Brain,
-      borderColor: 'border-purple-200 hover:border-purple-400'
+      color: 'bg-gradient-to-r from-green-500 to-blue-500',
+      gradient: 'from-green-500 to-blue-500',
+      hoverGradient: 'from-green-600 to-blue-600',
+      icon: Camera,
+      borderColor: 'border-green-200 hover:border-green-400'
     },
     {
       value: 'upload_and_transform',
       label: 'Upload Photo + Transform Style',
       description: 'Upload one photo and transform it into beautiful artistic styles',
       details: 'Great for stylizing existing photos with artistic effects',
-      color: 'bg-gradient-to-r from-green-500 to-blue-500',
-      gradient: 'from-green-500 to-blue-500',
-      hoverGradient: 'from-green-600 to-blue-600',
-      icon: Brain,
-      borderColor: 'border-green-200 hover:border-green-400'
+      color: 'bg-gradient-to-r from-purple-500 to-pink-500',
+      gradient: 'from-purple-500 to-pink-500',
+      hoverGradient: 'from-purple-600 to-pink-600',
+      icon: Palette,
+      borderColor: 'border-purple-200 hover:border-purple-400'
     }
   ];
 

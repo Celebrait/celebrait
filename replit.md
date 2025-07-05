@@ -127,8 +127,9 @@ Changelog:
   * BACK NAVIGATION: Added scroll-to-top functionality to all back buttons including "Go Back a Step" and "Start Fresh" buttons
   * CONSISTENT TIMING: 150ms delay with 100ms fade restoration ensures smooth visual transitions
   * CSS OPTIMIZATION: Added body transition styling for professional fade effects across entire application
-  * CONSISTENT BRAIN ICONS: Replaced all icons with Brain icon across delivery method and photo upload method screens
-  * REVERTED COLOR SCHEME: Photo upload method now uses same purple-pink and green-blue gradients as delivery method screen
+  * BRAIN HEADER ICONS: Updated header icons to use Brain with purple-to-blue gradient on both delivery and photo upload screens
+  * ORIGINAL CARD ICONS: Reverted card icons to original designs (Truck, Download, Camera, Palette, Sparkles)
+  * COLOR REORDERING: Swapped photo upload colors - green-blue gradient first, purple-pink gradient second
   * AI LOADING ANIMATION: Added 2-second AI preparation animation after photo method selection with Brain icon, spinning ring, and encouraging messaging
 - July 5, 2025. EMAIL FLOW PERFORMANCE OPTIMIZATION: Eliminated slow loading screens with aggressive client-side caching:
   * INSTANT EMAIL LOADING: "Loading Your Card" now loads instantly using cache-first strategy with multiple fallback keys
