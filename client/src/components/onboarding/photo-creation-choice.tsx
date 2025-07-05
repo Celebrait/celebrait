@@ -15,22 +15,22 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
       label: 'Upload Photo + Describe Scene',
       description: 'Upload photos and describe the perfect scene to place your loved ones in',
       details: 'Perfect for creating custom scenes with multiple people',
-      color: 'bg-gradient-to-r from-green-500 to-blue-500',
-      gradient: 'from-green-500 to-blue-500',
-      hoverGradient: 'from-green-600 to-blue-600',
+      color: 'bg-gradient-to-r from-emerald-500 to-teal-500',
+      gradient: 'from-emerald-500 to-teal-500',
+      hoverGradient: 'from-emerald-600 to-teal-600',
       icon: Camera,
-      borderColor: 'border-green-200 hover:border-green-400'
+      borderColor: 'border-emerald-200 hover:border-emerald-400'
     },
     {
       value: 'upload_and_transform',
       label: 'Upload Photo + Transform Style',
       description: 'Upload one photo and transform it into beautiful artistic styles',
       details: 'Great for stylizing existing photos with artistic effects',
-      color: 'bg-gradient-to-r from-purple-500 to-pink-500',
-      gradient: 'from-purple-500 to-pink-500',
-      hoverGradient: 'from-purple-600 to-pink-600',
+      color: 'bg-gradient-to-r from-orange-500 to-red-500',
+      gradient: 'from-orange-500 to-red-500',
+      hoverGradient: 'from-orange-600 to-red-600',
       icon: Palette,
-      borderColor: 'border-purple-200 hover:border-purple-400'
+      borderColor: 'border-orange-200 hover:border-orange-400'
     }
   ];
 
@@ -40,7 +40,7 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
     <div className="space-y-8">
       {/* Header Section */}
       <div className="text-center mb-8">
-        <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
+        <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-orange-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
           <Camera className="text-white w-10 h-10" />
         </div>
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -111,7 +111,18 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
       {onBack && (
         <div className="flex justify-center pt-4">
           <Button
-            onClick={onBack}
+            onClick={() => {
+              // Scroll to top and add fade transition
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              document.body.style.opacity = '0.8';
+              
+              setTimeout(() => {
+                onBack();
+                setTimeout(() => {
+                  document.body.style.opacity = '1';
+                }, 100);
+              }, 150);
+            }}
             variant="outline"
             className="px-6 py-2 rounded-xl border-purple-300 text-purple-600 hover:bg-purple-50 font-medium shadow-sm"
           >

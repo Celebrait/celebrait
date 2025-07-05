@@ -124,8 +124,10 @@ Changelog:
   * SCROLL-TO-TOP: All navigation clicks now automatically scroll to top of destination page for optimal UX
   * FADE TRANSITIONS: Added subtle opacity fade effects (0.8 opacity) during navigation for polished experience
   * COMPREHENSIVE COVERAGE: Applied to delivery method selection, photo upload choice, card preview navigation, and delivery confirmation screens
+  * BACK NAVIGATION: Added scroll-to-top functionality to all back buttons including "Go Back a Step" and "Start Fresh" buttons
   * CONSISTENT TIMING: 150ms delay with 100ms fade restoration ensures smooth visual transitions
   * CSS OPTIMIZATION: Added body transition styling for professional fade effects across entire application
+  * PHOTO UPLOAD COLORS: Changed to emerald-to-teal and orange-to-red gradients to visually differentiate from delivery selection
 - July 5, 2025. EMAIL FLOW PERFORMANCE OPTIMIZATION: Eliminated slow loading screens with aggressive client-side caching:
   * INSTANT EMAIL LOADING: "Loading Your Card" now loads instantly using cache-first strategy with multiple fallback keys
   * INSTANT DELIVERY OPTIONS: "Loading delivery options" eliminated through aggressive preloading in card preview component
