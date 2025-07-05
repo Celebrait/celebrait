@@ -119,11 +119,11 @@ export default function DeliveryDetails() {
         return;
       }
 
-      // Fallback to API if no cached data - load in background without blocking UI
+      // Fallback to API if no cached data - use ultra-fast metadata endpoint
       if (reference) {
-        console.log('[DELIVERY DETAILS] Loading card data from API...');
+        console.log('[DELIVERY DETAILS] Loading card data from ultra-fast API...');
         setLoading(true);
-        const response = await fetch(`/api/cards/${reference}/metadata`);
+        const response = await fetch(`/api/cards/${reference}/fast-metadata`);
         if (response.ok) {
           const data = await response.json();
           setCardData(data);

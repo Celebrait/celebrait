@@ -26,8 +26,8 @@ export default function CardPreviewPage() {
       if (reference?.startsWith('celebrait_ready_')) {
         response = await fetch(`/api/cards/ready/${reference}`);
       } else {
-        // Regular card ID
-        response = await fetch(`/api/cards/${reference}`);
+        // Regular card ID - use ultra-fast metadata endpoint
+        response = await fetch(`/api/cards/${reference}/fast-metadata`);
       }
       
       if (response.ok) {

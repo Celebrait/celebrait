@@ -300,7 +300,7 @@ export default function CompleteOrder() {
                     <p className="text-sm font-medium text-gray-700 mb-2">Front of Card</p>
                     <div className="aspect-square w-full max-w-64 mx-auto rounded-lg overflow-hidden border-2 border-gray-200">
                       <img 
-                        src={`/api/cards/${card.id}/front-image`} 
+                        src={`/api/cards/${card.id}/fast-front-image`} 
                         alt="Card front preview" 
                         className="w-full h-full object-cover"
                       />
@@ -313,7 +313,7 @@ export default function CompleteOrder() {
                     <p className="text-sm font-medium text-gray-700 mb-2">Inside of Card</p>
                     <div className="aspect-square w-full max-w-64 mx-auto rounded-lg overflow-hidden border-2 border-gray-200">
                       <img 
-                        src={`/api/cards/${card.id}/inside-image`} 
+                        src={`/api/cards/${card.id}/fast-inside-image`} 
                         alt="Card inside preview" 
                         className="w-full h-full object-cover"
                       />

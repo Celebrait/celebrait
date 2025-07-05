@@ -47,8 +47,8 @@ export default function DigitalCardViewer() {
                 recipientName: extractRecipientName(orderData.card.conversationData),
                 cardType: 'digital',
                 // Use optimized digital image endpoints for faster loading
-                frontImageUrl: `/api/cards/${orderData.card.id}/digital-front-image`,
-                insideImageUrl: orderData.card.insideImageUrl ? `/api/cards/${orderData.card.id}/digital-inside-image` : null
+                frontImageUrl: `/api/cards/${orderData.card.id}/fast-front-image`,
+                insideImageUrl: orderData.card.insideImageUrl ? `/api/cards/${orderData.card.id}/fast-inside-image` : null
               };
               setCardData(cardWithMetadata);
               setLoading(false);

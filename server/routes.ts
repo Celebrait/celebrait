@@ -378,6 +378,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Ultra-fast cached metadata endpoint for email links
+  app.get("/api/cards/:id/fast-metadata", async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      console.log(`[PERF] Fast metadata for card ${cardId}`);
+      
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      // Ultra-minimal metadata for instant loading
+      const fastMetadata = {
+        id: card.id,
+        cardType: card.cardType,
+        conversationData: card.conversationData || {}
+      };
+      
+      // Aggressive caching for instant subsequent loads
+      res.set({
+        'Cache-Control': 'public, max-age=3600, immutable', // Cache for 1 hour
+        'ETag': `"fast-${cardId}-${card.status}"`
+      });
+      
+      res.json(fastMetadata);
+    } catch (error) {
+      console.error("[PERF] Fast metadata error:", error);
+      res.status(500).json({ message: "Error fetching fast metadata" });
+    }
+  });
+
   // Get card by ID (optimized endpoint with performance monitoring)
   app.get("/api/cards/:id", async (req, res) => {
     const startTime = Date.now();
@@ -606,6 +637,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endTime = Date.now();
       console.error(`[PERF] Inside image error after ${endTime - startTime}ms:`, error);
       res.status(500).json({ message: "Error serving inside image: " + error.message });
+    }
+  });
+
+  // ULTRA-FAST compressed image endpoint for email links
+  app.get("/api/cards/:id/fast-front-image", async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      const cacheKey = `fast-front-${cardId}`;
+      
+      // Check memory cache first
+      const cached = imageCache.get(cacheKey);
+      if (cached) {
+        res.set({
+          'Content-Type': 'image/jpeg',
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'ETag': cached.etag
+        });
+        return res.send(cached.data);
+      }
+      
+      const card = await storage.getCard(cardId);
+      if (!card?.frontImageUrl) {
+        return res.status(404).json({ message: "Front image not found" });
+      }
+      
+      // Convert and compress aggressively for speed
+      const base64Data = card.frontImageUrl.split(',')[1];
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      // Use Sharp for ultra-fast compression
+      const compressedBuffer = await sharp(imageBuffer)
+        .jpeg({ quality: 70, progressive: true })
+        .resize(500, 500, { fit: 'inside', withoutEnlargement: true })
+        .toBuffer();
+      
+      // Cache aggressively
+      const etag = `"fast-front-${cardId}"`;
+      imageCache.set(cacheKey, {
+        data: compressedBuffer,
+        timestamp: Date.now(),
+        etag
+      });
+      
+      res.set({
+        'Content-Type': 'image/jpeg',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'ETag': etag
+      });
+      
+      res.send(compressedBuffer);
+    } catch (error: any) {
+      console.error("[PERF] Fast front image error:", error);
+      res.status(500).json({ message: "Error serving fast front image" });
+    }
+  });
+
+  // ULTRA-FAST compressed inside image endpoint
+  app.get("/api/cards/:id/fast-inside-image", async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      const cacheKey = `fast-inside-${cardId}`;
+      
+      // Check memory cache first
+      const cached = imageCache.get(cacheKey);
+      if (cached) {
+        res.set({
+          'Content-Type': 'image/jpeg',
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'ETag': cached.etag
+        });
+        return res.send(cached.data);
+      }
+      
+      const card = await storage.getCard(cardId);
+      if (!card?.insideImageUrl) {
+        return res.status(404).json({ message: "Inside image not found" });
+      }
+      
+      // Convert and compress aggressively for speed
+      const base64Data = card.insideImageUrl.split(',')[1];
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      // Use Sharp for ultra-fast compression
+      const compressedBuffer = await sharp(imageBuffer)
+        .jpeg({ quality: 70, progressive: true })
+        .resize(500, 500, { fit: 'inside', withoutEnlargement: true })
+        .toBuffer();
+      
+      // Cache aggressively
+      const etag = `"fast-inside-${cardId}"`;
+      imageCache.set(cacheKey, {
+        data: compressedBuffer,
+        timestamp: Date.now(),
+        etag
+      });
+      
+      res.set({
+        'Content-Type': 'image/jpeg',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'ETag': etag
+      });
+      
+      res.send(compressedBuffer);
+    } catch (error: any) {
+      console.error("[PERF] Fast inside image error:", error);
+      res.status(500).json({ message: "Error serving fast inside image" });
     }
   });
 
