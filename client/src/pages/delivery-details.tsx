@@ -243,7 +243,7 @@ export default function DeliveryDetails() {
                 {isDigital ? <Mail className="text-white w-8 h-8" /> : <MapPin className="text-white w-8 h-8" />}
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-3">
-                {isDigital ? 'Email Details' : 'Delivery Details'}
+                {isDigital ? 'Confirm Email Details' : 'Confirm Delivery Details'}
               </h2>
               <div className="mb-2">
                 <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
@@ -254,8 +254,8 @@ export default function DeliveryDetails() {
               </div>
               <p className="text-base text-slate-gray px-4">
                 {isDigital 
-                  ? 'Who should receive the digital card link?' 
-                  : 'Where should we deliver your printed card?'
+                  ? 'Confirm who should receive the digital card link' 
+                  : 'Confirm where we should deliver your printed card'
                 }
               </p>
             </div>
@@ -375,12 +375,12 @@ export default function DeliveryDetails() {
               {isDigital ? <Mail className="text-white w-10 h-10" /> : <MapPin className="text-white w-10 h-10" />}
             </div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              {isDigital ? 'Email Details' : 'Delivery Details'}
+              {isDigital ? 'Confirm Email Details' : 'Confirm Delivery Details'}
             </h1>
             <p className="text-lg text-slate-gray">
               {isDigital 
-                ? 'Who should receive the digital card link?' 
-                : 'Where should we deliver your printed card?'
+                ? 'Confirm who should receive the digital card link' 
+                : 'Confirm where we should deliver your printed card'
               }
             </p>
           </div>

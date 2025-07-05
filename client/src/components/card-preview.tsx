@@ -181,7 +181,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
           onClick={handleChooseDelivery}
           className="w-full bg-gradient-celebrait hover:opacity-90 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105"
         >
-          Choose Delivery Options
+          Confirm Delivery Options
         </Button>
         
         <div className="grid grid-cols-2 gap-3">
