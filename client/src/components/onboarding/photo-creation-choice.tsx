@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Brain, ArrowLeft, Camera, Palette } from 'lucide-react';
+import { Brain, ArrowLeft, Camera, Palette, Play } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface PhotoCreationChoiceProps {
@@ -91,38 +91,63 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
       </div>
 
       {/* Photo Options */}
-      <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+      <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
         {options.map((option) => (
           <Card 
             key={option.value}
             onClick={() => handleOptionClick(option.value as 'upload_and_scene' | 'upload_and_transform')}
-            className={`cursor-pointer border-2 ${option.borderColor} transition-all duration-300 hover:shadow-xl hover:scale-105 bg-white/80 backdrop-blur-sm`}
+            className={`cursor-pointer border-2 ${option.borderColor} transition-all duration-300 hover:shadow-xl hover:scale-105 bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden`}
           >
-            <CardContent className="p-8 text-center space-y-4">
-              <div className={`w-16 h-16 bg-gradient-to-r ${option.gradient} rounded-full mx-auto flex items-center justify-center mb-4`}>
-                <option.icon className="text-white w-8 h-8" />
-              </div>
-              
-              <h3 className="text-xl font-bold text-gray-800">{option.label}</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                {option.description}
-              </p>
-              
-              <div className="space-y-2">
-                <div className="flex items-center justify-center text-sm text-gray-500">
-                  <span>{option.details}</span>
+            <CardContent className="p-0">
+              {/* Video Preview Section */}
+              <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-900/20 to-gray-900/40"></div>
+                <div className="relative z-10 text-center">
+                  <div className={`w-16 h-16 bg-gradient-to-r ${option.gradient} rounded-full mx-auto mb-3 flex items-center justify-center shadow-lg`}>
+                    <Play className="text-white w-8 h-8 ml-1" />
+                  </div>
+                  <p className="text-white font-semibold text-sm">Watch How It Works</p>
                 </div>
+                {/* Placeholder thumbnails */}
+                <div className="absolute top-3 left-3 w-12 h-8 bg-white/20 rounded border border-white/30"></div>
+                <div className="absolute top-3 right-3 w-12 h-8 bg-white/20 rounded border border-white/30"></div>
+                <div className="absolute bottom-3 left-3 w-12 h-8 bg-white/20 rounded border border-white/30"></div>
+                <div className="absolute bottom-3 right-3 w-12 h-8 bg-white/20 rounded border border-white/30"></div>
               </div>
               
-              <Button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOptionClick(option.value as 'upload_and_scene' | 'upload_and_transform');
-                }}
-                className={`w-full bg-gradient-to-r ${option.gradient} hover:${option.hoverGradient} text-white py-3 rounded-xl font-semibold`}
-              >
-                Choose This Option
-              </Button>
+              {/* Content Section */}
+              <div className="p-6 space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-12 h-12 bg-gradient-to-r ${option.gradient} rounded-lg flex items-center justify-center`}>
+                    <option.icon className="text-white w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800">{option.label}</h3>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Method {option.value === 'upload_and_scene' ? '1' : '2'}</p>
+                  </div>
+                </div>
+                
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  {option.description}
+                </p>
+                
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="text-xs text-gray-600 font-medium mb-1">Perfect for:</div>
+                  <div className="text-sm text-gray-700">
+                    <span>{option.details}</span>
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOptionClick(option.value as 'upload_and_scene' | 'upload_and_transform');
+                  }}
+                  className={`w-full bg-gradient-to-r ${option.gradient} hover:${option.hoverGradient} text-white py-3 rounded-xl font-semibold shadow-lg`}
+                >
+                  Choose This Method
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}

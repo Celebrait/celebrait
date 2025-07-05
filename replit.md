@@ -131,6 +131,8 @@ Changelog:
   * ORIGINAL CARD ICONS: Reverted card icons to original designs (Truck, Download, Camera, Palette, Sparkles)
   * COLOR REORDERING: Swapped photo upload colors - green-blue gradient first, purple-pink gradient second
   * AI LOADING ANIMATION: Added 2-second AI preparation animation after photo method selection with Brain icon, spinning ring, and encouraging messaging
+  * VIDEO PLACEHOLDER CARDS: Redesigned photo upload cards with video preview sections featuring play buttons and thumbnail placeholders
+  * ENHANCED CARD LAYOUT: Added aspect-video sections, method numbering, and improved visual hierarchy with larger spacing
 - July 5, 2025. EMAIL FLOW PERFORMANCE OPTIMIZATION: Eliminated slow loading screens with aggressive client-side caching:
   * INSTANT EMAIL LOADING: "Loading Your Card" now loads instantly using cache-first strategy with multiple fallback keys
   * INSTANT DELIVERY OPTIONS: "Loading delivery options" eliminated through aggressive preloading in card preview component
