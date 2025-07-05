@@ -24,12 +24,16 @@
   --ring: 20 14.3% 4.1%;
   --radius: 0.5rem;
 
-  /* Celebrait Custom Colors */
-  --ethereal-purple: 255 102% 68%; /* #6366F1 */
-  --warm-pink: 329 86% 70%; /* #EC4899 */
-  --sa-gold: 45 93% 47%; /* #F59E0B */
-  --soft-white: 210 40% 98%; /* #F8FAFC */
-  --slate-gray: 215 16% 47%; /* #64748B */
+  /* Quirky Pastel Color Palette */
+  --pastel-purple: 270 50% 85%; /* Soft lavender */
+  --pastel-yellow: 50 100% 88%; /* Creamy yellow */
+  --pastel-green: 120 40% 85%; /* Mint green */
+  --pastel-pink: 340 60% 88%; /* Soft pink */
+  --pastel-blue: 200 60% 88%; /* Sky blue */
+  --warm-peach: 25 100% 88%; /* Peachy orange */
+  --quirky-purple: 270 70% 75%; /* Vibrant lavender */
+  --soft-cream: 45 100% 97%; /* Warm cream */
+  --charcoal-soft: 220 15% 25%; /* Soft charcoal */
 }
 
 .dark {
@@ -62,110 +66,92 @@
 
   body {
     @apply font-sans antialiased min-h-screen;
-    background: linear-gradient(135deg, hsl(var(--soft-white)) 0%, #faf5ff 50%, #fdf2f8 100%);
-    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, hsl(var(--soft-cream)) 0%, hsl(var(--pastel-purple)) 20%, hsl(var(--pastel-yellow)) 40%, hsl(var(--pastel-green)) 60%, hsl(var(--pastel-pink)) 80%, hsl(var(--pastel-blue)) 100%);
+    font-family: 'Comic Neue', 'Caveat', 'Inter', sans-serif;
+    background-attachment: fixed;
   }
 }
 
 @layer utilities {
-  .text-ethereal-purple {
-    color: hsl(var(--ethereal-purple));
+  /* Quirky Pastel Text Colors */
+  .text-pastel-purple { color: hsl(var(--pastel-purple)); }
+  .text-pastel-yellow { color: hsl(var(--pastel-yellow)); }
+  .text-pastel-green { color: hsl(var(--pastel-green)); }
+  .text-pastel-pink { color: hsl(var(--pastel-pink)); }
+  .text-pastel-blue { color: hsl(var(--pastel-blue)); }
+  .text-warm-peach { color: hsl(var(--warm-peach)); }
+  .text-quirky-purple { color: hsl(var(--quirky-purple)); }
+  .text-charcoal-soft { color: hsl(var(--charcoal-soft)); }
+
+  /* Quirky Pastel Background Colors */
+  .bg-pastel-purple { background-color: hsl(var(--pastel-purple)); }
+  .bg-pastel-yellow { background-color: hsl(var(--pastel-yellow)); }
+  .bg-pastel-green { background-color: hsl(var(--pastel-green)); }
+  .bg-pastel-pink { background-color: hsl(var(--pastel-pink)); }
+  .bg-pastel-blue { background-color: hsl(var(--pastel-blue)); }
+  .bg-warm-peach { background-color: hsl(var(--warm-peach)); }
+  .bg-quirky-purple { background-color: hsl(var(--quirky-purple)); }
+  .bg-soft-cream { background-color: hsl(var(--soft-cream)); }
+
+  /* Hand-drawn style elements */
+  .quirky-border {
+    border: 3px solid hsl(var(--quirky-purple));
+    border-radius: 20px 15px 25px 10px;
+    position: relative;
+  }
+  
+  .quirky-shadow {
+    box-shadow: 8px 8px 0px hsl(var(--pastel-purple)), 
+                12px 12px 0px hsl(var(--pastel-yellow)),
+                16px 16px 0px hsl(var(--pastel-green));
+  }
+  
+  .hand-drawn-btn {
+    border: 2px solid currentColor;
+    border-radius: 25px 20px 30px 15px;
+    transform: rotate(-1deg);
+    transition: all 0.3s ease;
+  }
+  
+  .hand-drawn-btn:hover {
+    transform: rotate(1deg) scale(1.05);
+    box-shadow: 5px 5px 0px currentColor;
   }
 
-  .text-warm-pink {
-    color: hsl(var(--warm-pink));
+  .animate-wiggle {
+    animation: wiggle 2s ease-in-out infinite;
+  }
+  
+  .animate-bounce-gentle {
+    animation: bounce-gentle 2s ease-in-out infinite;
   }
 
-  .text-sa-gold {
-    color: hsl(var(--sa-gold));
+  /* Quirky gradients */
+  .bg-quirky-gradient {
+    background: linear-gradient(45deg, hsl(var(--pastel-purple)), hsl(var(--pastel-yellow)), hsl(var(--pastel-green)), hsl(var(--pastel-pink)));
+    background-size: 400% 400%;
+    animation: gradient-shift 5s ease infinite;
   }
+}
 
-  .text-soft-white {
-    color: hsl(var(--soft-white));
-  }
+/* Quirky animations */
+@keyframes wiggle {
+  0%, 7% { transform: rotateZ(0); }
+  15% { transform: rotateZ(-15deg); }
+  20% { transform: rotateZ(10deg); }
+  25% { transform: rotateZ(-10deg); }
+  30% { transform: rotateZ(6deg); }
+  35% { transform: rotateZ(-4deg); }
+  40%, 100% { transform: rotateZ(0); }
+}
 
-  .text-slate-gray {
-    color: hsl(var(--slate-gray));
-  }
+@keyframes bounce-gentle {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
 
-  .bg-ethereal-purple {
-    background-color: hsl(var(--ethereal-purple));
-  }
-
-  .bg-warm-pink {
-    background-color: hsl(var(--warm-pink));
-  }
-
-  .bg-sa-gold {
-    background-color: hsl(var(--sa-gold));
-  }
-
-  .bg-soft-white {
-    background-color: hsl(var(--soft-white));
-  }
-
-  .bg-slate-gray {
-    background-color: hsl(var(--slate-gray));
-  }
-
-  .border-ethereal-purple {
-    border-color: hsl(var(--ethereal-purple));
-  }
-
-  .border-warm-pink {
-    border-color: hsl(var(--warm-pink));
-  }
-
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
-
-  .animate-pulse-soft {
-    animation: pulse-soft 2s ease-in-out infinite;
-  }
-
-  .animate-slide-up {
-    animation: slide-up 0.5s ease-out;
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-  }
-
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
-
-  @keyframes fade-in {
-    0% { opacity: 0; transform: translateY(20px); }
-    100% { opacity: 1; transform: translateY(0); }
-  }
-
-  .animate-fade-in {
-    animation: fade-in 0.4s ease-out forwards;
-  }
-
-  /* Clean transitions removed - using AI loading component instead */
-
-  @keyframes pulse-soft {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-  }
-
-  @keyframes slide-up {
-    0% { transform: translateY(20px); opacity: 0; }
-    100% { transform: translateY(0); opacity: 1; }
-  }
-
-  .bg-gradient-celebrait {
-    background: linear-gradient(135deg, hsl(var(--ethereal-purple)) 0%, hsl(var(--warm-pink)) 100%);
-  }
-
-  .text-gradient-celebrait {
-    background: linear-gradient(135deg, hsl(var(--ethereal-purple)) 0%, hsl(var(--warm-pink)) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
