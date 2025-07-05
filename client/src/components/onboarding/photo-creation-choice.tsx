@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Camera, Palette, ArrowLeft } from 'lucide-react';
+import { Camera, Palette, ArrowLeft, Brain } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface PhotoCreationChoiceProps {
   onOptionSelected: (option: 'upload_and_scene' | 'upload_and_transform') => void;
@@ -8,6 +9,19 @@ interface PhotoCreationChoiceProps {
 }
 
 export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoCreationChoiceProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<'upload_and_scene' | 'upload_and_transform' | null>(null);
+
+  const handleOptionClick = (option: 'upload_and_scene' | 'upload_and_transform') => {
+    setSelectedOption(option);
+    setIsLoading(true);
+    
+    // 3-second AI loading animation
+    setTimeout(() => {
+      setIsLoading(false);
+      onOptionSelected(option);
+    }, 3000);
+  };
 
   const options = [
     {
@@ -36,6 +50,31 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
 
 
 
+  // Show AI loading animation when loading
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center space-y-8 min-h-[400px]">
+        {/* AI Loading Animation */}
+        <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-orange-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-pulse">
+          <Brain className="text-white w-10 h-10 animate-bounce" />
+        </div>
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            AI is preparing your creative journey...
+          </h2>
+          <p className="text-lg text-slate-gray">
+            Setting up your personalized card creation experience
+          </p>
+        </div>
+        {/* Spinning ring animation */}
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-emerald-200 rounded-full"></div>
+          <div className="absolute top-0 left-0 w-16 h-16 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Header Section */}
@@ -56,17 +95,7 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
         {options.map((option) => (
           <Card 
             key={option.value}
-            onClick={() => {
-              // Scroll to top and add fade transition
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-              document.body.style.opacity = '0.8';
-              setTimeout(() => {
-                onOptionSelected(option.value as 'upload_and_scene' | 'upload_and_transform');
-                setTimeout(() => {
-                  document.body.style.opacity = '1';
-                }, 100);
-              }, 150);
-            }}
+            onClick={() => handleOptionClick(option.value as 'upload_and_scene' | 'upload_and_transform')}
             className={`cursor-pointer border-2 ${option.borderColor} transition-all duration-300 hover:shadow-xl hover:scale-105 bg-white/80 backdrop-blur-sm`}
           >
             <CardContent className="p-8 text-center space-y-4">
@@ -88,15 +117,7 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
               <Button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  // Scroll to top and add fade transition
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                  document.body.style.opacity = '0.8';
-                  setTimeout(() => {
-                    onOptionSelected(option.value as 'upload_and_scene' | 'upload_and_transform');
-                    setTimeout(() => {
-                      document.body.style.opacity = '1';
-                    }, 100);
-                  }, 150);
+                  handleOptionClick(option.value as 'upload_and_scene' | 'upload_and_transform');
                 }}
                 className={`w-full bg-gradient-to-r ${option.gradient} hover:${option.hoverGradient} text-white py-3 rounded-xl font-semibold`}
               >
