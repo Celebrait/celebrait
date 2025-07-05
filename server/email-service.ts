@@ -162,72 +162,52 @@ export function generateDigitalCardEmail(orderData: any, cardImageUrl: string, h
       <html>
       <head>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; }
+          .container { max-width: 500px; margin: 0 auto; }
           .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .card-preview { text-align: center; margin: 30px 0; }
-          .card-image { max-width: 300px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
-          .download-section { background: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; }
-          .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px; }
-          .footer { text-align: center; margin-top: 30px; color: #666; }
+          .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 10px 10px; text-align: center; }
+          .card-image { max-width: 250px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin: 15px 0; }
+          .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; }
+          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
             <h1>🎉 Your Card is Ready!</h1>
-            <p>Beautiful, personalized, and ready to share!</p>
           </div>
           <div class="content">
-            <h2>Hi ${customerName}!</h2>
-            <p>Your custom digital greeting card has been created and is ready to view!</p>
-
-            <div class="card-preview">
-              <img src="${cardImageUrl}" alt="Your custom card" class="card-image" />
-            </div>
-
-            <div class="download-section">
-              <h3>View Your Digital Card</h3>
-              <p>Click the button below to open your beautiful digital greeting card experience:</p>
+            <p>Hi ${customerName}!</p>
+            <p>Your digital greeting card is ready to view and share:</p>
+            
+            <img src="${cardImageUrl}" alt="Your custom card" class="card-image" />
+            
+            <div>
               <a href="https://${host || 'localhost:5000'}/card/${paymentReference}" class="button">View Digital Card</a>
-              <p style="margin-top: 15px; color: #666; font-size: 14px;">
-                Or copy this link: https://${host || 'localhost:5000'}/card/${paymentReference}
-              </p>
             </div>
-
-            <div style="background: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h4 style="color: #2563eb; margin-bottom: 10px;">💡 How to share your card:</h4>
-              <ul style="color: #4b5563; margin: 0; padding-left: 20px;">
-                <li>Forward this email to the recipient</li>
-                <li>Copy the link above and send it via text/social media</li>
-                <li>The recipient will see a beautiful digital card experience</li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="footer">
-            <p>Thank you for choosing Celebrait!</p>
-            <p style="font-size: 12px; color: #999;">
-              © 2025 Celebrait. All rights reserved.
+            
+            <p style="color: #666; font-size: 14px; margin-top: 15px;">
+              Share this link: https://${host || 'localhost:5000'}/card/${paymentReference}
             </p>
           </div>
+          
+          <div class="footer">
+            <p>© 2025 Celebrait. All rights reserved.</p>
+          </div>
         </div>
+      </body>
+      </html>
     `,
     text: `
-Your Digital Celebrait Card is Ready!
+Your Digital Celebrait Card is Ready! 🎉
 
 Hi ${customerName}!
 
-Your custom digital greeting card has been created and is ready for download!
+Your digital greeting card is ready to view and share.
 
-Download your card: ${cardImageUrl}
-
-Share this special moment with someone you care about. Your personalized card was created with love using AI technology.
+View your card: https://${host || 'localhost:5000'}/card/${paymentReference}
 
 Thank you for choosing Celebrait!
-
-© 2025 Celebrait. All rights reserved.
     `
   };
 }
