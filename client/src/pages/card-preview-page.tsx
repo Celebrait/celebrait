@@ -20,6 +20,32 @@ export default function CardPreviewPage() {
 
   const loadCardData = async () => {
     try {
+      // Check cache first for instant loading
+      const cacheKeys = [
+        `ready_${reference}`,
+        `card_${reference}`,
+        'cardPreviewData'
+      ];
+      
+      for (const key of cacheKeys) {
+        try {
+          const cached = sessionStorage.getItem(key);
+          if (cached) {
+            const parsedData = JSON.parse(cached);
+            const card = parsedData.card || parsedData;
+            if (card && (card.id || card.conversationData)) {
+              setCardData(card);
+              setLoading(false);
+              console.log(`[INSTANT] Card preview loaded from cache: ${key}`);
+              return;
+            }
+          }
+        } catch (e) {
+          // Continue to next cache key
+        }
+      }
+      
+      // Fallback to API if no cache available
       let response;
       
       // Check if this is a card ready reference (starts with celebrait_ready_)
@@ -35,12 +61,19 @@ export default function CardPreviewPage() {
         const card = data.card || data; // Handle both response formats
         setCardData(card);
         
-        // Preload data for delivery choice page
+        // Aggressive preloading for instant delivery details page
         try {
           sessionStorage.setItem('cardPreviewData', JSON.stringify(card));
           sessionStorage.setItem(`ready_${reference}`, JSON.stringify(data));
           sessionStorage.setItem(`card_${reference}`, JSON.stringify(card));
-          console.log('[PREVIEW] Preloaded data for delivery choice page');
+          
+          // Additional cache entries for different reference formats
+          if (reference?.startsWith('celebrait_ready_')) {
+            const cardId = reference.split('_')[2];
+            sessionStorage.setItem(`card_${cardId}`, JSON.stringify(card));
+          }
+          
+          console.log('[INSTANT] Aggressively preloaded data for zero-loading delivery page');
         } catch (storageError) {
           console.warn('Failed to preload delivery choice data:', storageError);
         }

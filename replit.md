@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 5, 2025. EMAIL FLOW PERFORMANCE OPTIMIZATION: Eliminated slow loading screens with aggressive client-side caching:
+  * INSTANT EMAIL LOADING: "Loading Your Card" now loads instantly using cache-first strategy with multiple fallback keys
+  * INSTANT DELIVERY OPTIONS: "Loading delivery options" eliminated through aggressive preloading in card preview component
+  * CACHE-FIRST STRATEGY: Both pages now check sessionStorage cache first before making API calls
+  * PREEMPTIVE LOADING: Card preview component preloads delivery details data for zero-loading navigation
+  * COMPREHENSIVE FALLBACKS: Multiple cache key formats ensure data is found regardless of navigation path
 - July 5, 2025. CONSISTENT HOMEPAGE STYLING: Simplified delivery and photo choice screens to match post-generation confirmation styling:
   * REMOVED SCROLLABLE: Eliminated mobile swipeable functionality from homepage cards as requested
   * CONSISTENT STYLING: Homepage delivery cards now match the styling used in delivery confirmation screens

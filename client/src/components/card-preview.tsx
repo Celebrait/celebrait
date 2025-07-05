@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { RotateCcw, Edit } from "lucide-react";
 import { useLocation } from "wouter";
@@ -12,6 +12,33 @@ interface CardPreviewProps {
 export default function CardPreview({ card, onboarding }: CardPreviewProps) {
   const [, setLocation] = useLocation();
   const [currentView, setCurrentView] = useState<'front' | 'inside' | 'open'>('front');
+
+  // Preload data for instant delivery details loading
+  useEffect(() => {
+    if (card && onboarding) {
+      const preloadData = async () => {
+        try {
+          // Create comprehensive cache for instant loading
+          const fullCardData = {
+            id: card.id,
+            cardType: card.cardType,
+            price: card.price,
+            conversationData: card.conversationData || onboarding
+          };
+          
+          // Cache with multiple keys for maximum hit rate
+          sessionStorage.setItem('cardPreviewData', JSON.stringify(fullCardData));
+          sessionStorage.setItem(`card_${card.id}`, JSON.stringify(fullCardData));
+          
+          console.log('[INSTANT] Preloaded delivery details data for zero-loading experience');
+        } catch (e) {
+          console.warn('Preload failed:', e);
+        }
+      };
+      
+      preloadData();
+    }
+  }, [card, onboarding]);
 
   const handleChooseDelivery = () => {
     // Emergency storage cleanup before navigation to prevent quota errors

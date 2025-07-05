@@ -34,17 +34,66 @@ export default function DeliveryDetails() {
     sessionStorage.setItem('selectedDeliveryType', urlDeliveryType);
   }
   
-  // Load card data
+  // Load card data with instant cache-first strategy
   useEffect(() => {
     const loadCardData = async () => {
       if (!reference) return;
       
+      // Try to load from cache first for instant display
+      const cachedKeys = [
+        `cardPreviewData`,
+        `ready_${reference}`,
+        `card_${reference}`,
+        `card_${reference.replace('celebrait_ready_', '')}`
+      ];
+      
+      let cachedData = null;
+      for (const key of cachedKeys) {
+        try {
+          const cached = sessionStorage.getItem(key);
+          if (cached) {
+            const parsedData = JSON.parse(cached);
+            const card = parsedData.card || parsedData;
+            if (card && (card.id || card.conversationData)) {
+              cachedData = card;
+              console.log(`[INSTANT] Loaded from cache: ${key}`);
+              break;
+            }
+          }
+        } catch (e) {
+          // Continue to next cache key
+        }
+      }
+      
+      if (cachedData) {
+        setCardData(cachedData);
+        setLoading(false);
+        console.log('[INSTANT] Delivery options displayed immediately from cache');
+        return;
+      }
+      
+      // Fallback to API if no cache available
       setLoading(true);
       try {
-        const response = await fetch(`/api/cards/${reference}/fast-metadata`);
+        let response;
+        if (reference?.startsWith('celebrait_ready_')) {
+          response = await fetch(`/api/cards/ready/${reference}`);
+        } else {
+          response = await fetch(`/api/cards/${reference}/fast-metadata`);
+        }
+        
         if (response.ok) {
           const data = await response.json();
-          setCardData(data);
+          const card = data.card || data;
+          setCardData(card);
+          
+          // Cache the data for future use
+          try {
+            sessionStorage.setItem(`card_${reference}`, JSON.stringify(card));
+            console.log('[CACHE] Stored card data for future instant loading');
+          } catch (e) {
+            console.warn('Cache storage failed:', e);
+          }
         }
       } catch (error) {
         console.error('Error loading card data:', error);
