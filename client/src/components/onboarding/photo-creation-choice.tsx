@@ -12,12 +12,18 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
   const [isLoading, setIsLoading] = useState(false);
   const [selectedOption, setSelectedOption] = useState<'upload_and_scene' | 'upload_and_transform' | null>(null);
 
+  // Scroll to top when loading screen appears
+  useEffect(() => {
+    if (isLoading) {
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 50); // Small delay to ensure the loading screen is rendered
+    }
+  }, [isLoading]);
+
   const handleOptionClick = (option: 'upload_and_scene' | 'upload_and_transform') => {
     setSelectedOption(option);
     setIsLoading(true);
-    
-    // Scroll to top immediately when AI loading starts
-    window.scrollTo({ top: 0, behavior: 'smooth' });
     
     // 2-second AI loading animation
     setTimeout(() => {
