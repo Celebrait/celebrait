@@ -62,34 +62,38 @@ export default function DeliveryDetails() {
                        sessionStorage.getItem('recipientName') || 
                        'the recipient';
 
-  // Delivery type options to show user
+  // Delivery type options to show user (matching original design)
   const deliveryOptions = [
-    {
-      id: 'digital',
-      title: 'Digital Share',
-      description: 'Instant download ready to share',
-      price: 'Free',
-      icon: Download,
-      gradient: 'from-blue-500 to-purple-600',
-      features: [
-        'Instant digital download',
-        'High-quality image files',
-        'Share via email, social media',
-        'Print at home if desired'
-      ]
-    },
     {
       id: 'printed',
       title: 'Printed & Delivered',
-      description: 'High-quality print delivered to your door',
-      price: '$12.99',
+      description: 'High-quality physical greeting card printed and delivered to your door or directly to the recipient',
+      price: 'R129.00',
       icon: Truck,
-      gradient: 'from-orange-500 to-red-500',
+      gradient: 'from-purple-500 to-pink-500',
+      hoverGradient: 'from-purple-600 to-pink-600',
+      borderColor: 'border-purple-200 hover:border-purple-400',
+      priceColor: 'text-purple-600',
       features: [
-        'Premium cardstock printing',
-        'Professional finish',
-        'Delivered to your door',
-        'Ready-to-gift presentation'
+        'Premium card stock',
+        'Professional printing', 
+        'Fast delivery'
+      ]
+    },
+    {
+      id: 'digital',
+      title: 'Digital Download',
+      description: 'Instant digital card delivered via email with interactive viewing and download options',
+      price: 'FREE',
+      icon: Download,
+      gradient: 'from-green-500 to-blue-500',
+      hoverGradient: 'from-green-600 to-blue-600',
+      borderColor: 'border-green-200 hover:border-green-400',
+      priceColor: 'text-green-600',
+      features: [
+        'Instant delivery',
+        'Interactive viewing',
+        'High-res download'
       ]
     }
   ];
@@ -225,17 +229,9 @@ export default function DeliveryDetails() {
             <>
               {/* Header Section */}
               <div className="text-center mb-8">
-                <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
-                  <Mail className="text-white w-10 h-10" />
-                </div>
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                <h2 className="text-2xl font-bold text-gray-800 mb-3">
                   Confirm Delivery Method
-                </h1>
-                <p className="text-lg text-slate-gray">
-                  You initially chose <span className="font-semibold text-purple-600">
-                    {preselectedDeliveryType === 'digital' ? 'Digital Share' : 'Printed & Delivered'}
-                  </span>. You can confirm this choice or change it after seeing your card quality.
-                </p>
+                </h2>
               </div>
 
               {/* Delivery Options */}
@@ -243,27 +239,42 @@ export default function DeliveryDetails() {
                 {deliveryOptions.map((option) => (
                   <Card 
                     key={option.id}
-                    className={`cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-105 ${
-                      selectedDeliveryType === option.id 
-                        ? 'border-2 border-purple-500 bg-purple-50' 
-                        : 'border-2 border-gray-200 bg-white/80'
-                    }`}
                     onClick={() => handleDeliveryTypeChange(option.id as 'digital' | 'printed')}
+                    className={`cursor-pointer border-2 ${option.borderColor} transition-all duration-300 hover:shadow-xl hover:scale-105 bg-white/80 backdrop-blur-sm ${
+                      selectedDeliveryType === option.id ? 'ring-2 ring-purple-500 ring-offset-2' : ''
+                    }`}
                   >
-                    <CardHeader className="text-center pb-4">
-                      <div className={`w-16 h-16 bg-gradient-to-r ${option.gradient} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                        <option.icon className="text-white w-8 h-8" />
+                    <CardContent className="p-8 text-center space-y-4">
+                      <div className={`w-16 h-16 bg-gradient-to-r ${option.gradient} rounded-full mx-auto flex items-center justify-center mb-4`}>
+                        <option.icon className="w-8 h-8 text-white" />
                       </div>
-                      <CardTitle className="text-xl">{option.title}</CardTitle>
-                      <p className="text-sm text-gray-600 mt-2">{option.description}</p>
-                      <p className="text-2xl font-bold text-gray-800 mt-2">{option.price}</p>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-2 text-sm text-gray-600">
+                      
+                      <h3 className="text-xl font-bold text-gray-800">{option.title}</h3>
+                      <p className="text-gray-600 text-sm leading-relaxed">
+                        {option.description}
+                      </p>
+                      
+                      <div className="space-y-2">
                         {option.features.map((feature, index) => (
-                          <li key={index}>✓ {feature}</li>
+                          <div key={index} className="flex items-center justify-center text-sm text-gray-500">
+                            <span>{feature}</span>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
+                      
+                      <div className={`text-2xl font-bold ${option.priceColor} mt-4`}>
+                        {option.price}
+                      </div>
+                      
+                      <Button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeliveryTypeChange(option.id as 'digital' | 'printed');
+                        }}
+                        className={`w-full bg-gradient-to-r ${option.gradient} hover:${option.hoverGradient} text-white py-3 rounded-xl font-semibold`}
+                      >
+                        Choose {option.title}
+                      </Button>
                     </CardContent>
                   </Card>
                 ))}
@@ -274,9 +285,9 @@ export default function DeliveryDetails() {
                 <Button
                   onClick={handleProceedToRecipient}
                   disabled={!selectedDeliveryType}
-                  className="w-full max-w-md bg-gradient-to-r from-purple-500 to-pink-500 hover:opacity-90 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105"
+                  className="w-full max-w-md bg-gradient-to-r from-purple-500 to-pink-500 hover:opacity-90 text-white py-4 rounded-xl font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105"
                 >
-                  Continue with {selectedDeliveryType === 'digital' ? 'Digital Share' : 'Printed & Delivered'}
+                  Continue
                 </Button>
               </div>
             </>
