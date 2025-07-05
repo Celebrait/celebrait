@@ -45,23 +45,13 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
     
     setTimeout(() => {
       try {
-        if (selectedDeliveryType) {
-          // Skip delivery choice and go directly to delivery details
-          console.log('[STREAMLINED FLOW] Skipping delivery choice, using pre-selected:', selectedDeliveryType);
-          sessionStorage.setItem('selectedDeliveryType', selectedDeliveryType);
-          setLocation(`/delivery-details/${card.id}`);
-        } else {
-          // Original flow - go to delivery choice page
-          setLocation(`/delivery-choice/${card.id}`);
-        }
+        // Both flows now go to delivery-details page for confirmation
+        console.log('[UNIFIED FLOW] Going to delivery confirmation screen');
+        setLocation(`/delivery-details/${card.id}`);
       } catch (error) {
         console.error('Navigation failed:', error);
         // Force page reload as fallback
-        if (selectedDeliveryType) {
-          window.location.href = `/delivery-details/${card.id}`;
-        } else {
-          window.location.href = `/delivery-choice/${card.id}`;
-        }
+        window.location.href = `/delivery-details/${card.id}`;
       }
     }, cleanupSuccess ? 200 : 500);
   };

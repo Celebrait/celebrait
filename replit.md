@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 5, 2025. UNIFIED DELIVERY CONFIRMATION FLOW: Complete overhaul of delivery selection to provide consistent experience:
+  * UNIFIED ROUTING: Both main website flow and email flow now navigate to same delivery confirmation screen
+  * TWO-STEP PROCESS: First confirms delivery method (digital vs printed), then confirms recipient choice
+  * CHANGE OPPORTUNITY: Users see pre-selected delivery method but can change it after viewing card quality
+  * CLEAR MESSAGING: Explains users initially chose one method but can change after seeing card generation results
+  * CONSISTENT EXPERIENCE: Eliminates different paths between website and email flows for seamless user journey
 - July 5, 2025. DELIVERY CONFIRMATION FLOW: Enhanced user journey with clear delivery choice confirmation messaging:
   * HOMEPAGE CLARITY: Added informative label explaining users will preview their card before purchasing and can change delivery method
   * CONFIRMATION LANGUAGE: Changed "Choose Delivery Options" to "Confirm Delivery Options" throughout the flow
