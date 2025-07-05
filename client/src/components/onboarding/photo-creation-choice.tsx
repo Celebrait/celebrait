@@ -16,6 +16,9 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
     setSelectedOption(option);
     setIsLoading(true);
     
+    // Scroll to top immediately when AI loading starts
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
     // 2-second AI loading animation
     setTimeout(() => {
       setIsLoading(false);
