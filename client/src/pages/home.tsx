@@ -21,7 +21,7 @@ export default function Home() {
   const onboarding = useOnboarding();
   const [, setLocation] = useLocation();
 
-  const [generatedCard, setGeneratedCard] = useState<any>(null);
+  const [generatedCard, setGeneratedCard] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayStep, setDisplayStep] = useState(onboarding.currentStep);
   const [isCreatingMockCard, setIsCreatingMockCard] = useState(false);
@@ -30,14 +30,6 @@ export default function Home() {
   const [newFlowStep, setNewFlowStep] = useState<'delivery' | 'photo-choice' | 'conversation'>('delivery');
   const [selectedDeliveryType, setSelectedDeliveryType] = useState<'printed' | 'digital' | null>(null);
   const [selectedPhotoOption, setSelectedPhotoOption] = useState<'upload_and_scene' | 'upload_and_transform' | null>(null);
-  
-  // Create-first flow state
-  const [createFirstStep, setCreateFirstStep] = useState<'photo-choice' | 'conversation' | 'delivery-choice'>('photo-choice');
-  const [createFirstPhotoOption, setCreateFirstPhotoOption] = useState<'upload_and_scene' | 'upload_and_transform' | null>(null);
-  const [showCreateFirstFlow, setShowCreateFirstFlow] = useState(false);
-  
-  // Demo toggle state
-  const [activeDemo, setActiveDemo] = useState<'describe' | 'transform'>('describe');
 
   // Handle clean AI loading transitions between steps
   useEffect(() => {
@@ -57,11 +49,6 @@ export default function Home() {
 
   const handleCardGenerated = (card: any) => {
     setGeneratedCard(card);
-    
-    // If this is the create-first flow, show delivery choice after card generation
-    if (showCreateFirstFlow) {
-      setCreateFirstStep('delivery-choice');
-    }
   };
 
   // New flow handlers
@@ -79,20 +66,6 @@ export default function Home() {
     // Store photo option and start conversation with AI
     sessionStorage.setItem('selectedPhotoOption', option);
     setNewFlowStep('conversation');
-  };
-
-  // Create-first flow handlers
-  const handleCreateFirstPhotoOption = (option: 'upload_and_scene' | 'upload_and_transform') => {
-    setCreateFirstPhotoOption(option);
-    setCreateFirstStep('conversation');
-  };
-
-  const handleCreateFirstDeliveryChoice = (delivery: 'printed' | 'digital') => {
-    // Store the delivery choice and navigate to delivery details
-    if (generatedCard) {
-      sessionStorage.setItem('selectedDeliveryType', delivery);
-      setLocation(`/delivery-details/${generatedCard.id}`);
-    }
   };
 
   const createMockCardAndSkipToDelivery = async (cardType: 'digital' | 'printed' = 'digital') => {
@@ -170,34 +143,6 @@ export default function Home() {
     }
   };
 
-  const renderCreateFirstFlow = () => {
-    switch (createFirstStep) {
-      case 'photo-choice':
-        return <PhotoCreationChoice 
-          onOptionSelected={handleCreateFirstPhotoOption} 
-          onBack={() => setShowCreateFirstFlow(false)}
-        />;
-      case 'conversation':
-        return <GuidedConversation 
-          onboarding={onboarding} 
-          onCardGenerated={handleCardGenerated}
-          streamlinedFlow={true}
-          selectedPhotoOption={createFirstPhotoOption}
-          onStartFresh={() => {
-            setShowCreateFirstFlow(false);
-            setCreateFirstStep('photo-choice');
-          }}
-        />;
-      case 'delivery-choice':
-        return <DeliverySelection onDeliverySelected={handleCreateFirstDeliveryChoice} />;
-      default:
-        return <PhotoCreationChoice 
-          onOptionSelected={handleCreateFirstPhotoOption} 
-          onBack={() => setShowCreateFirstFlow(false)}
-        />;
-    }
-  };
-
   return (
     <div className="min-h-screen relative">
       <Header />
@@ -208,159 +153,48 @@ export default function Home() {
       )}
 
       <main className={generatedCard ? "px-4 sm:px-6 lg:px-8 py-8" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
-        {!generatedCard && !isTransitioning && !showCreateFirstFlow && (
+        {!generatedCard && !isTransitioning && (
           <div className="space-y-16">
-            {/* Main Hero Section */}
-            <div className="text-center space-y-6">
-              <h1 className="text-2xl md:text-3xl font-bold text-black leading-tight">
-                Turn your photos into "work of art" greeting cards
-              </h1>
-              <p className="text-base md:text-lg text-gray-700 max-w-2xl mx-auto">
-                Powered by advanced AI technology to create stunning, personalized cards for any celebration
-              </p>
-              
-              {/* Toggle Options */}
-              <div className="flex justify-center items-center space-x-4 mt-8">
-                <button 
-                  onClick={() => setActiveDemo('describe')}
-                  className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                    activeDemo === 'describe' 
-                      ? 'bg-purple-600 text-white shadow-lg' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Describe the Scene
-                </button>
-                <button 
-                  onClick={() => setActiveDemo('transform')}
-                  className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                    activeDemo === 'transform' 
-                      ? 'bg-purple-600 text-white shadow-lg' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Transform the Style
-                </button>
-              </div>
-              
-              {/* Video Demo Area */}
-              <div className="mt-8 bg-gray-100 rounded-xl p-8 min-h-[300px] flex items-center justify-center">
-                {activeDemo === 'describe' ? (
-                  <div className="text-center space-y-4">
-                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
-                      <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-800">Describe the Scene</h3>
-                    <p className="text-gray-600 max-w-md mx-auto">
-                      Upload your photos and describe the perfect scene. AI will create a beautiful greeting card with your loved ones in any setting you imagine.
-                    </p>
-                    <div className="bg-white rounded-lg p-4 text-sm text-gray-500">
-                      Video demonstration coming soon
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center space-y-4">
-                    <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto">
-                      <svg className="w-8 h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-                      </svg>
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-800">Transform the Style</h3>
-                    <p className="text-gray-600 max-w-md mx-auto">
-                      Upload a single photo and choose from artistic styles like watercolor, oil painting, or cartoon. AI transforms your photo into a stunning artistic greeting card.
-                    </p>
-                    <div className="bg-white rounded-lg p-4 text-sm text-gray-500">
-                      Video demonstration coming soon
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <p className="text-sm text-gray-600 mt-4">
-                <span className="font-semibold text-purple-600">
-                  No payment required until you're happy with your card!
-                </span>
-              </p>
-            </div>
-
-            {/* Quick Streamlined Flow - Primary */}
-            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-lg">
-              <div className="text-center space-y-4">
-                <div className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                  Quick Start
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800">Choose Delivery First</h3>
-                <p className="text-gray-600 text-sm">
-                  Select delivery method upfront, then create your card
-                </p>
-                <div className="pt-2">
-                  {renderNewFlow()}
-                </div>
-              </div>
-            </div>
-
-            {/* Create First Option - Secondary */}
-            <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-8 border-2 border-purple-200">
-              <div className="text-center space-y-4">
-                <div className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-full text-sm font-medium mb-2">
-                  ✨ Alternative
-                </div>
-                <h2 className="text-2xl font-bold text-gray-800">Create First, Decide Delivery Later</h2>
-                <p className="text-gray-600 max-w-xl mx-auto">
-                  Generate your personalized card first and see exactly what you'll get. 
-                  Then choose between digital delivery or printed shipping.
-                </p>
-                <Button 
-                  onClick={() => setShowCreateFirstFlow(true)}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 text-lg"
-                >
-                  Start Creating Your Card
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Create-First Flow */}
-        {showCreateFirstFlow && !generatedCard && !isTransitioning && (
-          <div className="space-y-8">
-            <div className="text-center">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowCreateFirstFlow(false)}
-                className="mb-4"
-              >
-                ← Back to Options
-              </Button>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Create Your Card</h2>
-              <p className="text-gray-600">Choose how you'd like to create your personalized card</p>
-            </div>
-            {renderCreateFirstFlow()}
-          </div>
-        )}
-
-        {generatedCard && !showCreateFirstFlow && (
-          <CardPreview card={generatedCard} onboarding={onboarding} />
-        )}
-
-        {generatedCard && showCreateFirstFlow && createFirstStep === 'delivery-choice' && (
-          <div className="space-y-8">
-            {/* Card Preview Section */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">Your Card is Ready!</h2>
-              <CardPreview card={generatedCard} onboarding={onboarding} />
-            </div>
-            
-            {/* Delivery Choice Section */}
+            {/* New Streamlined Flow */}
             <div>
-              <h3 className="text-xl font-semibold text-center mb-6 text-gray-800">
-                Now Choose How You'd Like to Receive Your Card
-              </h3>
-              {renderCreateFirstFlow()}
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium mb-4">
+                  New Flow
+                </div>
+                <h2 className="text-xl font-semibold text-gray-600 mb-2">Streamlined Journey</h2>
+                <p className="text-gray-500">Delivery choice → Photo option → Quick details → Card generation</p>
+              </div>
+              {renderNewFlow()}
+            </div>
+
+            {/* Visual Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-6 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 text-gray-500 font-medium">
+                  Original Flow (Testing)
+                </span>
+              </div>
+            </div>
+
+            {/* Original Flow */}
+            <div>
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium mb-4">
+                  Current Flow
+                </div>
+                <h2 className="text-xl font-semibold text-gray-600 mb-2">Original Journey</h2>
+                <p className="text-gray-500">Name input → Guided conversation → Card generation</p>
+              </div>
+              {renderCurrentStep()}
             </div>
           </div>
+        )}
+
+        {generatedCard && (
+          <CardPreview card={generatedCard} onboarding={onboarding} />
         )}
       </main>
 
