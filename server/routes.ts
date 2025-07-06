@@ -27,7 +27,9 @@ import {
   type CleanupConfig
 } from "./image-storage";
 import { migrateCardImages, cardNeedsMigration } from "./image-migration";
-import { setupAuth, isAuthenticated } from "./simple-auth";
+import { setupGoogleAuth } from "./google-auth";
+import session from "express-session";
+import passport from "passport";
 
 // Temporarily allow running without API keys for testing
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
@@ -239,9 +241,7 @@ async function processFluxBinaryOutput(output: any): Promise<string> {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup Replit Auth
-  await setupAuth(app);
-
+  
   // Serve stored images statically
   app.use('/images', (req, res, next) => {
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
@@ -340,17 +340,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create card
-  app.post("/api/cards", isAuthenticated, async (req: any, res) => {
+  app.post("/api/cards", async (req, res) => {
     try {
-      const userId = req.user.claims.sub; // Get user ID from authenticated session
-      const cardData = req.body;
+      const { userId, ...cardData } = req.body;
 
       console.log('Card creation request body:', req.body);
-      console.log('Authenticated userId:', userId);
+      console.log('Extracted userId:', userId);
       console.log('Extracted cardData:', cardData);
 
       if (!userId) {
-        return res.status(400).json({ message: "User authentication required" });
+        return res.status(400).json({ message: "User ID is required" });
       }
 
       // Ensure required fields have default values if missing
@@ -376,41 +375,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Card creation error:', error);
       res.status(400).json({ message: error.message });
-    }
-  });
-
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
-
-  // User dashboard routes
-  app.get('/api/user/cards', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const cards = await storage.getUserCards(userId);
-      res.json(cards);
-    } catch (error) {
-      console.error("Error fetching user cards:", error);
-      res.status(500).json({ message: "Failed to fetch user cards" });
-    }
-  });
-
-  app.get('/api/user/orders', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const orders = await storage.getUserOrders(userId);
-      res.json(orders);
-    } catch (error) {
-      console.error("Error fetching user orders:", error);
-      res.status(500).json({ message: "Failed to fetch user orders" });
     }
   });
 

@@ -120,14 +120,6 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 6, 2025. REPLIT AUTH INTEGRATION: Integrated Replit Auth to replace dual email input with user authentication:
-  * REPLIT AUTH SETUP: Added complete Replit Auth system with OpenID Connect integration for user sign-in/sign-up
-  * DATABASE MIGRATION: Updated schema to support string user IDs and session storage for Replit Auth compatibility
-  * AUTHENTICATION ROUTING: Landing page for logged-out users, Dashboard for logged-in users with account access
-  * USER DASHBOARD: Complete dashboard showing user's cards, orders, and account information with navigation
-  * AUTH ENDPOINTS: Added protected routes for user data, cards, and orders with authentication middleware
-  * CARD CREATION AUTH: Updated card creation to use authenticated user sessions instead of manual user ID input
-  * UI COMPONENTS: Added Tabs and Badge components for dashboard interface with user order/card management
 - July 5, 2025. CRITICAL PERFORMANCE OPTIMIZATION: Resolved email preview and delivery loading performance issues:
   * EMAIL PREVIEW SPEED: Eliminated base64 image transfers from /api/cards/ready/ endpoint, now uses ultra-fast compressed endpoints
   * AGGRESSIVE COMPRESSION: Reduced fast endpoint compression from 500x500 70% to 400x400 60% JPEG for instant loading

@@ -6,10 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ScrollToTop from "@/components/scroll-to-top";
 import { handleQuotaError } from "./lib/queryClient";
 import { useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
 import Home from "@/pages/home";
-import Landing from "@/pages/landing";
-import Dashboard from "@/pages/dashboard";
 import Checkout from "@/pages/checkout";
 import Payment from "@/pages/payment-simplified";
 import PaymentSuccess from './pages/payment-success';
@@ -31,25 +28,11 @@ import TermsOfService from "@/pages/terms-of-service";
 
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
-
   return (
     <>
       <ScrollToTop />
       <Switch>
-        {isLoading || !isAuthenticated ? (
-          <>
-            <Route path="/" component={Landing} />
-            <Route path="/dashboard" component={Landing} />
-          </>
-        ) : (
-          <>
-            <Route path="/" component={Dashboard} />
-            <Route path="/dashboard" component={Dashboard} />
-            <Route path="/create" component={Home} />
-          </>
-        )}
-        {/* Public routes accessible to all users */}
+        <Route path="/" component={Home} />
         <Route path="/checkout/:cardId" component={Checkout} />
         <Route path="/payment/:cardId" component={Payment} />
         <Route path="/payment-tips/:cardId" component={PaymentWithTips} />
