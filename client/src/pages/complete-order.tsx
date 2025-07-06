@@ -267,7 +267,10 @@ export default function CompleteOrder() {
               <User className="text-white w-10 h-10" />
             </div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              Delivery Information
+              {deliverTo === 'recipient' 
+                ? `${recipientName}'s Information`
+                : 'Delivery Information'
+              }
             </h1>
             <p className="text-lg text-slate-gray">
               {deliveryType === 'digital' 

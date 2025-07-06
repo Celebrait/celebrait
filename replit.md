@@ -130,6 +130,7 @@ Changelog:
   * LAYOUT CONSISTENCY: Updated digital card "Your Information" page to match printed card layout with single image preview and toggle buttons
   * PAGE RESTRUCTURE: Moved order summary section below delivery details and blue box on digital delivery information page for better UX
   * PAGE RENAMING: Changed "Your Information" to "Delivery Information" for clearer user understanding
+  * RECIPIENT PERSONALIZATION: Restored personalized page title showing "{RecipientName}'s Information" when delivering to recipients
 - July 5, 2025. NAVIGATION UX ENHANCEMENT: Added scroll-to-top behavior and fade transitions for seamless page navigation:
   * SCROLL-TO-TOP: All navigation clicks now automatically scroll to top of destination page for optimal UX
   * FADE TRANSITIONS: Added subtle opacity fade effects (0.8 opacity) during navigation for polished experience
