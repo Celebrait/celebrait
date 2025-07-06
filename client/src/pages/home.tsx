@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -8,8 +8,10 @@ import GuidedConversation from "@/components/onboarding/guided-conversation";
 import CardPreview from "@/components/card-preview";
 import DeliverySelection from "@/components/onboarding/delivery-selection";
 import PhotoCreationChoice from "@/components/onboarding/photo-creation-choice";
+import SavedProgressPage from "@/pages/saved-progress";
 
 import { useOnboarding } from "@/hooks/use-onboarding";
+import { useGetSavedProgress } from "@/hooks/use-save-progress";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
@@ -19,14 +21,54 @@ export default function Home() {
   const [generatedCard, setGeneratedCard] = useState(null);
   const [isCreatingMockCard, setIsCreatingMockCard] = useState(false);
   
+  // Authentication state
+  const [authenticatedUser, setAuthenticatedUser] = useState<{ id: string; firstName: string; lastName: string; email: string } | null>(null);
+  const [showSavedProgress, setShowSavedProgress] = useState(false);
+  
   // Streamlined flow state
   const [flowStep, setFlowStep] = useState<'delivery' | 'photo-choice' | 'conversation'>('delivery');
   const [selectedDeliveryType, setSelectedDeliveryType] = useState<'printed' | 'digital' | null>(null);
   const [selectedPhotoOption, setSelectedPhotoOption] = useState<'upload_and_scene' | 'upload_and_transform' | null>(null);
 
+  // Check for saved progress when user authenticates
+  const { data: savedProgress } = useGetSavedProgress(authenticatedUser?.id);
+
+  // Show saved progress page when user signs in and has saved progress
+  useEffect(() => {
+    if (authenticatedUser && savedProgress) {
+      setShowSavedProgress(true);
+    }
+  }, [authenticatedUser, savedProgress]);
+
+  const handleUserAuthenticated = (userData: { firstName: string; lastName: string; email: string }) => {
+    const userWithId = {
+      id: userData.email, // Use email as ID for now
+      ...userData
+    };
+    setAuthenticatedUser(userWithId);
+  };
+
+  const handleStartNewCard = () => {
+    setShowSavedProgress(false);
+    setFlowStep('delivery');
+    setSelectedDeliveryType(null);
+    setSelectedPhotoOption(null);
+    setGeneratedCard(null);
+  };
+
   const handleCardGenerated = (card: any) => {
     setGeneratedCard(card);
   };
+
+  // If user is authenticated and we should show saved progress
+  if (showSavedProgress) {
+    return (
+      <SavedProgressPage
+        authenticatedUser={authenticatedUser}
+        onStartNewCard={handleStartNewCard}
+      />
+    );
+  }
 
   // Flow handlers
   const handleDeliverySelected = (delivery: 'printed' | 'digital') => {
@@ -97,6 +139,8 @@ export default function Home() {
           streamlinedFlow={true}
           selectedPhotoOption={selectedPhotoOption}
           onStartFresh={() => setFlowStep('delivery')}
+          authenticatedUser={authenticatedUser}
+          onUserAuthenticated={handleUserAuthenticated}
         />;
       default:
         return <DeliverySelection onDeliverySelected={handleDeliverySelected} />;

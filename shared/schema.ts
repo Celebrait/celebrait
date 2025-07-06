@@ -29,6 +29,20 @@ export const cards = pgTable("cards", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// New table for saved progress/drafts
+export const savedProgress = pgTable("saved_progress", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id),
+  cardType: text("card_type").notNull(), // 'printed' | 'digital'
+  printOption: text("print_option"), // 'front-only' | 'front-and-inside'
+  sceneType: text("scene_type"), // 'with-person' | 'scene-only'
+  conversationData: jsonb("conversation_data").default({}),
+  currentStep: integer("current_step").default(1), // Which step of the flow they're on
+  progressData: jsonb("progress_data").default({}), // Additional progress state
+  lastActiveAt: timestamp("last_active_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const lovedOnes = pgTable("loved_ones", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
@@ -93,6 +107,15 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   trackingNumber: true,
 });
 
+export const insertSavedProgressSchema = createInsertSchema(savedProgress).pick({
+  cardType: true,
+  printOption: true,
+  sceneType: true,
+  conversationData: true,
+  currentStep: true,
+  progressData: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertCard = z.infer<typeof insertCardSchema>;
@@ -101,3 +124,5 @@ export type InsertLovedOne = z.infer<typeof insertLovedOneSchema>;
 export type LovedOne = typeof lovedOnes.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type Order = typeof orders.$inferSelect;
+export type InsertSavedProgress = z.infer<typeof insertSavedProgressSchema>;
+export type SavedProgress = typeof savedProgress.$inferSelect;

@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
 import AuthModal from "@/components/auth/auth-modal";
+import SaveProgressButton from "@/components/save-progress-button";
 
 // Example prompts for the scene description
 const EXAMPLE_PROMPTS = [
@@ -95,6 +96,8 @@ interface GuidedConversationProps {
   streamlinedFlow?: boolean;
   selectedPhotoOption?: 'upload_and_scene' | 'upload_and_transform' | null;
   onStartFresh?: () => void;
+  authenticatedUser?: { id: string; firstName: string; lastName: string; email: string } | null;
+  onUserAuthenticated?: (userData: { firstName: string; lastName: string; email: string }) => void;
 }
 
 interface ConversationStep {
@@ -107,7 +110,7 @@ interface ConversationStep {
   required?: boolean;
 }
 
-export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, onStartFresh }: GuidedConversationProps) {
+export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, onStartFresh, authenticatedUser, onUserAuthenticated }: GuidedConversationProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [selectedPersonalities, setSelectedPersonalities] = useState<string[]>([]);
@@ -2908,6 +2911,26 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Start Fresh
               </Button>
+              
+              {/* Save Progress Button */}
+              <SaveProgressButton
+                progressData={{
+                  cardType: onboarding.selectedDelivery || 'digital',
+                  printOption: onboarding.selectedDelivery === 'printed' ? 'front-and-inside' : undefined,
+                  sceneType: selectedPhotoOption === 'upload_and_scene' ? 'with-person' : 'scene-only',
+                  conversationData: { answers, uploadedPhotos, currentStep: currentStep.id },
+                  currentStep: currentStepIndex + 1,
+                  progressData: { 
+                    onboardingState: onboarding,
+                    selectedPhotoOption,
+                    streamlinedFlow
+                  }
+                }}
+                variant="ghost"
+                className="text-gray-500 hover:text-gray-700"
+                authenticatedUser={authenticatedUser}
+                onUserAuthenticated={onUserAuthenticated}
+              />
             </div>
           )}
         </div>
