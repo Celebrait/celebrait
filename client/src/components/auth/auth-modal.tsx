@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowRight, Mail, UserPlus } from 'lucide-react';
+import { ArrowRight, LogIn, Mail, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -175,6 +175,13 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthMod
           {/* Step 2: Existing User Form */}
           {currentStep === 'existing' && (
             <div className="space-y-4">
+              <div className="text-center space-y-2 mb-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto">
+                  <LogIn className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Welcome Back!</h3>
+                <p className="text-sm text-gray-600">Enter your email to sign in</p>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="signin-email" className="text-sm font-medium text-gray-700">Email Address</Label>
                 <Input
@@ -225,6 +232,13 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthMod
           {/* Step 3: New User Form */}
           {currentStep === 'new' && (
             <div className="space-y-4">
+              <div className="text-center space-y-2 mb-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto">
+                  <UserPlus className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Create Your Account</h3>
+                <p className="text-sm text-gray-600">Let's get you set up with your personal details</p>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="signup-firstName" className="text-sm font-medium text-gray-700">First Name</Label>
