@@ -98,6 +98,7 @@ interface GuidedConversationProps {
   onStartFresh?: () => void;
   authenticatedUser?: { id: string; firstName: string; lastName: string; email: string } | null;
   onUserAuthenticated?: (userData: { firstName: string; lastName: string; email: string }) => void;
+  savedProgressData?: any;
 }
 
 interface ConversationStep {
@@ -110,11 +111,40 @@ interface ConversationStep {
   required?: boolean;
 }
 
-export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, onStartFresh, authenticatedUser, onUserAuthenticated }: GuidedConversationProps) {
+export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, onStartFresh, authenticatedUser, onUserAuthenticated, savedProgressData }: GuidedConversationProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [selectedPersonalities, setSelectedPersonalities] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Enhanced conversation data with authentication details
+  const getEnhancedConversationData = () => {
+    const baseData = { answers, uploadedPhotos, currentStep: currentStep.id };
+    
+    // If we have authenticated user from save progress or regular auth, include their details
+    if (authenticatedUser) {
+      return {
+        ...baseData,
+        user_first_name: authenticatedUser.firstName,
+        user_last_name: authenticatedUser.lastName,
+        user_email: authenticatedUser.email,
+        authenticated_via_save_progress: !!savedProgressData
+      };
+    }
+    
+    // If saved progress has authentication details, use those
+    if (savedProgressData?.conversationData?.authenticated_via_save_progress) {
+      return {
+        ...baseData,
+        user_first_name: savedProgressData.conversationData.user_first_name,
+        user_last_name: savedProgressData.conversationData.user_last_name,
+        user_email: savedProgressData.conversationData.user_email,
+        authenticated_via_save_progress: true
+      };
+    }
+    
+    return baseData;
+  };
   const [cardId, setCardId] = useState<number | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [currentInput, setCurrentInput] = useState('');
@@ -2894,7 +2924,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   cardType: onboarding.selectedDelivery || 'digital',
                   printOption: onboarding.selectedDelivery === 'printed' ? 'front-and-inside' : undefined,
                   sceneType: selectedPhotoOption === 'upload_and_scene' ? 'with-person' : 'scene-only',
-                  conversationData: { answers, uploadedPhotos, currentStep: currentStep.id },
+                  conversationData: getEnhancedConversationData(),
                   currentStep: currentStepIndex + 1,
                   progressData: { 
                     onboardingState: onboarding,

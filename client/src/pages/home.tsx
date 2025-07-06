@@ -33,6 +33,40 @@ export default function Home() {
   // Check for saved progress when user authenticates
   const { data: savedProgress } = useGetSavedProgress(authenticatedUser?.id);
 
+  // State for saved progress restoration
+  const [restoredSavedProgress, setRestoredSavedProgress] = useState<any>(null);
+  
+  // Check for saved progress restoration from session storage
+  useEffect(() => {
+    const resumeFromSaved = sessionStorage.getItem('resumeFromSaved');
+    const savedProgressData = sessionStorage.getItem('savedProgressData');
+    
+    if (resumeFromSaved === 'true' && savedProgressData) {
+      const progressData = JSON.parse(savedProgressData);
+      
+      // Store the saved progress data for the guided conversation
+      setRestoredSavedProgress(progressData);
+      
+      // Set the flow step to conversation to resume the conversation
+      setFlowStep('conversation');
+      
+      // Pre-populate authenticated user from saved progress if available
+      if (progressData.conversationData?.authenticated_via_save_progress) {
+        const userFromSaved = {
+          id: progressData.conversationData.user_email,
+          firstName: progressData.conversationData.user_first_name,
+          lastName: progressData.conversationData.user_last_name,
+          email: progressData.conversationData.user_email
+        };
+        setAuthenticatedUser(userFromSaved);
+      }
+      
+      // Clear the restoration flags
+      sessionStorage.removeItem('resumeFromSaved');
+      sessionStorage.removeItem('savedProgressData');
+    }
+  }, []);
+
   // Show saved progress page when user signs in and has saved progress
   useEffect(() => {
     if (authenticatedUser && savedProgress) {
@@ -141,6 +175,7 @@ export default function Home() {
           onStartFresh={() => setFlowStep('delivery')}
           authenticatedUser={authenticatedUser}
           onUserAuthenticated={handleUserAuthenticated}
+          savedProgressData={restoredSavedProgress}
         />;
       default:
         return <DeliverySelection onDeliverySelected={handleDeliverySelected} />;

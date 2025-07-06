@@ -43,12 +43,24 @@ export default function SaveProgressButton({
     if (onUserAuthenticated) {
       onUserAuthenticated(userData);
     }
+    
+    // Enhanced progress data with user authentication details
+    const enhancedProgressData = {
+      userId: userData.email, // Use email as userId for now
+      ...progressData,
+      conversationData: {
+        ...progressData.conversationData,
+        // Store user authentication details for later pre-filling
+        user_first_name: userData.firstName,
+        user_last_name: userData.lastName,
+        user_email: userData.email,
+        authenticated_via_save_progress: true
+      }
+    };
+    
     // After authentication, save progress automatically
     setTimeout(() => {
-      saveProgress({
-        userId: userData.email, // Use email as userId for now
-        ...progressData
-      });
+      saveProgress(enhancedProgressData);
     }, 500);
   };
 

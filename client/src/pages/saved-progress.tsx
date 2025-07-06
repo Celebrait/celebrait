@@ -31,15 +31,14 @@ export default function SavedProgressPage({ authenticatedUser, onStartNewCard }:
         // For now, we'll navigate to the conversation with the saved data
       }
 
-      // Navigate to conversation with the saved state
-      setLocation('/conversation', { 
-        state: { 
-          resumeFromSaved: true, 
-          savedProgressData: progressData,
-          selectedDelivery: progressData.cardType,
-          currentStep: progressData.currentStep || 1
-        } 
-      });
+      // Navigate to home with the saved state data
+      // Store the saved progress data in session storage for the home page to use
+      sessionStorage.setItem('resumeFromSaved', 'true');
+      sessionStorage.setItem('savedProgressData', JSON.stringify(progressData));
+      sessionStorage.setItem('selectedDeliveryType', progressData.cardType);
+      
+      // Navigate to home page which will handle the restoration
+      setLocation('/');
     } catch (error) {
       console.error('Error resuming progress:', error);
     }
