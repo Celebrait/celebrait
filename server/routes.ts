@@ -379,9 +379,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(409).json({ message: "User with this email already exists. Please sign in instead." });
       }
 
-      // Create new user
+      // Create new user - generate unique ID from timestamp
       const userData = {
-        username: email, // Use email as username for simplicity
         email,
         firstName,
         lastName

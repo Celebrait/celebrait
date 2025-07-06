@@ -3,12 +3,13 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull(),
+  id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
-  firstName: text("first_name"), // Add first name field
-  lastName: text("last_name"),   // Add last name field
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  profileImageUrl: text("profile_image_url"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const cards = pgTable("cards", {
@@ -57,7 +58,6 @@ export const orders = pgTable("orders", {
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
   email: true,
   firstName: true,
   lastName: true,

@@ -8,7 +8,7 @@ const sql = neon(process.env.DATABASE_URL!);
 const db = drizzle(sql);
 
 export interface IStorage {
-  getUser(id: number): Promise<User | undefined>;
+  getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
@@ -48,8 +48,8 @@ export class MemStorage implements IStorage {
     this.currentOrderId = 1;
   }
 
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+  async getUser(id: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.id === id);
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
@@ -59,13 +59,17 @@ export class MemStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
+    const id = (this.currentUserId++).toString();
     const user: User = { 
-      ...insertUser, 
       id,
-      createdAt: new Date()
+      email: insertUser.email,
+      firstName: insertUser.firstName || null,
+      lastName: insertUser.lastName || null,
+      profileImageUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
-    this.users.set(id, user);
+    this.users.set(this.currentUserId - 1, user);
     return user;
   }
 
@@ -183,7 +187,7 @@ export class MemStorage implements IStorage {
 
 // PostgreSQL-based storage implementation
 export class DatabaseStorage implements IStorage {
-  async getUser(id: number): Promise<User | undefined> {
+  async getUser(id: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
     return result[0];
   }
@@ -194,7 +198,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const result = await db.insert(users).values(insertUser).returning();
+    // For the actual database, just insert email, firstName, lastName
+    // Let the database auto-generate the ID and timestamps
+    const result = await db.insert(users).values({
+      email: insertUser.email,
+      firstName: insertUser.firstName || null,
+      lastName: insertUser.lastName || null,
+      profileImageUrl: null
+    }).returning();
     return result[0];
   }
 
