@@ -1245,8 +1245,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   };
 
   const generateCard = async () => {
-    // Show email popup instead of directly generating
-    setShowEmailPopup(true);
+    // Check if user is already authenticated
+    if (authenticatedUser) {
+      console.log('User already authenticated, proceeding with card generation');
+      // User is already authenticated, proceed directly to card generation
+      actuallyGenerateCard();
+    } else {
+      // Show email popup for unauthenticated users
+      console.log('User not authenticated, showing email popup');
+      setShowEmailPopup(true);
+    }
   };
 
   const actuallyGenerateCard = async () => {
@@ -1254,11 +1262,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     setShowEmailPopup(false);
     
     try {
+      // Use authenticated user's email if available, otherwise use popup email
+      const notificationEmail = authenticatedUser?.email || popupEmail;
+      
       console.log('Starting card generation with options:', {
         photo_option: answers.photo_option,
         has_photos: uploadedPhotos.length > 0,
         cardId: cardId,
-        notification_email: popupEmail
+        notification_email: notificationEmail
       });
       
       // Ensure card is initialized
@@ -1293,16 +1304,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       if (generatedCard) {
         onCardGenerated(generatedCard);
         
-        // Send email notification using the popup email
-        const emailToNotify = popupEmail;
+        // Send email notification using authenticated user's email or popup email
+        const emailToNotify = authenticatedUser?.email || popupEmail;
         
         console.log('Email notification decision:', {
-          finalEmailToNotify: emailToNotify
+          finalEmailToNotify: emailToNotify,
+          source: authenticatedUser ? 'authenticated user' : 'popup modal'
         });
                             
         if (emailToNotify && emailToNotify.trim()) {
           console.log('Card now showing on-site, triggering email notification to:', emailToNotify);
-          console.log('Email source: popup modal');
+          console.log('Email source:', authenticatedUser ? 'authenticated user' : 'popup modal');
           setTimeout(() => {
             sendBackgroundEmail(generatedCard.id, emailToNotify, answers.name || "User");
           }, 2000); // 2 second delay to ensure card is fully displayed

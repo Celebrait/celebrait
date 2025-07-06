@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 6, 2025. AUTHENTICATION FLOW OPTIMIZATION - Eliminated redundant authentication popups for logged-in users:
+  * SMART AUTHENTICATION: Card generation now checks if user is already authenticated before showing email popup
+  * SEAMLESS FLOW: Logged-in users bypass authentication popup and proceed directly to card generation
+  * EMAIL PERSISTENCE: Authenticated users' email addresses automatically used for notifications without re-entry
+  * DEBUGGING ENHANCED: Added comprehensive console logging to track authentication states and email sources
+  * UX IMPROVEMENT: Prevents confusion where logged-in users see authentication popup again during card generation
+  * CONSISTENT EXPERIENCE: Save progress users maintain authentication state throughout entire card creation journey
 - July 6, 2025. ENHANCED SAVE PROGRESS UI & EMAIL NOTIFICATIONS - Prominent save progress button with automated email functionality:
   * PROMINENT SAVE BUTTON: Made save progress button prominent with gradient styling, replaced start fresh as primary action
   * BUTTON REORDERING: Moved "Save Progress & Return Later" to top position, "Start Fresh" now appears below as secondary option
