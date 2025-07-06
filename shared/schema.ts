@@ -43,20 +43,6 @@ export const savedProgress = pgTable("saved_progress", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const shareableProgress = pgTable("shareable_progress", {
-  id: serial("id").primaryKey(),
-  shareId: text("share_id").notNull().unique(), // UUID for sharing
-  savedProgressId: integer("saved_progress_id").notNull().references(() => savedProgress.id),
-  userId: text("user_id").notNull().references(() => users.id),
-  title: text("title").notNull(), // Custom title for the shared link
-  description: text("description"), // Optional description
-  isActive: boolean("is_active").notNull().default(true),
-  viewCount: integer("view_count").notNull().default(0),
-  expiresAt: timestamp("expires_at"), // Optional expiration
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
 export const lovedOnes = pgTable("loved_ones", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
@@ -130,15 +116,6 @@ export const insertSavedProgressSchema = createInsertSchema(savedProgress).pick(
   progressData: true,
 });
 
-export const insertShareableProgressSchema = createInsertSchema(shareableProgress).pick({
-  shareId: true,
-  savedProgressId: true,
-  title: true,
-  description: true,
-  isActive: true,
-  expiresAt: true,
-});
-
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertCard = z.infer<typeof insertCardSchema>;
@@ -149,5 +126,3 @@ export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type Order = typeof orders.$inferSelect;
 export type InsertSavedProgress = z.infer<typeof insertSavedProgressSchema>;
 export type SavedProgress = typeof savedProgress.$inferSelect;
-export type InsertShareableProgress = z.infer<typeof insertShareableProgressSchema>;
-export type ShareableProgress = typeof shareableProgress.$inferSelect;
