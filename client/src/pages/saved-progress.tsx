@@ -3,25 +3,25 @@ import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 // Simple skeleton component placeholder
-import { AlertCircle, Plus, ArrowLeft } from 'lucide-react';
+import { AlertCircle, Plus, ArrowLeft, LogIn } from 'lucide-react';
 import { useGetSavedProgress, SavedProgress } from '@/hooks/use-save-progress';
 import SavedProgressCard from '@/components/saved-progress-card';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
+import AuthModal from '@/components/auth/auth-modal';
 
-interface SavedProgressPageProps {
-  authenticatedUser?: { id: string; firstName: string; lastName: string; email: string } | null;
-  onStartNewCard: () => void;
-}
-
-export default function SavedProgressPage({ authenticatedUser, onStartNewCard }: SavedProgressPageProps) {
+export default function SavedProgressPage() {
   const [, setLocation] = useLocation();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authenticatedUser, setAuthenticatedUser] = useState<{ id: string; firstName: string; lastName: string; email: string } | null>(null);
   const onboarding = useOnboarding();
   const { data: savedProgress, isLoading, error } = useGetSavedProgress(authenticatedUser?.id);
 
   const handleContinueProgress = (progressData: SavedProgress) => {
     try {
+      console.log('Continuing progress with data:', progressData);
+      
       // Restore the onboarding state from saved progress
       onboarding.setSelectedDelivery(progressData.cardType as 'printed' | 'digital');
       
@@ -44,6 +44,19 @@ export default function SavedProgressPage({ authenticatedUser, onStartNewCard }:
     }
   };
 
+  const handleAuthSuccess = (userData: { id: string; firstName: string; lastName: string; email: string }) => {
+    setShowAuthModal(false);
+    setAuthenticatedUser(userData);
+  };
+
+  const handleStartNewCard = () => {
+    // Clear any saved progress session data and navigate to home
+    sessionStorage.removeItem('resumeFromSaved');
+    sessionStorage.removeItem('savedProgressData');
+    sessionStorage.removeItem('selectedDeliveryType');
+    setLocation('/');
+  };
+
   if (!authenticatedUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
@@ -58,13 +71,23 @@ export default function SavedProgressPage({ authenticatedUser, onStartNewCard }:
                   <p className="text-gray-600">
                     Please sign in to view your saved card creation progress.
                   </p>
-                  <Button 
-                    onClick={() => setLocation('/')}
-                    className="w-full"
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Home
-                  </Button>
+                  <div className="space-y-3">
+                    <Button 
+                      onClick={() => setShowAuthModal(true)}
+                      className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                    >
+                      <LogIn className="w-4 h-4 mr-2" />
+                      Sign In to Continue
+                    </Button>
+                    <Button 
+                      onClick={() => setLocation('/')}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Back to Home
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -158,7 +181,7 @@ export default function SavedProgressPage({ authenticatedUser, onStartNewCard }:
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mt-8">
             <Button
-              onClick={onStartNewCard}
+              onClick={handleStartNewCard}
               className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold py-3"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -178,6 +201,13 @@ export default function SavedProgressPage({ authenticatedUser, onStartNewCard }:
       </div>
 
       <Footer />
+      
+      <AuthModal
+        open={showAuthModal}
+        onOpenChange={setShowAuthModal}
+        onAuthSuccess={handleAuthSuccess}
+        mode="saveProgress"
+      />
     </div>
   );
 }

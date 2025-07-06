@@ -51,7 +51,7 @@ function Router() {
         <Route path="/test-card-preview" component={TestCardPreview} />
         <Route path="/delivery-choice/:cardId" component={DeliveryChoice} />
         <Route path="/delivery-details/:reference" component={DeliveryDetails} />
-        <Route path="/saved-progress" component={SavedProgressPage} />
+        <Route path="/saved-progress">{() => <SavedProgressPage />}</Route>
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms-of-service" component={TermsOfService} />
 

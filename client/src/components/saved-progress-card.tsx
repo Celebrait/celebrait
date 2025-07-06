@@ -122,7 +122,11 @@ export default function SavedProgressCard({ savedProgress, onContinue, onDelete 
         </div>
 
         <Button 
-          onClick={() => onContinue(savedProgress)}
+          onClick={() => {
+            console.log('Continue Creating button clicked!');
+            console.log('Saved progress data:', savedProgress);
+            onContinue(savedProgress);
+          }}
           className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold"
         >
           <PlayCircle className="w-4 h-4 mr-2" />
