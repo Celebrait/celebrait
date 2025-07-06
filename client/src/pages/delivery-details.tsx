@@ -223,7 +223,7 @@ export default function DeliveryDetails() {
     emergencyStorageCleanup();
     
     // Store choice in session storage
-    sessionStorage.setItem('selectedDeliveryOption', choice);
+    sessionStorage.setItem('deliverTo', choice);
     
     // Navigate to appropriate page based on delivery type
     setTimeout(() => {
