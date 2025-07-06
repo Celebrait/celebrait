@@ -57,18 +57,6 @@ export const orders = pgTable("orders", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
-export const cardProgress = pgTable("card_progress", {
-  id: serial("id").primaryKey(),
-  userId: text("user_id").references(() => users.id),
-  sessionId: text("session_id").notNull(), // For anonymous users
-  progressData: jsonb("progress_data").notNull(), // Complete conversation state
-  currentStep: text("current_step").notNull(), // delivery, photo, conversation, etc.
-  cardType: text("card_type"), // 'printed' | 'digital'
-  deliveryType: text("delivery_type"), // 'printed' | 'digital'
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
-});
-
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
   firstName: true,
@@ -105,14 +93,6 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   trackingNumber: true,
 });
 
-export const insertCardProgressSchema = createInsertSchema(cardProgress).pick({
-  sessionId: true,
-  progressData: true,
-  currentStep: true,
-  cardType: true,
-  deliveryType: true,
-});
-
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertCard = z.infer<typeof insertCardSchema>;
@@ -121,5 +101,3 @@ export type InsertLovedOne = z.infer<typeof insertLovedOneSchema>;
 export type LovedOne = typeof lovedOnes.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type Order = typeof orders.$inferSelect;
-export type InsertCardProgress = z.infer<typeof insertCardProgressSchema>;
-export type CardProgress = typeof cardProgress.$inferSelect;

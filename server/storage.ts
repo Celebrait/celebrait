@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { eq, desc } from "drizzle-orm";
-import { users, cards, lovedOnes, orders, cardProgress, type User, type InsertUser, type Card, type InsertCard, type LovedOne, type InsertLovedOne, type Order, type InsertOrder, type CardProgress, type InsertCardProgress } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import { users, cards, lovedOnes, orders, type User, type InsertUser, type Card, type InsertCard, type LovedOne, type InsertLovedOne, type Order, type InsertOrder } from "@shared/schema";
 
 // Database connection
 const sql = neon(process.env.DATABASE_URL!);
@@ -25,13 +25,6 @@ export interface IStorage {
   getOrderByReference(reference: string): Promise<Order | undefined>;
   updateOrder(id: number, updates: Partial<Order>): Promise<Order>;
   getOrdersByEmail(email: string): Promise<Order[]>;
-
-  // Progress management
-  saveProgress(progress: InsertCardProgress & { userId?: string }): Promise<CardProgress>;
-  getProgress(sessionId: string): Promise<CardProgress | undefined>;
-  getUserProgress(userId: string): Promise<CardProgress[]>;
-  updateProgress(id: number, updates: Partial<CardProgress>): Promise<CardProgress>;
-  deleteProgress(id: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -39,24 +32,20 @@ export class MemStorage implements IStorage {
   private cards: Map<number, Card>;
   private lovedOnes: Map<number, LovedOne>;
   private orders: Map<number, Order>;
-  private progress: Map<number, CardProgress>;
   private currentUserId: number;
   private currentCardId: number;
   private currentLovedOneId: number;
   private currentOrderId: number;
-  private currentProgressId: number;
 
   constructor() {
     this.users = new Map();
     this.cards = new Map();
     this.lovedOnes = new Map();
     this.orders = new Map();
-    this.progress = new Map();
     this.currentUserId = 1;
     this.currentCardId = 1;
     this.currentLovedOneId = 1;
     this.currentOrderId = 1;
-    this.currentProgressId = 1;
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -194,54 +183,6 @@ export class MemStorage implements IStorage {
       (order) => order.customerEmail === email
     );
   }
-
-  // Progress management methods
-  async saveProgress(progressData: InsertCardProgress & { userId?: string }): Promise<CardProgress> {
-    const progress: CardProgress = {
-      id: this.currentProgressId++,
-      userId: progressData.userId || null,
-      sessionId: progressData.sessionId,
-      progressData: progressData.progressData,
-      currentStep: progressData.currentStep,
-      cardType: progressData.cardType || null,
-      deliveryType: progressData.deliveryType || null,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    this.progress.set(progress.id, progress);
-    return progress;
-  }
-
-  async getProgress(sessionId: string): Promise<CardProgress | undefined> {
-    const progressList = Array.from(this.progress.values())
-      .filter((p) => p.sessionId === sessionId)
-      .sort((a, b) => (b.updatedAt?.getTime() || 0) - (a.updatedAt?.getTime() || 0));
-    return progressList[0];
-  }
-
-  async getUserProgress(userId: string): Promise<CardProgress[]> {
-    return Array.from(this.progress.values())
-      .filter((p) => p.userId === userId)
-      .sort((a, b) => (b.updatedAt?.getTime() || 0) - (a.updatedAt?.getTime() || 0));
-  }
-
-  async updateProgress(id: number, updates: Partial<CardProgress>): Promise<CardProgress> {
-    const existingProgress = this.progress.get(id);
-    if (!existingProgress) {
-      throw new Error(`Progress with id ${id} not found`);
-    }
-    const updatedProgress = { 
-      ...existingProgress, 
-      ...updates, 
-      updatedAt: new Date() 
-    };
-    this.progress.set(id, updatedProgress);
-    return updatedProgress;
-  }
-
-  async deleteProgress(id: number): Promise<void> {
-    this.progress.delete(id);
-  }
 }
 
 // PostgreSQL-based storage implementation
@@ -318,46 +259,6 @@ export class DatabaseStorage implements IStorage {
 
   async getOrdersByEmail(email: string): Promise<Order[]> {
     return await db.select().from(orders).where(eq(orders.customerEmail, email));
-  }
-
-  // Progress management methods
-  async saveProgress(progressData: InsertCardProgress & { userId?: string }): Promise<CardProgress> {
-    const result = await db.insert(cardProgress).values({
-      userId: progressData.userId || null,
-      sessionId: progressData.sessionId,
-      progressData: progressData.progressData,
-      currentStep: progressData.currentStep,
-      cardType: progressData.cardType || null,
-      deliveryType: progressData.deliveryType || null
-    }).returning();
-    return result[0];
-  }
-
-  async getProgress(sessionId: string): Promise<CardProgress | undefined> {
-    const result = await db.select().from(cardProgress)
-      .where(eq(cardProgress.sessionId, sessionId))
-      .orderBy(desc(cardProgress.updatedAt))
-      .limit(1);
-    return result[0];
-  }
-
-  async getUserProgress(userId: string): Promise<CardProgress[]> {
-    const result = await db.select().from(cardProgress)
-      .where(eq(cardProgress.userId, userId))
-      .orderBy(desc(cardProgress.updatedAt));
-    return result;
-  }
-
-  async updateProgress(id: number, updates: Partial<CardProgress>): Promise<CardProgress> {
-    const result = await db.update(cardProgress)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(cardProgress.id, id))
-      .returning();
-    return result[0];
-  }
-
-  async deleteProgress(id: number): Promise<void> {
-    await db.delete(cardProgress).where(eq(cardProgress.id, id));
   }
 }
 
