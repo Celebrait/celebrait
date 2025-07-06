@@ -3482,6 +3482,80 @@ ${formatInstruction}`;
     }
   });
 
+  // Progress management endpoints
+  app.post("/api/progress/save", async (req, res) => {
+    try {
+      const { sessionId, progressData, currentStep, cardType, deliveryType, userId } = req.body;
+
+      if (!sessionId || !progressData || !currentStep) {
+        return res.status(400).json({ message: "Session ID, progress data, and current step are required" });
+      }
+
+      // Check if progress already exists for this session
+      const existingProgress = await storage.getProgress(sessionId);
+      
+      if (existingProgress) {
+        // Update existing progress
+        const updated = await storage.updateProgress(existingProgress.id, {
+          progressData,
+          currentStep,
+          cardType,
+          deliveryType,
+          userId
+        });
+        return res.json(updated);
+      } else {
+        // Create new progress entry
+        const progress = await storage.saveProgress({
+          sessionId,
+          progressData,
+          currentStep,
+          cardType,
+          deliveryType,
+          userId
+        });
+        return res.json(progress);
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to save progress: " + error.message });
+    }
+  });
+
+  app.get("/api/progress/:sessionId", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const progress = await storage.getProgress(sessionId);
+      
+      if (!progress) {
+        return res.status(404).json({ message: "Progress not found" });
+      }
+      
+      res.json(progress);
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to get progress: " + error.message });
+    }
+  });
+
+  app.get("/api/user/:userId/progress", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const progressList = await storage.getUserProgress(userId);
+      res.json(progressList);
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to get user progress: " + error.message });
+    }
+  });
+
+  app.delete("/api/progress/:progressId", async (req, res) => {
+    try {
+      const { progressId } = req.params;
+      await storage.deleteProgress(parseInt(progressId));
+      res.json({ message: "Progress deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to delete progress: " + error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

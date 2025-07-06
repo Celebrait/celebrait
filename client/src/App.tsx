@@ -25,6 +25,7 @@ import DeliveryDetails from "@/pages/delivery-details";
 import CardPreviewPage from "@/pages/card-preview-page";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import TermsOfService from "@/pages/terms-of-service";
+import ProgressPage from "@/pages/progress";
 
 
 function Router() {
@@ -52,6 +53,7 @@ function Router() {
         <Route path="/delivery-details/:reference" component={DeliveryDetails} />
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms-of-service" component={TermsOfService} />
+        <Route path="/progress" component={ProgressPage} />
 
         <Route component={NotFound} />
       </Switch>
