@@ -65,6 +65,7 @@ export default function SavedProgressPage() {
   const handleContinueProgress = (progressData: SavedProgress) => {
     try {
       console.log('Continuing progress with data:', progressData);
+      console.log('About to navigate to home page...');
       
       // Restore the onboarding state from saved progress
       onboarding.setSelectedDelivery(progressData.cardType as 'printed' | 'digital');
@@ -81,8 +82,16 @@ export default function SavedProgressPage() {
       sessionStorage.setItem('savedProgressData', JSON.stringify(progressData));
       sessionStorage.setItem('selectedDeliveryType', progressData.cardType);
       
+      console.log('SessionStorage data set, calling setLocation...');
+      
       // Navigate to home page which will handle the restoration
-      setLocation('/');
+      setTimeout(() => {
+        console.log('Attempting navigation via setTimeout...');
+        setLocation('/');
+        console.log('setLocation called via timeout');
+      }, 100);
+      
+      console.log('Navigation timeout set');
     } catch (error) {
       console.error('Error resuming progress:', error);
     }
@@ -122,19 +131,33 @@ export default function SavedProgressPage() {
                   </p>
                   <div className="space-y-3">
                     <Button 
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         console.log('Sign In to Continue button clicked!');
+                        console.log('Current auth modal state:', showAuthModal);
                         setShowAuthModal(true);
+                        console.log('Auth modal should now be:', true);
                       }}
                       className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                      type="button"
                     >
                       <LogIn className="w-4 h-4 mr-2" />
                       Sign In to Continue
                     </Button>
                     <Button 
-                      onClick={() => setLocation('/')}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Back to Home button clicked!');
+                        setTimeout(() => {
+                          setLocation('/');
+                          console.log('Navigation to home attempted');
+                        }, 100);
+                      }}
                       variant="outline"
                       className="w-full"
+                      type="button"
                     >
                       <ArrowLeft className="w-4 h-4 mr-2" />
                       Back to Home
