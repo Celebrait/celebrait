@@ -2888,6 +2888,27 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   Go Back a Step
                 </Button>
               )}
+              {/* Save Progress Button - Primary Action */}
+              <SaveProgressButton
+                progressData={{
+                  cardType: onboarding.selectedDelivery || 'digital',
+                  printOption: onboarding.selectedDelivery === 'printed' ? 'front-and-inside' : undefined,
+                  sceneType: selectedPhotoOption === 'upload_and_scene' ? 'with-person' : 'scene-only',
+                  conversationData: { answers, uploadedPhotos, currentStep: currentStep.id },
+                  currentStep: currentStepIndex + 1,
+                  progressData: { 
+                    onboardingState: onboarding,
+                    selectedPhotoOption,
+                    streamlinedFlow
+                  }
+                }}
+                variant="default"
+                className="px-6 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-medium shadow-sm"
+                authenticatedUser={authenticatedUser}
+                onUserAuthenticated={onUserAuthenticated}
+              />
+              
+              {/* Start Fresh Button - Secondary Action Below Save Progress */}
               <Button
                 onClick={() => {
                   // Scroll to top and add fade transition
@@ -2911,26 +2932,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Start Fresh
               </Button>
-              
-              {/* Save Progress Button */}
-              <SaveProgressButton
-                progressData={{
-                  cardType: onboarding.selectedDelivery || 'digital',
-                  printOption: onboarding.selectedDelivery === 'printed' ? 'front-and-inside' : undefined,
-                  sceneType: selectedPhotoOption === 'upload_and_scene' ? 'with-person' : 'scene-only',
-                  conversationData: { answers, uploadedPhotos, currentStep: currentStep.id },
-                  currentStep: currentStepIndex + 1,
-                  progressData: { 
-                    onboardingState: onboarding,
-                    selectedPhotoOption,
-                    streamlinedFlow
-                  }
-                }}
-                variant="default"
-                className="px-6 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-medium shadow-sm"
-                authenticatedUser={authenticatedUser}
-                onUserAuthenticated={onUserAuthenticated}
-              />
             </div>
           )}
         </div>

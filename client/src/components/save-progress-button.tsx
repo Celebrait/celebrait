@@ -70,7 +70,7 @@ export default function SaveProgressButton({
         ) : (
           <Save className="w-4 h-4 mr-2" />
         )}
-        Save Progress
+        Save Progress & Return Later
       </Button>
 
       <AuthModal
@@ -87,8 +87,8 @@ export default function SaveProgressButton({
               Save Your Progress?
             </DialogTitle>
             <DialogDescription className="text-left space-y-2">
-              <p>Your card creation progress will be saved to your account and we'll email you a link to continue where you left off.</p>
-              <p>You can return anytime to finish creating your personalized card.</p>
+              <p>We'll save your progress and email you a secure link to continue creating your card from exactly where you left off.</p>
+              <p>Perfect for taking a break and returning later to finish your personalized greeting card.</p>
             </DialogDescription>
           </DialogHeader>
           
@@ -110,7 +110,7 @@ export default function SaveProgressButton({
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              Save Progress
+              Save Progress & Return Later
             </Button>
           </div>
         </DialogContent>
