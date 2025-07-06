@@ -18,6 +18,7 @@ type AuthStep = 'choice' | 'existing' | 'new';
 export default function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthModalProps) {
   const [currentStep, setCurrentStep] = useState<AuthStep>('choice');
   const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Form states
@@ -31,19 +32,17 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthMod
     setFirstName('');
     setLastName('');
     setEmailConfirm('');
+    setAuthError(null);
     setCurrentStep('choice');
   };
 
   const handleSignIn = async () => {
     if (!email) {
-      toast({
-        title: "Email Required",
-        description: "Please enter your email address.",
-        variant: "destructive"
-      });
+      setAuthError("Please enter your email address.");
       return;
     }
 
+    setAuthError(null);
     setIsLoading(true);
     try {
       const userData = await apiRequest('/api/auth/signin', {
@@ -65,11 +64,7 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthMod
         description: "You've been successfully signed in."
       });
     } catch (error: any) {
-      toast({
-        title: "Sign In Failed",
-        description: error.message || "Please check your email address or try signing up as a new user.",
-        variant: "destructive"
-      });
+      setAuthError("Email not recognized. Please check your email address or sign up as a new user.");
     } finally {
       setIsLoading(false);
     }
@@ -77,23 +72,16 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthMod
 
   const handleSignUp = async () => {
     if (!firstName || !lastName || !email || !emailConfirm) {
-      toast({
-        title: "All Fields Required",
-        description: "Please fill in all fields.",
-        variant: "destructive"
-      });
+      setAuthError("Please fill in all fields.");
       return;
     }
 
     if (email !== emailConfirm) {
-      toast({
-        title: "Email Mismatch",
-        description: "Email addresses don't match.",
-        variant: "destructive"
-      });
+      setAuthError("Email addresses don't match.");
       return;
     }
 
+    setAuthError(null);
     setIsLoading(true);
     try {
       const userData = await apiRequest('/api/auth/signup', {
@@ -115,11 +103,7 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthMod
         description: "Your account has been created successfully."
       });
     } catch (error: any) {
-      toast({
-        title: "Sign Up Failed",
-        description: error.message || "Unable to create account. Please try again.",
-        variant: "destructive"
-      });
+      setAuthError(error.message || "Unable to create account. This email may already be in use.");
     } finally {
       setIsLoading(false);
     }
@@ -191,28 +175,36 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthMod
           {/* Step 2: Existing User Form */}
           {currentStep === 'existing' && (
             <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800">
-                  Welcome back! Just enter your email address to continue.
-                </p>
-              </div>
-              
               <div className="space-y-2">
                 <Label htmlFor="signin-email" className="text-sm font-medium text-gray-700">Email Address</Label>
                 <Input
                   id="signin-email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (authError) setAuthError(null); // Clear error when user starts typing
+                  }}
                   placeholder="Enter your email address"
                   disabled={isLoading}
-                  className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                  className={`text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400 ${
+                    authError ? 'border-red-300 focus:border-red-400' : ''
+                  }`}
                 />
               </div>
 
+              {authError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-700 text-sm font-medium">{authError}</p>
+                </div>
+              )}
+
               <div className="flex space-x-3 pt-4">
                 <Button 
-                  onClick={() => setCurrentStep('choice')}
+                  onClick={() => {
+                    setCurrentStep('choice');
+                    setAuthError(null);
+                  }}
                   variant="outline"
                   className="flex-1"
                 >
@@ -233,12 +225,6 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthMod
           {/* Step 3: New User Form */}
           {currentStep === 'new' && (
             <div className="space-y-4">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-sm text-green-800">
-                  We'll send your card via email, so please double-check your details!
-                </p>
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="signup-firstName" className="text-sm font-medium text-gray-700">First Name</Label>
@@ -246,10 +232,15 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthMod
                     id="signup-firstName"
                     type="text"
                     value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
+                    onChange={(e) => {
+                      setFirstName(e.target.value);
+                      if (authError) setAuthError(null);
+                    }}
                     placeholder="Your first name"
                     disabled={isLoading}
-                    className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                    className={`text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400 ${
+                      authError ? 'border-red-300 focus:border-red-400' : ''
+                    }`}
                   />
                 </div>
                 
@@ -259,10 +250,15 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthMod
                     id="signup-lastName"
                     type="text"
                     value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
+                    onChange={(e) => {
+                      setLastName(e.target.value);
+                      if (authError) setAuthError(null);
+                    }}
                     placeholder="Your last name"
                     disabled={isLoading}
-                    className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                    className={`text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400 ${
+                      authError ? 'border-red-300 focus:border-red-400' : ''
+                    }`}
                   />
                 </div>
               </div>
@@ -273,10 +269,15 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthMod
                   id="signup-email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (authError) setAuthError(null);
+                  }}
                   placeholder="Enter your email address"
                   disabled={isLoading}
-                  className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                  className={`text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400 ${
+                    authError ? 'border-red-300 focus:border-red-400' : ''
+                  }`}
                 />
               </div>
               
@@ -286,14 +287,25 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthMod
                   id="signup-emailConfirm"
                   type="email"
                   value={emailConfirm}
-                  onChange={(e) => setEmailConfirm(e.target.value)}
+                  onChange={(e) => {
+                    setEmailConfirm(e.target.value);
+                    if (authError) setAuthError(null);
+                  }}
                   placeholder="Confirm your email address"
                   disabled={isLoading}
-                  className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                  className={`text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400 ${
+                    authError ? 'border-red-300 focus:border-red-400' : ''
+                  }`}
                 />
               </div>
 
-              {email && emailConfirm && email !== emailConfirm && (
+              {authError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-700 text-sm font-medium">{authError}</p>
+                </div>
+              )}
+
+              {email && emailConfirm && email !== emailConfirm && !authError && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                   <p className="text-red-700 text-sm">Email addresses don't match</p>
                 </div>
@@ -301,7 +313,10 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthMod
 
               <div className="flex space-x-3 pt-4">
                 <Button 
-                  onClick={() => setCurrentStep('choice')}
+                  onClick={() => {
+                    setCurrentStep('choice');
+                    setAuthError(null);
+                  }}
                   variant="outline"
                   className="flex-1"
                 >
