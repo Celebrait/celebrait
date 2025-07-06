@@ -45,6 +45,7 @@ export default function CompleteOrder() {
   const [actualRecipientName, setActualRecipientName] = useState('');
   const [deliveryMethod, setDeliveryMethod] = useState<'self' | 'recipient'>('self');
   const [customMessage, setCustomMessage] = useState('');
+  const [currentView, setCurrentView] = useState<'front' | 'inside'>('front');
   
   // Address for printed cards
   const [address, setAddress] = useState<Address>({
@@ -289,57 +290,72 @@ export default function CompleteOrder() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Gift className="w-5 h-5" />
-                  Your Card
+                  Order Summary
                 </CardTitle>
               </CardHeader>
             <CardContent className="space-y-4">
-              {/* Front and Inside Images */}
-              <div className="space-y-4">
-                {card?.frontImageUrl && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Front of Card</p>
-                    <div className="aspect-square w-full max-w-64 mx-auto rounded-lg overflow-hidden border-2 border-gray-200">
-                      <img 
-                        src={`/api/cards/${card.id}/fast-front-image`} 
-                        alt="Card front preview" 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </div>
-                )}
-                
-                {card?.insideImageUrl && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Inside of Card</p>
-                    <div className="aspect-square w-full max-w-64 mx-auto rounded-lg overflow-hidden border-2 border-gray-200">
-                      <img 
-                        src={`/api/cards/${card.id}/fast-inside-image`} 
-                        alt="Card inside preview" 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* Single Card Preview with Toggle - matching payment page layout */}
+              {card?.frontImageUrl && (
+                <div className="aspect-square w-48 mx-auto rounded-lg overflow-hidden border-2 border-gray-200">
+                  <img 
+                    src={currentView === 'front' 
+                      ? `/api/cards/${card.id}/fast-front-image`
+                      : `/api/cards/${card.id}/fast-inside-image`
+                    } 
+                    alt="Card preview" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
+              {/* View Toggle Buttons - only show if inside image exists */}
+              {card?.insideImageUrl && (
+                <div className="flex justify-center gap-2">
+                  <Button
+                    variant={currentView === 'front' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCurrentView('front')}
+                    className="text-xs"
+                  >
+                    Front
+                  </Button>
+                  <Button
+                    variant={currentView === 'inside' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCurrentView('inside')}
+                    className="text-xs"
+                  >
+                    Inside
+                  </Button>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Delivery:</span>
-                  <span className="font-medium capitalize flex items-center gap-1">
-                    {deliveryType === 'digital' ? (
-                      <>
-                        <Download className="w-4 h-4" />
-                        Digital
-                      </>
-                    ) : (
-                      <>
-                        <Truck className="w-4 h-4" />
-                        Printed
-                      </>
-                    )}
+                  <span className="text-gray-600">Card Type:</span>
+                  <span className="font-medium">
+                    {card.cardType === 'printed' ? 'Physical Card' : 'Digital Card'}
                   </span>
                 </div>
-                
+
+                {card.cardType === 'printed' && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Print Option:</span>
+                    <span className="font-medium">
+                      {card.printOption === 'front-and-inside' ? 'Front + Inside' : 'Front Only'}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Delivery:</span>
+                  <span className="font-medium">
+                    {card.cardType === 'printed' ? 'Standard Shipping (3-5 days)' : 'Instant Download'}
+                  </span>
+                </div>
+
+                <Separator />
+
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total:</span>
                   <span className={deliveryType === 'digital' ? 'text-green-600' : 'text-purple-600'}>
