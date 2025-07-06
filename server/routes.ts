@@ -339,6 +339,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Authentication endpoints
+  app.post("/api/auth/signin", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Check if user exists
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found. Please sign up as a new user." });
+      }
+
+      res.json({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName || '',
+        lastName: user.lastName || ''
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: "Sign in failed: " + error.message });
+    }
+  });
+
+  app.post("/api/auth/signup", async (req, res) => {
+    try {
+      const { firstName, lastName, email } = req.body;
+      
+      if (!firstName || !lastName || !email) {
+        return res.status(400).json({ message: "First name, last name, and email are required" });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({ message: "User with this email already exists. Please sign in instead." });
+      }
+
+      // Create new user
+      const userData = {
+        username: email, // Use email as username for simplicity
+        email,
+        firstName,
+        lastName
+      };
+
+      const user = await storage.createUser(userData);
+
+      res.json({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: "Sign up failed: " + error.message });
+    }
+  });
+
   // Create card
   app.post("/api/cards", async (req, res) => {
     try {
