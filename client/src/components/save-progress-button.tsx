@@ -83,12 +83,19 @@ export default function SaveProgressButton({
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Save className="w-5 h-5 text-blue-500" />
-              Save Your Progress?
+              <Save className="w-5 h-5 text-purple-500" />
+              Continue Your Journey Later?
             </DialogTitle>
-            <DialogDescription className="text-left space-y-2">
-              <p>We'll save your progress and email you a secure link to continue creating your card from exactly where you left off.</p>
-              <p>Perfect for taking a break and returning later to finish your personalized greeting card.</p>
+            <DialogDescription className="text-left space-y-3">
+              <p>Take a break from creating your card - we'll save everything and send you a personalized email link to pick up exactly where you left off.</p>
+              <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                <p className="text-sm font-medium text-purple-800">What happens next:</p>
+                <ul className="text-sm text-purple-700 mt-1 space-y-1">
+                  <li>• Your conversation progress gets saved</li>
+                  <li>• You'll receive an email with a secure link</li>
+                  <li>• Click the link anytime to continue creating</li>
+                </ul>
+              </div>
             </DialogDescription>
           </DialogHeader>
           
@@ -98,19 +105,19 @@ export default function SaveProgressButton({
               variant="outline"
               className="flex-1"
             >
-              Cancel
+              Keep Creating
             </Button>
             <Button 
               onClick={confirmSaveProgress}
               disabled={isLoading}
-              className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+              className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
             >
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              Save Progress & Return Later
+              Save & Email Me Link
             </Button>
           </div>
         </DialogContent>
