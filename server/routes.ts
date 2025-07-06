@@ -14,7 +14,7 @@ import Replicate from "replicate";
 import FormData from "form-data";
 import { createCanvas, loadImage } from "canvas";
 import sharp from "sharp";
-import { sendEmail, generateOrderConfirmationEmail, generateDigitalCardEmail, generateCardReadyNotificationEmail, generateShippingNotificationEmail } from './email-service';
+import { sendEmail, generateOrderConfirmationEmail, generateDigitalCardEmail, generateCardReadyNotificationEmail, generateShippingNotificationEmail, sendSaveProgressEmail } from './email-service';
 import { 
   storeImageFromBase64, 
   getStoredImage, 
@@ -417,6 +417,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currentStep: currentStep || 1,
         progressData: progressData || {}
       });
+
+      // Send email notification to user about saved progress
+      try {
+        const user = await storage.getUser(userId);
+        if (user && user.email) {
+          const emailData = {
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            recipientName: conversationData?.recipientName || conversationData?.name || 'your recipient',
+            celebration: conversationData?.celebration || 'greeting card'
+          };
+          
+          const host = req.headers.host?.includes('localhost') 
+            ? `http://${req.headers.host}`
+            : `https://${req.headers.host}`;
+            
+          await sendSaveProgressEmail(emailData, host);
+          console.log('Save progress email sent successfully to:', user.email);
+        }
+      } catch (emailError) {
+        console.error('Failed to send save progress email:', emailError);
+        // Don't fail the request if email fails
+      }
 
       res.json(savedProgress);
     } catch (error: any) {
@@ -3539,6 +3563,53 @@ ${formatInstruction}`;
       res.status(500).json({ 
         success: false, 
         message: "SendGrid test failed: " + error.message 
+      });
+    }
+  });
+
+  // Test save progress email functionality
+  app.post("/api/test-save-progress-email", async (req, res) => {
+    try {
+      const { testEmail, firstName = 'John', lastName = 'Doe', recipientName = 'Sarah', celebration = 'birthday' } = req.body;
+
+      if (!testEmail) {
+        return res.status(400).json({ message: "Test email address is required" });
+      }
+
+      console.log(`Testing save progress email with: ${testEmail}`);
+
+      const emailData = {
+        email: testEmail,
+        firstName,
+        lastName,
+        recipientName,
+        celebration
+      };
+      
+      const host = req.headers.host?.includes('localhost') 
+        ? `http://${req.headers.host}`
+        : `https://${req.headers.host}`;
+        
+      const success = await sendSaveProgressEmail(emailData, host);
+
+      if (success) {
+        res.json({ 
+          success: true, 
+          message: 'Save progress email sent successfully',
+          emailData,
+          note: 'Check your inbox for the save progress email with continue link'
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: 'Failed to send save progress email - check server logs for details' 
+        });
+      }
+
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false, 
+        message: "Save progress email test failed: " + error.message 
       });
     }
   });

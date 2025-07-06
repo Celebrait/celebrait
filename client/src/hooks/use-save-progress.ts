@@ -41,7 +41,7 @@ export function useSaveProgress() {
     onSuccess: () => {
       toast({
         title: "Progress Saved",
-        description: "Your card creation progress has been saved. You can continue later by signing in."
+        description: "Your card creation progress has been saved and we've sent you an email link to continue where you left off."
       });
       // Invalidate saved progress queries
       queryClient.invalidateQueries({ queryKey: ['/api/saved-progress'] });

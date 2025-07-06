@@ -2905,8 +2905,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     }, 100);
                   }, 150);
                 }}
-                variant="outline"
-                className="px-6 py-2 rounded-xl border-purple-300 text-purple-600 hover:bg-purple-50 font-medium shadow-sm"
+                variant="ghost"
+                className="text-gray-500 hover:text-gray-700"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Start Fresh
@@ -2926,8 +2926,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     streamlinedFlow
                   }
                 }}
-                variant="ghost"
-                className="text-gray-500 hover:text-gray-700"
+                variant="default"
+                className="px-6 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-medium shadow-sm"
                 authenticatedUser={authenticatedUser}
                 onUserAuthenticated={onUserAuthenticated}
               />

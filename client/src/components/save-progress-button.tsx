@@ -16,7 +16,7 @@ interface SaveProgressButtonProps {
 
 export default function SaveProgressButton({ 
   progressData, 
-  variant = 'outline', 
+  variant = 'default', 
   size = 'default',
   className = '',
   authenticatedUser,
@@ -87,8 +87,8 @@ export default function SaveProgressButton({
               Save Your Progress?
             </DialogTitle>
             <DialogDescription className="text-left space-y-2">
-              <p>Your card creation progress will be saved to your account.</p>
-              <p>You can continue where you left off by signing in next time you visit.</p>
+              <p>Your card creation progress will be saved to your account and we'll email you a link to continue where you left off.</p>
+              <p>You can return anytime to finish creating your personalized card.</p>
             </DialogDescription>
           </DialogHeader>
           

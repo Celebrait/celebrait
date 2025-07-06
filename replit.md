@@ -120,6 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 6, 2025. ENHANCED SAVE PROGRESS UI & EMAIL NOTIFICATIONS - Prominent save progress button with automated email functionality:
+  * PROMINENT SAVE BUTTON: Made save progress button prominent with gradient styling, replaced start fresh as primary action
+  * LESS PROMINENT START FRESH: Moved start fresh to ghost button styling, now secondary option
+  * EMAIL NOTIFICATIONS: Complete email system for saved progress - users receive personalized email links to continue their card creation
+  * SAVE PROGRESS EMAIL: Professional HTML email template with gradient header, personalized messaging, and direct links to saved progress page
+  * BACKEND EMAIL INTEGRATION: Updated save progress API endpoint to automatically send email notifications using SendGrid
+  * EMAIL CONTENT: Personalized emails include recipient name, celebration type, user's first name, and encouraging messaging
+  * SUCCESS MESSAGING: Updated save progress confirmation to mention email link feature for user awareness
+  * COMPLETE FLOW: Users can now save progress, receive email, click link, sign in, and resume exactly where they left off
 - July 6, 2025. MAJOR FEATURE: SAVE PROGRESS IMPLEMENTATION - Complete save/resume functionality for card creation:
   * DATABASE SCHEMA: Added savedProgress table with user_id, card_type, conversation_data, current_step tracking
   * BACKEND API: Created /api/save-progress, /api/saved-progress/:userId, DELETE endpoints with full CRUD operations
