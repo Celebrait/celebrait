@@ -40,6 +40,11 @@ export default function SaveProgressButton({
 
   const handleAuthSuccess = (userData: { id: string; firstName: string; lastName: string; email: string }) => {
     setShowAuthModal(false);
+    
+    // Store authentication data in sessionStorage for persistence
+    sessionStorage.setItem('authenticatedUser', JSON.stringify(userData));
+    console.log('Stored authentication data:', userData);
+    
     if (onUserAuthenticated) {
       onUserAuthenticated(userData);
     }

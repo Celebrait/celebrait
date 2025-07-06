@@ -15,8 +15,52 @@ export default function SavedProgressPage() {
   const [, setLocation] = useLocation();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authenticatedUser, setAuthenticatedUser] = useState<{ id: string; firstName: string; lastName: string; email: string } | null>(null);
+  const [authCheckComplete, setAuthCheckComplete] = useState(false);
   const onboarding = useOnboarding();
   const { data: savedProgress, isLoading, error } = useGetSavedProgress(authenticatedUser?.id);
+
+  // Check for existing authentication on component mount
+  useEffect(() => {
+    const checkExistingAuth = () => {
+      try {
+        // Check if there's stored auth data in sessionStorage
+        const storedUser = sessionStorage.getItem('authenticatedUser');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          console.log('Found stored authentication:', userData);
+          setAuthenticatedUser(userData);
+        }
+      } catch (error) {
+        console.error('Error checking stored authentication:', error);
+      } finally {
+        setAuthCheckComplete(true);
+      }
+    };
+
+    checkExistingAuth();
+  }, []);
+
+  // Show loading state while checking authentication
+  if (!authCheckComplete) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
+        <Header />
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-md mx-auto">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center space-y-4">
+                  <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mx-auto"></div>
+                  <p className="text-gray-600">Checking authentication...</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   const handleContinueProgress = (progressData: SavedProgress) => {
     try {
@@ -46,6 +90,11 @@ export default function SavedProgressPage() {
 
   const handleAuthSuccess = (userData: { id: string; firstName: string; lastName: string; email: string }) => {
     setShowAuthModal(false);
+    
+    // Store authentication data in sessionStorage for persistence
+    sessionStorage.setItem('authenticatedUser', JSON.stringify(userData));
+    console.log('Stored authentication data on saved progress page:', userData);
+    
     setAuthenticatedUser(userData);
   };
 
@@ -57,7 +106,7 @@ export default function SavedProgressPage() {
     setLocation('/');
   };
 
-  if (!authenticatedUser) {
+  if (!authenticatedUser && authCheckComplete) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
         <Header />
@@ -73,7 +122,10 @@ export default function SavedProgressPage() {
                   </p>
                   <div className="space-y-3">
                     <Button 
-                      onClick={() => setShowAuthModal(true)}
+                      onClick={() => {
+                        console.log('Sign In to Continue button clicked!');
+                        setShowAuthModal(true);
+                      }}
                       className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
                     >
                       <LogIn className="w-4 h-4 mr-2" />
@@ -98,6 +150,9 @@ export default function SavedProgressPage() {
     );
   }
 
+  // At this point, we know authenticatedUser is not null due to the early return above
+  const user = authenticatedUser!;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
       <Header />
@@ -107,7 +162,7 @@ export default function SavedProgressPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome back, {authenticatedUser.firstName}!
+              Welcome back, {user.firstName}!
             </h1>
             <p className="text-gray-600">
               Continue where you left off or start creating a new card
