@@ -234,7 +234,7 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess, mode = 'c
                   disabled={isLoading || !email}
                   className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold text-white shadow-lg hover:shadow-xl"
                 >
-                  {isLoading ? 'Signing In...' : 'Continue'}
+                  {isLoading ? 'Signing In...' : (mode === 'saveProgress' ? 'SAVE PROGRESS & EMAIL LINK' : 'Continue')}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
@@ -353,7 +353,7 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess, mode = 'c
                   disabled={isLoading || !firstName || !lastName || !email || !emailConfirm || email !== emailConfirm}
                   className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold text-white shadow-lg hover:shadow-xl"
                 >
-                  {isLoading ? 'Creating Account...' : 'GENERATE MY CARD'}
+                  {isLoading ? 'Creating Account...' : (mode === 'saveProgress' ? 'SAVE PROGRESS & EMAIL LINK' : 'GENERATE MY CARD')}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
