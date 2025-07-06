@@ -86,7 +86,7 @@ export default function SaveProgressButton({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Save className="w-5 h-5 text-purple-500" />
-              Continue Your Journey Later?
+              Continue Your Journey Later? 
             </DialogTitle>
             <DialogDescription className="text-left space-y-3">
               <p>Take a break from creating your card - we'll save everything and send you a personalized email link to pick up exactly where you left off.</p>
