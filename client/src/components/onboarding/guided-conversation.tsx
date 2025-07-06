@@ -1265,11 +1265,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       // Use authenticated user's email if available, otherwise use popup email
       const notificationEmail = authenticatedUser?.email || popupEmail;
       
+      // Store the notification email in answers for use in email notification
+      setAnswers(prev => ({ ...prev, notification_email: notificationEmail }));
+      
       console.log('Starting card generation with options:', {
         photo_option: answers.photo_option,
         has_photos: uploadedPhotos.length > 0,
         cardId: cardId,
-        notification_email: notificationEmail
+        notification_email: notificationEmail,
+        authenticated_user_email: authenticatedUser?.email,
+        popup_email: popupEmail
       });
       
       // Ensure card is initialized
@@ -1309,7 +1314,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         
         console.log('Email notification decision:', {
           finalEmailToNotify: emailToNotify,
-          source: authenticatedUser ? 'authenticated user' : 'popup modal'
+          source: authenticatedUser ? 'authenticated user' : 'popup modal',
+          authenticatedUser: authenticatedUser,
+          popupEmail: popupEmail,
+          answersNotificationEmail: answers.notification_email
         });
                             
         if (emailToNotify && emailToNotify.trim()) {
