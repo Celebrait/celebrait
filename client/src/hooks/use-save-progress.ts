@@ -32,11 +32,8 @@ export function useSaveProgress() {
 
   const saveProgressMutation = useMutation({
     mutationFn: async (data: SaveProgressData) => {
-      return await apiRequest('/api/save-progress', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: { 'Content-Type': 'application/json' }
-      });
+      const response = await apiRequest('POST', '/api/save-progress', data);
+      return await response.json();
     },
     onSuccess: () => {
       toast({
@@ -57,9 +54,8 @@ export function useSaveProgress() {
 
   const deleteSavedProgressMutation = useMutation({
     mutationFn: async (progressId: number) => {
-      return await apiRequest(`/api/saved-progress/${progressId}`, {
-        method: 'DELETE'
-      });
+      const response = await apiRequest('DELETE', `/api/saved-progress/${progressId}`);
+      return await response.json();
     },
     onSuccess: () => {
       toast({
@@ -91,7 +87,8 @@ export function useGetSavedProgress(userId?: string) {
     queryFn: async () => {
       if (!userId) return null;
       try {
-        return await apiRequest(`/api/saved-progress/${userId}`);
+        const response = await apiRequest('GET', `/api/saved-progress/${userId}`);
+        return await response.json();
       } catch (error: any) {
         if (error.message?.includes('404')) {
           return null; // No saved progress found

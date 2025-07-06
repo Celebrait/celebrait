@@ -10,7 +10,7 @@ interface SaveProgressButtonProps {
   size?: 'default' | 'sm' | 'lg';
   className?: string;
   authenticatedUser?: { id: string; firstName: string; lastName: string; email: string } | null;
-  onUserAuthenticated?: (userData: { firstName: string; lastName: string; email: string }) => void;
+  onUserAuthenticated?: (userData: { id: string; firstName: string; lastName: string; email: string }) => void;
 }
 
 export default function SaveProgressButton({ 
@@ -38,7 +38,7 @@ export default function SaveProgressButton({
     });
   };
 
-  const handleAuthSuccess = (userData: { firstName: string; lastName: string; email: string }) => {
+  const handleAuthSuccess = (userData: { id: string; firstName: string; lastName: string; email: string }) => {
     setShowAuthModal(false);
     if (onUserAuthenticated) {
       onUserAuthenticated(userData);
@@ -46,7 +46,7 @@ export default function SaveProgressButton({
     
     // Enhanced progress data with user authentication details
     const enhancedProgressData = {
-      userId: userData.email, // Use email as userId for now
+      userId: userData.id, // Use actual database user ID
       ...progressData,
       conversationData: {
         ...progressData.conversationData,

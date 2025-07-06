@@ -10,7 +10,7 @@ import { apiRequest } from '@/lib/queryClient';
 interface AuthModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAuthSuccess: (userData: { firstName: string; lastName: string; email: string }) => void;
+  onAuthSuccess: (userData: { id: string; firstName: string; lastName: string; email: string }) => void;
   mode?: 'cardDelivery' | 'saveProgress';
 }
 
@@ -46,13 +46,11 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess, mode = 'c
     setAuthError(null);
     setIsLoading(true);
     try {
-      const userData = await apiRequest('/api/auth/signin', {
-        method: 'POST',
-        body: JSON.stringify({ email }),
-        headers: { 'Content-Type': 'application/json' }
-      });
+      const response = await apiRequest('POST', '/api/auth/signin', { email });
+      const userData = await response.json();
 
       onAuthSuccess({
+        id: userData.id,
         firstName: userData.firstName || '',
         lastName: userData.lastName || '',
         email: userData.email
@@ -85,13 +83,11 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess, mode = 'c
     setAuthError(null);
     setIsLoading(true);
     try {
-      const userData = await apiRequest('/api/auth/signup', {
-        method: 'POST',
-        body: JSON.stringify({ firstName, lastName, email }),
-        headers: { 'Content-Type': 'application/json' }
-      });
+      const response = await apiRequest('POST', '/api/auth/signup', { firstName, lastName, email });
+      const userData = await response.json();
 
       onAuthSuccess({
+        id: userData.id,
         firstName: userData.firstName,
         lastName: userData.lastName,
         email: userData.email
