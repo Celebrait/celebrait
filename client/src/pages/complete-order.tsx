@@ -267,10 +267,7 @@ export default function CompleteOrder() {
               <User className="text-white w-10 h-10" />
             </div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              {deliverTo === 'recipient' 
-                ? `${recipientName}'s Information`
-                : 'Your Information'
-              }
+              Delivery Information
             </h1>
             <p className="text-lg text-slate-gray">
               {deliveryType === 'digital' 
@@ -284,90 +281,8 @@ export default function CompleteOrder() {
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Card Preview */}
-            <Card className="lg:col-span-1 bg-white/80 backdrop-blur-sm border border-white/20 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Gift className="w-5 h-5" />
-                  Order Summary
-                </CardTitle>
-              </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Single Card Preview with Toggle - matching payment page layout */}
-              {card?.frontImageUrl && (
-                <div className="aspect-square w-48 mx-auto rounded-lg overflow-hidden border-2 border-gray-200">
-                  <img 
-                    src={currentView === 'front' 
-                      ? `/api/cards/${card.id}/fast-front-image`
-                      : `/api/cards/${card.id}/fast-inside-image`
-                    } 
-                    alt="Card preview" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-
-              {/* View Toggle Buttons - only show if inside image exists */}
-              {card?.insideImageUrl && (
-                <div className="flex justify-center gap-2">
-                  <Button
-                    variant={currentView === 'front' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setCurrentView('front')}
-                    className="text-xs"
-                  >
-                    Front
-                  </Button>
-                  <Button
-                    variant={currentView === 'inside' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setCurrentView('inside')}
-                    className="text-xs"
-                  >
-                    Inside
-                  </Button>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Card Type:</span>
-                  <span className="font-medium">
-                    {card.cardType === 'printed' ? 'Physical Card' : 'Digital Card'}
-                  </span>
-                </div>
-
-                {card.cardType === 'printed' && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Print Option:</span>
-                    <span className="font-medium">
-                      {card.printOption === 'front-and-inside' ? 'Front + Inside' : 'Front Only'}
-                    </span>
-                  </div>
-                )}
-
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Delivery:</span>
-                  <span className="font-medium">
-                    {card.cardType === 'printed' ? 'Standard Shipping (3-5 days)' : 'Instant Download'}
-                  </span>
-                </div>
-
-                <Separator />
-
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total:</span>
-                  <span className={deliveryType === 'digital' ? 'text-green-600' : 'text-purple-600'}>
-                    {deliveryType === 'digital' ? 'FREE' : `R${(card.price / 100).toFixed(2)}`}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-            {/* Order Form */}
-            <Card className="lg:col-span-2 bg-white/80 backdrop-blur-sm border border-white/20 shadow-lg">
+          {/* Order Form - Full Width */}
+          <Card className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-lg mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 {deliveryType === 'digital' ? (
@@ -648,7 +563,87 @@ export default function CompleteOrder() {
               )}
             </CardContent>
           </Card>
-        </div>
+
+          {/* Order Summary - moved to bottom */}
+          <Card className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Gift className="w-5 h-5" />
+                Order Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Single Card Preview with Toggle - matching payment page layout */}
+              {card?.frontImageUrl && (
+                <div className="aspect-square w-48 mx-auto rounded-lg overflow-hidden border-2 border-gray-200">
+                  <img 
+                    src={currentView === 'front' 
+                      ? `/api/cards/${card.id}/fast-front-image`
+                      : `/api/cards/${card.id}/fast-inside-image`
+                    } 
+                    alt="Card preview" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
+              {/* View Toggle Buttons - only show if inside image exists */}
+              {card?.insideImageUrl && (
+                <div className="flex justify-center gap-2">
+                  <Button
+                    variant={currentView === 'front' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCurrentView('front')}
+                    className="text-xs"
+                  >
+                    Front
+                  </Button>
+                  <Button
+                    variant={currentView === 'inside' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCurrentView('inside')}
+                    className="text-xs"
+                  >
+                    Inside
+                  </Button>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Card Type:</span>
+                  <span className="font-medium">
+                    {card?.cardType === 'printed' ? 'Physical Card' : 'Digital Card'}
+                  </span>
+                </div>
+
+                {card?.cardType === 'printed' && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Print Option:</span>
+                    <span className="font-medium">
+                      {card?.printOption === 'front-and-inside' ? 'Front + Inside' : 'Front Only'}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Delivery:</span>
+                  <span className="font-medium">
+                    {card?.cardType === 'printed' ? 'Standard Shipping (3-5 days)' : 'Instant Download'}
+                  </span>
+                </div>
+
+                <Separator />
+
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total:</span>
+                  <span className={deliveryType === 'digital' ? 'text-green-600' : 'text-purple-600'}>
+                    {deliveryType === 'digital' ? 'FREE' : `R${(card?.price ? (card.price / 100).toFixed(2) : '0.00')}`}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>
