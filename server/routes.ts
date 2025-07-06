@@ -27,7 +27,7 @@ import {
   type CleanupConfig
 } from "./image-storage";
 import { migrateCardImages, cardNeedsMigration } from "./image-migration";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./simple-auth";
 
 // Temporarily allow running without API keys for testing
 const hasOpenAI = !!process.env.OPENAI_API_KEY;

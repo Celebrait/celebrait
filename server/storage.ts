@@ -3,6 +3,7 @@ import {
   cards,
   lovedOnes,
   orders,
+  loginTokens,
   type User,
   type UpsertUser,
   type Card,
@@ -18,9 +19,14 @@ import { eq } from "drizzle-orm";
 // Interface for storage operations
 export interface IStorage {
   // User operations
-  // (IMPORTANT) these user operations are mandatory for Replit Auth.
   getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  
+  // Auth tokens for email-based login
+  createLoginToken(email: string, token: string, expiresAt: Date): Promise<void>;
+  getLoginToken(token: string): Promise<{email: string, expiresAt: Date} | undefined>;
+  deleteLoginToken(token: string): Promise<void>;
   
   // Card operations
   createCard(card: InsertCard & { userId: string }): Promise<Card>;
@@ -63,6 +69,31 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createLoginToken(email: string, token: string, expiresAt: Date): Promise<void> {
+    await db.insert(loginTokens).values({
+      token,
+      email,
+      expiresAt,
+    });
+  }
+
+  async getLoginToken(token: string): Promise<{email: string, expiresAt: Date} | undefined> {
+    const [loginToken] = await db.select().from(loginTokens).where(eq(loginTokens.token, token));
+    return loginToken ? {
+      email: loginToken.email,
+      expiresAt: loginToken.expiresAt
+    } : undefined;
+  }
+
+  async deleteLoginToken(token: string): Promise<void> {
+    await db.delete(loginTokens).where(eq(loginTokens.token, token));
   }
 
   // Card operations

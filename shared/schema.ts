@@ -26,6 +26,14 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Login tokens table for email-based authentication
+export const loginTokens = pgTable("login_tokens", {
+  token: varchar("token").primaryKey().notNull(),
+  email: varchar("email").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const cards = pgTable("cards", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id),
