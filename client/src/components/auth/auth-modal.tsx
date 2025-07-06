@@ -11,11 +11,12 @@ interface AuthModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAuthSuccess: (userData: { firstName: string; lastName: string; email: string }) => void;
+  mode?: 'cardDelivery' | 'saveProgress';
 }
 
 type AuthStep = 'choice' | 'existing' | 'new';
 
-export default function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthModalProps) {
+export default function AuthModal({ open, onOpenChange, onAuthSuccess, mode = 'cardDelivery' }: AuthModalProps) {
   const [currentStep, setCurrentStep] = useState<AuthStep>('choice');
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -116,24 +117,35 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess }: AuthMod
     }}>
       <DialogContent className="max-w-2xl bg-white border-2 border-gray-200">
         <DialogHeader className="sr-only">
-          <DialogTitle>Email Required for Card Delivery</DialogTitle>
-          <DialogDescription>We need your email to notify you when your card is ready</DialogDescription>
+          <DialogTitle>
+            {mode === 'saveProgress' ? 'Continue Your Journey Later?' : 'Email Required for Card Delivery'}
+          </DialogTitle>
+          <DialogDescription>
+            {mode === 'saveProgress' 
+              ? 'We\'ll save your progress and email you a link to continue creating your card' 
+              : 'We need your email to notify you when your card is ready'
+            }
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6 p-4">
           {/* Header Section */}
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-6 rounded-xl">
+          <div className={`bg-gradient-to-r ${mode === 'saveProgress' ? 'from-purple-50 to-pink-50 border border-purple-200' : 'from-blue-50 to-purple-50 border border-blue-200'} p-6 rounded-xl`}>
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                <div className={`w-12 h-12 ${mode === 'saveProgress' ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-gradient-to-r from-blue-500 to-purple-500'} rounded-full flex items-center justify-center`}>
                   <Mail className="w-6 h-6 text-white" />
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">📧 Your Details for Card Delivery</h3>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                  {mode === 'saveProgress' ? '💾 Save Your Progress' : '📧 Your Details for Card Delivery'}
+                </h3>
                 <p className="text-gray-700 text-sm leading-relaxed">
-                  Our AI creates incredible custom artwork, but it takes up to 2 minutes to generate. We need your details 
-                  to send you the card link when it's ready! This way you can close this window and continue with your day while we work our magic.
+                  {mode === 'saveProgress' 
+                    ? 'Take a break from creating your card - we\'ll save everything and send you a personalized email link to pick up exactly where you left off.'
+                    : 'Our AI creates incredible custom artwork, but it takes up to 2 minutes to generate. We need your details to send you the card link when it\'s ready! This way you can close this window and continue with your day while we work our magic.'
+                  }
                 </p>
               </div>
             </div>
