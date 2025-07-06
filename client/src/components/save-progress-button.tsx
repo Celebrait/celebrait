@@ -5,6 +5,8 @@ import { Save, Loader2 } from 'lucide-react';
 import { useSaveProgress, SaveProgressData } from '@/hooks/use-save-progress';
 import AuthModal from '@/components/auth/auth-modal';
 
+// Updated save progress dialog with unique messaging
+
 interface SaveProgressButtonProps {
   progressData: Omit<SaveProgressData, 'userId'>;
   variant?: 'default' | 'outline' | 'ghost';
