@@ -108,7 +108,7 @@ function SeeHowItLooksSection() {
             <div key={pairIndex} className="flex gap-4 items-end">
               {/* Front of card */}
               <div className="flex-shrink-0 relative">
-                <div className="w-72 h-96 rounded-2xl overflow-hidden shadow-lg bg-white">
+                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
                   <img
                     src={sampleCard}
                     alt={`Sample card front ${pairIndex + 1}`}
@@ -122,9 +122,9 @@ function SeeHowItLooksSection() {
                 </div>
               </div>
               
-              {/* Inside of card - slightly taller */}
-              <div className="flex-shrink-0 relative">
-                <div className="w-72 h-[26rem] rounded-2xl overflow-hidden shadow-lg bg-white">
+              {/* Inside of card - slightly higher position */}
+              <div className="flex-shrink-0 relative -mb-8">
+                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
                   <img
                     src={sampleCard}
                     alt={`Sample card inside ${pairIndex + 1}`}
@@ -150,7 +150,7 @@ function SeeHowItLooksSection() {
             <div key={pairIndex + 6} className="flex gap-4 items-end">
               {/* Front of card */}
               <div className="flex-shrink-0 relative">
-                <div className="w-72 h-96 rounded-2xl overflow-hidden shadow-lg bg-white">
+                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
                   <img
                     src={sampleCard}
                     alt={`Sample card front ${pairIndex + 7}`}
@@ -164,9 +164,9 @@ function SeeHowItLooksSection() {
                 </div>
               </div>
               
-              {/* Inside of card - slightly taller */}
-              <div className="flex-shrink-0 relative">
-                <div className="w-72 h-[26rem] rounded-2xl overflow-hidden shadow-lg bg-white">
+              {/* Inside of card - slightly higher position */}
+              <div className="flex-shrink-0 relative -mb-8">
+                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
                   <img
                     src={sampleCard}
                     alt={`Sample card inside ${pairIndex + 7}`}
