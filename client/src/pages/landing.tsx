@@ -92,7 +92,7 @@ function WatchVideoSection() {
 
 function SeeHowItLooksSection() {
   return (
-    <section className="w-full py-16 pb-24 bg-gray-50 overflow-hidden">
+    <section className="w-full py-16 bg-gray-50 overflow-hidden" style={{ paddingBottom: '8rem' }}>
       <div className="text-center mb-12">
         <h2 className="text-3xl md:text-4xl font-extrabold">
           <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">
@@ -102,50 +102,88 @@ function SeeHowItLooksSection() {
       </div>
       
       <div className="relative overflow-hidden">
-        <div className="flex animate-scroll items-end">
-          {/* Create carousel content */}
-          {[...Array(2)].map((_, setIndex) => (
-            <div key={setIndex} className="flex gap-4 items-end">
-              {Array.from({ length: 6 }, (_, pairIndex) => (
-                <div key={`${setIndex}-${pairIndex}`} className="flex gap-4 items-end">
-                  {/* Front of card */}
-                  <div className="flex-shrink-0 relative">
-                    <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                      <img
-                        src={sampleCard}
-                        alt={`Sample card front ${setIndex * 6 + pairIndex + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                        Front of Card
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Inside of card - slightly higher position */}
-                  <div className="flex-shrink-0 relative -mb-8">
-                    <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                      <img
-                        src={sampleCard}
-                        alt={`Sample card inside ${setIndex * 6 + pairIndex + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                        Inside of Card
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Vertical separator after each pair */}
-                  {pairIndex < 5 && (
-                    <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
-                  )}
+        <div className="flex animate-scroll items-end whitespace-nowrap">
+          {/* First complete set */}
+          {Array.from({ length: 6 }, (_, pairIndex) => (
+            <div key={pairIndex} className="inline-flex gap-4 items-end mr-4">
+              {/* Front of card */}
+              <div className="flex-shrink-0 relative">
+                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
+                  <img
+                    src={sampleCard}
+                    alt={`Sample card front ${pairIndex + 1}`}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-              ))}
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
+                    Front of Card
+                  </span>
+                </div>
+              </div>
+              
+              {/* Inside of card - slightly higher position */}
+              <div className="flex-shrink-0 relative -mb-8">
+                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
+                  <img
+                    src={sampleCard}
+                    alt={`Sample card inside ${pairIndex + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
+                    Inside of Card
+                  </span>
+                </div>
+              </div>
+              
+              {/* Vertical separator after each pair */}
+              {pairIndex < 5 && (
+                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
+              )}
+            </div>
+          ))}
+          
+          {/* Exact duplicate set for seamless loop */}
+          {Array.from({ length: 6 }, (_, pairIndex) => (
+            <div key={`dup-${pairIndex}`} className="inline-flex gap-4 items-end mr-4">
+              {/* Front of card */}
+              <div className="flex-shrink-0 relative">
+                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
+                  <img
+                    src={sampleCard}
+                    alt={`Sample card front ${pairIndex + 7}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
+                    Front of Card
+                  </span>
+                </div>
+              </div>
+              
+              {/* Inside of card - slightly higher position */}
+              <div className="flex-shrink-0 relative -mb-8">
+                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
+                  <img
+                    src={sampleCard}
+                    alt={`Sample card inside ${pairIndex + 7}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
+                    Inside of Card
+                  </span>
+                </div>
+              </div>
+              
+              {/* Vertical separator after each pair */}
+              {pairIndex < 5 && (
+                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
+              )}
             </div>
           ))}
         </div>
