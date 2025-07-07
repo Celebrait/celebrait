@@ -22,10 +22,19 @@ export default function WelcomeBackSummary({
   selectedPhotoOption
 }: WelcomeBackSummaryProps) {
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Debug logging to confirm component is rendered
+  console.log('WelcomeBackSummary rendered with:', { answers, authenticatedUser, selectedDeliveryType });
 
   const handleContinue = () => {
+    console.log('Welcome back continue button clicked');
     setIsGenerating(true);
     onContinueToGeneration();
+  };
+
+  const handleEditClick = (fieldId: string) => {
+    console.log('Edit button clicked for field:', fieldId);
+    onEditField(fieldId);
   };
 
   const getPhotoOptionLabel = (option: string) => {
@@ -95,7 +104,7 @@ export default function WelcomeBackSummary({
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => onEditField('name')}
+                    onClick={() => handleEditClick('name')}
                     className="text-purple-600 hover:text-purple-700"
                   >
                     <Edit2 className="w-4 h-4" />
@@ -114,7 +123,7 @@ export default function WelcomeBackSummary({
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => onEditField('celebration')}
+                    onClick={() => handleEditClick('celebration')}
                     className="text-purple-600 hover:text-purple-700"
                   >
                     <Edit2 className="w-4 h-4" />
@@ -147,7 +156,7 @@ export default function WelcomeBackSummary({
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => onEditField('photo_option')}
+                    onClick={() => handleEditClick('photo_option')}
                     className="text-purple-600 hover:text-purple-700"
                   >
                     <Edit2 className="w-4 h-4" />
@@ -167,7 +176,7 @@ export default function WelcomeBackSummary({
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => onEditField('art_style')}
+                      onClick={() => handleEditClick('art_style')}
                       className="text-purple-600 hover:text-purple-700"
                     >
                       <Edit2 className="w-4 h-4" />
@@ -188,7 +197,7 @@ export default function WelcomeBackSummary({
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => onEditField('message')}
+                      onClick={() => handleEditClick('message')}
                       className="text-purple-600 hover:text-purple-700"
                     >
                       <Edit2 className="w-4 h-4" />
