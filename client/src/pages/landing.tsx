@@ -97,227 +97,99 @@ function WatchVideoSection() {
   );
 }
 
-function SeeHowItsMadeSection() {
-  const [activeToggle, setActiveToggle] = useState<'describe' | 'transform'>('describe');
-  const [revealedBoxes, setRevealedBoxes] = useState<Set<string>>(new Set());
-  const [poofAnimations, setPoofAnimations] = useState<Set<string>>(new Set());
-
-  const toggleBox = (boxId: string) => {
-    if (!revealedBoxes.has(boxId)) {
-      // Trigger poof animation
-      setPoofAnimations(prev => new Set(prev).add(boxId));
-      setTimeout(() => {
-        setPoofAnimations(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(boxId);
-          return newSet;
-        });
-      }, 600);
-    }
-
-    setRevealedBoxes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(boxId)) {
-        newSet.delete(boxId);
-      } else {
-        newSet.add(boxId);
-      }
-      return newSet;
-    });
-  };
-
-  const describeSceneData = [
-    {
-      sceneDescription: "a cozy coffee shop with warm lighting",
-      artStyle: "Watercolor",
-      frontText: "Happy Birthday Sarah!",
-      insideText: "Hope your day is as wonderful as you are!"
-    },
-    {
-      sceneDescription: "a beautiful garden party with balloons",
-      artStyle: "Oil Painting",
-      frontText: "Congratulations Emma!",
-      insideText: "Your graduation is just the beginning!"
-    },
-    {
-      sceneDescription: "a magical forest with fairy lights",
-      artStyle: "Fantasy Realism",
-      frontText: "Happy Anniversary!",
-      insideText: "Here's to many more years of love and laughter!"
-    },
-    {
-      sceneDescription: "a beach sunset with palm trees",
-      artStyle: "Anime",
-      frontText: "Get Well Soon!",
-      insideText: "Sending you healing thoughts and warm wishes!"
-    },
-    {
-      sceneDescription: "a winter wonderland with snow",
-      artStyle: "Pixel Art",
-      frontText: "Merry Christmas!",
-      insideText: "May your holidays be filled with joy and wonder!"
-    }
-  ];
-
-  const transformStyleData = [
-    {
-      artStyle: "Watercolor",
-      frontText: "Happy Birthday Mom!",
-      insideText: "Thanks for being the best mom in the world!"
-    },
-    {
-      artStyle: "Oil Painting",
-      frontText: "Miss You Dad!",
-      insideText: "Can't wait to see you again soon!"
-    },
-    {
-      artStyle: "Fantasy Realism",
-      frontText: "Happy Valentine's Day!",
-      insideText: "You make every day feel like magic!"
-    },
-    {
-      artStyle: "Anime",
-      frontText: "Thank You!",
-      insideText: "Your friendship means the world to me!"
-    },
-    {
-      artStyle: "Pixel Art",
-      frontText: "Happy New Year!",
-      insideText: "Here's to new adventures and memories!"
-    }
-  ];
-
+function SeeHowItLooksSection() {
   return (
-    <section className="w-full py-16 pb-24 bg-gray-50">
+    <section className="w-full py-16 pb-24 bg-gray-50 overflow-hidden">
       <div className="text-center mb-12">
         <h2 className="text-3xl md:text-4xl font-extrabold">
           <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">
-            See How It's Made
+            See How It Looks
           </span>
         </h2>
-        <p className="text-gray-600 text-lg max-w-2xl mx-auto mt-4">
-          Place your loved one in any scene imaginable ✨ Or simply take a favourite photo and make it a masterpiece!
-        </p>
       </div>
-
-      {/* Toggle Buttons */}
-      <div className="flex justify-center mb-16">
-        <div className="bg-white rounded-lg p-1 shadow-md">
-          <button
-            onClick={() => setActiveToggle('describe')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              activeToggle === 'describe'
-                ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Upload Photo(s) & Describe Scene
-          </button>
-          <button
-            onClick={() => setActiveToggle('transform')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              activeToggle === 'transform'
-                ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Upload Photo & Transform Style
-          </button>
-        </div>
-      </div>
-
-
       
       <div className="relative">
-        {/* Scroll indicators */}
-        <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-lg">
-          <div className="text-gray-400">←</div>
-        </div>
-        <div className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-lg">
-          <div className="text-gray-400">→</div>
-        </div>
-        
-        <div className="flex gap-8 overflow-x-auto scrollbar-hide pb-4 px-16">
+        <div className="flex gap-4 animate-scroll items-end">
           {/* First set of card pairs */}
-          {(activeToggle === 'describe' ? describeSceneData : transformStyleData).map((data, pairIndex) => (
-            <div key={pairIndex} className="flex gap-4 items-start">
-              {/* Card Pair Container */}
-              <div className="flex-shrink-0 space-y-12">
-                <div className="flex gap-4 items-end">
-                  {/* Front of card */}
-                  <div className="flex-shrink-0 relative">
-                    <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                      <img
-                        src={sampleCard}
-                        alt={`Sample card front ${pairIndex + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Inside of card - same height */}
-                  <div className="flex-shrink-0 relative">
-                    <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                      <img
-                        src={sampleCard}
-                        alt={`Sample card inside ${pairIndex + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </div>
+          {Array.from({ length: 6 }, (_, pairIndex) => (
+            <div key={pairIndex} className="flex gap-4 items-end">
+              {/* Front of card */}
+              <div className="flex-shrink-0 relative">
+                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
+                  <img
+                    src={sampleCard}
+                    alt={`Sample card front ${pairIndex + 1}`}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-                
-                {/* Description under card pair */}
-                <div className="max-w-lg mx-auto text-center">
-                  {!revealedBoxes.has(`${activeToggle}-${pairIndex}`) ? (
-                    <div className="relative inline-block">
-                      <button
-                        onClick={() => toggleBox(`${activeToggle}-${pairIndex}`)}
-                        className="bg-purple-50 border border-purple-300 hover:border-gray-200 hover:bg-white text-purple-700 hover:text-gray-700 font-medium py-2 px-4 rounded-md text-sm transition-all duration-200"
-                      >
-                        How it was created ✨
-                      </button>
-                      {poofAnimations.has(`${activeToggle}-${pairIndex}`) && (
-                        <div className="absolute inset-0 pointer-events-none">
-                          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-lg animate-ping">
-                            ✨
-                          </div>
-                          <div className="absolute top-1/2 left-1/4 transform -translate-x-1/2 -translate-y-1/2 text-sm animate-pulse delay-100">
-                            💫
-                          </div>
-                          <div className="absolute top-1/2 right-1/4 transform translate-x-1/2 -translate-y-1/2 text-sm animate-pulse delay-200">
-                            ⭐
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-6 shadow-md border border-purple-100 relative">
-                      <button
-                        onClick={() => toggleBox(`${activeToggle}-${pairIndex}`)}
-                        className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-xl"
-                      >
-                        ×
-                      </button>
-                      <p className="text-sm text-gray-800 leading-relaxed text-center font-medium">
-                        {activeToggle === 'describe' ? (
-                          <>
-                            Celebrait placed loved one in <strong className="text-purple-700">"{data.sceneDescription}"</strong> and made it <strong className="text-blue-700">{data.artStyle}</strong> with custom text on the front and inside.
-                          </>
-                        ) : (
-                          <>
-                            Celebrait took loved one's photo and made it <strong className="text-purple-700">{data.artStyle}</strong> with custom text on the front and inside.
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  )}
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
+                    Front of Card
+                  </span>
+                </div>
+              </div>
+              
+              {/* Inside of card - slightly higher position */}
+              <div className="flex-shrink-0 relative -mb-8">
+                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
+                  <img
+                    src={sampleCard}
+                    alt={`Sample card inside ${pairIndex + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
+                    Inside of Card
+                  </span>
                 </div>
               </div>
               
               {/* Vertical separator after each pair */}
-              {pairIndex < 4 && (
-                <div className="flex-shrink-0 w-px h-96 bg-gray-300/50 mx-8 self-center"></div>
+              {pairIndex < 5 && (
+                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
+              )}
+            </div>
+          ))}
+          
+          {/* Duplicate set for seamless loop */}
+          {Array.from({ length: 6 }, (_, pairIndex) => (
+            <div key={pairIndex + 6} className="flex gap-4 items-end">
+              {/* Front of card */}
+              <div className="flex-shrink-0 relative">
+                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
+                  <img
+                    src={sampleCard}
+                    alt={`Sample card front ${pairIndex + 7}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
+                    Front of Card
+                  </span>
+                </div>
+              </div>
+              
+              {/* Inside of card - slightly higher position */}
+              <div className="flex-shrink-0 relative -mb-8">
+                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
+                  <img
+                    src={sampleCard}
+                    alt={`Sample card inside ${pairIndex + 7}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
+                    Inside of Card
+                  </span>
+                </div>
+              </div>
+              
+              {/* Vertical separator after each pair */}
+              {pairIndex < 5 && (
+                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
               )}
             </div>
           ))}
@@ -335,7 +207,7 @@ export default function Landing() {
       <main className="py-8">
         <HeroSection />
         <WatchVideoSection />
-        <SeeHowItsMadeSection />
+        <SeeHowItLooksSection />
       </main>
 
       <Footer />

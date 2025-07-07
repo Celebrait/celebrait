@@ -159,15 +159,6 @@ Changelog:
   * CONTENT REFINEMENT: Removed promotional text about scene placement and artistic photo transformation as requested
   * INFINITE CAROUSEL: Added "SEE HOW IT LOOKS" section with full-width infinite scrolling carousel of sample cards
   * TRY BEFORE BUY: Added reassuring note under CTA button emphasizing free preview before purchase
-- July 7, 2025. "SEE HOW IT'S MADE" CAROUSEL: Enhanced carousel with toggle interface and detailed explanations:
-  * TITLE UPDATE: Changed "See How It Looks" to "See How It's Made"
-  * TOGGLE INTERFACE: Added compact toggle buttons for "Upload Photo(s) & Describe Scene" vs "Upload Photo & Transform Style"
-  * CAROUSEL INTEGRATION: Information boxes display under each card pair as part of the scrolling carousel
-  * DETAILED DESCRIPTIONS: Each pair shows creation process - scene placement vs photo transformation with art styles
-  * SAMPLE CONTENT: 5 pairs per toggle with varied art styles (Watercolor, Oil Painting, Fantasy Realism, Anime, Pixel Art)
-  * INTERACTIVE BUTTONS: "How it was created ✨" buttons styled like hero section with magical poof animations
-  * PERFECT SPACING: Optimized spacing to flow seamlessly with hero section rhythm and visual hierarchy
-  * ENHANCED COPY: Added descriptive text explaining both creation methods with clear user instructions
 - July 7, 2025. HERO SECTION STYLING: Enhanced landing page with dynamic typing animation:
   * TYPING ANIMATION: Added engaging cycling text animation ("intelligence having fun", "the future of greetings cards", "mind. blown.")
   * GRADIENT TEXT: Beautiful purple-to-pink gradient on animated text with smooth background clipping
