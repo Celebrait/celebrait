@@ -8,7 +8,7 @@ import sampleCard from "@/assets/sample-card.jpeg";
 
 function HeroSection() {
   const typingPhrases = [
-    'greetings, earthlings',
+    'Greetings, earthling',
     'the end of boring',
     'mind. blown.'
   ];
@@ -100,7 +100,7 @@ function WatchVideoSection() {
 
 function SeeHowItLooksSection() {
   return (
-    <section className="w-full py-16 pb-24 bg-gray-50 overflow-hidden">
+    <section className="w-full py-16 pb-24 bg-white overflow-hidden">
       <div className="text-center mb-12">
         <h2 className="text-3xl md:text-4xl font-extrabold">
           <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">
@@ -213,38 +213,42 @@ function SwipeableImageSection() {
   };
   
   return (
-    <div className="relative max-w-md mx-auto">
-      <div className="relative aspect-square bg-white rounded-2xl shadow-lg overflow-hidden">
-        <img 
-          src={images[currentImageIndex]} 
-          alt={`Sample ${currentImageIndex + 1}`}
-          className="w-full h-full object-cover"
-        />
-        
-        {/* Navigation arrows */}
+    <div className="relative max-w-2xl mx-auto mt-16 mb-8">
+      <div className="flex items-center justify-center gap-8">
+        {/* Left arrow - outside image */}
         <button
           onClick={prevImage}
-          className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md transition-colors"
+          className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-lg transition-all hover:scale-110"
         >
-          <ChevronLeft className="w-6 h-6 text-gray-700" />
+          <ChevronLeft className="w-8 h-8" />
         </button>
         
+        {/* Image container */}
+        <div className="relative aspect-square bg-white rounded-2xl shadow-lg overflow-hidden w-96">
+          <img 
+            src={images[currentImageIndex]} 
+            alt={`Sample ${currentImageIndex + 1}`}
+            className="w-full h-full object-cover"
+          />
+        </div>
+        
+        {/* Right arrow - outside image */}
         <button
           onClick={nextImage}
-          className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md transition-colors"
+          className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-lg transition-all hover:scale-110"
         >
-          <ChevronRight className="w-6 h-6 text-gray-700" />
+          <ChevronRight className="w-8 h-8" />
         </button>
       </div>
       
       {/* Dots indicator */}
-      <div className="flex justify-center mt-4 space-x-2">
+      <div className="flex justify-center mt-6 space-x-3">
         {images.map((_, index) => (
           <button
             key={index}
             onClick={() => setCurrentImageIndex(index)}
-            className={`w-3 h-3 rounded-full transition-colors ${
-              index === currentImageIndex ? 'bg-purple-500' : 'bg-gray-300'
+            className={`w-4 h-4 rounded-full transition-all ${
+              index === currentImageIndex ? 'bg-purple-500 scale-125' : 'bg-gray-300 hover:bg-gray-400'
             }`}
           />
         ))}
