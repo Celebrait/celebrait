@@ -5,6 +5,8 @@ import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import sampleCard from "@/assets/sample-card.jpeg";
+import founder1 from "@/assets/founder1.png";
+import founder2 from "@/assets/founder2.png";
 
 function HeroSection() {
   const typingPhrases = [
@@ -207,11 +209,11 @@ function LargeImageSection() {
   
   const images = [
     {
-      src: "/images/Founder 1.png",
+      src: founder1,
       alt: "Founder message card 1"
     },
     {
-      src: "/images/Founder 2.png",
+      src: founder2,
       alt: "Founder message card 2"
     }
   ];
