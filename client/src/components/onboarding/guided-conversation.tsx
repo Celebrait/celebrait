@@ -2080,21 +2080,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           <ArrowRight className="w-5 h-5" />
                         </Button>
                       </div>
-                      
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <div className="flex items-start">
-                          <div className="flex-shrink-0">
-                            <Sparkles className="w-5 h-5 text-blue-500 mt-0.5" />
-                          </div>
-                          <div className="ml-3">
-                            <h4 className="text-sm font-semibold text-blue-800">Examples that work great:</h4>
-                            <p className="text-sm text-blue-700 mt-1">
-                              "watercolor with soft pastels", "vintage travel poster", "anime manga style", "realistic oil painting", 
-                              "minimalist line art", "cyberpunk neon", "impressionist brushstrokes"
-                            </p>
-                          </div>
-                        </div>
-                      </div>
                     </div>
 
                     {/* Inspiration section */}
@@ -2187,6 +2172,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             </div>
                           </DialogContent>
                         </Dialog>
+                      </div>
+                      
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0">
+                            <Sparkles className="w-5 h-5 text-blue-500 mt-0.5" />
+                          </div>
+                          <div className="ml-3">
+                            <h4 className="text-sm font-semibold text-blue-800">Examples that work great:</h4>
+                            <p className="text-sm text-blue-700 mt-1">
+                              "watercolor with soft pastels", "vintage travel poster", "anime manga style", "realistic oil painting", 
+                              "minimalist line art", "cyberpunk neon", "impressionist brushstrokes"
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
