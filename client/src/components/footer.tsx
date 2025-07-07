@@ -1,4 +1,4 @@
-import { Heart, Instagram, Facebook } from "lucide-react";
+import { Instagram, Facebook } from "lucide-react";
 import { FaTiktok } from "react-icons/fa";
 import { Link } from "wouter";
 
@@ -9,9 +9,11 @@ export default function Footer() {
         <div className="grid md:grid-cols-2 gap-8">
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-celebrait rounded-lg flex items-center justify-center">
-                <Heart className="text-white text-sm" fill="currentColor" />
-              </div>
+              <img 
+                src="/images/Logo.png" 
+                alt="Celebrait Logo" 
+                className="w-8 h-8 object-contain"
+              />
               <span className="text-xl font-bold text-gradient-celebrait">Celebrait</span>
             </div>
             <p className="text-slate-gray text-sm">Creating magical moments through AI-powered greeting cards, one celebration at a time.</p>

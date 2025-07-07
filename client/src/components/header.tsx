@@ -1,4 +1,4 @@
-import { Heart, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Header() {
@@ -7,9 +7,11 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-celebrait rounded-xl flex items-center justify-center">
-              <Heart className="text-white text-lg" fill="currentColor" />
-            </div>
+            <img 
+              src="/images/Logo.png" 
+              alt="Celebrait Logo" 
+              className="w-10 h-10 object-contain"
+            />
             <span className="text-2xl font-bold text-gradient-celebrait">Celebrait</span>
           </div>
           
