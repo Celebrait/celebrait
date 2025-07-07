@@ -100,7 +100,7 @@ function WatchVideoSection() {
 
 function SeeHowItLooksSection() {
   return (
-    <section className="w-full py-16 pb-24 bg-white overflow-hidden">
+    <section className="w-full py-16 pb-24 overflow-hidden">
       <div className="text-center mb-12">
         <h2 className="text-3xl md:text-4xl font-extrabold">
           <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">
