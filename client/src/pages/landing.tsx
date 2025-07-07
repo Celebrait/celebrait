@@ -1,34 +1,76 @@
+import { useEffect, useState } from 'react';
 import { Link } from "wouter";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
+
+function HeroSection() {
+  const typingPhrases = [
+    'intelligence having fun',
+    'the future of greetings cards',
+    'mind. blown.'
+  ];
+
+  const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
+  const [displayText, setDisplayText] = useState('');
+  const [charIndex, setCharIndex] = useState(0);
+  const [typing, setTyping] = useState(true);
+
+  useEffect(() => {
+    const currentPhrase = typingPhrases[currentPhraseIndex];
+
+    if (typing && charIndex < currentPhrase.length) {
+      const timeout = setTimeout(() => {
+        setDisplayText((prev) => prev + currentPhrase[charIndex]);
+        setCharIndex(charIndex + 1);
+      }, 80);
+      return () => clearTimeout(timeout);
+    } else if (typing && charIndex === currentPhrase.length) {
+      setTyping(false);
+      setTimeout(() => setTyping(false), 1500);
+    } else {
+      const timeout = setTimeout(() => {
+        setCharIndex(0);
+        setDisplayText('');
+        setTyping(true);
+        setCurrentPhraseIndex((prev) => (prev + 1) % typingPhrases.length);
+      }, 1500);
+      return () => clearTimeout(timeout);
+    }
+  }, [charIndex, typing]);
+
+  return (
+    <section className="text-center max-w-4xl mx-auto px-4 md:px-8 py-12 space-y-4">
+      <h2 className="text-xl text-gray-500">
+        Welcome to{' '}
+        <span className="font-semibold bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">
+          {displayText}
+        </span>
+      </h2>
+      <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
+        Turn your photos into mind-blowing greeting cards powered by AI
+      </h1>
+      <p className="text-gray-600 text-lg max-w-xl mx-auto">
+        Celebrait helps you create unforgettable cards in seconds using cutting-edge AI and your favorite memories.
+      </p>
+    </section>
+  );
+}
 
 export default function Landing() {
   return (
     <div className="min-h-screen relative">
       <Header />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center space-y-8">
-          <h1 className="text-4xl font-bold text-gray-800">
-            Welcome to Celebrait
-          </h1>
-          
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Create personalized AI-powered greeting cards for your loved ones.
-          </p>
-
-          <div className="space-y-4">
-            <p className="text-gray-500">
-              This is a placeholder landing page. You can customize this however you'd like.
-            </p>
-            
-            <Link to="/create-card">
-              <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-semibold text-lg">
-                Start Creating Your Card
-              </Button>
-            </Link>
-          </div>
+      <main className="py-8">
+        <HeroSection />
+        
+        <div className="text-center mt-8">
+          <Link to="/create-card">
+            <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-semibold text-lg">
+              Start Creating Your Card
+            </Button>
+          </Link>
         </div>
       </main>
 
