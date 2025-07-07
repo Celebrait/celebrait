@@ -76,6 +76,120 @@ function HeroSection() {
   );
 }
 
+function SwipeableImageSection() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  
+  const images = [
+    {
+      src: "/api/placeholder/400/400",
+      alt: "Sample Card 1",
+      title: "Artistic Transformation"
+    },
+    {
+      src: "/api/placeholder/400/400", 
+      alt: "Sample Card 2",
+      title: "Creative Magic"
+    },
+    {
+      src: "/api/placeholder/400/400",
+      alt: "Sample Card 3", 
+      title: "Personal Touch"
+    }
+  ];
+
+  useEffect(() => {
+    if (!isAutoPlaying) return;
+    
+    const timer = setInterval(() => {
+      setCurrentIndex((prevIndex) => 
+        prevIndex === images.length - 1 ? 0 : prevIndex + 1
+      );
+    }, 3000);
+    
+    return () => clearInterval(timer);
+  }, [currentIndex, isAutoPlaying, images.length]);
+
+  const goToPrevious = () => {
+    setIsAutoPlaying(false);
+    setCurrentIndex(currentIndex === 0 ? images.length - 1 : currentIndex - 1);
+  };
+
+  const goToNext = () => {
+    setIsAutoPlaying(false);
+    setCurrentIndex(currentIndex === images.length - 1 ? 0 : currentIndex + 1);
+  };
+
+  return (
+    <section className="max-w-md mx-auto px-4 mb-16">
+      <div className="relative">
+        {/* Swipe instruction */}
+        <div className="text-center mb-4">
+          <p className="text-gray-500 text-sm flex items-center justify-center gap-2">
+            <ChevronLeft className="w-4 h-4" />
+            Swipe to see examples
+            <ChevronRight className="w-4 h-4" />
+          </p>
+        </div>
+        
+        {/* Image container */}
+        <div className="relative overflow-hidden rounded-2xl shadow-lg">
+          <div 
+            className="flex transition-transform duration-500 ease-in-out"
+            style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+          >
+            {images.map((image, index) => (
+              <div key={index} className="w-full flex-shrink-0">
+                <div className="aspect-square bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                  <div className="text-gray-400 text-center">
+                    <div className="w-16 h-16 mx-auto mb-2 bg-gray-200 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">🎨</span>
+                    </div>
+                    <p className="text-sm font-medium">{image.title}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Navigation arrows */}
+          <button
+            onClick={goToPrevious}
+            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md transition-all"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-700" />
+          </button>
+          
+          <button
+            onClick={goToNext}
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md transition-all"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-700" />
+          </button>
+        </div>
+        
+        {/* Dots indicator */}
+        <div className="flex justify-center mt-4 space-x-2">
+          {images.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                setIsAutoPlaying(false);
+                setCurrentIndex(index);
+              }}
+              className={`w-2 h-2 rounded-full transition-all ${
+                index === currentIndex 
+                  ? 'bg-purple-500 w-6' 
+                  : 'bg-gray-300 hover:bg-gray-400'
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function WatchVideoSection() {
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-8 py-16 space-y-6 text-center">
@@ -222,7 +336,7 @@ function CallToActionSection() {
         <div>Welcome to the end of <span className="line-through bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">boring</span>.</div>
       </div>
       
-      
+      <SwipeableImageSection />
       
       <LargeImageSection />
       
