@@ -39,17 +39,16 @@ body {
 
 /* Infinite scrolling carousel animation */
 @keyframes scroll {
-  from {
+  0% {
     transform: translateX(0);
   }
-  to {
+  100% {
     transform: translateX(-50%);
   }
 }
 
 .animate-scroll {
-  animation: scroll 25s linear infinite;
-  display: flex;
+  animation: scroll 20s linear infinite;
 }
 
 .dark {
