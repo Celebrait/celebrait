@@ -43,12 +43,13 @@ body {
     transform: translateX(0);
   }
   100% {
-    transform: translateX(-50%);
+    transform: translateX(calc(-100% / 2));
   }
 }
 
 .animate-scroll {
   animation: scroll 20s linear infinite;
+  will-change: transform;
 }
 
 .dark {
