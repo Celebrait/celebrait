@@ -161,8 +161,8 @@ Changelog:
   * TYPING ANIMATION: Added engaging cycling text animation ("intelligence having fun", "the future of greetings cards", "mind. blown.")
   * GRADIENT TEXT: Beautiful purple-to-pink gradient on animated text with smooth background clipping
   * MODERN DESIGN: Large, bold headlines with professional typography and responsive layout
-  * CALL-TO-ACTION: Prominent "Start Creating Your Card" button linking to card creation flow
-  * CLEAN LAYOUT: Centered hero section with optimal spacing and mobile-responsive design
+  * STANDALONE COMPONENT: Landing page now exports HeroSection as standalone component with clean hero-only layout
+  * MINIMAL DESIGN: Focused on core hero section without header/footer for maximum customization flexibility
 - July 5, 2025. NAVIGATION UX ENHANCEMENT: Added scroll-to-top behavior and fade transitions for seamless page navigation:
   * SCROLL-TO-TOP: All navigation clicks now automatically scroll to top of destination page for optimal UX
   * FADE TRANSITIONS: Added subtle opacity fade effects (0.8 opacity) during navigation for polished experience

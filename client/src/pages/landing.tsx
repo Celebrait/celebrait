@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from "wouter";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
-import { Button } from "@/components/ui/button";
 
-function HeroSection() {
+export default function HeroSection() {
   const typingPhrases = [
     'intelligence having fun',
     'the future of greetings cards',
@@ -54,27 +50,5 @@ function HeroSection() {
         Celebrait helps you create unforgettable cards in seconds using cutting-edge AI and your favorite memories.
       </p>
     </section>
-  );
-}
-
-export default function Landing() {
-  return (
-    <div className="min-h-screen relative">
-      <Header />
-
-      <main className="py-8">
-        <HeroSection />
-        
-        <div className="text-center mt-8">
-          <Link to="/create-card">
-            <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-semibold text-lg">
-              Start Creating Your Card
-            </Button>
-          </Link>
-        </div>
-      </main>
-
-      <Footer />
-    </div>
   );
 }
