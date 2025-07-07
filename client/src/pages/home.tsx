@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -8,10 +8,8 @@ import GuidedConversation from "@/components/onboarding/guided-conversation";
 import CardPreview from "@/components/card-preview";
 import DeliverySelection from "@/components/onboarding/delivery-selection";
 import PhotoCreationChoice from "@/components/onboarding/photo-creation-choice";
-import SavedProgressPage from "@/pages/saved-progress";
 
 import { useOnboarding } from "@/hooks/use-onboarding";
-import { useGetSavedProgress } from "@/hooks/use-save-progress";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
@@ -21,131 +19,14 @@ export default function Home() {
   const [generatedCard, setGeneratedCard] = useState(null);
   const [isCreatingMockCard, setIsCreatingMockCard] = useState(false);
   
-  // Authentication state
-  const [authenticatedUser, setAuthenticatedUser] = useState<{ id: string; firstName: string; lastName: string; email: string } | null>(null);
-  const [showSavedProgress, setShowSavedProgress] = useState(false);
-  const [isRestoringProgress, setIsRestoringProgress] = useState(false);
-  
   // Streamlined flow state
   const [flowStep, setFlowStep] = useState<'delivery' | 'photo-choice' | 'conversation'>('delivery');
   const [selectedDeliveryType, setSelectedDeliveryType] = useState<'printed' | 'digital' | null>(null);
   const [selectedPhotoOption, setSelectedPhotoOption] = useState<'upload_and_scene' | 'upload_and_transform' | null>(null);
 
-  // Check for saved progress when user authenticates
-  const { data: savedProgress } = useGetSavedProgress(authenticatedUser?.id);
-
-  // State for saved progress restoration
-  const [restoredSavedProgress, setRestoredSavedProgress] = useState<any>(null);
-  
-  // Check for existing authentication on component mount
-  useEffect(() => {
-    const checkExistingAuth = () => {
-      try {
-        const storedUser = sessionStorage.getItem('authenticatedUser');
-        if (storedUser) {
-          const userData = JSON.parse(storedUser);
-          console.log('Found stored authentication on home page:', userData);
-          setAuthenticatedUser(userData);
-        }
-      } catch (error) {
-        console.error('Error checking stored authentication:', error);
-      }
-    };
-
-    checkExistingAuth();
-  }, []);
-
-  // Check for saved progress restoration from session storage
-  useEffect(() => {
-    const resumeFromSaved = sessionStorage.getItem('resumeFromSaved');
-    const savedProgressData = sessionStorage.getItem('savedProgressData');
-    
-    if (resumeFromSaved === 'true' && savedProgressData) {
-      const progressData = JSON.parse(savedProgressData);
-      
-      console.log('Detected progress restoration, setting isRestoringProgress to true');
-      setIsRestoringProgress(true);
-      setShowSavedProgress(false); // Immediately hide saved progress page
-      
-      // Store the saved progress data for the guided conversation
-      setRestoredSavedProgress(progressData);
-      
-      // Set the flow step to conversation to resume the conversation
-      setFlowStep('conversation');
-      
-      // Pre-populate authenticated user from saved progress if available
-      if (progressData.conversationData?.authenticated_via_save_progress) {
-        const userFromSaved = {
-          id: progressData.conversationData.user_email,
-          firstName: progressData.conversationData.user_first_name,
-          lastName: progressData.conversationData.user_last_name,
-          email: progressData.conversationData.user_email
-        };
-        setAuthenticatedUser(userFromSaved);
-      }
-      
-      // Clear the restoration flags
-      sessionStorage.removeItem('resumeFromSaved');
-      sessionStorage.removeItem('savedProgressData');
-    }
-  }, []);
-
-  // Show saved progress page when user signs in and has saved progress (but not during restoration or fresh start)
-  useEffect(() => {
-    const startFresh = sessionStorage.getItem('startFresh');
-    
-    if (startFresh === 'true') {
-      console.log('User requested fresh start - bypassing saved progress display');
-      sessionStorage.removeItem('startFresh');
-      setShowSavedProgress(false);
-      setIsRestoringProgress(false);
-      return;
-    }
-    
-    // Don't show saved progress page when restoring progress or when flow is already set to conversation
-    if (isRestoringProgress || flowStep === 'conversation') {
-      console.log('Bypassing saved progress display - restoration in progress or conversation active');
-      setShowSavedProgress(false);
-      return;
-    }
-    
-    if (authenticatedUser && savedProgress && !isRestoringProgress) {
-      console.log('Showing saved progress page - user authenticated with saved progress');
-      setShowSavedProgress(true);
-    }
-  }, [authenticatedUser, savedProgress, isRestoringProgress, flowStep]);
-
-  const handleUserAuthenticated = (userData: { firstName: string; lastName: string; email: string }) => {
-    const userWithId = {
-      id: userData.email, // Use email as ID for now
-      ...userData
-    };
-    setAuthenticatedUser(userWithId);
-  };
-
-  const handleStartNewCard = () => {
-    setShowSavedProgress(false);
-    setIsRestoringProgress(false);
-    setFlowStep('delivery');
-    setSelectedDeliveryType(null);
-    setSelectedPhotoOption(null);
-    setGeneratedCard(null);
-    setRestoredSavedProgress(null);
-  };
-
   const handleCardGenerated = (card: any) => {
     setGeneratedCard(card);
   };
-
-  // If user is authenticated and we should show saved progress
-  if (showSavedProgress) {
-    return (
-      <SavedProgressPage
-        authenticatedUser={authenticatedUser}
-        onStartNewCard={handleStartNewCard}
-      />
-    );
-  }
 
   // Flow handlers
   const handleDeliverySelected = (delivery: 'printed' | 'digital') => {
@@ -216,9 +97,6 @@ export default function Home() {
           streamlinedFlow={true}
           selectedPhotoOption={selectedPhotoOption}
           onStartFresh={() => setFlowStep('delivery')}
-          authenticatedUser={authenticatedUser}
-          onUserAuthenticated={handleUserAuthenticated}
-          savedProgressData={restoredSavedProgress}
         />;
       default:
         return <DeliverySelection onDeliverySelected={handleDeliverySelected} />;
@@ -247,22 +125,6 @@ export default function Home() {
           <div className="bg-black/80 backdrop-blur-sm rounded-lg p-3 text-white text-xs">
             Streamlined Flow Testing
           </div>
-          <Button
-            onClick={(e) => { 
-              e.preventDefault();
-              // Force clear all state and show main flow
-              sessionStorage.clear();
-              localStorage.clear();
-              setShowSavedProgress(false);
-              setIsRestoringProgress(false);
-              setFlowStep('delivery');
-              setAuthenticatedUser(null);
-              console.log('DEBUG: Cleared all state and reset to main flow');
-            }}
-            className="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg"
-          >
-            🔄 Reset All State
-          </Button>
           <Button
             onClick={(e) => { e.preventDefault(); createMockCardAndSkipToDelivery('digital'); }}
             disabled={isCreatingMockCard}

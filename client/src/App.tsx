@@ -25,7 +25,6 @@ import DeliveryDetails from "@/pages/delivery-details";
 import CardPreviewPage from "@/pages/card-preview-page";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import TermsOfService from "@/pages/terms-of-service";
-import SavedProgressPage from "@/pages/saved-progress";
 
 
 function Router() {
@@ -51,7 +50,6 @@ function Router() {
         <Route path="/test-card-preview" component={TestCardPreview} />
         <Route path="/delivery-choice/:cardId" component={DeliveryChoice} />
         <Route path="/delivery-details/:reference" component={DeliveryDetails} />
-        <Route path="/saved-progress">{() => <SavedProgressPage />}</Route>
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms-of-service" component={TermsOfService} />
 

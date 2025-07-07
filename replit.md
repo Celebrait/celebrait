@@ -120,36 +120,6 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 6, 2025. AUTHENTICATION FLOW OPTIMIZATION - Eliminated redundant authentication popups for logged-in users:
-  * SMART AUTHENTICATION: Card generation now checks if user is already authenticated before showing email popup
-  * SEAMLESS FLOW: Logged-in users bypass authentication popup and proceed directly to card generation
-  * EMAIL PERSISTENCE: Authenticated users' email addresses automatically used for notifications without re-entry
-  * DEBUGGING ENHANCED: Added comprehensive console logging to track authentication states and email sources
-  * UX IMPROVEMENT: Prevents confusion where logged-in users see authentication popup again during card generation
-  * CONSISTENT EXPERIENCE: Save progress users maintain authentication state throughout entire card creation journey
-- July 6, 2025. ENHANCED SAVE PROGRESS UI & EMAIL NOTIFICATIONS - Prominent save progress button with automated email functionality:
-  * PROMINENT SAVE BUTTON: Made save progress button prominent with gradient styling, replaced start fresh as primary action
-  * BUTTON REORDERING: Moved "Save Progress & Return Later" to top position, "Start Fresh" now appears below as secondary option
-  * IMPROVED MESSAGING: Updated button text to "Save Progress & Return Later" and popup to emphasize email link delivery
-  * EMAIL POPUP CONTENT: Clear messaging that users will receive a secure email link to continue from exactly where they left off
-  * LESS PROMINENT START FRESH: Moved start fresh to ghost button styling below save progress, now secondary option
-  * EMAIL NOTIFICATIONS: Complete email system for saved progress - users receive personalized email links to continue their card creation
-  * SAVE PROGRESS EMAIL: Professional HTML email template with gradient header, personalized messaging, and direct links to saved progress page
-  * BACKEND EMAIL INTEGRATION: Updated save progress API endpoint to automatically send email notifications using SendGrid
-  * EMAIL CONTENT: Personalized emails include recipient name, celebration type, user's first name, and encouraging messaging
-  * SUCCESS MESSAGING: Updated save progress confirmation to mention email link feature for user awareness
-  * COMPLETE FLOW: Users can now save progress, receive email, click link, sign in, and resume exactly where they left off
-- July 6, 2025. MAJOR FEATURE: SAVE PROGRESS IMPLEMENTATION - Complete save/resume functionality for card creation:
-  * DATABASE SCHEMA: Added savedProgress table with user_id, card_type, conversation_data, current_step tracking
-  * BACKEND API: Created /api/save-progress, /api/saved-progress/:userId, DELETE endpoints with full CRUD operations
-  * STORAGE LAYER: Extended IStorage interface with saveProgress, getUserSavedProgress, updateSavedProgress, deleteSavedProgress methods
-  * SAVE PROGRESS BUTTON: Interactive component with authentication flow, confirmation dialog, and progress tracking
-  * SAVED PROGRESS DISPLAY: Visual card component showing recipient name, celebration type, progress step, and last update time
-  * AUTHENTICATION INTEGRATION: Full integration with existing sign-up/sign-in system for progress ownership
-  * AUTO-RESUME FLOW: Users automatically see saved progress screen after authentication if unfinished cards exist
-  * PROGRESS METADATA: Captures delivery method, photo options, conversation answers, current step position
-  * HOME PAGE INTEGRATION: Authentication state management with seamless navigation between saved progress and new cards
-  * USER EXPERIENCE: "Continue Creating" and "Create New Card" options with proper state restoration from saved data
 - July 5, 2025. CRITICAL PERFORMANCE OPTIMIZATION: Resolved email preview and delivery loading performance issues:
   * EMAIL PREVIEW SPEED: Eliminated base64 image transfers from /api/cards/ready/ endpoint, now uses ultra-fast compressed endpoints
   * AGGRESSIVE COMPRESSION: Reduced fast endpoint compression from 500x500 70% to 400x400 60% JPEG for instant loading

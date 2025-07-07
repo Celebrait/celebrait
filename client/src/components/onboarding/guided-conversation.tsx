@@ -10,9 +10,6 @@ import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
-import AuthModal from "@/components/auth/auth-modal";
-import SaveProgressButton from "@/components/save-progress-button";
-import WelcomeBackSummary from "@/components/welcome-back-summary";
 
 // Example prompts for the scene description
 const EXAMPLE_PROMPTS = [
@@ -97,9 +94,6 @@ interface GuidedConversationProps {
   streamlinedFlow?: boolean;
   selectedPhotoOption?: 'upload_and_scene' | 'upload_and_transform' | null;
   onStartFresh?: () => void;
-  authenticatedUser?: { id: string; firstName: string; lastName: string; email: string } | null;
-  onUserAuthenticated?: (userData: { firstName: string; lastName: string; email: string }) => void;
-  savedProgressData?: any;
 }
 
 interface ConversationStep {
@@ -112,42 +106,11 @@ interface ConversationStep {
   required?: boolean;
 }
 
-export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, onStartFresh, authenticatedUser, onUserAuthenticated, savedProgressData }: GuidedConversationProps) {
+export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, onStartFresh }: GuidedConversationProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [selectedPersonalities, setSelectedPersonalities] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-
-
-  
-  // Enhanced conversation data with authentication details
-  const getEnhancedConversationData = () => {
-    const baseData = { answers, uploadedPhotos, currentStep: currentStep.id };
-    
-    // If we have authenticated user from save progress or regular auth, include their details
-    if (authenticatedUser) {
-      return {
-        ...baseData,
-        user_first_name: authenticatedUser.firstName,
-        user_last_name: authenticatedUser.lastName,
-        user_email: authenticatedUser.email,
-        authenticated_via_save_progress: !!savedProgressData
-      };
-    }
-    
-    // If saved progress has authentication details, use those
-    if (savedProgressData?.conversationData?.authenticated_via_save_progress) {
-      return {
-        ...baseData,
-        user_first_name: savedProgressData.conversationData.user_first_name,
-        user_last_name: savedProgressData.conversationData.user_last_name,
-        user_email: savedProgressData.conversationData.user_email,
-        authenticated_via_save_progress: true
-      };
-    }
-    
-    return baseData;
-  };
   const [cardId, setCardId] = useState<number | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [currentInput, setCurrentInput] = useState('');
@@ -179,7 +142,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [popupEmailConfirm, setPopupEmailConfirm] = useState('');
   const [popupFirstName, setPopupFirstName] = useState('');
   const [popupLastName, setPopupLastName] = useState('');
-  const [showWelcomeBackSummary, setShowWelcomeBackSummary] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -701,23 +663,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const currentStep = filteredSteps[currentStepIndex];
   const progress = ((currentStepIndex + 1) / filteredSteps.length) * 100;
-
-  // Restore saved progress data when component mounts
-  useEffect(() => {
-    if (savedProgressData?.conversationData && filteredSteps.length > 0) {
-      console.log('Restoring saved progress data:', savedProgressData);
-      
-      // Restore answers from saved progress
-      if (savedProgressData.conversationData.answers) {
-        setAnswers(savedProgressData.conversationData.answers);
-        console.log('Restored answers:', savedProgressData.conversationData.answers);
-      }
-      
-      // Show welcome back summary instead of immediately resuming conversation
-      setShowWelcomeBackSummary(true);
-      console.log('Showing welcome back summary for restored progress');
-    }
-  }, [savedProgressData, filteredSteps]);
 
   // Handle rotating example prompts for scene description
   useEffect(() => {
@@ -1266,16 +1211,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   };
 
   const generateCard = async () => {
-    // Check if user is already authenticated
-    if (authenticatedUser) {
-      console.log('User already authenticated, proceeding with card generation');
-      // User is already authenticated, proceed directly to card generation
-      actuallyGenerateCard();
-    } else {
-      // Show email popup for unauthenticated users
-      console.log('User not authenticated, showing email popup');
-      setShowEmailPopup(true);
-    }
+    // Show email popup instead of directly generating
+    setShowEmailPopup(true);
   };
 
   const actuallyGenerateCard = async () => {
@@ -1283,19 +1220,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     setShowEmailPopup(false);
     
     try {
-      // Use authenticated user's email if available, otherwise use popup email
-      const notificationEmail = authenticatedUser?.email || popupEmail;
-      
-      // Store the notification email in answers for use in email notification
-      setAnswers(prev => ({ ...prev, notification_email: notificationEmail }));
-      
       console.log('Starting card generation with options:', {
         photo_option: answers.photo_option,
         has_photos: uploadedPhotos.length > 0,
         cardId: cardId,
-        notification_email: notificationEmail,
-        authenticated_user_email: authenticatedUser?.email,
-        popup_email: popupEmail
+        notification_email: popupEmail
       });
       
       // Ensure card is initialized
@@ -1330,20 +1259,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       if (generatedCard) {
         onCardGenerated(generatedCard);
         
-        // Send email notification using authenticated user's email or popup email
-        const emailToNotify = authenticatedUser?.email || popupEmail;
+        // Send email notification using the popup email
+        const emailToNotify = popupEmail;
         
         console.log('Email notification decision:', {
-          finalEmailToNotify: emailToNotify,
-          source: authenticatedUser ? 'authenticated user' : 'popup modal',
-          authenticatedUser: authenticatedUser,
-          popupEmail: popupEmail,
-          answersNotificationEmail: answers.notification_email
+          finalEmailToNotify: emailToNotify
         });
                             
         if (emailToNotify && emailToNotify.trim()) {
           console.log('Card now showing on-site, triggering email notification to:', emailToNotify);
-          console.log('Email source:', authenticatedUser ? 'authenticated user' : 'popup modal');
+          console.log('Email source: popup modal');
           setTimeout(() => {
             sendBackgroundEmail(generatedCard.id, emailToNotify, answers.name || "User");
           }, 2000); // 2 second delay to ensure card is fully displayed
@@ -1581,56 +1506,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     
     return parts.join(', ');
   };
-
-  // Welcome back summary handlers
-  const handleEditField = (fieldId: string) => {
-    // Hide welcome back summary and jump to the specific step
-    setShowWelcomeBackSummary(false);
-    
-    // Find the step index for the field
-    const stepIndex = filteredSteps.findIndex(step => step.id === fieldId);
-    if (stepIndex >= 0) {
-      setCurrentStepIndex(stepIndex);
-      setEditingStep(fieldId);
-    }
-  };
-
-  const handleContinueToGeneration = () => {
-    // Hide welcome back summary and proceed to card generation
-    setShowWelcomeBackSummary(false);
-    
-    // If we have enough information, go to summary/generation
-    if (answers.name && answers.celebration) {
-      // Check if we need to continue from where they left off or proceed to generation
-      const lastStep = savedProgressData?.conversationData?.currentStep;
-      if (lastStep) {
-        const stepIndex = filteredSteps.findIndex(step => step.id === lastStep);
-        if (stepIndex >= 0) {
-          setCurrentStepIndex(stepIndex);
-        } else {
-          // Go to the end (summary)
-          setCurrentStepIndex(filteredSteps.length - 1);
-        }
-      } else {
-        // Go to summary
-        setCurrentStepIndex(filteredSteps.length - 1);
-      }
-    }
-  };
-
-  // Show welcome back summary for restored progress
-  if (showWelcomeBackSummary && authenticatedUser && savedProgressData) {
-    return (
-      <WelcomeBackSummary
-        answers={answers}
-        authenticatedUser={authenticatedUser}
-        onEditField={handleEditField}
-        onContinueToGeneration={handleContinueToGeneration}
-        selectedDeliveryType={onboarding.selectedDelivery || savedProgressData.cardType as 'printed' | 'digital'}
-        selectedPhotoOption={selectedPhotoOption || answers.photo_option || 'upload_and_scene'}
-      />
-    );
-  }
 
   if (isLoading) {
     console.log('Loading screen displayed - email notification option is available');
@@ -3009,27 +2884,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   Go Back a Step
                 </Button>
               )}
-              {/* Save Progress Button - Primary Action */}
-              <SaveProgressButton
-                progressData={{
-                  cardType: onboarding.selectedDelivery || 'digital',
-                  printOption: onboarding.selectedDelivery === 'printed' ? 'front-and-inside' : undefined,
-                  sceneType: selectedPhotoOption === 'upload_and_scene' ? 'with-person' : 'scene-only',
-                  conversationData: getEnhancedConversationData(),
-                  currentStep: currentStepIndex + 1,
-                  progressData: { 
-                    onboardingState: onboarding,
-                    selectedPhotoOption,
-                    streamlinedFlow
-                  }
-                }}
-                variant="default"
-                className="px-6 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-medium shadow-sm"
-                authenticatedUser={authenticatedUser}
-                onUserAuthenticated={onUserAuthenticated}
-              />
-              
-              {/* Start Fresh Button - Secondary Action Below Save Progress */}
               <Button
                 onClick={() => {
                   // Scroll to top and add fade transition
@@ -3047,8 +2901,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     }, 100);
                   }, 150);
                 }}
-                variant="ghost"
-                className="text-gray-500 hover:text-gray-700"
+                variant="outline"
+                className="px-6 py-2 rounded-xl border-purple-300 text-purple-600 hover:bg-purple-50 font-medium shadow-sm"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Start Fresh
@@ -3186,20 +3040,137 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         </DialogContent>
       </Dialog>
 
-      {/* Authentication Modal */}
-      <AuthModal 
-        open={showEmailPopup} 
-        onOpenChange={setShowEmailPopup}
-        onAuthSuccess={(userData) => {
-          // Store user details in answers
-          answers.user_first_name = userData.firstName;
-          answers.user_last_name = userData.lastName;
-          answers.user_email = userData.email;
+      {/* Email Collection Popup Modal */}
+      <Dialog open={showEmailPopup} onOpenChange={setShowEmailPopup}>
+        <DialogContent className="max-w-2xl bg-white border-2 border-gray-200">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Email Required for Card Delivery</DialogTitle>
+            <DialogDescription>We need your email to notify you when your card is ready</DialogDescription>
+          </DialogHeader>
           
-          // Start actual card generation
-          actuallyGenerateCard();
-        }}
-      />
+          <div className="space-y-6 p-4">
+            {/* Header Section - Matching Your Screenshot */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-6 rounded-xl">
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">📧 Your Details for Card Delivery</h3>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    Our AI creates incredible custom artwork, but it takes up to 2 minutes to generate. We need your name and email 
+                    to send you the card link when it's ready! This way you can close this window and continue with your day while we work our magic.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* User Details Form */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">First Name</label>
+                  <Input
+                    type="text"
+                    value={popupFirstName}
+                    onChange={(e) => setPopupFirstName(e.target.value)}
+                    placeholder="Your first name"
+                    className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Last Name</label>
+                  <Input
+                    type="text"
+                    value={popupLastName}
+                    onChange={(e) => setPopupLastName(e.target.value)}
+                    placeholder="Your last name"
+                    className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Email Address</label>
+                <Input
+                  type="email"
+                  value={popupEmail}
+                  onChange={(e) => setPopupEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Confirm Email Address</label>
+                <Input
+                  type="email"
+                  value={popupEmailConfirm}
+                  onChange={(e) => setPopupEmailConfirm(e.target.value)}
+                  placeholder="Confirm your email address"
+                  className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                />
+              </div>
+
+              {popupEmail && popupEmailConfirm && popupEmail !== popupEmailConfirm && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-700 text-sm">Email addresses don't match</p>
+                </div>
+              )}
+
+              {/* Generate Button - Matching Your Screenshot */}
+              <div className="flex justify-center pt-4">
+                <Button 
+                  onClick={() => {
+                    if (!popupFirstName || !popupLastName) {
+                      toast({
+                        title: "Name Required",
+                        description: "Please enter both your first and last name.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    if (!popupEmail || !popupEmailConfirm) {
+                      toast({
+                        title: "Email Required",
+                        description: "Please enter and confirm your email address.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    if (popupEmail !== popupEmailConfirm) {
+                      toast({
+                        title: "Email Mismatch", 
+                        description: "Email addresses don't match.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    
+                    // Store user details in answers
+                    answers.user_first_name = popupFirstName;
+                    answers.user_last_name = popupLastName;
+                    answers.user_email = popupEmail;
+                    
+                    // Start actual card generation
+                    actuallyGenerateCard();
+                  }}
+                  disabled={!popupFirstName || !popupLastName || !popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
+                  className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                >
+                  GENERATE MY CARD
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
