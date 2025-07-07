@@ -151,6 +151,12 @@ Changelog:
   * REPOSITIONED EXAMPLES: Moved blue information box with art style examples below "Browse Art Style Inspiration" button
   * IMPROVED FLOW: Better visual hierarchy placing inspiration button first, then examples for clearer user guidance
   * ENHANCED UX: More intuitive placement of helpful examples after users access inspiration gallery
+- July 7, 2025. HOMEPAGE RESTRUCTURE: Created separate landing page and card creation flow:
+  * NEW LANDING PAGE: Created `/` route with simple placeholder landing page for future customization
+  * CARD CREATION FLOW: Moved complete delivery selection flow to `/create-card` route
+  * CLEAN SEPARATION: Landing page can now be designed independently without affecting the card creation process
+  * ROUTING UPDATE: Updated App.tsx to handle new page structure with proper route definitions
+  * BACKWARD COMPATIBILITY: Maintained existing functionality while providing flexibility for homepage design
 - July 5, 2025. NAVIGATION UX ENHANCEMENT: Added scroll-to-top behavior and fade transitions for seamless page navigation:
   * SCROLL-TO-TOP: All navigation clicks now automatically scroll to top of destination page for optimal UX
   * FADE TRANSITIONS: Added subtle opacity fade effects (0.8 opacity) during navigation for polished experience

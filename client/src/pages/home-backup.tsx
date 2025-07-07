@@ -1,14 +1,15 @@
-// Placeholder component for backward compatibility
-// Main functionality moved to Landing (//) and CreateCard (/create-card)
+// This is a backup of the old home page content
+// The functionality has been moved to /create-card
 
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 
+// Simple redirect component 
 export default function Home() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    // Redirect to the new landing page structure
+    // Redirect old home page visitors to the new landing page
     setLocation("/");
   }, [setLocation]);
 
