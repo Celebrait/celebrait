@@ -130,7 +130,7 @@ function SeeHowItLooksSection() {
   }, []);
   
   return (
-    <section className="w-full py-16 pb-24 bg-gray-50 overflow-hidden">
+    <section className="w-full py-16 pb-32 bg-gray-50 overflow-hidden">
       <div className="text-center mb-12">
         <h2 className="text-3xl md:text-4xl font-extrabold">
           <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">
@@ -139,92 +139,40 @@ function SeeHowItLooksSection() {
         </h2>
       </div>
       
-      <div className="relative">
+      <div className="relative pb-12">
         <div 
           ref={scrollRef}
-          className="flex gap-4 items-end whitespace-nowrap overflow-hidden carousel-container"
+          className="flex gap-6 items-center whitespace-nowrap overflow-hidden carousel-container"
         >
-          {/* First set of card pairs */}
-          {Array.from({ length: 6 }, (_, pairIndex) => (
-            <div key={pairIndex} className="flex gap-4 items-end">
-              {/* Front of card */}
-              <div className="flex-shrink-0 relative">
-                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                  <img
-                    src={sampleCard}
-                    alt={`Sample card front ${pairIndex + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                    Front of Card
-                  </span>
-                </div>
+          {/* First set of cards */}
+          {Array.from({ length: 8 }, (_, index) => (
+            <div key={index} className="flex-shrink-0 text-center">
+              <div className="w-64 h-64 rounded-2xl overflow-hidden shadow-lg bg-white mb-4">
+                <img
+                  src={sampleCard}
+                  alt={`Sample card ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
               </div>
-              
-              {/* Inside of card - slightly higher position */}
-              <div className="flex-shrink-0 relative -mb-8">
-                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                  <img
-                    src={sampleCard}
-                    alt={`Sample card inside ${pairIndex + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                    Inside of Card
-                  </span>
-                </div>
+              <div className="text-sm font-medium text-gray-700 bg-white px-3 py-1 rounded-full shadow-md inline-block">
+                {index % 2 === 0 ? 'Front of Card' : 'Inside of Card'}
               </div>
-              
-              {/* Vertical separator after each pair */}
-              {pairIndex < 5 && (
-                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
-              )}
             </div>
           ))}
           
-          {/* Duplicate set for seamless loop */}
-          {Array.from({ length: 6 }, (_, pairIndex) => (
-            <div key={pairIndex + 6} className="flex gap-4 items-end">
-              {/* Front of card */}
-              <div className="flex-shrink-0 relative">
-                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                  <img
-                    src={sampleCard}
-                    alt={`Sample card front ${pairIndex + 7}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                    Front of Card
-                  </span>
-                </div>
+          {/* Duplicate set for seamless looping */}
+          {Array.from({ length: 8 }, (_, index) => (
+            <div key={`duplicate-${index}`} className="flex-shrink-0 text-center">
+              <div className="w-64 h-64 rounded-2xl overflow-hidden shadow-lg bg-white mb-4">
+                <img
+                  src={sampleCard}
+                  alt={`Sample card ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
               </div>
-              
-              {/* Inside of card - slightly higher position */}
-              <div className="flex-shrink-0 relative -mb-8">
-                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                  <img
-                    src={sampleCard}
-                    alt={`Sample card inside ${pairIndex + 7}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                    Inside of Card
-                  </span>
-                </div>
+              <div className="text-sm font-medium text-gray-700 bg-white px-3 py-1 rounded-full shadow-md inline-block">
+                {index % 2 === 0 ? 'Front of Card' : 'Inside of Card'}
               </div>
-              
-              {/* Vertical separator after each pair */}
-              {pairIndex < 5 && (
-                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
-              )}
             </div>
           ))}
         </div>
