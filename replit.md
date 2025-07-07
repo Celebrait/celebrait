@@ -144,6 +144,8 @@ Changelog:
   * FOOTER LOGO: Replaced Heart icon with logo.png image in footer branding
   * CONSISTENT BRANDING: Both header and footer now use the same logo.png image from client/public/images/Logo.png
   * CLEAN IMPORTS: Removed unused Heart icon imports from both components
+  * ASSET OPTIMIZATION: Moved logo to src/assets directory and used Vite's asset bundling system
+  * SIZE ADJUSTMENT: Increased logo size to h-12 in header and h-10 in footer for better visibility
 - July 5, 2025. NAVIGATION UX ENHANCEMENT: Added scroll-to-top behavior and fade transitions for seamless page navigation:
   * SCROLL-TO-TOP: All navigation clicks now automatically scroll to top of destination page for optimal UX
   * FADE TRANSITIONS: Added subtle opacity fade effects (0.8 opacity) during navigation for polished experience
