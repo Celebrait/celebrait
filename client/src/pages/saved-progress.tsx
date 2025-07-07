@@ -64,34 +64,32 @@ export default function SavedProgressPage() {
 
   const handleContinueProgress = (progressData: SavedProgress) => {
     try {
-      console.log('Continuing progress with data:', progressData);
-      console.log('About to navigate to home page...');
+      console.log('Continuing progress - navigating to home');
       
       // Restore the onboarding state from saved progress
       onboarding.setSelectedDelivery(progressData.cardType as 'printed' | 'digital');
       
-      // Restore conversation data if available
-      if (progressData.conversationData?.answers) {
-        // This would require extending the onboarding hook to restore full state
-        // For now, we'll navigate to the conversation with the saved data
-      }
-
-      // Navigate to home with the saved state data
-      // Store the saved progress data in session storage for the home page to use
+      // Store minimal data in session storage (without large base64 images)
+      const minimalProgressData = {
+        id: progressData.id,
+        userId: progressData.userId,
+        cardType: progressData.cardType,
+        currentStep: progressData.currentStep,
+        conversationData: {
+          answers: progressData.conversationData?.answers || {},
+          user_email: progressData.conversationData?.user_email,
+          user_first_name: progressData.conversationData?.user_first_name,
+          user_last_name: progressData.conversationData?.user_last_name,
+          currentStep: progressData.conversationData?.currentStep
+        }
+      };
+      
       sessionStorage.setItem('resumeFromSaved', 'true');
-      sessionStorage.setItem('savedProgressData', JSON.stringify(progressData));
+      sessionStorage.setItem('savedProgressData', JSON.stringify(minimalProgressData));
       sessionStorage.setItem('selectedDeliveryType', progressData.cardType);
       
-      console.log('SessionStorage data set, calling setLocation...');
-      
-      // Navigate to home page which will handle the restoration
-      setTimeout(() => {
-        console.log('Attempting navigation via setTimeout...');
-        setLocation('/');
-        console.log('setLocation called via timeout');
-      }, 100);
-      
-      console.log('Navigation timeout set');
+      // Navigate immediately without timeout to prevent multiple attempts
+      setLocation('/');
     } catch (error) {
       console.error('Error resuming progress:', error);
     }
@@ -105,6 +103,9 @@ export default function SavedProgressPage() {
     console.log('Stored authentication data on saved progress page:', userData);
     
     setAuthenticatedUser(userData);
+    
+    // Force page refresh to show authenticated state and load saved progress
+    window.location.reload();
   };
 
   const handleStartNewCard = () => {
@@ -150,10 +151,7 @@ export default function SavedProgressPage() {
                         e.preventDefault();
                         e.stopPropagation();
                         console.log('Back to Home button clicked!');
-                        setTimeout(() => {
-                          setLocation('/');
-                          console.log('Navigation to home attempted');
-                        }, 100);
+                        setLocation('/');
                       }}
                       variant="outline"
                       className="w-full"

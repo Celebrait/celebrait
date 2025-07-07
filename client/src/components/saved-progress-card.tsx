@@ -126,10 +126,15 @@ export default function SavedProgressCard({ savedProgress, onContinue, onDelete 
             e.preventDefault();
             e.stopPropagation();
             console.log('Continue Creating button clicked!');
-            console.log('Saved progress data:', savedProgress);
+            // Log minimal data without base64 images to prevent console overflow
+            console.log('Saved progress data:', {
+              id: savedProgress.id,
+              userId: savedProgress.userId,
+              cardType: savedProgress.cardType,
+              currentStep: savedProgress.currentStep
+            });
             console.log('Calling onContinue function...');
             onContinue(savedProgress);
-            console.log('onContinue function called');
           }}
           className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold"
           type="button"
