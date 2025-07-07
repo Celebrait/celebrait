@@ -157,12 +157,14 @@ Changelog:
   * CLEAN SEPARATION: Landing page can now be designed independently without affecting the card creation process
   * ROUTING UPDATE: Updated App.tsx to handle new page structure with proper route definitions
   * BACKWARD COMPATIBILITY: Maintained existing functionality while providing flexibility for homepage design
-- July 7, 2025. HERO SECTION STYLING: Enhanced landing page with dynamic typing animation:
-  * TYPING ANIMATION: Added engaging cycling text animation ("intelligence having fun", "the future of greetings cards", "mind. blown.")
-  * GRADIENT TEXT: Beautiful purple-to-pink gradient on animated text with smooth background clipping
-  * MODERN DESIGN: Large, bold headlines with professional typography and responsive layout
-  * COMPLETE LAYOUT: Landing page includes header, footer, hero section, and call-to-action button
-  * NAVIGATION INTEGRATION: Seamless integration with site navigation and card creation flow
+- July 7, 2025. COMPLETE LANDING PAGE REDESIGN: Enhanced landing page with separated value propositions and interactive components:
+  * SEPARATED VALUE PROPOSITIONS: Two distinct gradient cards highlighting "Place your loved one into any scene" and "Transform your favourite photo into any style"
+  * REPOSITIONED CTA: Moved "Start Creating Your Card" button closer to text with compelling delivery options message underneath
+  * VIDEO CONTAINER: Professional video placeholder with play button and "See How It Works" messaging
+  * INTERACTIVE CAROUSEL: Two-tab system with 10 placeholder image pairs each for "Upload Photo(s) + Describe Scene" and "Upload Photo + Transform Style"
+  * FRONT/INSIDE LABELS: Each image pair clearly labeled with colored badges for easy identification
+  * NAVIGATION: Smooth carousel with arrows, dots, and responsive 4-image display
+  * COMPLETE LAYOUT: Header, footer, hero section, CTA, video section, and carousel with professional spacing
 - July 5, 2025. NAVIGATION UX ENHANCEMENT: Added scroll-to-top behavior and fade transitions for seamless page navigation:
   * SCROLL-TO-TOP: All navigation clicks now automatically scroll to top of destination page for optimal UX
   * FADE TRANSITIONS: Added subtle opacity fade effects (0.8 opacity) during navigation for polished experience
