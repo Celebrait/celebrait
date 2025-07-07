@@ -158,6 +158,7 @@ Changelog:
   * ROUTING UPDATE: Updated App.tsx to handle new page structure with proper route definitions
   * CONTENT REFINEMENT: Removed promotional text about scene placement and artistic photo transformation as requested
   * INFINITE CAROUSEL: Added "SEE HOW IT LOOKS" section with full-width infinite scrolling carousel of sample cards
+  * TRY BEFORE BUY: Added reassuring note under CTA button emphasizing free preview before purchase
 - July 7, 2025. HERO SECTION STYLING: Enhanced landing page with dynamic typing animation:
   * TYPING ANIMATION: Added engaging cycling text animation ("intelligence having fun", "the future of greetings cards", "mind. blown.")
   * GRADIENT TEXT: Beautiful purple-to-pink gradient on animated text with smooth background clipping

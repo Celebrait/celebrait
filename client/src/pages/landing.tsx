@@ -57,12 +57,19 @@ function HeroSection() {
         Celebrait good times with a personalised greeting card that's impossible to forget ✨ Sent in the post or through a digital link.
       </p>
 
-      <div className="pt-4">
+      <div className="pt-4 space-y-3">
         <Link to="/create-card">
           <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-semibold text-lg">
             Start Creating Your Card
           </Button>
         </Link>
+        
+        <div className="bg-green-50 border border-green-200 rounded-xl px-6 py-4 max-w-2xl mx-auto">
+          <p className="text-green-800 font-medium text-sm flex items-center justify-center gap-2">
+            <span className="text-green-600">✨</span>
+            Try before you buy: Create and preview your card before purchasing!
+          </p>
+        </div>
       </div>
     </section>
   );
