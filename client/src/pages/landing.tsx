@@ -207,12 +207,12 @@ function LargeImageSection() {
   
   const images = [
     {
-      src: sampleCard,
-      alt: "Sample greeting card 1"
+      src: "/images/Founder 1.png",
+      alt: "Founder message card 1"
     },
     {
-      src: sampleCard, // You can replace with second image
-      alt: "Sample greeting card 2"
+      src: "/images/Founder 2.png",
+      alt: "Founder message card 2"
     }
   ];
 
