@@ -151,6 +151,10 @@ Changelog:
   * REPOSITIONED EXAMPLES: Moved blue information box with art style examples below "Browse Art Style Inspiration" button
   * IMPROVED FLOW: Better visual hierarchy placing inspiration button first, then examples for clearer user guidance
   * ENHANCED UX: More intuitive placement of helpful examples after users access inspiration gallery
+- July 7, 2025. CRITICAL EMAIL ADDRESSING FIX: Fixed card preview emails being addressed to recipient instead of user:
+  * EMAIL PERSONALIZATION: Card preview emails now addressed to user who created the card, not the recipient
+  * FIXED PARAMETER: Changed from answers.name (recipient) to onboarding.userName (actual user)
+  * PROPER FLOW: Recipient names used only for card content, user names for email addressing
 - July 7, 2025. HOMEPAGE RESTRUCTURE: Created separate landing page and card creation flow:
   * NEW LANDING PAGE: Created `/` route with complete landing page including header, footer, and hero section
   * CARD CREATION FLOW: Moved complete delivery selection flow to `/create-card` route

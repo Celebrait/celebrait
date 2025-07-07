@@ -1270,7 +1270,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
           console.log('Card now showing on-site, triggering email notification to:', emailToNotify);
           console.log('Email source: popup modal');
           setTimeout(() => {
-            sendBackgroundEmail(generatedCard.id, emailToNotify, answers.name || "User");
+            sendBackgroundEmail(generatedCard.id, emailToNotify, onboarding.userName || "User");
           }, 2000); // 2 second delay to ensure card is fully displayed
         } else {
           console.log('No email provided in popup modal');
