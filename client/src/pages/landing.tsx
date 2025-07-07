@@ -195,11 +195,13 @@ function SeeHowItsMadeSection() {
             See How It's Made
           </span>
         </h2>
-        <p className="text-gray-600 mt-4">Scroll or swipe to see what we're capable of</p>
+        <p className="text-gray-600 text-lg max-w-2xl mx-auto mt-4">
+          Place your loved one in any scene imaginable ✨ Or simply take a favourite photo and make it a masterpiece!
+        </p>
       </div>
 
       {/* Toggle Buttons */}
-      <div className="flex justify-center mb-12">
+      <div className="flex justify-center mb-8">
         <div className="bg-white rounded-lg p-1 shadow-md">
           <button
             onClick={() => setActiveToggle('describe')}
@@ -223,6 +225,10 @@ function SeeHowItsMadeSection() {
           </button>
         </div>
       </div>
+
+      <p className="text-gray-600 text-center mb-12">
+        Scroll or swipe to see what we're capable of and click the buttons underneath to see how each card was made.
+      </p>
       
       <div className="relative">
         <div className="flex gap-8 overflow-x-auto scrollbar-hide pb-4 items-start">
@@ -271,7 +277,7 @@ function SeeHowItsMadeSection() {
                     <div className="relative inline-block">
                       <button
                         onClick={() => toggleBox(`${activeToggle}-${pairIndex}`)}
-                        className="bg-white border border-gray-200 hover:border-purple-300 hover:bg-purple-50 text-gray-700 hover:text-purple-700 font-medium py-3 px-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
+                        className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2 rounded-xl font-semibold text-sm shadow-md hover:shadow-lg transition-all duration-200"
                       >
                         How it was created ✨
                       </button>
@@ -315,7 +321,7 @@ function SeeHowItsMadeSection() {
               
               {/* Vertical separator after each pair */}
               {pairIndex < 4 && (
-                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
+                <div className="flex-shrink-0 w-px h-96 bg-gray-300/50 mx-8 self-center"></div>
               )}
             </div>
           ))}
