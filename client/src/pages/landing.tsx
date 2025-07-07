@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
+import sampleCard from "@/assets/sample-card.jpeg";
 
 function HeroSection() {
   const typingPhrases = [
@@ -89,6 +90,45 @@ function WatchVideoSection() {
   );
 }
 
+function SeeHowItLooksSection() {
+  return (
+    <section className="w-full py-16 bg-gray-50 overflow-hidden">
+      <div className="text-center mb-12">
+        <h2 className="text-3xl md:text-4xl font-extrabold">
+          <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">
+            See How It Looks
+          </span>
+        </h2>
+      </div>
+      
+      <div className="relative">
+        <div className="flex gap-8 animate-scroll">
+          {/* First set of images */}
+          {Array.from({ length: 12 }, (_, i) => (
+            <div key={i} className="flex-shrink-0 w-80 h-96 rounded-2xl overflow-hidden shadow-lg">
+              <img
+                src={sampleCard}
+                alt={`Sample card ${i + 1}`}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ))}
+          {/* Duplicate set for seamless loop */}
+          {Array.from({ length: 12 }, (_, i) => (
+            <div key={i + 12} className="flex-shrink-0 w-80 h-96 rounded-2xl overflow-hidden shadow-lg">
+              <img
+                src={sampleCard}
+                alt={`Sample card ${i + 13}`}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Landing() {
   return (
     <div className="min-h-screen relative">
@@ -97,6 +137,7 @@ export default function Landing() {
       <main className="py-8">
         <HeroSection />
         <WatchVideoSection />
+        <SeeHowItLooksSection />
       </main>
 
       <Footer />
