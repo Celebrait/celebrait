@@ -1,6 +1,7 @@
 import { Instagram, Facebook } from "lucide-react";
 import { FaTiktok } from "react-icons/fa";
 import { Link } from "wouter";
+import logoSrc from "../assets/logo.png";
 
 export default function Footer() {
   return (
@@ -10,7 +11,7 @@ export default function Footer() {
           <div>
             <div className="flex items-center mb-4">
               <img 
-                src="/images/Logo.png" 
+                src={logoSrc} 
                 alt="Celebrait Logo" 
                 className="h-8 object-contain"
               />

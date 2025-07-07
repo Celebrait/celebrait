@@ -1,5 +1,6 @@
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import logoSrc from "../assets/logo.png";
 
 export default function Header() {
   return (
@@ -8,7 +9,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <img 
-              src="/images/Logo.png" 
+              src={logoSrc} 
               alt="Celebrait Logo" 
               className="h-10 object-contain"
             />
