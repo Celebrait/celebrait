@@ -230,7 +230,7 @@ function SeeHowItsMadeSection() {
           {(activeToggle === 'describe' ? describeSceneData : transformStyleData).map((data, pairIndex) => (
             <div key={pairIndex} className="flex gap-4 items-start">
               {/* Card Pair Container */}
-              <div className="flex-shrink-0 space-y-20">
+              <div className="flex-shrink-0 space-y-32">
                 <div className="flex gap-4 items-end">
                   {/* Front of card */}
                   <div className="flex-shrink-0 relative">
@@ -271,19 +271,19 @@ function SeeHowItsMadeSection() {
                     <div className="relative inline-block">
                       <button
                         onClick={() => toggleBox(`${activeToggle}-${pairIndex}`)}
-                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                        className="bg-white border border-gray-200 hover:border-purple-300 hover:bg-purple-50 text-gray-700 hover:text-purple-700 font-medium py-3 px-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
                       >
                         How it was created ✨
                       </button>
                       {poofAnimations.has(`${activeToggle}-${pairIndex}`) && (
                         <div className="absolute inset-0 pointer-events-none">
-                          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-2xl animate-ping">
+                          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-lg animate-ping">
                             ✨
                           </div>
-                          <div className="absolute top-1/2 left-1/4 transform -translate-x-1/2 -translate-y-1/2 text-xl animate-pulse delay-100">
+                          <div className="absolute top-1/2 left-1/4 transform -translate-x-1/2 -translate-y-1/2 text-sm animate-pulse delay-100">
                             💫
                           </div>
-                          <div className="absolute top-1/2 right-1/4 transform translate-x-1/2 -translate-y-1/2 text-xl animate-pulse delay-200">
+                          <div className="absolute top-1/2 right-1/4 transform translate-x-1/2 -translate-y-1/2 text-sm animate-pulse delay-200">
                             ⭐
                           </div>
                         </div>
