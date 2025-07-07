@@ -12,6 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
 import AuthModal from "@/components/auth/auth-modal";
 import SaveProgressButton from "@/components/save-progress-button";
+import WelcomeBackSummary from "@/components/welcome-back-summary";
 
 // Example prompts for the scene description
 const EXAMPLE_PROMPTS = [
@@ -178,6 +179,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [popupEmailConfirm, setPopupEmailConfirm] = useState('');
   const [popupFirstName, setPopupFirstName] = useState('');
   const [popupLastName, setPopupLastName] = useState('');
+  const [showWelcomeBackSummary, setShowWelcomeBackSummary] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -711,15 +713,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         console.log('Restored answers:', savedProgressData.conversationData.answers);
       }
       
-      // Find the step index based on current step
-      if (savedProgressData.conversationData.currentStep) {
-        const stepId = savedProgressData.conversationData.currentStep;
-        const stepIndex = filteredSteps.findIndex(step => step.id === stepId);
-        if (stepIndex >= 0) {
-          setCurrentStepIndex(stepIndex);
-          console.log('Restored step index:', stepIndex, 'for step:', stepId);
-        }
-      }
+      // Show welcome back summary instead of immediately resuming conversation
+      setShowWelcomeBackSummary(true);
+      console.log('Showing welcome back summary for restored progress');
     }
   }, [savedProgressData, filteredSteps]);
 
@@ -1585,6 +1581,56 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     
     return parts.join(', ');
   };
+
+  // Welcome back summary handlers
+  const handleEditField = (fieldId: string) => {
+    // Hide welcome back summary and jump to the specific step
+    setShowWelcomeBackSummary(false);
+    
+    // Find the step index for the field
+    const stepIndex = filteredSteps.findIndex(step => step.id === fieldId);
+    if (stepIndex >= 0) {
+      setCurrentStepIndex(stepIndex);
+      setEditingStep(fieldId);
+    }
+  };
+
+  const handleContinueToGeneration = () => {
+    // Hide welcome back summary and proceed to card generation
+    setShowWelcomeBackSummary(false);
+    
+    // If we have enough information, go to summary/generation
+    if (answers.name && answers.celebration) {
+      // Check if we need to continue from where they left off or proceed to generation
+      const lastStep = savedProgressData?.conversationData?.currentStep;
+      if (lastStep) {
+        const stepIndex = filteredSteps.findIndex(step => step.id === lastStep);
+        if (stepIndex >= 0) {
+          setCurrentStepIndex(stepIndex);
+        } else {
+          // Go to the end (summary)
+          setCurrentStepIndex(filteredSteps.length - 1);
+        }
+      } else {
+        // Go to summary
+        setCurrentStepIndex(filteredSteps.length - 1);
+      }
+    }
+  };
+
+  // Show welcome back summary for restored progress
+  if (showWelcomeBackSummary && authenticatedUser && savedProgressData) {
+    return (
+      <WelcomeBackSummary
+        answers={answers}
+        authenticatedUser={authenticatedUser}
+        onEditField={handleEditField}
+        onContinueToGeneration={handleContinueToGeneration}
+        selectedDeliveryType={onboarding.selectedDelivery || savedProgressData.cardType as 'printed' | 'digital'}
+        selectedPhotoOption={selectedPhotoOption || answers.photo_option || 'upload_and_scene'}
+      />
+    );
+  }
 
   if (isLoading) {
     console.log('Loading screen displayed - email notification option is available');
