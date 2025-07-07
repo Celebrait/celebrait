@@ -253,11 +253,6 @@ function SeeHowItsMadeSection() {
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                        Front of Card
-                      </span>
-                    </div>
                   </div>
                   
                   {/* Inside of card - same height */}
@@ -268,11 +263,6 @@ function SeeHowItsMadeSection() {
                         alt={`Sample card inside ${pairIndex + 1}`}
                         className="w-full h-full object-cover"
                       />
-                    </div>
-                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                        Inside of Card
-                      </span>
                     </div>
                   </div>
                 </div>
