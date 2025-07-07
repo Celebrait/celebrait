@@ -99,6 +99,19 @@ function WatchVideoSection() {
 
 function SeeHowItsMadeSection() {
   const [activeToggle, setActiveToggle] = useState<'describe' | 'transform'>('describe');
+  const [revealedBoxes, setRevealedBoxes] = useState<Set<string>>(new Set());
+
+  const toggleBox = (boxId: string) => {
+    setRevealedBoxes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(boxId)) {
+        newSet.delete(boxId);
+      } else {
+        newSet.add(boxId);
+      }
+      return newSet;
+    });
+  };
 
   const describeSceneData = [
     {
@@ -240,18 +253,35 @@ function SeeHowItsMadeSection() {
                 </div>
                 
                 {/* Description under card pair */}
-                <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-6 shadow-md border border-purple-100 max-w-lg mx-auto">
-                  <p className="text-sm text-gray-800 leading-relaxed text-center font-medium">
-                    {activeToggle === 'describe' ? (
-                      <>
-                        Celebrait placed loved one in <strong className="text-purple-700">"{data.sceneDescription}"</strong> and made it <strong className="text-blue-700">{data.artStyle}</strong> with custom text on the front and inside.
-                      </>
-                    ) : (
-                      <>
-                        Celebrait took loved one's photo and made it <strong className="text-purple-700">{data.artStyle}</strong> with custom text on the front and inside.
-                      </>
-                    )}
-                  </p>
+                <div className="max-w-lg mx-auto">
+                  {!revealedBoxes.has(`${activeToggle}-${pairIndex}`) ? (
+                    <button
+                      onClick={() => toggleBox(`${activeToggle}-${pairIndex}`)}
+                      className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-3 rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+                    >
+                      How it was made
+                    </button>
+                  ) : (
+                    <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-6 shadow-md border border-purple-100 relative">
+                      <button
+                        onClick={() => toggleBox(`${activeToggle}-${pairIndex}`)}
+                        className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-xl"
+                      >
+                        ×
+                      </button>
+                      <p className="text-sm text-gray-800 leading-relaxed text-center font-medium">
+                        {activeToggle === 'describe' ? (
+                          <>
+                            Celebrait placed loved one in <strong className="text-purple-700">"{data.sceneDescription}"</strong> and made it <strong className="text-blue-700">{data.artStyle}</strong> with custom text on the front and inside.
+                          </>
+                        ) : (
+                          <>
+                            Celebrait took loved one's photo and made it <strong className="text-purple-700">{data.artStyle}</strong> with custom text on the front and inside.
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
               
