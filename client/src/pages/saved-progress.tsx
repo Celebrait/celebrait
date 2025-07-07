@@ -272,7 +272,14 @@ export default function SavedProgressPage() {
             </Button>
             
             <Button
-              onClick={() => window.location.href = '/'}
+              onClick={() => {
+                // Force clear all saved progress state
+                sessionStorage.clear();
+                localStorage.clear();
+                
+                // Navigate to home with a hard refresh
+                window.location.href = '/';
+              }}
               variant="outline"
               className="flex-1 py-3"
             >

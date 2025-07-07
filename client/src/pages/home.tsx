@@ -65,6 +65,7 @@ export default function Home() {
       
       console.log('Detected progress restoration, setting isRestoringProgress to true');
       setIsRestoringProgress(true);
+      setShowSavedProgress(false); // Immediately hide saved progress page
       
       // Store the saved progress data for the guided conversation
       setRestoredSavedProgress(progressData);
@@ -101,11 +102,18 @@ export default function Home() {
       return;
     }
     
+    // Don't show saved progress page when restoring progress or when flow is already set to conversation
+    if (isRestoringProgress || flowStep === 'conversation') {
+      console.log('Bypassing saved progress display - restoration in progress or conversation active');
+      setShowSavedProgress(false);
+      return;
+    }
+    
     if (authenticatedUser && savedProgress && !isRestoringProgress) {
       console.log('Showing saved progress page - user authenticated with saved progress');
       setShowSavedProgress(true);
     }
-  }, [authenticatedUser, savedProgress, isRestoringProgress]);
+  }, [authenticatedUser, savedProgress, isRestoringProgress, flowStep]);
 
   const handleUserAuthenticated = (userData: { firstName: string; lastName: string; email: string }) => {
     const userWithId = {
@@ -239,6 +247,22 @@ export default function Home() {
           <div className="bg-black/80 backdrop-blur-sm rounded-lg p-3 text-white text-xs">
             Streamlined Flow Testing
           </div>
+          <Button
+            onClick={(e) => { 
+              e.preventDefault();
+              // Force clear all state and show main flow
+              sessionStorage.clear();
+              localStorage.clear();
+              setShowSavedProgress(false);
+              setIsRestoringProgress(false);
+              setFlowStep('delivery');
+              setAuthenticatedUser(null);
+              console.log('DEBUG: Cleared all state and reset to main flow');
+            }}
+            className="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg"
+          >
+            🔄 Reset All State
+          </Button>
           <Button
             onClick={(e) => { e.preventDefault(); createMockCardAndSkipToDelivery('digital'); }}
             disabled={isCreatingMockCard}
