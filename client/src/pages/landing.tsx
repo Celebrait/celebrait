@@ -109,7 +109,7 @@ function SeeHowItLooksSection() {
       </div>
       
       <div className="relative">
-        <div className="flex gap-4 animate-scroll items-end">
+        <div className="flex gap-4 animate-scroll items-end whitespace-nowrap">
           {/* First set of card pairs */}
           {Array.from({ length: 6 }, (_, pairIndex) => (
             <div key={pairIndex} className="flex gap-4 items-end">

@@ -48,7 +48,10 @@ body {
 }
 
 .animate-scroll {
-  animation: scroll 20s linear infinite;
+  animation: scroll 24s linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+  perspective: 1000px;
 }
 
 .dark {
