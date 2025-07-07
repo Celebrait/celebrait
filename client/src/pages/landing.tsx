@@ -7,8 +7,8 @@ import sampleCard from "@/assets/sample-card.jpeg";
 
 function HeroSection() {
   const typingPhrases = [
-    'intelligence having fun',
-    'the future of greetings cards',
+    'greetings, earthlings',
+    'the end of boring',
     'mind. blown.'
   ];
 
@@ -60,7 +60,7 @@ function HeroSection() {
       <div className="pt-4 space-y-3">
         <Link to="/create-card">
           <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-semibold text-lg">
-            Start Creating Your Card
+            Create a Masterpiece
           </Button>
         </Link>
         
@@ -199,6 +199,31 @@ function SeeHowItLooksSection() {
   );
 }
 
+function CallToActionSection() {
+  return (
+    <section className="max-w-7xl mx-auto px-4 md:px-8 py-16 text-center">
+      <h2 className="text-3xl md:text-4xl font-extrabold mb-8">
+        Greetings <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">earthling</span>, welcome to the <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">end of boring</span>, ready to have your <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">mind blown?</span>
+      </h2>
+      
+      <div className="space-y-3">
+        <Link to="/create-card">
+          <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-semibold text-lg">
+            Create a Masterpiece
+          </Button>
+        </Link>
+        
+        <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 max-w-lg mx-auto">
+          <p className="text-green-800 font-medium text-xs flex items-center justify-center gap-1">
+            <span className="text-green-600">✨</span>
+            Try before you buy: Create and preview your card before purchasing!
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Landing() {
   return (
     <div className="min-h-screen relative">
@@ -208,6 +233,7 @@ export default function Landing() {
         <HeroSection />
         <WatchVideoSection />
         <SeeHowItLooksSection />
+        <CallToActionSection />
       </main>
 
       <Footer />
