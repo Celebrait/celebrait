@@ -64,8 +64,8 @@ function HeroSection() {
           </Button>
         </Link>
         
-        <div className="bg-green-50 border border-green-200 rounded-xl px-6 py-4 max-w-2xl mx-auto">
-          <p className="text-green-800 font-medium text-sm flex items-center justify-center gap-2">
+        <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 max-w-lg mx-auto">
+          <p className="text-green-800 font-medium text-xs flex items-center justify-center gap-1">
             <span className="text-green-600">✨</span>
             Try before you buy: Create and preview your card before purchasing!
           </p>
