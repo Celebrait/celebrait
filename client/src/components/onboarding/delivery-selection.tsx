@@ -122,12 +122,21 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
         ))}
       </div>
 
-      {/* Blue Information Box */}
-      <div className="mt-8 p-3 bg-blue-50 border border-blue-200 rounded-lg max-w-2xl mx-auto">
-        <p className="text-blue-800 text-sm">
-          <Sparkles className="w-4 h-4 inline mr-1" />
-          You'll create and preview your card before purchasing. You can change your delivery method after seeing your card.
-        </p>
+      {/* Green Information Boxes */}
+      <div className="mt-8 space-y-4 max-w-2xl mx-auto">
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-green-800 text-sm">
+            <Sparkles className="w-4 h-4 inline mr-1" />
+            You'll create and preview your card before purchasing. You can change your delivery method after seeing your card.
+          </p>
+        </div>
+        
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-green-800 text-sm">
+            <Sparkles className="w-4 h-4 inline mr-1" />
+            You'll create and preview your card before purchasing. You can change your delivery method after seeing your card.
+          </p>
+        </div>
       </div>
     </div>
   );
