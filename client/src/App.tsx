@@ -7,7 +7,7 @@ import ScrollToTop from "@/components/scroll-to-top";
 import { handleQuotaError } from "./lib/queryClient";
 import { useEffect } from "react";
 import Home from "@/pages/home";
-import HeroSection from "@/pages/landing";
+import Landing from "@/pages/landing";
 import CreateCard from "@/pages/create-card";
 import Checkout from "@/pages/checkout";
 import Payment from "@/pages/payment-simplified";
@@ -35,7 +35,7 @@ function Router() {
     <>
       <ScrollToTop />
       <Switch>
-        <Route path="/" component={HeroSection} />
+        <Route path="/" component={Landing} />
         <Route path="/create-card" component={CreateCard} />
         <Route path="/checkout/:cardId" component={Checkout} />
         <Route path="/payment/:cardId" component={Payment} />
