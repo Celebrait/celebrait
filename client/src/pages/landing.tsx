@@ -219,13 +219,20 @@ function CallToActionSection() {
     <section className="max-w-7xl mx-auto px-4 md:px-8 py-16 text-center">
       <div className="text-3xl md:text-4xl font-extrabold mb-12 space-y-2">
         <div>Greetings <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">earthling</span>.</div>
-        <div>Welcome to the end of <span className="line-through">boring</span>.</div>
-        <div>Ready to have your <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">mind blown?</span></div>
+        <div>Welcome to the end of <span className="line-through bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">boring</span>.</div>
       </div>
+      
+      <p className="text-gray-600 text-lg max-w-xl mx-auto mb-8">
+        The card below is a message from our founder:
+      </p>
       
       <LargeImageSection />
       
-      <div className="space-y-3 mt-8">
+      <div className="text-3xl md:text-4xl font-extrabold mb-8">
+        Ready to have your <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">mind blown?</span>
+      </div>
+      
+      <div className="space-y-3">
         <Link to="/create-card">
           <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-semibold text-lg">
             Create a Masterpiece
