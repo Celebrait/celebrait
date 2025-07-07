@@ -152,11 +152,11 @@ Changelog:
   * IMPROVED FLOW: Better visual hierarchy placing inspiration button first, then examples for clearer user guidance
   * ENHANCED UX: More intuitive placement of helpful examples after users access inspiration gallery
 - July 7, 2025. HOMEPAGE RESTRUCTURE: Created separate landing page and card creation flow:
-  * NEW LANDING PAGE: Created `/` route with simple placeholder landing page for future customization
+  * NEW LANDING PAGE: Created `/` route with complete landing page including header, footer, and hero section
   * CARD CREATION FLOW: Moved complete delivery selection flow to `/create-card` route
   * CLEAN SEPARATION: Landing page can now be designed independently without affecting the card creation process
   * ROUTING UPDATE: Updated App.tsx to handle new page structure with proper route definitions
-  * BACKWARD COMPATIBILITY: Maintained existing functionality while providing flexibility for homepage design
+  * CONTENT REFINEMENT: Removed promotional text about scene placement and artistic photo transformation as requested
 - July 7, 2025. HERO SECTION STYLING: Enhanced landing page with dynamic typing animation:
   * TYPING ANIMATION: Added engaging cycling text animation ("intelligence having fun", "the future of greetings cards", "mind. blown.")
   * GRADIENT TEXT: Beautiful purple-to-pink gradient on animated text with smooth background clipping
