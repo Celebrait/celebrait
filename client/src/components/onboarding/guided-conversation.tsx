@@ -116,6 +116,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [selectedPersonalities, setSelectedPersonalities] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+
   
   // Enhanced conversation data with authentication details
   const getEnhancedConversationData = () => {
@@ -697,6 +699,29 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const currentStep = filteredSteps[currentStepIndex];
   const progress = ((currentStepIndex + 1) / filteredSteps.length) * 100;
+
+  // Restore saved progress data when component mounts
+  useEffect(() => {
+    if (savedProgressData?.conversationData && filteredSteps.length > 0) {
+      console.log('Restoring saved progress data:', savedProgressData);
+      
+      // Restore answers from saved progress
+      if (savedProgressData.conversationData.answers) {
+        setAnswers(savedProgressData.conversationData.answers);
+        console.log('Restored answers:', savedProgressData.conversationData.answers);
+      }
+      
+      // Find the step index based on current step
+      if (savedProgressData.conversationData.currentStep) {
+        const stepId = savedProgressData.conversationData.currentStep;
+        const stepIndex = filteredSteps.findIndex(step => step.id === stepId);
+        if (stepIndex >= 0) {
+          setCurrentStepIndex(stepIndex);
+          console.log('Restored step index:', stepIndex, 'for step:', stepId);
+        }
+      }
+    }
+  }, [savedProgressData, filteredSteps]);
 
   // Handle rotating example prompts for scene description
   useEffect(() => {

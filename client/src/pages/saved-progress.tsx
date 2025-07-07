@@ -138,10 +138,11 @@ export default function SavedProgressPage() {
                         e.stopPropagation();
                         console.log('Sign In to Continue button clicked!');
                         console.log('Current auth modal state:', showAuthModal);
+                        console.log('Button is working, opening auth modal...');
                         setShowAuthModal(true);
                         console.log('Auth modal should now be:', true);
                       }}
-                      className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                      className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 cursor-pointer"
                       type="button"
                     >
                       <LogIn className="w-4 h-4 mr-2" />

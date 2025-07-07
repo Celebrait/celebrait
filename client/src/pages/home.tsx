@@ -36,6 +36,24 @@ export default function Home() {
   // State for saved progress restoration
   const [restoredSavedProgress, setRestoredSavedProgress] = useState<any>(null);
   
+  // Check for existing authentication on component mount
+  useEffect(() => {
+    const checkExistingAuth = () => {
+      try {
+        const storedUser = sessionStorage.getItem('authenticatedUser');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          console.log('Found stored authentication on home page:', userData);
+          setAuthenticatedUser(userData);
+        }
+      } catch (error) {
+        console.error('Error checking stored authentication:', error);
+      }
+    };
+
+    checkExistingAuth();
+  }, []);
+
   // Check for saved progress restoration from session storage
   useEffect(() => {
     const resumeFromSaved = sessionStorage.getItem('resumeFromSaved');

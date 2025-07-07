@@ -226,9 +226,15 @@ export default function AuthModal({ open, onOpenChange, onAuthSuccess, mode = 'c
                   Back
                 </Button>
                 <Button 
-                  onClick={handleSignIn}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Sign In button clicked!');
+                    handleSignIn();
+                  }}
                   disabled={isLoading || !email}
                   className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold text-white shadow-lg hover:shadow-xl"
+                  type="button"
                 >
                   {isLoading ? 'Signing In...' : (mode === 'saveProgress' ? 'SAVE PROGRESS & EMAIL LINK' : 'Continue')}
                   <ArrowRight className="w-4 h-4 ml-2" />
