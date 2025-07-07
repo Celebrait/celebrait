@@ -200,58 +200,15 @@ function SeeHowItLooksSection() {
   );
 }
 
-function SwipeableImageSection() {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const images = [sampleCard, sampleCard]; // Using placeholder images
-  
-  const nextImage = () => {
-    setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
-  };
-  
-  const prevImage = () => {
-    setCurrentImageIndex((prevIndex) => (prevIndex - 1 + images.length) % images.length);
-  };
-  
+function LargeImageSection() {
   return (
-    <div className="relative max-w-2xl mx-auto mt-16 mb-8">
-      <div className="flex items-center justify-center gap-8">
-        {/* Left arrow - outside image */}
-        <button
-          onClick={prevImage}
-          className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-lg transition-all hover:scale-110"
-        >
-          <ChevronLeft className="w-8 h-8" />
-        </button>
-        
-        {/* Image container */}
-        <div className="relative aspect-square bg-white rounded-2xl shadow-lg overflow-hidden w-96">
-          <img 
-            src={images[currentImageIndex]} 
-            alt={`Sample ${currentImageIndex + 1}`}
-            className="w-full h-full object-cover"
-          />
-        </div>
-        
-        {/* Right arrow - outside image */}
-        <button
-          onClick={nextImage}
-          className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-lg transition-all hover:scale-110"
-        >
-          <ChevronRight className="w-8 h-8" />
-        </button>
-      </div>
-      
-      {/* Dots indicator */}
-      <div className="flex justify-center mt-6 space-x-3">
-        {images.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrentImageIndex(index)}
-            className={`w-4 h-4 rounded-full transition-all ${
-              index === currentImageIndex ? 'bg-purple-500 scale-125' : 'bg-gray-300 hover:bg-gray-400'
-            }`}
-          />
-        ))}
+    <div className="mx-auto mt-16 mb-8 px-4 max-w-4xl">
+      <div className="relative aspect-square bg-white rounded-2xl shadow-lg overflow-hidden w-full max-w-lg mx-auto md:max-w-2xl">
+        <img 
+          src={sampleCard} 
+          alt="Sample greeting card"
+          className="w-full h-full object-cover"
+        />
       </div>
     </div>
   );
@@ -266,7 +223,7 @@ function CallToActionSection() {
         <div>Ready to have your <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">mind blown?</span></div>
       </div>
       
-      <SwipeableImageSection />
+      <LargeImageSection />
       
       <div className="space-y-3 mt-8">
         <Link to="/create-card">
