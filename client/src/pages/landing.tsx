@@ -140,7 +140,7 @@ function SeeHowItLooksSection() {
               
               {/* Vertical separator after each pair */}
               {pairIndex < 5 && (
-                <div className="flex-shrink-0 w-px h-80 bg-gray-300/50 mx-6"></div>
+                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
               )}
             </div>
           ))}
@@ -182,7 +182,7 @@ function SeeHowItLooksSection() {
               
               {/* Vertical separator after each pair */}
               {pairIndex < 5 && (
-                <div className="flex-shrink-0 w-px h-80 bg-gray-300/50 mx-6"></div>
+                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
               )}
             </div>
           ))}
