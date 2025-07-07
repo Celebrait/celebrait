@@ -8,13 +8,12 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid md:grid-cols-2 gap-8">
           <div>
-            <div className="flex items-center space-x-2 mb-4">
+            <div className="flex items-center mb-4">
               <img 
                 src="/images/Logo.png" 
                 alt="Celebrait Logo" 
-                className="w-8 h-8 object-contain"
+                className="h-8 object-contain"
               />
-              <span className="text-xl font-bold text-gradient-celebrait">Celebrait</span>
             </div>
             <p className="text-slate-gray text-sm">Creating magical moments through AI-powered greeting cards, one celebration at a time.</p>
           </div>
