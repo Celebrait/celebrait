@@ -226,7 +226,7 @@ function CallToActionSection() {
       
       <LargeImageSection />
       
-      <div className="text-3xl md:text-4xl font-extrabold mb-8">
+      <div className="text-3xl md:text-4xl font-extrabold mb-8 mt-16">
         Ready to have your <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">mind blown?</span>
       </div>
       
