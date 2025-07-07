@@ -201,7 +201,7 @@ function SeeHowItsMadeSection() {
       </div>
 
       {/* Toggle Buttons */}
-      <div className="flex justify-center mb-8">
+      <div className="flex justify-center mb-16">
         <div className="bg-white rounded-lg p-1 shadow-md">
           <button
             onClick={() => setActiveToggle('describe')}
@@ -242,7 +242,7 @@ function SeeHowItsMadeSection() {
           {(activeToggle === 'describe' ? describeSceneData : transformStyleData).map((data, pairIndex) => (
             <div key={pairIndex} className="flex gap-4 items-start">
               {/* Card Pair Container */}
-              <div className="flex-shrink-0 space-y-32">
+              <div className="flex-shrink-0 space-y-12">
                 <div className="flex gap-4 items-end">
                   {/* Front of card */}
                   <div className="flex-shrink-0 relative">
@@ -283,7 +283,7 @@ function SeeHowItsMadeSection() {
                     <div className="relative inline-block">
                       <button
                         onClick={() => toggleBox(`${activeToggle}-${pairIndex}`)}
-                        className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2 rounded-xl font-semibold text-sm shadow-md hover:shadow-lg transition-all duration-200"
+                        className="bg-white border border-gray-200 hover:border-purple-300 hover:bg-purple-50 text-gray-700 hover:text-purple-700 font-medium py-2 px-4 rounded-md text-sm transition-all duration-200"
                       >
                         How it was created ✨
                       </button>
