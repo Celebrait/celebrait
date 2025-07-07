@@ -100,8 +100,21 @@ function WatchVideoSection() {
 function SeeHowItsMadeSection() {
   const [activeToggle, setActiveToggle] = useState<'describe' | 'transform'>('describe');
   const [revealedBoxes, setRevealedBoxes] = useState<Set<string>>(new Set());
+  const [poofAnimations, setPoofAnimations] = useState<Set<string>>(new Set());
 
   const toggleBox = (boxId: string) => {
+    if (!revealedBoxes.has(boxId)) {
+      // Trigger poof animation
+      setPoofAnimations(prev => new Set(prev).add(boxId));
+      setTimeout(() => {
+        setPoofAnimations(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(boxId);
+          return newSet;
+        });
+      }, 600);
+    }
+
     setRevealedBoxes(prev => {
       const newSet = new Set(prev);
       if (newSet.has(boxId)) {
@@ -253,14 +266,29 @@ function SeeHowItsMadeSection() {
                 </div>
                 
                 {/* Description under card pair */}
-                <div className="max-w-lg mx-auto">
+                <div className="max-w-lg mx-auto text-center">
                   {!revealedBoxes.has(`${activeToggle}-${pairIndex}`) ? (
-                    <button
-                      onClick={() => toggleBox(`${activeToggle}-${pairIndex}`)}
-                      className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-3 rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
-                    >
-                      How it was made
-                    </button>
+                    <div className="relative inline-block">
+                      <button
+                        onClick={() => toggleBox(`${activeToggle}-${pairIndex}`)}
+                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                      >
+                        How it was created ✨
+                      </button>
+                      {poofAnimations.has(`${activeToggle}-${pairIndex}`) && (
+                        <div className="absolute inset-0 pointer-events-none">
+                          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-2xl animate-ping">
+                            ✨
+                          </div>
+                          <div className="absolute top-1/2 left-1/4 transform -translate-x-1/2 -translate-y-1/2 text-xl animate-pulse delay-100">
+                            💫
+                          </div>
+                          <div className="absolute top-1/2 right-1/4 transform translate-x-1/2 -translate-y-1/2 text-xl animate-pulse delay-200">
+                            ⭐
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-6 shadow-md border border-purple-100 relative">
                       <button
