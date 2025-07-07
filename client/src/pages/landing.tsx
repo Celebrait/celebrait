@@ -204,7 +204,7 @@ function SeeHowItsMadeSection() {
           {(activeToggle === 'describe' ? describeSceneData : transformStyleData).map((data, pairIndex) => (
             <div key={pairIndex} className="flex gap-4 items-start">
               {/* Card Pair Container */}
-              <div className="flex-shrink-0 space-y-12">
+              <div className="flex-shrink-0 space-y-20">
                 <div className="flex gap-4 items-end">
                   {/* Front of card */}
                   <div className="flex-shrink-0 relative">
@@ -254,6 +254,11 @@ function SeeHowItsMadeSection() {
                   </p>
                 </div>
               </div>
+              
+              {/* Vertical separator after each pair */}
+              {pairIndex < 4 && (
+                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
+              )}
             </div>
           ))}
         </div>
