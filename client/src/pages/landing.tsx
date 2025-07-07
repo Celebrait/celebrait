@@ -173,12 +173,12 @@ function SeeHowItsMadeSection() {
 
       {/* Toggle Buttons */}
       <div className="flex justify-center mb-12">
-        <div className="bg-white rounded-xl p-2 shadow-lg">
+        <div className="bg-white rounded-lg p-1 shadow-md">
           <button
             onClick={() => setActiveToggle('describe')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all ${
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
               activeToggle === 'describe'
-                ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-md'
+                ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -186,9 +186,9 @@ function SeeHowItsMadeSection() {
           </button>
           <button
             onClick={() => setActiveToggle('transform')}
-            className={`px-6 py-3 rounded-lg font-medium transition-all ${
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
               activeToggle === 'transform'
-                ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-md'
+                ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -197,68 +197,145 @@ function SeeHowItsMadeSection() {
         </div>
       </div>
       
-      {/* Card Pairs Display */}
-      <div className="max-w-7xl mx-auto px-4 md:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {(activeToggle === 'describe' ? describeSceneData : transformStyleData).map((data, index) => (
-            <div key={index} className="space-y-6">
-              {/* Card Pair */}
-              <div className="flex gap-4 justify-center">
-                {/* Front of card */}
-                <div className="flex-shrink-0 relative">
-                  <div className="w-32 h-32 rounded-xl overflow-hidden shadow-lg bg-white">
-                    <img
-                      src={sampleCard}
-                      alt={`Card front ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
+      <div className="relative overflow-hidden">
+        <div className="flex gap-4 animate-scroll items-start">
+          {/* First set of card pairs */}
+          {(activeToggle === 'describe' ? describeSceneData : transformStyleData).map((data, pairIndex) => (
+            <div key={pairIndex} className="flex gap-4 items-start">
+              {/* Card Pair Container */}
+              <div className="flex-shrink-0 space-y-4">
+                <div className="flex gap-4 items-end">
+                  {/* Front of card */}
+                  <div className="flex-shrink-0 relative">
+                    <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
+                      <img
+                        src={sampleCard}
+                        alt={`Sample card front ${pairIndex + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
+                        Front of Card
+                      </span>
+                    </div>
                   </div>
-                  <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-white px-2 py-1 rounded-full text-xs font-medium text-gray-700 shadow-md">
-                      Front
-                    </span>
+                  
+                  {/* Inside of card - slightly higher position */}
+                  <div className="flex-shrink-0 relative -mb-8">
+                    <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
+                      <img
+                        src={sampleCard}
+                        alt={`Sample card inside ${pairIndex + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
+                        Inside of Card
+                      </span>
+                    </div>
                   </div>
                 </div>
                 
-                {/* Inside of card */}
-                <div className="flex-shrink-0 relative">
-                  <div className="w-32 h-32 rounded-xl overflow-hidden shadow-lg bg-white">
-                    <img
-                      src={sampleCard}
-                      alt={`Card inside ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-white px-2 py-1 rounded-full text-xs font-medium text-gray-700 shadow-md">
-                      Inside
-                    </span>
+                {/* Description under card pair */}
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 max-w-md mx-auto">
+                  <p className="text-sm text-gray-700 leading-relaxed text-center">
+                    {activeToggle === 'describe' ? (
+                      <>
+                        Celebrait placed loved one in <strong>"{data.sceneDescription}"</strong> and made it <strong>{data.artStyle}</strong> with custom text on the front and inside.
+                      </>
+                    ) : (
+                      <>
+                        Celebrait took loved one's photo and made it <strong>{data.artStyle}</strong> with custom text on the front and inside.
+                      </>
+                    )}
+                  </p>
+                  <div className="mt-3 space-y-1">
+                    <div className="text-xs text-gray-500 text-center">
+                      <strong>Front:</strong> "{data.frontText}"
+                    </div>
+                    <div className="text-xs text-gray-500 text-center">
+                      <strong>Inside:</strong> "{data.insideText}"
+                    </div>
                   </div>
                 </div>
               </div>
               
-              {/* Description */}
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center">
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  {activeToggle === 'describe' ? (
-                    <>
-                      Celebrait placed loved one in <strong>"{data.sceneDescription}"</strong> and made it <strong>{data.artStyle}</strong> with custom text on the front and inside.
-                    </>
-                  ) : (
-                    <>
-                      Celebrait took loved one's photo and made it <strong>{data.artStyle}</strong> with custom text on the front and inside.
-                    </>
-                  )}
-                </p>
-                <div className="mt-3 space-y-1">
-                  <div className="text-xs text-gray-500">
-                    <strong>Front:</strong> "{activeToggle === 'describe' ? data.frontText : (data as any).frontText}"
+              {/* Vertical separator after each pair */}
+              {pairIndex < 4 && (
+                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
+              )}
+            </div>
+          ))}
+          
+          {/* Duplicate set for seamless loop */}
+          {(activeToggle === 'describe' ? describeSceneData : transformStyleData).map((data, pairIndex) => (
+            <div key={pairIndex + 5} className="flex gap-4 items-start">
+              {/* Card Pair Container */}
+              <div className="flex-shrink-0 space-y-4">
+                <div className="flex gap-4 items-end">
+                  {/* Front of card */}
+                  <div className="flex-shrink-0 relative">
+                    <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
+                      <img
+                        src={sampleCard}
+                        alt={`Sample card front ${pairIndex + 6}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
+                        Front of Card
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    <strong>Inside:</strong> "{activeToggle === 'describe' ? data.insideText : (data as any).insideText}"
+                  
+                  {/* Inside of card - slightly higher position */}
+                  <div className="flex-shrink-0 relative -mb-8">
+                    <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
+                      <img
+                        src={sampleCard}
+                        alt={`Sample card inside ${pairIndex + 6}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
+                        Inside of Card
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Description under card pair */}
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 max-w-md mx-auto">
+                  <p className="text-sm text-gray-700 leading-relaxed text-center">
+                    {activeToggle === 'describe' ? (
+                      <>
+                        Celebrait placed loved one in <strong>"{data.sceneDescription}"</strong> and made it <strong>{data.artStyle}</strong> with custom text on the front and inside.
+                      </>
+                    ) : (
+                      <>
+                        Celebrait took loved one's photo and made it <strong>{data.artStyle}</strong> with custom text on the front and inside.
+                      </>
+                    )}
+                  </p>
+                  <div className="mt-3 space-y-1">
+                    <div className="text-xs text-gray-500 text-center">
+                      <strong>Front:</strong> "{data.frontText}"
+                    </div>
+                    <div className="text-xs text-gray-500 text-center">
+                      <strong>Inside:</strong> "{data.insideText}"
+                    </div>
                   </div>
                 </div>
               </div>
+              
+              {/* Vertical separator after each pair */}
+              {pairIndex < 4 && (
+                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
+              )}
             </div>
           ))}
         </div>
