@@ -88,8 +88,9 @@ export default function SavedProgressPage() {
       sessionStorage.setItem('savedProgressData', JSON.stringify(minimalProgressData));
       sessionStorage.setItem('selectedDeliveryType', progressData.cardType);
       
-      // Navigate immediately without timeout to prevent multiple attempts
-      setLocation('/');
+      // Use window.location for reliable navigation
+      console.log('Navigating to home using window.location...');
+      window.location.href = '/';
     } catch (error) {
       console.error('Error resuming progress:', error);
     }
@@ -151,7 +152,7 @@ export default function SavedProgressPage() {
                         e.preventDefault();
                         e.stopPropagation();
                         console.log('Back to Home button clicked!');
-                        setLocation('/');
+                        window.location.href = '/';
                       }}
                       variant="outline"
                       className="w-full"
@@ -265,7 +266,7 @@ export default function SavedProgressPage() {
             </Button>
             
             <Button
-              onClick={() => setLocation('/')}
+              onClick={() => window.location.href = '/'}
               variant="outline"
               className="flex-1 py-3"
             >

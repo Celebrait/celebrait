@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PlayCircle, Trash2, Calendar, Palette } from 'lucide-react';
@@ -12,6 +13,7 @@ interface SavedProgressCardProps {
 
 export default function SavedProgressCard({ savedProgress, onContinue, onDelete }: SavedProgressCardProps) {
   const { deleteSavedProgress, isDeletingProgress } = useSaveProgress();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const handleDelete = () => {
     if (onDelete) {
@@ -125,8 +127,15 @@ export default function SavedProgressCard({ savedProgress, onContinue, onDelete 
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            
+            // Prevent multiple rapid clicks
+            if (isNavigating) {
+              console.log('Navigation already in progress, ignoring click');
+              return;
+            }
+            
+            setIsNavigating(true);
             console.log('Continue Creating button clicked!');
-            // Log minimal data without base64 images to prevent console overflow
             console.log('Saved progress data:', {
               id: savedProgress.id,
               userId: savedProgress.userId,
@@ -134,9 +143,16 @@ export default function SavedProgressCard({ savedProgress, onContinue, onDelete 
               currentStep: savedProgress.currentStep
             });
             console.log('Calling onContinue function...');
-            onContinue(savedProgress);
+            
+            try {
+              onContinue(savedProgress);
+            } catch (error) {
+              console.error('Error in onContinue:', error);
+              setIsNavigating(false);
+            }
           }}
-          className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold"
+          disabled={isNavigating}
+          className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold disabled:opacity-50"
           type="button"
         >
           <PlayCircle className="w-4 h-4 mr-2" />
