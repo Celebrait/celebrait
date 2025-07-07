@@ -37,15 +37,18 @@ body {
   transition: opacity 0.2s ease-in-out;
 }
 
-/* Carousel container styling */
-.carousel-container {
-  scroll-behavior: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+/* Infinite scrolling carousel animation */
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
-.carousel-container::-webkit-scrollbar {
-  display: none;
+.animate-scroll {
+  animation: scroll 20s linear infinite;
 }
 
 .dark {

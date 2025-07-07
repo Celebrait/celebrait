@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from "wouter";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -98,39 +98,8 @@ function WatchVideoSection() {
 }
 
 function SeeHowItLooksSection() {
-  const scrollRef = React.useRef<HTMLDivElement>(null);
-  
-  React.useEffect(() => {
-    const scrollContainer = scrollRef.current;
-    if (!scrollContainer) return;
-    
-    let animationId: number;
-    let startTime: number;
-    const duration = 25000; // 25 seconds
-    
-    const animate = (currentTime: number) => {
-      if (!startTime) startTime = currentTime;
-      const elapsed = currentTime - startTime;
-      const progress = (elapsed % duration) / duration;
-      
-      // Calculate scroll position - scroll exactly half the content width
-      const scrollDistance = scrollContainer.scrollWidth / 2;
-      const scrollLeft = progress * scrollDistance;
-      
-      scrollContainer.scrollLeft = scrollLeft;
-      
-      animationId = requestAnimationFrame(animate);
-    };
-    
-    animationId = requestAnimationFrame(animate);
-    
-    return () => {
-      if (animationId) cancelAnimationFrame(animationId);
-    };
-  }, []);
-  
   return (
-    <section className="w-full py-16 pb-32 bg-gray-50 overflow-hidden">
+    <section className="w-full py-16 pb-24 bg-gray-50 overflow-hidden">
       <div className="text-center mb-12">
         <h2 className="text-3xl md:text-4xl font-extrabold">
           <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">
@@ -139,11 +108,8 @@ function SeeHowItLooksSection() {
         </h2>
       </div>
       
-      <div className="relative pb-16">
-        <div 
-          ref={scrollRef}
-          className="flex gap-4 items-end whitespace-nowrap overflow-hidden carousel-container"
-        >
+      <div className="relative">
+        <div className="flex gap-4 animate-scroll items-end">
           {/* First set of card pairs */}
           {Array.from({ length: 6 }, (_, pairIndex) => (
             <div key={pairIndex} className="flex gap-4 items-end">
@@ -156,8 +122,8 @@ function SeeHowItLooksSection() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md whitespace-nowrap">
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
                     Front of Card
                   </span>
                 </div>
@@ -172,8 +138,8 @@ function SeeHowItLooksSection() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md whitespace-nowrap">
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
                     Inside of Card
                   </span>
                 </div>
@@ -198,8 +164,8 @@ function SeeHowItLooksSection() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md whitespace-nowrap">
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
                     Front of Card
                   </span>
                 </div>
@@ -214,8 +180,8 @@ function SeeHowItLooksSection() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md whitespace-nowrap">
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
                     Inside of Card
                   </span>
                 </div>
