@@ -283,7 +283,7 @@ function SeeHowItsMadeSection() {
                     <div className="relative inline-block">
                       <button
                         onClick={() => toggleBox(`${activeToggle}-${pairIndex}`)}
-                        className="bg-white border border-gray-200 hover:border-purple-300 hover:bg-purple-50 text-gray-700 hover:text-purple-700 font-medium py-2 px-4 rounded-md text-sm transition-all duration-200"
+                        className="bg-purple-50 border border-purple-300 hover:border-gray-200 hover:bg-white text-purple-700 hover:text-gray-700 font-medium py-2 px-4 rounded-md text-sm transition-all duration-200"
                       >
                         How it was created ✨
                       </button>
