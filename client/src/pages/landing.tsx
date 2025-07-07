@@ -169,6 +169,7 @@ function SeeHowItsMadeSection() {
             See How It's Made
           </span>
         </h2>
+        <p className="text-gray-600 mt-4">Scroll or swipe to see what we're capable of</p>
       </div>
 
       {/* Toggle Buttons */}
@@ -197,13 +198,13 @@ function SeeHowItsMadeSection() {
         </div>
       </div>
       
-      <div className="relative overflow-hidden">
-        <div className="flex gap-4 animate-scroll items-start">
+      <div className="relative">
+        <div className="flex gap-8 overflow-x-auto scrollbar-hide pb-4 items-start">
           {/* First set of card pairs */}
           {(activeToggle === 'describe' ? describeSceneData : transformStyleData).map((data, pairIndex) => (
             <div key={pairIndex} className="flex gap-4 items-start">
               {/* Card Pair Container */}
-              <div className="flex-shrink-0 space-y-4">
+              <div className="flex-shrink-0 space-y-12">
                 <div className="flex gap-4 items-end">
                   {/* Front of card */}
                   <div className="flex-shrink-0 relative">
@@ -239,103 +240,20 @@ function SeeHowItsMadeSection() {
                 </div>
                 
                 {/* Description under card pair */}
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 max-w-md mx-auto">
-                  <p className="text-sm text-gray-700 leading-relaxed text-center">
+                <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-6 shadow-md border border-purple-100 max-w-lg mx-auto">
+                  <p className="text-sm text-gray-800 leading-relaxed text-center font-medium">
                     {activeToggle === 'describe' ? (
                       <>
-                        Celebrait placed loved one in <strong>"{data.sceneDescription}"</strong> and made it <strong>{data.artStyle}</strong> with custom text on the front and inside.
+                        Celebrait placed loved one in <strong className="text-purple-700">"{data.sceneDescription}"</strong> and made it <strong className="text-blue-700">{data.artStyle}</strong> with custom text on the front and inside.
                       </>
                     ) : (
                       <>
-                        Celebrait took loved one's photo and made it <strong>{data.artStyle}</strong> with custom text on the front and inside.
+                        Celebrait took loved one's photo and made it <strong className="text-purple-700">{data.artStyle}</strong> with custom text on the front and inside.
                       </>
                     )}
                   </p>
-                  <div className="mt-3 space-y-1">
-                    <div className="text-xs text-gray-500 text-center">
-                      <strong>Front:</strong> "{data.frontText}"
-                    </div>
-                    <div className="text-xs text-gray-500 text-center">
-                      <strong>Inside:</strong> "{data.insideText}"
-                    </div>
-                  </div>
                 </div>
               </div>
-              
-              {/* Vertical separator after each pair */}
-              {pairIndex < 4 && (
-                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
-              )}
-            </div>
-          ))}
-          
-          {/* Duplicate set for seamless loop */}
-          {(activeToggle === 'describe' ? describeSceneData : transformStyleData).map((data, pairIndex) => (
-            <div key={pairIndex + 5} className="flex gap-4 items-start">
-              {/* Card Pair Container */}
-              <div className="flex-shrink-0 space-y-4">
-                <div className="flex gap-4 items-end">
-                  {/* Front of card */}
-                  <div className="flex-shrink-0 relative">
-                    <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                      <img
-                        src={sampleCard}
-                        alt={`Sample card front ${pairIndex + 6}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                        Front of Card
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Inside of card - slightly higher position */}
-                  <div className="flex-shrink-0 relative -mb-8">
-                    <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                      <img
-                        src={sampleCard}
-                        alt={`Sample card inside ${pairIndex + 6}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                        Inside of Card
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Description under card pair */}
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 max-w-md mx-auto">
-                  <p className="text-sm text-gray-700 leading-relaxed text-center">
-                    {activeToggle === 'describe' ? (
-                      <>
-                        Celebrait placed loved one in <strong>"{data.sceneDescription}"</strong> and made it <strong>{data.artStyle}</strong> with custom text on the front and inside.
-                      </>
-                    ) : (
-                      <>
-                        Celebrait took loved one's photo and made it <strong>{data.artStyle}</strong> with custom text on the front and inside.
-                      </>
-                    )}
-                  </p>
-                  <div className="mt-3 space-y-1">
-                    <div className="text-xs text-gray-500 text-center">
-                      <strong>Front:</strong> "{data.frontText}"
-                    </div>
-                    <div className="text-xs text-gray-500 text-center">
-                      <strong>Inside:</strong> "{data.insideText}"
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Vertical separator after each pair */}
-              {pairIndex < 4 && (
-                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
-              )}
             </div>
           ))}
         </div>
