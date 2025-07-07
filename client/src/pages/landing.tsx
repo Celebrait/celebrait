@@ -226,12 +226,18 @@ function SeeHowItsMadeSection() {
         </div>
       </div>
 
-      <p className="text-gray-600 text-center mb-12">
-        Scroll or swipe to see what we're capable of and click the buttons underneath to see how each card was made.
-      </p>
+
       
       <div className="relative">
-        <div className="flex gap-8 overflow-x-auto scrollbar-hide pb-4 items-start">
+        {/* Scroll indicators */}
+        <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-lg">
+          <div className="text-gray-400">←</div>
+        </div>
+        <div className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-lg">
+          <div className="text-gray-400">→</div>
+        </div>
+        
+        <div className="flex gap-8 overflow-x-auto scrollbar-hide pb-4 px-16">
           {/* First set of card pairs */}
           {(activeToggle === 'describe' ? describeSceneData : transformStyleData).map((data, pairIndex) => (
             <div key={pairIndex} className="flex gap-4 items-start">
@@ -254,8 +260,8 @@ function SeeHowItsMadeSection() {
                     </div>
                   </div>
                   
-                  {/* Inside of card - slightly higher position */}
-                  <div className="flex-shrink-0 relative -mb-8">
+                  {/* Inside of card - same height */}
+                  <div className="flex-shrink-0 relative">
                     <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
                       <img
                         src={sampleCard}
