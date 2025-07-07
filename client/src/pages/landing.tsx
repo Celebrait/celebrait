@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from "wouter";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -98,6 +98,37 @@ function WatchVideoSection() {
 }
 
 function SeeHowItLooksSection() {
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  
+  React.useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+    
+    let animationId: number;
+    let startTime: number;
+    const duration = 25000; // 25 seconds
+    
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime;
+      const elapsed = currentTime - startTime;
+      const progress = (elapsed % duration) / duration;
+      
+      // Calculate scroll position - scroll exactly half the content width
+      const scrollDistance = scrollContainer.scrollWidth / 2;
+      const scrollLeft = progress * scrollDistance;
+      
+      scrollContainer.scrollLeft = scrollLeft;
+      
+      animationId = requestAnimationFrame(animate);
+    };
+    
+    animationId = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationId) cancelAnimationFrame(animationId);
+    };
+  }, []);
+  
   return (
     <section className="w-full py-16 pb-24 bg-gray-50 overflow-hidden">
       <div className="text-center mb-12">
@@ -109,7 +140,10 @@ function SeeHowItLooksSection() {
       </div>
       
       <div className="relative">
-        <div className="flex gap-4 animate-scroll items-end whitespace-nowrap">
+        <div 
+          ref={scrollRef}
+          className="flex gap-4 items-end whitespace-nowrap overflow-hidden carousel-container"
+        >
           {/* First set of card pairs */}
           {Array.from({ length: 6 }, (_, pairIndex) => (
             <div key={pairIndex} className="flex gap-4 items-end">
