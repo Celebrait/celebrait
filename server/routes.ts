@@ -3422,6 +3422,274 @@ ${formatInstruction}`;
     }
   });
 
+  // Test Mode Endpoints for End-to-End Testing
+  
+  // Send test card ready email notification
+  app.post("/api/send-card-ready-email", async (req, res) => {
+    try {
+      const { email, cardId } = req.body;
+      
+      if (!email || !cardId) {
+        return res.status(400).json({ message: "Email and cardId are required" });
+      }
+
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      // Generate a test reference for the email
+      const testReference = `celebrait_ready_${cardId}_${Date.now()}`;
+      
+      // Create card ready notification email
+      const cardType = card.cardType === 'digital' ? 'digital' : 'printed';
+      const emailData = generateCardReadyNotificationEmail(
+        { 
+          ...card, 
+          customerEmail: email, 
+          reference: testReference,
+          cardType 
+        },
+        req.get('host')
+      );
+
+      const success = await sendEmail(emailData);
+
+      if (success) {
+        // Store the reference for testing email links
+        emailLinkCache.set(testReference, {
+          card,
+          insideImage: !!card.insideImageUrl,
+          timestamp: Date.now()
+        });
+
+        res.json({ 
+          success: true, 
+          message: 'Card ready email sent successfully',
+          reference: testReference,
+          previewLink: `/card-preview/${testReference}`
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: 'Failed to send card ready email' 
+        });
+      }
+
+    } catch (error: any) {
+      console.error('Error sending test card ready email:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to send card ready email: " + error.message 
+      });
+    }
+  });
+
+  // Create test digital order
+  app.post("/api/test-digital-order", async (req, res) => {
+    try {
+      const { 
+        cardId, 
+        customerEmail, 
+        customerName, 
+        deliveryMethod, 
+        recipientEmail, 
+        recipientName 
+      } = req.body;
+
+      if (!cardId || !customerEmail || !customerName) {
+        return res.status(400).json({ message: "CardId, customerEmail, and customerName are required" });
+      }
+
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      // Create the order
+      const orderReference = `test_order_${Date.now()}`;
+      const order = await storage.createOrder({
+        cardId,
+        customerEmail,
+        customerName,
+        deliveryType: 'digital',
+        shippingAddress: null,
+        amount: 0,
+        status: 'completed',
+        paymentReference: orderReference,
+        paymentMethod: 'free'
+      });
+
+      // Send appropriate emails based on delivery method
+      if (deliveryMethod === 'recipient' && recipientEmail && recipientName) {
+        // Send to both recipient and customer
+        const digitalCardUrl = `${req.protocol}://${req.get('host')}/card/celebrait_digital_${cardId}_${Date.now()}`;
+        
+        // Email to recipient
+        const recipientEmailData = generateDigitalCardEmail(
+          { 
+            ...order, 
+            customerEmail: recipientEmail,
+            customerName: recipientName,
+            card 
+          }, 
+          digitalCardUrl,
+          req.get('host')
+        );
+        await sendEmail(recipientEmailData);
+
+        // Email to customer
+        const customerEmailData = generateDigitalCardEmail(
+          { 
+            ...order, 
+            customerEmail,
+            customerName,
+            card 
+          }, 
+          digitalCardUrl,
+          req.get('host')
+        );
+        await sendEmail(customerEmailData);
+
+      } else {
+        // Send only to customer
+        const digitalCardUrl = `${req.protocol}://${req.get('host')}/card/celebrait_digital_${cardId}_${Date.now()}`;
+        const emailData = generateDigitalCardEmail(
+          { ...order, card }, 
+          digitalCardUrl,
+          req.get('host')
+        );
+        await sendEmail(emailData);
+      }
+
+      res.json({ 
+        success: true, 
+        order,
+        message: 'Test digital order created and emails sent successfully'
+      });
+
+    } catch (error: any) {
+      console.error('Error creating test digital order:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to create test digital order: " + error.message 
+      });
+    }
+  });
+
+  // Create test printed order 
+  app.post("/api/test-printed-order", async (req, res) => {
+    try {
+      const { 
+        cardId, 
+        customerEmail, 
+        customerName,
+        shippingAddress
+      } = req.body;
+
+      if (!cardId || !customerEmail || !customerName) {
+        return res.status(400).json({ message: "CardId, customerEmail, and customerName are required" });
+      }
+
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      // Create the order
+      const orderReference = `test_printed_${Date.now()}`;
+      const order = await storage.createOrder({
+        cardId,
+        customerEmail,
+        customerName,
+        deliveryType: 'printed',
+        shippingAddress: shippingAddress || {
+          line1: '123 Test Street',
+          line2: '',
+          city: 'Test City',
+          province: 'Test Province',
+          postalCode: '12345'
+        },
+        amount: card.price,
+        status: 'paid',
+        paymentReference: orderReference,
+        paymentMethod: 'test'
+      });
+
+      // Send order confirmation email
+      const emailData = generateOrderConfirmationEmail(order);
+      await sendEmail(emailData);
+
+      res.json({ 
+        success: true, 
+        order,
+        message: 'Test printed order created and confirmation email sent successfully'
+      });
+
+    } catch (error: any) {
+      console.error('Error creating test printed order:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to create test printed order: " + error.message 
+      });
+    }
+  });
+
+  // Test shipping notification
+  app.post("/api/test-shipping-notification", async (req, res) => {
+    try {
+      const { email, orderId, trackingNumber } = req.body;
+
+      if (!email || !orderId) {
+        return res.status(400).json({ message: "Email and orderId are required" });
+      }
+
+      // Create mock order data for shipping notification
+      const mockOrder = {
+        id: orderId,
+        customerEmail: email,
+        customerName: 'Test Customer',
+        deliveryType: 'printed' as const,
+        status: 'shipped' as const,
+        paymentReference: `test_ref_${Date.now()}`,
+        shippingAddress: {
+          line1: '123 Test Street',
+          line2: '',
+          city: 'Test City',
+          province: 'Test Province',
+          postalCode: '12345'
+        }
+      };
+
+      const emailData = generateShippingNotificationEmail(
+        mockOrder, 
+        trackingNumber || `TEST${Date.now()}`
+      );
+      
+      const success = await sendEmail(emailData);
+
+      if (success) {
+        res.json({ 
+          success: true, 
+          message: 'Test shipping notification sent successfully',
+          trackingNumber: trackingNumber || `TEST${Date.now()}`
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: 'Failed to send shipping notification' 
+        });
+      }
+
+    } catch (error: any) {
+      console.error('Error sending test shipping notification:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to send shipping notification: " + error.message 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
