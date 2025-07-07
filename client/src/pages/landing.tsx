@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import sampleCard from "@/assets/sample-card.jpeg";
 
 function HeroSection() {
@@ -199,14 +200,71 @@ function SeeHowItLooksSection() {
   );
 }
 
+function SwipeableImageSection() {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const images = [sampleCard, sampleCard]; // Using placeholder images
+  
+  const nextImage = () => {
+    setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
+  };
+  
+  const prevImage = () => {
+    setCurrentImageIndex((prevIndex) => (prevIndex - 1 + images.length) % images.length);
+  };
+  
+  return (
+    <div className="relative max-w-md mx-auto">
+      <div className="relative aspect-square bg-white rounded-2xl shadow-lg overflow-hidden">
+        <img 
+          src={images[currentImageIndex]} 
+          alt={`Sample ${currentImageIndex + 1}`}
+          className="w-full h-full object-cover"
+        />
+        
+        {/* Navigation arrows */}
+        <button
+          onClick={prevImage}
+          className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md transition-colors"
+        >
+          <ChevronLeft className="w-6 h-6 text-gray-700" />
+        </button>
+        
+        <button
+          onClick={nextImage}
+          className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md transition-colors"
+        >
+          <ChevronRight className="w-6 h-6 text-gray-700" />
+        </button>
+      </div>
+      
+      {/* Dots indicator */}
+      <div className="flex justify-center mt-4 space-x-2">
+        {images.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentImageIndex(index)}
+            className={`w-3 h-3 rounded-full transition-colors ${
+              index === currentImageIndex ? 'bg-purple-500' : 'bg-gray-300'
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function CallToActionSection() {
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-8 py-16 text-center">
-      <h2 className="text-3xl md:text-4xl font-extrabold mb-8">
-        Greetings <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">earthling</span>, welcome to the <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">end of boring</span>, ready to have your <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">mind blown?</span>
-      </h2>
+      <div className="text-3xl md:text-4xl font-extrabold mb-8 space-y-2">
+        <div>Greetings <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">earthling</span>.</div>
+        <div>Welcome to the end of <span className="line-through">boring</span>.</div>
+        <div>Ready to have your <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">mind blown?</span></div>
+      </div>
       
-      <div className="space-y-3">
+      <SwipeableImageSection />
+      
+      <div className="space-y-3 mt-8">
         <Link to="/create-card">
           <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-semibold text-lg">
             Create a Masterpiece

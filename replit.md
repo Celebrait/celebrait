@@ -160,6 +160,7 @@ Changelog:
   * INFINITE CAROUSEL: Added "SEE HOW IT LOOKS" section with full-width infinite scrolling carousel of sample cards
   * TRY BEFORE BUY: Added reassuring note under CTA button emphasizing free preview before purchase
   * BOLD CTA SECTION: Added compelling call-to-action section below carousel with "Create a Masterpiece" button and gradient text styling
+  * SWIPEABLE IMAGES: Added interactive swipeable image gallery with navigation arrows and dot indicators for desktop and mobile
 - July 7, 2025. HERO SECTION STYLING: Enhanced landing page with dynamic typing animation:
   * TYPING ANIMATION: Added engaging cycling text animation ("intelligence having fun", "the future of greetings cards", "mind. blown.")
   * GRADIENT TEXT: Beautiful purple-to-pink gradient on animated text with smooth background clipping
