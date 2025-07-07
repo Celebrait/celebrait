@@ -24,6 +24,7 @@ export default function Home() {
   // Authentication state
   const [authenticatedUser, setAuthenticatedUser] = useState<{ id: string; firstName: string; lastName: string; email: string } | null>(null);
   const [showSavedProgress, setShowSavedProgress] = useState(false);
+  const [isRestoringProgress, setIsRestoringProgress] = useState(false);
   
   // Streamlined flow state
   const [flowStep, setFlowStep] = useState<'delivery' | 'photo-choice' | 'conversation'>('delivery');
@@ -62,6 +63,9 @@ export default function Home() {
     if (resumeFromSaved === 'true' && savedProgressData) {
       const progressData = JSON.parse(savedProgressData);
       
+      console.log('Detected progress restoration, setting isRestoringProgress to true');
+      setIsRestoringProgress(true);
+      
       // Store the saved progress data for the guided conversation
       setRestoredSavedProgress(progressData);
       
@@ -85,12 +89,23 @@ export default function Home() {
     }
   }, []);
 
-  // Show saved progress page when user signs in and has saved progress
+  // Show saved progress page when user signs in and has saved progress (but not during restoration or fresh start)
   useEffect(() => {
-    if (authenticatedUser && savedProgress) {
+    const startFresh = sessionStorage.getItem('startFresh');
+    
+    if (startFresh === 'true') {
+      console.log('User requested fresh start - bypassing saved progress display');
+      sessionStorage.removeItem('startFresh');
+      setShowSavedProgress(false);
+      setIsRestoringProgress(false);
+      return;
+    }
+    
+    if (authenticatedUser && savedProgress && !isRestoringProgress) {
+      console.log('Showing saved progress page - user authenticated with saved progress');
       setShowSavedProgress(true);
     }
-  }, [authenticatedUser, savedProgress]);
+  }, [authenticatedUser, savedProgress, isRestoringProgress]);
 
   const handleUserAuthenticated = (userData: { firstName: string; lastName: string; email: string }) => {
     const userWithId = {
@@ -102,10 +117,12 @@ export default function Home() {
 
   const handleStartNewCard = () => {
     setShowSavedProgress(false);
+    setIsRestoringProgress(false);
     setFlowStep('delivery');
     setSelectedDeliveryType(null);
     setSelectedPhotoOption(null);
     setGeneratedCard(null);
+    setRestoredSavedProgress(null);
   };
 
   const handleCardGenerated = (card: any) => {

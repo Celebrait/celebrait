@@ -114,7 +114,12 @@ export default function SavedProgressPage() {
     sessionStorage.removeItem('resumeFromSaved');
     sessionStorage.removeItem('savedProgressData');
     sessionStorage.removeItem('selectedDeliveryType');
-    setLocation('/');
+    
+    // Add a flag to indicate user wants to start fresh
+    sessionStorage.setItem('startFresh', 'true');
+    
+    console.log('Starting fresh card creation - bypassing saved progress');
+    window.location.href = '/';
   };
 
   if (!authenticatedUser && authCheckComplete) {
