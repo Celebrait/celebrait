@@ -29,7 +29,7 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
       id: 'digital',
       title: 'Digital Download',
       description: 'Instant digital card delivered via email with interactive viewing and download options',
-      price: 'R1.00',
+      price: 'R5.00',
       icon: Download,
       gradient: 'from-green-500 to-blue-500',
       hoverGradient: 'from-green-600 to-blue-600',

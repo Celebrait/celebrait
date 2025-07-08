@@ -3409,7 +3409,7 @@ ${formatInstruction}`;
         customerName,
         deliveryType: 'digital',
         shippingAddress: null,
-        amount: 100, // R1.00 for digital cards
+        amount: 500, // R5.00 for digital cards
         status: 'completed',
         paymentReference: orderReference,
         paymentMethod: 'payfast'
@@ -3642,7 +3642,7 @@ ${formatInstruction}`;
       }
 
       // Calculate amount based on card type
-      const amount = isDigital ? 100 : 12900; // R1.00 for digital, R129.00 for printed cards
+      const amount = isDigital ? 500 : 12900; // R5.00 for digital, R129.00 for printed cards
 
       // Create order record
       const orderData = {

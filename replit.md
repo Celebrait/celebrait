@@ -128,11 +128,12 @@ Changelog:
   * WEBHOOK INTEGRATION: Live ITN (Instant Transaction Notification) processing for real payment confirmations
   * FIXED CREDENTIAL MISMATCH: Resolved "Invalid merchant key" error by using actual live merchant credentials
   * AUTHENTICATION: Live merchant validation against production Payfast servers with real merchant account
-- July 8, 2025. DIGITAL CARD PAYMENT IMPLEMENTATION: Successfully implemented R1.00 payment for digital cards:
-  * PRICING UPDATE: Digital cards now cost R1.00 instead of being free
+- July 8, 2025. DIGITAL CARD PRICING UPDATE: Updated digital card pricing from R1.00 to R5.00 to meet Payfast minimum requirements:
+  * PRICING UPDATE: Digital cards now cost R5.00 to enable all payment methods (credit/debit cards, not just Mobicred)
+  * PAYFAST MINIMUM: R5.00 meets Payfast's minimum payment amount requirement for card processing
   * PAYMENT FLOW: Digital cards use same Payfast payment flow as printed cards
   * LIVE MODE: System now defaults to live Payfast credentials for all payments
-  * DUAL PRICING: R1.00 for digital cards, R129.00 for printed cards
+  * DUAL PRICING: R5.00 for digital cards, R129.00 for printed cards
   * EMAIL DELIVERY: Digital cards automatically delivered via email after payment confirmation
   * ITN PROCESSING: Payment notifications handle both digital and printed card fulfillment
   * CONSISTENT EXPERIENCE: Same payment gateway for both card types with different pricing

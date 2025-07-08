@@ -218,7 +218,7 @@ export default function CompleteOrder() {
         
         console.log('Digital payment response:', result);
         
-        // Redirect to Payfast payment for R1 digital card
+        // Redirect to Payfast payment for R5 digital card
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = result.paymentUrl;
