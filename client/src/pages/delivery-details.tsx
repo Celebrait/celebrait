@@ -175,8 +175,8 @@ export default function DeliveryDetails() {
       }
     }
     
-    console.log('[RECIPIENT] Initialized with fallback: the recipient');
-    return 'the recipient';
+    console.log('[RECIPIENT] No cached name found - will wait for API response');
+    return null;
   });
   
   // Update recipient name when card data loads
@@ -233,7 +233,7 @@ export default function DeliveryDetails() {
     {
       id: 'self',
       title: 'Send to Me',
-      subtitle: `I'll share the card with ${recipientName} myself`,
+      subtitle: `I'll share the card with ${recipientName || 'the recipient'} myself`,
       icon: User,
       features: [
         'Digital card link sent to your email',
@@ -245,11 +245,11 @@ export default function DeliveryDetails() {
     },
     {
       id: 'recipient',
-      title: `Send to ${recipientName} and me`,
-      subtitle: `Email the digital card to both ${recipientName} and yourself`,
+      title: `Send to ${recipientName || 'the recipient'} and me`,
+      subtitle: `Email the digital card to both ${recipientName || 'the recipient'} and yourself`,
       icon: Heart,
       features: [
-        `Direct email to ${recipientName}`,
+        `Direct email to ${recipientName || 'the recipient'}`,
         'You also receive a copy',
         'Instant surprise delivery',
         'No coordination needed'
@@ -260,7 +260,7 @@ export default function DeliveryDetails() {
     {
       id: 'self',
       title: 'Deliver to Me',
-      subtitle: `I'll give it to ${recipientName} myself`,
+      subtitle: `I'll give it to ${recipientName || 'the recipient'} myself`,
       icon: User,
       features: [
         'Card delivered to your address',
@@ -272,8 +272,8 @@ export default function DeliveryDetails() {
     },
     {
       id: 'recipient',
-      title: `Deliver to ${recipientName}`,
-      subtitle: `Send directly to ${recipientName}'s address`,
+      title: `Deliver to ${recipientName || 'the recipient'}`,
+      subtitle: `Send directly to ${recipientName || 'the recipient'}'s address`,
       icon: Heart,
       features: [
         'Direct delivery to recipient',
@@ -451,7 +451,7 @@ export default function DeliveryDetails() {
                 </h1>
                 <p className="text-lg text-slate-gray">
                   {selectedDeliveryType === 'digital' 
-                    ? `Confirm who should receive ${recipientName}'s digital card link` 
+                    ? `Confirm who should receive ${recipientName || 'the recipient'}'s digital card link` 
                     : 'Confirm where we should deliver your printed card'
                   }
                 </p>
