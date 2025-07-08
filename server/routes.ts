@@ -3664,10 +3664,9 @@ ${formatInstruction}`;
 
       const order = await storage.createOrder(orderData);
 
-      // Create Payfast payment data
-      const host = req.get('host') || 'localhost:5000';
-      const protocol = req.secure ? 'https' : 'http';
-      const baseUrl = `${protocol}://${host}`;
+      // Create Payfast payment data - use the correct Replit domain
+      const actualHost = '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev';
+      const baseUrl = `https://${actualHost}`;
 
       const paymentData = payfastService.createPaymentData({
         orderId: order.paymentReference,
@@ -3720,10 +3719,10 @@ ${formatInstruction}`;
         return res.status(404).send('Order not found');
       }
 
-      // Verify ITN with Payfast
+      // Verify ITN with Payfast - use live server since we're using live credentials
       const verification = await payfastService.verifyITN(
         itnData,
-        process.env.NODE_ENV === 'production' ? 'www.payfast.co.za' : 'sandbox.payfast.co.za'
+        'www.payfast.co.za'
       );
 
       console.log('Payfast ITN verification result:', verification);

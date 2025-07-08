@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 8, 2025. CRITICAL PAYMENT REDIRECT FIX: Fixed Payfast payment redirect URLs to use proper Replit domain instead of localhost:
+  * PAYMENT URL GENERATION: Fixed routes.ts Payfast payment creation to use correct Replit domain instead of localhost fallback
+  * REDIRECT URLS: return_url, cancel_url, and notify_url now correctly point to https://71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev/
+  * SIGNATURE VERIFICATION: Fixed Payfast service to use live passphrase (PAYFAST_LIVE_PASSPHRASE) for proper ITN signature verification
+  * ITN PROCESSING: Updated ITN verification to use live Payfast server (www.payfast.co.za) instead of sandbox
+  * PAYMENT COMPLETION: Users are now properly redirected back to payment success page after completing payments on Payfast
+  * PRODUCTION READY: Payment flow now works end-to-end with proper domain redirects and email notifications
 - July 8, 2025. CRITICAL EMAIL URL FIX: Fixed digital card email URLs to use proper Replit domain instead of localhost:
   * EMAIL URL GENERATION: Fixed generateDigitalCardEmail function to use correct Replit domain (71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev)
   * LOCALHOST REPLACEMENT: Replaced localhost:5000 URLs with actual live domain in all email generation routes

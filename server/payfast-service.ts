@@ -47,7 +47,7 @@ class PayfastService {
     this.config = {
       merchantId: useLive ? '30786857' : (process.env.PAYFAST_MERCHANT_ID || ''),
       merchantKey: useLive ? 'vurrtlkhptk2e' : (process.env.PAYFAST_MERCHANT_KEY || ''),
-      passphrase: useLive ? '' : (process.env.PAYFAST_PASSPHRASE || ''), // Live account may not have passphrase
+      passphrase: useLive ? (process.env.PAYFAST_LIVE_PASSPHRASE || '') : (process.env.PAYFAST_PASSPHRASE || ''),
       sandbox: !useLive
     };
     
