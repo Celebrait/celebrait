@@ -3657,7 +3657,9 @@ ${formatInstruction}`;
         orderStatus: 'pending',
         paymentStatus: 'pending',
         // Add delivery info for printed cards
-        deliveryAddress: deliveryInfo ? JSON.stringify(deliveryInfo) : null
+        deliveryAddress: deliveryInfo ? JSON.stringify(deliveryInfo) : null,
+        // Store recipient info for dual delivery
+        recipientInfo: recipientInfo ? JSON.stringify(recipientInfo) : null
       };
 
       const order = await storage.createOrder(orderData);
@@ -3752,14 +3754,44 @@ ${formatInstruction}`;
             const card = await storage.getCard(order.cardId);
             if (card) {
               const host = req.get('host') || 'localhost:5000';
-              const protocol = req.secure ? 'https' : 'http';
-              const digitalEmailParams = generateDigitalCardEmail(
+              const protocol = req.secure || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+              // Use the actual domain instead of localhost for production
+              const actualHost = host.includes('localhost') ? 
+                (req.get('x-forwarded-host') || req.get('host') || 'localhost:5000') : 
+                host;
+              const baseUrl = `${protocol}://${actualHost}`;
+              
+              // Send digital card email to customer
+              const customerEmailParams = generateDigitalCardEmail(
                 { ...order, card },
-                `/api/cards/${card.id}/digital-front-image`,
-                `${protocol}://${host}`
+                `${baseUrl}/card/${order.paymentReference}`,
+                actualHost
               );
-              await sendEmail(digitalEmailParams);
-              console.log('Digital card email sent successfully for order:', order.paymentReference);
+              await sendEmail(customerEmailParams);
+              console.log('Digital card email sent to customer:', order.customerEmail);
+              
+              // Send digital card email to recipient if specified
+              if (order.recipientInfo) {
+                try {
+                  const recipientInfo = JSON.parse(order.recipientInfo);
+                  if (recipientInfo.email && recipientInfo.email !== order.customerEmail) {
+                    const recipientEmailParams = generateDigitalCardEmail(
+                      { 
+                        ...order, 
+                        card,
+                        customerEmail: recipientInfo.email,
+                        customerName: recipientInfo.name
+                      },
+                      `${baseUrl}/card/${order.paymentReference}`,
+                      actualHost
+                    );
+                    await sendEmail(recipientEmailParams);
+                    console.log('Digital card email sent to recipient:', recipientInfo.email);
+                  }
+                } catch (parseError) {
+                  console.error('Error parsing recipient info:', parseError);
+                }
+              }
             }
           }
         } catch (emailError) {
@@ -3858,11 +3890,37 @@ ${formatInstruction}`;
           // Remove watermarks from the card
           const cardWithoutWatermarks = await removeWatermarksFromCard(card.frontImageUrl, card.insideImageUrl);
           
-          // Send digital card email
-          const emailData = generateDigitalCardEmail(order, `${req.protocol}://${req.get('host')}/card/${reference}`, req.get('host'));
-          const emailSent = await sendEmail(emailData);
+          // Send digital card email to customer
+          const host = req.get('host') || 'localhost:5000';
+          const protocol = req.secure || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+          const actualHost = host.includes('localhost') ? 
+            (req.get('x-forwarded-host') || req.get('host') || 'localhost:5000') : 
+            host;
+          const customerEmailData = generateDigitalCardEmail(order, `${protocol}://${actualHost}/card/${reference}`, actualHost);
+          const customerEmailSent = await sendEmail(customerEmailData);
+          console.log('Digital card email sent to customer:', customerEmailSent ? 'SUCCESS' : 'FAILED');
           
-          console.log('Digital card email sent:', emailSent ? 'SUCCESS' : 'FAILED');
+          // Send digital card email to recipient if specified
+          if (order.recipientInfo) {
+            try {
+              const recipientInfo = JSON.parse(order.recipientInfo);
+              if (recipientInfo.email && recipientInfo.email !== order.customerEmail) {
+                const recipientEmailData = generateDigitalCardEmail(
+                  { 
+                    ...order, 
+                    customerEmail: recipientInfo.email,
+                    customerName: recipientInfo.name
+                  }, 
+                  `${protocol}://${actualHost}/card/${reference}`, 
+                  actualHost
+                );
+                const recipientEmailSent = await sendEmail(recipientEmailData);
+                console.log('Digital card email sent to recipient:', recipientEmailSent ? 'SUCCESS' : 'FAILED');
+              }
+            } catch (parseError) {
+              console.error('Error parsing recipient info for simulate payment:', parseError);
+            }
+          }
         }
       }
       

@@ -128,14 +128,14 @@ Changelog:
   * WEBHOOK INTEGRATION: Live ITN (Instant Transaction Notification) processing for real payment confirmations
   * FIXED CREDENTIAL MISMATCH: Resolved "Invalid merchant key" error by using actual live merchant credentials
   * AUTHENTICATION: Live merchant validation against production Payfast servers with real merchant account
-- July 8, 2025. DIGITAL CARD PRICING UPDATE: Updated digital card pricing from R1.00 to R5.00 to meet Payfast minimum requirements:
-  * PRICING UPDATE: Digital cards now cost R5.00 to enable all payment methods (credit/debit cards, not just Mobicred)
-  * PAYFAST MINIMUM: R5.00 meets Payfast's minimum payment amount requirement for card processing
-  * PAYMENT FLOW: Digital cards use same Payfast payment flow as printed cards
-  * LIVE MODE: System now defaults to live Payfast credentials for all payments
-  * DUAL PRICING: R5.00 for digital cards, R129.00 for printed cards
-  * EMAIL DELIVERY: Digital cards automatically delivered via email after payment confirmation
-  * ITN PROCESSING: Payment notifications handle both digital and printed card fulfillment
+- July 8, 2025. DUAL DELIVERY SYSTEM AND URL FIXES: Fixed recipient email delivery and localhost URL issues:
+  * DUAL DELIVERY: Digital cards now properly send separate emails to both customer and recipient when recipient delivery is selected
+  * RECIPIENT EMAIL: Added recipientInfo storage in orders table and dual email processing in ITN handlers
+  * URL GENERATION: Fixed localhost URLs in emails to use actual Replit domain with proper protocol detection
+  * DATABASE SCHEMA: Added recipient_info column to orders table for storing recipient name and email
+  * AUTO-REFRESH: Payment success page now polls every 5 seconds until payment completes for real-time updates
+  * LIVE PAYFAST: Complete R5.00 digital card system operational with live merchant account (30786857)
+  * EMAIL SYSTEM: Both customer and recipient receive personalized digital card emails with proper site URLs
   * CONSISTENT EXPERIENCE: Same payment gateway for both card types with different pricing
 - July 8, 2025. LIVE PAYFAST TESTING SUCCESS: Successfully tested complete payment flow with real credentials:
   * LIVE CREDENTIALS: Configured automatic detection of live vs sandbox Payfast credentials

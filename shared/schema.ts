@@ -49,6 +49,7 @@ export const orders = pgTable("orders", {
   orderStatus: text("order_status").notNull().default("processing"),
   orderType: text("order_type").notNull().default("regular"),
   shippingAddress: json("shipping_address"),
+  recipientInfo: text("recipient_info"), // JSON string containing recipient name and email for dual delivery
   trackingNumber: text("tracking_number"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
