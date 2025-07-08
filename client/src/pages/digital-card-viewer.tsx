@@ -3,10 +3,10 @@ import { useParams, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Gift, Heart, Download, Share2, ChevronLeft, ChevronRight, Mail, X, Facebook, Twitter, Instagram, MessageCircle, Copy, ArrowLeft, MailOpen } from 'lucide-react';
+import { Gift, Heart, Download, Share2, ChevronLeft, ChevronRight, Mail, X, Facebook, Twitter, Instagram, MessageCircle, Copy, ArrowLeft, MailOpen, Zap } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import Header from '@/components/header';
-import envelopeImage from '@assets/Envelope_1751643597232.png';
+// import envelopeImage from '@assets/Envelope_1751643597232.png'; // Removed as requested
 
 export default function DigitalCardViewer() {
   const { linkId } = useParams();
@@ -20,6 +20,8 @@ export default function DigitalCardViewer() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [imagesPreloaded, setImagesPreloaded] = useState(false);
+  const [typedText, setTypedText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
 
   useEffect(() => {
     if (linkId) {
@@ -82,6 +84,30 @@ export default function DigitalCardViewer() {
       setLoading(false);
     }
   };
+
+  // Ethereal typing animation effect
+  useEffect(() => {
+    if (cardData && !isOpened) {
+      const fullMessage = `${cardData.senderName} has crafted something absolutely magical for you! This isn't just any card - it's a personalised masterpiece that celebrates your special ${cardData.celebration} in the most beautiful way. Are you ready to be amazed?`;
+      
+      setIsTyping(true);
+      let currentIndex = 0;
+      const totalDuration = 3000; // 3 seconds for typing
+      const typingInterval = totalDuration / fullMessage.length;
+      
+      const interval = setInterval(() => {
+        if (currentIndex < fullMessage.length) {
+          setTypedText(fullMessage.slice(0, currentIndex + 1));
+          currentIndex++;
+        } else {
+          clearInterval(interval);
+          setIsTyping(false);
+        }
+      }, typingInterval);
+
+      return () => clearInterval(interval);
+    }
+  }, [cardData, isOpened]);
 
   const extractCustomMessage = (conversationData: any) => {
     return conversationData?.message || conversationData?.custom_message || 'A special message just for you';
@@ -232,30 +258,34 @@ export default function DigitalCardViewer() {
                 <Mail className="text-white w-8 h-8" />
               </div>
               <h1 className="text-3xl font-bold text-black">
-                {cardData.senderName} has sent you a personalised {cardData.celebration} card
+                {cardData.senderName} has sent you a <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">far from boring</span> digital {cardData.celebration} card
               </h1>
             </div>
 
-            {/* Envelope Card Preview */}
-            <div className="relative max-w-md mx-auto mb-8">
-              <div 
-                className="relative aspect-square hover:scale-105 transition-all duration-300 cursor-pointer"
-                onClick={handleOpenCard}
-              >
-                <img 
-                  src={envelopeImage} 
-                  alt="Envelope" 
-                  className="w-full h-full object-cover rounded-2xl shadow-2xl"
-                />
-                {/* Overlay text on envelope */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="text-center space-y-2">
-                    <p className="text-lg text-black font-['Caveat',cursive] font-semibold">
-                      For {cardData.recipientName}
-                    </p>
-                  </div>
-                </div>
-              </div>
+            {/* Ethereal Typing Animation */}
+            <div className="max-w-2xl mx-auto mb-8 min-h-[120px] flex items-center justify-center">
+              <p className="text-lg text-gray-700 text-center leading-relaxed">
+                <span className="relative">
+                  {`${cardData.senderName} has crafted something absolutely magical for you! This isn't just any card - it's a personalised masterpiece that celebrates your special ${cardData.celebration} in the most beautiful way. Are you ready to be amazed?`.split('').map((char, index) => (
+                    <span
+                      key={index}
+                      className={`transition-all duration-700 ease-out ${
+                        index < typedText.length 
+                          ? 'opacity-100 filter-none' 
+                          : 'opacity-0 blur-sm'
+                      }`}
+                      style={{
+                        transitionDelay: `${index * 10}ms`,
+                      }}
+                    >
+                      {char}
+                    </span>
+                  ))}
+                  {isTyping && (
+                    <span className="absolute -right-2 top-0 w-0.5 h-6 bg-purple-400 animate-pulse opacity-60"></span>
+                  )}
+                </span>
+              </p>
             </div>
 
             {/* Click to Open Button */}
@@ -272,8 +302,8 @@ export default function DigitalCardViewer() {
                 </>
               ) : (
                 <>
-                  <Gift className="w-5 h-5 mr-2" />
-                  Click to Open
+                  <Zap className="w-5 h-5 mr-2" />
+                  Blow My Mind
                 </>
               )}
             </Button>
