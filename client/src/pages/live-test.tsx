@@ -21,43 +21,35 @@ export default function LiveTest() {
     setTesting(true);
     try {
       // Create a test card first
-      const cardResponse = await apiRequest('/api/cards', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: 1,
-          cardType: 'printed',
-          printOption: 'front-and-inside',
-          conversationData: {
-            celebration: 'test',
-            recipient: 'friend',
-            name: 'Test User',
-            message: 'Live payment test',
-            inside_message: 'Testing live Payfast integration',
-            art_style: 'watercolor',
-            scene: 'Test scene',
-            email: 'test@celebrait.com',
-            user_first_name: 'Test',
-            user_last_name: 'User',
-            user_email: 'test@celebrait.com'
-          },
-          price: Math.round(parseFloat(testAmount) * 100), // Convert to cents
-          frontImageUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-          insideImageUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
-        })
+      const cardResponse = await apiRequest('POST', '/api/cards', {
+        userId: 1,
+        cardType: 'printed',
+        printOption: 'front-and-inside',
+        conversationData: {
+          celebration: 'test',
+          recipient: 'friend',
+          name: 'Test User',
+          message: 'Live payment test',
+          inside_message: 'Testing live Payfast integration',
+          art_style: 'watercolor',
+          scene: 'Test scene',
+          email: 'test@celebrait.com',
+          user_first_name: 'Test',
+          user_last_name: 'User',
+          user_email: 'test@celebrait.com'
+        },
+        price: Math.round(parseFloat(testAmount) * 100), // Convert to cents
+        frontImageUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+        insideImageUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
       });
 
       // Create payment
-      const paymentResponse = await apiRequest('/api/payfast/create-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cardId: cardResponse.id,
-          customerName: 'Test User',
-          customerEmail: 'test@celebrait.com',
-          amount: parseFloat(testAmount),
-          description: `Live Payfast Test - R${testAmount}`
-        })
+      const paymentResponse = await apiRequest('POST', '/api/payfast/create-payment', {
+        cardId: cardResponse.id,
+        customerName: 'Test User',
+        customerEmail: 'test@celebrait.com',
+        amount: parseFloat(testAmount),
+        description: `Live Payfast Test - R${testAmount}`
       });
 
       // Create payment form and submit
@@ -148,14 +140,23 @@ export default function LiveTest() {
 
             {/* Warning for Live Mode */}
             {hasLiveCredentials && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className={`border rounded-lg p-4 ${isLiveMode ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'}`}>
                 <div className="flex items-start space-x-2">
-                  <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
+                  {isLiveMode ? (
+                    <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
+                  ) : (
+                    <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                  )}
                   <div>
-                    <h4 className="font-semibold text-red-800 mb-1">Live Payment Warning</h4>
-                    <p className="text-sm text-red-700">
-                      Live credentials are configured. In production mode, this will process real payments with real money.
-                      Start with small test amounts (R1.00) to verify the integration works correctly.
+                    <h4 className={`font-semibold mb-1 ${isLiveMode ? 'text-red-800' : 'text-blue-800'}`}>
+                      {isLiveMode ? 'Live Payment Warning' : 'Sandbox Mode Active'}
+                    </h4>
+                    <p className={`text-sm ${isLiveMode ? 'text-red-700' : 'text-blue-700'}`}>
+                      {isLiveMode ? (
+                        'Live credentials are configured. This will process real payments with real money. Start with small test amounts (R1.00) to verify the integration works correctly.'
+                      ) : (
+                        'Currently in sandbox mode. No real payments will be processed. This is safe for testing.'
+                      )}
                     </p>
                   </div>
                 </div>
