@@ -384,24 +384,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cardId = parseInt(req.params.id);
       const cacheKey = `fast-metadata-${cardId}`;
       
-      // Check memory cache first for instant response
+      // ULTRA-AGGRESSIVE CACHING: Extended TTL for instant response
       const cached = cardMetadataCache.get(cacheKey);
-      if (cached && (Date.now() - cached.timestamp) < METADATA_CACHE_TTL) {
-        console.log(`[INSTANT] Fast metadata from cache for card ${cardId}`);
+      if (cached && (Date.now() - cached.timestamp) < (METADATA_CACHE_TTL * 24)) {
+        console.log(`[INSTANT] Fast metadata from extended cache for card ${cardId}`);
         res.set({
-          'Cache-Control': 'public, max-age=3600, immutable',
-          'ETag': `"fast-${cardId}"`,
+          'Cache-Control': 'public, max-age=86400, immutable',
+          'ETag': `"fast-${cardId}-v2"`,
           'X-Cache': 'HIT'
         });
         return res.json(cached.data);
       }
       
-      console.log(`[PERF] Fast metadata for card ${cardId}`);
+      console.log(`[PERF] Cache miss - database query for fast metadata: ${cardId}`);
+      const dbStartTime = Date.now();
       
       const card = await storage.getCard(cardId);
       if (!card) {
         return res.status(404).json({ message: "Card not found" });
       }
+      
+      console.log(`[PERF] Fast metadata database query took: ${Date.now() - dbStartTime}ms`);
       
       // Ultra-minimal metadata for instant loading
       const fastMetadata = {
@@ -410,17 +413,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         conversationData: card.conversationData || {}
       };
       
-      // Cache in memory for instant subsequent loads
+      // ULTRA-AGGRESSIVE CACHING: Extended memory cache and longer browser cache  
       cardMetadataCache.set(cacheKey, {
         data: fastMetadata,
         timestamp: Date.now()
       });
       
-      // Aggressive caching for instant subsequent loads
+      // Also cache with alternative key patterns for broader cache hits
+      cardMetadataCache.set(`card-${cardId}`, {
+        data: card, // Full card data for complete-order page
+        timestamp: Date.now()
+      });
+      
+      // Maximum browser caching for instant subsequent loads
       res.set({
-        'Cache-Control': 'public, max-age=3600, immutable', // Cache for 1 hour
-        'ETag': `"fast-${cardId}-${card.status}"`,
-        'X-Cache': 'MISS'
+        'Cache-Control': 'public, max-age=86400, immutable', // 24-hour cache
+        'ETag': `"fast-${cardId}-v3"`,
+        'X-Cache': 'MISS',
+        'X-Performance': `db-${Date.now() - dbStartTime}ms`
       });
       
       res.json(fastMetadata);

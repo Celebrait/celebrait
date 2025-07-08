@@ -93,15 +93,28 @@ export default function DeliveryDetails() {
         return;
       }
       
-      // Fallback to API if no cache available (using fast endpoints)
+      // Fallback to API if no cache available (using ultra-fast endpoints with preloading)
       setLoading(true);
+      console.log(`[PERF] Making API call for ${reference?.startsWith('celebrait_ready_') ? 'ready' : 'metadata'} endpoint`);
+      const apiStartTime = Date.now();
+      
       try {
         let response;
         if (reference?.startsWith('celebrait_ready_')) {
-          response = await fetch(`/api/cards/ready/${reference}`);
+          response = await fetch(`/api/cards/ready/${reference}`, {
+            headers: {
+              'Cache-Control': 'max-age=3600', // Request 1-hour cache
+            }
+          });
         } else {
-          response = await fetch(`/api/cards/${reference}/fast-metadata`);
+          response = await fetch(`/api/cards/${reference}/fast-metadata`, {
+            headers: {
+              'Cache-Control': 'max-age=86400', // Request 24-hour cache
+            }
+          });
         }
+        
+        console.log(`[PERF] API response received in: ${Date.now() - apiStartTime}ms`);
         
         if (response.ok) {
           const data = await response.json();
