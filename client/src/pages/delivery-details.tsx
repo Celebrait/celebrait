@@ -128,8 +128,40 @@ export default function DeliveryDetails() {
     loadCardData();
   }, [reference]);
   
-  // Get recipient name from card data for dynamic text (with better fallback handling)
-  const [recipientName, setRecipientName] = useState('the recipient');
+  // Get recipient name from card data for dynamic text (with immediate initialization)
+  const [recipientName, setRecipientName] = useState(() => {
+    // Try immediate initialization from session storage
+    if (typeof window !== 'undefined') {
+      const sessionName = sessionStorage.getItem('recipientName');
+      if (sessionName && sessionName !== 'the recipient') {
+        console.log('[RECIPIENT] Initialized from session storage:', sessionName);
+        return sessionName;
+      }
+      
+      // Try immediate initialization from cached data
+      try {
+        const cachedKeys = [`cardPreviewData`, `ready_${reference}`, `card_${reference}`];
+        for (const key of cachedKeys) {
+          const cached = sessionStorage.getItem(key);
+          if (cached) {
+            const parsedData = JSON.parse(cached);
+            const card = parsedData.card || parsedData;
+            const name = card?.conversationData?.name || card?.conversationData?.recipient_name;
+            if (name && name !== 'the recipient') {
+              console.log('[RECIPIENT] Initialized from cached data:', name);
+              sessionStorage.setItem('recipientName', name);
+              return name;
+            }
+          }
+        }
+      } catch (e) {
+        // Continue to fallback
+      }
+    }
+    
+    console.log('[RECIPIENT] Initialized with fallback: the recipient');
+    return 'the recipient';
+  });
   
   // Update recipient name when card data loads
   useEffect(() => {

@@ -1098,10 +1098,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         
         // After successful generation, send card ready notification email
         try {
-          // Get user's actual name from email collection data
+          // Get user's actual name from multiple sources
           const userName = answers.user_first_name ? 
             `${answers.user_first_name} ${answers.user_last_name || ''}`.trim() : 
-            onboarding.userName || "User";
+            (onboarding.userName && onboarding.userName !== 'User') ? 
+              onboarding.userName : 
+              // Try to extract from conversation context if available
+              answers.sender_name || "User";
+          
+          console.log('[EMAIL DEBUG] User name sources:', {
+            user_first_name: answers.user_first_name,
+            user_last_name: answers.user_last_name,
+            userName_used: userName,
+            onboarding_userName: onboarding.userName,
+            all_answers: Object.keys(answers)
+          });
             
           const emailResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
             cardId: cardId,
