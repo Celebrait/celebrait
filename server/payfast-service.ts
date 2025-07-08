@@ -29,17 +29,18 @@ class PayfastService {
   constructor() {
     // Check if live credentials are available
     const hasLiveCredentials = !!(process.env.PAYFAST_LIVE_MERCHANT_ID && process.env.PAYFAST_LIVE_MERCHANT_KEY);
-    // Temporarily use sandbox mode until live credentials propagate in environment
-    const useLive = false; // Will switch back to hasLiveCredentials once new secrets are active
+    // Use live mode when live credentials are available (ready for real payments)
+    const useLive = hasLiveCredentials;
     
     console.log('DEBUG: Environment check:', {
       hasLiveCredentials,
       useLive,
       liveId: process.env.PAYFAST_LIVE_MERCHANT_ID ? 'SET' : 'NOT SET',
-      liveKey: process.env.PAYFAST_LIVE_MERCHANT_KEY ? 'SET' : 'NOT SET',
+      liveKey: process.env.PAYFAST_LIVE_MERCHANT_KEY ? 'SET' : 'NOT SET', 
       livePassphrase: process.env.PAYFAST_LIVE_PASSPHRASE ? 'SET' : 'NOT SET',
       actualLiveId: process.env.PAYFAST_LIVE_MERCHANT_ID,
-      actualLiveKey: process.env.PAYFAST_LIVE_MERCHANT_KEY?.substring(0, 10) + '...'
+      actualLiveKey: process.env.PAYFAST_LIVE_MERCHANT_KEY?.substring(0, 10) + '...',
+      timestamp: new Date().toISOString()
     });
     
     this.config = {
