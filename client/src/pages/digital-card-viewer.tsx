@@ -32,7 +32,7 @@ export default function DigitalCardViewer() {
       console.log('[DIGITAL CARD] Loading card for linkId:', linkId);
       
       // First try to get order by reference if linkId looks like a reference
-      if (linkId?.startsWith('celebrait_free_') || linkId?.startsWith('free_')) {
+      if (linkId?.startsWith('celebrait_free_') || linkId?.startsWith('free_') || linkId?.startsWith('payfast_')) {
         try {
           const response = await fetch(`/api/orders/reference/${linkId}`);
           if (response.ok) {
