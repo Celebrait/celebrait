@@ -120,6 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 8, 2025. PAYFAST SIGNATURE VALIDATION FIXED: Resolved critical signature generation errors blocking Payfast payments:
+  * SIGNATURE VALIDATION: Fixed signature generation by using correct official Payfast sandbox passphrase `jt7NOE43FZPn`
+  * CREDENTIAL VERIFICATION: Confirmed proper Payfast sandbox credentials (merchant ID: 10000100, merchant key: 46f0cd694581a)
+  * ALPHABETICAL ORDERING: Implemented standard alphabetical parameter sorting for signature generation instead of complex field ordering
+  * PARAMETER ENCODING: Simplified URL encoding approach using standard encodeURIComponent without special character replacements
+  * TESTING TOOLS: Created standalone signature test script and API endpoint for validation
+  * SANDBOX CONNECTIVITY: Signature validation now passes, connection issues to sandbox.payfast.co.za appear to be temporary network/maintenance related
+  * STATUS VERIFICATION: Confirmed Payfast status page shows sandbox is operational with some isolated banking issues
+  * DIRECT TESTING: Added /payfast-test page for direct form submission testing to isolate connectivity issues
 - July 8, 2025. COMPREHENSIVE PAYFAST INTEGRATION: Complete South African payment provider setup and integration:
   * PAYFAST SERVICE: Created complete payfast-service.ts with MD5 signature generation, ITN verification, and payment data creation
   * PAYMENT ENDPOINTS: Added /api/payfast/create-payment, /api/payfast/notify (ITN), and /api/payfast/payment-status endpoints

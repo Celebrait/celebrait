@@ -44,6 +44,7 @@ function Router() {
         <Route path="/checkout/:cardId" component={Checkout} />
         <Route path="/payment-success/:reference" component={PaymentSuccess} />
         <Route path="/payment-cancelled/:reference" component={PaymentCancelled} />
+        <Route path="/payfast-test" component={lazy(() => import('./pages/payfast-test'))} />
         <Route path="/order-success" component={OrderSuccess} />
         <Route path="/complete-order/:cardId" component={CompleteOrder} />
         <Route path="/card/:linkId" component={DigitalCardViewer} />
