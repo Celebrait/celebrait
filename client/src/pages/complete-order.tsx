@@ -59,8 +59,11 @@ export default function CompleteOrder() {
   // Get delivery type from session storage
   const deliveryType = sessionStorage.getItem('selectedDeliveryType') as 'printed' | 'digital' || 'digital';
   
-  // Get delivery method (who to deliver to) from session storage
-  const deliverTo = sessionStorage.getItem('deliverTo') as 'self' | 'recipient' || 'self';
+  // Get delivery method (who to deliver to) from URL params or session storage
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlDelivery = urlParams.get('delivery');
+  const sessionDelivery = sessionStorage.getItem('selectedDeliveryOption');
+  const deliverTo = (urlDelivery || sessionDelivery || 'self') as 'self' | 'recipient';
   
   // Get recipient name from card data for dynamic text
   const recipientName = card?.conversationData?.name || 'the recipient';
@@ -74,14 +77,22 @@ export default function CompleteOrder() {
   // Pre-populate form with user data from conversation if available
   useEffect(() => {
     if (card?.conversationData) {
+      // Get user details from conversation data (email from email collection step)
+      const userEmail = card.conversationData.email || card.conversationData.user_email || '';
+      
+      // Try to get user name from various sources
       const userFirstName = card.conversationData.user_first_name || '';
       const userLastName = card.conversationData.user_last_name || '';
-      const userEmail = card.conversationData.user_email || '';
+      const userName = card.conversationData.user_name || '';
       
+      // Set name from available data
       if (userFirstName || userLastName) {
         setCustomerName(`${userFirstName} ${userLastName}`.trim());
+      } else if (userName) {
+        setCustomerName(userName);
       }
       
+      // Set email from conversation data
       if (userEmail) {
         setCustomerEmail(userEmail);
       }

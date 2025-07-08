@@ -3334,9 +3334,16 @@ ${formatInstruction}`;
       // Determine delivery method
       const isDualDelivery = customerInfo.recipientEmail && customerInfo.recipientName;
       
+      // Get host for email links
+      const host = req.get('host') || 'localhost:5000';
+      
       // Always send to user
       try {
-        const userEmailParams = generateDigitalCardEmail(updatedOrder, card.frontImageUrl || '');
+        const userEmailParams = generateDigitalCardEmail(
+          updatedOrder, 
+          `/api/cards/${card.id}/digital-front-image`,
+          host
+        );
         await sendEmail(userEmailParams);
         console.log('Digital card email sent to user successfully');
       } catch (emailError) {
@@ -3348,7 +3355,8 @@ ${formatInstruction}`;
         try {
           const recipientEmailParams = generateDigitalCardEmail(
             { ...updatedOrder, customerEmail: customerInfo.recipientEmail, customerName: customerInfo.recipientName },
-            card.frontImageUrl || ''
+            `/api/cards/${card.id}/digital-front-image`,
+            host
           );
           await sendEmail(recipientEmailParams);
           console.log('Digital card email sent to recipient successfully');

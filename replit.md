@@ -151,6 +151,13 @@ Changelog:
   * REPOSITIONED EXAMPLES: Moved blue information box with art style examples below "Browse Art Style Inspiration" button
   * IMPROVED FLOW: Better visual hierarchy placing inspiration button first, then examples for clearer user guidance
   * ENHANCED UX: More intuitive placement of helpful examples after users access inspiration gallery
+- July 8, 2025. DIGITAL DELIVERY FLOW PERSONALIZATION: Enhanced recipient name personalization and dual delivery functionality:
+  * RECIPIENT PERSONALIZATION: Updated "Confirm Email Details" page to show recipient's first name instead of "the recipient"
+  * DUAL DELIVERY EXPLANATION: Added clear messaging that user receives copy when sending to recipient
+  * FORM PRE-POPULATION: Enhanced user details pre-population from conversation data (email from collection step)
+  * BACKEND DUAL DELIVERY: Fixed dual delivery email functionality to send to both user and recipient
+  * HOST PARAMETER: Added proper host parameter to email generation for correct digital card links
+  * URL PARAMETER HANDLING: Fixed delivery option detection from URL parameters for email flow
 - July 7, 2025. CRITICAL EMAIL ADDRESSING FIX: Fixed card preview emails being addressed to recipient instead of user:
   * EMAIL PERSONALIZATION: Card preview emails now addressed to user who created the card, not the recipient
   * FIXED PARAMETER: Changed from answers.name (recipient) to onboarding.userName (actual user)

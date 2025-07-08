@@ -370,7 +370,7 @@ export default function DeliveryDetails() {
                 </h1>
                 <p className="text-lg text-slate-gray">
                   {selectedDeliveryType === 'digital' 
-                    ? 'Confirm who should receive the digital card link' 
+                    ? `Confirm who should receive ${recipientName}'s digital card link` 
                     : 'Confirm where we should deliver your printed card'
                   }
                 </p>
