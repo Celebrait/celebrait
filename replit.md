@@ -154,7 +154,9 @@ Changelog:
 - July 8, 2025. DIGITAL DELIVERY FLOW PERSONALIZATION: Enhanced recipient name personalization and dual delivery functionality:
   * RECIPIENT PERSONALIZATION: Updated "Confirm Email Details" page to show recipient's first name instead of "the recipient"
   * INSTANT NAME LOADING: Fixed timing issue where recipient name showed only after navigation - now loads immediately
-  * SESSION STORAGE: Added recipient name storage during conversation for instant retrieval on delivery pages
+  * EMAIL LINK FIX: Fixed recipient name display for email notification links - now stores name immediately when data loads
+  * EMAIL PERSONALIZATION: Fixed email notifications to address user by actual name instead of "User"
+  * SESSION STORAGE: Added recipient name storage during conversation and from cached/API data for instant retrieval
   * DUAL DELIVERY EXPLANATION: Added clear messaging that user receives copy when sending to recipient
   * FORM PRE-POPULATION: Enhanced user details pre-population from conversation data (email from collection step)
   * BACKEND DUAL DELIVERY: Fixed dual delivery email functionality to send to both user and recipient

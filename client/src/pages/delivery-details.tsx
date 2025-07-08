@@ -69,6 +69,14 @@ export default function DeliveryDetails() {
         setCardData(cachedData);
         setLoading(false);
         console.log('[INSTANT] Delivery options displayed immediately from cache');
+        
+        // Immediately store recipient name if found in cache (for email link flows)
+        const recipientNameFromCache = cachedData?.conversationData?.name || cachedData?.conversationData?.recipient_name;
+        if (recipientNameFromCache && recipientNameFromCache !== 'the recipient') {
+          sessionStorage.setItem('recipientName', recipientNameFromCache);
+          setRecipientName(recipientNameFromCache);
+          console.log('[RECIPIENT] Stored from cache immediately:', recipientNameFromCache);
+        }
         return;
       }
       
@@ -86,6 +94,14 @@ export default function DeliveryDetails() {
           const data = await response.json();
           const card = data.card || data;
           setCardData(card);
+          
+          // Immediately store recipient name if found in API response
+          const recipientNameFromApi = card?.conversationData?.name || card?.conversationData?.recipient_name;
+          if (recipientNameFromApi && recipientNameFromApi !== 'the recipient') {
+            sessionStorage.setItem('recipientName', recipientNameFromApi);
+            setRecipientName(recipientNameFromApi);
+            console.log('[RECIPIENT] Stored from API response:', recipientNameFromApi);
+          }
           
           // Cache the data for future use
           try {

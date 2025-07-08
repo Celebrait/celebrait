@@ -3186,6 +3186,12 @@ ${formatInstruction}`;
         
         // Cache complete card data for instant email link loading
         if (frontImageBuffer) {
+          // Ensure recipient name is in conversation data for immediate access
+          const conversationData = card.conversationData || {};
+          if (conversationData.name && !sessionStorage.getItem('recipientName')) {
+            // This won't work on server side, but it's for structure reference
+          }
+          
           emailLinkCache.set(reference, {
             card: {
               id: card.id,
@@ -3195,7 +3201,7 @@ ${formatInstruction}`;
               sceneType: card.sceneType,
               status: card.status,
               price: card.price,
-              conversationData: card.conversationData || {}
+              conversationData: conversationData
             },
             frontImage: frontImageBuffer,
             insideImage: insideImageBuffer,

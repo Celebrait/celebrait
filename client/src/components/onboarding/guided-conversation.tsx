@@ -1098,10 +1098,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         
         // After successful generation, send card ready notification email
         try {
+          // Get user's actual name from email collection data
+          const userName = answers.user_first_name ? 
+            `${answers.user_first_name} ${answers.user_last_name || ''}`.trim() : 
+            onboarding.userName || "User";
+            
           const emailResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
             cardId: cardId,
             customerEmail: email,
-            customerName: answers.name || "User"
+            customerName: userName
           });
           
           const emailResult = await emailResponse.json();
