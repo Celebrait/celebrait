@@ -13,7 +13,7 @@ export interface PayfastPaymentData {
   amount: string;
   item_name: string;
   item_description: string;
-  passphrase?: string;
+  // Note: passphrase is NOT included in form data, only used for signature generation
 }
 
 export interface PayfastConfig {
@@ -141,8 +141,8 @@ class PayfastService {
 
     return {
       ...paymentData,
-      signature,
-      passphrase: this.config.passphrase
+      signature
+      // Note: passphrase is NOT included in form submission, only used for signature generation
     } as PayfastPaymentData & { signature: string };
   }
 
