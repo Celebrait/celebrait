@@ -41,10 +41,11 @@ export default function TestDashboard() {
   const [testResults, setTestResults] = useState<Record<string, boolean>>({});
   const [payfastStatus, setPayfastStatus] = useState<any>(null);
 
-  const createTestCard = async () => {
+  const createTestCard = async (cardType?: 'digital' | 'printed') => {
+    const actualCardType = cardType || testCardType;
     const testCard = {
       userId: 1,
-      cardType: testCardType,
+      cardType: actualCardType,
       printOption: 'front-and-inside',
       conversationData: {
         celebration: testCelebration,
@@ -59,7 +60,7 @@ export default function TestDashboard() {
         user_last_name: 'User',
         user_email: testEmail
       },
-      price: testCardType === 'digital' ? 0 : 12900,
+      price: actualCardType === 'digital' ? 0 : 12900,
       // Mock images for testing
       frontImageUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
       insideImageUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
@@ -250,10 +251,7 @@ export default function TestDashboard() {
   const testPayfastPayment = async () => {
     try {
       // Create a test PRINTED card first
-      const originalCardType = testCardType;
-      setTestCardType('printed');
-      const card = await createTestCard();
-      setTestCardType(originalCardType);
+      const card = await createTestCard('printed');
       
       // Test payment data in correct format for Payfast endpoint
       const paymentData = {
@@ -325,10 +323,7 @@ export default function TestDashboard() {
   const testPayfastFlow = async () => {
     try {
       // Create a test PRINTED card first  
-      const originalCardType = testCardType;
-      setTestCardType('printed');
-      const card = await createTestCard();
-      setTestCardType(originalCardType);
+      const card = await createTestCard('printed');
       
       // Set up session storage for order flow
       sessionStorage.setItem('cardPreviewData', JSON.stringify(card));
