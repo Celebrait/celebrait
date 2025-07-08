@@ -848,6 +848,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get full-resolution card front image for download
+  app.get("/api/cards/:id/download-front-image", async (req, res) => {
+    const startTime = Date.now();
+    try {
+      const cardId = parseInt(req.params.id);
+      const etag = `"${cardId}-download-front"`;
+      
+      // Check client cache first
+      const clientETag = req.headers['if-none-match'];
+      if (clientETag === etag) {
+        return res.status(304).end();
+      }
+      
+      console.log(`[DOWNLOAD] Fetching full-resolution front image for card ${cardId}`);
+      
+      let imageBuffer: Buffer | null = null;
+      
+      // Try to get original unwatermarked image first
+      const card = await storage.getCard(cardId);
+      if (card?.conversationData) {
+        const originalImageUrl = card.conversationData.originalFrontImageUrl;
+        if (originalImageUrl) {
+          console.log(`[DOWNLOAD] Using original unwatermarked front image for card ${cardId}`);
+          imageBuffer = Buffer.from(originalImageUrl.replace('data:image/png;base64,', ''), 'base64');
+        }
+      }
+      
+      if (!imageBuffer) {
+        // Fall back to stored image if no original is available
+        console.log(`[DOWNLOAD] Using stored front image for card ${cardId} (no original found)`);
+        imageBuffer = await getStoredImage(cardId, 'front');
+      }
+      
+      if (!imageBuffer) {
+        return res.status(404).json({ message: "Front image not found" });
+      }
+      
+      // Set download headers (no compression for full resolution)
+      res.set({
+        'Content-Type': 'image/png',
+        'Content-Length': imageBuffer.length.toString(),
+        'Content-Disposition': `attachment; filename="celebrait-card-front-${cardId}.png"`,
+        'Cache-Control': 'public, max-age=3600',
+        'ETag': etag
+      });
+      
+      const endTime = Date.now();
+      console.log(`[DOWNLOAD] Full-resolution front image served in ${endTime - startTime}ms (${imageBuffer.length} bytes)`);
+      
+      res.send(imageBuffer);
+    } catch (error: any) {
+      const endTime = Date.now();
+      console.error(`[DOWNLOAD] Error serving full-resolution front image after ${endTime - startTime}ms:`, error);
+      res.status(500).json({ message: "Error serving full-resolution front image: " + error.message });
+    }
+  });
+
+  // Get full-resolution card inside image for download
+  app.get("/api/cards/:id/download-inside-image", async (req, res) => {
+    const startTime = Date.now();
+    try {
+      const cardId = parseInt(req.params.id);
+      const etag = `"${cardId}-download-inside"`;
+      
+      // Check client cache first
+      const clientETag = req.headers['if-none-match'];
+      if (clientETag === etag) {
+        return res.status(304).end();
+      }
+      
+      console.log(`[DOWNLOAD] Fetching full-resolution inside image for card ${cardId}`);
+      
+      let imageBuffer: Buffer | null = null;
+      
+      // Try to get original unwatermarked image first
+      const card = await storage.getCard(cardId);
+      if (card?.conversationData) {
+        const originalImageUrl = card.conversationData.originalInsideImageUrl;
+        if (originalImageUrl) {
+          console.log(`[DOWNLOAD] Using original unwatermarked inside image for card ${cardId}`);
+          imageBuffer = Buffer.from(originalImageUrl.replace('data:image/png;base64,', ''), 'base64');
+        }
+      }
+      
+      if (!imageBuffer) {
+        // Fall back to stored image if no original is available
+        console.log(`[DOWNLOAD] Using stored inside image for card ${cardId} (no original found)`);
+        imageBuffer = await getStoredImage(cardId, 'inside');
+      }
+      
+      if (!imageBuffer) {
+        return res.status(404).json({ message: "Inside image not found" });
+      }
+      
+      // Set download headers (no compression for full resolution)
+      res.set({
+        'Content-Type': 'image/png',
+        'Content-Length': imageBuffer.length.toString(),
+        'Content-Disposition': `attachment; filename="celebrait-card-inside-${cardId}.png"`,
+        'Cache-Control': 'public, max-age=3600',
+        'ETag': etag
+      });
+      
+      const endTime = Date.now();
+      console.log(`[DOWNLOAD] Full-resolution inside image served in ${endTime - startTime}ms (${imageBuffer.length} bytes)`);
+      
+      res.send(imageBuffer);
+    } catch (error: any) {
+      const endTime = Date.now();
+      console.error(`[DOWNLOAD] Error serving full-resolution inside image after ${endTime - startTime}ms:`, error);
+      res.status(500).json({ message: "Error serving full-resolution inside image: " + error.message });
+    }
+  });
+
   // Get optimized digital card inside image (smaller size for digital sharing)
   app.get("/api/cards/:id/digital-inside-image", async (req, res) => {
     const startTime = Date.now();
