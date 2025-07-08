@@ -46,10 +46,20 @@ export default function LiveTest() {
       // Create payment
       const paymentResponse = await apiRequest('POST', '/api/payfast/create-payment', {
         cardId: cardResponse.id,
-        customerName: 'Test User',
-        customerEmail: 'test@celebrait.com',
-        amount: parseFloat(testAmount),
-        description: `Live Payfast Test - R${testAmount}`
+        customerInfo: {
+          name: 'Test User',
+          email: 'test@celebrait.com',
+          phone: '0123456789'
+        },
+        deliveryInfo: {
+          address: {
+            line1: '123 Test Street',
+            line2: '',
+            city: 'Cape Town',
+            province: 'Western Cape',
+            postalCode: '8001'
+          }
+        }
       });
 
       // Create payment form and submit
@@ -71,6 +81,7 @@ export default function LiveTest() {
       
     } catch (error) {
       console.error('Live test error:', error);
+      alert(`Payment test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setTesting(false);
     }
