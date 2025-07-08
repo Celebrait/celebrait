@@ -3,7 +3,7 @@ import { useParams, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Gift, Heart, Download, Share2, ChevronLeft, ChevronRight, Mail, X, Facebook, Twitter, Instagram, MessageCircle, Copy, ArrowLeft, MailOpen, Zap } from 'lucide-react';
+import { Gift, Heart, Download, Share2, ChevronLeft, ChevronRight, Mail, X, Facebook, Twitter, Instagram, MessageCircle, Copy, ArrowLeft, MailOpen, Zap, Cloud } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import Header from '@/components/header';
 // import envelopeImage from '@assets/Envelope_1751643597232.png'; // Removed as requested
@@ -22,6 +22,7 @@ export default function DigitalCardViewer() {
   const [imagesPreloaded, setImagesPreloaded] = useState(false);
   const [typedText, setTypedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [showPoofAnimation, setShowPoofAnimation] = useState(false);
 
   useEffect(() => {
     if (linkId) {
@@ -48,9 +49,9 @@ export default function DigitalCardViewer() {
                 celebration: extractCelebration(orderData.card.conversationData),
                 recipientName: extractRecipientName(orderData.card.conversationData),
                 cardType: 'digital',
-                // Use optimized digital image endpoints for faster loading
-                frontImageUrl: `/api/cards/${orderData.card.id}/fast-front-image`,
-                insideImageUrl: orderData.card.insideImageUrl ? `/api/cards/${orderData.card.id}/fast-inside-image` : null
+                // Use watermark-free digital image endpoints for final product
+                frontImageUrl: `/api/cards/${orderData.card.id}/digital-front-image`,
+                insideImageUrl: orderData.card.insideImageUrl ? `/api/cards/${orderData.card.id}/digital-inside-image` : null
               };
               setCardData(cardWithMetadata);
               setLoading(false);
@@ -151,11 +152,15 @@ export default function DigitalCardViewer() {
       console.warn('Image preloading failed, continuing anyway:', error);
     }
     
+    // Show poof animation before opening card
+    setShowPoofAnimation(true);
+    
     // Shorter delay for better performance
     await new Promise(resolve => setTimeout(resolve, 500));
     
     setOpening(false);
     setIsOpened(true);
+    setShowPoofAnimation(false);
   };
 
   const downloadCard = (imageType: 'front' | 'inside') => {
@@ -246,8 +251,30 @@ export default function DigitalCardViewer() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 relative">
       <Header />
+      
+      {/* Cloud Poof Animation Overlay */}
+      {showPoofAnimation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+          <div className="relative">
+            {/* Multiple cloud elements for poof effect */}
+            <div className="absolute inset-0 animate-ping">
+              <Cloud className="w-20 h-20 text-white opacity-80" />
+            </div>
+            <div className="absolute inset-0 animate-pulse delay-150">
+              <Cloud className="w-16 h-16 text-purple-200 opacity-60" />
+            </div>
+            <div className="absolute inset-0 animate-bounce delay-300">
+              <Cloud className="w-12 h-12 text-pink-200 opacity-40" />
+            </div>
+            <div className="text-center mt-24">
+              <p className="text-white text-xl font-semibold animate-pulse">✨ POOF! ✨</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {!isOpened ? (
           /* Unopened Card State - Matching card viewing page style */
@@ -314,17 +341,16 @@ export default function DigitalCardViewer() {
             </div>
           </div>
         ) : (
-          /* Opened Card State - Card Viewing Interface */
+          /* Opened Card State - Simplified Card Viewing Interface */
           <div className="space-y-8 animate-in fade-in duration-500">
-            {/* Header */}
+            {/* Simplified Header - Just Icon and Navigation Info */}
             <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full mx-auto flex items-center justify-center animate-pulse shadow-lg">
+              <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full mx-auto flex items-center justify-center shadow-lg">
                 <MailOpen className="text-white w-8 h-8" />
               </div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Your {cardData.celebration} Card
-              </h1>
-              <p className="text-gray-600">From {cardData.senderName} to {cardData.recipientName}</p>
+              <p className="text-gray-600">
+                {images.length > 1 ? 'Scroll or swipe to view front and inside' : 'Your beautiful card'}
+              </p>
             </div>
 
             {/* Card Image Display */}
