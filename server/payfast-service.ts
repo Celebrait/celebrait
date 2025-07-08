@@ -49,17 +49,40 @@ class PayfastService {
    * Generate MD5 signature for Payfast payment
    */
   private generateSignature(data: Record<string, string>, passphrase?: string): string {
-    // Create parameter string
-    const paramString = Object.keys(data)
-      .sort()
-      .map(key => `${key}=${encodeURIComponent(data[key].toString().trim())}`)
-      .join('&');
-
-    // Add passphrase if provided
+    // Remove signature and passphrase fields if they exist
+    const { signature, passphrase: _, ...cleanData } = data;
+    
+    // Payfast requires parameters in SPECIFIC ORDER, not alphabetical
+    const orderedFields = [
+      'merchant_id', 'merchant_key', 'return_url', 'cancel_url', 'notify_url',
+      'name_first', 'name_last', 'email_address', 'cell_number', 'm_payment_id',
+      'amount', 'item_name', 'item_description', 'custom_int1', 'custom_int2',
+      'custom_int3', 'custom_int4', 'custom_int5', 'custom_str1', 'custom_str2',
+      'custom_str3', 'custom_str4', 'custom_str5', 'subscription_type',
+      'billing_date', 'frequency', 'cycles'
+    ];
+    
+    // Build parameter string in correct order, skipping empty values
+    const params: string[] = [];
+    for (const field of orderedFields) {
+      if (cleanData[field] && cleanData[field].toString().trim() !== '') {
+        const value = cleanData[field].toString().trim();
+        params.push(`${field}=${encodeURIComponent(value)}`);
+      }
+    }
+    
+    const paramString = params.join('&');
+    
+    // Add passphrase if provided (must be last)
     const stringToSign = passphrase ? `${paramString}&passphrase=${encodeURIComponent(passphrase)}` : paramString;
     
-    // Generate MD5 hash
-    return crypto.createHash('md5').update(stringToSign).digest('hex');
+    console.log('Payfast signature string:', stringToSign);
+    
+    // Generate MD5 hash (must be lowercase)
+    const hash = crypto.createHash('md5').update(stringToSign).digest('hex');
+    console.log('Payfast generated signature:', hash);
+    
+    return hash;
   }
 
   /**
