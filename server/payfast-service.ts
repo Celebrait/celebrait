@@ -29,8 +29,8 @@ class PayfastService {
   constructor() {
     // Check if live credentials are available
     const hasLiveCredentials = !!(process.env.PAYFAST_LIVE_MERCHANT_ID && process.env.PAYFAST_LIVE_MERCHANT_KEY);
-    // Force live mode if PAYFAST_FORCE_LIVE is set, or if in production with live creds
-    const useLive = hasLiveCredentials && (process.env.PAYFAST_FORCE_LIVE === 'true' || process.env.NODE_ENV === 'production');
+    // Force live mode if PAYFAST_FORCE_LIVE is set, or if in production with live creds, or for testing
+    const useLive = hasLiveCredentials && (process.env.PAYFAST_FORCE_LIVE === 'true' || process.env.NODE_ENV === 'production' || true);
     
     this.config = {
       merchantId: useLive ? process.env.PAYFAST_LIVE_MERCHANT_ID! : (process.env.PAYFAST_MERCHANT_ID || ''),

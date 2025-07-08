@@ -3777,7 +3777,7 @@ ${formatInstruction}`;
   app.post("/api/payfast/create-payment", async (req, res) => {
     try {
       console.log('Payfast payment request body:', req.body);
-      const { cardId, customerInfo, deliveryInfo } = req.body;
+      const { cardId, customerInfo, deliveryInfo, isDigital, recipientInfo } = req.body;
 
       if (!cardId) {
         return res.status(400).json({ message: "Card ID is required" });
@@ -3798,11 +3798,7 @@ ${formatInstruction}`;
       }
 
       // Calculate amount based on card type
-      const amount = card.cardType === 'digital' ? 0 : 12900; // R129.00 for printed cards
-
-      if (amount === 0) {
-        return res.status(400).json({ message: "Digital cards are free - use create-free-order endpoint" });
-      }
+      const amount = isDigital ? 100 : 12900; // R1.00 for digital, R129.00 for printed cards
 
       // Create order record
       const orderData = {
@@ -3831,7 +3827,7 @@ ${formatInstruction}`;
         customerName: customerInfo.name,
         customerEmail: customerInfo.email,
         amount: amount,
-        itemName: `Celebrait ${card.cardType === 'digital' ? 'Digital' : 'Printed'} Greeting Card`,
+        itemName: `Celebrait ${isDigital ? 'Digital' : 'Printed'} Greeting Card`,
         itemDescription: `Personalized greeting card for ${card.conversationData?.name || 'recipient'}`,
         returnUrl: `${baseUrl}/payment-success/${order.paymentReference}`,
         cancelUrl: `${baseUrl}/payment-cancelled/${order.paymentReference}`,

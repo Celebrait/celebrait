@@ -193,8 +193,45 @@ export default function CompleteOrder() {
           paymentType: 'free'
         };
 
-        // Create free digital order
-        const response = await apiRequest('POST', '/api/create-free-order', orderData);
+        // Create Payfast payment for R1 digital card
+        const customerInfo = {
+          name: customerName,
+          email: customerEmail,
+          phone: ''
+        };
+
+        const deliveryInfo = {
+          address: {
+            line1: 'Digital Delivery',
+            line2: '',
+            city: 'Digital',
+            province: 'Digital',
+            postalCode: '0000'
+          }
+        };
+
+        const response = await fetch('/api/payfast/create-payment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            cardId: card.id,
+            customerInfo,
+            deliveryInfo,
+            isDigital: true,
+            recipientInfo: deliverTo === 'recipient' ? {
+              name: actualRecipientName || recipientName,
+              email: recipientEmail
+            } : null
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to create payment');
+        }
+
         const result = await response.json();
         
         console.log('Digital order API response:', result);
@@ -203,18 +240,23 @@ export default function CompleteOrder() {
           throw new Error('Invalid response from server - missing order details');
         }
         
-        toast({
-          title: 'Digital Card Sent!',
-          description: deliverTo === 'recipient' 
-            ? `Your card has been delivered to both ${actualRecipientName || recipientName} and you`
-            : `Your card has been delivered to ${customerEmail}`,
+        // Redirect to Payfast payment for digital card
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = result.paymentUrl;
+        form.style.display = 'none';
+
+        // Add all payment form fields
+        Object.entries(result.formData).forEach(([key, value]) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = value as string;
+          form.appendChild(input);
         });
 
-        // Redirect to success page with order reference
-        const successEmail = deliverTo === 'recipient' 
-          ? `${actualRecipientName || recipientName} and you`
-          : customerEmail;
-        setLocation(`/order-success?type=digital&email=${encodeURIComponent(successEmail)}&reference=${result.reference}&orderId=${result.orderId}`);
+        document.body.appendChild(form);
+        form.submit();
         
       } else {
         // Handle printed card - create Payfast payment

@@ -37,7 +37,7 @@ export default function DeliveryChoice() {
     {
       id: 'digital',
       title: 'Digital Download',
-      price: 29,
+      price: 1,
       icon: Download,
       features: [
         'Instant download',
