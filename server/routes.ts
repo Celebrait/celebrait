@@ -3925,6 +3925,25 @@ ${formatInstruction}`;
     }
   });
 
+  // Get Payfast configuration status
+  app.get("/api/payfast/status", async (req, res) => {
+    try {
+      const status = payfastService.getStatus();
+      
+      res.json({
+        configured: status.configured,
+        mode: status.mode,
+        merchantId: status.merchantId,
+        paymentUrl: payfastService.getPaymentUrl(),
+        hasPassphrase: status.hasPassphrase
+      });
+
+    } catch (error: any) {
+      console.error('Payfast status error:', error);
+      res.status(500).json({ message: "Error fetching Payfast status: " + error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

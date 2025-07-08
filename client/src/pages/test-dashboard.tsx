@@ -19,7 +19,10 @@ import {
   User, 
   Gift,
   CheckCircle,
-  ArrowRight
+  ArrowRight,
+  DollarSign,
+  Globe,
+  Shield
 } from "lucide-react";
 
 export default function TestDashboard() {
@@ -36,6 +39,7 @@ export default function TestDashboard() {
   // Test execution state
   const [currentTest, setCurrentTest] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, boolean>>({});
+  const [payfastStatus, setPayfastStatus] = useState<any>(null);
 
   const createTestCard = async () => {
     const testCard = {
@@ -200,11 +204,9 @@ export default function TestDashboard() {
         amount: card.price
       };
       
-      sessionStorage.setItem('pendingOrder', JSON.stringify(orderData));
-      
-      // Navigate to payment page
+      // Navigate directly to complete-order page for Payfast integration
       setTimeout(() => {
-        setLocation(`/payment-tips/${card.id}`);
+        setLocation(`/complete-order/${card.id}?delivery=self&type=printed`);
       }, 1000);
     }
   };
@@ -219,6 +221,137 @@ export default function TestDashboard() {
     
     // Navigate to home to start conversation
     setLocation('/');
+  };
+
+  // Payfast-specific test functions
+  const testPayfastStatus = async () => {
+    try {
+      const response = await fetch('/api/payfast/status');
+      const status = await response.json();
+      setPayfastStatus(status);
+      
+      toast({
+        title: status.configured ? "Payfast Status: Configured" : "Payfast Status: Not Configured",
+        description: `Mode: ${status.mode}, Merchant ID: ${status.merchantId}`,
+        variant: status.configured ? "default" : "destructive"
+      });
+      
+      return status.configured;
+    } catch (error) {
+      toast({
+        title: "Payfast Status Check Failed",
+        description: "Could not check Payfast configuration",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
+  const testPayfastPayment = async () => {
+    try {
+      // Create a test card first
+      const card = await createTestCard();
+      
+      // Test payment data
+      const paymentData = {
+        amount: "129.00",
+        item_name: "Test Printed Card",
+        item_description: "Test payment for printed greeting card",
+        name_first: "Test",
+        name_last: "User",
+        email_address: testEmail,
+        m_payment_id: `test_${Date.now()}`
+      };
+      
+      const response = await fetch('/api/payfast/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(paymentData)
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Payfast Payment Created",
+          description: "Payment form generated successfully. Check console for details.",
+          variant: "default"
+        });
+        console.log('Payfast Payment Data:', result);
+        
+        // Open Payfast payment in new window for testing
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = result.paymentUrl;
+        form.target = '_blank';
+        
+        Object.keys(result.formData).forEach(key => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = result.formData[key];
+          form.appendChild(input);
+        });
+        
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+        
+        return true;
+      } else {
+        throw new Error(result.error || 'Payment creation failed');
+      }
+    } catch (error) {
+      toast({
+        title: "Payfast Payment Test Failed",
+        description: error.message || "Could not create test payment",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
+  const testPayfastFlow = async () => {
+    try {
+      // Create a test card first
+      const card = await createTestCard();
+      
+      // Set up session storage for order flow
+      const orderData = {
+        cardId: card.id,
+        customerName: 'Test User',
+        customerEmail: testEmail,
+        deliveryType: 'printed',
+        shippingAddress: {
+          line1: '123 Test Street',
+          line2: '',
+          city: 'Cape Town',
+          province: 'Western Cape',
+          postalCode: '8001'
+        },
+        amount: 129.00
+      };
+      
+      sessionStorage.setItem('cardPreviewData', JSON.stringify(card));
+      
+      // Navigate to complete-order page to test full Payfast integration
+      setLocation(`/complete-order/${card.id}?delivery=self&type=printed`);
+      
+      toast({
+        title: "Payfast Flow Test Started",
+        description: "Navigate through the complete order form to test Payfast integration",
+        variant: "default"
+      });
+      
+      return true;
+    } catch (error) {
+      toast({
+        title: "Payfast Flow Test Failed",
+        description: error.message || "Could not start Payfast flow test",
+        variant: "destructive"
+      });
+      return false;
+    }
   };
 
   const tests = [
@@ -245,6 +378,24 @@ export default function TestDashboard() {
       description: "Test order creation and completion process",
       icon: CreditCard,
       action: () => runTest("Order Completion", testOrderCompletion)
+    },
+    {
+      name: "Payfast Status",
+      description: "Check Payfast configuration and connection status",
+      icon: Shield,
+      action: () => runTest("Payfast Status", testPayfastStatus)
+    },
+    {
+      name: "Payfast Payment",
+      description: "Test Payfast payment form generation and redirect",
+      icon: DollarSign,
+      action: () => runTest("Payfast Payment", testPayfastPayment)
+    },
+    {
+      name: "Payfast Full Flow",
+      description: "Test complete Payfast integration with order form",
+      icon: Globe,
+      action: () => runTest("Payfast Full Flow", testPayfastFlow)
     },
     {
       name: "Conversation Flow",
@@ -397,6 +548,54 @@ export default function TestDashboard() {
                 })}
               </CardContent>
             </Card>
+            
+            {/* Payfast Status */}
+            <Card className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-blue-500" />
+                  Payfast Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <Button
+                    onClick={testPayfastStatus}
+                    className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:opacity-90"
+                    variant="default"
+                  >
+                    Check Payfast Configuration
+                  </Button>
+                  
+                  {payfastStatus && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span className="font-medium">Status</span>
+                        <Badge variant={payfastStatus.configured ? "default" : "destructive"}>
+                          {payfastStatus.configured ? "Configured" : "Not Configured"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span className="font-medium">Mode</span>
+                        <Badge variant={payfastStatus.mode === 'sandbox' ? "secondary" : "default"}>
+                          {payfastStatus.mode}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span className="font-medium">Merchant ID</span>
+                        <span className="text-sm text-gray-600">{payfastStatus.merchantId}</span>
+                      </div>
+                      {payfastStatus.paymentUrl && (
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <span className="font-medium">Payment URL</span>
+                          <span className="text-sm text-gray-600 truncate">{payfastStatus.paymentUrl}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           <Separator className="my-8" />
@@ -431,6 +630,14 @@ export default function TestDashboard() {
                 className="border-green-200 hover:bg-green-50"
               >
                 Test Email Service
+              </Button>
+              
+              <Button
+                onClick={testPayfastStatus}
+                variant="outline"
+                className="border-blue-200 hover:bg-blue-50"
+              >
+                Check Payfast Status
               </Button>
             </div>
           </div>
