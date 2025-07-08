@@ -43,15 +43,12 @@ class PayfastService {
       timestamp: new Date().toISOString()
     });
     
-    // Force sandbox mode for development/testing
-    const forceSandbox = process.env.NODE_ENV === 'development';
-    const useMode = forceSandbox ? false : useLive;
-    
+    // Use actual live credentials when in live mode
     this.config = {
-      merchantId: useMode ? '30786857' : (process.env.PAYFAST_MERCHANT_ID || '10000100'),
-      merchantKey: useMode ? 'vurrtlkhptk2e' : (process.env.PAYFAST_MERCHANT_KEY || '46f0cd694581a'),
-      passphrase: useMode ? (process.env.PAYFAST_LIVE_PASSPHRASE || '') : (process.env.PAYFAST_PASSPHRASE || 'jt7NOE43FZPn'),
-      sandbox: !useMode
+      merchantId: useLive ? '30786857' : (process.env.PAYFAST_MERCHANT_ID || ''),
+      merchantKey: useLive ? 'vurrtlkhptk2e' : (process.env.PAYFAST_MERCHANT_KEY || ''),
+      passphrase: useLive ? '' : (process.env.PAYFAST_PASSPHRASE || ''), // Live account may not have passphrase
+      sandbox: !useLive
     };
     
     console.log('Payfast config loaded:', {
@@ -81,26 +78,40 @@ class PayfastService {
     // Remove signature and passphrase fields if they exist
     const { signature, passphrase: _, ...cleanData } = data;
     
-    // Payfast requires parameters in ALPHABETICAL ORDER
-    const sortedKeys = Object.keys(cleanData).sort();
+    // Payfast requires parameters in SPECIFIC ORDER as they appear in documentation
+    const orderedFields = [
+      'merchant_id', 'merchant_key', 'return_url', 'cancel_url', 'notify_url',
+      'name_first', 'name_last', 'email_address', 'cell_number', 'm_payment_id',
+      'amount', 'item_name', 'item_description', 'payment_method', 'custom_int1', 'custom_int2',
+      'custom_int3', 'custom_int4', 'custom_int5', 'custom_str1', 'custom_str2',
+      'custom_str3', 'custom_str4', 'custom_str5', 'subscription_type',
+      'billing_date', 'frequency', 'cycles'
+    ];
     
-    // Build parameter string in alphabetical order, skipping empty values
+    // Build parameter string in correct order, skipping empty values
     const params: string[] = [];
-    for (const key of sortedKeys) {
-      if (cleanData[key] && cleanData[key].toString().trim() !== '') {
-        const value = cleanData[key].toString().trim();
-        // Use standard URL encoding
-        const encodedValue = encodeURIComponent(value);
-        params.push(`${key}=${encodedValue}`);
+    for (const field of orderedFields) {
+      if (cleanData[field] && cleanData[field].toString().trim() !== '') {
+        const value = cleanData[field].toString().trim();
+        // Payfast requires specific URL encoding: uppercase, spaces as +
+        const encodedValue = encodeURIComponent(value)
+          .replace(/'/g, '%27')
+          .replace(/~/g, '%7E')
+          .replace(/%20/g, '+');
+        params.push(`${field}=${encodedValue}`);
       }
     }
     
     const paramString = params.join('&');
     
-    // Add passphrase if provided (must be last)
+    // Add passphrase if provided (must be last, also URL encoded)
     let stringToSign = paramString;
     if (passphrase) {
-      stringToSign = `${paramString}&passphrase=${encodeURIComponent(passphrase)}`;
+      const encodedPassphrase = encodeURIComponent(passphrase)
+        .replace(/'/g, '%27')
+        .replace(/~/g, '%7E')
+        .replace(/%20/g, '+');
+      stringToSign = `${paramString}&passphrase=${encodedPassphrase}`;
     }
     
     console.log('Payfast signature string:', stringToSign);
