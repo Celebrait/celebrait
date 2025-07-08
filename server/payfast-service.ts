@@ -159,7 +159,9 @@ class PayfastService {
       m_payment_id: orderData.orderId,
       amount: (orderData.amount / 100).toFixed(2), // Convert cents to rands
       item_name: orderData.itemName,
-      item_description: orderData.itemDescription
+      item_description: orderData.itemDescription,
+      payment_method: 'cc', // Force credit card payments to be available
+      custom_str1: 'card_payment_required' // Additional flag for card payments
     };
 
     // Generate signature with appropriate passphrase
