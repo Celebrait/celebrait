@@ -11,11 +11,29 @@ import { apiRequest } from "@/lib/queryClient";
 export default function LiveTest() {
   const [testAmount, setTestAmount] = useState('1.00');
   const [testing, setTesting] = useState(false);
+  const [toggling, setToggling] = useState(false);
 
   // Get Payfast status
   const { data: payfastStatus } = useQuery({
     queryKey: ['/api/payfast/status'],
   });
+
+  const togglePayfastMode = async () => {
+    setToggling(true);
+    try {
+      const isCurrentlyLive = payfastStatus?.mode === 'LIVE';
+      const response = await apiRequest('POST', '/api/payfast/toggle-live', {
+        forceLive: !isCurrentlyLive
+      });
+      alert(`Payfast mode changed to ${!isCurrentlyLive ? 'LIVE' : 'SANDBOX'}. Please refresh the page.`);
+      window.location.reload();
+    } catch (error) {
+      console.error('Toggle error:', error);
+      alert('Failed to toggle mode');
+    } finally {
+      setToggling(false);
+    }
+  };
 
   const handleLiveTest = async () => {
     setTesting(true);
@@ -132,19 +150,29 @@ export default function LiveTest() {
                 </div>
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <span>Payment Mode</span>
-                  <Badge variant={isLiveMode ? 'destructive' : 'default'} className={isLiveMode ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}>
-                    {isLiveMode ? (
-                      <>
-                        <CreditCard className="w-3 h-3 mr-1" />
-                        LIVE
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        SANDBOX
-                      </>
-                    )}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={isLiveMode ? 'destructive' : 'default'} className={isLiveMode ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}>
+                      {isLiveMode ? (
+                        <>
+                          <CreditCard className="w-3 h-3 mr-1" />
+                          LIVE
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          SANDBOX
+                        </>
+                      )}
+                    </Badge>
+                    <Button 
+                      onClick={togglePayfastMode}
+                      disabled={toggling}
+                      variant="outline"
+                      size="sm"
+                    >
+                      {toggling ? 'Switching...' : `Switch to ${isLiveMode ? 'SANDBOX' : 'LIVE'}`}
+                    </Button>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <span>Live Credentials</span>
