@@ -43,9 +43,10 @@ class PayfastService {
       timestamp: new Date().toISOString()
     });
     
+    // Use actual live credentials when in live mode
     this.config = {
-      merchantId: useLive ? process.env.PAYFAST_LIVE_MERCHANT_ID! : (process.env.PAYFAST_MERCHANT_ID || ''),
-      merchantKey: useLive ? process.env.PAYFAST_LIVE_MERCHANT_KEY! : (process.env.PAYFAST_MERCHANT_KEY || ''),
+      merchantId: useLive ? '30786857' : (process.env.PAYFAST_MERCHANT_ID || ''),
+      merchantKey: useLive ? 'vurrtlkhptk2e' : (process.env.PAYFAST_MERCHANT_KEY || ''),
       passphrase: useLive ? (process.env.PAYFAST_LIVE_PASSPHRASE || '') : (process.env.PAYFAST_PASSPHRASE || ''),
       sandbox: !useLive
     };

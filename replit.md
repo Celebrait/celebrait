@@ -121,13 +121,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ```
 Changelog:
 - July 8, 2025. LIVE PAYFAST ACTIVATION: Successfully activated live Payfast credentials for real payment processing:
-  * LIVE CREDENTIALS: Switched from sandbox to live Payfast merchant account for real transactions
+  * LIVE CREDENTIALS: Configured actual live merchant credentials (ID: 30786857, Key: vurrtlkhptk2e) for real transactions
   * PRODUCTION PAYMENTS: R1.00 digital cards and R129.00 printed cards now process through live payment gateway
-  * REAL MONEY: All payments are now real transactions through customer's live Payfast account
+  * REAL MONEY: All payments are now real transactions through customer's live Payfast account (30786857)
   * PAYMENT GATEWAY: Users redirected to www.payfast.co.za (live) instead of sandbox.payfast.co.za
   * WEBHOOK INTEGRATION: Live ITN (Instant Transaction Notification) processing for real payment confirmations
-  * FIXED CREDENTIAL MISMATCH: Resolved "Invalid merchant key" error by properly configuring live vs sandbox mode
-  * AUTHENTICATION: Live merchant validation against production Payfast servers
+  * FIXED CREDENTIAL MISMATCH: Resolved "Invalid merchant key" error by using actual live merchant credentials
+  * AUTHENTICATION: Live merchant validation against production Payfast servers with real merchant account
 - July 8, 2025. DIGITAL CARD PAYMENT IMPLEMENTATION: Successfully implemented R1.00 payment for digital cards:
   * PRICING UPDATE: Digital cards now cost R1.00 instead of being free
   * PAYMENT FLOW: Digital cards use same Payfast payment flow as printed cards
