@@ -3256,98 +3256,15 @@ ${formatInstruction}`;
     }
   });
 
-  // Create free digital order
+  // DEPRECATED - Digital cards now cost R1.00 via Payfast
   app.post("/api/create-free-order", async (req, res) => {
-    try {
-      const { cardId, customerInfo, paymentType } = req.body;
-
-      if (!cardId || !customerInfo || !customerInfo.email) {
-        return res.status(400).json({ message: "Card ID and customer info are required" });
-      }
-
-      const card = await storage.getCard(cardId);
-      if (!card) {
-        return res.status(404).json({ message: "Card not found" });
-      }
-
-      // Get user details from card conversation data (name and email captured earlier)
-      const conversationData = (card.conversationData as any) || {};
-      const userFirstName = conversationData.user_first_name || customerInfo.firstName || '';
-      const userLastName = conversationData.user_last_name || customerInfo.lastName || '';
-      const userEmail = conversationData.user_email || customerInfo.email;
-      const userFullName = `${userFirstName} ${userLastName}`.trim();
-
-      const orderData = {
-        cardId: parseInt(cardId),
-        customerEmail: userEmail,
-        customerName: userFullName,
-        customerPhone: '', // Not required for digital orders
-        amount: 0,
-        currency: 'ZAR',
-        paymentReference: `free_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        shippingAddress: null
-      };
-
-      const order = await storage.createOrder(orderData);
-      
-      // Update order status for digital delivery
-      const updatedOrder = await storage.updateOrder(order.id, {
-        orderType: 'free_digital',
-        paymentStatus: 'completed',
-        orderStatus: 'completed',
-        baseAmount: 0,
-        tipAmount: 0
-      });
-      
-      await storage.updateCard(card.id, { status: 'paid' });
-
-      // Determine delivery method
-      const isDualDelivery = customerInfo.recipientEmail && customerInfo.recipientName;
-      
-      // Get host for email links
-      const host = req.get('host') || 'localhost:5000';
-      
-      // Always send to user
-      try {
-        const userEmailParams = generateDigitalCardEmail(
-          updatedOrder, 
-          `/api/cards/${card.id}/digital-front-image`,
-          host
-        );
-        await sendEmail(userEmailParams);
-        console.log('Digital card email sent to user successfully');
-      } catch (emailError) {
-        console.error('Failed to send digital card email to user:', emailError);
-      }
-
-      // Send to recipient if dual delivery
-      if (isDualDelivery) {
-        try {
-          const recipientEmailParams = generateDigitalCardEmail(
-            { ...updatedOrder, customerEmail: customerInfo.recipientEmail, customerName: customerInfo.recipientName },
-            `/api/cards/${card.id}/digital-front-image`,
-            host
-          );
-          await sendEmail(recipientEmailParams);
-          console.log('Digital card email sent to recipient successfully');
-        } catch (emailError) {
-          console.error('Failed to send digital card email to recipient:', emailError);
-        }
-      }
-
-      res.json({
-        ...order,
-        card,
-        reference: updatedOrder.paymentReference,
-        orderId: order.id,
-        message: isDualDelivery 
-          ? `Free digital card sent to both ${userFullName} and ${customerInfo.recipientName}`
-          : `Free digital card sent to ${userFullName}`
-      });
-
-    } catch (error: any) {
-      res.status(500).json({ message: "Error creating free order: " + error.message });
-    }
+    // Digital cards are no longer free - redirect to payment flow
+    return res.status(400).json({ 
+      message: "Digital cards now cost R1.00 and require payment via Payfast", 
+      requiresPayment: true,
+      amount: 1.00,
+      redirectToPayment: true
+    });
   });
 
   // Test SendGrid configuration with detailed response
@@ -3492,10 +3409,10 @@ ${formatInstruction}`;
         customerName,
         deliveryType: 'digital',
         shippingAddress: null,
-        amount: 0,
+        amount: 100, // R1.00 for digital cards
         status: 'completed',
         paymentReference: orderReference,
-        paymentMethod: 'free'
+        paymentMethod: 'payfast'
       });
 
       // Send appropriate emails based on delivery method

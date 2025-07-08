@@ -175,19 +175,10 @@ export default function TestDashboard() {
     const card = await createTestCard();
     
     if (testCardType === 'digital') {
-      // Test digital order completion
-      await fetch('/api/create-free-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cardId: card.id,
-          customerEmail: testEmail,
-          customerName: 'Test User',
-          deliveryMethod: testDeliveryMethod,
-          recipientEmail: testDeliveryMethod === 'recipient' ? testEmail : null,
-          recipientName: testDeliveryMethod === 'recipient' ? testRecipientName : null
-        })
-      });
+      // Digital cards now require R1.00 payment - redirect to complete order page
+      setTimeout(() => {
+        setLocation(`/complete-order/${card.id}?delivery=${testDeliveryMethod}&type=digital`);
+      }, 1000);
     } else {
       // Test printed order creation (without payment)
       const orderData = {
