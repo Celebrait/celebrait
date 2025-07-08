@@ -1701,88 +1701,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create free order
+  // DEPRECATED - Digital cards now cost R1.00 via Payfast
   app.post("/api/create-free-order", async (req, res) => {
-    try {
-      const { cardId, customerInfo, paymentType = 'free' } = req.body;
-
-      if (!cardId || !customerInfo) {
-        return res.status(400).json({ message: "Card ID and customer info are required" });
-      }
-
-      const reference = `celebrait_free_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-      const orderData = {
-        cardId: parseInt(cardId),
-        customerEmail: customerInfo.email,
-        customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
-        customerPhone: customerInfo.phone || null,
-        amount: 0,
-        baseAmount: 0,
-        tipAmount: 0,
-        currency: 'ZAR',
-        paymentReference: reference,
-        shippingAddress: customerInfo.address || null,
-        orderType: 'free',
-        paymentStatus: 'free',
-        orderStatus: 'completed'
-      };
-
-      const order = await storage.createOrder(orderData);
-
-      // Update card status to completed for free orders and remove watermarks
-      const card = await storage.getCard(cardId);
-      if (card) {
-        // Remove watermarks by extracting original images from conversationData
-        const conversationData = card.conversationData as any;
-        let updateData: any = { status: 'completed' };
-        
-        if (conversationData && conversationData.originalFrontImageUrl) {
-          updateData.frontImageUrl = conversationData.originalFrontImageUrl;
-          if (conversationData.originalInsideImageUrl) {
-            updateData.insideImageUrl = conversationData.originalInsideImageUrl;
-          }
-          console.log('Watermarks removed for free digital card:', cardId);
-        }
-        
-        await storage.updateCard(cardId, updateData);
-      }
-
-      // Send digital card email
-      try {
-        // Always send to the user who created the card
-        const emailParams = generateDigitalCardEmail({
-          customerEmail: customerInfo.email,
-          customerName: `${customerInfo.firstName} ${customerInfo.lastName}`,
-          paymentReference: reference
-        }, card?.frontImageUrl || '', req.get('host'));
-        await sendEmail(emailParams);
-        console.log('Free digital card email sent successfully to user:', customerInfo.email);
-        
-        // If there's a recipient email, also send to the recipient
-        if (customerInfo.recipientEmail && customerInfo.recipientEmail !== customerInfo.email) {
-          const recipientEmailParams = generateDigitalCardEmail({
-            customerEmail: customerInfo.recipientEmail,
-            customerName: customerInfo.recipientName || 'Recipient',
-            paymentReference: reference
-          }, card?.frontImageUrl || '', req.get('host'));
-          await sendEmail(recipientEmailParams);
-          console.log('Free digital card email sent successfully to recipient:', customerInfo.recipientEmail);
-        }
-      } catch (emailError) {
-        console.error('Failed to send free digital card email:', emailError);
-      }
-
-      res.json({ 
-        orderId: order.id,
-        reference,
-        downloadUrl: card?.frontImageUrl,
-        message: "Free order created successfully"
-      });
-
-    } catch (error: any) {
-      res.status(500).json({ message: "Error creating free order: " + error.message });
-    }
+    // Digital cards are no longer free - redirect to payment flow
+    return res.status(400).json({ 
+      message: "Digital cards now cost R1.00 and require payment via Payfast", 
+      requiresPayment: true,
+      amount: 1.00,
+      redirectToPayment: true
+    });
   });
 
   // Paystack payment verification
