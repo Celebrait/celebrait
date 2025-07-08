@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 8, 2025. CRITICAL PAYMENT REDIRECT URL FIX: Fixed Payfast payment redirect URLs to use proper HTTPS Replit domain:
+  * REDIRECT URL GENERATION: Fixed payment return/cancel URLs to use HTTPS Replit domain instead of HTTP localhost
+  * PROTOCOL DETECTION: Implemented proper protocol detection for production environment (HTTPS) vs development (HTTP)
+  * PAYFAST INTEGRATION: Payment success/cancel redirects now correctly navigate to https://71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev
+  * PAYMENT FLOW COMPLETE: Users now properly return to payment success page after completing Payfast payments
+  * EMAIL DELIVERY WORKING: Digital card confirmation emails sent successfully after payment completion
+  * PRODUCTION TESTED: End-to-end payment flow verified with live Payfast integration and proper email delivery
 - July 8, 2025. CRITICAL EMAIL URL FIX: Fixed digital card email URLs to use proper Replit domain instead of localhost:
   * EMAIL URL GENERATION: Fixed generateDigitalCardEmail function to use correct Replit domain (71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev)
   * LOCALHOST REPLACEMENT: Replaced localhost:5000 URLs with actual live domain in all email generation routes

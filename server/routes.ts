@@ -3664,10 +3664,17 @@ ${formatInstruction}`;
 
       const order = await storage.createOrder(orderData);
 
-      // Create Payfast payment data
+      // Create Payfast payment data - use correct domain for production
       const host = req.get('host') || 'localhost:5000';
-      const protocol = req.secure ? 'https' : 'http';
-      const baseUrl = `${protocol}://${host}`;
+      const actualHost = host.includes('localhost') ? host : '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev';
+      const protocol = actualHost.includes('localhost') ? 'http' : 'https';
+      const baseUrl = `${protocol}://${actualHost}`;
+      
+      console.log('Payment redirect URLs:', { 
+        returnUrl: `${baseUrl}/payment-success/${order.paymentReference}`,
+        cancelUrl: `${baseUrl}/payment-cancelled/${order.paymentReference}`,
+        notifyUrl: `${baseUrl}/api/payfast/notify`
+      });
 
       const paymentData = payfastService.createPaymentData({
         orderId: order.paymentReference,
