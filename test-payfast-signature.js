@@ -1,5 +1,5 @@
 // Test Payfast signature generation
-const crypto = require('crypto');
+import crypto from 'crypto';
 
 function generatePayfastSignature(data, passphrase) {
   // Remove signature and passphrase if they exist

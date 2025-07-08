@@ -33,6 +33,13 @@ class PayfastService {
       passphrase: process.env.PAYFAST_PASSPHRASE || '',
       sandbox: process.env.NODE_ENV !== 'production'
     };
+    
+    console.log('Payfast config loaded:', {
+      merchantId: this.config.merchantId,
+      merchantKey: this.config.merchantKey.substring(0, 5) + '...',
+      passphraseSet: !!this.config.passphrase,
+      sandbox: this.config.sandbox
+    });
 
     if (!this.config.merchantId || !this.config.merchantKey) {
       console.warn('Payfast credentials not configured. Payment processing will be disabled.');
@@ -136,8 +143,9 @@ class PayfastService {
       item_description: orderData.itemDescription
     };
 
-    // Generate signature
-    const signature = this.generateSignature(paymentData, this.config.passphrase);
+    // Generate signature - temporarily disable passphrase to test
+    const signature = this.generateSignature(paymentData); // No passphrase for testing
+    console.log('Generated signature without passphrase:', signature);
 
     return {
       ...paymentData,
