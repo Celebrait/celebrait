@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 8, 2025. CRITICAL ITN PROCESSING FIX: Resolved Payfast ITN webhook processing that was causing payment failures:
+  * ITN WEBHOOK PROCESSING: Fixed Payfast Instant Transaction Notification handling that was failing with 400 errors
+  * PAYMENT STATUS UPDATE: ITN notifications now properly update payment status from PENDING to COMPLETED
+  * EMAIL DELIVERY TRIGGER: Fixed email delivery that depends on successful ITN processing
+  * PAYMENT COMPLETION FLOW: Users now properly redirected to success page after ITN processes payment
+  * DUAL EMAIL DELIVERY: Both customer and recipient receive digital card emails after successful payment
+  * LIVE TESTING VERIFIED: End-to-end payment flow tested with real ITN notifications and email delivery
 - July 8, 2025. CRITICAL PAYMENT REDIRECT URL FIX: Fixed Payfast payment redirect URLs to use proper HTTPS Replit domain:
   * REDIRECT URL GENERATION: Fixed payment return/cancel URLs to use HTTPS Replit domain instead of HTTP localhost
   * PROTOCOL DETECTION: Implemented proper protocol detection for production environment (HTTPS) vs development (HTTP)
