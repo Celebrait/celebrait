@@ -3776,10 +3776,16 @@ ${formatInstruction}`;
   // Create Payfast payment
   app.post("/api/payfast/create-payment", async (req, res) => {
     try {
+      console.log('Payfast payment request body:', req.body);
       const { cardId, customerInfo, deliveryInfo } = req.body;
 
-      if (!cardId || !customerInfo || !customerInfo.email || !customerInfo.name) {
-        return res.status(400).json({ message: "Card ID and customer info are required" });
+      if (!cardId) {
+        return res.status(400).json({ message: "Card ID is required" });
+      }
+
+      if (!customerInfo || !customerInfo.email || !customerInfo.name) {
+        console.log('Missing customerInfo:', customerInfo);
+        return res.status(400).json({ message: "Customer info with name and email is required" });
       }
 
       if (!payfastService.isConfigured()) {

@@ -21,7 +21,7 @@ export default function LiveTest() {
     setTesting(true);
     try {
       // Create a test card first
-      const cardResponse = await apiRequest('POST', '/api/cards', {
+      const cardRes = await apiRequest('POST', '/api/cards', {
         userId: 1,
         cardType: 'printed',
         printOption: 'front-and-inside',
@@ -42,9 +42,10 @@ export default function LiveTest() {
         frontImageUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
         insideImageUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
       });
+      const cardResponse = await cardRes.json();
 
       // Create payment
-      const paymentResponse = await apiRequest('POST', '/api/payfast/create-payment', {
+      const paymentRes = await apiRequest('POST', '/api/payfast/create-payment', {
         cardId: cardResponse.id,
         customerInfo: {
           name: 'Test User',
@@ -61,6 +62,7 @@ export default function LiveTest() {
           }
         }
       });
+      const paymentResponse = await paymentRes.json();
 
       // Create payment form and submit
       const form = document.createElement('form');
@@ -79,9 +81,23 @@ export default function LiveTest() {
       document.body.appendChild(form);
       form.submit();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Live test error:', error);
-      alert(`Payment test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Extract more detailed error info
+      let errorMessage = 'Unknown error';
+      if (error instanceof Response) {
+        try {
+          const errorData = await error.json();
+          errorMessage = `${error.status}: ${JSON.stringify(errorData)}`;
+        } catch (e) {
+          errorMessage = `${error.status}: ${error.statusText}`;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      alert(`Payment test failed: ${errorMessage}`);
     } finally {
       setTesting(false);
     }
