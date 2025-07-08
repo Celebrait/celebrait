@@ -93,10 +93,62 @@ export default function DeliveryDetails() {
         return;
       }
       
-      // Fallback to API if no cache available (using ultra-fast endpoints with preloading)
+      // Fallback to ultra-fast metadata endpoint if no cache available
       setLoading(true);
-      console.log(`[PERF] Making API call for ${reference?.startsWith('celebrait_ready_') ? 'ready' : 'metadata'} endpoint`);
+      console.log(`[PERF] Making ultra-fast API call for ${reference?.startsWith('celebrait_ready_') ? 'ready' : 'metadata'} endpoint`);
       const apiStartTime = Date.now();
+      
+      try {
+        // Use fast metadata endpoint for instant loading
+        const endpoint = reference?.startsWith('celebrait_ready_') 
+          ? `/api/cards/ready/${reference}`
+          : `/api/cards/${reference}/fast-metadata`;
+        
+        const response = await fetch(endpoint, {
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch card: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const card = data.card || data;
+        
+        const apiEndTime = Date.now();
+        console.log(`[PERF] API response received in: ${apiEndTime - apiStartTime}ms`);
+        
+        // Extract recipient name from API response
+        let extractedRecipientName = null;
+        if (card?.conversationData) {
+          extractedRecipientName = card.conversationData.name || 
+                                card.conversationData.recipient_name ||
+                                card.conversationData.recipientName;
+        }
+        
+        if (extractedRecipientName && extractedRecipientName !== 'the recipient') {
+          sessionStorage.setItem('recipientName', extractedRecipientName);
+          setRecipientName(extractedRecipientName);
+          console.log('[RECIPIENT] Stored from API response:', extractedRecipientName);
+        }
+        
+        setCardData(card);
+        setLoading(false);
+        
+        // Cache the response for future instant loading
+        try {
+          sessionStorage.setItem(`card_${reference}`, JSON.stringify(card));
+        } catch (e) {
+          console.warn('Cache storage failed:', e);
+        }
+        
+      } catch (error) {
+        console.error('Error loading card data:', error);
+        setLoading(false);
+      }
       
       try {
         let response;

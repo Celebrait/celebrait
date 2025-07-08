@@ -35,7 +35,7 @@ export default function CompleteOrder() {
   const { toast } = useToast();
   
   const [card, setCard] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
   // Form data
@@ -101,13 +101,30 @@ export default function CompleteOrder() {
 
   const loadCard = async () => {
     try {
-      // Check for cached card data first
-      const cachedCardData = sessionStorage.getItem('cardPreviewData');
-      if (cachedCardData) {
-        const cardData = JSON.parse(cachedCardData);
-        setCard(cardData);
-        setLoading(false);
-        return;
+      // INSTANT CACHE-FIRST LOADING - Check multiple cache keys for instant display
+      const cachedKeys = [
+        'cardPreviewData',
+        `card_${cardId}`,
+        `ready_${cardId}`,
+        `card_celebrait_ready_${cardId}`
+      ];
+      
+      for (const key of cachedKeys) {
+        try {
+          const cachedData = sessionStorage.getItem(key);
+          if (cachedData) {
+            const cardData = JSON.parse(cachedData);
+            const card = cardData.card || cardData;
+            if (card && (card.id || card.conversationData)) {
+              setCard(card);
+              setLoading(false);
+              console.log(`[INSTANT] Complete order loaded from cache: ${key}`);
+              return;
+            }
+          }
+        } catch (e) {
+          // Continue to next cache key
+        }
       }
 
       // Handle test card ID
@@ -127,10 +144,33 @@ export default function CompleteOrder() {
         return;
       }
 
-      // Fallback to API fetch
-      const response = await apiRequest('GET', `/api/cards/${cardId}`);
-      const cardData = await response.json();
-      setCard({ ...cardData, cardType: deliveryType });
+      // Fallback to ultra-fast metadata endpoint
+      setLoading(true);
+      console.log(`[PERF] Complete order making ultra-fast API call for card ${cardId}`);
+      const apiStartTime = Date.now();
+      
+      const response = await fetch(`/api/cards/${cardId}/fast-metadata`, {
+        headers: {
+          'Cache-Control': 'max-age=86400', // Request 24-hour cache
+        }
+      });
+      
+      if (response.ok) {
+        const cardData = await response.json();
+        setCard({ ...cardData, cardType: deliveryType });
+        
+        const apiEndTime = Date.now();
+        console.log(`[PERF] Complete order API response received in: ${apiEndTime - apiStartTime}ms`);
+        
+        // Cache the card data for future instant loading
+        try {
+          sessionStorage.setItem('cardPreviewData', JSON.stringify(cardData));
+          sessionStorage.setItem(`card_${cardId}`, JSON.stringify(cardData));
+          console.log('[CACHE] Complete order cached card data for future instant loading');
+        } catch (e) {
+          console.warn('Complete order cache storage failed:', e);
+        }
+      }
       setLoading(false);
     } catch (error) {
       toast({
