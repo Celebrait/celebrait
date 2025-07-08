@@ -43,12 +43,15 @@ class PayfastService {
       timestamp: new Date().toISOString()
     });
     
-    // Use actual live credentials when in live mode
+    // Force sandbox mode for development/testing
+    const forceSandbox = process.env.NODE_ENV === 'development';
+    const useMode = forceSandbox ? false : useLive;
+    
     this.config = {
-      merchantId: useLive ? '30786857' : (process.env.PAYFAST_MERCHANT_ID || ''),
-      merchantKey: useLive ? 'vurrtlkhptk2e' : (process.env.PAYFAST_MERCHANT_KEY || ''),
-      passphrase: useLive ? (process.env.PAYFAST_LIVE_PASSPHRASE || '') : (process.env.PAYFAST_PASSPHRASE || ''),
-      sandbox: !useLive
+      merchantId: useMode ? '30786857' : (process.env.PAYFAST_MERCHANT_ID || '10000100'),
+      merchantKey: useMode ? 'vurrtlkhptk2e' : (process.env.PAYFAST_MERCHANT_KEY || '46f0cd694581a'),
+      passphrase: useMode ? (process.env.PAYFAST_LIVE_PASSPHRASE || '') : (process.env.PAYFAST_PASSPHRASE || 'jt7NOE43FZPn'),
+      sandbox: !useMode
     };
     
     console.log('Payfast config loaded:', {
