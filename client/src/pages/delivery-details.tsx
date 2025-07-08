@@ -105,11 +105,50 @@ export default function DeliveryDetails() {
     loadCardData();
   }, [reference]);
   
-  // Get recipient name from card data for dynamic text
-  const recipientName = cardData?.conversationData?.name || 
-                       cardData?.conversationData?.recipient_name || 
-                       sessionStorage.getItem('recipientName') || 
-                       'the recipient';
+  // Get recipient name from card data for dynamic text (with better fallback handling)
+  const [recipientName, setRecipientName] = useState(() => {
+    // Try to get recipient name from session storage first (immediate availability)
+    const sessionName = sessionStorage.getItem('recipientName');
+    if (sessionName) {
+      console.log('[RECIPIENT] Found in session storage:', sessionName);
+      return sessionName;
+    }
+    
+    // Try to get from cached conversation data
+    try {
+      const cachedKeys = [`card_${reference}`, `card_preview_${reference}`, `card_ready_${reference}`];
+      for (const key of cachedKeys) {
+        const cached = sessionStorage.getItem(key);
+        if (cached) {
+          const parsedData = JSON.parse(cached);
+          const card = parsedData.card || parsedData;
+          const name = card?.conversationData?.name || card?.conversationData?.recipient_name;
+          if (name) {
+            console.log('[RECIPIENT] Found in cached data:', name);
+            return name;
+          }
+        }
+      }
+    } catch (e) {
+      // Continue to fallback
+    }
+    
+    console.log('[RECIPIENT] Using fallback: the recipient');
+    return 'the recipient';
+  });
+  
+  // Update recipient name when card data loads
+  useEffect(() => {
+    if (cardData?.conversationData) {
+      const name = cardData.conversationData.name || cardData.conversationData.recipient_name;
+      if (name && name !== recipientName) {
+        console.log('[RECIPIENT] Updating from card data:', name);
+        setRecipientName(name);
+        // Also store in session storage for future use
+        sessionStorage.setItem('recipientName', name);
+      }
+    }
+  }, [cardData, recipientName]);
 
   // Delivery type options to show user (matching original design)
   const deliveryOptions = [

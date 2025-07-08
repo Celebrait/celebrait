@@ -818,6 +818,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     setAnswers(prev => ({ ...prev, [currentStep.id]: value }));
     setCurrentInput('');
     
+    // Store recipient name in session storage for immediate access
+    if (currentStep.id === 'name') {
+      sessionStorage.setItem('recipientName', value);
+    }
+    
     // If we're editing a step, return to summary after saving
     if (editingStep && returnToSummary) {
       setEditingStep(null);

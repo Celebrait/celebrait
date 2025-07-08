@@ -153,6 +153,8 @@ Changelog:
   * ENHANCED UX: More intuitive placement of helpful examples after users access inspiration gallery
 - July 8, 2025. DIGITAL DELIVERY FLOW PERSONALIZATION: Enhanced recipient name personalization and dual delivery functionality:
   * RECIPIENT PERSONALIZATION: Updated "Confirm Email Details" page to show recipient's first name instead of "the recipient"
+  * INSTANT NAME LOADING: Fixed timing issue where recipient name showed only after navigation - now loads immediately
+  * SESSION STORAGE: Added recipient name storage during conversation for instant retrieval on delivery pages
   * DUAL DELIVERY EXPLANATION: Added clear messaging that user receives copy when sending to recipient
   * FORM PRE-POPULATION: Enhanced user details pre-population from conversation data (email from collection step)
   * BACKEND DUAL DELIVERY: Fixed dual delivery email functionality to send to both user and recipient
