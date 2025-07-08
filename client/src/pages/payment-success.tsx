@@ -1,273 +1,241 @@
-import { useState, useEffect } from 'react';
-import { useRoute, useLocation } from 'wouter';
+import React, { useEffect, useState } from 'react';
+import { useRoute } from 'wouter';
+import { CheckCircle, Package, Mail, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
-import { CheckCircle, Download, Truck, MapPin, Clock, Package } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import Header from '@/components/header';
+
+interface PaymentStatus {
+  paymentReference: string;
+  paymentStatus: string;
+  orderStatus: string;
+  amount: number;
+  currency: string;
+  customerEmail: string;
+  customerName: string;
+}
 
 export default function PaymentSuccess() {
-  const [, setLocation] = useLocation();
-  const { toast } = useToast();
-  const [order, setOrder] = useState<any>(null);
+  const [, params] = useRoute('/payment-success/:reference');
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const reference = urlParams.get('reference');
-    const status = urlParams.get('status');
+    const fetchPaymentStatus = async () => {
+      if (!params?.reference) return;
 
-    console.log('Payment success page loaded with:', { reference, status });
-
-    if (reference && status === 'success') {
-      verifyPayment(reference);
-    } else {
-      console.error('Invalid payment parameters:', { reference, status });
-      setError('Invalid payment parameters');
-      setLoading(false);
-    }
-  }, []);
-
-  const verifyPayment = async (reference: string) => {
-    try {
-      const response = await apiRequest('POST', '/api/verify-payment', { reference });
-      const orderData = await response.json();
-      setOrder(orderData);
-      
-      // Remove watermarks after successful payment verification
-      if (orderData?.card?.id) {
-        try {
-          console.log('Removing watermarks for paid card:', orderData.card.id);
-          await apiRequest('POST', '/api/remove-watermarks', { 
-            cardId: orderData.card.id 
-          });
-          console.log('Watermarks removed successfully');
-        } catch (watermarkError) {
-          console.error('Failed to remove watermarks:', watermarkError);
-          // Don't show error to user as payment was successful
+      try {
+        const response = await fetch(`/api/payfast/payment-status/${params.reference}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setPaymentStatus(data);
+        } else {
+          setError('Payment not found');
         }
+      } catch (err) {
+        setError('Error fetching payment status');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      toast({
-        title: 'Payment Verification Failed',
-        description: 'Unable to verify your payment. Please contact support.',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  const downloadCard = async () => {
-    if (order?.card?.frontImageUrl) {
-      // Create download link
-      const link = document.createElement('a');
-      link.href = order.card.frontImageUrl;
-      link.download = `celebrait-card-${order.id}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    fetchPaymentStatus();
+  }, [params?.reference]);
 
-      toast({
-        title: 'Download Started',
-        description: 'Your card is being downloaded'
-      });
-    }
-  };
-
-  const formatPrice = (cents: number) => {
-    return `R${(cents / 100).toFixed(2)}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-ZA', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const formatAmount = (amount: number, currency: string) => {
+    return new Intl.NumberFormat('en-ZA', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 2
+    }).format(amount / 100);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full"></div>
-      </div>
-    );
-  }
-
-  if (error || !order) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Payment Not Found</h1>
-          <p className="text-gray-600">{error || 'Unable to verify your payment.'}</p>
-          <Button onClick={() => setLocation('/')} className="mt-4">
-            Return Home
-          </Button>
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-md mx-auto text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p>Loading payment status...</p>
+          </div>
         </div>
       </div>
     );
   }
+
+  if (error || !paymentStatus) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-md mx-auto">
+            <Alert variant="destructive">
+              <AlertDescription>
+                {error || 'Payment status not found'}
+              </AlertDescription>
+            </Alert>
+            <div className="mt-6 text-center">
+              <Button 
+                onClick={() => window.location.href = '/'}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
+                Return to Home
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const isSuccessful = paymentStatus.paymentStatus === 'completed';
+  const isProcessing = paymentStatus.paymentStatus === 'pending';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
-        {/* Success Header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-8 h-8 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+      <Header />
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          {/* Success Header */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              {isSuccessful ? (
+                <CheckCircle className="h-16 w-16 text-green-500" />
+              ) : isProcessing ? (
+                <Clock className="h-16 w-16 text-yellow-500" />
+              ) : (
+                <CheckCircle className="h-16 w-16 text-gray-400" />
+              )}
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {isSuccessful ? 'Payment Successful!' : 'Payment Processing'}
+            </h1>
+            <p className="text-lg text-gray-600">
+              {isSuccessful 
+                ? 'Your order has been confirmed and is being processed.'
+                : 'We are processing your payment. Please wait...'
+              }
+            </p>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Payment Successful!</h1>
-          <p className="text-gray-600">Thank you for your order. Here are your details:</p>
-        </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Order Details */}
-          <Card>
+          {/* Payment Details */}
+          <Card className="mb-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5" />
+                <Package className="h-5 w-5" />
                 Order Details
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Order ID:</span>
-                <span className="font-medium">#{order.id}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="text-gray-600">Date:</span>
-                <span className="font-medium">{formatDate(order.createdAt)}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total Paid:</span>
-                <span className="font-medium text-green-600">{formatPrice(order.amount)}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="text-gray-600">Payment Method:</span>
-                <span className="font-medium">Paystack</span>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Status:</span>
-                <Badge variant="default" className="bg-green-500">
-                  {order.status}
-                </Badge>
-              </div>
-
-              {order.card?.frontImageUrl && (
-                <div className="pt-4">
-                  <div className="aspect-square w-48 mx-auto rounded-lg overflow-hidden border-2 border-gray-200">
-                    <img 
-                      src={order.card.frontImageUrl} 
-                      alt="Your card" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Order Reference</p>
+                  <p className="font-medium">{paymentStatus.paymentReference}</p>
                 </div>
-              )}
+                <div>
+                  <p className="text-sm text-gray-600">Amount Paid</p>
+                  <p className="font-medium">{formatAmount(paymentStatus.amount, paymentStatus.currency)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Customer Name</p>
+                  <p className="font-medium">{paymentStatus.customerName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Email</p>
+                  <p className="font-medium">{paymentStatus.customerEmail}</p>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Payment Status</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    isSuccessful 
+                      ? 'bg-green-100 text-green-800' 
+                      : isProcessing 
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {paymentStatus.paymentStatus.toUpperCase()}
+                  </span>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Delivery Information */}
+          {/* Next Steps */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                {order.card?.cardType === 'digital' ? (
-                  <Download className="w-5 h-5" />
-                ) : (
-                  <Truck className="w-5 h-5" />
-                )}
-                {order.card?.cardType === 'digital' ? 'Download' : 'Delivery'} Information
+                <Mail className="h-5 w-5" />
+                What Happens Next?
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {order.card?.cardType === 'digital' ? (
-                <>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-blue-800 mb-2">Digital Card Ready!</h3>
-                    <p className="text-blue-700 text-sm mb-3">
-                      Your digital card is ready for download. You can also access it anytime from your email.
-                    </p>
-                    <Button 
-                      onClick={downloadCard}
-                      className="w-full bg-blue-500 hover:bg-blue-600"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Download High-Quality Card
-                    </Button>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">1</span>
                   </div>
-
-                  <div className="text-sm text-gray-600">
-                    <p>• High-resolution PNG format</p>
-                    <p>• Perfect for social media sharing</p>
-                    <p>• Print at home if needed</p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-amber-800 mb-2 flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      Processing Your Order
-                    </h3>
-                    <p className="text-amber-700 text-sm">
-                      Your card is being prepared for printing and shipping. You'll receive tracking information within 24 hours.
+                  <div>
+                    <h4 className="font-medium">Order Confirmation</h4>
+                    <p className="text-sm text-gray-600">
+                      You'll receive an order confirmation email shortly at {paymentStatus.customerEmail}
                     </p>
                   </div>
-
-                  {order.shippingAddress && (
-                    <div className="space-y-2">
-                      <h4 className="font-semibold flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        Shipping Address
-                      </h4>
-                      <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                        <p className="font-medium">{order.customerName}</p>
-                        <p>{order.shippingAddress.line1}</p>
-                        {order.shippingAddress.line2 && <p>{order.shippingAddress.line2}</p>}
-                        <p>{order.shippingAddress.city}, {order.shippingAddress.province}</p>
-                        <p>{order.shippingAddress.postalCode}</p>
-                        <p>South Africa</p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="text-sm text-gray-600">
-                    <p>• Estimated delivery: 3-5 business days</p>
-                    <p>• Tracking information will be sent via email</p>
-                    <p>• Premium card stock and printing</p>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">2</span>
                   </div>
-                </>
-              )}
+                  <div>
+                    <h4 className="font-medium">Card Production</h4>
+                    <p className="text-sm text-gray-600">
+                      Your personalized greeting card will be professionally printed
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">3</span>
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Delivery</h4>
+                    <p className="text-sm text-gray-600">
+                      Your card will be delivered to the specified address within 3-5 business days
+                    </p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Support Information */}
-        <Card className="mt-8">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <h3 className="font-semibold text-gray-800 mb-2">Need Help?</h3>
-              <p className="text-gray-600 text-sm mb-4">
-                If you have any questions about your order, please don't hesitate to contact our support team.
+          {/* Action Buttons */}
+          <div className="mt-8 text-center space-y-4">
+            <Button 
+              onClick={() => window.location.href = '/'}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            >
+              Create Another Card
+            </Button>
+            
+            <div className="text-sm text-gray-600">
+              <p>
+                Need help? Contact us at{' '}
+                <a href="mailto:support@celebrait.co.za" className="text-purple-600 hover:underline">
+                  support@celebrait.co.za
+                </a>
               </p>
-              <div className="flex justify-center gap-4">
-                <Button variant="outline" onClick={() => setLocation('/')}>
-                  Create Another Card
-                </Button>
-                <Button variant="outline">
-                  Contact Support
-                </Button>
-              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

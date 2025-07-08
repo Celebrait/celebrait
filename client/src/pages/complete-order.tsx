@@ -217,18 +217,62 @@ export default function CompleteOrder() {
         setLocation(`/order-success?type=digital&email=${encodeURIComponent(successEmail)}&reference=${result.reference}&orderId=${result.orderId}`);
         
       } else {
-        // Handle printed card - redirect to payment
-        const orderData = {
-          cardId: card.id,
-          customerName,
-          customerEmail,
-          deliveryType: 'printed',
-          shippingAddress: address,
-          amount: card.price
+        // Handle printed card - create Payfast payment
+        const customerInfo = {
+          name: customerName,
+          email: customerEmail,
+          phone: '' // Phone not required for Payfast
         };
 
-        sessionStorage.setItem('pendingOrder', JSON.stringify(orderData));
-        setLocation(`/payment-tips/${cardId}`);
+        const deliveryInfo = address;
+
+        try {
+          const response = await fetch('/api/payfast/create-payment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              cardId: card.id,
+              customerInfo,
+              deliveryInfo
+            })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to create payment');
+          }
+
+          const paymentData = await response.json();
+          
+          // Create and submit Payfast form
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = paymentData.paymentUrl;
+          
+          // Add all payment data as hidden inputs
+          Object.entries(paymentData.paymentData).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+              const input = document.createElement('input');
+              input.type = 'hidden';
+              input.name = key;
+              input.value = String(value);
+              form.appendChild(input);
+            }
+          });
+          
+          document.body.appendChild(form);
+          form.submit();
+          
+        } catch (error) {
+          console.error('Payfast payment error:', error);
+          toast({
+            title: 'Payment Error',
+            description: 'Failed to create payment. Please try again.',
+            variant: 'destructive'
+          });
+        }
       }
 
     } catch (error) {

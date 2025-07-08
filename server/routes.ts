@@ -28,6 +28,7 @@ import {
 } from "./image-storage";
 import { migrateCardImages, cardNeedsMigration } from "./image-migration";
 import { setupGoogleAuth } from "./google-auth";
+import { payfastService } from "./payfast-service";
 import session from "express-session";
 import passport from "passport";
 
@@ -3737,6 +3738,190 @@ ${formatInstruction}`;
         success: false, 
         message: "Failed to send shipping notification: " + error.message 
       });
+    }
+  });
+
+  // Payfast payment endpoints
+  
+  // Get Payfast status
+  app.get("/api/payfast/status", (req, res) => {
+    res.json(payfastService.getStatus());
+  });
+
+  // Create Payfast payment
+  app.post("/api/payfast/create-payment", async (req, res) => {
+    try {
+      const { cardId, customerInfo, deliveryInfo } = req.body;
+
+      if (!cardId || !customerInfo || !customerInfo.email || !customerInfo.name) {
+        return res.status(400).json({ message: "Card ID and customer info are required" });
+      }
+
+      if (!payfastService.isConfigured()) {
+        return res.status(500).json({ message: "Payfast not configured" });
+      }
+
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      // Calculate amount based on card type
+      const amount = card.cardType === 'digital' ? 0 : 12900; // R129.00 for printed cards
+
+      if (amount === 0) {
+        return res.status(400).json({ message: "Digital cards are free - use create-free-order endpoint" });
+      }
+
+      // Create order record
+      const orderData = {
+        cardId: parseInt(cardId),
+        customerEmail: customerInfo.email,
+        customerName: customerInfo.name,
+        customerPhone: customerInfo.phone || '',
+        amount: amount,
+        currency: 'ZAR',
+        paymentReference: `payfast_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        orderStatus: 'pending',
+        paymentStatus: 'pending',
+        // Add delivery info for printed cards
+        deliveryAddress: deliveryInfo ? JSON.stringify(deliveryInfo) : null
+      };
+
+      const order = await storage.createOrder(orderData);
+
+      // Create Payfast payment data
+      const host = req.get('host') || 'localhost:5000';
+      const protocol = req.secure ? 'https' : 'http';
+      const baseUrl = `${protocol}://${host}`;
+
+      const paymentData = payfastService.createPaymentData({
+        orderId: order.paymentReference,
+        customerName: customerInfo.name,
+        customerEmail: customerInfo.email,
+        amount: amount,
+        itemName: `Celebrait ${card.cardType === 'digital' ? 'Digital' : 'Printed'} Greeting Card`,
+        itemDescription: `Personalized greeting card for ${card.conversationData?.name || 'recipient'}`,
+        returnUrl: `${baseUrl}/payment-success/${order.paymentReference}`,
+        cancelUrl: `${baseUrl}/payment-cancelled/${order.paymentReference}`,
+        notifyUrl: `${baseUrl}/api/payfast/notify`
+      });
+
+      console.log('Payfast payment created:', {
+        orderId: order.id,
+        paymentReference: order.paymentReference,
+        amount: amount,
+        customerEmail: customerInfo.email
+      });
+
+      res.json({
+        order,
+        paymentData,
+        paymentUrl: payfastService.getPaymentUrl()
+      });
+
+    } catch (error: any) {
+      console.error('Payfast payment creation error:', error);
+      res.status(500).json({ message: "Error creating payment: " + error.message });
+    }
+  });
+
+  // Payfast ITN (Instant Transaction Notification)
+  app.post("/api/payfast/notify", async (req, res) => {
+    try {
+      console.log('Payfast ITN received:', req.body);
+
+      const itnData = req.body;
+      const paymentReference = itnData.m_payment_id;
+
+      if (!paymentReference) {
+        console.error('No payment reference in ITN');
+        return res.status(400).send('No payment reference');
+      }
+
+      // Get order by payment reference
+      const order = await storage.getOrderByReference(paymentReference);
+      if (!order) {
+        console.error('Order not found for payment reference:', paymentReference);
+        return res.status(404).send('Order not found');
+      }
+
+      // Verify ITN with Payfast
+      const verification = await payfastService.verifyITN(
+        itnData,
+        process.env.NODE_ENV === 'production' ? 'www.payfast.co.za' : 'sandbox.payfast.co.za'
+      );
+
+      console.log('Payfast ITN verification result:', verification);
+
+      if (verification.valid) {
+        // Update order status
+        const updatedOrder = await storage.updateOrder(order.id, {
+          paymentStatus: 'completed',
+          orderStatus: 'confirmed'
+        });
+
+        console.log('Payment confirmed for order:', order.id);
+
+        // Send order confirmation email
+        try {
+          const emailParams = generateOrderConfirmationEmail({
+            customerEmail: order.customerEmail,
+            customerName: order.customerName,
+            paymentReference: order.paymentReference,
+            amount: order.amount,
+            currency: order.currency
+          });
+          await sendEmail(emailParams);
+          console.log('Order confirmation email sent for:', order.paymentReference);
+        } catch (emailError) {
+          console.error('Failed to send order confirmation email:', emailError);
+        }
+
+        // For printed cards, start fulfillment process
+        if (order.cardId) {
+          const card = await storage.getCard(order.cardId);
+          if (card && card.cardType === 'printed') {
+            console.log('Starting fulfillment process for printed card:', card.id);
+            // Here you could trigger printing/fulfillment workflow
+          }
+        }
+
+        res.status(200).send('OK');
+      } else {
+        console.error('Invalid ITN received:', itnData);
+        res.status(400).send('Invalid ITN');
+      }
+
+    } catch (error: any) {
+      console.error('Payfast ITN processing error:', error);
+      res.status(500).send('ITN processing error');
+    }
+  });
+
+  // Get payment status
+  app.get("/api/payfast/payment-status/:reference", async (req, res) => {
+    try {
+      const reference = req.params.reference;
+      const order = await storage.getOrderByReference(reference);
+      
+      if (!order) {
+        return res.status(404).json({ message: "Payment not found" });
+      }
+
+      res.json({
+        paymentReference: order.paymentReference,
+        paymentStatus: order.paymentStatus,
+        orderStatus: order.orderStatus,
+        amount: order.amount,
+        currency: order.currency,
+        customerEmail: order.customerEmail,
+        customerName: order.customerName
+      });
+
+    } catch (error: any) {
+      console.error('Payment status error:', error);
+      res.status(500).json({ message: "Error fetching payment status: " + error.message });
     }
   });
 
