@@ -27,17 +27,24 @@ class PayfastService {
   private config: PayfastConfig;
 
   constructor() {
+    // Check if live credentials are available
+    const hasLiveCredentials = !!(process.env.PAYFAST_LIVE_MERCHANT_ID && process.env.PAYFAST_LIVE_MERCHANT_KEY);
+    // Force live mode if PAYFAST_FORCE_LIVE is set, or if in production with live creds
+    const useLive = hasLiveCredentials && (process.env.PAYFAST_FORCE_LIVE === 'true' || process.env.NODE_ENV === 'production');
+    
     this.config = {
-      merchantId: process.env.PAYFAST_MERCHANT_ID || '',
-      merchantKey: process.env.PAYFAST_MERCHANT_KEY || '',
-      passphrase: process.env.PAYFAST_PASSPHRASE || '',
-      sandbox: process.env.NODE_ENV !== 'production'
+      merchantId: useLive ? process.env.PAYFAST_LIVE_MERCHANT_ID! : (process.env.PAYFAST_MERCHANT_ID || ''),
+      merchantKey: useLive ? process.env.PAYFAST_LIVE_MERCHANT_KEY! : (process.env.PAYFAST_MERCHANT_KEY || ''),
+      passphrase: useLive ? (process.env.PAYFAST_LIVE_PASSPHRASE || '') : (process.env.PAYFAST_PASSPHRASE || ''),
+      sandbox: !useLive
     };
     
     console.log('Payfast config loaded:', {
+      mode: useLive ? 'LIVE' : 'SANDBOX',
       merchantId: this.config.merchantId,
       merchantKey: this.config.merchantKey.substring(0, 5) + '...',
       passphraseSet: !!this.config.passphrase,
+      hasLiveCredentials,
       sandbox: this.config.sandbox
     });
 
@@ -143,10 +150,10 @@ class PayfastService {
       item_description: orderData.itemDescription
     };
 
-    // Generate signature with correct sandbox passphrase
-    const sandboxPassphrase = 'jt7NOE43FZPn'; // Official Payfast sandbox passphrase
-    const signature = this.generateSignature(paymentData, sandboxPassphrase);
-    console.log('Generated signature with correct sandbox passphrase:', signature);
+    // Generate signature with appropriate passphrase
+    const passphraseToUse = this.config.sandbox ? 'jt7NOE43FZPn' : this.config.passphrase;
+    const signature = this.generateSignature(paymentData, passphraseToUse);
+    console.log(`Generated signature with ${this.config.sandbox ? 'sandbox' : 'live'} passphrase:`, signature);
 
     return {
       ...paymentData,
@@ -248,12 +255,16 @@ class PayfastService {
    * Get configuration status
    */
   getStatus() {
+    const hasLiveCredentials = !!(process.env.PAYFAST_LIVE_MERCHANT_ID && process.env.PAYFAST_LIVE_MERCHANT_KEY);
     return {
       configured: this.isConfigured(),
       sandbox: this.config.sandbox,
+      mode: this.config.sandbox ? 'SANDBOX' : 'LIVE',
       merchantId: this.config.merchantId ? 'configured' : 'missing',
       merchantKey: this.config.merchantKey ? 'configured' : 'missing',
-      passphrase: this.config.passphrase ? 'configured' : 'optional'
+      passphrase: this.config.passphrase ? 'configured' : 'optional',
+      hasLiveCredentials,
+      environment: process.env.NODE_ENV
     };
   }
 }

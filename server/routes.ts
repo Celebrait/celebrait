@@ -3753,6 +3753,26 @@ ${formatInstruction}`;
     res.json(payfastService.testSignature());
   });
 
+  // Toggle live mode for testing (development only)
+  app.post("/api/payfast/toggle-live", (req, res) => {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ error: 'Cannot toggle live mode in production' });
+    }
+    
+    const { forceLive } = req.body;
+    if (forceLive) {
+      process.env.PAYFAST_FORCE_LIVE = 'true';
+    } else {
+      delete process.env.PAYFAST_FORCE_LIVE;
+    }
+    
+    res.json({ 
+      success: true, 
+      forceLive: !!process.env.PAYFAST_FORCE_LIVE,
+      message: `Payfast mode will be ${forceLive ? 'LIVE' : 'SANDBOX'} after restart`
+    });
+  });
+
   // Create Payfast payment
   app.post("/api/payfast/create-payment", async (req, res) => {
     try {

@@ -14,6 +14,7 @@ import Payment from "@/pages/payment-simplified";
 import PaymentSuccess from './pages/payment-success';
 import PaymentCancelled from './pages/payment-cancelled';
 import PayfastTest from './pages/payfast-test';
+import LiveTest from './pages/live-test';
 import OrderSuccess from './pages/order-success';
 import CompleteOrder from './pages/complete-order';
 import DigitalCardViewer from './pages/digital-card-viewer';
@@ -46,6 +47,7 @@ function Router() {
         <Route path="/payment-success/:reference" component={PaymentSuccess} />
         <Route path="/payment-cancelled/:reference" component={PaymentCancelled} />
         <Route path="/payfast-test" component={PayfastTest} />
+        <Route path="/live-test" component={LiveTest} />
         <Route path="/order-success" component={OrderSuccess} />
         <Route path="/complete-order/:cardId" component={CompleteOrder} />
         <Route path="/card/:linkId" component={DigitalCardViewer} />
