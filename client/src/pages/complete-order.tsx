@@ -175,25 +175,7 @@ export default function CompleteOrder() {
 
     try {
       if (deliveryType === 'digital') {
-        // Handle digital card delivery
-        const orderData = {
-          cardId: card.id,
-          customerInfo: {
-            email: customerEmail, // Always include user's email
-            firstName: customerName.split(' ')[0] || customerName,
-            lastName: customerName.split(' ').slice(1).join(' ') || '',
-            phone: '',
-            address: null,
-            // Include recipient details if sending to recipient
-            ...(deliverTo === 'recipient' && {
-              recipientEmail: recipientEmail,
-              recipientName: actualRecipientName
-            })
-          },
-          paymentType: 'free'
-        };
-
-        // Create Payfast payment for R1 digital card
+        // Handle digital card - R1 payment via Payfast
         const customerInfo = {
           name: customerName,
           email: customerEmail,
@@ -234,13 +216,9 @@ export default function CompleteOrder() {
 
         const result = await response.json();
         
-        console.log('Digital order API response:', result);
+        console.log('Digital payment response:', result);
         
-        if (!result.reference || !result.orderId) {
-          throw new Error('Invalid response from server - missing order details');
-        }
-        
-        // Redirect to Payfast payment for digital card
+        // Redirect to Payfast payment for R1 digital card
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = result.paymentUrl;

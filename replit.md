@@ -120,6 +120,14 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 8, 2025. DIGITAL CARD PAYMENT IMPLEMENTATION: Successfully implemented R1.00 payment for digital cards:
+  * PRICING UPDATE: Digital cards now cost R1.00 instead of being free
+  * PAYMENT FLOW: Digital cards use same Payfast payment flow as printed cards
+  * LIVE MODE: System now defaults to live Payfast credentials for all payments
+  * DUAL PRICING: R1.00 for digital cards, R129.00 for printed cards
+  * EMAIL DELIVERY: Digital cards automatically delivered via email after payment confirmation
+  * ITN PROCESSING: Payment notifications handle both digital and printed card fulfillment
+  * CONSISTENT EXPERIENCE: Same payment gateway for both card types with different pricing
 - July 8, 2025. LIVE PAYFAST TESTING SUCCESS: Successfully tested complete payment flow with real credentials:
   * LIVE CREDENTIALS: Configured automatic detection of live vs sandbox Payfast credentials
   * PAYMENT FLOW: End-to-end testing confirmed working - card creation → payment creation → Payfast redirect → payment completion → return to site

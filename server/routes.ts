@@ -3890,7 +3890,7 @@ ${formatInstruction}`;
 
         console.log('Payment confirmed for order:', order.id);
 
-        // Send order confirmation email
+        // Send order confirmation email and digital card if applicable
         try {
           const emailParams = generateOrderConfirmationEmail({
             customerEmail: order.customerEmail,
@@ -3901,8 +3901,24 @@ ${formatInstruction}`;
           });
           await sendEmail(emailParams);
           console.log('Order confirmation email sent for:', order.paymentReference);
+          
+          // If digital card (R1.00 = 100 cents), also send the digital card email
+          if (order.amount === 100) {
+            const card = await storage.getCard(order.cardId);
+            if (card) {
+              const host = req.get('host') || 'localhost:5000';
+              const protocol = req.secure ? 'https' : 'http';
+              const digitalEmailParams = generateDigitalCardEmail(
+                { ...order, card },
+                `/api/cards/${card.id}/digital-front-image`,
+                `${protocol}://${host}`
+              );
+              await sendEmail(digitalEmailParams);
+              console.log('Digital card email sent successfully for order:', order.paymentReference);
+            }
+          }
         } catch (emailError) {
-          console.error('Failed to send order confirmation email:', emailError);
+          console.error('Failed to send confirmation/digital emails:', emailError);
         }
 
         // For printed cards, start fulfillment process
