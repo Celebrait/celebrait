@@ -807,8 +807,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await migrateCardImages(card);
       }
       
-      // Get the stored image
-      const imageBuffer = await getStoredImage(cardId, 'front');
+      // Get the original unwatermarked image from conversationData (if available)
+      let imageBuffer;
+      const conversationData = card.conversationData || {};
+      
+      if (conversationData.originalFrontImageUrl) {
+        // Use the original unwatermarked image from conversationData
+        console.log(`[DIGITAL] Using original unwatermarked front image for card ${cardId}`);
+        const base64Data = conversationData.originalFrontImageUrl.replace(/^data:image\/[a-z]+;base64,/, '');
+        imageBuffer = Buffer.from(base64Data, 'base64');
+      } else {
+        // Fall back to stored image if no original is available
+        console.log(`[DIGITAL] Using stored front image for card ${cardId} (no original found)`);
+        imageBuffer = await getStoredImage(cardId, 'front');
+      }
+      
       if (!imageBuffer) {
         return res.status(404).json({ message: "Front image not found" });
       }
@@ -863,8 +876,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await migrateCardImages(card);
       }
       
-      // Get the stored image
-      const imageBuffer = await getStoredImage(cardId, 'inside');
+      // Get the original unwatermarked image from conversationData (if available)
+      let imageBuffer;
+      const conversationData = card.conversationData || {};
+      
+      if (conversationData.originalInsideImageUrl) {
+        // Use the original unwatermarked image from conversationData
+        console.log(`[DIGITAL] Using original unwatermarked inside image for card ${cardId}`);
+        const base64Data = conversationData.originalInsideImageUrl.replace(/^data:image\/[a-z]+;base64,/, '');
+        imageBuffer = Buffer.from(base64Data, 'base64');
+      } else {
+        // Fall back to stored image if no original is available
+        console.log(`[DIGITAL] Using stored inside image for card ${cardId} (no original found)`);
+        imageBuffer = await getStoredImage(cardId, 'inside');
+      }
+      
       if (!imageBuffer) {
         return res.status(404).json({ message: "Inside image not found" });
       }
