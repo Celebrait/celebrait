@@ -66,11 +66,17 @@ export default function DeliveryDetails() {
               console.log(`[INSTANT] Loaded from cache: ${key}`);
               
               // Extract recipient name from cached data and set it immediately
-              const recipientNameFromCache = card?.conversationData?.name || card?.conversationData?.recipient_name;
-              if (recipientNameFromCache && recipientNameFromCache !== 'the recipient') {
-                sessionStorage.setItem('recipientName', recipientNameFromCache);
-                setRecipientName(recipientNameFromCache);
-                console.log('[RECIPIENT] Updated from cache data:', recipientNameFromCache);
+              let extractedRecipientName = null;
+              if (card?.conversationData) {
+                extractedRecipientName = card.conversationData.name || 
+                                      card.conversationData.recipient_name ||
+                                      card.conversationData.recipientName;
+              }
+              
+              if (extractedRecipientName && extractedRecipientName !== 'the recipient') {
+                sessionStorage.setItem('recipientName', extractedRecipientName);
+                setRecipientName(extractedRecipientName);
+                console.log('[RECIPIENT] Updated from cache data:', extractedRecipientName);
               }
               break;
             }
@@ -103,11 +109,16 @@ export default function DeliveryDetails() {
           setCardData(card);
           
           // Immediately store recipient name if found in API response
-          const recipientNameFromApi = card?.conversationData?.name || card?.conversationData?.recipient_name;
-          if (recipientNameFromApi && recipientNameFromApi !== 'the recipient') {
-            sessionStorage.setItem('recipientName', recipientNameFromApi);
-            setRecipientName(recipientNameFromApi);
-            console.log('[RECIPIENT] Stored from API response:', recipientNameFromApi);
+          let extractedRecipientNameFromApi = null;
+          if (card?.conversationData) {
+            extractedRecipientNameFromApi = card.conversationData.name || 
+                                         card.conversationData.recipient_name ||
+                                         card.conversationData.recipientName;
+          }
+          if (extractedRecipientNameFromApi && extractedRecipientNameFromApi !== 'the recipient') {
+            sessionStorage.setItem('recipientName', extractedRecipientNameFromApi);
+            setRecipientName(extractedRecipientNameFromApi);
+            console.log('[RECIPIENT] Stored from API response:', extractedRecipientNameFromApi);
           }
           
           // Cache the data for future use
@@ -146,11 +157,16 @@ export default function DeliveryDetails() {
           if (cached) {
             const parsedData = JSON.parse(cached);
             const card = parsedData.card || parsedData;
-            const name = card?.conversationData?.name || card?.conversationData?.recipient_name;
-            if (name && name !== 'the recipient') {
-              console.log('[RECIPIENT] Initialized from cached data:', name);
-              sessionStorage.setItem('recipientName', name);
-              return name;
+            let extractedName = null;
+            if (card?.conversationData) {
+              extractedName = card.conversationData.name || 
+                           card.conversationData.recipient_name ||
+                           card.conversationData.recipientName;
+            }
+            if (extractedName && extractedName !== 'the recipient') {
+              console.log('[RECIPIENT] Initialized from cached data:', extractedName);
+              sessionStorage.setItem('recipientName', extractedName);
+              return extractedName;
             }
           }
         }

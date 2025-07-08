@@ -3154,13 +3154,39 @@ ${formatInstruction}`;
       const card = await pollForCard();
       console.log('Images validated successfully - proceeding with email notification');
 
+      // Extract actual user name from conversation data if available
+      let actualCustomerName = customerName;
+      if (card.conversationData) {
+        try {
+          const conversationData = typeof card.conversationData === 'string' 
+            ? JSON.parse(card.conversationData) 
+            : card.conversationData;
+          
+          // Try to get user's actual name from conversation data
+          if (conversationData.user_first_name) {
+            actualCustomerName = `${conversationData.user_first_name} ${conversationData.user_last_name || ''}`.trim();
+          } else if (conversationData.sender_name) {
+            actualCustomerName = conversationData.sender_name;
+          }
+          
+          console.log('[EMAIL PERSONALIZATION] Name extraction:', {
+            originalName: customerName,
+            extractedName: actualCustomerName,
+            hasUserFirstName: !!conversationData.user_first_name,
+            hasSenderName: !!conversationData.sender_name
+          });
+        } catch (parseError) {
+          console.warn('Failed to parse conversation data for name extraction:', parseError);
+        }
+      }
+
       // Create a temporary reference for the delivery choice flow that includes cardId
       const reference = `celebrait_ready_${cardId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       // Create order data structure for the email template
       const orderData = {
         customerEmail,
-        customerName,
+        customerName: actualCustomerName, // Use the extracted actual name
         paymentReference: reference,
         cardId: cardId,
         cardType: card.cardType // Include delivery method to skip delivery choice page
