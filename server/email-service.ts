@@ -157,6 +157,9 @@ export function generateDigitalCardEmail(orderData: any, cardImageUrl: string, h
   const actualHost = (!host || host.includes('localhost')) ? 
     '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev' : 
     host;
+  
+  // Log URL generation for debugging
+  console.log('Digital card email URL generated:', `https://${actualHost}/card/${paymentReference}`);
 
   return {
     to: customerEmail,

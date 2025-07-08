@@ -3753,13 +3753,9 @@ ${formatInstruction}`;
           if (order.amount === 500) {
             const card = await storage.getCard(order.cardId);
             if (card) {
-              const host = req.get('host') || 'localhost:5000';
-              const protocol = req.secure || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
-              // Use the actual domain instead of localhost for production
-              const actualHost = host.includes('localhost') ? 
-                (req.get('x-forwarded-host') || req.get('host') || 'localhost:5000') : 
-                host;
-              const baseUrl = `${protocol}://${actualHost}`;
+              // Use the correct Replit domain for emails
+              const actualHost = '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev';
+              const baseUrl = `https://${actualHost}`;
               
               // Send digital card email to customer
               const customerEmailParams = generateDigitalCardEmail(
@@ -3891,12 +3887,8 @@ ${formatInstruction}`;
           const cardWithoutWatermarks = await removeWatermarksFromCard(card.frontImageUrl, card.insideImageUrl);
           
           // Send digital card email to customer
-          const host = req.get('host') || 'localhost:5000';
-          const protocol = req.secure || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
-          const actualHost = host.includes('localhost') ? 
-            (req.get('x-forwarded-host') || req.get('host') || 'localhost:5000') : 
-            host;
-          const customerEmailData = generateDigitalCardEmail(order, `${protocol}://${actualHost}/card/${reference}`, actualHost);
+          const actualHost = '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev';
+          const customerEmailData = generateDigitalCardEmail(order, `https://${actualHost}/card/${reference}`, actualHost);
           const customerEmailSent = await sendEmail(customerEmailData);
           console.log('Digital card email sent to customer:', customerEmailSent ? 'SUCCESS' : 'FAILED');
           
@@ -3911,7 +3903,7 @@ ${formatInstruction}`;
                     customerEmail: recipientInfo.email,
                     customerName: recipientInfo.name
                   }, 
-                  `${protocol}://${actualHost}/card/${reference}`, 
+                  `https://${actualHost}/card/${reference}`, 
                   actualHost
                 );
                 const recipientEmailSent = await sendEmail(recipientEmailData);

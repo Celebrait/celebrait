@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 8, 2025. CRITICAL EMAIL URL FIX: Fixed digital card email URLs to use proper Replit domain instead of localhost:
+  * EMAIL URL GENERATION: Fixed generateDigitalCardEmail function to use correct Replit domain (71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev)
+  * LOCALHOST REPLACEMENT: Replaced localhost:5000 URLs with actual live domain in all email generation routes
+  * DUAL DELIVERY WORKING: Both customer and recipient emails now contain working digital card links
+  * URL VERIFICATION: Digital card links now correctly point to https://71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev/card/{paymentReference}
+  * COMPREHENSIVE TESTING: Verified through multiple test payments that email URLs are now functional
+  * PRODUCTION READY: All digital card email notifications now contain properly working links for card viewing
 - July 8, 2025. LIVE PAYFAST ACTIVATION: Successfully activated live Payfast credentials for real payment processing:
   * LIVE CREDENTIALS: Configured actual live merchant credentials (ID: 30786857, Key: vurrtlkhptk2e) for real transactions
   * PRODUCTION PAYMENTS: R1.00 digital cards and R129.00 printed cards now process through live payment gateway
