@@ -225,7 +225,7 @@ export default function CompleteOrder() {
         form.style.display = 'none';
 
         // Add all payment form fields
-        Object.entries(result.formData).forEach(([key, value]) => {
+        Object.entries(result.paymentData).forEach(([key, value]) => {
           const input = document.createElement('input');
           input.type = 'hidden';
           input.name = key;
@@ -255,7 +255,12 @@ export default function CompleteOrder() {
             body: JSON.stringify({
               cardId: card.id,
               customerInfo,
-              deliveryInfo
+              deliveryInfo,
+              isDigital: false,
+              recipientInfo: deliverTo === 'recipient' ? {
+                name: actualRecipientName || recipientName,
+                email: recipientEmail
+              } : null
             })
           });
 
@@ -716,7 +721,7 @@ export default function CompleteOrder() {
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total:</span>
                   <span className={deliveryType === 'digital' ? 'text-green-600' : 'text-purple-600'}>
-                    {deliveryType === 'digital' ? 'FREE' : `R${(card?.price ? (card.price / 100).toFixed(2) : '0.00')}`}
+                    {deliveryType === 'digital' ? 'R1.00' : `R${(card?.price ? (card.price / 100).toFixed(2) : '0.00')}`}
                   </span>
                 </div>
               </div>
