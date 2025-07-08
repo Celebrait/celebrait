@@ -46,13 +46,13 @@ class PayfastService {
   }
 
   /**
-   * Generate MD5 signature for Payfast payment
+   * Generate MD5 signature for Payfast payment according to official Payfast docs
    */
   private generateSignature(data: Record<string, string>, passphrase?: string): string {
     // Remove signature and passphrase fields if they exist
     const { signature, passphrase: _, ...cleanData } = data;
     
-    // Payfast requires parameters in SPECIFIC ORDER, not alphabetical
+    // Payfast requires parameters in SPECIFIC ORDER as they appear in documentation
     const orderedFields = [
       'merchant_id', 'merchant_key', 'return_url', 'cancel_url', 'notify_url',
       'name_first', 'name_last', 'email_address', 'cell_number', 'm_payment_id',
@@ -67,14 +67,26 @@ class PayfastService {
     for (const field of orderedFields) {
       if (cleanData[field] && cleanData[field].toString().trim() !== '') {
         const value = cleanData[field].toString().trim();
-        params.push(`${field}=${encodeURIComponent(value)}`);
+        // Payfast requires specific URL encoding: uppercase, spaces as +
+        const encodedValue = encodeURIComponent(value)
+          .replace(/'/g, '%27')
+          .replace(/~/g, '%7E')
+          .replace(/%20/g, '+');
+        params.push(`${field}=${encodedValue}`);
       }
     }
     
     const paramString = params.join('&');
     
-    // Add passphrase if provided (must be last)
-    const stringToSign = passphrase ? `${paramString}&passphrase=${encodeURIComponent(passphrase)}` : paramString;
+    // Add passphrase if provided (must be last, also URL encoded)
+    let stringToSign = paramString;
+    if (passphrase) {
+      const encodedPassphrase = encodeURIComponent(passphrase)
+        .replace(/'/g, '%27')
+        .replace(/~/g, '%7E')
+        .replace(/%20/g, '+');
+      stringToSign = `${paramString}&passphrase=${encodedPassphrase}`;
+    }
     
     console.log('Payfast signature string:', stringToSign);
     
