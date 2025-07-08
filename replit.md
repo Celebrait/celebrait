@@ -120,6 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 8, 2025. LIVE PAYFAST TESTING SUCCESS: Successfully tested complete payment flow with real credentials:
+  * LIVE CREDENTIALS: Configured automatic detection of live vs sandbox Payfast credentials
+  * PAYMENT FLOW: End-to-end testing confirmed working - card creation → payment creation → Payfast redirect → payment completion → return to site
+  * SIGNATURE VALIDATION: Payfast signatures generating correctly (c3ea47e6961de28f58f1a344b109cd86)
+  * AMOUNT HANDLING: Proper conversion from test amounts (R1.00) to Payfast format (129.00 for printed cards)
+  * ITN PROCESSING: Payment notifications being received and processed correctly
+  * TEST PAGE: Created /live-test page for safe payment testing with configurable amounts
+  * MODE SWITCHING: System automatically uses live credentials when available, sandbox for development
+  * ERROR HANDLING: Comprehensive error reporting and logging for debugging payment issues
 - July 8, 2025. PAYFAST SIGNATURE VALIDATION FIXED: Resolved critical signature generation errors blocking Payfast payments:
   * SIGNATURE VALIDATION: Fixed signature generation by using correct official Payfast sandbox passphrase `jt7NOE43FZPn`
   * CREDENTIAL VERIFICATION: Confirmed proper Payfast sandbox credentials (merchant ID: 10000100, merchant key: 46f0cd694581a)
