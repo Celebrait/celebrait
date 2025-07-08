@@ -39,6 +39,13 @@ export default function DeliveryDetails() {
     const loadCardData = async () => {
       if (!reference) return;
       
+      // First, try to get recipient name from session storage and set it immediately
+      const sessionName = sessionStorage.getItem('recipientName');
+      if (sessionName && sessionName !== 'the recipient') {
+        setRecipientName(sessionName);
+        console.log('[RECIPIENT] Set from session storage on load:', sessionName);
+      }
+      
       // Try to load from cache first for instant display
       const cachedKeys = [
         `cardPreviewData`,
@@ -57,6 +64,14 @@ export default function DeliveryDetails() {
             if (card && (card.id || card.conversationData)) {
               cachedData = card;
               console.log(`[INSTANT] Loaded from cache: ${key}`);
+              
+              // Extract recipient name from cached data and set it immediately
+              const recipientNameFromCache = card?.conversationData?.name || card?.conversationData?.recipient_name;
+              if (recipientNameFromCache && recipientNameFromCache !== 'the recipient') {
+                sessionStorage.setItem('recipientName', recipientNameFromCache);
+                setRecipientName(recipientNameFromCache);
+                console.log('[RECIPIENT] Updated from cache data:', recipientNameFromCache);
+              }
               break;
             }
           }
@@ -69,14 +84,6 @@ export default function DeliveryDetails() {
         setCardData(cachedData);
         setLoading(false);
         console.log('[INSTANT] Delivery options displayed immediately from cache');
-        
-        // Immediately store recipient name if found in cache (for email link flows)
-        const recipientNameFromCache = cachedData?.conversationData?.name || cachedData?.conversationData?.recipient_name;
-        if (recipientNameFromCache && recipientNameFromCache !== 'the recipient') {
-          sessionStorage.setItem('recipientName', recipientNameFromCache);
-          setRecipientName(recipientNameFromCache);
-          console.log('[RECIPIENT] Stored from cache immediately:', recipientNameFromCache);
-        }
         return;
       }
       
@@ -122,36 +129,7 @@ export default function DeliveryDetails() {
   }, [reference]);
   
   // Get recipient name from card data for dynamic text (with better fallback handling)
-  const [recipientName, setRecipientName] = useState(() => {
-    // Try to get recipient name from session storage first (immediate availability)
-    const sessionName = sessionStorage.getItem('recipientName');
-    if (sessionName) {
-      console.log('[RECIPIENT] Found in session storage:', sessionName);
-      return sessionName;
-    }
-    
-    // Try to get from cached conversation data
-    try {
-      const cachedKeys = [`card_${reference}`, `card_preview_${reference}`, `card_ready_${reference}`];
-      for (const key of cachedKeys) {
-        const cached = sessionStorage.getItem(key);
-        if (cached) {
-          const parsedData = JSON.parse(cached);
-          const card = parsedData.card || parsedData;
-          const name = card?.conversationData?.name || card?.conversationData?.recipient_name;
-          if (name) {
-            console.log('[RECIPIENT] Found in cached data:', name);
-            return name;
-          }
-        }
-      }
-    } catch (e) {
-      // Continue to fallback
-    }
-    
-    console.log('[RECIPIENT] Using fallback: the recipient');
-    return 'the recipient';
-  });
+  const [recipientName, setRecipientName] = useState('the recipient');
   
   // Update recipient name when card data loads
   useEffect(() => {
