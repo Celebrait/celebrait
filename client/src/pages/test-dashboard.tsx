@@ -249,18 +249,29 @@ export default function TestDashboard() {
 
   const testPayfastPayment = async () => {
     try {
-      // Create a test card first
+      // Create a test PRINTED card first
+      const originalCardType = testCardType;
+      setTestCardType('printed');
       const card = await createTestCard();
+      setTestCardType(originalCardType);
       
-      // Test payment data
+      // Test payment data in correct format for Payfast endpoint
       const paymentData = {
-        amount: "129.00",
-        item_name: "Test Printed Card",
-        item_description: "Test payment for printed greeting card",
-        name_first: "Test",
-        name_last: "User",
-        email_address: testEmail,
-        m_payment_id: `test_${Date.now()}`
+        cardId: card.id,
+        customerInfo: {
+          name: "Test User",
+          email: testEmail,
+          phone: "0123456789"
+        },
+        deliveryInfo: {
+          address: {
+            line1: "123 Test Street",
+            line2: "",
+            city: "Cape Town", 
+            province: "Western Cape",
+            postalCode: "8001"
+          }
+        }
       };
       
       const response = await fetch('/api/payfast/create-payment', {
@@ -285,11 +296,11 @@ export default function TestDashboard() {
         form.action = result.paymentUrl;
         form.target = '_blank';
         
-        Object.keys(result.formData).forEach(key => {
+        Object.keys(result.paymentData).forEach(key => {
           const input = document.createElement('input');
           input.type = 'hidden';
           input.name = key;
-          input.value = result.formData[key];
+          input.value = result.paymentData[key];
           form.appendChild(input);
         });
         
@@ -313,26 +324,15 @@ export default function TestDashboard() {
 
   const testPayfastFlow = async () => {
     try {
-      // Create a test card first
+      // Create a test PRINTED card first  
+      const originalCardType = testCardType;
+      setTestCardType('printed');
       const card = await createTestCard();
+      setTestCardType(originalCardType);
       
       // Set up session storage for order flow
-      const orderData = {
-        cardId: card.id,
-        customerName: 'Test User',
-        customerEmail: testEmail,
-        deliveryType: 'printed',
-        shippingAddress: {
-          line1: '123 Test Street',
-          line2: '',
-          city: 'Cape Town',
-          province: 'Western Cape',
-          postalCode: '8001'
-        },
-        amount: 129.00
-      };
-      
       sessionStorage.setItem('cardPreviewData', JSON.stringify(card));
+      sessionStorage.setItem('selectedDeliveryType', 'printed');
       
       // Navigate to complete-order page to test full Payfast integration
       setLocation(`/complete-order/${card.id}?delivery=self&type=printed`);
