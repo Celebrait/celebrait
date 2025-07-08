@@ -448,12 +448,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const cardId = parseInt(req.params.id);
       
-      // Check if cardId is valid
-      if (isNaN(cardId)) {
-        console.error(`[PERF] Invalid card ID: ${req.params.id}`);
-        return res.status(400).json({ message: "Invalid card ID format" });
-      }
-      
       console.log(`[PERF] Fetching card ${cardId} metadata...`);
       const dbStartTime = Date.now();
       const card = await storage.getCard(cardId);
