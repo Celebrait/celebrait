@@ -58,7 +58,7 @@ export default function TestPayment() {
         frontImageUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3Vuc2V0IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I0ZGRDI2NjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRkY2QzI4O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNzdW5zZXQpIi8+CiAgPGNpcmNsZSBjeD0iMzAwIiBjeT0iMTAwIiByPSI2MCIgZmlsbD0iI0ZGRkZGRiIgb3BhY2l0eT0iMC45Ii8+CiAgPHRleHQgeD0iMjAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNGRkZGRkYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkhhcHB5IEJpcnRoZGF5ITwvdGV4dD4KPC9zdmc+',
         insideImageUrl: printOption === 'front-and-inside' ? 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjRjlGOUY5Ii8+CiAgPHRleHQgeD0iMjAwIiB5PSIxNTAiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCBzZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzMzMzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+CiAgICA8dHNwYW4geD0iMjAwIiBkeT0iMCI+V2lzaGluZyB5b3UgYWxsIHRoZTwvdHNwYW4+CiAgICA8dHNwYW4geD0iMjAwIiBkeT0iMzAiPmhhcHBpbmVzcyBpbiB0aGUgd29ybGQ8L3RzcGFuPgogICAgPHRzcGFuIHg9IjIwMCIgZHk9IjMwIj5vbiB5b3VyIHNwZWNpYWwgZGF5ITwvdHNwYW4+CiAgPC90ZXh0Pgo8L3N2Zz4=' : null,
         status: 'generating',
-        price: cardType === 'digital' ? 2900 : (printOption === 'front-and-inside' ? 12900 : 8900),
+        price: cardType === 'digital' ? 100 : (printOption === 'front-and-inside' ? 12900 : 8900),
         conversationData: {
           celebration: 'birthday',
           name: 'Test Person',
@@ -189,7 +189,7 @@ export default function TestPayment() {
                   className="w-full"
                   variant="outline"
                 >
-                  {creatingCard ? 'Creating...' : 'Digital Card (R29.00)'}
+                  {creatingCard ? 'Creating...' : 'Digital Card (R1.00)'}
                 </Button>
 
                 <Button
