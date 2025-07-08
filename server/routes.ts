@@ -27,6 +27,7 @@ import {
   type CleanupConfig
 } from "./image-storage";
 import { migrateCardImages, cardNeedsMigration } from "./image-migration";
+import { removeWatermarksFromCard } from "./watermark-removal";
 import { setupGoogleAuth } from "./google-auth";
 import { payfastService } from "./payfast-service";
 import session from "express-session";
@@ -3746,8 +3747,8 @@ ${formatInstruction}`;
           await sendEmail(emailParams);
           console.log('Order confirmation email sent for:', order.paymentReference);
           
-          // If digital card (R1.00 = 100 cents), also send the digital card email
-          if (order.amount === 100) {
+          // If digital card (R5.00 = 500 cents), also send the digital card email
+          if (order.amount === 500) {
             const card = await storage.getCard(order.cardId);
             if (card) {
               const host = req.get('host') || 'localhost:5000';
@@ -3855,7 +3856,7 @@ ${formatInstruction}`;
         const card = await storage.getCard(order.cardId);
         if (card) {
           // Remove watermarks from the card
-          const cardWithoutWatermarks = await removeWatermarksFromCard(card.id);
+          const cardWithoutWatermarks = await removeWatermarksFromCard(card.frontImageUrl, card.insideImageUrl);
           
           // Send digital card email
           const emailData = generateDigitalCardEmail(order, `${req.protocol}://${req.get('host')}/card/${reference}`, req.get('host'));

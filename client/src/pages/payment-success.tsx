@@ -43,6 +43,30 @@ export default function PaymentSuccess() {
     };
 
     fetchPaymentStatus();
+
+    // Poll for payment status updates every 5 seconds if still pending
+    const interval = setInterval(async () => {
+      if (!params?.reference) return;
+
+      try {
+        const response = await fetch(`/api/payfast/payment-status/${params.reference}`);
+        if (response.ok) {
+          const data = await response.json();
+          setPaymentStatus(data);
+          
+          // Stop polling if payment is completed
+          if (data.paymentStatus === 'completed') {
+            clearInterval(interval);
+          }
+        }
+      } catch (err) {
+        // Continue polling on error
+        console.error('Error polling payment status:', err);
+      }
+    }, 5000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
   }, [params?.reference]);
 
   const formatAmount = (amount: number, currency: string) => {
