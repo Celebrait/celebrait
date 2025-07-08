@@ -50,7 +50,7 @@ const testData = {
   item_description: 'Personalized greeting card for Sarah'
 };
 
-const passphrase = 'Patchcroft123';
+const passphrase = 'jt7NOE43FZPn'; // Official Payfast sandbox passphrase
 
 console.log('Testing Payfast signature generation:');
 generatePayfastSignature(testData, passphrase);

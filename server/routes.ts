@@ -3748,6 +3748,11 @@ ${formatInstruction}`;
     res.json(payfastService.getStatus());
   });
 
+  // Test Payfast signature generation
+  app.get("/api/payfast/test-signature", (req, res) => {
+    res.json(payfastService.testSignature());
+  });
+
   // Create Payfast payment
   app.post("/api/payfast/create-payment", async (req, res) => {
     try {

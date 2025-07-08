@@ -143,9 +143,10 @@ class PayfastService {
       item_description: orderData.itemDescription
     };
 
-    // Generate signature - temporarily disable passphrase to test
-    const signature = this.generateSignature(paymentData); // No passphrase for testing
-    console.log('Generated signature without passphrase:', signature);
+    // Generate signature with correct sandbox passphrase
+    const sandboxPassphrase = 'jt7NOE43FZPn'; // Official Payfast sandbox passphrase
+    const signature = this.generateSignature(paymentData, sandboxPassphrase);
+    console.log('Generated signature with correct sandbox passphrase:', signature);
 
     return {
       ...paymentData,
@@ -221,6 +222,26 @@ class PayfastService {
    */
   isConfigured(): boolean {
     return !!(this.config.merchantId && this.config.merchantKey);
+  }
+
+  /**
+   * Test signature generation with minimal data
+   */
+  testSignature(): any {
+    const testData = {
+      merchant_id: '10000100',
+      merchant_key: '46f0cd694581a',
+      amount: '100.00',
+      item_name: 'Test Item'
+    };
+    
+    const signature = this.generateSignature(testData);
+    
+    return {
+      testData,
+      signature,
+      paramString: Object.keys(testData).sort().map(k => `${k}=${encodeURIComponent(testData[k])}`).join('&')
+    };
   }
 
   /**
