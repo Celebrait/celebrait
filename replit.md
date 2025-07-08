@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 8, 2025. CRITICAL SIGNATURE GENERATION FIX: Fixed Payfast signature generation to use alphabetical parameter ordering:
+  * SIGNATURE ORDERING: Changed from fixed field order to alphabetical ordering as required by Payfast API
+  * ENCODING SIMPLIFICATION: Removed complex URL encoding and used standard encodeURIComponent for proper parameter encoding
+  * PARAMETER SORTING: Implemented proper alphabetical sorting of all payment parameters before signature generation
+  * SIGNATURE VERIFICATION: Fixed "Generated signature does not match submitted signature" error
+  * PAYMENT COMPLETION: Payment creation and completion now works correctly with proper signature validation
+  * PRODUCTION READY: All payment flows now generate valid signatures that pass Payfast verification
 - July 8, 2025. CRITICAL PAYMENT REDIRECT FIX: Fixed Payfast payment redirect URLs to use proper Replit domain instead of localhost:
   * PAYMENT URL GENERATION: Fixed routes.ts Payfast payment creation to use correct Replit domain instead of localhost fallback
   * REDIRECT URLS: return_url, cancel_url, and notify_url now correctly point to https://71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev/
