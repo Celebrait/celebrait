@@ -3831,6 +3831,51 @@ ${formatInstruction}`;
     }
   });
 
+  // Test endpoint to simulate successful payment (for testing only)
+  app.post('/api/payfast/simulate-payment/:reference', async (req, res) => {
+    try {
+      const { reference } = req.params;
+      
+      console.log('Simulating payment completion for:', reference);
+      
+      // Find the order
+      const order = await storage.getOrderByReference(reference);
+      if (!order) {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+      
+      // Update order status
+      await storage.updateOrder(order.id, {
+        paymentStatus: 'completed',
+        orderStatus: 'completed'
+      });
+      
+      // Send email notification for digital cards
+      if (order.orderType === 'digital' || order.orderType === 'regular') {
+        const card = await storage.getCard(order.cardId);
+        if (card) {
+          // Remove watermarks from the card
+          const cardWithoutWatermarks = await removeWatermarksFromCard(card.id);
+          
+          // Send digital card email
+          const emailData = generateDigitalCardEmail(order, `${req.protocol}://${req.get('host')}/card/${reference}`, req.get('host'));
+          const emailSent = await sendEmail(emailData);
+          
+          console.log('Digital card email sent:', emailSent ? 'SUCCESS' : 'FAILED');
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        message: 'Payment simulated successfully',
+        order: await storage.getOrderByReference(reference)
+      });
+    } catch (error) {
+      console.error('Error simulating payment:', error);
+      res.status(500).json({ error: 'Failed to simulate payment' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
