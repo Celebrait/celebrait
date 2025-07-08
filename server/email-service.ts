@@ -153,6 +153,11 @@ Questions? Contact us at support@celebrait.com
 export function generateDigitalCardEmail(orderData: any, cardImageUrl: string, host?: string): EmailParams {
   const { customerEmail, customerName, paymentReference } = orderData;
 
+  // Use proper domain detection - if host contains localhost or undefined, use Replit domain
+  const actualHost = (!host || host.includes('localhost')) ? 
+    '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev' : 
+    host;
+
   return {
     to: customerEmail,
     from: 'greetings@celebrait.co.za',
@@ -183,11 +188,11 @@ export function generateDigitalCardEmail(orderData: any, cardImageUrl: string, h
             <img src="${cardImageUrl}" alt="Your custom card" class="card-image" />
             
             <div>
-              <a href="https://${host || 'localhost:5000'}/card/${paymentReference}" class="button">View Digital Card</a>
+              <a href="https://${actualHost}/card/${paymentReference}" class="button">View Digital Card</a>
             </div>
             
             <p style="color: #666; font-size: 14px; margin-top: 15px;">
-              Share this link: https://${host || 'localhost:5000'}/card/${paymentReference}
+              Share this link: https://${actualHost}/card/${paymentReference}
             </p>
           </div>
           
@@ -205,7 +210,7 @@ Hi ${customerName}!
 
 Your digital greeting card is ready to view and share.
 
-View your card: https://${host || 'localhost:5000'}/card/${paymentReference}
+View your card: https://${actualHost}/card/${paymentReference}
 
 Thank you for choosing Celebrait!
     `
