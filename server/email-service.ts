@@ -223,8 +223,13 @@ Thank you for choosing Celebrait!
 export function generateCardReadyNotificationEmail(orderData: any, host?: string): EmailParams {
   const { customerEmail, customerName, paymentReference, cardType } = orderData;
 
+  // Use proper domain detection - if host contains localhost or undefined, use Replit domain
+  const actualHost = (!host || host.includes('localhost')) ? 
+    '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev' : 
+    host;
+
   // Send users to card preview first, then they'll proceed to delivery details
-  const nextStepUrl = `https://${host || 'localhost:5000'}/card-preview/${paymentReference}`;
+  const nextStepUrl = `https://${actualHost}/card-preview/${paymentReference}`;
   const nextStepText = 'View Your Card';
     
   const descriptionText = 'Your personalized greeting card has been generated and is ready to view! Click the button below to see your creation.';

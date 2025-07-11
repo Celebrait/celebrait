@@ -3338,7 +3338,8 @@ ${formatInstruction}`;
 
       // Send card ready notification email (this should take user to delivery choice)
       try {
-        const emailParams = generateCardReadyNotificationEmail(orderData, req.get('host'));
+        const requestHost = req.get('host') || '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev';
+        const emailParams = generateCardReadyNotificationEmail(orderData, requestHost);
         await sendEmail(emailParams);
         console.log('Card ready notification email sent successfully to:', customerEmail);
 
@@ -3479,6 +3480,7 @@ ${formatInstruction}`;
       
       // Create card ready notification email
       const cardType = card.cardType === 'digital' ? 'digital' : 'printed';
+      const requestHost = req.get('host') || '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev';
       const emailData = generateCardReadyNotificationEmail(
         { 
           ...card, 
@@ -3486,7 +3488,7 @@ ${formatInstruction}`;
           reference: testReference,
           cardType 
         },
-        req.get('host')
+        requestHost
       );
 
       const success = await sendEmail(emailData);
