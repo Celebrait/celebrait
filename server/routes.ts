@@ -1515,7 +1515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           formData.append('model', 'gpt-image-1');
           formData.append('n', '1');
           formData.append('size', '1024x1024');
-          formData.append('quality', 'high');
+          formData.append('quality', 'low');
           formData.append('moderation', 'low');
 
           const fetch = (await import('node-fetch')).default;
@@ -1642,7 +1642,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           formData.append('model', 'gpt-image-1');
           formData.append('n', '1');
           formData.append('size', '1024x1024');
-          formData.append('quality', 'high');
+          formData.append('quality', 'low');
           formData.append('moderation', 'low');
 
           const fetch = (await import('node-fetch')).default;
@@ -2738,7 +2738,7 @@ ${formatInstruction}`;
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
         formData.append('size', size);
-        formData.append('quality', 'high');
+        formData.append('quality', 'low');
         formData.append('moderation', 'low');
         formData.append('background', 'auto');
 
@@ -2902,7 +2902,7 @@ ${formatInstruction}`;
       formData.append('model', 'gpt-image-1');
       formData.append('n', '1');
       formData.append('size', size);
-      formData.append('quality', 'high');
+      formData.append('quality', 'low');
       formData.append('moderation', 'low');
       formData.append('background', 'auto');
 
@@ -3075,13 +3075,13 @@ ${formatInstruction}`;
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
         formData.append('size', size);
-        formData.append('quality', 'high');
+        formData.append('quality', 'low');
         formData.append('moderation', 'low');
 
         console.log('📋 Form data parameters being sent:');
         console.log('- model:', 'gpt-image-1');
         console.log('- size:', size);
-        console.log('- quality:', 'high');
+        console.log('- quality:', 'low');
         console.log('- prompt length:', transformPrompt.length);
         console.log('- moderation:', 'low');
         console.log('- n:', '1');

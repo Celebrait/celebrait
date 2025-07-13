@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 13, 2025. OPENAI QUALITY SETTINGS REVERTED: Changed all OpenAI quality settings from "high" back to "low" across all routes:
+  * PERFORMANCE OPTIMIZATION: Reverted quality settings to "low" for faster image generation across all 5 OpenAI endpoints
+  * ROUTES UPDATED: generate-images, edit-scene-gpt-image-1, generate-inside-card, transform-style-gpt-image-1, and generate-style-transform
+  * CONSISTENT SETTINGS: All formData.append('quality', 'low') calls updated for uniform low-quality generation
+  * SPEED IMPROVEMENT: Lower quality setting reduces API response time while maintaining acceptable image quality
+  * COST OPTIMIZATION: Low quality setting reduces API costs for image generation
 - July 13, 2025. PNG-BASED WATERMARK REMOVAL: Completed comprehensive PNG-based watermark removal system eliminating all Base64 dependencies:
   * PNG WATERMARK REMOVAL: Updated removeWatermarksFromCard() to use PNG files instead of Base64 conversions
   * DUAL PNG STORAGE: Both watermarked (preview) and unwatermarked (post-payment) PNG files stored during generation
