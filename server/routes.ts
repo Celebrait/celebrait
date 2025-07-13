@@ -547,25 +547,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Front image not found" });
       }
 
-      // Extract base64 data and convert to buffer
+      // Extract base64 data and convert to high-quality optimized buffer
       const conversionStartTime = Date.now();
       const base64Data = card.frontImageUrl.split(',')[1];
       const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      // Use high-quality JPEG with optimal settings for fast loading
+      const optimizedBuffer = await sharp(imageBuffer)
+        .jpeg({ 
+          quality: 95, 
+          progressive: true,
+          mozjpeg: true,
+          optimiseScans: true
+        })
+        .toBuffer();
+      
       const conversionEndTime = Date.now();
-      console.log(`[PERF] Base64 conversion took: ${conversionEndTime - conversionStartTime}ms`);
+      console.log(`[PERF] Base64 conversion and optimization took: ${conversionEndTime - conversionStartTime}ms`);
       
       // Cache the processed image
       imageCache.set(cacheKey, {
-        data: imageBuffer,
+        data: optimizedBuffer,
         timestamp: Date.now(),
         etag
       });
-      console.log(`[CACHE] Cached front image ${cardId} (${imageBuffer.length} bytes)`);
+      console.log(`[CACHE] Cached front image ${cardId} (${optimizedBuffer.length} bytes)`);
       
       // Set headers and send
       res.set({
-        'Content-Type': 'image/png',
-        'Content-Length': imageBuffer.length.toString(),
+        'Content-Type': 'image/jpeg',
+        'Content-Length': optimizedBuffer.length.toString(),
         'Cache-Control': 'public, max-age=31536000',
         'ETag': etag
       });
@@ -573,7 +584,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endTime = Date.now();
       console.log(`[PERF] Total front image serving time: ${endTime - startTime}ms`);
       
-      res.send(imageBuffer);
+      res.send(optimizedBuffer);
     } catch (error: any) {
       const endTime = Date.now();
       console.error(`[PERF] Front image error after ${endTime - startTime}ms:`, error);
@@ -639,25 +650,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Inside image not found" });
       }
 
-      // Extract base64 data and convert to buffer
+      // Extract base64 data and convert to high-quality optimized buffer
       const conversionStartTime = Date.now();
       const base64Data = card.insideImageUrl.split(',')[1];
       const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      // Use high-quality JPEG with optimal settings for fast loading
+      const optimizedBuffer = await sharp(imageBuffer)
+        .jpeg({ 
+          quality: 95, 
+          progressive: true,
+          mozjpeg: true,
+          optimiseScans: true
+        })
+        .toBuffer();
+      
       const conversionEndTime = Date.now();
-      console.log(`[PERF] Base64 conversion took: ${conversionEndTime - conversionStartTime}ms`);
+      console.log(`[PERF] Base64 conversion and optimization took: ${conversionEndTime - conversionStartTime}ms`);
       
       // Cache the processed image
       imageCache.set(cacheKey, {
-        data: imageBuffer,
+        data: optimizedBuffer,
         timestamp: Date.now(),
         etag
       });
-      console.log(`[CACHE] Cached inside image ${cardId} (${imageBuffer.length} bytes)`);
+      console.log(`[CACHE] Cached inside image ${cardId} (${optimizedBuffer.length} bytes)`);
       
       // Set headers and send
       res.set({
-        'Content-Type': 'image/png',
-        'Content-Length': imageBuffer.length.toString(),
+        'Content-Type': 'image/jpeg',
+        'Content-Length': optimizedBuffer.length.toString(),
         'Cache-Control': 'public, max-age=31536000',
         'ETag': etag
       });
@@ -665,7 +687,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endTime = Date.now();
       console.log(`[PERF] Total inside image serving time: ${endTime - startTime}ms`);
       
-      res.send(imageBuffer);
+      res.send(optimizedBuffer);
     } catch (error: any) {
       const endTime = Date.now();
       console.error(`[PERF] Inside image error after ${endTime - startTime}ms:`, error);
@@ -834,8 +856,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Front image not found" });
       }
       
-      // Compress and resize for digital sharing (max 800x800, 85% quality)
-      const optimizedBuffer = await compressImageForDigital(imageBuffer);
+      // Use high-quality JPEG with optimal settings for fast loading
+      const optimizedBuffer = await sharp(imageBuffer)
+        .jpeg({ 
+          quality: 95, 
+          progressive: true,
+          mozjpeg: true,
+          optimiseScans: true
+        })
+        .toBuffer();
       
       // Set caching headers
       res.set({
@@ -1017,8 +1046,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Inside image not found" });
       }
       
-      // Compress and resize for digital sharing (max 800x800, 85% quality)
-      const optimizedBuffer = await compressImageForDigital(imageBuffer);
+      // Use high-quality JPEG with optimal settings for fast loading
+      const optimizedBuffer = await sharp(imageBuffer)
+        .jpeg({ 
+          quality: 95, 
+          progressive: true,
+          mozjpeg: true,
+          optimiseScans: true
+        })
+        .toBuffer();
       
       // Set caching headers
       res.set({
