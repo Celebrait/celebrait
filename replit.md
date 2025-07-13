@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 13, 2025. PNG-BASED WATERMARK REMOVAL: Completed comprehensive PNG-based watermark removal system eliminating all Base64 dependencies:
+  * PNG WATERMARK REMOVAL: Updated removeWatermarksFromCard() to use PNG files instead of Base64 conversions
+  * DUAL PNG STORAGE: Both watermarked (preview) and unwatermarked (post-payment) PNG files stored during generation
+  * IMPROVED FUNCTIONS: Added storeUnwatermarkedImage() and getUnwatermarkedImageUrl() functions for complete PNG workflow
+  * ZERO BASE64 DEPENDENCY: Watermark removal now uses hasUnwatermarkedFiles() to check PNG file existence
+  * ENHANCED PERFORMANCE: Eliminates Base64 processing during watermark removal for faster post-payment experience
+  * ROUTES UPDATED: All watermark removal calls now use cardId parameter instead of Base64 image data
 - July 13, 2025. CRITICAL BASE64 TO PNG CONVERSION: Implemented comprehensive Base64 to PNG file conversion system for all image generation routes:
   * PNG CONVERSION FUNCTION: Created convertBase64ToPngFile() function to immediately convert OpenAI Base64 images to PNG files
   * MAIN GENERATION ROUTE: Updated /api/generate-images to convert both front and inside images to PNG files immediately upon generation

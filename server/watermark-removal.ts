@@ -4,30 +4,55 @@
  * but with watermarks removed for email notifications
  */
 
+import { storage } from "./storage";
+import { hasUnwatermarkedFiles, getUnwatermarkedImageUrl } from "./image-storage";
+
 export interface WatermarkRemovalResult {
   frontImageUrl: string;
   insideImageUrl?: string;
 }
 
 /**
- * Remove watermarks from existing card images without regenerating content
+ * Remove watermarks from existing card images by switching to unwatermarked PNG files
  */
 export async function removeWatermarksFromCard(
-  frontImageUrl: string, 
-  insideImageUrl?: string
+  cardId: number
 ): Promise<WatermarkRemovalResult> {
-  // For now, we'll return the original images since the watermark logic
-  // in the server is applied during generation, not as a separate layer
-  // In the future, this could implement actual watermark removal
-  
-  // Extract the original images from conversationData if they exist
-  // The watermarked versions are stored in frontImageUrl/insideImageUrl
-  // The original unwatermarked versions should be in conversationData
-  
-  return {
-    frontImageUrl: frontImageUrl,
-    insideImageUrl: insideImageUrl
-  };
+  try {
+    console.log(`[WATERMARK_REMOVAL] Starting PNG-based watermark removal for card ${cardId}`);
+
+    const card = await storage.getCard(cardId);
+    if (!card) {
+      throw new Error(`Card ${cardId} not found`);
+    }
+
+    // Check if unwatermarked PNG files exist
+    const unwatermarkedFiles = await hasUnwatermarkedFiles(cardId);
+    
+    if (!unwatermarkedFiles.front) {
+      throw new Error(`No unwatermarked front image found for card ${cardId}`);
+    }
+
+    // Generate URLs for unwatermarked PNG files
+    const frontImageUrl = getUnwatermarkedImageUrl(cardId, 'front');
+    const insideImageUrl = unwatermarkedFiles.inside ? getUnwatermarkedImageUrl(cardId, 'inside') : null;
+
+    // Update card to use unwatermarked PNG files
+    await storage.updateCard(cardId, {
+      frontImageUrl: frontImageUrl,
+      insideImageUrl: insideImageUrl || card.insideImageUrl
+    });
+
+    console.log(`[WATERMARK_REMOVAL] Watermarks removed for card ${cardId} using PNG files`);
+
+    return {
+      frontImageUrl: frontImageUrl,
+      insideImageUrl: insideImageUrl || ''
+    };
+  } catch (error: any) {
+    console.error(`[WATERMARK_REMOVAL] Error removing watermarks for card ${cardId}:`, error);
+    throw error;
+  }
 }
 
 /**

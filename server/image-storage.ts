@@ -362,14 +362,67 @@ export async function imageExists(cardId: number, imageType: 'front' | 'inside')
 }
 
 /**
+ * Store unwatermarked PNG files alongside watermarked versions
+ */
+export async function storeUnwatermarkedImage(
+  base64Data: string, 
+  cardId: number, 
+  imageType: 'front' | 'inside'
+): Promise<StoredImage> {
+  try {
+    // Remove data URL prefix if present
+    const cleanBase64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
+    const imageBuffer = Buffer.from(cleanBase64, 'base64');
+    
+    // Generate filename for unwatermarked version
+    const filename = `card_${cardId}_${imageType}_unwatermarked.png`;
+    const filepath = path.join(IMAGES_DIR, filename);
+    
+    // Write PNG file to disk
+    await fs.writeFile(filepath, imageBuffer);
+    
+    const stats = await fs.stat(filepath);
+    
+    console.log(`[STORAGE] Stored unwatermarked ${imageType} image for card ${cardId}: ${filename} (${stats.size} bytes)`);
+    
+    return {
+      filename,
+      filepath,
+      size: stats.size,
+      format: 'png'
+    };
+  } catch (error) {
+    console.error(`Failed to store unwatermarked ${imageType} image for card ${cardId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get unwatermarked image URL for serving after payment
+ */
+export function getUnwatermarkedImageUrl(cardId: number, imageType: 'front' | 'inside'): string {
+  return `/images/card_${cardId}_${imageType}_unwatermarked.png`;
+}
+
+/**
  * Check if unwatermarked files exist for watermark removal
  */
 export async function hasUnwatermarkedFiles(cardId: number): Promise<{ front: boolean; inside: boolean }> {
-  const frontExists = await imageExists(cardId, 'front');
-  const insideExists = await imageExists(cardId, 'inside');
+  const frontFile = `card_${cardId}_front_unwatermarked.png`;
+  const insideFile = `card_${cardId}_inside_unwatermarked.png`;
   
-  return {
-    front: frontExists,
-    inside: insideExists
-  };
+  const frontPath = path.join(IMAGES_DIR, frontFile);
+  const insidePath = path.join(IMAGES_DIR, insideFile);
+  
+  try {
+    const [frontExists, insideExists] = await Promise.all([
+      fs.access(frontPath).then(() => true).catch(() => false),
+      fs.access(insidePath).then(() => true).catch(() => false)
+    ]);
+    
+    return { front: frontExists, inside: insideExists };
+  } catch (error) {
+    console.error('Error checking unwatermarked files:', error);
+    return { front: false, inside: false };
+  }
 }

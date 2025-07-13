@@ -24,6 +24,8 @@ import {
   cleanupOldImages,
   scheduleAutomaticCleanup,
   getStorageStats,
+  storeUnwatermarkedImage,
+  getUnwatermarkedImageUrl,
   type CleanupConfig
 } from "./image-storage";
 import { migrateCardImages, cardNeedsMigration } from "./image-migration";
@@ -1394,35 +1396,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Extracted front image URL:', frontImageUrl ? 'Base64 data received' : 'No image data');
       console.log('Extracted inside image URL:', insideImageUrl ? 'Base64 data received' : 'No image data');
 
-      // CRITICAL: Convert Base64 images to PNG files immediately to prevent performance issues
+      // CRITICAL: Store unwatermarked PNG files and generate watermarked preview versions
       let frontImagePngUrl = null;
       let insideImagePngUrl = null;
       
       if (frontImageUrl) {
-        console.log('[PNG_CONVERSION] Converting front image from Base64 to PNG file...');
-        frontImagePngUrl = await convertBase64ToPngFile(frontImageUrl, cardId, 'front');
-        console.log('[PNG_CONVERSION] Front image converted to PNG file:', frontImagePngUrl);
+        console.log('[PNG_CONVERSION] Storing unwatermarked front image and generating watermarked preview...');
+        
+        // Store unwatermarked version (for post-payment delivery)
+        await storeUnwatermarkedImage(frontImageUrl, cardId, 'front');
+        
+        // Apply watermark and store watermarked version (for preview)
+        const watermarkedFrontUrl = await applyWatermark(frontImageUrl, 0.3);
+        frontImagePngUrl = await convertBase64ToPngFile(watermarkedFrontUrl, cardId, 'front');
+        
+        console.log('[PNG_CONVERSION] Front image watermarked and converted to PNG file:', frontImagePngUrl);
       }
       
       if (insideImageUrl) {
-        console.log('[PNG_CONVERSION] Converting inside image from Base64 to PNG file...');
-        insideImagePngUrl = await convertBase64ToPngFile(insideImageUrl, cardId, 'inside');
-        console.log('[PNG_CONVERSION] Inside image converted to PNG file:', insideImagePngUrl);
+        console.log('[PNG_CONVERSION] Storing unwatermarked inside image and generating watermarked preview...');
+        
+        // Store unwatermarked version (for post-payment delivery)
+        await storeUnwatermarkedImage(insideImageUrl, cardId, 'inside');
+        
+        // Apply watermark and store watermarked version (for preview)
+        const watermarkedInsideUrl = await applyWatermark(insideImageUrl, 0.3);
+        insideImagePngUrl = await convertBase64ToPngFile(watermarkedInsideUrl, cardId, 'inside');
+        
+        console.log('[PNG_CONVERSION] Inside image watermarked and converted to PNG file:', insideImagePngUrl);
       }
 
-      // Store original Base64 images in conversationData for watermark removal
-      const conversationData = card.conversationData || {};
-      const updatedConversationData = {
-        ...conversationData,
-        originalFrontImageUrl: frontImageUrl, // Store original for watermark removal
-        originalInsideImageUrl: insideImageUrl // Store original for watermark removal
-      };
-
-      // Update card with PNG file URLs (NOT Base64) and preserve originals in conversationData
+      // Update card with watermarked PNG file URLs (for preview)
       const updatedCard = await storage.updateCard(cardId, {
-        frontImageUrl: frontImagePngUrl, // Store PNG file URL instead of Base64
-        insideImageUrl: insideImagePngUrl, // Store PNG file URL instead of Base64
-        conversationData: updatedConversationData,
+        frontImageUrl: frontImagePngUrl, // Store watermarked PNG file URL for preview
+        insideImageUrl: insideImagePngUrl, // Store watermarked PNG file URL for preview
         status: 'completed'
       });
 
@@ -1686,35 +1693,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Extracted front image URL:', frontImageUrl ? 'Base64 data received' : 'No image data');
       console.log('Extracted inside image URL:', insideImageUrl ? 'Base64 data received' : 'No image data');
 
-      // CRITICAL: Convert Base64 images to PNG files immediately to prevent performance issues
+      // CRITICAL: Store unwatermarked PNG files and generate watermarked preview versions
       let frontImagePngUrl = null;
       let insideImagePngUrl = null;
       
       if (frontImageUrl) {
-        console.log('[PNG_CONVERSION] Converting front image from Base64 to PNG file...');
-        frontImagePngUrl = await convertBase64ToPngFile(frontImageUrl, cardId, 'front');
-        console.log('[PNG_CONVERSION] Front image converted to PNG file:', frontImagePngUrl);
+        console.log('[PNG_CONVERSION] Storing unwatermarked front image and generating watermarked preview...');
+        
+        // Store unwatermarked version (for post-payment delivery)
+        await storeUnwatermarkedImage(frontImageUrl, cardId, 'front');
+        
+        // Apply watermark and store watermarked version (for preview)
+        const watermarkedFrontUrl = await applyWatermark(frontImageUrl, 0.3);
+        frontImagePngUrl = await convertBase64ToPngFile(watermarkedFrontUrl, cardId, 'front');
+        
+        console.log('[PNG_CONVERSION] Front image watermarked and converted to PNG file:', frontImagePngUrl);
       }
       
       if (insideImageUrl) {
-        console.log('[PNG_CONVERSION] Converting inside image from Base64 to PNG file...');
-        insideImagePngUrl = await convertBase64ToPngFile(insideImageUrl, cardId, 'inside');
-        console.log('[PNG_CONVERSION] Inside image converted to PNG file:', insideImagePngUrl);
+        console.log('[PNG_CONVERSION] Storing unwatermarked inside image and generating watermarked preview...');
+        
+        // Store unwatermarked version (for post-payment delivery)
+        await storeUnwatermarkedImage(insideImageUrl, cardId, 'inside');
+        
+        // Apply watermark and store watermarked version (for preview)
+        const watermarkedInsideUrl = await applyWatermark(insideImageUrl, 0.3);
+        insideImagePngUrl = await convertBase64ToPngFile(watermarkedInsideUrl, cardId, 'inside');
+        
+        console.log('[PNG_CONVERSION] Inside image watermarked and converted to PNG file:', insideImagePngUrl);
       }
 
-      // Store original Base64 images in conversationData for watermark removal
-      const conversationData = card.conversationData || {};
-      const updatedConversationData = {
-        ...conversationData,
-        originalFrontImageUrl: frontImageUrl, // Store original for watermark removal
-        originalInsideImageUrl: insideImageUrl // Store original for watermark removal
-      };
-
-      // Update card with PNG file URLs (NOT Base64) and preserve originals in conversationData
+      // Update card with watermarked PNG file URLs (for preview)
       const updatedCard = await storage.updateCard(cardId, {
-        frontImageUrl: frontImagePngUrl, // Store PNG file URL instead of Base64
-        insideImageUrl: insideImagePngUrl, // Store PNG file URL instead of Base64
-        conversationData: updatedConversationData,
+        frontImageUrl: frontImagePngUrl, // Store watermarked PNG file URL for preview
+        insideImageUrl: insideImagePngUrl, // Store watermarked PNG file URL for preview
         status: 'completed'
       });
 
@@ -4162,8 +4174,8 @@ ${formatInstruction}`;
       if (order.orderType === 'digital' || order.orderType === 'regular') {
         const card = await storage.getCard(order.cardId);
         if (card) {
-          // Remove watermarks from the card
-          const cardWithoutWatermarks = await removeWatermarksFromCard(card.frontImageUrl, card.insideImageUrl);
+          // Remove watermarks from the card using PNG files
+          const cardWithoutWatermarks = await removeWatermarksFromCard(card.id);
           
           // Send digital card email to customer
           const actualHost = '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev';
