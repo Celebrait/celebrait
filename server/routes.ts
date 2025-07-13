@@ -3471,22 +3471,47 @@ ${formatInstruction}`;
           return { ready: false, card };
         }
 
-        // Check if base64 data is substantial (not corrupted)
+        // Check if image data is substantial (support both base64 and PNG files)
         if (card.frontImageUrl) {
           try {
-            const frontBase64Data = card.frontImageUrl.split(',')[1];
-            if (!frontBase64Data || frontBase64Data.length < 100) { // Minimum reasonable size (lowered for testing)
-              console.log(`Card ${card.id} front image data too small:`, frontBase64Data?.length || 0, 'characters');
-              return { ready: false, card };
+            if (card.frontImageUrl.startsWith('data:image/')) {
+              // Validate base64 data URLs
+              const frontBase64Data = card.frontImageUrl.split(',')[1];
+              if (!frontBase64Data || frontBase64Data.length < 100) {
+                console.log(`Card ${card.id} front image base64 data too small:`, frontBase64Data?.length || 0, 'characters');
+                return { ready: false, card };
+              }
+              console.log(`Card ${card.id} base64 images validated successfully:`, {
+                frontSize: frontBase64Data.length,
+                hasInside: !!card.insideImageUrl,
+                status: card.status
+              });
+            } else if (card.frontImageUrl.startsWith('/images/')) {
+              // Validate PNG file URLs by checking file existence
+              const fs = await import('fs');
+              const path = await import('path');
+              const frontFilePath = path.join(process.cwd(), 'stored_images', card.frontImageUrl.replace('/images/', ''));
+              
+              if (!fs.existsSync(frontFilePath)) {
+                console.log(`Card ${card.id} front PNG file not found:`, frontFilePath);
+                return { ready: false, card };
+              }
+              
+              const frontFileSize = fs.statSync(frontFilePath).size;
+              if (frontFileSize < 1000) { // Minimum 1KB for PNG file
+                console.log(`Card ${card.id} front PNG file too small:`, frontFileSize, 'bytes');
+                return { ready: false, card };
+              }
+              
+              console.log(`Card ${card.id} PNG images validated successfully:`, {
+                frontSize: frontFileSize,
+                hasInside: !!card.insideImageUrl,
+                status: card.status
+              });
             }
-            console.log(`Card ${card.id} images validated successfully:`, {
-              frontSize: frontBase64Data.length,
-              hasInside: !!card.insideImageUrl,
-              status: card.status
-            });
             return { ready: true, card };
           } catch (parseError) {
-            console.log(`Card ${card.id} base64 parsing error:`, parseError);
+            console.log(`Card ${card.id} image validation error:`, parseError);
             return { ready: false, card };
           }
         }
