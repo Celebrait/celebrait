@@ -10,13 +10,78 @@ export default function CardPreviewPage() {
   const { toast } = useToast();
   
   const [cardData, setCardData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start with false for instant display
 
   useEffect(() => {
     if (reference) {
-      loadCardData();
+      // For email ready references, try to load immediately from cache
+      if (reference.startsWith('celebrait_ready_')) {
+        loadCardDataInstantly();
+      } else {
+        loadCardData();
+      }
     }
   }, [reference]);
+
+  const loadCardDataInstantly = async () => {
+    // For email links, prioritize instant loading
+    const cacheKey = `ready_${reference}`;
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const parsedData = JSON.parse(cached);
+        const card = parsedData.card || parsedData;
+        if (card && (card.id || card.conversationData)) {
+          setCardData(card);
+          console.log(`[INSTANT] Email card preview loaded from cache: ${cacheKey}`);
+          
+          // Preload images for instant display
+          if (card.id) {
+            const frontImg = new Image();
+            const insideImg = new Image();
+            frontImg.src = `/api/cards/${card.id}/fast-front-image`;
+            if (card.insideImageUrl) {
+              insideImg.src = `/api/cards/${card.id}/fast-inside-image`;
+            }
+          }
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Cache load failed, falling back to API');
+    }
+    
+    // No cache found - load from API but don't show loading spinner for email links
+    try {
+      const response = await fetch(`/api/cards/ready/${reference}`);
+      if (response.ok) {
+        const data = await response.json();
+        const card = data.card || data;
+        setCardData(card);
+        
+        // Cache for next time
+        sessionStorage.setItem(cacheKey, JSON.stringify(data));
+        
+        // Preload images for instant display
+        if (card.id) {
+          const frontImg = new Image();
+          const insideImg = new Image();
+          frontImg.src = `/api/cards/${card.id}/fast-front-image`;
+          if (card.insideImageUrl) {
+            insideImg.src = `/api/cards/${card.id}/fast-inside-image`;
+          }
+        }
+        
+        console.log(`[INSTANT] Email card loaded from API and cached: ${cacheKey}`);
+      } else {
+        console.error('Failed to load email card data');
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Error loading email card:', error);
+      setLoading(false);
+    }
+  };
 
   const loadCardData = async () => {
     try {
@@ -37,6 +102,17 @@ export default function CardPreviewPage() {
               setCardData(card);
               setLoading(false);
               console.log(`[INSTANT] Card preview loaded from cache: ${key}`);
+              
+              // Preload images for instant display
+              if (card.id) {
+                const frontImg = new Image();
+                const insideImg = new Image();
+                frontImg.src = `/api/cards/${card.id}/fast-front-image`;
+                if (card.insideImageUrl) {
+                  insideImg.src = `/api/cards/${card.id}/fast-inside-image`;
+                }
+              }
+              
               return;
             }
           }
@@ -44,6 +120,9 @@ export default function CardPreviewPage() {
           // Continue to next cache key
         }
       }
+      
+      // If no cached data found, show loading state
+      setLoading(true);
       
       // Fallback to API if no cache available
       let response;
@@ -60,6 +139,16 @@ export default function CardPreviewPage() {
         const data = await response.json();
         const card = data.card || data; // Handle both response formats
         setCardData(card);
+        
+        // Preload images for instant display
+        if (card.id) {
+          const frontImg = new Image();
+          const insideImg = new Image();
+          frontImg.src = `/api/cards/${card.id}/fast-front-image`;
+          if (card.insideImageUrl) {
+            insideImg.src = `/api/cards/${card.id}/fast-inside-image`;
+          }
+        }
         
         // Aggressive preloading for instant delivery details page
         try {
