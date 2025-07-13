@@ -2328,8 +2328,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const frontCacheKey = `fast-front-${cardId}`;
         if (!imageCache.has(frontCacheKey)) {
           try {
-            const base64Data = card.frontImageUrl.split(',')[1];
-            const imageBuffer = Buffer.from(base64Data, 'base64');
+            let imageBuffer: Buffer;
+            
+            if (card.frontImageUrl.startsWith('data:image/')) {
+              // Handle legacy base64 data URLs
+              const base64Data = card.frontImageUrl.split(',')[1];
+              imageBuffer = Buffer.from(base64Data, 'base64');
+            } else if (card.frontImageUrl.startsWith('/images/')) {
+              // Handle PNG file URLs
+              const fs = await import('fs');
+              const path = await import('path');
+              const frontFilePath = path.join(process.cwd(), 'stored_images', card.frontImageUrl.replace('/images/', ''));
+              
+              if (fs.existsSync(frontFilePath)) {
+                imageBuffer = fs.readFileSync(frontFilePath);
+              } else {
+                console.warn(`[PRELOAD] PNG front image file not found: ${frontFilePath}`);
+                return;
+              }
+            } else {
+              console.warn(`[PRELOAD] Unsupported front image URL format: ${card.frontImageUrl}`);
+              return;
+            }
+            
             const compressedBuffer = await sharp(imageBuffer)
               .jpeg({ quality: 60, progressive: true })
               .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
@@ -2340,7 +2361,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               timestamp: Date.now(),
               etag: `"fast-front-${cardId}"`
             });
-            console.log(`[PRELOAD] Cached front image for instant loading: ${cardId}`);
+            console.log(`[PRELOAD] Cached front image for instant loading: ${cardId} (${imageBuffer.length} bytes)`);
           } catch (e) {
             console.warn(`[PRELOAD] Failed to cache front image: ${e}`);
           }
@@ -2351,8 +2372,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const insideCacheKey = `fast-inside-${cardId}`;
         if (!imageCache.has(insideCacheKey)) {
           try {
-            const base64Data = card.insideImageUrl.split(',')[1];
-            const imageBuffer = Buffer.from(base64Data, 'base64');
+            let imageBuffer: Buffer;
+            
+            if (card.insideImageUrl.startsWith('data:image/')) {
+              // Handle legacy base64 data URLs
+              const base64Data = card.insideImageUrl.split(',')[1];
+              imageBuffer = Buffer.from(base64Data, 'base64');
+            } else if (card.insideImageUrl.startsWith('/images/')) {
+              // Handle PNG file URLs
+              const fs = await import('fs');
+              const path = await import('path');
+              const insideFilePath = path.join(process.cwd(), 'stored_images', card.insideImageUrl.replace('/images/', ''));
+              
+              if (fs.existsSync(insideFilePath)) {
+                imageBuffer = fs.readFileSync(insideFilePath);
+              } else {
+                console.warn(`[PRELOAD] PNG inside image file not found: ${insideFilePath}`);
+                return;
+              }
+            } else {
+              console.warn(`[PRELOAD] Unsupported inside image URL format: ${card.insideImageUrl}`);
+              return;
+            }
+            
             const compressedBuffer = await sharp(imageBuffer)
               .jpeg({ quality: 60, progressive: true })
               .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
@@ -2363,7 +2405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               timestamp: Date.now(),
               etag: `"fast-inside-${cardId}"`
             });
-            console.log(`[PRELOAD] Cached inside image for instant loading: ${cardId}`);
+            console.log(`[PRELOAD] Cached inside image for instant loading: ${cardId} (${imageBuffer.length} bytes)`);
           } catch (e) {
             console.warn(`[PRELOAD] Failed to cache inside image: ${e}`);
           }
@@ -3597,27 +3639,56 @@ ${formatInstruction}`;
       try {
         console.log('Preloading card data for instant email access...');
         
-        // Convert base64 images to buffers for caching
+        // Load PNG images from file system for caching
         let frontImageBuffer: Buffer | null = null;
         let insideImageBuffer: Buffer | null = null;
         
-        if (card.frontImageUrl && card.frontImageUrl.startsWith('data:image/')) {
-          const frontBase64 = card.frontImageUrl.split(',')[1];
-          frontImageBuffer = Buffer.from(frontBase64, 'base64');
+        // Handle both PNG file URLs and legacy base64 data URLs
+        if (card.frontImageUrl) {
+          if (card.frontImageUrl.startsWith('/images/')) {
+            // PNG file URL - read from file system
+            const fs = await import('fs');
+            const path = await import('path');
+            const frontFilePath = path.join(process.cwd(), 'stored_images', card.frontImageUrl.replace('/images/', ''));
+            
+            if (fs.existsSync(frontFilePath)) {
+              frontImageBuffer = fs.readFileSync(frontFilePath);
+              console.log(`[PRELOAD] Loaded PNG front image: ${frontImageBuffer.length} bytes`);
+            } else {
+              console.log(`[PRELOAD] PNG front image file not found: ${frontFilePath}`);
+            }
+          } else if (card.frontImageUrl.startsWith('data:image/')) {
+            // Legacy base64 data URL
+            const frontBase64 = card.frontImageUrl.split(',')[1];
+            frontImageBuffer = Buffer.from(frontBase64, 'base64');
+            console.log(`[PRELOAD] Loaded base64 front image: ${frontImageBuffer.length} bytes`);
+          }
         }
         
-        if (card.insideImageUrl && card.insideImageUrl.startsWith('data:image/')) {
-          const insideBase64 = card.insideImageUrl.split(',')[1];
-          insideImageBuffer = Buffer.from(insideBase64, 'base64');
+        if (card.insideImageUrl) {
+          if (card.insideImageUrl.startsWith('/images/')) {
+            // PNG file URL - read from file system
+            const fs = await import('fs');
+            const path = await import('path');
+            const insideFilePath = path.join(process.cwd(), 'stored_images', card.insideImageUrl.replace('/images/', ''));
+            
+            if (fs.existsSync(insideFilePath)) {
+              insideImageBuffer = fs.readFileSync(insideFilePath);
+              console.log(`[PRELOAD] Loaded PNG inside image: ${insideImageBuffer.length} bytes`);
+            } else {
+              console.log(`[PRELOAD] PNG inside image file not found: ${insideFilePath}`);
+            }
+          } else if (card.insideImageUrl.startsWith('data:image/')) {
+            // Legacy base64 data URL
+            const insideBase64 = card.insideImageUrl.split(',')[1];
+            insideImageBuffer = Buffer.from(insideBase64, 'base64');
+            console.log(`[PRELOAD] Loaded base64 inside image: ${insideImageBuffer.length} bytes`);
+          }
         }
         
         // Cache complete card data for instant email link loading
         if (frontImageBuffer) {
-          // Ensure recipient name is in conversation data for immediate access
           const conversationData = card.conversationData || {};
-          if (conversationData.name && !sessionStorage.getItem('recipientName')) {
-            // This won't work on server side, but it's for structure reference
-          }
           
           emailLinkCache.set(reference, {
             card: {
@@ -3650,7 +3721,9 @@ ${formatInstruction}`;
             });
           }
           
-          console.log(`[PRELOAD] Aggressively cached all data for reference: ${reference} (front: ${frontImageBuffer.length} bytes, inside: ${insideImageBuffer ? insideImageBuffer.length : 0} bytes)`);
+          console.log(`[PRELOAD] Successfully cached all data for reference: ${reference} (front: ${frontImageBuffer.length} bytes, inside: ${insideImageBuffer ? insideImageBuffer.length : 0} bytes)`);
+        } else {
+          console.log('[PRELOAD] No front image buffer available for caching');
         }
         
         console.log('Card data preloaded successfully for reference:', reference);
