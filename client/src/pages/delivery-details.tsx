@@ -26,6 +26,10 @@ export default function DeliveryDetails() {
   useEffect(() => {
     if (preselectedDeliveryType) {
       setSelectedDeliveryType(preselectedDeliveryType as 'digital' | 'printed');
+      // For digital-only launch, automatically skip to recipient selection
+      if (preselectedDeliveryType === 'digital') {
+        setShowRecipientChoice(true);
+      }
     }
   }, [preselectedDeliveryType]);
   

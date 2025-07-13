@@ -77,16 +77,16 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
     
     setTimeout(() => {
       try {
-        // Digital-only launch: Go directly to complete order
-        console.log('[DIGITAL-ONLY] Going directly to complete order');
-        setLocation(`/complete-order/${card.id}`);
+        // Digital-only launch: Go to delivery details for recipient selection
+        console.log('[DIGITAL-ONLY] Going to delivery details for recipient selection');
+        setLocation(`/delivery-details/${card.id}`);
         setTimeout(() => {
           document.body.style.opacity = '1';
         }, 100);
       } catch (error) {
         console.error('Navigation failed:', error);
         // Force page reload as fallback
-        window.location.href = `/complete-order/${card.id}`;
+        window.location.href = `/delivery-details/${card.id}`;
         setTimeout(() => {
           document.body.style.opacity = '1';
         }, 100);
@@ -209,7 +209,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
           onClick={handleChooseDelivery}
           className="w-full bg-gradient-celebrait hover:opacity-90 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105"
         >
-          Create Your Digital Card
+          Choose Delivery Options
         </Button>
         
         <div className="grid grid-cols-2 gap-3">
