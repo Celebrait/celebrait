@@ -362,7 +362,7 @@ export async function imageExists(cardId: number, imageType: 'front' | 'inside')
 }
 
 /**
- * Store unwatermarked PNG files alongside watermarked versions
+ * Store unwatermarked PNG files alongside watermarked versions - PNG-ONLY VERSION
  */
 export async function storeUnwatermarkedImage(
   base64Data: string, 
@@ -393,6 +393,53 @@ export async function storeUnwatermarkedImage(
     };
   } catch (error) {
     console.error(`Failed to store unwatermarked ${imageType} image for card ${cardId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Store unwatermarked PNG files directly from base64 data - PNG-ONLY WORKFLOW
+ */
+export async function storeUnwatermarkedPngFile(
+  base64Data: string, 
+  cardId: number, 
+  imageType: string
+): Promise<StoredImage> {
+  try {
+    const { default: sharp } = await import('sharp');
+    
+    // Remove data URL prefix if present
+    const cleanBase64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
+    const imageBuffer = Buffer.from(cleanBase64, 'base64');
+    
+    // Convert to PNG format using Sharp for optimal compression
+    const pngBuffer = await sharp(imageBuffer)
+      .png({ 
+        compressionLevel: 6, // Balanced compression
+        quality: 100,        // Lossless quality
+        progressive: false   // Standard PNG
+      })
+      .toBuffer();
+    
+    // Generate filename for unwatermarked version
+    const filename = `card_${cardId}_${imageType}.png`;
+    const filepath = path.join(IMAGES_DIR, filename);
+    
+    // Write PNG file to disk
+    await fs.writeFile(filepath, pngBuffer);
+    
+    const stats = await fs.stat(filepath);
+    
+    console.log(`[PNG_STORAGE] Stored unwatermarked PNG file for card ${cardId}: ${filename} (${stats.size} bytes)`);
+    
+    return {
+      filename,
+      filepath,
+      size: stats.size,
+      format: 'png'
+    };
+  } catch (error) {
+    console.error(`Failed to store unwatermarked PNG file for card ${cardId}:`, error);
     throw error;
   }
 }

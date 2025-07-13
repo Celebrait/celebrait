@@ -120,6 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 13, 2025. COMPLETE PNG-ONLY WORKFLOW IMPLEMENTATION: Successfully implemented comprehensive PNG-only workflow across all card generation routes:
+  * ALL ROUTES CONVERTED: Updated all 5 main card generation routes to use PNG-only workflow after OpenAI API response
+  * PNG-ONLY WATERMARKING: Created new applyWatermarkToPngFile() function that processes PNG files directly without base64 conversion
+  * PNG-ONLY STORAGE: Modified convertBase64ToPngFile() to handle any image type string and store PNG files directly to filesystem
+  * PNG-ONLY WATERMARK REMOVAL: Updated removeWatermarksFromCard() to use PNG-only workflow checking for front_unwatermarked.png and inside_unwatermarked.png files
+  * ZERO BASE64 PROCESSING: Eliminated all base64 image processing from watermarking and storage operations after initial OpenAI conversion
+  * DUAL PNG SYSTEM: Each card now has watermarked PNG files (for preview) and unwatermarked PNG files (for post-payment delivery)
+  * COMPLETE WORKFLOW: OpenAI base64 response → PNG conversion → watermarked PNG creation → database PNG URL storage → PNG-based watermark removal
+  * PERFORMANCE OPTIMIZED: Eliminated massive base64 string processing throughout the entire image pipeline for better performance
 - July 13, 2025. CARD 503 PNG FILE RECOVERY COMPLETED: Successfully diagnosed and fixed missing PNG files issue with complete data recovery:
   * ROOT CAUSE IDENTIFIED: Card 503 had PNG file URLs stored in database but actual PNG files missing from filesystem
   * SUCCESSFUL RECOVERY: Created missing PNG files from base64 data stored in conversationData.photo_upload

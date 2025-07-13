@@ -79,7 +79,7 @@ const emailLinkCache = new Map<string, {
  * CRITICAL: Convert Base64 images to PNG files immediately upon generation
  * This prevents performance issues from large Base64 strings in the database
  */
-async function convertBase64ToPngFile(base64Data: string, cardId: number, imageType: 'front' | 'inside'): Promise<string> {
+async function convertBase64ToPngFile(base64Data: string, cardId: number, imageType: string): Promise<string> {
   try {
     console.log(`[PNG_CONVERSION] Converting ${imageType} image for card ${cardId} from Base64 to PNG file`);
     
@@ -96,17 +96,19 @@ async function convertBase64ToPngFile(base64Data: string, cardId: number, imageT
       })
       .toBuffer();
     
-    // Store the PNG file using existing storage system
-    const storageResult = await storeImageFromBase64(
-      `data:image/png;base64,${pngBuffer.toString('base64')}`,
-      cardId,
-      imageType
-    );
+    // Store the PNG file directly using filesystem operations
+    const fs = await import('fs');
+    const path = await import('path');
     
-    console.log(`[PNG_CONVERSION] Successfully converted ${imageType} image for card ${cardId} to PNG file: ${storageResult.filename}`);
+    const filename = `card_${cardId}_${imageType}.png`;
+    const filepath = path.join(process.cwd(), 'stored_images', filename);
+    
+    await fs.promises.writeFile(filepath, pngBuffer);
+    
+    console.log(`[PNG_CONVERSION] Successfully converted ${imageType} image for card ${cardId} to PNG file: ${filename} (${pngBuffer.length} bytes)`);
     
     // Return the file path/URL for database storage instead of Base64
-    return getImageUrl(cardId, imageType);
+    return `/images/${filename}`;
     
   } catch (error) {
     console.error(`[PNG_CONVERSION] Error converting ${imageType} image for card ${cardId}:`, error);
@@ -140,7 +142,7 @@ setInterval(() => {
   metadataKeysToDelete.forEach(key => cardMetadataCache.delete(key));
 }, 10 * 60 * 1000); // Clean every 10 minutes
 
-// Watermark utility function
+// Watermark utility function (legacy - for base64 data)
 async function applyWatermark(imageData: string, opacity: number = 0.3): Promise<string> {
   try {
     // Remove data URL prefix if present
@@ -204,6 +206,90 @@ async function applyWatermark(imageData: string, opacity: number = 0.3): Promise
     console.error('Watermark application failed:', error);
     // Return original image if watermarking fails
     return imageData;
+  }
+}
+
+// PNG-only watermark function - applies watermark to PNG files directly
+async function applyWatermarkToPngFile(
+  cardId: number, 
+  sourceImageType: string, 
+  targetImageType: string, 
+  opacity: number = 0.3
+): Promise<string> {
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    
+    // Read source PNG file
+    const sourceFilename = `card_${cardId}_${sourceImageType}.png`;
+    const sourceFilepath = path.join(process.cwd(), 'stored_images', sourceFilename);
+    const imageBuffer = await fs.promises.readFile(sourceFilepath);
+    
+    console.log(`[PNG_WATERMARK] Reading source PNG: ${sourceFilename} (${imageBuffer.length} bytes)`);
+    
+    // Load the original image
+    const originalImage = await loadImage(imageBuffer);
+
+    // Create canvas with same dimensions
+    const canvas = createCanvas(originalImage.width, originalImage.height);
+    const ctx = canvas.getContext('2d');
+
+    // Draw original image
+    ctx.drawImage(originalImage, 0, 0);
+
+    // Apply watermark
+    ctx.save();
+
+    // Set up readable watermark text
+    const text = 'CELEBRAIT PREVIEW';
+    const fontSize = Math.min(originalImage.width, originalImage.height) * 0.08;
+    ctx.font = `bold ${fontSize}px Arial`;
+    ctx.fillStyle = `rgba(255, 255, 255, 0.8)`; // High opacity white text without outline
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // Rotate canvas for diagonal text
+    ctx.translate(originalImage.width / 2, originalImage.height / 2);
+    ctx.rotate(-Math.PI / 8); // Reduced angle for better readability
+
+    // Calculate text dimensions
+    const textWidth = ctx.measureText(text).width;
+    const textHeight = fontSize;
+
+    // Draw fewer, larger, more readable watermarks
+    const spacingX = textWidth * 1.5;
+    const spacingY = textHeight * 3;
+    const numCols = Math.ceil((originalImage.width * 1.5) / spacingX);
+    const numRows = Math.ceil((originalImage.height * 1.5) / spacingY);
+
+    const startX = -(numCols * spacingX) / 2;
+    const startY = -(numRows * spacingY) / 2;
+
+    for (let col = 0; col < numCols; col++) {
+      for (let row = 0; row < numRows; row++) {
+        const x = startX + col * spacingX;
+        const y = startY + row * spacingY;
+
+        // Draw text with strong outline for maximum readability
+        ctx.fillText(text, x, y);
+      }
+    }
+
+    ctx.restore();
+
+    // Save watermarked PNG file
+    const watermarkedBuffer = canvas.toBuffer('image/png');
+    const targetFilename = `card_${cardId}_${targetImageType}.png`;
+    const targetFilepath = path.join(process.cwd(), 'stored_images', targetFilename);
+    
+    await fs.promises.writeFile(targetFilepath, watermarkedBuffer);
+    
+    console.log(`[PNG_WATERMARK] Created watermarked PNG: ${targetFilename} (${watermarkedBuffer.length} bytes)`);
+    
+    return `/images/${targetFilename}`;
+  } catch (error) {
+    console.error(`[PNG_WATERMARK] Failed to apply watermark to PNG file for card ${cardId}:`, error);
+    throw error;
   }
 }
 
@@ -1554,34 +1640,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Extracted front image URL:', frontImageUrl ? 'Base64 data received' : 'No image data');
       console.log('Extracted inside image URL:', insideImageUrl ? 'Base64 data received' : 'No image data');
 
-      // CRITICAL: Store unwatermarked PNG files and generate watermarked preview versions
+      // CRITICAL: PNG-ONLY WORKFLOW - Convert base64 to PNG immediately and use PNG files throughout
       let frontImagePngUrl = null;
       let insideImagePngUrl = null;
       
       if (frontImageUrl) {
-        console.log('[PNG_CONVERSION] Storing unwatermarked front image and generating watermarked preview...');
+        console.log('[PNG_ONLY] Converting front image to PNG and creating watermarked/unwatermarked versions...');
         
-        // Store unwatermarked version (for post-payment delivery)
-        await storeUnwatermarkedImage(frontImageUrl, cardId, 'front');
+        // Step 1: Convert base64 to PNG file immediately (unwatermarked original)
+        const unwatermarkedFrontPngUrl = await convertBase64ToPngFile(frontImageUrl, cardId, 'front_unwatermarked');
+        console.log('[PNG_ONLY] Unwatermarked front PNG created:', unwatermarkedFrontPngUrl);
         
-        // Apply watermark and store watermarked version (for preview)
-        const watermarkedFrontUrl = await applyWatermark(frontImageUrl, 0.3);
-        frontImagePngUrl = await convertBase64ToPngFile(watermarkedFrontUrl, cardId, 'front');
-        
-        console.log('[PNG_CONVERSION] Front image watermarked and converted to PNG file:', frontImagePngUrl);
+        // Step 2: Apply watermark to PNG file and create watermarked PNG file
+        frontImagePngUrl = await applyWatermarkToPngFile(cardId, 'front_unwatermarked', 'front');
+        console.log('[PNG_ONLY] Watermarked front PNG created:', frontImagePngUrl);
       }
       
       if (insideImageUrl) {
-        console.log('[PNG_CONVERSION] Storing unwatermarked inside image and generating watermarked preview...');
+        console.log('[PNG_ONLY] Converting inside image to PNG and creating watermarked/unwatermarked versions...');
         
-        // Store unwatermarked version (for post-payment delivery)
-        await storeUnwatermarkedImage(insideImageUrl, cardId, 'inside');
+        // Step 1: Convert base64 to PNG file immediately (unwatermarked original)
+        const unwatermarkedInsidePngUrl = await convertBase64ToPngFile(insideImageUrl, cardId, 'inside_unwatermarked');
+        console.log('[PNG_ONLY] Unwatermarked inside PNG created:', unwatermarkedInsidePngUrl);
         
-        // Apply watermark and store watermarked version (for preview)
-        const watermarkedInsideUrl = await applyWatermark(insideImageUrl, 0.3);
-        insideImagePngUrl = await convertBase64ToPngFile(watermarkedInsideUrl, cardId, 'inside');
-        
-        console.log('[PNG_CONVERSION] Inside image watermarked and converted to PNG file:', insideImagePngUrl);
+        // Step 2: Apply watermark to PNG file and create watermarked PNG file
+        insideImagePngUrl = await applyWatermarkToPngFile(cardId, 'inside_unwatermarked', 'inside');
+        console.log('[PNG_ONLY] Watermarked inside PNG created:', insideImagePngUrl);
       }
 
       // Update card with watermarked PNG file URLs (for preview)
@@ -1851,34 +1935,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Extracted front image URL:', frontImageUrl ? 'Base64 data received' : 'No image data');
       console.log('Extracted inside image URL:', insideImageUrl ? 'Base64 data received' : 'No image data');
 
-      // CRITICAL: Store unwatermarked PNG files and generate watermarked preview versions
+      // CRITICAL: PNG-ONLY WORKFLOW - Convert base64 to PNG immediately and use PNG files throughout
       let frontImagePngUrl = null;
       let insideImagePngUrl = null;
       
       if (frontImageUrl) {
-        console.log('[PNG_CONVERSION] Storing unwatermarked front image and generating watermarked preview...');
+        console.log('[PNG_ONLY] Converting front image to PNG and creating watermarked/unwatermarked versions...');
         
-        // Store unwatermarked version (for post-payment delivery)
-        await storeUnwatermarkedImage(frontImageUrl, cardId, 'front');
+        // Step 1: Convert base64 to PNG file immediately (unwatermarked original)
+        const unwatermarkedFrontPngUrl = await convertBase64ToPngFile(frontImageUrl, cardId, 'front_unwatermarked');
+        console.log('[PNG_ONLY] Unwatermarked front PNG created:', unwatermarkedFrontPngUrl);
         
-        // Apply watermark and store watermarked version (for preview)
-        const watermarkedFrontUrl = await applyWatermark(frontImageUrl, 0.3);
-        frontImagePngUrl = await convertBase64ToPngFile(watermarkedFrontUrl, cardId, 'front');
-        
-        console.log('[PNG_CONVERSION] Front image watermarked and converted to PNG file:', frontImagePngUrl);
+        // Step 2: Apply watermark to PNG file and create watermarked PNG file
+        frontImagePngUrl = await applyWatermarkToPngFile(cardId, 'front_unwatermarked', 'front');
+        console.log('[PNG_ONLY] Watermarked front PNG created:', frontImagePngUrl);
       }
       
       if (insideImageUrl) {
-        console.log('[PNG_CONVERSION] Storing unwatermarked inside image and generating watermarked preview...');
+        console.log('[PNG_ONLY] Converting inside image to PNG and creating watermarked/unwatermarked versions...');
         
-        // Store unwatermarked version (for post-payment delivery)
-        await storeUnwatermarkedImage(insideImageUrl, cardId, 'inside');
+        // Step 1: Convert base64 to PNG file immediately (unwatermarked original)
+        const unwatermarkedInsidePngUrl = await convertBase64ToPngFile(insideImageUrl, cardId, 'inside_unwatermarked');
+        console.log('[PNG_ONLY] Unwatermarked inside PNG created:', unwatermarkedInsidePngUrl);
         
-        // Apply watermark and store watermarked version (for preview)
-        const watermarkedInsideUrl = await applyWatermark(insideImageUrl, 0.3);
-        insideImagePngUrl = await convertBase64ToPngFile(watermarkedInsideUrl, cardId, 'inside');
-        
-        console.log('[PNG_CONVERSION] Inside image watermarked and converted to PNG file:', insideImagePngUrl);
+        // Step 2: Apply watermark to PNG file and create watermarked PNG file
+        insideImagePngUrl = await applyWatermarkToPngFile(cardId, 'inside_unwatermarked', 'inside');
+        console.log('[PNG_ONLY] Watermarked inside PNG created:', insideImagePngUrl);
       }
 
       // Update card with watermarked PNG file URLs (for preview)
@@ -2997,21 +3079,19 @@ ${formatInstruction}`;
 
         console.log('GPT-Image-1 scene editing completed successfully');
 
-        // CRITICAL: Store unwatermarked PNG file and generate watermarked preview version
+        // CRITICAL: PNG-ONLY WORKFLOW - Convert to PNG immediately and use PNG files throughout
         const { cardId } = req.body;
         
         if (cardId) {
-          console.log('[PNG_CONVERSION] Storing unwatermarked scene image and generating watermarked preview...');
+          console.log('[PNG_ONLY] Converting scene image to PNG and creating watermarked/unwatermarked versions...');
           
-          // Store unwatermarked version (for post-payment delivery)
-          await storeUnwatermarkedImage(imageUrl, cardId, 'front');
+          // Step 1: Convert base64 to PNG file immediately (unwatermarked original)
+          const unwatermarkedFrontPngUrl = await convertBase64ToPngFile(imageUrl, cardId, 'front_unwatermarked');
+          console.log('[PNG_ONLY] Unwatermarked front PNG created:', unwatermarkedFrontPngUrl);
           
-          // Apply watermark and store watermarked version (for preview)
-          const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
-          const frontImagePngUrl = await convertBase64ToPngFile(watermarkedImageUrl, cardId, 'front');
-          
-          console.log('[PNG_CONVERSION] Scene image watermarked and converted to PNG file:', frontImagePngUrl);
-          console.log('Watermark applied to front image');
+          // Step 2: Apply watermark to PNG file and create watermarked PNG file
+          const frontImagePngUrl = await applyWatermarkToPngFile(cardId, 'front_unwatermarked', 'front');
+          console.log('[PNG_ONLY] Watermarked front PNG created:', frontImagePngUrl);
           
           res.json({ 
             imageUrl: frontImagePngUrl, // Return PNG file URL instead of Base64
@@ -3189,21 +3269,19 @@ ${formatInstruction}`;
 
       console.log('Inside card generation completed successfully');
 
-      // CRITICAL: Store unwatermarked PNG file and generate watermarked preview version
+      // CRITICAL: PNG-ONLY WORKFLOW - Convert to PNG immediately and use PNG files throughout
       const { cardId } = req.body;
       
       if (cardId) {
-        console.log('[PNG_CONVERSION] Storing unwatermarked inside image and generating watermarked preview...');
+        console.log('[PNG_ONLY] Converting inside image to PNG and creating watermarked/unwatermarked versions...');
         
-        // Store unwatermarked version (for post-payment delivery)
-        await storeUnwatermarkedImage(imageUrl, cardId, 'inside');
+        // Step 1: Convert base64 to PNG file immediately (unwatermarked original)
+        const unwatermarkedInsidePngUrl = await convertBase64ToPngFile(imageUrl, cardId, 'inside_unwatermarked');
+        console.log('[PNG_ONLY] Unwatermarked inside PNG created:', unwatermarkedInsidePngUrl);
         
-        // Apply watermark and store watermarked version (for preview)
-        const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
-        const insideImagePngUrl = await convertBase64ToPngFile(watermarkedImageUrl, cardId, 'inside');
-        
-        console.log('[PNG_CONVERSION] Inside image watermarked and converted to PNG file:', insideImagePngUrl);
-        console.log('Watermark applied to inside card');
+        // Step 2: Apply watermark to PNG file and create watermarked PNG file
+        const insideImagePngUrl = await applyWatermarkToPngFile(cardId, 'inside_unwatermarked', 'inside');
+        console.log('[PNG_ONLY] Watermarked inside PNG created:', insideImagePngUrl);
         
         res.json({ 
           imageUrl: insideImagePngUrl, // Return PNG file URL instead of Base64
@@ -3473,21 +3551,19 @@ ${formatInstruction}`;
 
         console.log('GPT-Image-1 transformation completed successfully');
 
-        // CRITICAL: Store unwatermarked PNG file and generate watermarked preview version
+        // CRITICAL: PNG-ONLY WORKFLOW - Convert to PNG immediately and use PNG files throughout
         const { cardId } = req.body;
         
         if (cardId) {
-          console.log('[PNG_CONVERSION] Storing unwatermarked transformed image and generating watermarked preview...');
+          console.log('[PNG_ONLY] Converting transformed image to PNG and creating watermarked/unwatermarked versions...');
           
-          // Store unwatermarked version (for post-payment delivery)
-          await storeUnwatermarkedImage(imageUrl, cardId, 'front');
+          // Step 1: Convert base64 to PNG file immediately (unwatermarked original)
+          const unwatermarkedFrontPngUrl = await convertBase64ToPngFile(imageUrl, cardId, 'front_unwatermarked');
+          console.log('[PNG_ONLY] Unwatermarked front PNG created:', unwatermarkedFrontPngUrl);
           
-          // Apply watermark and store watermarked version (for preview)
-          const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
-          const frontImagePngUrl = await convertBase64ToPngFile(watermarkedImageUrl, cardId, 'front');
-          
-          console.log('[PNG_CONVERSION] Transformed image watermarked and converted to PNG file:', frontImagePngUrl);
-          console.log('Watermark applied to transformed image');
+          // Step 2: Apply watermark to PNG file and create watermarked PNG file
+          const frontImagePngUrl = await applyWatermarkToPngFile(cardId, 'front_unwatermarked', 'front');
+          console.log('[PNG_ONLY] Watermarked front PNG created:', frontImagePngUrl);
           
           res.json({ 
             imageUrl: frontImagePngUrl, // Return PNG file URL instead of Base64

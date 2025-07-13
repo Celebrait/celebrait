@@ -14,28 +14,36 @@ export interface WatermarkRemovalResult {
 
 /**
  * Remove watermarks from existing card images by switching to unwatermarked PNG files
+ * PNG-ONLY WORKFLOW: Uses unwatermarked PNG files created during generation
  */
 export async function removeWatermarksFromCard(
   cardId: number
 ): Promise<WatermarkRemovalResult> {
   try {
-    console.log(`[WATERMARK_REMOVAL] Starting PNG-based watermark removal for card ${cardId}`);
+    console.log(`[WATERMARK_REMOVAL] Starting PNG-only watermark removal for card ${cardId}`);
 
     const card = await storage.getCard(cardId);
     if (!card) {
       throw new Error(`Card ${cardId} not found`);
     }
 
-    // Check if unwatermarked PNG files exist
-    const unwatermarkedFiles = await hasUnwatermarkedFiles(cardId);
+    // Check if unwatermarked PNG files exist (new PNG-only workflow)
+    const fs = await import('fs');
+    const path = await import('path');
     
-    if (!unwatermarkedFiles.front) {
-      throw new Error(`No unwatermarked front image found for card ${cardId}`);
+    const frontUnwatermarkedPath = path.join(process.cwd(), 'stored_images', `card_${cardId}_front_unwatermarked.png`);
+    const insideUnwatermarkedPath = path.join(process.cwd(), 'stored_images', `card_${cardId}_inside_unwatermarked.png`);
+    
+    const frontExists = await fs.promises.access(frontUnwatermarkedPath).then(() => true).catch(() => false);
+    const insideExists = await fs.promises.access(insideUnwatermarkedPath).then(() => true).catch(() => false);
+    
+    if (!frontExists) {
+      throw new Error(`No unwatermarked front PNG file found for card ${cardId}`);
     }
 
-    // Generate URLs for unwatermarked PNG files
-    const frontImageUrl = getUnwatermarkedImageUrl(cardId, 'front');
-    const insideImageUrl = unwatermarkedFiles.inside ? getUnwatermarkedImageUrl(cardId, 'inside') : null;
+    // Generate URLs for unwatermarked PNG files (PNG-only workflow)
+    const frontImageUrl = `/images/card_${cardId}_front_unwatermarked.png`;
+    const insideImageUrl = insideExists ? `/images/card_${cardId}_inside_unwatermarked.png` : null;
 
     // Update card to use unwatermarked PNG files
     await storage.updateCard(cardId, {
@@ -43,7 +51,8 @@ export async function removeWatermarksFromCard(
       insideImageUrl: insideImageUrl || card.insideImageUrl
     });
 
-    console.log(`[WATERMARK_REMOVAL] Watermarks removed for card ${cardId} using PNG files`);
+    console.log(`[WATERMARK_REMOVAL] Watermarks removed for card ${cardId} using PNG-only workflow`);
+    console.log(`[WATERMARK_REMOVAL] Front PNG: ${frontImageUrl}, Inside PNG: ${insideImageUrl || 'N/A'}`);
 
     return {
       frontImageUrl: frontImageUrl,
