@@ -695,30 +695,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Front image not found" });
       }
       
-      // Serve original high-quality images without compression
+      // Serve high-quality images with smart compression for fast loading
       const base64Data = card.frontImageUrl.split(',')[1];
       const imageBuffer = Buffer.from(base64Data, 'base64');
       
-      // Convert to PNG to maintain original quality (no compression)
-      const fullQualityBuffer = await sharp(imageBuffer)
-        .png({ compressionLevel: 0 })
+      // Use high-quality JPEG with optimal settings for fast loading
+      const optimizedBuffer = await sharp(imageBuffer)
+        .jpeg({ 
+          quality: 95, 
+          progressive: true,
+          mozjpeg: true,
+          optimiseScans: true
+        })
         .toBuffer();
       
-      // Cache the full quality image
-      const etag = `"full-front-${cardId}"`;
+      // Cache the optimized image
+      const etag = `"optimized-front-${cardId}"`;
       imageCache.set(cacheKey, {
-        data: fullQualityBuffer,
+        data: optimizedBuffer,
         timestamp: Date.now(),
         etag
       });
       
       res.set({
-        'Content-Type': 'image/png',
+        'Content-Type': 'image/jpeg',
         'Cache-Control': 'public, max-age=31536000, immutable',
         'ETag': etag
       });
       
-      res.send(fullQualityBuffer);
+      res.send(optimizedBuffer);
     } catch (error: any) {
       console.error("[PERF] Fast front image error:", error);
       res.status(500).json({ message: "Error serving fast front image" });
@@ -747,30 +752,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Inside image not found" });
       }
       
-      // Serve original high-quality images without compression
+      // Serve high-quality images with smart compression for fast loading
       const base64Data = card.insideImageUrl.split(',')[1];
       const imageBuffer = Buffer.from(base64Data, 'base64');
       
-      // Convert to PNG to maintain original quality (no compression)
-      const fullQualityBuffer = await sharp(imageBuffer)
-        .png({ compressionLevel: 0 })
+      // Use high-quality JPEG with optimal settings for fast loading
+      const optimizedBuffer = await sharp(imageBuffer)
+        .jpeg({ 
+          quality: 95, 
+          progressive: true,
+          mozjpeg: true,
+          optimiseScans: true
+        })
         .toBuffer();
       
-      // Cache the full quality image
-      const etag = `"full-inside-${cardId}"`;
+      // Cache the optimized image
+      const etag = `"optimized-inside-${cardId}"`;
       imageCache.set(cacheKey, {
-        data: fullQualityBuffer,
+        data: optimizedBuffer,
         timestamp: Date.now(),
         etag
       });
       
       res.set({
-        'Content-Type': 'image/png',
+        'Content-Type': 'image/jpeg',
         'Cache-Control': 'public, max-age=31536000, immutable',
         'ETag': etag
       });
       
-      res.send(fullQualityBuffer);
+      res.send(optimizedBuffer);
     } catch (error: any) {
       console.error("[PERF] Fast inside image error:", error);
       res.status(500).json({ message: "Error serving fast inside image" });

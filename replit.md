@@ -120,11 +120,11 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 13, 2025. FULL QUALITY IMAGE PREVIEWS: Removed all compression to display original high-quality images:
-  * NO COMPRESSION: Removed all JPEG compression and resizing from fast image endpoints
-  * ORIGINAL SIZE: Images now display at full 1024x1024 resolution without quality loss
-  * PNG FORMAT: Changed to PNG with compressionLevel: 0 for pixel-perfect quality
-  * BOTH ROUTES: Full quality previews for both "Upload Photo + Describe Scene" and "Upload Photo + Transform Style"
+- July 13, 2025. OPTIMIZED HIGH-QUALITY IMAGE PREVIEWS: Balanced quality and performance for fast loading:
+  * HIGH QUALITY: Using 95% JPEG quality with mozjpeg encoder for excellent visual quality
+  * FAST LOADING: Progressive JPEG with optimized scans for quick display
+  * ORIGINAL SIZE: Images maintained at full 1024x1024 resolution
+  * SMART COMPRESSION: Optimized encoding reduces file size while preserving visual fidelity
 - July 13, 2025. OPENAI IMAGE QUALITY ENHANCEMENT: Updated all OpenAI API quality settings from "low" to "high" for better image generation:
   * FRONT CARD QUALITY: All front card generation endpoints now use 'high' quality setting instead of 'low'
   * INSIDE CARD QUALITY: All inside card generation endpoints now use 'high' quality setting instead of 'low'
