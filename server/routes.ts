@@ -73,6 +73,45 @@ const emailLinkCache = new Map<string, {
   timestamp: number;
 }>();
 
+/**
+ * CRITICAL: Convert Base64 images to PNG files immediately upon generation
+ * This prevents performance issues from large Base64 strings in the database
+ */
+async function convertBase64ToPngFile(base64Data: string, cardId: number, imageType: 'front' | 'inside'): Promise<string> {
+  try {
+    console.log(`[PNG_CONVERSION] Converting ${imageType} image for card ${cardId} from Base64 to PNG file`);
+    
+    // Remove data URL prefix if present
+    const cleanBase64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
+    const imageBuffer = Buffer.from(cleanBase64, 'base64');
+    
+    // Convert to PNG format using Sharp for optimal compression
+    const pngBuffer = await sharp(imageBuffer)
+      .png({ 
+        compressionLevel: 6, // Balanced compression
+        quality: 100,        // Lossless quality
+        progressive: false   // Standard PNG
+      })
+      .toBuffer();
+    
+    // Store the PNG file using existing storage system
+    const storageResult = await storeImageFromBase64(
+      `data:image/png;base64,${pngBuffer.toString('base64')}`,
+      cardId,
+      imageType
+    );
+    
+    console.log(`[PNG_CONVERSION] Successfully converted ${imageType} image for card ${cardId} to PNG file: ${storageResult.filename}`);
+    
+    // Return the file path/URL for database storage instead of Base64
+    return getImageUrl(cardId, imageType);
+    
+  } catch (error) {
+    console.error(`[PNG_CONVERSION] Error converting ${imageType} image for card ${cardId}:`, error);
+    throw new Error(`Failed to convert ${imageType} image to PNG file: ${error.message}`);
+  }
+}
+
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
 const METADATA_CACHE_TTL = 5 * 60 * 1000; // 5 minutes for metadata
 
@@ -1355,10 +1394,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Extracted front image URL:', frontImageUrl ? 'Base64 data received' : 'No image data');
       console.log('Extracted inside image URL:', insideImageUrl ? 'Base64 data received' : 'No image data');
 
-      // Update card with generated images
+      // CRITICAL: Convert Base64 images to PNG files immediately to prevent performance issues
+      let frontImagePngUrl = null;
+      let insideImagePngUrl = null;
+      
+      if (frontImageUrl) {
+        console.log('[PNG_CONVERSION] Converting front image from Base64 to PNG file...');
+        frontImagePngUrl = await convertBase64ToPngFile(frontImageUrl, cardId, 'front');
+        console.log('[PNG_CONVERSION] Front image converted to PNG file:', frontImagePngUrl);
+      }
+      
+      if (insideImageUrl) {
+        console.log('[PNG_CONVERSION] Converting inside image from Base64 to PNG file...');
+        insideImagePngUrl = await convertBase64ToPngFile(insideImageUrl, cardId, 'inside');
+        console.log('[PNG_CONVERSION] Inside image converted to PNG file:', insideImagePngUrl);
+      }
+
+      // Store original Base64 images in conversationData for watermark removal
+      const conversationData = card.conversationData || {};
+      const updatedConversationData = {
+        ...conversationData,
+        originalFrontImageUrl: frontImageUrl, // Store original for watermark removal
+        originalInsideImageUrl: insideImageUrl // Store original for watermark removal
+      };
+
+      // Update card with PNG file URLs (NOT Base64) and preserve originals in conversationData
       const updatedCard = await storage.updateCard(cardId, {
-        frontImageUrl,
-        insideImageUrl,
+        frontImageUrl: frontImagePngUrl, // Store PNG file URL instead of Base64
+        insideImageUrl: insideImagePngUrl, // Store PNG file URL instead of Base64
+        conversationData: updatedConversationData,
         status: 'completed'
       });
 
@@ -1622,10 +1686,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Extracted front image URL:', frontImageUrl ? 'Base64 data received' : 'No image data');
       console.log('Extracted inside image URL:', insideImageUrl ? 'Base64 data received' : 'No image data');
 
-      // Update card with generated images
+      // CRITICAL: Convert Base64 images to PNG files immediately to prevent performance issues
+      let frontImagePngUrl = null;
+      let insideImagePngUrl = null;
+      
+      if (frontImageUrl) {
+        console.log('[PNG_CONVERSION] Converting front image from Base64 to PNG file...');
+        frontImagePngUrl = await convertBase64ToPngFile(frontImageUrl, cardId, 'front');
+        console.log('[PNG_CONVERSION] Front image converted to PNG file:', frontImagePngUrl);
+      }
+      
+      if (insideImageUrl) {
+        console.log('[PNG_CONVERSION] Converting inside image from Base64 to PNG file...');
+        insideImagePngUrl = await convertBase64ToPngFile(insideImageUrl, cardId, 'inside');
+        console.log('[PNG_CONVERSION] Inside image converted to PNG file:', insideImagePngUrl);
+      }
+
+      // Store original Base64 images in conversationData for watermark removal
+      const conversationData = card.conversationData || {};
+      const updatedConversationData = {
+        ...conversationData,
+        originalFrontImageUrl: frontImageUrl, // Store original for watermark removal
+        originalInsideImageUrl: insideImageUrl // Store original for watermark removal
+      };
+
+      // Update card with PNG file URLs (NOT Base64) and preserve originals in conversationData
       const updatedCard = await storage.updateCard(cardId, {
-        frontImageUrl,
-        insideImageUrl,
+        frontImageUrl: frontImagePngUrl, // Store PNG file URL instead of Base64
+        insideImageUrl: insideImagePngUrl, // Store PNG file URL instead of Base64
+        conversationData: updatedConversationData,
         status: 'completed'
       });
 

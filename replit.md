@@ -120,6 +120,14 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 13, 2025. CRITICAL BASE64 TO PNG CONVERSION: Implemented comprehensive Base64 to PNG file conversion system for all image generation routes:
+  * PNG CONVERSION FUNCTION: Created convertBase64ToPngFile() function to immediately convert OpenAI Base64 images to PNG files
+  * MAIN GENERATION ROUTE: Updated /api/generate-images to convert both front and inside images to PNG files immediately upon generation
+  * STYLE TRANSFORMATION: Updated /api/generate-style-transform to convert both front and inside images to PNG files
+  * ORIGINAL PRESERVATION: Store original Base64 images in conversationData for watermark removal functionality
+  * DATABASE STORAGE: Card frontImageUrl and insideImageUrl now store PNG file URLs instead of Base64 strings
+  * PERFORMANCE IMPROVEMENT: Eliminates massive Base64 string storage in database, preventing performance issues
+  * WATERMARK COMPATIBLE: Maintains original unwatermarked images in conversationData for post-payment watermark removal
 - July 13, 2025. COMPREHENSIVE IMAGE OPTIMIZATION: Unified all image endpoints with consistent high-quality fast loading:
   * UNIFIED STANDARDS: All image endpoints now use identical 95% JPEG quality with mozjpeg encoder
   * FAST LOADING: Progressive JPEG with optimized scans across all routes (web, email, digital, preview)
