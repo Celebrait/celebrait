@@ -695,14 +695,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Front image not found" });
       }
       
-      // Convert and compress aggressively for speed
+      // Convert and compress with better quality for previews
       const base64Data = card.frontImageUrl.split(',')[1];
       const imageBuffer = Buffer.from(base64Data, 'base64');
       
-      // Use Sharp for ultra-fast compression - aggressive for email preview
+      // Use Sharp for balanced compression - better quality for previews
       const compressedBuffer = await sharp(imageBuffer)
-        .jpeg({ quality: 60, progressive: true })
-        .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85, progressive: true })
+        .resize(600, 600, { fit: 'inside', withoutEnlargement: true })
         .toBuffer();
       
       // Cache aggressively
@@ -748,14 +748,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Inside image not found" });
       }
       
-      // Convert and compress aggressively for speed
+      // Convert and compress with better quality for previews
       const base64Data = card.insideImageUrl.split(',')[1];
       const imageBuffer = Buffer.from(base64Data, 'base64');
       
-      // Use Sharp for ultra-fast compression - aggressive for email preview
+      // Use Sharp for balanced compression - better quality for previews
       const compressedBuffer = await sharp(imageBuffer)
-        .jpeg({ quality: 60, progressive: true })
-        .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85, progressive: true })
+        .resize(600, 600, { fit: 'inside', withoutEnlargement: true })
         .toBuffer();
       
       // Cache aggressively
