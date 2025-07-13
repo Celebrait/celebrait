@@ -2275,7 +2275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // PRIORITY 1: Check preloaded email link cache for instant loading
       const emailCached = emailLinkCache.get(reference);
-      if (emailCached && (Date.now() - emailCached.timestamp) < 21600000) { // 6 hours cache
+      if (emailCached && (Date.now() - emailCached.timestamp) < 900000) { // 15 minutes cache
         console.log(`[INSTANT] Serving from preloaded email cache: ${reference} (${Date.now() - startTime}ms)`);
         
         const responseData = {
