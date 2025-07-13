@@ -23,7 +23,7 @@ export default function DeliveryChoice() {
     {
       id: 'printed',
       title: 'Printed & Delivered',
-      price: 129,
+      price: 'Coming Soon',
       icon: Truck,
       features: [
         'High-quality printed card (5" x 5")',
@@ -31,13 +31,13 @@ export default function DeliveryChoice() {
         'Delivered to recipient',
         'Perfect for special occasions'
       ],
-      gradient: 'from-purple-500 to-blue-500',
-      available: true
+      gradient: 'from-gray-400 to-gray-500',
+      available: false
     },
     {
       id: 'digital',
       title: 'Digital Download',
-      price: 1,
+      price: 5,
       icon: Download,
       features: [
         'Instant download',
@@ -133,13 +133,18 @@ export default function DeliveryChoice() {
   }, [match, params?.reference]);
 
   const handleDeliverySelected = async (delivery: 'printed' | 'digital') => {
+    if (delivery === 'printed') {
+      // Printed option is disabled - do nothing
+      return;
+    }
+    
     setSelectedDelivery(delivery);
     
-    // Store delivery type for both printed and digital cards
+    // Store delivery type for digital cards only
     sessionStorage.setItem('selectedDeliveryType', delivery);
     console.log('[DELIVERY CHOICE] Setting delivery type:', delivery);
     
-    // Both delivery types now go to delivery details page to choose recipient
+    // Digital cards go to delivery details page to choose recipient
     setTimeout(() => {
       try {
         setLocation(`/delivery-details/${params?.reference}`);
@@ -274,8 +279,8 @@ export default function DeliveryChoice() {
                           <CardTitle className="text-xl">{option.title}</CardTitle>
                         </CardHeader>
                         <CardContent className="text-center">
-                          <div className={`text-3xl font-bold mb-4 ${option.id === 'printed' ? 'text-purple-600' : 'text-green-600'}`}>
-                            R{option.price}
+                          <div className={`text-3xl font-bold mb-4 ${option.id === 'printed' ? 'text-gray-500' : 'text-green-600'}`}>
+                            {typeof option.price === 'string' ? option.price : `R${option.price}`}
                           </div>
                           <ul className="space-y-2 text-sm text-gray-600 mb-6">
                             {option.features.map((feature, featureIndex) => (
@@ -283,13 +288,16 @@ export default function DeliveryChoice() {
                             ))}
                           </ul>
                           <Button 
-                            className={`w-full bg-gradient-to-r ${option.gradient} hover:opacity-90`}
+                            className={`w-full bg-gradient-to-r ${option.gradient} hover:opacity-90 ${!option.available ? 'cursor-not-allowed opacity-60' : ''}`}
+                            disabled={!option.available}
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeliverySelected(option.id as 'printed' | 'digital');
+                              if (option.available) {
+                                handleDeliverySelected(option.id as 'printed' | 'digital');
+                              }
                             }}
                           >
-                            Choose {option.title}
+                            {option.available ? `Choose ${option.title}` : 'Coming Soon'}
                           </Button>
                         </CardContent>
                       </Card>
@@ -359,12 +367,16 @@ export default function DeliveryChoice() {
             {options.map((option) => (
               <Card 
                 key={option.id}
-                className={`cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-105 ${
-                  selectedDelivery === option.id 
-                    ? `border-2 ${option.id === 'printed' ? 'border-purple-500 bg-purple-50' : 'border-green-500 bg-green-50'}` 
-                    : 'border-2 border-gray-200 bg-white/80'
+                className={`${
+                  option.available 
+                    ? `cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:scale-105 ${
+                        selectedDelivery === option.id 
+                          ? `border-2 ${option.id === 'printed' ? 'border-purple-500 bg-purple-50' : 'border-green-500 bg-green-50'}` 
+                          : 'border-2 border-gray-200 bg-white/80'
+                      }`
+                    : 'cursor-not-allowed opacity-60 border-2 border-gray-300 bg-white/60'
                 }`}
-                onClick={() => handleDeliverySelected(option.id as 'printed' | 'digital')}
+                onClick={() => option.available && handleDeliverySelected(option.id as 'printed' | 'digital')}
               >
                 <CardHeader className="text-center pb-4">
                   <div className={`w-16 h-16 bg-gradient-to-r ${option.gradient} rounded-full flex items-center justify-center mx-auto mb-4`}>
@@ -373,8 +385,8 @@ export default function DeliveryChoice() {
                   <CardTitle className="text-xl">{option.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="text-center">
-                  <div className={`text-3xl font-bold mb-4 ${option.id === 'printed' ? 'text-purple-600' : 'text-green-600'}`}>
-                    R{option.price}
+                  <div className={`text-3xl font-bold mb-4 ${option.id === 'printed' ? 'text-gray-500' : 'text-green-600'}`}>
+                    {typeof option.price === 'string' ? option.price : `R${option.price}`}
                   </div>
                   <ul className="space-y-2 text-sm text-gray-600 mb-6">
                     {option.features.map((feature, index) => (
@@ -382,13 +394,16 @@ export default function DeliveryChoice() {
                     ))}
                   </ul>
                   <Button 
-                    className={`w-full bg-gradient-to-r ${option.gradient} hover:opacity-90`}
+                    className={`w-full bg-gradient-to-r ${option.gradient} hover:opacity-90 ${!option.available ? 'cursor-not-allowed opacity-60' : ''}`}
+                    disabled={!option.available}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDeliverySelected(option.id as 'printed' | 'digital');
+                      if (option.available) {
+                        handleDeliverySelected(option.id as 'printed' | 'digital');
+                      }
                     }}
                   >
-                    Choose {option.title}
+                    {option.available ? `Choose ${option.title}` : 'Coming Soon'}
                   </Button>
                 </CardContent>
               </Card>

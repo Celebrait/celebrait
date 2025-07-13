@@ -263,23 +263,24 @@ export default function DeliveryDetails() {
       id: 'printed',
       title: 'Printed & Delivered',
       description: 'High-quality physical greeting card printed and delivered to your door or directly to the recipient',
-      price: 'R129.00',
+      price: 'Coming Soon',
       icon: Truck,
-      gradient: 'from-purple-500 to-pink-500',
-      hoverGradient: 'from-purple-600 to-pink-600',
-      borderColor: 'border-purple-200 hover:border-purple-400',
-      priceColor: 'text-purple-600',
+      gradient: 'from-gray-400 to-gray-500',
+      hoverGradient: 'from-gray-500 to-gray-600',
+      borderColor: 'border-gray-200',
+      priceColor: 'text-gray-500',
       features: [
         'Premium card stock',
         'Professional printing', 
         'Fast delivery'
-      ]
+      ],
+      disabled: true
     },
     {
       id: 'digital',
       title: 'Digital Download',
       description: 'Instant digital card delivered via email with interactive viewing and download options',
-      price: 'FREE',
+      price: 'R5.00',
       icon: Download,
       gradient: 'from-green-500 to-blue-500',
       hoverGradient: 'from-green-600 to-blue-600',
@@ -289,7 +290,8 @@ export default function DeliveryDetails() {
         'Instant delivery',
         'Interactive viewing',
         'High-res download'
-      ]
+      ],
+      disabled: false
     }
   ];
 
@@ -441,6 +443,7 @@ export default function DeliveryDetails() {
                   <Card 
                     key={option.id}
                     onClick={() => {
+                      if (option.disabled) return;
                       // Scroll to top and add fade transition
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                       document.body.style.opacity = '0.8';
@@ -453,7 +456,7 @@ export default function DeliveryDetails() {
                         }, 100);
                       }, 150);
                     }}
-                    className={`cursor-pointer border-2 ${option.borderColor} transition-all duration-300 hover:shadow-xl hover:scale-105 bg-white/80 backdrop-blur-sm`}
+                    className={`${option.disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:shadow-xl hover:scale-105'} border-2 ${option.borderColor} transition-all duration-300 bg-white/80 backdrop-blur-sm`}
                   >
                     <CardContent className="p-8 text-center space-y-4">
                       <div className={`w-16 h-16 bg-gradient-to-r ${option.gradient} rounded-full mx-auto flex items-center justify-center mb-4`}>
@@ -480,6 +483,7 @@ export default function DeliveryDetails() {
                       <Button 
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (option.disabled) return;
                           // Scroll to top and add fade transition
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                           document.body.style.opacity = '0.8';
@@ -492,9 +496,10 @@ export default function DeliveryDetails() {
                             }, 100);
                           }, 150);
                         }}
-                        className={`w-full bg-gradient-to-r ${option.gradient} hover:${option.hoverGradient} text-white py-3 rounded-xl font-semibold`}
+                        disabled={option.disabled}
+                        className={`w-full bg-gradient-to-r ${option.gradient} hover:${option.hoverGradient} text-white py-3 rounded-xl font-semibold ${option.disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
                       >
-                        Choose {option.title}
+                        {option.disabled ? 'Coming Soon' : `Choose ${option.title}`}
                       </Button>
                     </CardContent>
                   </Card>

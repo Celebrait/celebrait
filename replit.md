@@ -120,6 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 13, 2025. DIGITAL-ONLY LAUNCH PIVOT: Complete transition to digital-only launch with printed cards disabled as "coming soon":
+  * PRINTED CARDS DISABLED: Updated delivery-selection.tsx and delivery-details.tsx to disable printed option with "Coming Soon" status
+  * SIMPLIFIED WORKFLOW: Removed post-card generation delivery choice step - users now go directly from card preview to order completion
+  * UPDATED PRICING: Digital cards now priced at R5.00 across all components and endpoints
+  * BUTTON TEXT UPDATE: Card preview button changed from "Confirm Delivery Options" to "Create Your Digital Card"
+  * NAVIGATION FLOW: Card preview now routes directly to /complete-order/{cardId} instead of /delivery-details/{cardId}
+  * STREAMLINED UX: Eliminated duplicate delivery selection steps while maintaining proper data flow
+  * DISABLED INTERACTION: Printed cards show gray styling, disabled state, and "Coming Soon" text
+  * AUTOMATIC SELECTION: Digital delivery type automatically stored in session storage during card preview
 - July 8, 2025. CRITICAL EMAIL LINK PERFORMANCE FIX: Resolved slow "Loading delivery options" and "Loading order details" when users click email links:
   * INSTANT CACHE-FIRST LOADING: Both delivery-details and complete-order pages now load instantly from cache instead of waiting for API calls
   * ULTRA-FAST ENDPOINTS: Optimized to use /api/cards/:id/fast-metadata endpoint with aggressive 24-hour caching

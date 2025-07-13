@@ -135,7 +135,7 @@ export default function CompleteOrder() {
           insideImageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=600&fit=crop',
           cardType: deliveryType,
           printOption: deliveryType === 'printed' ? 'front-and-inside' : undefined,
-          price: deliveryType === 'printed' ? 15000 : 0, // R150 for printed, free for digital
+          price: deliveryType === 'printed' ? 15000 : 500, // R150 for printed, R5 for digital
           status: 'completed',
           createdAt: new Date().toISOString()
         };
@@ -215,7 +215,7 @@ export default function CompleteOrder() {
 
     try {
       if (deliveryType === 'digital') {
-        // Handle digital card - R1 payment via Payfast
+        // Handle digital card - R5 payment via Payfast
         const customerInfo = {
           name: customerName,
           email: customerEmail,
@@ -653,7 +653,7 @@ export default function CompleteOrder() {
                 ) : deliveryType === 'digital' ? (
                   <div className="flex items-center gap-2">
                     <Mail className="w-5 h-5" />
-                    Pay R1.00 for Digital Card
+                    Pay R5.00 for Digital Card
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
@@ -761,7 +761,7 @@ export default function CompleteOrder() {
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total:</span>
                   <span className={deliveryType === 'digital' ? 'text-green-600' : 'text-purple-600'}>
-                    {deliveryType === 'digital' ? 'R1.00' : `R${(card?.price ? (card.price / 100).toFixed(2) : '0.00')}`}
+                    {deliveryType === 'digital' ? 'R5.00' : `R${(card?.price ? (card.price / 100).toFixed(2) : '0.00')}`}
                   </span>
                 </div>
               </div>

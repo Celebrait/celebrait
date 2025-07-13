@@ -13,17 +13,18 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
       id: 'printed',
       title: 'Printed & Delivered',
       description: 'High-quality physical greeting card printed and delivered to your door or directly to the recipient',
-      price: 'R129',
+      price: 'Coming Soon',
       icon: Truck,
-      gradient: 'from-purple-500 to-pink-500',
-      hoverGradient: 'from-purple-600 to-pink-600',
-      borderColor: 'border-purple-200 hover:border-purple-400',
-      priceColor: 'text-purple-600',
+      gradient: 'from-gray-400 to-gray-500',
+      hoverGradient: 'from-gray-500 to-gray-600',
+      borderColor: 'border-gray-200',
+      priceColor: 'text-gray-500',
       features: [
         'Premium card stock',
         'Professional printing',
         'Fast delivery'
-      ]
+      ],
+      disabled: true
     },
     {
       id: 'digital',
@@ -39,7 +40,8 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
         'Instant delivery',
         'Interactive viewing',
         'High-res download'
-      ]
+      ],
+      disabled: false
     }
   ];
 
@@ -66,6 +68,7 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
           <Card 
             key={option.id}
             onClick={() => {
+              if (option.disabled) return;
               // Scroll to top and add fade transition
               window.scrollTo({ top: 0, behavior: 'smooth' });
               document.body.style.opacity = '0.8';
@@ -76,7 +79,7 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
                 }, 100);
               }, 150);
             }}
-            className={`cursor-pointer border-2 ${option.borderColor} transition-all duration-300 hover:shadow-xl hover:scale-105 bg-white/80 backdrop-blur-sm`}
+            className={`${option.disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:shadow-xl hover:scale-105'} border-2 ${option.borderColor} transition-all duration-300 bg-white/80 backdrop-blur-sm`}
           >
             <CardContent className="p-8 text-center space-y-4">
               <div className={`w-16 h-16 bg-gradient-to-r ${option.gradient} rounded-full mx-auto flex items-center justify-center mb-4`}>
@@ -103,6 +106,7 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
               <Button 
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (option.disabled) return;
                   // Scroll to top and add fade transition
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                   document.body.style.opacity = '0.8';
@@ -113,16 +117,17 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
                     }, 100);
                   }, 150);
                 }}
-                className={`w-full bg-gradient-to-r ${option.gradient} hover:${option.hoverGradient} text-white py-3 rounded-xl font-semibold`}
+                disabled={option.disabled}
+                className={`w-full bg-gradient-to-r ${option.gradient} hover:${option.hoverGradient} text-white py-3 rounded-xl font-semibold ${option.disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
-                Choose {option.title.split(' ')[0]}
+                {option.disabled ? 'Coming Soon' : `Choose ${option.title.split(' ')[0]}`}
               </Button>
 
               {/* Green Information Box */}
               <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                 <p className="text-green-800 text-sm text-center">
                   <Sparkles className="w-4 h-4 inline mr-1" />
-                  You'll create and preview your card before purchasing. You can change your delivery method after seeing your card.
+                  You'll create and preview your card before purchasing!
                 </p>
               </div>
             </CardContent>
