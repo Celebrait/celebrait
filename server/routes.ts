@@ -2929,13 +2929,31 @@ ${formatInstruction}`;
       console.log('Inside text:', insideText);
       console.log('Requested size:', size);
 
-      // Convert base64 front card image to buffer for upload
-      const base64Data = frontCardImage.replace(/^data:image\/[a-z]+;base64,/, '');
-      const imageBuffer = Buffer.from(base64Data, 'base64');
-
-      // Detect MIME type from the front card image
-      const mimeMatch = frontCardImage.match(/^data:image\/([a-z]+);base64,/);
-      const mimeType = mimeMatch ? mimeMatch[1] : 'png';
+      // Handle both base64 data and PNG file URLs
+      let imageBuffer: Buffer;
+      let mimeType: string;
+      
+      if (frontCardImage.startsWith('data:image/')) {
+        // Handle base64 data URLs
+        const base64Data = frontCardImage.replace(/^data:image\/[a-z]+;base64,/, '');
+        imageBuffer = Buffer.from(base64Data, 'base64');
+        const mimeMatch = frontCardImage.match(/^data:image\/([a-z]+);base64,/);
+        mimeType = mimeMatch ? mimeMatch[1] : 'png';
+      } else if (frontCardImage.startsWith('/images/')) {
+        // Handle PNG file URLs - read the file from disk
+        const fs = await import('fs');
+        const path = await import('path');
+        const filePath = path.join(process.cwd(), 'stored_images', frontCardImage.replace('/images/', ''));
+        try {
+          imageBuffer = await fs.promises.readFile(filePath);
+          mimeType = 'png';
+        } catch (error) {
+          console.error('Error reading front card PNG file:', error);
+          throw new Error('Failed to read front card image file');
+        }
+      } else {
+        throw new Error('Invalid front card image format. Expected base64 data URL or PNG file URL');
+      }
 
       console.log('Front card image buffer size:', imageBuffer.length, 'bytes, MIME type:', mimeType);
 
