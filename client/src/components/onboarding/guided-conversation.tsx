@@ -789,7 +789,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     scrollToTop();
   }, [currentStepIndex]);
 
-  const initializeCard = async () => {
+  const initializeCard = async (): Promise<number> => {
     try {
       // All cards now include front and inside content
       const price = onboarding.selectedDelivery === 'digital' ? 2900 : 12900;
@@ -805,12 +805,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
       const card = await cardResponse.json();
       setCardId(card.id);
+      return card.id;
     } catch (error: any) {
       toast({
         title: "Error",
         description: "Failed to initialize card creation",
         variant: "destructive",
       });
+      throw error;
     }
   };
 
@@ -1249,19 +1251,24 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       });
       
       // Ensure card is initialized
-      if (!cardId) {
-        await initializeCard();
+      let currentCardId = cardId;
+      if (!currentCardId) {
+        console.log('[DEBUG] CardId is null/undefined, initializing card...');
+        currentCardId = await initializeCard();
+        console.log('[DEBUG] After initialization, cardId is:', currentCardId);
+      } else {
+        console.log('[DEBUG] CardId already exists:', currentCardId);
       }
       
       // Generate the card using existing logic
       let generatedCard;
       
       if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
-        console.log('Using GPT Image scene generation');
-        generatedCard = await generateCardWithGPTImage();
+        console.log('Using GPT Image scene generation with cardId:', currentCardId);
+        generatedCard = await generateCardWithGPTImage(currentCardId);
       } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotos.length > 0) {
-        console.log('Using GPT Image transform generation');
-        generatedCard = await generateCardWithGPTImageTransform();
+        console.log('Using GPT Image transform generation with cardId:', currentCardId);
+        generatedCard = await generateCardWithGPTImageTransform(currentCardId);
       } else {
         console.log('Using DALLE generation');
         // For now, show test card since DALLE is not implemented
@@ -1310,8 +1317,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   };
 
-  const generateCardWithGPTImage = async () => {
-    console.log('Using GPT-Image-1 for photo + scene workflow');
+  const generateCardWithGPTImage = async (useCardId: number) => {
+    console.log('Using GPT-Image-1 for photo + scene workflow with cardId:', useCardId);
     
     // Use all uploaded photos for GPT-Image-1 scene generation
     const referenceImages = uploadedPhotos;
@@ -1322,8 +1329,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const frontCardText = answers.message || '';
     
     // Generate front card using GPT-Image-1 with multiple images
+    console.log('[DEBUG] Calling edit-scene-gpt-image-1 with cardId:', useCardId);
     const frontResponse = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
-      cardId, // CRITICAL: Include cardId for PNG conversion
+      cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
       imageData: referenceImages[0], // Keep for backward compatibility
       imageDataArray: referenceImages, // Send all images
       scenePrompt: sceneDescription,
@@ -1340,6 +1348,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     let insideImageUrl = null;
     let insideOriginalUrl = null;
     if (answers.inside_message) {
+      console.log('[DEBUG] Calling generate-inside-card with cardId:', cardId);
       const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
         cardId, // CRITICAL: Include cardId for PNG conversion
         frontCardImage: frontImageUrl,
@@ -1375,8 +1384,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     return updatedCard;
   };
 
-  const generateCardWithGPTImageTransform = async () => {
-    console.log('Using GPT-Image-1 for photo + transform style workflow');
+  const generateCardWithGPTImageTransform = async (useCardId: number) => {
+    console.log('Using GPT-Image-1 for photo + transform style workflow with cardId:', useCardId);
     
     // Use all uploaded photos for GPT-Image-1 style transformation
     const referenceImages = uploadedPhotos;
@@ -1392,8 +1401,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
     
     // Generate front card using GPT-Image-1 transform style endpoint with multiple images
+    console.log('[DEBUG] Calling transform-style-gpt-image-1 with cardId:', useCardId);
     const frontResponse = await apiRequest("POST", "/api/transform-style-gpt-image-1", {
-      cardId, // CRITICAL: Include cardId for PNG conversion
+      cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
       imageData: referenceImages[0], // Keep for backward compatibility
       imageDataArray: referenceImages, // Send all images
       style: transformPrompt
@@ -1407,8 +1417,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     let insideImageUrl = null;
     let insideOriginalUrl = null;
     if (answers.inside_message) {
+      console.log('[DEBUG] Calling generate-inside-card with cardId:', useCardId);
       const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-        cardId, // CRITICAL: Include cardId for PNG conversion
+        cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
         frontCardImage: frontImageUrl,
         insideText: answers.inside_message
       });
@@ -1431,7 +1442,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
     // Update the card in storage
     const updateResponse = await apiRequest("POST", "/api/update-card-images", {
-      cardId,
+      cardId: useCardId,
       frontImageUrl: frontImageUrl,
       insideImageUrl,
       conversationData,
