@@ -360,3 +360,16 @@ export async function imageExists(cardId: number, imageType: 'front' | 'inside')
     return false;
   }
 }
+
+/**
+ * Check if unwatermarked files exist for watermark removal
+ */
+export async function hasUnwatermarkedFiles(cardId: number): Promise<{ front: boolean; inside: boolean }> {
+  const frontExists = await imageExists(cardId, 'front');
+  const insideExists = await imageExists(cardId, 'inside');
+  
+  return {
+    front: frontExists,
+    inside: insideExists
+  };
+}

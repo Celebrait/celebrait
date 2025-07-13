@@ -2890,20 +2890,18 @@ ${formatInstruction}`;
         return res.status(404).json({ message: "Card not found" });
       }
 
-      // Extract original images from conversationData
-      const conversationData = card.conversationData as any;
-      if (!conversationData || !conversationData.originalFrontImageUrl) {
-        return res.status(400).json({ message: "Original images not found in card data" });
-      }
+      // Switch to unwatermarked file URLs
+      const frontFileUrl = getImageUrl(cardId, 'front');
+      const insideFileUrl = card.insideImageUrl ? getImageUrl(cardId, 'inside') : null;
 
-      // Update card with original unwatermarked images
+      // Update card to use file URLs instead of Base64
       const updatedCard = await storage.updateCard(cardId, {
-        frontImageUrl: conversationData.originalFrontImageUrl,
-        insideImageUrl: conversationData.originalInsideImageUrl || null,
+        frontImageUrl: frontFileUrl,
+        insideImageUrl: insideFileUrl,
         status: 'paid'
       });
 
-      console.log('Watermarks removed successfully');
+      console.log('Watermarks removed - switched to file serving');
       res.json({ 
         success: true,
         card: updatedCard
