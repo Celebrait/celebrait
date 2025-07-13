@@ -2409,9 +2409,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const responseData = {
           card: {
             ...emailCached.card,
-            // Use cached image data directly - no API calls needed
-            frontImageUrl: emailCached.frontImage ? `data:image/jpeg;base64,${emailCached.frontImage.toString('base64')}` : null,
-            insideImageUrl: emailCached.insideImage ? `data:image/jpeg;base64,${emailCached.insideImage.toString('base64')}` : null,
+            frontImageUrl: `/api/cards/${emailCached.card.id}/fast-front-image`,
+            insideImageUrl: emailCached.insideImage ? `/api/cards/${emailCached.card.id}/fast-inside-image` : null,
             // Remove base64 images for ultra-fast loading
             frontImageBase64: null,
             insideImageBase64: null
