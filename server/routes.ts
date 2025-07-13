@@ -2593,7 +2593,7 @@ ${formatInstruction}`;
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
         formData.append('size', size);
-        formData.append('quality', 'low');
+        formData.append('quality', 'high');
         formData.append('moderation', 'low');
         formData.append('background', 'auto');
 
@@ -2757,7 +2757,7 @@ ${formatInstruction}`;
       formData.append('model', 'gpt-image-1');
       formData.append('n', '1');
       formData.append('size', size);
-      formData.append('quality', 'low');
+      formData.append('quality', 'high');
       formData.append('moderation', 'low');
       formData.append('background', 'auto');
 
@@ -2932,13 +2932,13 @@ ${formatInstruction}`;
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
         formData.append('size', size);
-        formData.append('quality', 'low');
+        formData.append('quality', 'high');
         formData.append('moderation', 'low');
 
         console.log('📋 Form data parameters being sent:');
         console.log('- model:', 'gpt-image-1');
         console.log('- size:', size);
-        console.log('- quality:', 'low');
+        console.log('- quality:', 'high');
         console.log('- prompt length:', transformPrompt.length);
         console.log('- moderation:', 'low');
         console.log('- n:', '1');

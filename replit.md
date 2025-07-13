@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 13, 2025. OPENAI IMAGE QUALITY ENHANCEMENT: Updated all OpenAI API quality settings from "low" to "high" for better image generation:
+  * FRONT CARD QUALITY: All front card generation endpoints now use 'high' quality setting instead of 'low'
+  * INSIDE CARD QUALITY: All inside card generation endpoints now use 'high' quality setting instead of 'low'
+  * AFFECTED ENDPOINTS: generate-images, edit-scene-gpt-image-1, generate-inside-card, transform-style-gpt-image-1
+  * BOTH UPLOAD ROUTES: "Upload Photo + Describe Scene" and "Upload Photo + Transform Style" now generate higher quality images
+  * QUALITY CONSISTENCY: All 5 OpenAI API quality parameters updated from 'low' to 'high' across all card generation endpoints
 - July 13, 2025. DIGITAL-ONLY LAUNCH PIVOT: Complete transition to digital-only launch with printed cards disabled as "coming soon":
   * PRINTED CARDS DISABLED: Updated delivery-selection.tsx and delivery-details.tsx to disable printed option with "Coming Soon" status
   * RECIPIENT SELECTION PRESERVED: Card preview routes to delivery-details page which automatically skips to recipient selection for digital cards
