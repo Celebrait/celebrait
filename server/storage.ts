@@ -16,7 +16,6 @@ export interface IStorage {
   getCard(id: number): Promise<Card | undefined>;
   updateCard(id: number, updates: Partial<Card>): Promise<Card>;
   getUserCards(userId: number): Promise<Card[]>;
-  getAllCards(): Promise<Card[]>;
 
   createLovedOne(lovedOne: InsertLovedOne & { userId: number }): Promise<LovedOne>;
   getUserLovedOnes(userId: number): Promise<LovedOne[]>;
@@ -104,10 +103,6 @@ export class MemStorage implements IStorage {
     return Array.from(this.cards.values()).filter(
       (card) => card.userId === userId,
     );
-  }
-
-  async getAllCards(): Promise<Card[]> {
-    return Array.from(this.cards.values());
   }
 
   async createLovedOne(lovedOneData: InsertLovedOne & { userId: number }): Promise<LovedOne> {
@@ -220,10 +215,6 @@ export class DatabaseStorage implements IStorage {
 
   async getUserCards(userId: number): Promise<Card[]> {
     return await db.select().from(cards).where(eq(cards.userId, userId));
-  }
-
-  async getAllCards(): Promise<Card[]> {
-    return await db.select().from(cards);
   }
 
   async createLovedOne(lovedOneData: InsertLovedOne & { userId: number }): Promise<LovedOne> {
