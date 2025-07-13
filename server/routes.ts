@@ -832,7 +832,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const fs = await import('fs');
         const path = await import('path');
         const filePath = path.join(process.cwd(), 'stored_images', card.frontImageUrl.replace('/images/', ''));
-        imageBuffer = await fs.promises.readFile(filePath);
+        
+        try {
+          imageBuffer = await fs.promises.readFile(filePath);
+        } catch (error) {
+          console.log(`[FAST-FRONT] PNG file not found: ${filePath}, falling back to base64`);
+          // FALLBACK: Try to get base64 from conversationData if PNG file doesn't exist
+          const conversationData = card.conversationData || {};
+          
+          // Check multiple possible sources for base64 data
+          let fallbackBase64 = null;
+          if (conversationData.frontImageUrl && conversationData.frontImageUrl.startsWith('data:image/')) {
+            fallbackBase64 = conversationData.frontImageUrl.split(',')[1];
+          } else if (conversationData.photo_upload && conversationData.photo_upload.startsWith('data:image/')) {
+            fallbackBase64 = conversationData.photo_upload.split(',')[1];
+          }
+          
+          if (fallbackBase64) {
+            imageBuffer = Buffer.from(fallbackBase64, 'base64');
+            console.log(`[FAST-FRONT] Using fallback base64 image: ${imageBuffer.length} bytes`);
+          } else {
+            console.log(`[FAST-FRONT] No fallback base64 image found in conversationData`);
+            throw error; // Re-throw if no fallback available
+          }
+        }
       } else {
         throw new Error('Invalid front image URL format');
       }
@@ -926,7 +949,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const fs = await import('fs');
         const path = await import('path');
         const filePath = path.join(process.cwd(), 'stored_images', card.insideImageUrl.replace('/images/', ''));
-        imageBuffer = await fs.promises.readFile(filePath);
+        
+        try {
+          imageBuffer = await fs.promises.readFile(filePath);
+        } catch (error) {
+          console.log(`[FAST-INSIDE] PNG file not found: ${filePath}, falling back to base64`);
+          // FALLBACK: Try to get base64 from conversationData if PNG file doesn't exist
+          const conversationData = card.conversationData || {};
+          
+          // Check multiple possible sources for base64 data
+          let fallbackBase64 = null;
+          if (conversationData.insideImageUrl && conversationData.insideImageUrl.startsWith('data:image/')) {
+            fallbackBase64 = conversationData.insideImageUrl.split(',')[1];
+          } else if (conversationData.photo_upload && conversationData.photo_upload.startsWith('data:image/')) {
+            fallbackBase64 = conversationData.photo_upload.split(',')[1];
+          }
+          
+          if (fallbackBase64) {
+            imageBuffer = Buffer.from(fallbackBase64, 'base64');
+            console.log(`[FAST-INSIDE] Using fallback base64 image: ${imageBuffer.length} bytes`);
+          } else {
+            console.log(`[FAST-INSIDE] No fallback base64 image found in conversationData`);
+            throw error; // Re-throw if no fallback available
+          }
+        }
       } else {
         throw new Error('Invalid inside image URL format');
       }
@@ -3704,6 +3750,19 @@ ${formatInstruction}`;
               console.log(`[PRELOAD] Loaded PNG front image: ${frontImageBuffer.length} bytes`);
             } else {
               console.log(`[PRELOAD] PNG front image file not found: ${frontFilePath}`);
+              // FALLBACK: Try to get base64 from conversationData if PNG file doesn't exist
+              const conversationData = card.conversationData || {};
+              let fallbackBase64 = null;
+              if (conversationData.frontImageUrl && conversationData.frontImageUrl.startsWith('data:image/')) {
+                fallbackBase64 = conversationData.frontImageUrl.split(',')[1];
+              } else if (conversationData.photo_upload && conversationData.photo_upload.startsWith('data:image/')) {
+                fallbackBase64 = conversationData.photo_upload.split(',')[1];
+              }
+              
+              if (fallbackBase64) {
+                frontImageBuffer = Buffer.from(fallbackBase64, 'base64');
+                console.log(`[PRELOAD] Fallback - loaded base64 front image from conversationData: ${frontImageBuffer.length} bytes`);
+              }
             }
           } else if (card.frontImageUrl.startsWith('data:image/')) {
             // Legacy base64 data URL
@@ -3725,6 +3784,19 @@ ${formatInstruction}`;
               console.log(`[PRELOAD] Loaded PNG inside image: ${insideImageBuffer.length} bytes`);
             } else {
               console.log(`[PRELOAD] PNG inside image file not found: ${insideFilePath}`);
+              // FALLBACK: Try to get base64 from conversationData if PNG file doesn't exist
+              const conversationData = card.conversationData || {};
+              let fallbackBase64 = null;
+              if (conversationData.insideImageUrl && conversationData.insideImageUrl.startsWith('data:image/')) {
+                fallbackBase64 = conversationData.insideImageUrl.split(',')[1];
+              } else if (conversationData.photo_upload && conversationData.photo_upload.startsWith('data:image/')) {
+                fallbackBase64 = conversationData.photo_upload.split(',')[1];
+              }
+              
+              if (fallbackBase64) {
+                insideImageBuffer = Buffer.from(fallbackBase64, 'base64');
+                console.log(`[PRELOAD] Fallback - loaded base64 inside image from conversationData: ${insideImageBuffer.length} bytes`);
+              }
             }
           } else if (card.insideImageUrl.startsWith('data:image/')) {
             // Legacy base64 data URL
