@@ -120,6 +120,14 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 13, 2025. CRITICAL PERFORMANCE FIX: Fixed 20+ second image generation caused by missing cardId parameters:
+  * FRONTEND API CALLS FIXED: Added missing cardId parameters to all API calls in guided-conversation.tsx
+  * EDIT-SCENE FIX: generateCardWithGPTImage() now includes cardId in edit-scene-gpt-image-1 API call
+  * TRANSFORM-STYLE FIX: generateCardWithGPTImageTransform() now includes cardId in transform-style-gpt-image-1 API call
+  * INSIDE-CARD FIX: Both functions now include cardId in generate-inside-card API calls
+  * LEGACY FALLBACK ELIMINATED: Routes no longer fall back to 20+ second Base64 processing when cardId is provided
+  * PNG CONVERSION ENABLED: All routes now properly use PNG file conversion for fast performance
+  * INSTANT GENERATION: Card generation now uses PNG files instead of legacy Base64 processing
 - July 13, 2025. COMPLETE PNG CONVERSION SYSTEM FINALIZED: All card generation routes now convert images to PNG files with zero Base64 storage:
   * EDIT-SCENE ROUTE FIXED: Added PNG conversion to /api/edit-scene-gpt-image-1 route - now stores unwatermarked PNG and returns watermarked PNG file URL
   * INSIDE CARD ROUTE FIXED: Added PNG conversion to /api/generate-inside-card route - now stores unwatermarked PNG and returns watermarked PNG file URL

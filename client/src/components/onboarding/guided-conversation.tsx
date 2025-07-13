@@ -1323,6 +1323,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     
     // Generate front card using GPT-Image-1 with multiple images
     const frontResponse = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
+      cardId, // CRITICAL: Include cardId for PNG conversion
       imageData: referenceImages[0], // Keep for backward compatibility
       imageDataArray: referenceImages, // Send all images
       scenePrompt: sceneDescription,
@@ -1340,6 +1341,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     let insideOriginalUrl = null;
     if (answers.inside_message) {
       const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
+        cardId, // CRITICAL: Include cardId for PNG conversion
         frontCardImage: frontImageUrl,
         insideText: answers.inside_message
       });
@@ -1391,6 +1393,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     
     // Generate front card using GPT-Image-1 transform style endpoint with multiple images
     const frontResponse = await apiRequest("POST", "/api/transform-style-gpt-image-1", {
+      cardId, // CRITICAL: Include cardId for PNG conversion
       imageData: referenceImages[0], // Keep for backward compatibility
       imageDataArray: referenceImages, // Send all images
       style: transformPrompt
@@ -1405,6 +1408,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     let insideOriginalUrl = null;
     if (answers.inside_message) {
       const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
+        cardId, // CRITICAL: Include cardId for PNG conversion
         frontCardImage: frontImageUrl,
         insideText: answers.inside_message
       });
