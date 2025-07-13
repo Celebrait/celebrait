@@ -2835,15 +2835,38 @@ ${formatInstruction}`;
 
         console.log('GPT-Image-1 scene editing completed successfully');
 
-        // Apply watermark to the generated image
-        const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
-
-        console.log('Watermark applied to front image');
-        res.json({ 
-          imageUrl: watermarkedImageUrl,
-          originalImageUrl: imageUrl, // Store original for secure access
-          usage: (responseData as any).usage
-        });
+        // CRITICAL: Store unwatermarked PNG file and generate watermarked preview version
+        const { cardId } = req.body;
+        
+        if (cardId) {
+          console.log('[PNG_CONVERSION] Storing unwatermarked scene image and generating watermarked preview...');
+          
+          // Store unwatermarked version (for post-payment delivery)
+          await storeUnwatermarkedImage(imageUrl, cardId, 'front');
+          
+          // Apply watermark and store watermarked version (for preview)
+          const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
+          const frontImagePngUrl = await convertBase64ToPngFile(watermarkedImageUrl, cardId, 'front');
+          
+          console.log('[PNG_CONVERSION] Scene image watermarked and converted to PNG file:', frontImagePngUrl);
+          console.log('Watermark applied to front image');
+          
+          res.json({ 
+            imageUrl: frontImagePngUrl, // Return PNG file URL instead of Base64
+            originalImageUrl: imageUrl, // Store original for secure access
+            usage: (responseData as any).usage
+          });
+        } else {
+          // Fallback for requests without cardId (legacy support)
+          const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
+          console.log('Watermark applied to front image (legacy fallback)');
+          
+          res.json({ 
+            imageUrl: watermarkedImageUrl,
+            originalImageUrl: imageUrl,
+            usage: (responseData as any).usage
+          });
+        }
 
       } catch (error: any) {
         console.error('GPT-Image-1 FormData scene edit error details:', error);
@@ -2986,15 +3009,38 @@ ${formatInstruction}`;
 
       console.log('Inside card generation completed successfully');
 
-      // Apply watermark to the generated inside card
-      const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
-
-      console.log('Watermark applied to inside card');
-      res.json({ 
-        imageUrl: watermarkedImageUrl,
-        originalImageUrl: imageUrl, // Store original for secure access
-        usage: (responseData as any).usage
-      });
+      // CRITICAL: Store unwatermarked PNG file and generate watermarked preview version
+      const { cardId } = req.body;
+      
+      if (cardId) {
+        console.log('[PNG_CONVERSION] Storing unwatermarked inside image and generating watermarked preview...');
+        
+        // Store unwatermarked version (for post-payment delivery)
+        await storeUnwatermarkedImage(imageUrl, cardId, 'inside');
+        
+        // Apply watermark and store watermarked version (for preview)
+        const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
+        const insideImagePngUrl = await convertBase64ToPngFile(watermarkedImageUrl, cardId, 'inside');
+        
+        console.log('[PNG_CONVERSION] Inside image watermarked and converted to PNG file:', insideImagePngUrl);
+        console.log('Watermark applied to inside card');
+        
+        res.json({ 
+          imageUrl: insideImagePngUrl, // Return PNG file URL instead of Base64
+          originalImageUrl: imageUrl, // Store original for secure access
+          usage: (responseData as any).usage
+        });
+      } else {
+        // Fallback for requests without cardId (legacy support)
+        const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
+        console.log('Watermark applied to inside card (legacy fallback)');
+        
+        res.json({ 
+          imageUrl: watermarkedImageUrl,
+          originalImageUrl: imageUrl,
+          usage: (responseData as any).usage
+        });
+      }
 
     } catch (error: any) {
       console.error('Inside card generation error:', error);
@@ -3247,14 +3293,36 @@ ${formatInstruction}`;
 
         console.log('GPT-Image-1 transformation completed successfully');
 
-        // Apply watermark to the generated image
-        const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
-
-        console.log('Watermark applied to transformed image');
-        res.json({ 
-          imageUrl: watermarkedImageUrl,
-          originalImageUrl: imageUrl // Store original for secure access
-        });
+        // CRITICAL: Store unwatermarked PNG file and generate watermarked preview version
+        const { cardId } = req.body;
+        
+        if (cardId) {
+          console.log('[PNG_CONVERSION] Storing unwatermarked transformed image and generating watermarked preview...');
+          
+          // Store unwatermarked version (for post-payment delivery)
+          await storeUnwatermarkedImage(imageUrl, cardId, 'front');
+          
+          // Apply watermark and store watermarked version (for preview)
+          const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
+          const frontImagePngUrl = await convertBase64ToPngFile(watermarkedImageUrl, cardId, 'front');
+          
+          console.log('[PNG_CONVERSION] Transformed image watermarked and converted to PNG file:', frontImagePngUrl);
+          console.log('Watermark applied to transformed image');
+          
+          res.json({ 
+            imageUrl: frontImagePngUrl, // Return PNG file URL instead of Base64
+            originalImageUrl: imageUrl // Store original for secure access
+          });
+        } else {
+          // Fallback for requests without cardId (legacy support)
+          const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
+          console.log('Watermark applied to transformed image (legacy fallback)');
+          
+          res.json({ 
+            imageUrl: watermarkedImageUrl,
+            originalImageUrl: imageUrl
+          });
+        }
 
       } catch (error: any) {
 

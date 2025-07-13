@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 13, 2025. COMPLETE PNG CONVERSION SYSTEM FINALIZED: All card generation routes now convert images to PNG files with zero Base64 storage:
+  * EDIT-SCENE ROUTE FIXED: Added PNG conversion to /api/edit-scene-gpt-image-1 route - now stores unwatermarked PNG and returns watermarked PNG file URL
+  * INSIDE CARD ROUTE FIXED: Added PNG conversion to /api/generate-inside-card route - now stores unwatermarked PNG and returns watermarked PNG file URL
+  * TRANSFORM-STYLE ROUTE FIXED: Added PNG conversion to /api/transform-style-gpt-image-1 route - now stores unwatermarked PNG and returns watermarked PNG file URL
+  * ALL ROUTES VERIFIED: 5 main card generation routes now use identical PNG conversion pattern with storeUnwatermarkedImage() and convertBase64ToPngFile()
+  * PERFORMANCE GUARANTEED: Zero Base64 data stored in database - all routes return PNG file URLs for instant loading
+  * SYSTEM COMPLETE: PNG-based workflow now covers generate-images, generate-style-transform, edit-scene-gpt-image-1, generate-inside-card, and transform-style-gpt-image-1
 - July 13, 2025. OPENAI QUALITY SETTINGS REVERTED: Changed all OpenAI quality settings from "high" back to "low" across all routes:
   * PERFORMANCE OPTIMIZATION: Reverted quality settings to "low" for faster image generation across all 5 OpenAI endpoints
   * ROUTES UPDATED: generate-images, edit-scene-gpt-image-1, generate-inside-card, transform-style-gpt-image-1, and generate-style-transform
