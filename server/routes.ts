@@ -796,9 +796,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Front image not found" });
       }
       
-      // Serve high-quality images with smart compression for fast loading
-      const base64Data = card.frontImageUrl.split(',')[1];
-      const imageBuffer = Buffer.from(base64Data, 'base64');
+      // Handle both base64 data and PNG file URLs
+      let imageBuffer: Buffer;
+      
+      if (card.frontImageUrl.startsWith('data:image/')) {
+        // Handle base64 data URLs
+        const base64Data = card.frontImageUrl.split(',')[1];
+        imageBuffer = Buffer.from(base64Data, 'base64');
+      } else if (card.frontImageUrl.startsWith('/images/')) {
+        // Handle PNG file URLs - read the file from disk
+        const fs = await import('fs');
+        const path = await import('path');
+        const filePath = path.join(process.cwd(), 'stored_images', card.frontImageUrl.replace('/images/', ''));
+        imageBuffer = await fs.promises.readFile(filePath);
+      } else {
+        throw new Error('Invalid front image URL format');
+      }
       
       // Use high-quality JPEG with optimal settings for fast loading
       const optimizedBuffer = await sharp(imageBuffer)
@@ -853,9 +866,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Inside image not found" });
       }
       
-      // Serve high-quality images with smart compression for fast loading
-      const base64Data = card.insideImageUrl.split(',')[1];
-      const imageBuffer = Buffer.from(base64Data, 'base64');
+      // Handle both base64 data and PNG file URLs
+      let imageBuffer: Buffer;
+      
+      if (card.insideImageUrl.startsWith('data:image/')) {
+        // Handle base64 data URLs
+        const base64Data = card.insideImageUrl.split(',')[1];
+        imageBuffer = Buffer.from(base64Data, 'base64');
+      } else if (card.insideImageUrl.startsWith('/images/')) {
+        // Handle PNG file URLs - read the file from disk
+        const fs = await import('fs');
+        const path = await import('path');
+        const filePath = path.join(process.cwd(), 'stored_images', card.insideImageUrl.replace('/images/', ''));
+        imageBuffer = await fs.promises.readFile(filePath);
+      } else {
+        throw new Error('Invalid inside image URL format');
+      }
       
       // Use high-quality JPEG with optimal settings for fast loading
       const optimizedBuffer = await sharp(imageBuffer)
@@ -3424,15 +3450,19 @@ ${formatInstruction}`;
         if (!card) {
           return { ready: false, error: "Card not found" };
         }
+        
+        console.log(`Card ${cardId} raw data:`, JSON.stringify(card, null, 2));
 
-        // Check if both front and inside images are ready
-        const frontReady = card.frontImageUrl && card.frontImageUrl.startsWith('data:image/');
-        const insideReady = !card.insideImageUrl || card.insideImageUrl.startsWith('data:image/');
+        // Check if both front and inside images are ready (support both base64 and PNG file URLs)
+        const frontReady = card.frontImageUrl && (card.frontImageUrl.startsWith('data:image/') || card.frontImageUrl.startsWith('/images/'));
+        const insideReady = !card.insideImageUrl || card.insideImageUrl.startsWith('data:image/') || card.insideImageUrl.startsWith('/images/');
 
         console.log(`Card ${card.id} image readiness check:`, {
           frontImageUrl: card.frontImageUrl ? 'present' : 'null',
+          frontImageUrlValue: card.frontImageUrl,
           frontReady,
-          insideImageUrl: card.insideImageUrl ? 'present' : 'null', 
+          insideImageUrl: card.insideImageUrl ? 'present' : 'null',
+          insideImageUrlValue: card.insideImageUrl,
           insideReady,
           status: card.status
         });
