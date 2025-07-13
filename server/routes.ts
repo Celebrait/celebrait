@@ -32,6 +32,7 @@ import { migrateCardImages, cardNeedsMigration } from "./image-migration";
 import { removeWatermarksFromCard } from "./watermark-removal";
 import { setupGoogleAuth } from "./google-auth";
 import { payfastService } from "./payfast-service";
+import { cleanupBase64Images, getBase64Usage } from "./base64-cleanup";
 import session from "express-session";
 import passport from "passport";
 
@@ -4215,6 +4216,42 @@ ${formatInstruction}`;
     } catch (error) {
       console.error('Error simulating payment:', error);
       res.status(500).json({ error: 'Failed to simulate payment' });
+    }
+  });
+
+  // Base64 cleanup endpoints
+  app.get('/api/cleanup/base64/status', async (req, res) => {
+    try {
+      const usage = await getBase64Usage();
+      
+      res.json({
+        success: true,
+        usage: {
+          ...usage,
+          estimatedBase64SizeMB: Math.round(usage.estimatedBase64Size / (1024 * 1024) * 100) / 100
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error getting Base64 usage: " + error.message });
+    }
+  });
+
+  app.post('/api/cleanup/base64', async (req, res) => {
+    try {
+      const { dryRun = true } = req.body;
+      
+      const results = await cleanupBase64Images(dryRun);
+      
+      res.json({
+        success: true,
+        message: dryRun ? 'Base64 cleanup dry run completed' : 'Base64 cleanup completed',
+        results: {
+          ...results,
+          storageFreedMB: Math.round(results.storageFreed / (1024 * 1024) * 100) / 100
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error during Base64 cleanup: " + error.message });
     }
   });
 
