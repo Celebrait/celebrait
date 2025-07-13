@@ -3,7 +3,7 @@ import express from "express";
 import { createServer, type Server } from "http";
 import { Readable } from "stream";
 import { spawn } from "child_process";
-import fs from "fs";
+import fs, { promises as fsPromises } from "fs";
 import path from "path";
 import { storage } from "./storage";
 import { insertUserSchema, insertCardSchema, insertLovedOneSchema, insertOrderSchema } from "@shared/schema";
@@ -588,10 +588,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Front image not found" });
       }
 
-      // Extract base64 data and convert to high-quality optimized buffer
+      // Handle PNG file URLs (new system) vs Base64 data (legacy)
+      let imageBuffer: Buffer;
       const conversionStartTime = Date.now();
-      const base64Data = card.frontImageUrl.split(',')[1];
-      const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      if (card.frontImageUrl.startsWith('/images/')) {
+        // NEW: PNG file URL - serve from stored PNG files
+        console.log(`[PNG_SERVE] Serving front image from PNG file: ${card.frontImageUrl}`);
+        
+        try {
+          const filename = path.basename(card.frontImageUrl);
+          const filepath = path.join(process.cwd(), 'stored_images', filename);
+          imageBuffer = await fsPromises.readFile(filepath);
+          console.log(`[PNG_SERVE] Successfully loaded PNG file: ${filename} (${imageBuffer.length} bytes)`);
+        } catch (error) {
+          console.error(`[PNG_SERVE] Failed to load PNG file: ${card.frontImageUrl}`, error);
+          return res.status(404).json({ message: "Front image file not found" });
+        }
+      } else {
+        // LEGACY: Base64 data - convert to buffer
+        console.log(`[BASE64_SERVE] Processing Base64 front image data (${card.frontImageUrl.length} chars)`);
+        const base64Data = card.frontImageUrl.split(',')[1];
+        imageBuffer = Buffer.from(base64Data, 'base64');
+      }
       
       // Use high-quality JPEG with optimal settings for fast loading
       const optimizedBuffer = await sharp(imageBuffer)
@@ -691,10 +710,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Inside image not found" });
       }
 
-      // Extract base64 data and convert to high-quality optimized buffer
+      // Handle PNG file URLs (new system) vs Base64 data (legacy)
+      let imageBuffer: Buffer;
       const conversionStartTime = Date.now();
-      const base64Data = card.insideImageUrl.split(',')[1];
-      const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      if (card.insideImageUrl.startsWith('/images/')) {
+        // NEW: PNG file URL - serve from stored PNG files
+        console.log(`[PNG_SERVE] Serving inside image from PNG file: ${card.insideImageUrl}`);
+        
+        try {
+          const filename = path.basename(card.insideImageUrl);
+          const filepath = path.join(process.cwd(), 'stored_images', filename);
+          imageBuffer = await fsPromises.readFile(filepath);
+          console.log(`[PNG_SERVE] Successfully loaded PNG file: ${filename} (${imageBuffer.length} bytes)`);
+        } catch (error) {
+          console.error(`[PNG_SERVE] Failed to load PNG file: ${card.insideImageUrl}`, error);
+          return res.status(404).json({ message: "Inside image file not found" });
+        }
+      } else {
+        // LEGACY: Base64 data - convert to buffer
+        console.log(`[BASE64_SERVE] Processing Base64 inside image data (${card.insideImageUrl.length} chars)`);
+        const base64Data = card.insideImageUrl.split(',')[1];
+        imageBuffer = Buffer.from(base64Data, 'base64');
+      }
       
       // Use high-quality JPEG with optimal settings for fast loading
       const optimizedBuffer = await sharp(imageBuffer)
