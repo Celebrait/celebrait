@@ -120,12 +120,6 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 13, 2025. CRITICAL TEXT LEGIBILITY FIX: Enhanced OpenAI prompts to ensure front card text is always readable and visible:
-  * TEXT FOREGROUND: Text must be FULLY VISIBLE and LEGIBLE in the foreground, never behind people or objects
-  * CONTRAST REQUIREMENTS: Text placed in unobstructed areas with sufficient contrast against background
-  * VISIBILITY MANDATE: Explicit instructions prevent people, objects, or visual elements from overlapping text
-  * FOCAL ELEMENT: Text prominently displayed as main attention-drawing element
-  * APPLIES TO: "Upload Photo + Describe Scene" route where text like "Janet" was appearing behind people
 - July 13, 2025. OPTIMIZED HIGH-QUALITY IMAGE PREVIEWS: Balanced quality and performance for fast loading:
   * HIGH QUALITY: Using 95% JPEG quality with mozjpeg encoder for excellent visual quality
   * FAST LOADING: Progressive JPEG with optimized scans for quick display

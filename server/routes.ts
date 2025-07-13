@@ -2568,7 +2568,7 @@ ${formatInstruction}`;
         fullPrompt = `${fullPrompt}, rendered in ${style} art style`;
       }
       if (includeText && cardText && cardText.trim()) {
-        fullPrompt = `${fullPrompt}. Add EXACTLY the text "${cardText}" and NO OTHER TEXT. CRITICAL TEXT REQUIREMENTS: 1) Text must be FULLY VISIBLE and LEGIBLE in the foreground, never behind people or objects, 2) Use clear, readable typography that matches the ${style || 'artistic'} style, 3) Place text in an unobstructed area with sufficient contrast against the background, 4) Text should be prominently displayed as the main focal element that draws attention, 5) Ensure no people, objects, or visual elements overlap or obscure any part of the text.`;
+        fullPrompt = `${fullPrompt}. Add EXACTLY the text "${cardText}" and NO OTHER TEXT. Use typography that matches the ${style || 'artistic'} style and complements the overall vibe of the image. The text should be prominently displayed and well-integrated into the design.`;
       }
       fullPrompt = `${fullPrompt}. High-quality artistic rendering, professional artwork.`;
 
