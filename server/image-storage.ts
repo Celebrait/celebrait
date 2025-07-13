@@ -360,38 +360,3 @@ export async function imageExists(cardId: number, imageType: 'front' | 'inside')
     return false;
   }
 }
-
-/**
- * Convert and store multiple Base64 images at once
- */
-export async function storeMultipleImagesFromBase64(
-  cardId: number,
-  images: { base64Data: string; type: 'front' | 'inside' }[]
-): Promise<{ [key: string]: StoredImage }> {
-  const results: { [key: string]: StoredImage } = {};
-  
-  for (const image of images) {
-    try {
-      if (image.base64Data && image.base64Data.startsWith('data:image/')) {
-        const stored = await storeImageFromBase64(image.base64Data, cardId, image.type);
-        results[image.type] = stored;
-        console.log(`[BATCH_STORAGE] Stored ${image.type} image: ${stored.filename} (${stored.size} bytes)`);
-      }
-    } catch (error) {
-      console.error(`[BATCH_STORAGE] Failed to store ${image.type} image:`, error);
-    }
-  }
-  
-  return results;
-}
-
-/**
- * Get optimal serving URL (file-based if exists, otherwise Base64)
- */
-export function getOptimalImageUrl(cardId: number, imageType: 'front' | 'inside', fallbackBase64?: string): string {
-  const fileUrl = getImageUrl(cardId, imageType);
-  
-  // In production, you could check if file exists and return accordingly
-  // For now, prioritize file-based URLs
-  return fileUrl;
-}
