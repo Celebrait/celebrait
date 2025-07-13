@@ -144,14 +144,13 @@ export default function CompleteOrder() {
         return;
       }
 
-      // Fallback to ultra-fast metadata endpoint
-      setLoading(true);
-      console.log(`[PERF] Complete order making ultra-fast API call for card ${cardId}`);
+      // Use instant endpoint that bypasses database
+      console.log(`[INSTANT] Complete order using instant metadata endpoint for card ${cardId}`);
       const apiStartTime = Date.now();
       
-      const response = await fetch(`/api/cards/${cardId}/fast-metadata`, {
+      const response = await fetch(`/api/cards/${cardId}/instant-metadata`, {
         headers: {
-          'Cache-Control': 'max-age=86400', // Request 24-hour cache
+          'Cache-Control': 'max-age=3600'
         }
       });
       

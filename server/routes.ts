@@ -388,11 +388,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // ULTRA-AGGRESSIVE CACHING: Extended TTL for instant response
       const cached = cardMetadataCache.get(cacheKey);
-      if (cached && (Date.now() - cached.timestamp) < (METADATA_CACHE_TTL * 24)) {
+      if (cached && (Date.now() - cached.timestamp) < (METADATA_CACHE_TTL * 48)) { // Extended to 48x cache time
         console.log(`[INSTANT] Fast metadata from extended cache for card ${cardId}`);
         res.set({
-          'Cache-Control': 'public, max-age=86400, immutable',
-          'ETag': `"fast-${cardId}-v2"`,
+          'Cache-Control': 'public, max-age=172800, immutable', // 2 days
+          'ETag': `"fast-${cardId}-v3"`,
           'X-Cache': 'HIT'
         });
         return res.json(cached.data);
@@ -1193,6 +1193,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Style transformation error:", error);
       res.status(500).json({ message: "Error transforming image style: " + error.message });
+    }
+  });
+
+
+
+  // INSTANT metadata endpoint - no database calls
+  app.get("/api/cards/:id/instant-metadata", async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      
+      // Check ALL cache sources for instant response
+      const cacheKeys = [
+        `fast-metadata-${cardId}`,
+        `metadata-${cardId}`,
+        `card-${cardId}`,
+        `ready-${cardId}`
+      ];
+      
+      for (const key of cacheKeys) {
+        const cached = cardMetadataCache.get(key);
+        if (cached) {
+          console.log(`[INSTANT-BYPASS] Served from ${key} cache in 0ms`);
+          res.set({
+            'Cache-Control': 'public, max-age=3600, immutable',
+            'ETag': `"instant-${cardId}"`,
+            'X-Cache': 'INSTANT-HIT'
+          });
+          return res.json(cached.data);
+        }
+      }
+      
+      // If no cache, return minimal response to prevent hanging
+      console.log(`[INSTANT-BYPASS] No cache found, returning minimal data for ${cardId}`);
+      res.set({
+        'Cache-Control': 'public, max-age=60',
+        'X-Cache': 'MISS-MINIMAL'
+      });
+      return res.json({
+        id: cardId,
+        cardType: 'digital',
+        conversationData: {}
+      });
+      
+    } catch (error) {
+      console.error("[INSTANT] Error:", error);
+      res.status(200).json({ id: parseInt(req.params.id), cardType: 'digital' });
     }
   });
 
@@ -2021,26 +2067,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (emailCached && (Date.now() - emailCached.timestamp) < 900000) { // 15 minutes cache
         console.log(`[INSTANT] Serving from preloaded email cache: ${reference} (${Date.now() - startTime}ms)`);
         
+        // Return minimal data - no images, just metadata
         const responseData = {
           card: {
-            ...emailCached.card,
-            frontImageUrl: `/api/cards/${emailCached.card.id}/fast-front-image`,
-            insideImageUrl: emailCached.insideImage ? `/api/cards/${emailCached.card.id}/fast-inside-image` : null,
-            // Remove base64 images for ultra-fast loading
-            frontImageBase64: null,
-            insideImageBase64: null
+            id: emailCached.card.id,
+            cardType: emailCached.card.cardType,
+            conversationData: emailCached.card.conversationData || {},
+            // NO IMAGE URLS - these load separately
           },
           reference,
           message: "Card ready for delivery choice"
         };
         
         res.set({
-          'Cache-Control': 'public, max-age=600',
-          'ETag': `"${reference}"`,
-          'X-Cache': 'HIT-PRELOADED',
-          'X-Response-Time': `${Date.now() - startTime}ms`,
-          'Content-Type': 'application/json; charset=utf-8',
-          'Connection': 'keep-alive'
+          'Cache-Control': 'public, max-age=3600, immutable',
+          'ETag': `"${reference}-minimal"`,
+          'X-Cache': 'HIT-PRELOADED-MINIMAL',
+          'X-Response-Time': `${Date.now() - startTime}ms`
         });
         return res.json(responseData);
       }

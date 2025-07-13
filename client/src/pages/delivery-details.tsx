@@ -93,21 +93,22 @@ export default function DeliveryDetails() {
         return;
       }
       
-      // Fallback to ultra-fast metadata endpoint if no cache available
-      setLoading(true);
-      console.log(`[PERF] Making ultra-fast API call for ${reference?.startsWith('celebrait_ready_') ? 'ready' : 'metadata'} endpoint`);
+      // Use instant endpoint that bypasses database completely
+      console.log(`[INSTANT] Using instant metadata endpoint to bypass database`);
       const apiStartTime = Date.now();
       
       try {
-        // Use fast metadata endpoint for instant loading
-        const endpoint = reference?.startsWith('celebrait_ready_') 
-          ? `/api/cards/ready/${reference}`
-          : `/api/cards/${reference}/fast-metadata`;
+        // Extract card ID from reference for instant endpoint
+        let cardId = reference;
+        if (reference?.startsWith('celebrait_ready_')) {
+          const parts = reference.split('_');
+          cardId = parts[2]; // Extract card ID from reference
+        }
         
-        const response = await fetch(endpoint, {
+        // Use instant endpoint that never hits database
+        const response = await fetch(`/api/cards/${cardId}/instant-metadata`, {
           headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
+            'Cache-Control': 'max-age=3600'
           }
         });
         
