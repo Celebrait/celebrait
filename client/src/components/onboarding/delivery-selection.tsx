@@ -10,23 +10,6 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
 
   const deliveryOptions = [
     {
-      id: 'printed',
-      title: 'Printed & Delivered',
-      description: 'High-quality physical greeting card printed and delivered to your door or directly to the recipient',
-      price: 'Coming Soon',
-      icon: Truck,
-      gradient: 'from-gray-400 to-gray-500',
-      hoverGradient: 'from-gray-500 to-gray-600',
-      borderColor: 'border-gray-200',
-      priceColor: 'text-gray-500',
-      features: [
-        'Premium card stock',
-        'Professional printing',
-        'Fast delivery'
-      ],
-      disabled: true
-    },
-    {
       id: 'digital',
       title: 'Digital Download',
       description: 'Instant digital card delivered via email with interactive viewing and download options',
@@ -42,6 +25,23 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
         'High-res download'
       ],
       disabled: false
+    },
+    {
+      id: 'printed',
+      title: 'Printed & Delivered',
+      description: 'High-quality physical greeting card printed and delivered to your door or directly to the recipient',
+      price: 'Coming Soon',
+      icon: Truck,
+      gradient: 'from-gray-400 to-gray-500',
+      hoverGradient: 'from-gray-500 to-gray-600',
+      borderColor: 'border-gray-200',
+      priceColor: 'text-gray-500',
+      features: [
+        'Premium card stock',
+        'Professional printing',
+        'Fast delivery'
+      ],
+      disabled: true
     }
   ];
 
