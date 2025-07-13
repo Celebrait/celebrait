@@ -776,13 +776,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ULTRA-FAST compressed image endpoint for email links
   app.get("/api/cards/:id/fast-front-image", async (req, res) => {
+    const startTime = Date.now();
     try {
       const cardId = parseInt(req.params.id);
       const cacheKey = `fast-front-${cardId}`;
       
-      // Check memory cache first
+      // PRIORITY 1: Check preloaded email link cache for instant serving
+      emailLinkCache.forEach((emailData, reference) => {
+        if (emailData.card.id === cardId && emailData.frontImage && (Date.now() - emailData.timestamp) < 900000) {
+          console.log(`[INSTANT] Serving fast front image ${cardId} from preloaded email cache (${emailData.frontImage.length} bytes) - ${Date.now() - startTime}ms`);
+          
+          // Use preloaded image data for instant serving
+          const optimizedBuffer = emailData.frontImage;
+          res.set({
+            'Content-Type': 'image/png',
+            'Content-Length': optimizedBuffer.length.toString(),
+            'Cache-Control': 'public, max-age=31536000, immutable',
+            'ETag': `"preloaded-front-${cardId}"`,
+            'X-Cache': 'HIT-PRELOADED'
+          });
+          res.send(optimizedBuffer);
+          return;
+        }
+      });
+      
+      // If we already sent a response from the preloaded cache, return early
+      if (res.headersSent) return;
+      
+      // PRIORITY 2: Check memory cache
       const cached = imageCache.get(cacheKey);
       if (cached) {
+        console.log(`[CACHE] Serving fast front image ${cardId} from memory cache - ${Date.now() - startTime}ms`);
         res.set({
           'Content-Type': 'image/jpeg',
           'Cache-Control': 'public, max-age=31536000, immutable',
@@ -846,13 +870,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ULTRA-FAST compressed inside image endpoint
   app.get("/api/cards/:id/fast-inside-image", async (req, res) => {
+    const startTime = Date.now();
     try {
       const cardId = parseInt(req.params.id);
       const cacheKey = `fast-inside-${cardId}`;
       
-      // Check memory cache first
+      // PRIORITY 1: Check preloaded email link cache for instant serving
+      emailLinkCache.forEach((emailData, reference) => {
+        if (emailData.card.id === cardId && emailData.insideImage && (Date.now() - emailData.timestamp) < 900000) {
+          console.log(`[INSTANT] Serving fast inside image ${cardId} from preloaded email cache (${emailData.insideImage.length} bytes) - ${Date.now() - startTime}ms`);
+          
+          // Use preloaded image data for instant serving
+          const optimizedBuffer = emailData.insideImage;
+          res.set({
+            'Content-Type': 'image/png',
+            'Content-Length': optimizedBuffer.length.toString(),
+            'Cache-Control': 'public, max-age=31536000, immutable',
+            'ETag': `"preloaded-inside-${cardId}"`,
+            'X-Cache': 'HIT-PRELOADED'
+          });
+          res.send(optimizedBuffer);
+          return;
+        }
+      });
+      
+      // If we already sent a response from the preloaded cache, return early
+      if (res.headersSent) return;
+      
+      // PRIORITY 2: Check memory cache
       const cached = imageCache.get(cacheKey);
       if (cached) {
+        console.log(`[CACHE] Serving fast inside image ${cardId} from memory cache - ${Date.now() - startTime}ms`);
         res.set({
           'Content-Type': 'image/jpeg',
           'Cache-Control': 'public, max-age=31536000, immutable',
