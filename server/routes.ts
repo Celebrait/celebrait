@@ -501,42 +501,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (result.success && result.user) {
         console.log('Setting user session for user:', result.user);
-        console.log('Session before setting userId:', {
-          sessionId: req.session.id,
-          userId: req.session.userId,
-          userEmail: req.session.userEmail
-        });
         
-        // Set user session
-        req.session.userId = result.user.id;
-        req.session.userEmail = result.user.email;
-        
-        console.log('Session after setting userId:', {
-          sessionId: req.session.id,
-          userId: req.session.userId,
-          userEmail: req.session.userEmail
-        });
-        
-        // Force session save and then respond
-        req.session.save((err) => {
+        // Regenerate session to ensure proper cookie signature
+        req.session.regenerate((err) => {
           if (err) {
-            console.error('Session save error:', err);
-            return res.status(500).json({ message: "Failed to save session" });
+            console.error('Session regenerate error:', err);
+            return res.status(500).json({ message: "Failed to regenerate session" });
           }
           
-          console.log('Session saved successfully. Session data:', {
+          console.log('Session regenerated, setting user data');
+          
+          // Set user data in regenerated session
+          req.session.userId = result.user.id;
+          req.session.userEmail = result.user.email;
+          
+          console.log('Session after setting userId:', {
+            sessionId: req.session.id,
             userId: req.session.userId,
-            userEmail: req.session.userEmail,
-            sessionId: req.session.id
+            userEmail: req.session.userEmail
           });
           
-          // Verify session is saved by checking immediately
-          console.log('Session object after save:', req.session);
-          
-          res.json({ 
-            message: "Successfully authenticated", 
-            user: result.user, 
-            success: true 
+          // Save the session
+          req.session.save((saveErr) => {
+            if (saveErr) {
+              console.error('Session save error:', saveErr);
+              return res.status(500).json({ message: "Failed to save session" });
+            }
+            
+            console.log('Session regenerated and saved successfully. Session data:', {
+              userId: req.session.userId,
+              userEmail: req.session.userEmail,
+              sessionId: req.session.id
+            });
+            
+            res.json({ 
+              message: "Successfully authenticated", 
+              user: result.user, 
+              success: true 
+            });
           });
         });
       } else {
