@@ -547,7 +547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User cards and orders endpoints
   app.get("/api/cards/user/:userId", requireAuth, async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
       
       // Ensure user can only access their own cards
       if (req.user.id !== userId) {

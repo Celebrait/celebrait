@@ -52,7 +52,7 @@ export default function AuthVerify() {
 
         // Redirect after success
         setTimeout(() => {
-          setLocation(redirectUrl || '/dashboard');
+          window.location.href = redirectUrl || '/dashboard';
         }, 2000);
       } else {
         setStatus('error');
