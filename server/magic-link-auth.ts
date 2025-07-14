@@ -27,10 +27,10 @@ export class MagicLinkAuth {
         expiresAt,
       });
 
-      // Create magic link URL
-      const baseUrl = process.env.NODE_ENV === 'development' 
-        ? 'http://localhost:5000' 
-        : `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'app.celebrait.co.za'}`;
+      // Create magic link URL using proper domain detection
+      const baseUrl = process.env.REPLIT_DOMAINS
+        ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
+        : 'https://app.celebrait.co.za';
       
       const magicLinkUrl = `${baseUrl}/auth/verify?token=${token}${redirectUrl ? `&redirect=${encodeURIComponent(redirectUrl)}` : ''}`;
 
