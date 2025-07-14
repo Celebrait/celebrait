@@ -111,6 +111,15 @@ function SeeHowItLooksSection() {
             See How It Looks
           </span>
         </h2>
+        
+        {/* Swipe instruction */}
+        <div className="mt-4">
+          <p className="text-gray-500 text-sm flex items-center justify-center gap-2">
+            <ChevronLeft className="w-4 h-4" />
+            Swipe to see more
+            <ChevronRight className="w-4 h-4" />
+          </p>
+        </div>
       </div>
       
       <div className="relative overflow-hidden">
@@ -229,14 +238,7 @@ function LargeImageSection() {
   return (
     <div className="mx-auto mt-16 mb-8 px-4 max-w-4xl">
       <div className="relative">
-        {/* Swipe instruction */}
-        <div className="text-center mb-4">
-          <p className="text-gray-500 text-sm flex items-center justify-center gap-2">
-            <ChevronLeft className="w-4 h-4" />
-            Swipe to see more
-            <ChevronRight className="w-4 h-4" />
-          </p>
-        </div>
+
         
         {/* Image container */}
         <div className="relative aspect-square bg-white rounded-2xl shadow-lg overflow-hidden w-full max-w-lg mx-auto md:max-w-2xl">
