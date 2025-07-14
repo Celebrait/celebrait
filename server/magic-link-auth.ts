@@ -123,17 +123,10 @@ export class MagicLinkAuth {
             email: magicLink.email,
             firstName: null,
             lastName: null,
-            isVerified: true,
           })
           .returning();
         
         user = newUser;
-      } else {
-        // Update existing user as verified
-        await db
-          .update(users)
-          .set({ isVerified: true })
-          .where(eq(users.id, user.id));
       }
 
       return {
