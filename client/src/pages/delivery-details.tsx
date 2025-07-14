@@ -150,57 +150,6 @@ export default function DeliveryDetails() {
         
       } catch (error) {
         console.error('Error loading card data:', error);
-        setLoading(false);
-      }
-      
-      try {
-        let response;
-        if (reference?.startsWith('celebrait_ready_')) {
-          response = await fetch(`/api/cards/ready/${reference}`, {
-            headers: {
-              'Cache-Control': 'max-age=3600', // Request 1-hour cache
-            }
-          });
-        } else {
-          response = await fetch(`/api/cards/${reference}/fast-metadata`, {
-            headers: {
-              'Cache-Control': 'max-age=86400', // Request 24-hour cache
-            }
-          });
-        }
-        
-        console.log(`[PERF] API response received in: ${Date.now() - apiStartTime}ms`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          const card = data.card || data;
-          setCardData(card);
-          
-          // Immediately store recipient name if found in API response
-          let extractedRecipientNameFromApi = null;
-          if (card?.conversationData) {
-            extractedRecipientNameFromApi = card.conversationData.name || 
-                                         card.conversationData.recipient_name ||
-                                         card.conversationData.recipientName;
-          }
-          if (extractedRecipientNameFromApi && extractedRecipientNameFromApi !== 'the recipient') {
-            sessionStorage.setItem('recipientName', extractedRecipientNameFromApi);
-            setRecipientName(extractedRecipientNameFromApi);
-            console.log('[RECIPIENT] Stored from API response:', extractedRecipientNameFromApi);
-          }
-          
-          // Cache the data for future use
-          try {
-            sessionStorage.setItem(`card_${reference}`, JSON.stringify(card));
-            console.log('[CACHE] Stored card data for future instant loading');
-          } catch (e) {
-            console.warn('Cache storage failed:', e);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading card data:', error);
-      } finally {
-        setLoading(false);
       }
     };
     
