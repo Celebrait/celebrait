@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { db } from './db';
 import { magicLinks, users } from '@shared/schema';
-import { eq, and, gt } from 'drizzle-orm';
+import { eq, and, gt, isNull } from 'drizzle-orm';
 import { sendEmail } from './email-service';
 
 export class MagicLinkAuth {
@@ -72,6 +72,8 @@ export class MagicLinkAuth {
     user?: any;
   }> {
     try {
+      console.log('Verifying magic link token:', token);
+      
       // Find unused, non-expired magic link
       const [magicLink] = await db
         .select()
@@ -80,11 +82,21 @@ export class MagicLinkAuth {
           and(
             eq(magicLinks.token, token),
             gt(magicLinks.expiresAt, new Date()),
-            eq(magicLinks.usedAt, null)
+            isNull(magicLinks.usedAt)
           )
         );
 
+      console.log('Magic link found:', magicLink);
+
       if (!magicLink) {
+        // Check if token exists at all
+        const [tokenExists] = await db
+          .select()
+          .from(magicLinks)
+          .where(eq(magicLinks.token, token));
+        
+        console.log('Token exists in database:', tokenExists);
+        
         return {
           success: false,
           message: 'Invalid or expired magic link'
