@@ -13,6 +13,13 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
   const [, setLocation] = useLocation();
   const [currentView, setCurrentView] = useState<'front' | 'inside' | 'open'>('front');
 
+  // Reset view to 'front' if 'open' is selected but card is digital
+  useEffect(() => {
+    if (currentView === 'open' && card.cardType === 'digital') {
+      setCurrentView('front');
+    }
+  }, [currentView, card.cardType]);
+
   // Preload data for instant delivery details loading
   useEffect(() => {
     if (card && onboarding) {
@@ -144,7 +151,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
               Inside Design
             </button>
           )}
-          {card.insideImageUrl && (
+          {card.insideImageUrl && card.cardType === 'printed' && (
             <button
               onClick={() => setCurrentView('open')}
               className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
@@ -181,7 +188,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
               </div>
             )}
             
-            {currentView === 'open' && card.insideImageUrl && (
+            {currentView === 'open' && card.insideImageUrl && card.cardType === 'printed' && (
               <div className="w-full">
                 <div className="flex bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
                   {/* Left side - blank */}
