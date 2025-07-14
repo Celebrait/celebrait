@@ -35,7 +35,7 @@ export default function CompleteOrder() {
   const { toast } = useToast();
   
   const [card, setCard] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Start with false for instant display
   const [submitting, setSubmitting] = useState(false);
   
   // Form data
@@ -144,8 +144,7 @@ export default function CompleteOrder() {
         return;
       }
 
-      // Fallback to ultra-fast metadata endpoint
-      setLoading(true);
+      // Fallback to ultra-fast metadata endpoint - NO LOADING SPINNER for email links
       console.log(`[PERF] Complete order making ultra-fast API call for card ${cardId}`);
       const apiStartTime = Date.now();
       

@@ -11,7 +11,7 @@ export default function DeliveryDetails() {
   const { reference } = useParams();
   const [, setLocation] = useLocation();
   const [cardData, setCardData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Start with false for instant display
   const [selectedDeliveryType, setSelectedDeliveryType] = useState<'digital' | 'printed' | null>(null);
   const [showRecipientChoice, setShowRecipientChoice] = useState(false);
   const isMobile = useIsMobile();
@@ -97,8 +97,7 @@ export default function DeliveryDetails() {
         return;
       }
       
-      // Fallback to ultra-fast metadata endpoint if no cache available
-      setLoading(true);
+      // Fallback to ultra-fast metadata endpoint if no cache available - NO LOADING SPINNER
       console.log(`[PERF] Making ultra-fast API call for ${reference?.startsWith('celebrait_ready_') ? 'ready' : 'metadata'} endpoint`);
       const apiStartTime = Date.now();
       

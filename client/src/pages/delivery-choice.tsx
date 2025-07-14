@@ -12,7 +12,7 @@ export default function DeliveryChoice() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/delivery-choice/:reference");
   const [cardData, setCardData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Start with false for instant display
   const [selectedDelivery, setSelectedDelivery] = useState<'printed' | 'digital' | null>(null);
   const [currentOption, setCurrentOption] = useState(0);
   const [touchStart, setTouchStart] = useState(0);
