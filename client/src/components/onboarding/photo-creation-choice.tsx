@@ -11,6 +11,15 @@ interface PhotoCreationChoiceProps {
 export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoCreationChoiceProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedOption, setSelectedOption] = useState<'upload_and_scene' | 'upload_and_transform' | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  // Fade in effect when component mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Scroll to top when loading screen appears
   useEffect(() => {
@@ -85,7 +94,7 @@ export default function PhotoCreationChoice({ onOptionSelected, onBack }: PhotoC
   }
 
   return (
-    <div className="space-y-8">
+    <div className={`space-y-8 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       {/* Header Section */}
       <div className="text-center mb-8">
         <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
