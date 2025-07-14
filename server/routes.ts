@@ -3417,7 +3417,7 @@ ${formatInstruction}`;
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
         formData.append('size', size);
-        formData.append('quality', 'low');
+        formData.append('quality', 'standard');
         formData.append('moderation', 'low');
 
         console.log('📋 Form data parameters being sent:');
