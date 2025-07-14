@@ -26,45 +26,59 @@ export default function CardPreviewPage() {
   }, [reference, hasInitialized]);
 
   const loadCardDataInstantly = async () => {
-    // For email links, prioritize instant loading
-    const cacheKey = `ready_${reference}`;
-    try {
-      const cached = sessionStorage.getItem(cacheKey);
-      if (cached) {
-        const parsedData = JSON.parse(cached);
-        const card = parsedData.card || parsedData;
-        if (card && (card.id || card.conversationData)) {
-          setCardData(card);
-          setLoading(false); // Hide loading state since we have data
-          console.log(`[INSTANT] Email card preview loaded from cache: ${cacheKey}`);
-          
-          // Preload images for instant display
-          if (card.id) {
-            const frontImg = new Image();
-            const insideImg = new Image();
-            frontImg.src = `/api/cards/${card.id}/fast-front-image`;
-            if (card.insideImageUrl) {
-              insideImg.src = `/api/cards/${card.id}/fast-inside-image`;
+    // For email links, prioritize instant loading - start with loading=false for immediate display
+    setLoading(false); // Show content immediately, don't wait for API
+    
+    // Try comprehensive cache search first
+    const cacheKeys = [
+      `ready_${reference}`,
+      `card_${reference}`,
+      'cardPreviewData',
+      // Extract card ID from reference and try additional cache keys
+      ...(reference ? [`card_${reference.replace(/.*_(\d+)_.*/, '$1')}`, `ready_${reference.replace(/.*_(\d+)_.*/, '$1')}`] : [])
+    ];
+    
+    for (const cacheKey of cacheKeys) {
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+          const parsedData = JSON.parse(cached);
+          const card = parsedData.card || parsedData;
+          if (card && (card.id || card.conversationData)) {
+            setCardData(card);
+            console.log(`[INSTANT] Email card preview loaded from cache: ${cacheKey}`);
+            
+            // Preload images for instant display
+            if (card.id) {
+              const frontImg = new Image();
+              const insideImg = new Image();
+              frontImg.src = `/api/cards/${card.id}/fast-front-image`;
+              if (card.insideImageUrl) {
+                insideImg.src = `/api/cards/${card.id}/fast-inside-image`;
+              }
             }
+            return; // Exit early on cache hit
           }
-          return;
         }
+      } catch (e) {
+        console.warn('Cache key failed:', cacheKey, e);
       }
-    } catch (e) {
-      console.warn('Cache load failed, falling back to API');
     }
     
-    // No cache found - load from API but don't show loading spinner for email links
+    // No cache found - load from API in background without loading spinner
     try {
       const response = await fetch(`/api/cards/ready/${reference}`);
       if (response.ok) {
         const data = await response.json();
         const card = data.card || data;
         setCardData(card);
-        setLoading(false); // Hide loading state since we have data
         
-        // Cache for next time
+        // Cache for next time with multiple keys
+        const cacheKey = `ready_${reference}`;
         sessionStorage.setItem(cacheKey, JSON.stringify(data));
+        if (card.id) {
+          sessionStorage.setItem(`card_${card.id}`, JSON.stringify(data));
+        }
         
         // Preload images for instant display
         if (card.id) {
@@ -79,11 +93,9 @@ export default function CardPreviewPage() {
         console.log(`[INSTANT] Email card loaded from API and cached: ${cacheKey}`);
       } else {
         console.error('Failed to load email card data');
-        setLoading(false); // Show "Card Not Found" since API failed
       }
     } catch (error) {
       console.error('Error loading email card:', error);
-      setLoading(false); // Show "Card Not Found" since we have no data
     }
   };
 
