@@ -120,14 +120,6 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 14, 2025. COMPLETE AUTHENTICATION SYSTEM REBUILD: Replaced complex session-based authentication with simple JWT-based system:
-  * JWT-BASED AUTHENTICATION: Replaced session management with JWT tokens stored in HTTP-only cookies
-  * EMAIL-TO-LOGIN FLOW: Simplified authentication flow - user enters email → receives login link → automatically logged in
-  * ELIMINATED SESSION COMPLEXITY: Removed all session store dependencies, cookie signature issues, and redirect loops
-  * SIMPLIFIED MIDDLEWARE: Updated auth middleware to use JWT verification instead of session lookups
-  * DIRECT LOGIN LINKS: Login links now directly redirect to dashboard with auth cookie set automatically
-  * RELIABLE AUTHENTICATION: Eliminated persistent session issues and made authentication system MVP-ready
-  * PERFORMANCE IMPROVEMENT: Removed database session queries and complex session regeneration
 - July 14, 2025. URGENT RECIPIENT DETAILS LOADING FIX: Fixed slow loading of recipient names and user details throughout email and web journeys:
   * INSTANT RECIPIENT NAMES: Fixed delivery-details.tsx to immediately load recipient names from cache instead of showing "the recipient" placeholder
   * INSTANT USER DETAILS: Fixed complete-order.tsx to immediately populate user name and email from cache instead of waiting for API calls

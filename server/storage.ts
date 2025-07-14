@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { eq, desc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { users, cards, lovedOnes, orders, type User, type InsertUser, type Card, type InsertCard, type LovedOne, type InsertLovedOne, type Order, type InsertOrder } from "@shared/schema";
 
 // Database connection
@@ -8,18 +8,17 @@ const sql = neon(process.env.DATABASE_URL!);
 const db = drizzle(sql);
 
 export interface IStorage {
-  getUser(id: number | string): Promise<User | undefined>;
+  getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
-  createCard(card: InsertCard & { userId: number | string }): Promise<Card>;
+  createCard(card: InsertCard & { userId: number }): Promise<Card>;
   getCard(id: number): Promise<Card | undefined>;
   updateCard(id: number, updates: Partial<Card>): Promise<Card>;
-  getUserCards(userId: number | string): Promise<Card[]>;
-  getUserCardsForDashboard(userId: number | string): Promise<any[]>;
+  getUserCards(userId: number): Promise<Card[]>;
 
-  createLovedOne(lovedOne: InsertLovedOne & { userId: number | string }): Promise<LovedOne>;
-  getUserLovedOnes(userId: number | string): Promise<LovedOne[]>;
+  createLovedOne(lovedOne: InsertLovedOne & { userId: number }): Promise<LovedOne>;
+  getUserLovedOnes(userId: number): Promise<LovedOne[]>;
 
   createOrder(order: InsertOrder): Promise<Order>;
   getOrder(id: number): Promise<Order | undefined>;
@@ -62,10 +61,8 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
     const user: User = { 
+      ...insertUser, 
       id,
-      email: insertUser.email,
-      firstName: insertUser.firstName ?? null,
-      lastName: insertUser.lastName ?? null,
       createdAt: new Date()
     };
     this.users.set(id, user);
@@ -75,19 +72,13 @@ export class MemStorage implements IStorage {
   async createCard(cardData: InsertCard & { userId: number }): Promise<Card> {
     const id = this.currentCardId++;
     const card: Card = {
-      id,
-      userId: cardData.userId,
-      cardType: cardData.cardType,
+      ...cardData,
       printOption: cardData.printOption || null,
-      sceneType: cardData.sceneType,
       conversationData: cardData.conversationData || {},
+      id,
       frontImageUrl: null,
       insideImageUrl: null,
-      frontImagePath: null,
-      insideImagePath: null,
-      printReadyPath: null,
       status: 'generating',
-      price: cardData.price,
       createdAt: new Date()
     };
     this.cards.set(id, card);
@@ -114,13 +105,6 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async getUserCardsForDashboard(userId: number | string): Promise<any[]> {
-    const numericId = typeof userId === 'string' ? parseInt(userId) : userId;
-    return Array.from(this.cards.values())
-      .filter((card) => card.userId === numericId)
-      .slice(0, 50); // Limit to 50 cards
-  }
-
   async createLovedOne(lovedOneData: InsertLovedOne & { userId: number }): Promise<LovedOne> {
     const id = this.currentLovedOneId++;
     const lovedOne: LovedOne = {
@@ -141,24 +125,18 @@ export class MemStorage implements IStorage {
   async createOrder(orderData: InsertOrder): Promise<Order> {
     const id = this.currentOrderId++;
     const order: Order = {
-      id,
-      cardId: orderData.cardId,
-      customerEmail: orderData.customerEmail,
-      customerName: orderData.customerName,
-      customerPhone: orderData.customerPhone || null,
-      amount: orderData.amount,
-      baseAmount: orderData.baseAmount || orderData.amount,
-      tipAmount: orderData.tipAmount || 0,
-      currency: orderData.currency || 'ZAR',
-      paymentReference: orderData.paymentReference,
+      ...orderData,
+      id, // Explicitly set the ID
       paymentStatus: 'pending',
       orderStatus: 'processing',
-      orderType: orderData.orderType || 'regular',
-      shippingAddress: orderData.shippingAddress || null,
-      recipientInfo: orderData.recipientInfo || null,
       trackingNumber: null,
+      currency: orderData.currency || 'ZAR',
+      shippingAddress: orderData.shippingAddress || null,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      baseAmount: orderData.baseAmount || orderData.amount,
+      tipAmount: orderData.tipAmount || 0,
+      orderType: orderData.orderType || 'regular'
     };
     console.log('Creating order with data:', order); // Added logging
     this.orders.set(id, order);
@@ -205,10 +183,8 @@ export class MemStorage implements IStorage {
 
 // PostgreSQL-based storage implementation
 export class DatabaseStorage implements IStorage {
-  async getUser(id: number | string): Promise<User | undefined> {
-    const numericId = typeof id === 'string' ? parseInt(id) : id;
-    if (isNaN(numericId)) return undefined;
-    const result = await db.select().from(users).where(eq(users.id, numericId)).limit(1);
+  async getUser(id: number): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
     return result[0];
   }
 
@@ -222,10 +198,8 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async createCard(cardData: InsertCard & { userId: number | string }): Promise<Card> {
-    const numericUserId = typeof cardData.userId === 'string' ? parseInt(cardData.userId) : cardData.userId;
-    const cardWithNumericUserId = { ...cardData, userId: numericUserId };
-    const result = await db.insert(cards).values(cardWithNumericUserId).returning();
+  async createCard(cardData: InsertCard & { userId: number }): Promise<Card> {
+    const result = await db.insert(cards).values(cardData).returning();
     return result[0];
   }
 
@@ -239,42 +213,17 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getUserCards(userId: number | string): Promise<Card[]> {
-    const numericId = typeof userId === 'string' ? parseInt(userId) : userId;
-    if (isNaN(numericId)) return [];
-    return await db.select().from(cards).where(eq(cards.userId, numericId));
+  async getUserCards(userId: number): Promise<Card[]> {
+    return await db.select().from(cards).where(eq(cards.userId, userId));
   }
 
-  async getUserCardsForDashboard(userId: number | string): Promise<any[]> {
-    const userIdStr = typeof userId === 'number' ? userId.toString() : userId;
-    
-    // Use raw SQL to avoid any issues with large data processing
-    try {
-      const result = await sql`
-        SELECT id, card_type, status, price, created_at 
-        FROM cards 
-        WHERE user_id = ${userIdStr} 
-        ORDER BY created_at DESC 
-        LIMIT 5
-      `;
-      return result;
-    } catch (error) {
-      console.error('Dashboard cards query error:', error);
-      return [];
-    }
-  }
-
-  async createLovedOne(lovedOneData: InsertLovedOne & { userId: number | string }): Promise<LovedOne> {
-    const numericUserId = typeof lovedOneData.userId === 'string' ? parseInt(lovedOneData.userId) : lovedOneData.userId;
-    const lovedOneWithNumericUserId = { ...lovedOneData, userId: numericUserId };
-    const result = await db.insert(lovedOnes).values(lovedOneWithNumericUserId).returning();
+  async createLovedOne(lovedOneData: InsertLovedOne & { userId: number }): Promise<LovedOne> {
+    const result = await db.insert(lovedOnes).values(lovedOneData).returning();
     return result[0];
   }
 
-  async getUserLovedOnes(userId: number | string): Promise<LovedOne[]> {
-    const numericId = typeof userId === 'string' ? parseInt(userId) : userId;
-    if (isNaN(numericId)) return [];
-    return await db.select().from(lovedOnes).where(eq(lovedOnes.userId, numericId));
+  async getUserLovedOnes(userId: number): Promise<LovedOne[]> {
+    return await db.select().from(lovedOnes).where(eq(lovedOnes.userId, userId));
   }
 
   async createOrder(orderData: InsertOrder): Promise<Order> {

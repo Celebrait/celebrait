@@ -32,9 +32,8 @@ import { migrateCardImages, cardNeedsMigration } from "./image-migration";
 import { removeWatermarksFromCard } from "./watermark-removal";
 import { setupGoogleAuth } from "./google-auth";
 import { payfastService } from "./payfast-service";
-import { SimpleAuth } from "./simple-auth";
-import { requireAuth, optionalAuth } from "./auth-middleware";
-import cookieParser from "cookie-parser";
+import session from "express-session";
+import passport from "passport";
 
 // Temporarily allow running without API keys for testing
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
@@ -372,9 +371,6 @@ async function processFluxBinaryOutput(output: any): Promise<string> {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Configure cookie parser for JWT tokens
-  app.use(cookieParser());
-
   // Serve stored images statically
   app.use('/images', (req, res, next) => {
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
@@ -439,206 +435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Simple JWT Authentication Routes
-  app.post("/api/auth/login-link", async (req, res) => {
-    try {
-      const { email, redirectUrl } = req.body;
-      
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
-      }
-
-      const result = await SimpleAuth.sendLoginLink(email, redirectUrl);
-      
-      if (result.success) {
-        res.json({ 
-          message: "Login link sent successfully", 
-          success: true 
-        });
-      } else {
-        res.status(400).json({ 
-          message: result.message, 
-          success: false 
-        });
-      }
-    } catch (error: any) {
-      res.status(500).json({ message: "Failed to send login link" });
-    }
-  });
-
-  app.get("/api/auth/login", async (req, res) => {
-    try {
-      const { token, redirect } = req.query;
-      
-      if (!token) {
-        return res.status(400).json({ message: "Token is required" });
-      }
-
-      const result = await SimpleAuth.verifyToken(token as string);
-      
-      if (result.success && result.user) {
-        // Create long-lived auth token
-        const authToken = SimpleAuth.createAuthToken(result.user);
-        
-        // Set HTTP-only cookie with auth token
-        res.cookie('auth-token', authToken, {
-          httpOnly: true,
-          secure: false, // Set to true in production
-          sameSite: 'lax',
-          maxAge: 24 * 60 * 60 * 1000 // 24 hours
-        });
-        
-        // Redirect to dashboard or specified URL
-        const redirectUrl = redirect ? decodeURIComponent(redirect as string) : '/dashboard';
-        res.redirect(redirectUrl);
-      } else {
-        res.status(400).send(`
-          <div style="max-width: 400px; margin: 50px auto; padding: 20px; font-family: Arial, sans-serif; text-align: center;">
-            <h2 style="color: #dc2626;">Authentication Failed</h2>
-            <p>Invalid or expired login link.</p>
-            <a href="/login" style="background: #7c3aed; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px;">Try Again</a>
-          </div>
-        `);
-      }
-    } catch (error: any) {
-      res.status(500).send(`
-        <div style="max-width: 400px; margin: 50px auto; padding: 20px; font-family: Arial, sans-serif; text-align: center;">
-          <h2 style="color: #dc2626;">Error</h2>
-          <p>Failed to verify login link.</p>
-          <a href="/login" style="background: #7c3aed; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px;">Try Again</a>
-        </div>
-      `);
-    }
-  });
-
-  app.post("/api/auth/logout", (req, res) => {
-    res.clearCookie('auth-token');
-    res.json({ message: "Logged out successfully" });
-  });
-
-  app.get("/api/auth/me", optionalAuth, (req, res) => {
-    if (req.user) {
-      res.json({ user: req.user, authenticated: true });
-    } else {
-      res.json({ user: null, authenticated: false });
-    }
-  });
-
-  // User cards and orders endpoints
-  app.get("/api/cards/user/:userId", requireAuth, async (req, res) => {
-    try {
-      const userId = req.params.userId;
-      
-      // Ensure user can only access their own cards
-      if (req.user.id !== userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      const cards = await storage.getUserCards(userId);
-      res.json(cards);
-    } catch (error: any) {
-      res.status(500).json({ message: "Error fetching user cards: " + error.message });
-    }
-  });
-
-  // Simplified endpoints that use authenticated user automatically
-  app.get("/api/cards/user", requireAuth, async (req, res) => {
-    try {
-      const cards = await storage.getUserCardsForDashboard(req.user.id);
-      
-      // Convert to dashboard format and add image URLs
-      const dashboardCards = cards.map(card => ({
-        id: card.id,
-        cardType: card.cardType,
-        printOption: card.printOption,
-        sceneType: card.sceneType,
-        conversationData: {}, // Empty to avoid large data
-        frontImageUrl: card.frontImageUrl ? `/api/cards/${card.id}/front-image` : null,
-        insideImageUrl: card.insideImageUrl ? `/api/cards/${card.id}/inside-image` : null,
-        status: card.status,
-        price: card.price,
-        createdAt: card.createdAt
-      }));
-      
-      res.json(dashboardCards);
-    } catch (error: any) {
-      res.status(500).json({ message: "Error fetching user cards: " + error.message });
-    }
-  });
-
-  app.get("/api/orders/user/:email", requireAuth, async (req, res) => {
-    try {
-      const email = req.params.email;
-      
-      // Ensure user can only access their own orders
-      if (req.user.email !== email) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      const orders = await storage.getOrdersByEmail(email);
-      res.json(orders);
-    } catch (error: any) {
-      res.status(500).json({ message: "Error fetching user orders: " + error.message });
-    }
-  });
-
-  app.get("/api/orders/user", requireAuth, async (req, res) => {
-    try {
-      const orders = await storage.getOrdersByEmail(req.user.email);
-      res.json(orders);
-    } catch (error: any) {
-      res.status(500).json({ message: "Error fetching user orders: " + error.message });
-    }
-  });
-
-  // Get card by ID (optimized endpoint with performance monitoring)
-  app.get("/api/cards/:id", async (req, res) => {
-    const startTime = Date.now();
-    try {
-      const cardId = parseInt(req.params.id);
-      
-      console.log(`[PERF] Fetching card ${cardId} metadata...`);
-      const dbStartTime = Date.now();
-      const card = await storage.getCard(cardId);
-      const dbEndTime = Date.now();
-      console.log(`[PERF] Card metadata query took: ${dbEndTime - dbStartTime}ms`);
-
-      if (!card) {
-        return res.status(404).json({ message: "Card not found" });
-      }
-      
-      // For performance, only send metadata and serve images as separate endpoints
-      const optimizedCard = {
-        id: card.id,
-        userId: card.userId,
-        cardType: card.cardType,
-        printOption: card.printOption,
-        sceneType: card.sceneType,
-        status: card.status,
-        price: card.price,
-        frontImageUrl: card.frontImageUrl ? `/api/cards/${cardId}/front-image` : null,
-        insideImageUrl: card.insideImageUrl ? `/api/cards/${cardId}/inside-image` : null,
-        conversationData: card.conversationData || {}
-      };
-      
-      // Add caching headers for faster subsequent loads
-      res.set({
-        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
-        'ETag': `"${cardId}-${card.status}"`
-      });
-      
-      const endTime = Date.now();
-      console.log(`[PERF] Total card metadata serving time: ${endTime - startTime}ms`);
-      
-      res.json(optimizedCard);
-    } catch (error: any) {
-      const endTime = Date.now();
-      console.error(`[PERF] Card metadata error after ${endTime - startTime}ms:`, error);
-      res.status(500).json({ message: "Error fetching card: " + error.message });
-    }
-  });
-
-  // User registration (legacy - kept for backward compatibility)
+  // User registration
   app.post("/api/users", async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
@@ -772,7 +569,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get card by ID (optimized endpoint with performance monitoring)
+  app.get("/api/cards/:id", async (req, res) => {
+    const startTime = Date.now();
+    try {
+      const cardId = parseInt(req.params.id);
+      
+      console.log(`[PERF] Fetching card ${cardId} metadata...`);
+      const dbStartTime = Date.now();
+      const card = await storage.getCard(cardId);
+      const dbEndTime = Date.now();
+      console.log(`[PERF] Card metadata query took: ${dbEndTime - dbStartTime}ms`);
 
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      // For performance, only send metadata and serve images as separate endpoints
+      const optimizedCard = {
+        id: card.id,
+        userId: card.userId,
+        cardType: card.cardType,
+        printOption: card.printOption,
+        sceneType: card.sceneType,
+        status: card.status,
+        price: card.price,
+        frontImageUrl: card.frontImageUrl ? `/api/cards/${cardId}/front-image` : null,
+        insideImageUrl: card.insideImageUrl ? `/api/cards/${cardId}/inside-image` : null,
+        conversationData: card.conversationData || {}
+      };
+      
+      // Add caching headers for faster subsequent loads
+      res.set({
+        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+        'ETag': `"${cardId}-${card.status}"`
+      });
+      
+      const endTime = Date.now();
+      console.log(`[PERF] Total card metadata serving time: ${endTime - startTime}ms`);
+      
+      res.json(optimizedCard);
+    } catch (error: any) {
+      const endTime = Date.now();
+      console.error(`[PERF] Card metadata error after ${endTime - startTime}ms:`, error);
+      res.status(500).json({ message: "Error fetching card: " + error.message });
+    }
+  });
 
   // Get card front image (ULTRA-FAST with preloaded email cache)
   app.get("/api/cards/:id/front-image", async (req, res) => {

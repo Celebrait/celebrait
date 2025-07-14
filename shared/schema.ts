@@ -4,18 +4,8 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
+  username: text("username").notNull(),
   email: text("email").notNull().unique(),
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const magicLinks = pgTable("magic_links", {
-  id: serial("id").primaryKey(),
-  email: text("email").notNull(),
-  token: text("token").notNull().unique(),
-  expiresAt: timestamp("expires_at").notNull(),
-  usedAt: timestamp("used_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -59,22 +49,15 @@ export const orders = pgTable("orders", {
   orderStatus: text("order_status").notNull().default("processing"),
   orderType: text("order_type").notNull().default("regular"),
   shippingAddress: json("shipping_address"),
-  recipientInfo: jsonb("recipient_info"), // JSON object containing recipient name and email for dual delivery
+  recipientInfo: text("recipient_info"), // JSON string containing recipient name and email for dual delivery
   trackingNumber: text("tracking_number"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
+  username: true,
   email: true,
-  firstName: true,
-  lastName: true,
-});
-
-export const insertMagicLinkSchema = createInsertSchema(magicLinks).pick({
-  email: true,
-  token: true,
-  expiresAt: true,
 });
 
 export const insertCardSchema = createInsertSchema(cards).pick({
@@ -104,7 +87,6 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   orderStatus: true,
   orderType: true,
   shippingAddress: true,
-  recipientInfo: true,
   trackingNumber: true,
 });
 
@@ -116,5 +98,3 @@ export type InsertLovedOne = z.infer<typeof insertLovedOneSchema>;
 export type LovedOne = typeof lovedOnes.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type Order = typeof orders.$inferSelect;
-export type InsertMagicLink = z.infer<typeof insertMagicLinkSchema>;
-export type MagicLink = typeof magicLinks.$inferSelect;
