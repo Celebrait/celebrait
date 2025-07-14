@@ -166,7 +166,7 @@ async function applyWatermark(imageData: string, opacity: number = 0.3): Promise
     const text = 'CELEBRAIT PREVIEW';
     const fontSize = Math.min(originalImage.width, originalImage.height) * 0.08;
     ctx.font = `bold ${fontSize}px Arial`;
-    ctx.fillStyle = `rgba(255, 255, 255, 0.8)`; // High opacity white text without outline
+    ctx.fillStyle = `rgba(255, 255, 255, 0.3)`; // Reduced opacity white text for less prominence
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -244,7 +244,7 @@ async function applyWatermarkToPngFile(
     const text = 'CELEBRAIT PREVIEW';
     const fontSize = Math.min(originalImage.width, originalImage.height) * 0.08;
     ctx.font = `bold ${fontSize}px Arial`;
-    ctx.fillStyle = `rgba(255, 255, 255, 0.8)`; // High opacity white text without outline
+    ctx.fillStyle = `rgba(255, 255, 255, 0.3)`; // Reduced opacity white text for less prominence
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 

@@ -120,6 +120,11 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 14, 2025. WATERMARK OPACITY REDUCTION: Reduced watermark prominence to improve image visibility:
+  * REDUCED OPACITY: Changed watermark text opacity from 0.8 to 0.3 for less prominence over card images
+  * MAINTAINED STYLING: Kept same diagonal positioning, font size, and spacing while making text more transparent
+  * BOTH FUNCTIONS UPDATED: Applied opacity reduction to both legacy base64 watermark and PNG watermark functions
+  * IMPROVED UX: "CELEBRAIT PREVIEW" text now subtly visible without overwhelming the card design
 - July 14, 2025. STREAMLINED DELIVERY WORKFLOW: Redesigned delivery process to go directly from card preview to single complete order page:
   * UNIFIED COMPLETE ORDER PAGE: Created new streamlined complete-order.tsx that defaults to email delivery with optional recipient checkbox
   * CARD PREVIEW NAVIGATION: Updated card preview to go directly to complete order page instead of delivery details
