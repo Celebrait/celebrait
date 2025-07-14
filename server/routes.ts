@@ -32,11 +32,9 @@ import { migrateCardImages, cardNeedsMigration } from "./image-migration";
 import { removeWatermarksFromCard } from "./watermark-removal";
 import { setupGoogleAuth } from "./google-auth";
 import { payfastService } from "./payfast-service";
-import { MagicLinkAuth } from "./magic-link-auth";
+import { SimpleAuth } from "./simple-auth";
 import { requireAuth, optionalAuth } from "./auth-middleware";
-import session from "express-session";
-import passport from "passport";
-import ConnectPgSimple from "connect-pg-simple";
+import cookieParser from "cookie-parser";
 
 // Temporarily allow running without API keys for testing
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
@@ -374,27 +372,8 @@ async function processFluxBinaryOutput(output: any): Promise<string> {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Configure session middleware with database store
-  const pgSession = ConnectPgSimple(session);
-  app.use(session({
-    store: new pgSession({
-      conString: process.env.DATABASE_URL,
-      tableName: 'sessions',
-      createTableIfMissing: true,
-    }),
-    secret: process.env.SESSION_SECRET || 'celebrait-dev-secret-key',
-    resave: true, // Force session save
-    saveUninitialized: true, // Create session for every request
-    rolling: true, // Reset expiration on each request
-    name: 'celebrait-session', // Custom session name
-    cookie: {
-      secure: false, // Set to false for development (HTTP)
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax',
-      path: '/' // Ensure cookie is sent for all paths
-    }
-  }));
+  // Configure cookie parser for JWT tokens
+  app.use(cookieParser());
 
   // Serve stored images statically
   app.use('/images', (req, res, next) => {
@@ -460,8 +439,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Magic Link Authentication Routes
-  app.post("/api/auth/magic-link", async (req, res) => {
+  // Simple JWT Authentication Routes
+  app.post("/api/auth/login-link", async (req, res) => {
     try {
       const { email, redirectUrl } = req.body;
       
@@ -469,11 +448,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email is required" });
       }
 
-      const result = await MagicLinkAuth.sendMagicLink(email, redirectUrl);
+      const result = await SimpleAuth.sendLoginLink(email, redirectUrl);
       
       if (result.success) {
         res.json({ 
-          message: "Magic link sent successfully", 
+          message: "Login link sent successfully", 
           success: true 
         });
       } else {
@@ -483,84 +462,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     } catch (error: any) {
-      res.status(500).json({ message: "Failed to send magic link" });
+      res.status(500).json({ message: "Failed to send login link" });
     }
   });
 
-  app.get("/api/auth/verify", async (req, res) => {
+  app.get("/api/auth/login", async (req, res) => {
     try {
-      const { token } = req.query;
+      const { token, redirect } = req.query;
       
       if (!token) {
         return res.status(400).json({ message: "Token is required" });
       }
 
-      console.log('Starting magic link verification for token:', token);
-      const result = await MagicLinkAuth.verifyMagicLink(token as string);
-      console.log('Magic link verification result:', result);
+      const result = await SimpleAuth.verifyToken(token as string);
       
       if (result.success && result.user) {
-        console.log('Setting user session for user:', result.user);
+        // Create long-lived auth token
+        const authToken = SimpleAuth.createAuthToken(result.user);
         
-        // Regenerate session to ensure proper cookie signature
-        req.session.regenerate((err) => {
-          if (err) {
-            console.error('Session regenerate error:', err);
-            return res.status(500).json({ message: "Failed to regenerate session" });
-          }
-          
-          console.log('Session regenerated, setting user data');
-          
-          // Set user data in regenerated session
-          req.session.userId = result.user.id;
-          req.session.userEmail = result.user.email;
-          
-          console.log('Session after setting userId:', {
-            sessionId: req.session.id,
-            userId: req.session.userId,
-            userEmail: req.session.userEmail
-          });
-          
-          // Save the session
-          req.session.save((saveErr) => {
-            if (saveErr) {
-              console.error('Session save error:', saveErr);
-              return res.status(500).json({ message: "Failed to save session" });
-            }
-            
-            console.log('Session regenerated and saved successfully. Session data:', {
-              userId: req.session.userId,
-              userEmail: req.session.userEmail,
-              sessionId: req.session.id
-            });
-            
-            res.json({ 
-              message: "Successfully authenticated", 
-              user: result.user, 
-              success: true 
-            });
-          });
+        // Set HTTP-only cookie with auth token
+        res.cookie('auth-token', authToken, {
+          httpOnly: true,
+          secure: false, // Set to true in production
+          sameSite: 'lax',
+          maxAge: 24 * 60 * 60 * 1000 // 24 hours
         });
+        
+        // Redirect to dashboard or specified URL
+        const redirectUrl = redirect ? decodeURIComponent(redirect as string) : '/dashboard';
+        res.redirect(redirectUrl);
       } else {
-        console.log('Magic link verification failed:', result.message);
-        res.status(400).json({ 
-          message: result.message, 
-          success: false 
-        });
+        res.status(400).send(`
+          <div style="max-width: 400px; margin: 50px auto; padding: 20px; font-family: Arial, sans-serif; text-align: center;">
+            <h2 style="color: #dc2626;">Authentication Failed</h2>
+            <p>Invalid or expired login link.</p>
+            <a href="/login" style="background: #7c3aed; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px;">Try Again</a>
+          </div>
+        `);
       }
     } catch (error: any) {
-      console.error('Auth verify route error:', error);
-      res.status(500).json({ message: "Failed to verify magic link" });
+      res.status(500).send(`
+        <div style="max-width: 400px; margin: 50px auto; padding: 20px; font-family: Arial, sans-serif; text-align: center;">
+          <h2 style="color: #dc2626;">Error</h2>
+          <p>Failed to verify login link.</p>
+          <a href="/login" style="background: #7c3aed; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px;">Try Again</a>
+        </div>
+      `);
     }
   });
 
   app.post("/api/auth/logout", (req, res) => {
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ message: "Failed to logout" });
-      }
-      res.json({ message: "Logged out successfully" });
-    });
+    res.clearCookie('auth-token');
+    res.json({ message: "Logged out successfully" });
   });
 
   app.get("/api/auth/me", optionalAuth, (req, res) => {

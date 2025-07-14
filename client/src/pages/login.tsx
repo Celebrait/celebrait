@@ -30,7 +30,7 @@ export default function Login() {
     setLoading(true);
     
     try {
-      const response = await fetch('/api/auth/magic-link', {
+      const response = await fetch('/api/auth/login-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -44,21 +44,21 @@ export default function Login() {
       if (data.success) {
         setSent(true);
         toast({
-          title: "Magic link sent!",
+          title: "Login link sent!",
           description: "Check your email for the sign-in link",
         });
       } else {
         toast({
           title: "Error",
-          description: data.message || "Failed to send magic link",
+          description: data.message || "Failed to send login link",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Magic link error:', error);
+      console.error('Login link error:', error);
       toast({
         title: "Error",
-        description: "Failed to send magic link. Please try again.",
+        description: "Failed to send login link. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -82,7 +82,7 @@ export default function Login() {
               Sign in to Celebrait
             </CardTitle>
             <p className="text-center text-muted-foreground">
-              Enter your email to receive a magic link
+              Enter your email to receive a login link
             </p>
           </CardHeader>
           
@@ -114,7 +114,7 @@ export default function Login() {
                   ) : (
                     <>
                       <Mail className="h-4 w-4 mr-2" />
-                      Send Magic Link
+                      Send Login Link
                     </>
                   )}
                 </Button>
@@ -124,7 +124,7 @@ export default function Login() {
                 <div className="p-4 bg-green-50 rounded-lg">
                   <Mail className="h-8 w-8 text-green-600 mx-auto mb-2" />
                   <h3 className="font-medium text-green-800 mb-1">
-                    Magic link sent!
+                    Login link sent!
                   </h3>
                   <p className="text-sm text-green-600">
                     Check your email and click the link to sign in
