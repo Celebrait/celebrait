@@ -121,7 +121,6 @@ export class MagicLinkAuth {
           .insert(users)
           .values({
             email: magicLink.email,
-            username: magicLink.email.split('@')[0],
             firstName: null,
             lastName: null,
             isVerified: true,
