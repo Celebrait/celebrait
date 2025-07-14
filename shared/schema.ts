@@ -67,7 +67,6 @@ export const orders = pgTable("orders", {
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
   email: true,
   firstName: true,
   lastName: true,
