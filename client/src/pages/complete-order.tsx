@@ -142,20 +142,23 @@ export default function CompleteOrder() {
   const sessionDelivery = sessionStorage.getItem('selectedDeliveryOption');
   const deliverTo = (urlDelivery || sessionDelivery || 'self') as 'self' | 'recipient';
   
-  // Get recipient name instantly from cache or card data for dynamic text
+  // Get recipient name instantly from cache or card data for dynamic text (comprehensive cache search)
   const [recipientName, setRecipientName] = useState(() => {
     // Try to get name from session storage first for instant loading
     const sessionName = sessionStorage.getItem('recipientName');
     if (sessionName && sessionName !== 'the recipient') {
+      console.log('[RECIPIENT] Initialized from session storage:', sessionName);
       return sessionName;
     }
     
-    // Try to get from cached card data
+    // Try to get from cached card data with comprehensive cache key search
     const cachedKeys = [
       'cardPreviewData',
       `card_${cardId}`,
       `ready_${cardId}`,
-      `card_celebrait_ready_${cardId}`
+      `card_celebrait_ready_${cardId}`,
+      // Try additional possible cache keys based on cardId variations
+      ...(cardId ? [`ready_celebrait_ready_${cardId}`, `card_ready_${cardId}`] : [])
     ];
     
     for (const key of cachedKeys) {
@@ -169,16 +172,18 @@ export default function CompleteOrder() {
                         card.conversationData.recipient_name ||
                         card.conversationData.recipientName;
             if (name && name !== 'the recipient') {
+              console.log('[RECIPIENT] Initialized from cached data:', name, 'via key:', key);
               sessionStorage.setItem('recipientName', name);
               return name;
             }
           }
         }
       } catch (e) {
-        // Continue to next cache key
+        console.warn('[RECIPIENT] Cache key failed:', key, e);
       }
     }
     
+    console.log('[RECIPIENT] No cached name found - defaulting to "the recipient"');
     return 'the recipient';
   });
 
@@ -211,13 +216,16 @@ export default function CompleteOrder() {
         setCustomerEmail(userEmail);
       }
       
-      // Update recipient name from card data if available
-      const name = card.conversationData.name || 
-                  card.conversationData.recipient_name ||
-                  card.conversationData.recipientName;
-      if (name && name !== 'the recipient' && name !== recipientName) {
-        setRecipientName(name);
-        sessionStorage.setItem('recipientName', name);
+      // Update recipient name from card data if available (only if not already set from cache)
+      if (recipientName === 'the recipient') {
+        const name = card.conversationData.name || 
+                    card.conversationData.recipient_name ||
+                    card.conversationData.recipientName;
+        if (name && name !== recipientName) {
+          console.log('[RECIPIENT] Updating from API card data:', name);
+          setRecipientName(name);
+          sessionStorage.setItem('recipientName', name);
+        }
       }
     }
   }, [card, recipientName]);
