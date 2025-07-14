@@ -44,15 +44,21 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
 
 export const optionalAuth = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log('OptionalAuth: Session exists:', !!req.session);
+    console.log('OptionalAuth: Session ID:', req.session?.id);
+    console.log('OptionalAuth: User ID in session:', req.session?.userId);
+    
     const userId = req.session?.userId;
     
     if (userId) {
+      console.log('OptionalAuth: Looking up user with ID:', userId);
       // Get user from database
       const [user] = await db
         .select()
         .from(users)
         .where(eq(users.id, userId));
 
+      console.log('OptionalAuth: User found:', user);
       if (user) {
         req.user = user;
       }
