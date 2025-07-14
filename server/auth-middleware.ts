@@ -53,6 +53,8 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
     console.log('OptionalAuth: Session exists:', !!req.session);
     console.log('OptionalAuth: Session ID:', req.session?.id);
     console.log('OptionalAuth: User ID in session:', req.session?.userId);
+    console.log('OptionalAuth: Full session data:', req.session);
+    console.log('OptionalAuth: Cookie header:', req.headers.cookie);
     
     const userId = req.session?.userId;
     

@@ -54,12 +54,18 @@ export default function AuthVerify() {
         });
 
         // Force refresh auth state before redirect
-        queryClient.refetchQueries({ queryKey: ['/api/auth/me'] }).then(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/auth/me'] }).then((results) => {
+          console.log('Auth refetch results:', results);
+          
+          // Check if auth state is properly set
+          const authData = queryClient.getQueryData(['/api/auth/me']);
+          console.log('Auth data after refetch:', authData);
+          
           setTimeout(() => {
             const finalRedirect = redirectUrl || '/dashboard';
             console.log('Redirecting to:', finalRedirect);
             window.location.href = finalRedirect;
-          }, 100);
+          }, 1000); // Increase delay to ensure session is properly set
         });
       } else {
         setStatus('error');

@@ -385,6 +385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     secret: process.env.SESSION_SECRET || 'celebrait-dev-secret-key',
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Reset expiration on each request
     cookie: {
       secure: false, // Set to false for development (HTTP)
       httpOnly: true,
