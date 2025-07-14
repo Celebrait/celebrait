@@ -19,6 +19,9 @@ export default function AuthVerify() {
     const token = urlParams.get('token');
     const redirectUrl = urlParams.get('redirect');
 
+    console.log('URL params:', { token, redirectUrl });
+    console.log('Full URL:', window.location.href);
+
     if (!token) {
       setStatus('error');
       setMessage('No verification token provided');
@@ -50,10 +53,14 @@ export default function AuthVerify() {
           description: "You have been successfully signed in.",
         });
 
-        // Redirect after success
-        setTimeout(() => {
-          window.location.href = redirectUrl || '/dashboard';
-        }, 2000);
+        // Force refresh auth state before redirect
+        queryClient.refetchQueries({ queryKey: ['/api/auth/me'] }).then(() => {
+          setTimeout(() => {
+            const finalRedirect = redirectUrl || '/dashboard';
+            console.log('Redirecting to:', finalRedirect);
+            window.location.href = finalRedirect;
+          }, 100);
+        });
       } else {
         setStatus('error');
         setMessage(data.message || 'Failed to verify magic link');
