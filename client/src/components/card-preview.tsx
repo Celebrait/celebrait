@@ -37,7 +37,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
           sessionStorage.setItem('cardPreviewData', JSON.stringify(fullCardData));
           sessionStorage.setItem(`card_${card.id}`, JSON.stringify(fullCardData));
           
-          // CRITICAL: Preload recipient name for instant personalization with comprehensive search
+          // Preload recipient name for instant personalization
           const recipientName = onboarding.answers?.name || 
                                onboarding.name || 
                                card.conversationData?.name ||
@@ -47,34 +47,6 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
           if (recipientName && recipientName !== 'the recipient') {
             sessionStorage.setItem('recipientName', recipientName);
             console.log('[INSTANT] Preloaded recipient name:', recipientName);
-          }
-          
-          // CRITICAL: Preload user details for instant form population
-          const userEmail = card.conversationData?.user_email || 
-                           card.conversationData?.email ||
-                           onboarding.answers?.email;
-          
-          if (userEmail) {
-            sessionStorage.setItem('userEmail', userEmail);
-            console.log('[INSTANT] Preloaded user email:', userEmail);
-          }
-          
-          const userFirstName = card.conversationData?.user_first_name || 
-                               card.conversationData?.first_name ||
-                               onboarding.answers?.first_name;
-          
-          const userLastName = card.conversationData?.user_last_name || 
-                              card.conversationData?.last_name ||
-                              onboarding.answers?.last_name;
-          
-          const userName = card.conversationData?.user_name || 
-                          card.conversationData?.name ||
-                          onboarding.answers?.user_name;
-          
-          if (userFirstName || userLastName || userName) {
-            const fullName = userName || `${userFirstName || ''} ${userLastName || ''}`.trim();
-            sessionStorage.setItem('userName', fullName);
-            console.log('[INSTANT] Preloaded user name:', fullName);
           }
           
           console.log('[INSTANT] Preloaded delivery details data for zero-loading experience');

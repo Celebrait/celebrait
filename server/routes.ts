@@ -2420,7 +2420,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
         
         res.set({
-          'Cache-Control': 'public, max-age=86400, immutable', // 24 hour cache
+          'Cache-Control': 'public, max-age=600',
           'ETag': `"${reference}"`,
           'X-Cache': 'HIT-PRELOADED',
           'X-Response-Time': `${Date.now() - startTime}ms`,

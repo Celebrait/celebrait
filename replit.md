@@ -128,9 +128,6 @@ Changelog:
   * CACHE-FIRST STRATEGY: Both pages now check multiple cache keys (cardPreviewData, card_${id}, ready_${id}) for instant data retrieval
   * PERFORMANCE VERIFIED: User and recipient details now load instantly from cache instead of waiting for slow API responses
   * COMPREHENSIVE LOGGING: Added detailed console logging to track instant cache loading for debugging and verification
-  * ENHANCED CACHE SEARCH: Extended cache key search to include multiple cache variations for maximum hit rate
-  * CONDITIONAL UPDATES: API data only updates recipient name if not already loaded from cache to prevent overwrites
-  * COMPREHENSIVE PRELOADING: Added robust preloading system that ensures recipient names are always available before navigation
 - July 14, 2025. CRITICAL LOADING PERFORMANCE FIX: Eliminated all loading spinners from both email and web workflows for instant user experience:
   * COMPLETE-ORDER PAGE FIX: Removed "Loading order details..." spinner (setLoading(true)) that was causing 193ms-3534ms delays
   * DELIVERY-DETAILS PAGE FIX: Removed "Loading delivery options..." spinner and eliminated duplicate API calls for instant loading

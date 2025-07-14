@@ -38,7 +38,7 @@ export default function DeliveryDetails() {
     sessionStorage.setItem('selectedDeliveryType', urlDeliveryType);
   }
   
-  // Get recipient name from card data for dynamic text (with comprehensive instant initialization)
+  // Get recipient name from card data for dynamic text (with immediate initialization)
   const [recipientName, setRecipientName] = useState(() => {
     // Try immediate initialization from session storage
     if (typeof window !== 'undefined') {
@@ -48,17 +48,9 @@ export default function DeliveryDetails() {
         return sessionName;
       }
       
-      // Try immediate initialization from cached data with extended cache key search
+      // Try immediate initialization from cached data
       try {
-        const cachedKeys = [
-          'cardPreviewData',
-          `ready_${reference}`,
-          `card_${reference}`,
-          `card_celebrait_ready_${reference}`,
-          // Try to extract card ID from reference for additional cache keys
-          ...(reference ? [`card_${reference.replace(/.*_(\d+)_.*/, '$1')}`, `ready_${reference.replace(/.*_(\d+)_.*/, '$1')}`] : [])
-        ];
-        
+        const cachedKeys = [`cardPreviewData`, `ready_${reference}`, `card_${reference}`];
         for (const key of cachedKeys) {
           const cached = sessionStorage.getItem(key);
           if (cached) {
@@ -71,14 +63,14 @@ export default function DeliveryDetails() {
                            card.conversationData.recipientName;
             }
             if (extractedName && extractedName !== 'the recipient') {
-              console.log('[RECIPIENT] Initialized from cached data:', extractedName, 'via key:', key);
+              console.log('[RECIPIENT] Initialized from cached data:', extractedName);
               sessionStorage.setItem('recipientName', extractedName);
               return extractedName;
             }
           }
         }
       } catch (e) {
-        console.warn('[RECIPIENT] Cache initialization failed:', e);
+        // Continue to fallback
       }
     }
     
@@ -197,9 +189,9 @@ export default function DeliveryDetails() {
     loadCardData();
   }, [reference]);
   
-  // Update recipient name when card data loads (only if not already set from cache)
+  // Update recipient name when card data loads
   useEffect(() => {
-    if (cardData?.conversationData && recipientName === 'the recipient') {
+    if (cardData?.conversationData) {
       const name = cardData.conversationData.name || cardData.conversationData.recipient_name;
       if (name && name !== recipientName) {
         console.log('[RECIPIENT] Updating from card data:', name);
