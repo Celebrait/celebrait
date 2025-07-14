@@ -24,11 +24,17 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       return res.status(401).json({ message: 'Authentication required' });
     }
 
+    // Convert string userId to number for database query
+    const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+    if (isNaN(numericUserId)) {
+      return res.status(401).json({ message: 'Invalid user ID' });
+    }
+    
     // Get user from database
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.id, userId));
+      .where(eq(users.id, numericUserId));
 
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
@@ -52,11 +58,18 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
     
     if (userId) {
       console.log('OptionalAuth: Looking up user with ID:', userId);
+      // Convert string userId to number for database query
+      const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId;
+      if (isNaN(numericUserId)) {
+        console.log('OptionalAuth: Invalid user ID:', userId);
+        return next();
+      }
+      
       // Get user from database
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.id, userId));
+        .where(eq(users.id, numericUserId));
 
       console.log('OptionalAuth: User found:', user);
       if (user) {

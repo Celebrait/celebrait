@@ -36,6 +36,7 @@ import { MagicLinkAuth } from "./magic-link-auth";
 import { requireAuth, optionalAuth } from "./auth-middleware";
 import session from "express-session";
 import passport from "passport";
+import ConnectPgSimple from "connect-pg-simple";
 
 // Temporarily allow running without API keys for testing
 const hasOpenAI = !!process.env.OPENAI_API_KEY;
@@ -373,7 +374,7 @@ async function processFluxBinaryOutput(output: any): Promise<string> {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Configure session middleware
+  // Configure session middleware with memory store (temporarily)
   app.use(session({
     secret: process.env.SESSION_SECRET || 'celebrait-dev-secret-key',
     resave: false,
@@ -491,9 +492,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (result.success && result.user) {
         console.log('Setting user session for user:', result.user);
+        console.log('Session before setting userId:', {
+          sessionId: req.session.id,
+          userId: req.session.userId,
+          userEmail: req.session.userEmail
+        });
+        
         // Set user session
         req.session.userId = result.user.id;
         req.session.userEmail = result.user.email;
+        
+        console.log('Session after setting userId:', {
+          sessionId: req.session.id,
+          userId: req.session.userId,
+          userEmail: req.session.userEmail
+        });
         
         // Force session save and then respond
         req.session.save((err) => {
@@ -507,6 +520,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userEmail: req.session.userEmail,
             sessionId: req.session.id
           });
+          
+          // Verify session is saved by checking immediately
+          console.log('Session object after save:', req.session);
           
           res.json({ 
             message: "Successfully authenticated", 
