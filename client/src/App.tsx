@@ -31,6 +31,9 @@ import DeliveryDetails from "@/pages/delivery-details";
 import CardPreviewPage from "@/pages/card-preview-page";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import TermsOfService from "@/pages/terms-of-service";
+import Login from "@/pages/login";
+import AuthVerify from "@/pages/auth-verify";
+import Dashboard from "@/pages/dashboard";
 
 
 function Router() {
@@ -63,6 +66,9 @@ function Router() {
         <Route path="/delivery-details/:reference" component={DeliveryDetails} />
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms-of-service" component={TermsOfService} />
+        <Route path="/login" component={Login} />
+        <Route path="/auth/verify" component={AuthVerify} />
+        <Route path="/dashboard" component={Dashboard} />
 
         <Route component={NotFound} />
       </Switch>

@@ -32,6 +32,8 @@ import { migrateCardImages, cardNeedsMigration } from "./image-migration";
 import { removeWatermarksFromCard } from "./watermark-removal";
 import { setupGoogleAuth } from "./google-auth";
 import { payfastService } from "./payfast-service";
+import { MagicLinkAuth } from "./magic-link-auth";
+import { requireAuth, optionalAuth } from "./auth-middleware";
 import session from "express-session";
 import passport from "passport";
 
@@ -435,7 +437,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User registration
+  // Magic Link Authentication Routes
+  app.post("/api/auth/magic-link", async (req, res) => {
+    try {
+      const { email, redirectUrl } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const result = await MagicLinkAuth.sendMagicLink(email, redirectUrl);
+      
+      if (result.success) {
+        res.json({ 
+          message: "Magic link sent successfully", 
+          success: true 
+        });
+      } else {
+        res.status(400).json({ 
+          message: result.message, 
+          success: false 
+        });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to send magic link" });
+    }
+  });
+
+  app.get("/api/auth/verify", async (req, res) => {
+    try {
+      const { token } = req.query;
+      
+      if (!token) {
+        return res.status(400).json({ message: "Token is required" });
+      }
+
+      const result = await MagicLinkAuth.verifyMagicLink(token as string);
+      
+      if (result.success && result.user) {
+        // Set user session
+        req.session.userId = result.user.id;
+        req.session.userEmail = result.user.email;
+        
+        res.json({ 
+          message: "Successfully authenticated", 
+          user: result.user, 
+          success: true 
+        });
+      } else {
+        res.status(400).json({ 
+          message: result.message, 
+          success: false 
+        });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to verify magic link" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Failed to logout" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
+  app.get("/api/auth/me", optionalAuth, (req, res) => {
+    if (req.user) {
+      res.json({ user: req.user, authenticated: true });
+    } else {
+      res.json({ user: null, authenticated: false });
+    }
+  });
+
+  // User cards and orders endpoints
+  app.get("/api/cards/user/:userId", requireAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      // Ensure user can only access their own cards
+      if (req.user.id !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const cards = await storage.getUserCards(userId);
+      res.json(cards);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching user cards: " + error.message });
+    }
+  });
+
+  app.get("/api/orders/user/:email", requireAuth, async (req, res) => {
+    try {
+      const email = req.params.email;
+      
+      // Ensure user can only access their own orders
+      if (req.user.email !== email) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const orders = await storage.getOrdersByEmail(email);
+      res.json(orders);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching user orders: " + error.message });
+    }
+  });
+
+  // User registration (legacy - kept for backward compatibility)
   app.post("/api/users", async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);

@@ -61,8 +61,12 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
     const user: User = { 
-      ...insertUser, 
       id,
+      username: insertUser.username ?? null,
+      email: insertUser.email,
+      firstName: insertUser.firstName ?? null,
+      lastName: insertUser.lastName ?? null,
+      isVerified: insertUser.isVerified ?? false,
       createdAt: new Date()
     };
     this.users.set(id, user);
@@ -72,13 +76,19 @@ export class MemStorage implements IStorage {
   async createCard(cardData: InsertCard & { userId: number }): Promise<Card> {
     const id = this.currentCardId++;
     const card: Card = {
-      ...cardData,
-      printOption: cardData.printOption || null,
-      conversationData: cardData.conversationData || {},
       id,
+      userId: cardData.userId,
+      cardType: cardData.cardType,
+      printOption: cardData.printOption || null,
+      sceneType: cardData.sceneType,
+      conversationData: cardData.conversationData || {},
       frontImageUrl: null,
       insideImageUrl: null,
+      frontImagePath: null,
+      insideImagePath: null,
+      printReadyPath: null,
       status: 'generating',
+      price: cardData.price,
       createdAt: new Date()
     };
     this.cards.set(id, card);
@@ -125,18 +135,24 @@ export class MemStorage implements IStorage {
   async createOrder(orderData: InsertOrder): Promise<Order> {
     const id = this.currentOrderId++;
     const order: Order = {
-      ...orderData,
-      id, // Explicitly set the ID
-      paymentStatus: 'pending',
-      orderStatus: 'processing',
-      trackingNumber: null,
-      currency: orderData.currency || 'ZAR',
-      shippingAddress: orderData.shippingAddress || null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      id,
+      cardId: orderData.cardId,
+      customerEmail: orderData.customerEmail,
+      customerName: orderData.customerName,
+      customerPhone: orderData.customerPhone || null,
+      amount: orderData.amount,
       baseAmount: orderData.baseAmount || orderData.amount,
       tipAmount: orderData.tipAmount || 0,
-      orderType: orderData.orderType || 'regular'
+      currency: orderData.currency || 'ZAR',
+      paymentReference: orderData.paymentReference,
+      paymentStatus: 'pending',
+      orderStatus: 'processing',
+      orderType: orderData.orderType || 'regular',
+      shippingAddress: orderData.shippingAddress || null,
+      recipientInfo: orderData.recipientInfo || null,
+      trackingNumber: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
     console.log('Creating order with data:', order); // Added logging
     this.orders.set(id, order);
