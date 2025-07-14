@@ -472,25 +472,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Token is required" });
       }
 
+      console.log('Starting magic link verification for token:', token);
       const result = await MagicLinkAuth.verifyMagicLink(token as string);
+      console.log('Magic link verification result:', result);
       
       if (result.success && result.user) {
+        console.log('Setting user session for user:', result.user);
         // Set user session
         req.session.userId = result.user.id;
         req.session.userEmail = result.user.email;
         
+        console.log('Session set successfully, sending response');
         res.json({ 
           message: "Successfully authenticated", 
           user: result.user, 
           success: true 
         });
       } else {
+        console.log('Magic link verification failed:', result.message);
         res.status(400).json({ 
           message: result.message, 
           success: false 
         });
       }
     } catch (error: any) {
+      console.error('Auth verify route error:', error);
       res.status(500).json({ message: "Failed to verify magic link" });
     }
   });

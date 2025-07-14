@@ -134,6 +134,7 @@ export class MagicLinkAuth {
         user = newUser;
       }
 
+      console.log('Authentication successful, returning user:', user);
       return {
         success: true,
         message: 'Successfully authenticated',
