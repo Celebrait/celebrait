@@ -495,11 +495,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.session.userId = result.user.id;
         req.session.userEmail = result.user.email;
         
-        console.log('Session set successfully, sending response');
-        res.json({ 
-          message: "Successfully authenticated", 
-          user: result.user, 
-          success: true 
+        // Force session save and then respond
+        req.session.save((err) => {
+          if (err) {
+            console.error('Session save error:', err);
+            return res.status(500).json({ message: "Failed to save session" });
+          }
+          
+          console.log('Session saved successfully. Session data:', {
+            userId: req.session.userId,
+            userEmail: req.session.userEmail,
+            sessionId: req.session.id
+          });
+          
+          res.json({ 
+            message: "Successfully authenticated", 
+            user: result.user, 
+            success: true 
+          });
         });
       } else {
         console.log('Magic link verification failed:', result.message);
