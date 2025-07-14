@@ -192,8 +192,8 @@ export default function DeliveryDetails() {
       }
     }
     
-    console.log('[RECIPIENT] No cached name found - will wait for API response');
-    return null;
+    console.log('[RECIPIENT] No cached name found - defaulting to "the recipient"');
+    return 'the recipient';
   });
   
   // Update recipient name when card data loads

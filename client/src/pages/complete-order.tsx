@@ -65,8 +65,45 @@ export default function CompleteOrder() {
   const sessionDelivery = sessionStorage.getItem('selectedDeliveryOption');
   const deliverTo = (urlDelivery || sessionDelivery || 'self') as 'self' | 'recipient';
   
-  // Get recipient name from card data for dynamic text
-  const recipientName = card?.conversationData?.name || 'the recipient';
+  // Get recipient name instantly from cache or card data for dynamic text
+  const [recipientName, setRecipientName] = useState(() => {
+    // Try to get name from session storage first for instant loading
+    const sessionName = sessionStorage.getItem('recipientName');
+    if (sessionName && sessionName !== 'the recipient') {
+      return sessionName;
+    }
+    
+    // Try to get from cached card data
+    const cachedKeys = [
+      'cardPreviewData',
+      `card_${cardId}`,
+      `ready_${cardId}`,
+      `card_celebrait_ready_${cardId}`
+    ];
+    
+    for (const key of cachedKeys) {
+      try {
+        const cachedData = sessionStorage.getItem(key);
+        if (cachedData) {
+          const cardData = JSON.parse(cachedData);
+          const card = cardData.card || cardData;
+          if (card?.conversationData) {
+            const name = card.conversationData.name || 
+                        card.conversationData.recipient_name ||
+                        card.conversationData.recipientName;
+            if (name && name !== 'the recipient') {
+              sessionStorage.setItem('recipientName', name);
+              return name;
+            }
+          }
+        }
+      } catch (e) {
+        // Continue to next cache key
+      }
+    }
+    
+    return 'the recipient';
+  });
 
   useEffect(() => {
     if (cardId) {
@@ -96,8 +133,17 @@ export default function CompleteOrder() {
       if (userEmail) {
         setCustomerEmail(userEmail);
       }
+      
+      // Update recipient name from card data if available
+      const name = card.conversationData.name || 
+                  card.conversationData.recipient_name ||
+                  card.conversationData.recipientName;
+      if (name && name !== 'the recipient' && name !== recipientName) {
+        setRecipientName(name);
+        sessionStorage.setItem('recipientName', name);
+      }
     }
-  }, [card]);
+  }, [card, recipientName]);
 
   const loadCard = async () => {
     try {

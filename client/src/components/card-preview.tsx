@@ -37,6 +37,18 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
           sessionStorage.setItem('cardPreviewData', JSON.stringify(fullCardData));
           sessionStorage.setItem(`card_${card.id}`, JSON.stringify(fullCardData));
           
+          // Preload recipient name for instant personalization
+          const recipientName = onboarding.answers?.name || 
+                               onboarding.name || 
+                               card.conversationData?.name ||
+                               card.conversationData?.recipient_name ||
+                               card.conversationData?.recipientName;
+          
+          if (recipientName && recipientName !== 'the recipient') {
+            sessionStorage.setItem('recipientName', recipientName);
+            console.log('[INSTANT] Preloaded recipient name:', recipientName);
+          }
+          
           console.log('[INSTANT] Preloaded delivery details data for zero-loading experience');
         } catch (e) {
           console.warn('Preload failed:', e);
