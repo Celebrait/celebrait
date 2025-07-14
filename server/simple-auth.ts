@@ -39,7 +39,7 @@ export class SimpleAuth {
         ? 'https://your-domain.replit.dev'
         : 'http://localhost:5000';
       
-      const loginUrl = `${baseUrl}/auth/login?token=${token}${redirectUrl ? `&redirect=${encodeURIComponent(redirectUrl)}` : ''}`;
+      const loginUrl = `${baseUrl}/api/auth/login?token=${token}${redirectUrl ? `&redirect=${encodeURIComponent(redirectUrl)}` : ''}`;
 
       // Send email
       const emailParams = {

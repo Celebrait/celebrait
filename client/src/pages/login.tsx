@@ -39,6 +39,11 @@ export default function Login() {
         }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -58,7 +63,7 @@ export default function Login() {
       console.error('Login link error:', error);
       toast({
         title: "Error",
-        description: "Failed to send login link. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to send login link. Please try again.",
         variant: "destructive",
       });
     } finally {
