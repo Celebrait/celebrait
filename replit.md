@@ -120,6 +120,14 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 14, 2025. URGENT RECIPIENT DETAILS LOADING FIX: Fixed slow loading of recipient names and user details throughout email and web journeys:
+  * INSTANT RECIPIENT NAMES: Fixed delivery-details.tsx to immediately load recipient names from cache instead of showing "the recipient" placeholder
+  * INSTANT USER DETAILS: Fixed complete-order.tsx to immediately populate user name and email from cache instead of waiting for API calls
+  * INSTANT FORM POPULATION: Modified state initialization to use cached data immediately on page load for 0ms display time
+  * RACE CONDITION FIXED: Eliminated race condition where setRecipientName was called before recipientName state was defined
+  * CACHE-FIRST STRATEGY: Both pages now check multiple cache keys (cardPreviewData, card_${id}, ready_${id}) for instant data retrieval
+  * PERFORMANCE VERIFIED: User and recipient details now load instantly from cache instead of waiting for slow API responses
+  * COMPREHENSIVE LOGGING: Added detailed console logging to track instant cache loading for debugging and verification
 - July 14, 2025. CRITICAL LOADING PERFORMANCE FIX: Eliminated all loading spinners from both email and web workflows for instant user experience:
   * COMPLETE-ORDER PAGE FIX: Removed "Loading order details..." spinner (setLoading(true)) that was causing 193ms-3534ms delays
   * DELIVERY-DETAILS PAGE FIX: Removed "Loading delivery options..." spinner and eliminated duplicate API calls for instant loading

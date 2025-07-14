@@ -38,17 +38,50 @@ export default function DeliveryDetails() {
     sessionStorage.setItem('selectedDeliveryType', urlDeliveryType);
   }
   
+  // Get recipient name from card data for dynamic text (with immediate initialization)
+  const [recipientName, setRecipientName] = useState(() => {
+    // Try immediate initialization from session storage
+    if (typeof window !== 'undefined') {
+      const sessionName = sessionStorage.getItem('recipientName');
+      if (sessionName && sessionName !== 'the recipient') {
+        console.log('[RECIPIENT] Initialized from session storage:', sessionName);
+        return sessionName;
+      }
+      
+      // Try immediate initialization from cached data
+      try {
+        const cachedKeys = [`cardPreviewData`, `ready_${reference}`, `card_${reference}`];
+        for (const key of cachedKeys) {
+          const cached = sessionStorage.getItem(key);
+          if (cached) {
+            const parsedData = JSON.parse(cached);
+            const card = parsedData.card || parsedData;
+            let extractedName = null;
+            if (card?.conversationData) {
+              extractedName = card.conversationData.name || 
+                           card.conversationData.recipient_name ||
+                           card.conversationData.recipientName;
+            }
+            if (extractedName && extractedName !== 'the recipient') {
+              console.log('[RECIPIENT] Initialized from cached data:', extractedName);
+              sessionStorage.setItem('recipientName', extractedName);
+              return extractedName;
+            }
+          }
+        }
+      } catch (e) {
+        // Continue to fallback
+      }
+    }
+    
+    console.log('[RECIPIENT] No cached name found - defaulting to "the recipient"');
+    return 'the recipient';
+  });
+
   // Load card data with instant cache-first strategy
   useEffect(() => {
     const loadCardData = async () => {
       if (!reference) return;
-      
-      // First, try to get recipient name from session storage and set it immediately
-      const sessionName = sessionStorage.getItem('recipientName');
-      if (sessionName && sessionName !== 'the recipient') {
-        setRecipientName(sessionName);
-        console.log('[RECIPIENT] Set from session storage on load:', sessionName);
-      }
       
       // Try to load from cache first for instant display
       const cachedKeys = [
@@ -155,46 +188,6 @@ export default function DeliveryDetails() {
     
     loadCardData();
   }, [reference]);
-  
-  // Get recipient name from card data for dynamic text (with immediate initialization)
-  const [recipientName, setRecipientName] = useState(() => {
-    // Try immediate initialization from session storage
-    if (typeof window !== 'undefined') {
-      const sessionName = sessionStorage.getItem('recipientName');
-      if (sessionName && sessionName !== 'the recipient') {
-        console.log('[RECIPIENT] Initialized from session storage:', sessionName);
-        return sessionName;
-      }
-      
-      // Try immediate initialization from cached data
-      try {
-        const cachedKeys = [`cardPreviewData`, `ready_${reference}`, `card_${reference}`];
-        for (const key of cachedKeys) {
-          const cached = sessionStorage.getItem(key);
-          if (cached) {
-            const parsedData = JSON.parse(cached);
-            const card = parsedData.card || parsedData;
-            let extractedName = null;
-            if (card?.conversationData) {
-              extractedName = card.conversationData.name || 
-                           card.conversationData.recipient_name ||
-                           card.conversationData.recipientName;
-            }
-            if (extractedName && extractedName !== 'the recipient') {
-              console.log('[RECIPIENT] Initialized from cached data:', extractedName);
-              sessionStorage.setItem('recipientName', extractedName);
-              return extractedName;
-            }
-          }
-        }
-      } catch (e) {
-        // Continue to fallback
-      }
-    }
-    
-    console.log('[RECIPIENT] No cached name found - defaulting to "the recipient"');
-    return 'the recipient';
-  });
   
   // Update recipient name when card data loads
   useEffect(() => {

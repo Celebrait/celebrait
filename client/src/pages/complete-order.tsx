@@ -38,11 +38,88 @@ export default function CompleteOrder() {
   const [loading, setLoading] = useState(false); // Start with false for instant display
   const [submitting, setSubmitting] = useState(false);
   
-  // Form data
-  const [customerName, setCustomerName] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
+  // Form data with instant initialization from cache
+  const [customerName, setCustomerName] = useState(() => {
+    // Try to get user name from cache immediately
+    const cachedKeys = ['cardPreviewData', `card_${cardId}`, `ready_${cardId}`];
+    for (const key of cachedKeys) {
+      try {
+        const cachedData = sessionStorage.getItem(key);
+        if (cachedData) {
+          const cardData = JSON.parse(cachedData);
+          const card = cardData.card || cardData;
+          if (card?.conversationData) {
+            const userFirstName = card.conversationData.user_first_name || '';
+            const userLastName = card.conversationData.user_last_name || '';
+            const userName = card.conversationData.user_name || '';
+            
+            if (userFirstName || userLastName) {
+              const fullName = `${userFirstName} ${userLastName}`.trim();
+              console.log('[INSTANT] User name loaded from cache:', fullName);
+              return fullName;
+            } else if (userName) {
+              console.log('[INSTANT] User name loaded from cache:', userName);
+              return userName;
+            }
+          }
+        }
+      } catch (e) {
+        // Continue to next cache key
+      }
+    }
+    return '';
+  });
+  
+  const [customerEmail, setCustomerEmail] = useState(() => {
+    // Try to get user email from cache immediately
+    const cachedKeys = ['cardPreviewData', `card_${cardId}`, `ready_${cardId}`];
+    for (const key of cachedKeys) {
+      try {
+        const cachedData = sessionStorage.getItem(key);
+        if (cachedData) {
+          const cardData = JSON.parse(cachedData);
+          const card = cardData.card || cardData;
+          if (card?.conversationData) {
+            const userEmail = card.conversationData.email || card.conversationData.user_email || '';
+            if (userEmail) {
+              console.log('[INSTANT] User email loaded from cache:', userEmail);
+              return userEmail;
+            }
+          }
+        }
+      } catch (e) {
+        // Continue to next cache key
+      }
+    }
+    return '';
+  });
+  
   const [recipientEmail, setRecipientEmail] = useState('');
-  const [actualRecipientName, setActualRecipientName] = useState('');
+  const [actualRecipientName, setActualRecipientName] = useState(() => {
+    // Try to get recipient name from cache immediately
+    const cachedKeys = ['cardPreviewData', `card_${cardId}`, `ready_${cardId}`];
+    for (const key of cachedKeys) {
+      try {
+        const cachedData = sessionStorage.getItem(key);
+        if (cachedData) {
+          const cardData = JSON.parse(cachedData);
+          const card = cardData.card || cardData;
+          if (card?.conversationData) {
+            const name = card.conversationData.name || 
+                        card.conversationData.recipient_name ||
+                        card.conversationData.recipientName;
+            if (name && name !== 'the recipient') {
+              console.log('[INSTANT] Recipient name loaded from cache:', name);
+              return name;
+            }
+          }
+        }
+      } catch (e) {
+        // Continue to next cache key
+      }
+    }
+    return '';
+  });
   const [deliveryMethod, setDeliveryMethod] = useState<'self' | 'recipient'>('self');
   const [customMessage, setCustomMessage] = useState('');
   const [currentView, setCurrentView] = useState<'front' | 'inside'>('front');
