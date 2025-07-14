@@ -383,14 +383,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       createTableIfMissing: true,
     }),
     secret: process.env.SESSION_SECRET || 'celebrait-dev-secret-key',
-    resave: false,
-    saveUninitialized: false,
+    resave: true, // Force session save
+    saveUninitialized: true, // Create session for every request
     rolling: true, // Reset expiration on each request
+    name: 'celebrait-session', // Custom session name
     cookie: {
       secure: false, // Set to false for development (HTTP)
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax'
+      sameSite: 'lax',
+      path: '/' // Ensure cookie is sent for all paths
     }
   }));
 

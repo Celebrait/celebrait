@@ -53,20 +53,13 @@ export default function AuthVerify() {
           description: "You have been successfully signed in.",
         });
 
-        // Force refresh auth state before redirect
-        queryClient.refetchQueries({ queryKey: ['/api/auth/me'] }).then((results) => {
-          console.log('Auth refetch results:', results);
-          
-          // Check if auth state is properly set
-          const authData = queryClient.getQueryData(['/api/auth/me']);
-          console.log('Auth data after refetch:', authData);
-          
-          setTimeout(() => {
-            const finalRedirect = redirectUrl || '/dashboard';
-            console.log('Redirecting to:', finalRedirect);
-            window.location.href = finalRedirect;
-          }, 1000); // Increase delay to ensure session is properly set
-        });
+        // Clear all auth cache and force immediate redirect
+        queryClient.clear();
+        
+        // Use window.location.replace to avoid back button issues
+        const finalRedirect = redirectUrl || '/dashboard';
+        console.log('Redirecting to:', finalRedirect);
+        window.location.replace(finalRedirect);
       } else {
         setStatus('error');
         setMessage(data.message || 'Failed to verify magic link');
