@@ -1574,24 +1574,33 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const insideMessage = answers.inside_message || "Hope your special day brings you joy and happiness!";
     const parts = [];
     
-    // Base requirements
+    // Base requirements - Square 1:1 aspect ratio
     parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
     
-    // Greeting card interior layout focusing on typography
-    parts.push(`Greeting card interior with elegant typography displaying: "${insideMessage}"`);
+    // Explicit instruction to NOT include people/characters from front card
+    parts.push("DO NOT include any people, characters, or figures from the front card");
     
-    // Subtle aesthetic matching without character elements
-    parts.push('subtle complementary background that matches the front card color palette and overall mood');
+    // Message prominently displayed as main focus
+    parts.push(`"${insideMessage}" prominently displayed as the main focus with elegant typography`);
     
-    // Art style consistency
+    // Art style consistency with front card
     if (answers.art_style) {
-      parts.push(`${answers.art_style} art style with same visual treatment as front`);
+      parts.push(`${answers.art_style} art style with same visual treatment as front card`);
     }
     
-    // Typography and layout requirements
-    parts.push('professional greeting card typography using same font style and treatment as front card');
-    parts.push('text prominently displayed and clearly readable');
-    parts.push('minimal decorative elements that complement without overwhelming the message');
+    // Subtle visual reference points to overall scene but text is focus
+    parts.push('subtle visual reference points to overall scene atmosphere from front card, but nothing too imposing as text is the primary focus');
+    
+    // Typography STYLE matching front card exactly
+    parts.push('typography style matching front card exactly - same font family, weight, and text treatment');
+    
+    // Colours matching front card exactly
+    parts.push('color palette matching front card exactly - same primary and accent colors');
+    
+    // New image must feel like it is part of the same design family
+    parts.push('new image must feel like it is part of the same design family - cohesive design language and visual consistency');
+    
+    // Final requirements
     parts.push('print-ready artwork, no card mockup visible');
     
     return parts.join(', ');

@@ -1485,7 +1485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate inside card if requested
       if (cardOption === 'front-and-inside' && insideText) {
-        const insidePrompt = `Create the inside of a greeting card in ${stylePrompt} style. Use similar colors, textures, and artistic elements from the front card design. Display the message "${insideText}" in elegant typography that matches the front card style. Layout should be clean and readable like a traditional greeting card interior with the text centered and beautifully formatted.`;
+        const insidePrompt = `Square 1:1 aspect ratio design, full bleed with no borders or card edges visible, fill entire frame. DO NOT include any people, characters, or figures from the front card. "${insideText}" prominently displayed as the main focus with elegant typography. ${stylePrompt} art style with same visual treatment as front card. Subtle visual reference points to overall scene atmosphere from front card, but nothing too imposing as text is the primary focus. Typography style matching front card exactly - same font family, weight, and text treatment. Color palette matching front card exactly - same primary and accent colors. New image must feel like it is part of the same design family with cohesive design language and visual consistency. Print-ready artwork, no card mockup visible.`;
 
         console.log("Generating inside card with matching style");
 
@@ -1857,8 +1857,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const messageMatch = insidePrompt.match(/"([^"]+)"/);
           const insideMessage = messageMatch ? messageMatch[1] : 'Happy Birthday!';
 
-          // Use the same pattern as line 1431 - direct style reference with front card image
-          const insideCardPrompt = `Square 1:1 aspect ratio design. Reference this images style, atmosphere, colour, vibe and typography to create a new image with the text "${insideMessage}" The reference image should be used to stylise the background with the text prominent on the screen, as a square format design.`;
+          // Use proper inside card prompt with comprehensive requirements
+          const insideCardPrompt = `Square 1:1 aspect ratio design, full bleed with no borders or card edges visible, fill entire frame. DO NOT include any people, characters, or figures from the front card. "${insideMessage}" prominently displayed as the main focus with elegant typography. Reference this front card image for style consistency: same art style, same typography style exactly (font family, weight, text treatment), same color palette exactly (primary and accent colors). Include subtle visual reference points to overall scene atmosphere from front card, but nothing too imposing as text is the primary focus. New image must feel like it is part of the same design family with cohesive design language and visual consistency. Print-ready artwork, no card mockup visible.`;
 
           console.log('Using direct GPT-Image-1 style reference for inside card');
 
@@ -3207,7 +3207,7 @@ ${formatInstruction}`;
         ? 'as a portrait format design'
         : 'as a square format design';
       
-      const insideCardPrompt = `${formatDescription}. Reference this images style, atmosphere, colour, vibe and typography to create a new image with the text "${insideText}" The reference image should be used to stylise the background with the text prominent on the screen, ${formatInstruction}.`;
+      const insideCardPrompt = `${formatDescription}, full bleed with no borders or card edges visible, fill entire frame. DO NOT include any people, characters, or figures from the front card. "${insideText}" prominently displayed as the main focus with elegant typography. Reference this front card image for style consistency: same art style, same typography style exactly (font family, weight, text treatment), same color palette exactly (primary and accent colors). Include subtle visual reference points to overall scene atmosphere from front card, but nothing too imposing as text is the primary focus. New image must feel like it is part of the same design family with cohesive design language and visual consistency. Print-ready artwork, no card mockup visible, ${formatInstruction}.`;
 
       console.log('Inside card prompt:', insideCardPrompt);
 
