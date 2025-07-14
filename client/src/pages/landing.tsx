@@ -11,6 +11,7 @@ import founder2 from "@/assets/founder2.png";
 function HeroSection() {
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   
   const typingPhrases = [
     'Greetings, earthling',
@@ -46,6 +47,14 @@ function HeroSection() {
     }
   }, [charIndex, typing]);
 
+  // Fade in effect when component mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleCreateMasterpiece = () => {
     setIsLoading(true);
     
@@ -56,7 +65,7 @@ function HeroSection() {
   };
 
   return (
-    <section className="text-center max-w-4xl mx-auto px-4 md:px-8 py-12 space-y-6">
+    <section className={`text-center max-w-4xl mx-auto px-4 md:px-8 py-12 space-y-6 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       <h2 className="text-xl text-gray-500">
         Welcome to{' '}
         <span className="font-semibold bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">
@@ -346,11 +355,21 @@ function CallToActionSection() {
 }
 
 export default function Landing() {
+  const [isVisible, setIsVisible] = useState(false);
+
+  // Fade in effect when component mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="min-h-screen relative">
       <Header />
 
-      <main className="py-8">
+      <main className={`py-8 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
         <HeroSection />
         <WatchVideoSection />
         <SeeHowItLooksSection />
