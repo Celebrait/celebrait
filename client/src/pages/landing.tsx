@@ -104,7 +104,7 @@ function WatchVideoSection() {
 
 function SeeHowItLooksSection() {
   return (
-    <section className="w-full py-16 pb-24 overflow-hidden">
+    <section className="w-full py-16 pb-24">
       <div className="text-center mb-12">
         <h2 className="text-3xl md:text-4xl font-extrabold">
           <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">
@@ -113,8 +113,8 @@ function SeeHowItLooksSection() {
         </h2>
       </div>
       
-      <div className="relative">
-        <div className="flex gap-4 items-end overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div className="relative overflow-hidden">
+        <div className="flex gap-4 items-end overflow-x-auto scrollbar-hide pb-12" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {/* First set of card pairs */}
           {Array.from({ length: 6 }, (_, pairIndex) => (
             <div key={pairIndex} className="flex gap-4 items-end">
