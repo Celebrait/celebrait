@@ -3,11 +3,15 @@ import { db } from './db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
-// Extend Express Request type to include user
+// Extend Express Request type to include user and session
 declare global {
   namespace Express {
     interface Request {
       user?: any;
+    }
+    interface Session {
+      userId?: string;
+      userEmail?: string;
     }
   }
 }

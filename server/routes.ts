@@ -373,6 +373,18 @@ async function processFluxBinaryOutput(output: any): Promise<string> {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Configure session middleware
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'celebrait-dev-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+  }));
+
   // Serve stored images statically
   app.use('/images', (req, res, next) => {
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
