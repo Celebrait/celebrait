@@ -4,7 +4,6 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import sampleCard from "@/assets/sample-card.jpeg";
 import founder1 from "@/assets/founder1.png";
 import founder2 from "@/assets/founder2.png";
@@ -104,61 +103,6 @@ function WatchVideoSection() {
 }
 
 function SeeHowItLooksSection() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isUserControlled, setIsUserControlled] = useState(false);
-  const [touchStart, setTouchStart] = useState(0);
-  const [touchEnd, setTouchEnd] = useState(0);
-
-  const cardPairs = Array.from({ length: 6 }, (_, index) => index);
-
-  const scrollToIndex = (index: number) => {
-    setCurrentIndex(index);
-    setIsUserControlled(true);
-  };
-
-  const scrollLeft = () => {
-    const newIndex = currentIndex === 0 ? cardPairs.length - 1 : currentIndex - 1;
-    scrollToIndex(newIndex);
-  };
-
-  const scrollRight = () => {
-    const newIndex = currentIndex === cardPairs.length - 1 ? 0 : currentIndex + 1;
-    scrollToIndex(newIndex);
-  };
-
-  // Touch handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
-
-    if (isLeftSwipe) {
-      scrollRight();
-    } else if (isRightSwipe) {
-      scrollLeft();
-    }
-  };
-
-  // Auto-scroll functionality (disabled when user takes control)
-  useEffect(() => {
-    if (!isUserControlled) {
-      const interval = setInterval(() => {
-        setCurrentIndex((prev) => (prev + 1) % cardPairs.length);
-      }, 3000);
-      return () => clearInterval(interval);
-    }
-  }, [isUserControlled, cardPairs.length]);
-
   return (
     <section className="w-full py-16 pb-24 overflow-hidden">
       <div className="text-center mb-12">
@@ -170,31 +114,10 @@ function SeeHowItLooksSection() {
       </div>
       
       <div className="relative">
-        {/* Navigation arrows */}
-        <button
-          onClick={scrollLeft}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white text-gray-700 p-2 rounded-full shadow-lg transition-all duration-200"
-        >
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-        
-        <button
-          onClick={scrollRight}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white text-gray-700 p-2 rounded-full shadow-lg transition-all duration-200"
-        >
-          <ChevronRight className="w-6 h-6" />
-        </button>
-
-        {/* Scrollable container */}
-        <div 
-          className="flex gap-4 items-end transition-transform duration-500 ease-in-out" 
-          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          {cardPairs.map((pairIndex) => (
-            <div key={pairIndex} className="min-w-full flex justify-center gap-4 items-end">
+        <div className="flex gap-4 animate-scroll items-end">
+          {/* First set of card pairs */}
+          {Array.from({ length: 6 }, (_, pairIndex) => (
+            <div key={pairIndex} className="flex gap-4 items-end">
               {/* Front of card */}
               <div className="flex-shrink-0 relative">
                 <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
@@ -227,22 +150,53 @@ function SeeHowItLooksSection() {
                 </div>
               </div>
               
-              {/* Vertical separator */}
-              <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
+              {/* Vertical separator after each pair */}
+              {pairIndex < 5 && (
+                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
+              )}
             </div>
           ))}
-        </div>
-
-        {/* Dot indicators */}
-        <div className="flex justify-center mt-8 space-x-2">
-          {cardPairs.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => scrollToIndex(index)}
-              className={`w-3 h-3 rounded-full transition-colors duration-200 ${
-                index === currentIndex ? 'bg-purple-500' : 'bg-gray-300'
-              }`}
-            />
+          
+          {/* Duplicate set for seamless loop */}
+          {Array.from({ length: 6 }, (_, pairIndex) => (
+            <div key={pairIndex + 6} className="flex gap-4 items-end">
+              {/* Front of card */}
+              <div className="flex-shrink-0 relative">
+                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
+                  <img
+                    src={sampleCard}
+                    alt={`Sample card front ${pairIndex + 7}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
+                    Front of Card
+                  </span>
+                </div>
+              </div>
+              
+              {/* Inside of card - slightly higher position */}
+              <div className="flex-shrink-0 relative -mb-8">
+                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
+                  <img
+                    src={sampleCard}
+                    alt={`Sample card inside ${pairIndex + 7}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
+                    Inside of Card
+                  </span>
+                </div>
+              </div>
+              
+              {/* Vertical separator after each pair */}
+              {pairIndex < 5 && (
+                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
+              )}
+            </div>
           ))}
         </div>
       </div>
