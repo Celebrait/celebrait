@@ -114,7 +114,7 @@ function SeeHowItLooksSection() {
       </div>
       
       <div className="relative overflow-hidden">
-        <div className="flex gap-4 items-end overflow-x-auto scrollbar-hide pb-16" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <div className="flex gap-4 items-end overflow-x-auto scrollbar-hide pb-20" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {/* First set of card pairs */}
           {Array.from({ length: 6 }, (_, pairIndex) => (
             <div key={pairIndex} className="flex gap-4 items-end">
