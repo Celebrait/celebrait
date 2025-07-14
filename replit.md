@@ -120,6 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 14, 2025. AI BRAINSTORMING ASSISTANT FEATURE: Implemented AI-powered chatbot assistance for scene descriptions and art style choices:
+  * AI BRAINSTORMING ENDPOINT: Created `/api/ai-brainstorm` endpoint using OpenAI GPT-4o with specialized prompts for scene and art style suggestions
+  * INTERACTIVE CHAT COMPONENT: Built AIBrainstormChat component with real-time conversation interface, message history, and suggestion extraction
+  * SCENE DESCRIPTION HELP: AI provides 3-4 vivid, detailed scene ideas that translate well to greeting card artwork based on celebration type and recipient
+  * ART STYLE ASSISTANCE: AI suggests appropriate art styles (watercolor, digital art, oil painting, etc.) with explanations for why each style suits the celebration
+  * SEAMLESS INTEGRATION: Added "Get AI Scene Ideas" and "Get AI Art Style Ideas" buttons to conversation textarea fields with purple gradient styling
+  * SUGGESTION SELECTION: Users can click "Use This" buttons to instantly apply AI suggestions to their input fields
+  * CONTEXTUAL PROMPTS: AI considers recipient name, celebration type, and current user input to provide personalized, relevant suggestions
+  * PROFESSIONAL UI: Chat interface includes message bubbles, typing indicators, and smooth animations for engaging user experience
 - July 14, 2025. ESSENTIAL INPUT PRESERVATION FIX: Implemented comprehensive input data persistence system for conversation flow navigation:
   * INPUT PERSISTENCE STATE: Added stepInputs state to store typed input for each conversation step
   * AUTOMATIC SAVING: Input automatically saved as user types in both Input and Textarea fields

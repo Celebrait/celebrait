@@ -10,6 +10,7 @@ import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
+import { AIBrainstormChat } from "@/components/ui/ai-brainstorm-chat";
 
 // Example prompts for the scene description
 const EXAMPLE_PROMPTS = [
@@ -2932,6 +2933,28 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         </div>
                       </div>
                     )}
+                    
+                    {/* AI Brainstorming Button - Only for scene and art_style steps */}
+                    {(currentStep.id === 'scene' || currentStep.id === 'art_style') && (
+                      <div className="flex justify-center mb-4">
+                        <AIBrainstormChat
+                          type={currentStep.id === 'scene' ? 'scene' : 'art_style'}
+                          recipientName={answers.name || 'the recipient'}
+                          celebration={answers.celebration || 'celebration'}
+                          currentInput={currentInput}
+                          onSuggestionSelect={(suggestion) => {
+                            setCurrentInput(suggestion);
+                            setStepInputs(prev => ({
+                              ...prev,
+                              [currentStep.id]: suggestion
+                            }));
+                          }}
+                          buttonText={currentStep.id === 'scene' ? 'Get AI Scene Ideas' : 'Get AI Art Style Ideas'}
+                          buttonIcon={currentStep.id === 'scene' ? <Sparkles className="w-4 h-4" /> : <Palette className="w-4 h-4" />}
+                        />
+                      </div>
+                    )}
+                    
                     <Textarea
                       value={currentInput}
                       onChange={(e) => {

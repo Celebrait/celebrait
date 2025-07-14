@@ -435,6 +435,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Brainstorming Assistant endpoint
+  app.post("/api/ai-brainstorm", async (req, res) => {
+    try {
+      if (!hasOpenAI || !openai) {
+        return res.status(503).json({ message: "OpenAI API is not configured" });
+      }
+
+      const { type, context, userInput, recipientName, celebration } = req.body;
+
+      let systemPrompt = "";
+      let userPrompt = "";
+
+      if (type === "scene") {
+        systemPrompt = `You are a creative assistant helping users brainstorm scene descriptions for personalized greeting cards. You should suggest vivid, detailed scenes that would make beautiful greeting card images. Be encouraging and creative while keeping suggestions appropriate and heartwarming.`;
+        
+        userPrompt = `Help me brainstorm a scene description for a ${celebration} greeting card for ${recipientName}. 
+        
+        Context: ${context || "No additional context provided"}
+        What I'm thinking so far: "${userInput || "I'm not sure what to write"}"
+        
+        Please suggest 3-4 specific, detailed scene ideas that would make beautiful greeting card images. Each suggestion should be 1-2 sentences and paint a vivid picture. Focus on settings, emotions, and visual elements that would translate well to artwork.`;
+      } else if (type === "art_style") {
+        systemPrompt = `You are a creative assistant helping users choose art styles for personalized greeting cards. You should suggest art styles that would work well for greeting cards and match the user's preferences. Be encouraging and help them visualize how different styles would look.`;
+        
+        userPrompt = `Help me choose an art style for a ${celebration} greeting card for ${recipientName}.
+        
+        Context: ${context || "No additional context provided"}
+        What I'm thinking so far: "${userInput || "I'm not sure what art style to choose"}"
+        
+        Please suggest 3-4 specific art styles that would work well for greeting cards. For each style, explain briefly what it would look like and why it might be perfect for this ${celebration} card. Consider styles like watercolor, digital art, oil painting, cartoon, vintage, modern, etc.`;
+      }
+
+      console.log('AI Brainstorm request:', { type, recipientName, celebration, userInput });
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        max_tokens: 600,
+        temperature: 0.8 // Higher temperature for more creative suggestions
+      });
+
+      const suggestions = response.choices[0].message.content;
+      console.log('AI brainstorm response generated successfully');
+
+      res.json({ 
+        suggestions,
+        type,
+        context: { recipientName, celebration, userInput }
+      });
+
+    } catch (error: any) {
+      console.error('AI brainstorm error:', error);
+      res.status(500).json({ message: "Failed to generate AI suggestions: " + error.message });
+    }
+  });
+
   // User registration
   app.post("/api/users", async (req, res) => {
     try {
