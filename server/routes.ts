@@ -4510,14 +4510,13 @@ ${formatInstruction}`;
                 try {
                   const recipientInfo = JSON.parse(order.recipientInfo);
                   if (recipientInfo.email && recipientInfo.email !== order.customerEmail) {
-                    const recipientEmailParams = generateDigitalCardEmail(
-                      { 
-                        ...order, 
-                        card,
-                        customerEmail: recipientInfo.email,
-                        customerName: recipientInfo.name
-                      },
-                      `${baseUrl}/card/${order.paymentReference}`,
+                    // Use the new recipient-specific email template
+                    const recipientEmailParams = generateDigitalCardEmailForRecipient(
+                      { ...order, card },
+                      recipientInfo.name,
+                      recipientInfo.email,
+                      order.customerName,
+                      `${baseUrl}/api/cards/${card.id}/digital-front-image`,
                       actualHost
                     );
                     await sendEmail(recipientEmailParams);

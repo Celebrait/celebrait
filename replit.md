@@ -120,6 +120,17 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 14, 2025. STREAMLINED DELIVERY WORKFLOW: Redesigned delivery process to go directly from card preview to single complete order page:
+  * UNIFIED COMPLETE ORDER PAGE: Created new streamlined complete-order.tsx that defaults to email delivery with optional recipient checkbox
+  * CARD PREVIEW NAVIGATION: Updated card preview to go directly to complete order page instead of delivery details
+  * RECIPIENT CHECKBOX SYSTEM: Added checkbox for "Also send this card to [recipient name]" with expanding recipient form fields
+  * DUAL EMAIL TEMPLATES: Created separate recipient-specific email template (generateDigitalCardEmailForRecipient) with personalized tone
+  * INSTANT FORM POPULATION: Customer and recipient names/emails load instantly from cache for zero-loading experience
+  * STREAMLINED UX: Eliminated delivery selection page - users start with email to themselves, can optionally add recipient
+  * IMPROVED EMAIL PERSONALIZATION: Recipient emails now show "[Sender] has sent you a special digital card!" with warm, personal messaging
+  * CONSISTENT PRICING: Single R5.00 price display with clear order summary section
+  * ENHANCED PAYMENT FLOW: Maintains existing Payfast integration with proper recipient information storage
+  * ITN PROCESSING UPDATE: Updated payment completion to use new recipient-specific email template for dual delivery
 - July 14, 2025. URGENT RECIPIENT DETAILS LOADING FIX: Fixed slow loading of recipient names and user details throughout email and web journeys:
   * INSTANT RECIPIENT NAMES: Fixed delivery-details.tsx to immediately load recipient names from cache instead of showing "the recipient" placeholder
   * INSTANT USER DETAILS: Fixed complete-order.tsx to immediately populate user name and email from cache instead of waiting for API calls

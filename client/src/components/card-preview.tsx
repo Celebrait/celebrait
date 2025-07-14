@@ -96,16 +96,16 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
     
     setTimeout(() => {
       try {
-        // Digital-only launch: Go to delivery details for recipient selection
-        console.log('[DIGITAL-ONLY] Going to delivery details for recipient selection');
-        setLocation(`/delivery-details/${card.id}`);
+        // Digital-only launch: Go directly to complete order page
+        console.log('[DIGITAL-ONLY] Going to complete order page');
+        setLocation(`/complete-order/${card.id}?type=digital`);
         setTimeout(() => {
           document.body.style.opacity = '1';
         }, 100);
       } catch (error) {
         console.error('Navigation failed:', error);
         // Force page reload as fallback
-        window.location.href = `/delivery-details/${card.id}`;
+        window.location.href = `/complete-order/${card.id}?type=digital`;
         setTimeout(() => {
           document.body.style.opacity = '1';
         }, 100);

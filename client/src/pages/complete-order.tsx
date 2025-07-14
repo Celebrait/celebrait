@@ -1,43 +1,34 @@
-
 import { useState, useEffect } from 'react';
-import { useLocation, useParams } from 'wouter';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
-import { 
-  ArrowLeft, 
-  Truck, 
-  Mail, 
-  MapPin, 
-  User, 
-  MessageSquare,
-  Gift,
-  Download
-} from 'lucide-react';
 import Header from '@/components/header';
+import { Heart, ArrowLeft, Mail, User, CreditCard } from 'lucide-react';
 
-interface Address {
-  line1: string;
-  line2: string;
-  city: string;
-  province: string;
-  postalCode: string;
+interface CompleteOrderProps {
+  params: {
+    cardId: string;
+  };
 }
 
-export default function CompleteOrder() {
+export default function CompleteOrder({ params }: CompleteOrderProps) {
+  const { cardId } = params;
   const [, setLocation] = useLocation();
-  const { cardId } = useParams();
   const { toast } = useToast();
-  
+
+  // URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const deliveryType = urlParams.get('type') || 'digital';
+
+  // Card data
   const [card, setCard] = useState<any>(null);
-  const [loading, setLoading] = useState(false); // Start with false for instant display
+  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Form data with instant initialization from cache
   const [customerName, setCustomerName] = useState(() => {
     // Try to get user name from cache immediately
@@ -69,7 +60,7 @@ export default function CompleteOrder() {
     }
     return '';
   });
-  
+
   const [customerEmail, setCustomerEmail] = useState(() => {
     // Try to get user email from cache immediately
     const cachedKeys = ['cardPreviewData', `card_${cardId}`, `ready_${cardId}`];
@@ -93,9 +84,10 @@ export default function CompleteOrder() {
     }
     return '';
   });
-  
-  const [recipientEmail, setRecipientEmail] = useState('');
-  const [actualRecipientName, setActualRecipientName] = useState(() => {
+
+  // Recipient data
+  const [sendToRecipient, setSendToRecipient] = useState(false);
+  const [recipientName, setRecipientName] = useState(() => {
     // Try to get recipient name from cache immediately
     const cachedKeys = ['cardPreviewData', `card_${cardId}`, `ready_${cardId}`];
     for (const key of cachedKeys) {
@@ -120,107 +112,17 @@ export default function CompleteOrder() {
     }
     return '';
   });
-  const [deliveryMethod, setDeliveryMethod] = useState<'self' | 'recipient'>('self');
-  const [customMessage, setCustomMessage] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
+
+  // Current view for card display
   const [currentView, setCurrentView] = useState<'front' | 'inside'>('front');
-  
-  // Address for printed cards
-  const [address, setAddress] = useState<Address>({
-    line1: '',
-    line2: '',
-    city: '',
-    province: '',
-    postalCode: ''
-  });
 
-  // Get delivery type from session storage
-  const deliveryType = sessionStorage.getItem('selectedDeliveryType') as 'printed' | 'digital' || 'digital';
-  
-  // Get delivery method (who to deliver to) from URL params or session storage
-  const urlParams = new URLSearchParams(window.location.search);
-  const urlDelivery = urlParams.get('delivery');
-  const sessionDelivery = sessionStorage.getItem('selectedDeliveryOption');
-  const deliverTo = (urlDelivery || sessionDelivery || 'self') as 'self' | 'recipient';
-  
-  // Get recipient name instantly from cache or card data for dynamic text
-  const [recipientName, setRecipientName] = useState(() => {
-    // Try to get name from session storage first for instant loading
-    const sessionName = sessionStorage.getItem('recipientName');
-    if (sessionName && sessionName !== 'the recipient') {
-      return sessionName;
-    }
-    
-    // Try to get from cached card data
-    const cachedKeys = [
-      'cardPreviewData',
-      `card_${cardId}`,
-      `ready_${cardId}`,
-      `card_celebrait_ready_${cardId}`
-    ];
-    
-    for (const key of cachedKeys) {
-      try {
-        const cachedData = sessionStorage.getItem(key);
-        if (cachedData) {
-          const cardData = JSON.parse(cachedData);
-          const card = cardData.card || cardData;
-          if (card?.conversationData) {
-            const name = card.conversationData.name || 
-                        card.conversationData.recipient_name ||
-                        card.conversationData.recipientName;
-            if (name && name !== 'the recipient') {
-              sessionStorage.setItem('recipientName', name);
-              return name;
-            }
-          }
-        }
-      } catch (e) {
-        // Continue to next cache key
-      }
-    }
-    
-    return 'the recipient';
-  });
-
+  // Load card data
   useEffect(() => {
     if (cardId) {
       loadCard();
     }
   }, [cardId]);
-
-  // Pre-populate form with user data from conversation if available
-  useEffect(() => {
-    if (card?.conversationData) {
-      // Get user details from conversation data (email from email collection step)
-      const userEmail = card.conversationData.email || card.conversationData.user_email || '';
-      
-      // Try to get user name from various sources
-      const userFirstName = card.conversationData.user_first_name || '';
-      const userLastName = card.conversationData.user_last_name || '';
-      const userName = card.conversationData.user_name || '';
-      
-      // Set name from available data
-      if (userFirstName || userLastName) {
-        setCustomerName(`${userFirstName} ${userLastName}`.trim());
-      } else if (userName) {
-        setCustomerName(userName);
-      }
-      
-      // Set email from conversation data
-      if (userEmail) {
-        setCustomerEmail(userEmail);
-      }
-      
-      // Update recipient name from card data if available
-      const name = card.conversationData.name || 
-                  card.conversationData.recipient_name ||
-                  card.conversationData.recipientName;
-      if (name && name !== 'the recipient' && name !== recipientName) {
-        setRecipientName(name);
-        sessionStorage.setItem('recipientName', name);
-      }
-    }
-  }, [card, recipientName]);
 
   const loadCard = async () => {
     try {
@@ -267,7 +169,7 @@ export default function CompleteOrder() {
         return;
       }
 
-      // Fallback to ultra-fast metadata endpoint - NO LOADING SPINNER for email links
+      // Fallback to ultra-fast metadata endpoint
       console.log(`[PERF] Complete order making ultra-fast API call for card ${cardId}`);
       const apiStartTime = Date.now();
       
@@ -283,15 +185,6 @@ export default function CompleteOrder() {
         
         const apiEndTime = Date.now();
         console.log(`[PERF] Complete order API response received in: ${apiEndTime - apiStartTime}ms`);
-        
-        // Cache the card data for future instant loading
-        try {
-          sessionStorage.setItem('cardPreviewData', JSON.stringify(cardData));
-          sessionStorage.setItem(`card_${cardId}`, JSON.stringify(cardData));
-          console.log('[CACHE] Complete order cached card data for future instant loading');
-        } catch (e) {
-          console.warn('Complete order cache storage failed:', e);
-        }
       }
       setLoading(false);
     } catch (error) {
@@ -306,21 +199,8 @@ export default function CompleteOrder() {
 
   const isFormValid = () => {
     if (!customerName.trim() || !customerEmail.trim()) return false;
-    
-    if (deliveryType === 'digital') {
-      if (deliverTo === 'recipient' && (!recipientEmail.trim() || !actualRecipientName.trim())) return false;
-    } else {
-      // Printed cards need address
-      if (!address.line1.trim() || !address.city.trim() || 
-          !address.province.trim() || !address.postalCode.trim()) return false;
-    }
-    
+    if (sendToRecipient && (!recipientName.trim() || !recipientEmail.trim())) return false;
     return true;
-  };
-
-  const generateCustomLink = () => {
-    const linkId = Math.random().toString(36).substring(2, 15);
-    return `${window.location.origin}/card/${linkId}`;
   };
 
   const handleSubmit = async () => {
@@ -336,136 +216,69 @@ export default function CompleteOrder() {
     setSubmitting(true);
 
     try {
-      if (deliveryType === 'digital') {
-        // Handle digital card - R5 payment via Payfast
-        const customerInfo = {
-          name: customerName,
-          email: customerEmail,
-          phone: ''
-        };
+      // Handle digital card payment
+      const customerInfo = {
+        name: customerName,
+        email: customerEmail,
+        phone: ''
+      };
 
-        const deliveryInfo = {
-          address: {
-            line1: 'Digital Delivery',
-            line2: '',
-            city: 'Digital',
-            province: 'Digital',
-            postalCode: '0000'
-          }
-        };
-
-        const response = await fetch('/api/payfast/create-payment', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            cardId: card.id,
-            customerInfo,
-            deliveryInfo,
-            isDigital: true,
-            recipientInfo: deliverTo === 'recipient' ? {
-              name: actualRecipientName || recipientName,
-              email: recipientEmail
-            } : null
-          })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to create payment');
+      const deliveryInfo = {
+        address: {
+          line1: 'Digital Delivery',
+          line2: '',
+          city: 'Digital',
+          province: 'Digital',
+          postalCode: '0000'
         }
+      };
 
-        const result = await response.json();
-        
-        console.log('Digital payment response:', result);
-        
-        // Redirect to Payfast payment for R5 digital card
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = result.paymentUrl;
-        form.style.display = 'none';
+      const response = await fetch('/api/payfast/create-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cardId: card.id,
+          customerInfo,
+          deliveryInfo,
+          isDigital: true,
+          recipientInfo: sendToRecipient ? {
+            name: recipientName,
+            email: recipientEmail
+          } : null
+        })
+      });
 
-        // Add all payment form fields
-        Object.entries(result.paymentData).forEach(([key, value]) => {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = value as string;
-          form.appendChild(input);
-        });
-
-        document.body.appendChild(form);
-        form.submit();
-        
-      } else {
-        // Handle printed card - create Payfast payment
-        const customerInfo = {
-          name: customerName,
-          email: customerEmail,
-          phone: '' // Phone not required for Payfast
-        };
-
-        const deliveryInfo = address;
-
-        try {
-          const response = await fetch('/api/payfast/create-payment', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              cardId: card.id,
-              customerInfo,
-              deliveryInfo,
-              isDigital: false,
-              recipientInfo: deliverTo === 'recipient' ? {
-                name: actualRecipientName || recipientName,
-                email: recipientEmail
-              } : null
-            })
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to create payment');
-          }
-
-          const paymentData = await response.json();
-          
-          // Create and submit Payfast form
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = paymentData.paymentUrl;
-          
-          // Add all payment data as hidden inputs
-          Object.entries(paymentData.paymentData).forEach(([key, value]) => {
-            if (value !== undefined && value !== null) {
-              const input = document.createElement('input');
-              input.type = 'hidden';
-              input.name = key;
-              input.value = String(value);
-              form.appendChild(input);
-            }
-          });
-          
-          document.body.appendChild(form);
-          form.submit();
-          
-        } catch (error) {
-          console.error('Payfast payment error:', error);
-          toast({
-            title: 'Payment Error',
-            description: 'Failed to create payment. Please try again.',
-            variant: 'destructive'
-          });
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create payment');
       }
 
+      const result = await response.json();
+      
+      // Redirect to Payfast payment for R5 digital card
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = result.paymentUrl;
+      form.style.display = 'none';
+
+      // Add all payment form fields
+      Object.entries(result.paymentData).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value as string;
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+      
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to process your order. Please try again.',
+        title: 'Payment Error',
+        description: error instanceof Error ? error.message : 'Failed to process payment',
         variant: 'destructive'
       });
     } finally {
@@ -473,18 +286,20 @@ export default function CompleteOrder() {
     }
   };
 
+  const handleBack = () => {
+    setLocation(`/card-preview/${cardId}`);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
         <Header />
-        <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20">
-            <div className="text-center">
-              <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-              <p>Loading order details...</p>
-            </div>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading card details...</p>
           </div>
-        </main>
+        </div>
       </div>
     );
   }
@@ -493,402 +308,198 @@ export default function CompleteOrder() {
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
       <Header />
       
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-6">
           <Button 
-            onClick={() => window.history.back()} 
             variant="ghost" 
-            className="mb-6"
+            onClick={handleBack}
+            className="text-gray-600 hover:text-gray-800"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
+            Back to Card Preview
           </Button>
-          
-          <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
-              <User className="text-white w-10 h-10" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              {deliverTo === 'recipient' 
-                ? `${recipientName}'s Information`
-                : 'Delivery Information'
-              }
-            </h1>
-            <p className="text-lg text-slate-gray">
-              {deliveryType === 'digital' 
-                ? (deliverTo === 'recipient' 
-                    ? `Enter details to send the digital card to ${recipientName}` 
-                    : 'Enter details to send your digital card')
-                : (deliverTo === 'recipient' 
-                    ? `Enter ${recipientName}'s details and address for delivery` 
-                    : 'Enter your details and shipping address')
-              }
-            </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Left Column - Card Preview */}
+          <div className="space-y-6">
+            <Card className="bg-white/80 backdrop-blur-sm border-white/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Heart className="w-5 h-5 text-pink-500" />
+                  Your Card Preview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {card && (
+                  <div className="space-y-4">
+                    {/* Toggle buttons */}
+                    <div className="flex justify-center space-x-2 bg-gray-100 p-1 rounded-lg">
+                      <button
+                        onClick={() => setCurrentView('front')}
+                        className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
+                          currentView === 'front' 
+                            ? 'bg-white text-gray-800 shadow-sm' 
+                            : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                      >
+                        Front Design
+                      </button>
+                      <button
+                        onClick={() => setCurrentView('inside')}
+                        className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
+                          currentView === 'inside' 
+                            ? 'bg-white text-gray-800 shadow-sm' 
+                            : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                      >
+                        Inside Design
+                      </button>
+                    </div>
+
+                    {/* Card image */}
+                    <div className="w-full">
+                      <img 
+                        src={currentView === 'front' 
+                          ? `/api/cards/${card.id}/fast-front-image` 
+                          : `/api/cards/${card.id}/fast-inside-image`}
+                        alt={`Card ${currentView} Design`}
+                        className="w-full h-auto rounded-lg shadow-lg border border-gray-200"
+                      />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Order Summary */}
+            <Card className="bg-white/80 backdrop-blur-sm border-white/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-green-500" />
+                  Order Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Digital Card</span>
+                    <span className="font-semibold">R5.00</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Delivery</span>
+                    <span className="font-semibold text-green-600">Free</span>
+                  </div>
+                  <div className="border-t pt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-semibold">Total</span>
+                      <span className="text-lg font-bold text-green-600">R5.00</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Order Form - Full Width */}
-          <Card className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-lg mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {deliveryType === 'digital' ? (
-                  <Mail className="w-5 h-5" />
-                ) : (
-                  <MapPin className="w-5 h-5" />
-                )}
-                {deliveryType === 'digital' 
-                  ? (deliverTo === 'recipient' ? `Deliver to ${recipientName}` : 'Delivery Details')
-                  : (deliverTo === 'recipient' ? `Deliver to ${recipientName}` : 'Shipping & Contact Details')
-                }
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {deliverTo === 'recipient' ? (
-                <>
-                  {/* Recipient Information */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      {recipientName}'s Details
-                    </h3>
-                    
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="recipientName">{recipientName}'s Name *</Label>
-                        <Input
-                          id="recipientName"
-                          value={actualRecipientName}
-                          onChange={(e) => setActualRecipientName(e.target.value)}
-                          placeholder={`Enter ${recipientName}'s full name`}
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="recipientEmailInput">{recipientName}'s Email *</Label>
-                        <Input
-                          id="recipientEmailInput"
-                          type="email"
-                          value={recipientEmail}
-                          onChange={(e) => setRecipientEmail(e.target.value)}
-                          placeholder={`${recipientName.toLowerCase()}@email.com`}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Your Information */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      Your Details
-                    </h3>
-                    
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="customerName">Your Name *</Label>
-                        <Input
-                          id="customerName"
-                          value={customerName}
-                          onChange={(e) => setCustomerName(e.target.value)}
-                          placeholder="Enter your full name"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="customerEmail">Your Email *</Label>
-                        <Input
-                          id="customerEmail"
-                          type="email"
-                          value={customerEmail}
-                          onChange={(e) => setCustomerEmail(e.target.value)}
-                          placeholder="your@email.com"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                /* Self delivery - just your information */
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    Your Information
-                  </h3>
-                  
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="customerName">Your Name *</Label>
-                      <Input
-                        id="customerName"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        placeholder="Enter your full name"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="customerEmail">Your Email *</Label>
-                      <Input
-                        id="customerEmail"
-                        type="email"
-                        value={customerEmail}
-                        onChange={(e) => setCustomerEmail(e.target.value)}
-                        placeholder="your@email.com"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {deliveryType === 'digital' ? (
-                <>
-                  <Separator />
-                  
-                  {/* Digital Delivery Confirmation */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      Digital Delivery
-                    </h3>
-                    
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0">
-                          <Mail className="w-5 h-5 text-blue-500 mt-0.5" />
-                        </div>
-                        <div className="ml-3">
-                          <p className="text-sm text-blue-800 font-medium">
-                            {deliverTo === 'recipient' 
-                              ? `Your digital card will be emailed to both ${recipientName} and you` 
-                              : 'Your digital card will be emailed to you instantly'
-                            }
-                          </p>
-                          <p className="text-xs text-blue-600 mt-1">
-                            {deliverTo === 'recipient' 
-                              ? `${recipientName} will receive the card link, and you'll also get a copy for your records`
-                              : 'The email will include an interactive link to view and download the card'
-                            }
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-
-
-                    <div>
-                      <Label htmlFor="customMessage">Custom Message (Optional)</Label>
-                      <Textarea
-                        id="customMessage"
-                        value={customMessage}
-                        onChange={(e) => setCustomMessage(e.target.value)}
-                        placeholder={`${customerName || 'Someone'} has sent you a beautiful greeting card created with Celebrait!`}
-                        rows={3}
-                      />
-                      <p className="text-sm text-gray-500 mt-1">
-                        This message will appear when the recipient opens the digital card.
-                      </p>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Separator />
-                  
-                  {/* Shipping Address */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      {deliverTo === 'recipient' ? `${recipientName}'s Address` : 'Shipping Address'}
-                    </h3>
-                    
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="line1">Address Line 1 *</Label>
-                        <Input
-                          id="line1"
-                          value={address.line1}
-                          onChange={(e) => setAddress({...address, line1: e.target.value})}
-                          placeholder="Street address"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="line2">Address Line 2</Label>
-                        <Input
-                          id="line2"
-                          value={address.line2}
-                          onChange={(e) => setAddress({...address, line2: e.target.value})}
-                          placeholder="Apartment, suite, etc. (optional)"
-                        />
-                      </div>
-                      
-                      <div className="grid md:grid-cols-3 gap-4">
-                        <div>
-                          <Label htmlFor="city">City *</Label>
-                          <Input
-                            id="city"
-                            value={address.city}
-                            onChange={(e) => setAddress({...address, city: e.target.value})}
-                            placeholder="City"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="province">Province *</Label>
-                          <Input
-                            id="province"
-                            value={address.province}
-                            onChange={(e) => setAddress({...address, province: e.target.value})}
-                            placeholder="Province"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="postalCode">Postal Code *</Label>
-                          <Input
-                            id="postalCode"
-                            value={address.postalCode}
-                            onChange={(e) => setAddress({...address, postalCode: e.target.value})}
-                            placeholder="Postal code"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <Separator />
-
-              {/* Submit Button */}
-              <Button
-                onClick={handleSubmit}
-                disabled={submitting || !isFormValid()}
-                className="w-full py-6 text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-500 hover:opacity-90 text-white shadow-lg"
-              >
-                {submitting ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                    Processing...
-                  </div>
-                ) : deliveryType === 'digital' ? (
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-5 h-5" />
-                    Pay R5.00 for Digital Card
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Truck className="w-5 h-5" />
-                    Proceed to Payment - R{(card.price / 100).toFixed(2)}
-                  </div>
-                )}
-              </Button>
-
-              {deliveryType === 'digital' && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Gift className="w-5 h-5 text-blue-600" />
-                    <span className="font-medium text-blue-800">Digital Card Experience</span>
-                  </div>
-                  <p className="text-sm text-blue-700">
-                    {deliverTo === 'recipient' ? (
-                      <>
-                        Both you and {actualRecipientName || recipientName} will receive a custom link that opens a beautiful digital greeting card experience. 
-                        {actualRecipientName || recipientName} can click to "open" the card to view your creation, and you'll also have your own copy of the link.
-                      </>
-                    ) : (
-                      <>
-                        You'll receive a custom link that opens a beautiful digital greeting card experience. 
-                        You can then share this link with your recipient - they'll see your message and can click to "open" the card to view your creation.
-                      </>
-                    )}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Order Summary - moved to bottom */}
-          <Card className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Gift className="w-5 h-5" />
-                Order Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Single Card Preview with Toggle - matching payment page layout */}
-              {card?.frontImageUrl && (
-                <div className="aspect-square w-48 mx-auto rounded-lg overflow-hidden border-2 border-gray-200">
-                  <img 
-                    src={currentView === 'front' 
-                      ? `/api/cards/${card.id}/fast-front-image`
-                      : `/api/cards/${card.id}/fast-inside-image`
-                    } 
-                    alt="Card preview" 
-                    className="w-full h-full object-cover"
+          {/* Right Column - Order Form */}
+          <div className="space-y-6">
+            <Card className="bg-white/80 backdrop-blur-sm border-white/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5 text-blue-500" />
+                  Your Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="customerName">Your Name</Label>
+                  <Input
+                    id="customerName"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Enter your full name"
+                    required
                   />
                 </div>
-              )}
-
-              {/* View Toggle Buttons - only show if inside image exists */}
-              {card?.insideImageUrl && (
-                <div className="flex justify-center gap-2">
-                  <Button
-                    variant={currentView === 'front' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setCurrentView('front')}
-                    className="text-xs"
-                  >
-                    Front
-                  </Button>
-                  <Button
-                    variant={currentView === 'inside' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setCurrentView('inside')}
-                    className="text-xs"
-                  >
-                    Inside
-                  </Button>
+                <div>
+                  <Label htmlFor="customerEmail">Your Email</Label>
+                  <Input
+                    id="customerEmail"
+                    type="email"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    placeholder="Enter your email address"
+                    required
+                  />
                 </div>
-              )}
+              </CardContent>
+            </Card>
 
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Card Type:</span>
-                  <span className="font-medium">
-                    {card?.cardType === 'printed' ? 'Physical Card' : 'Digital Card'}
-                  </span>
+            <Card className="bg-white/80 backdrop-blur-sm border-white/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-purple-500" />
+                  Delivery Options
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="sendToRecipient"
+                    checked={sendToRecipient}
+                    onCheckedChange={(checked) => setSendToRecipient(checked as boolean)}
+                  />
+                  <Label htmlFor="sendToRecipient" className="text-sm font-medium">
+                    Also send this card to {recipientName || 'the recipient'}
+                  </Label>
                 </div>
-
-                {card?.cardType === 'printed' && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Print Option:</span>
-                    <span className="font-medium">
-                      {card?.printOption === 'front-and-inside' ? 'Front + Inside' : 'Front Only'}
-                    </span>
+                
+                {sendToRecipient && (
+                  <div className="space-y-3 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <div>
+                      <Label htmlFor="recipientName">Recipient's Name</Label>
+                      <Input
+                        id="recipientName"
+                        value={recipientName}
+                        onChange={(e) => setRecipientName(e.target.value)}
+                        placeholder="Enter recipient's name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="recipientEmail">Recipient's Email</Label>
+                      <Input
+                        id="recipientEmail"
+                        type="email"
+                        value={recipientEmail}
+                        onChange={(e) => setRecipientEmail(e.target.value)}
+                        placeholder="Enter recipient's email"
+                        required
+                      />
+                    </div>
+                    <p className="text-sm text-purple-700 bg-purple-100 p-2 rounded">
+                      The recipient will receive a personalized email with their digital card. 
+                      You'll also receive a copy for your records.
+                    </p>
                   </div>
                 )}
+                
+                {!sendToRecipient && (
+                  <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                    You'll receive the digital card via email and can share it with anyone you'd like.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
 
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Delivery:</span>
-                  <span className="font-medium">
-                    {card?.cardType === 'printed' ? 'Standard Shipping (3-5 days)' : 'Instant Download'}
-                  </span>
-                </div>
-
-                <Separator />
-
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total:</span>
-                  <span className={deliveryType === 'digital' ? 'text-green-600' : 'text-purple-600'}>
-                    {deliveryType === 'digital' ? 'R5.00' : `R${(card?.price ? (card.price / 100).toFixed(2) : '0.00')}`}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            <Button
+              onClick={handleSubmit}
+              disabled={!isFormValid() || submitting}
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-4 rounded-lg font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105"
+            >
+              {submitting ? 'Processing...' : `Complete Order - R5.00`}
+            </Button>
+          </div>
         </div>
       </main>
     </div>

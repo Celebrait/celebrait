@@ -220,6 +220,95 @@ Thank you for choosing Celebrait!
   };
 }
 
+export function generateDigitalCardEmailForRecipient(orderData: any, recipientName: string, recipientEmail: string, senderName: string, cardImageUrl: string, host?: string): EmailParams {
+  const { paymentReference } = orderData;
+
+  // Use proper domain detection - if host contains localhost or undefined, use Replit domain
+  const actualHost = (!host || host.includes('localhost')) ? 
+    '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev' : 
+    host;
+  
+  // Log URL generation for debugging
+  console.log('Digital card email URL for recipient generated:', `https://${actualHost}/card/${paymentReference}`);
+
+  return {
+    to: recipientEmail,
+    from: 'greetings@celebrait.co.za',
+    subject: `${senderName} has sent you a special digital card! 🎁`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; }
+          .container { max-width: 500px; margin: 0 auto; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .card-preview { text-align: center; margin: 20px 0; }
+          .card-preview img { max-width: 250px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+          .cta-button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; margin: 20px 0; }
+          .cta-button:hover { background: #5a67d8; color: white; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+          .personal-message { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🎁 You've Received a Special Card!</h1>
+            <p>From ${senderName}</p>
+          </div>
+          <div class="content">
+            <h2>Hi ${recipientName}!</h2>
+            <p>${senderName} has created a beautiful, personalized digital card just for you using AI technology.</p>
+            
+            <div class="personal-message">
+              <h3>✨ A Personal Touch</h3>
+              <p>This isn't just any card - it's been specially crafted with you in mind. Every detail has been carefully designed to celebrate your special moment.</p>
+            </div>
+
+            <div class="card-preview">
+              <img src="${cardImageUrl}" alt="Your Special Card" />
+            </div>
+
+            <div style="text-align: center;">
+              <a href="https://${actualHost}/card/${paymentReference}" class="cta-button">
+                View Your Card 🎉
+              </a>
+            </div>
+
+            <p style="text-align: center; margin-top: 30px; color: #666;">
+              <small>You can save, download, or share this card with others. It's yours to keep forever!</small>
+            </p>
+          </div>
+          <div class="footer">
+            <p>This card was created with ❤️ using Celebrait's AI-powered greeting card platform</p>
+            <p>© 2025 Celebrait. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+${senderName} has sent you a special digital card!
+
+Hi ${recipientName}!
+
+${senderName} has created a beautiful, personalized digital card just for you using AI technology.
+
+This isn't just any card - it's been specially crafted with you in mind. Every detail has been carefully designed to celebrate your special moment.
+
+View your card here: https://${actualHost}/card/${paymentReference}
+
+You can save, download, or share this card with others. It's yours to keep forever!
+
+This card was created with ❤️ using Celebrait's AI-powered greeting card platform.
+
+© 2025 Celebrait. All rights reserved.
+    `
+  };
+}
+
 export function generateCardReadyNotificationEmail(orderData: any, host?: string): EmailParams {
   const { customerEmail, customerName, paymentReference, cardType } = orderData;
 
