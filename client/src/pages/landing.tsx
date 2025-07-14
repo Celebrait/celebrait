@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import sampleCard from "@/assets/sample-card.jpeg";
 import founder1 from "@/assets/founder1.png";
 import founder2 from "@/assets/founder2.png";
 
 function HeroSection() {
+  const [, setLocation] = useLocation();
+  const [isLoading, setIsLoading] = useState(false);
+  
   const typingPhrases = [
     'Greetings, earthling',
     'the end of boring',
@@ -43,6 +46,15 @@ function HeroSection() {
     }
   }, [charIndex, typing]);
 
+  const handleCreateMasterpiece = () => {
+    setIsLoading(true);
+    
+    // Brief loading effect
+    setTimeout(() => {
+      setLocation('/create-card');
+    }, 800);
+  };
+
   return (
     <section className="text-center max-w-4xl mx-auto px-4 md:px-8 py-12 space-y-6">
       <h2 className="text-xl text-gray-500">
@@ -61,11 +73,20 @@ function HeroSection() {
       </p>
 
       <div className="pt-4 space-y-3">
-        <Link to="/create-card">
-          <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-semibold text-lg">
-            Create a Masterpiece
-          </Button>
-        </Link>
+        <Button 
+          onClick={handleCreateMasterpiece}
+          disabled={isLoading}
+          className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-semibold text-lg disabled:opacity-70 disabled:cursor-not-allowed"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Launching AI Studio...
+            </>
+          ) : (
+            'Create a Masterpiece'
+          )}
+        </Button>
         
         <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 max-w-lg mx-auto">
           <p className="text-green-800 font-medium text-xs flex items-center justify-center gap-1">

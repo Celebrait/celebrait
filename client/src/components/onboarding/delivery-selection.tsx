@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Brain, Truck, Download, Sparkles } from 'lucide-react';
@@ -7,6 +8,16 @@ interface DeliverySelectionProps {
 }
 
 export default function DeliverySelection({ onDeliverySelected }: DeliverySelectionProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
+  // Fade in effect when component mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const deliveryOptions = [
     {
@@ -48,7 +59,7 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
 
 
   return (
-    <div className="space-y-8">
+    <div className={`space-y-8 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       {/* Header Section */}
       <div className="text-center mb-8">
         <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
