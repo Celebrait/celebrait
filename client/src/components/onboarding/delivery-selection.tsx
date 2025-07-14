@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Brain, Truck, Download, Sparkles } from 'lucide-react';
+import { Brain, Truck, Download, Sparkles, ArrowLeft } from 'lucide-react';
 
 interface DeliverySelectionProps {
   onDeliverySelected: (delivery: 'printed' | 'digital') => void;
+  onBack?: () => void;
 }
 
-export default function DeliverySelection({ onDeliverySelected }: DeliverySelectionProps) {
+export default function DeliverySelection({ onDeliverySelected, onBack }: DeliverySelectionProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -146,7 +147,30 @@ export default function DeliverySelection({ onDeliverySelected }: DeliverySelect
         ))}
       </div>
 
-
+      {/* Back Button */}
+      {onBack && (
+        <div className="flex justify-center pt-4">
+          <Button
+            onClick={() => {
+              // Scroll to top and add fade transition
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              document.body.style.opacity = '0.8';
+              
+              setTimeout(() => {
+                onBack();
+                setTimeout(() => {
+                  document.body.style.opacity = '1';
+                }, 100);
+              }, 150);
+            }}
+            variant="outline"
+            className="px-6 py-2 rounded-xl border-purple-300 text-purple-600 hover:bg-purple-50 font-medium shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Home
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

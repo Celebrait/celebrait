@@ -41,6 +41,14 @@ export default function CreateCard() {
     setFlowStep('conversation');
   };
 
+  const handleBackToHome = () => {
+    setLocation('/');
+  };
+
+  const handleBackToDelivery = () => {
+    setFlowStep('delivery');
+  };
+
   const createMockCardAndSkipToDelivery = async (cardType: 'digital' | 'printed' = 'digital') => {
     setIsCreatingMockCard(true);
     try {
@@ -77,11 +85,11 @@ export default function CreateCard() {
   const renderFlow = () => {
     switch (flowStep) {
       case 'delivery':
-        return <DeliverySelection onDeliverySelected={handleDeliverySelected} />;
+        return <DeliverySelection onDeliverySelected={handleDeliverySelected} onBack={handleBackToHome} />;
       case 'photo-choice':
         return <PhotoCreationChoice 
           onOptionSelected={handlePhotoOptionSelected} 
-          onBack={() => setFlowStep('delivery')}
+          onBack={handleBackToDelivery}
         />;
       case 'conversation':
         return <GuidedConversation 
@@ -92,7 +100,7 @@ export default function CreateCard() {
           onStartFresh={() => setFlowStep('delivery')}
         />;
       default:
-        return <DeliverySelection onDeliverySelected={handleDeliverySelected} />;
+        return <DeliverySelection onDeliverySelected={handleDeliverySelected} onBack={handleBackToHome} />;
     }
   };
 
