@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { users, cards, lovedOnes, orders, type User, type InsertUser, type Card, type InsertCard, type LovedOne, type InsertLovedOne, type Order, type InsertOrder } from "@shared/schema";
 
 // Database connection
@@ -16,6 +16,7 @@ export interface IStorage {
   getCard(id: number): Promise<Card | undefined>;
   updateCard(id: number, updates: Partial<Card>): Promise<Card>;
   getUserCards(userId: number | string): Promise<Card[]>;
+  getUserCardsForDashboard(userId: number | string): Promise<any[]>;
 
   createLovedOne(lovedOne: InsertLovedOne & { userId: number | string }): Promise<LovedOne>;
   getUserLovedOnes(userId: number | string): Promise<LovedOne[]>;
@@ -111,6 +112,13 @@ export class MemStorage implements IStorage {
     return Array.from(this.cards.values()).filter(
       (card) => card.userId === userId,
     );
+  }
+
+  async getUserCardsForDashboard(userId: number | string): Promise<any[]> {
+    const numericId = typeof userId === 'string' ? parseInt(userId) : userId;
+    return Array.from(this.cards.values())
+      .filter((card) => card.userId === numericId)
+      .slice(0, 50); // Limit to 50 cards
   }
 
   async createLovedOne(lovedOneData: InsertLovedOne & { userId: number }): Promise<LovedOne> {
@@ -235,6 +243,25 @@ export class DatabaseStorage implements IStorage {
     const numericId = typeof userId === 'string' ? parseInt(userId) : userId;
     if (isNaN(numericId)) return [];
     return await db.select().from(cards).where(eq(cards.userId, numericId));
+  }
+
+  async getUserCardsForDashboard(userId: number | string): Promise<any[]> {
+    const userIdStr = typeof userId === 'number' ? userId.toString() : userId;
+    
+    // Use raw SQL to avoid any issues with large data processing
+    try {
+      const result = await sql`
+        SELECT id, card_type, status, price, created_at 
+        FROM cards 
+        WHERE user_id = ${userIdStr} 
+        ORDER BY created_at DESC 
+        LIMIT 5
+      `;
+      return result;
+    } catch (error) {
+      console.error('Dashboard cards query error:', error);
+      return [];
+    }
   }
 
   async createLovedOne(lovedOneData: InsertLovedOne & { userId: number | string }): Promise<LovedOne> {

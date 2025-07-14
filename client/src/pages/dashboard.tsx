@@ -22,15 +22,10 @@ import { format } from 'date-fns';
 
 interface DashboardCard {
   id: number;
-  cardType: string;
-  printOption: string;
-  sceneType: string;
-  conversationData: any;
-  frontImageUrl: string | null;
-  insideImageUrl: string | null;
+  card_type: string;
   status: string;
   price: number;
-  createdAt: string;
+  created_at: string;
 }
 
 interface DashboardOrder {
@@ -49,13 +44,13 @@ export default function Dashboard() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
   const { data: cards, isLoading: cardsLoading } = useQuery<DashboardCard[]>({
-    queryKey: ['/api/cards/user', user?.id],
-    enabled: !!user?.id,
+    queryKey: ['/api/cards/user'],
+    enabled: !!user,
   });
 
   const { data: orders, isLoading: ordersLoading } = useQuery<DashboardOrder[]>({
-    queryKey: ['/api/orders/user', user?.email],
-    enabled: !!user?.email,
+    queryKey: ['/api/orders/user'],
+    enabled: !!user,
   });
 
   if (authLoading) {
@@ -99,33 +94,7 @@ export default function Dashboard() {
     );
   }
 
-  const getRecipientName = (conversationData: any) => {
-    if (!conversationData) return 'Unknown';
-    
-    try {
-      const data = typeof conversationData === 'string' 
-        ? JSON.parse(conversationData) 
-        : conversationData;
-      
-      return data.recipientName || data.name || 'Unknown';
-    } catch {
-      return 'Unknown';
-    }
-  };
 
-  const getCelebration = (conversationData: any) => {
-    if (!conversationData) return 'Celebration';
-    
-    try {
-      const data = typeof conversationData === 'string' 
-        ? JSON.parse(conversationData) 
-        : conversationData;
-      
-      return data.celebration || 'Celebration';
-    } catch {
-      return 'Celebration';
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
@@ -230,7 +199,7 @@ export default function Dashboard() {
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">
-                        {getRecipientName(card.conversationData)}'s {getCelebration(card.conversationData)}
+                        Card #{card.id}
                       </CardTitle>
                       <Badge variant={card.status === 'completed' ? 'default' : 'secondary'}>
                         {card.status}
@@ -242,24 +211,16 @@ export default function Dashboard() {
                       <div className="flex items-center space-x-2">
                         <ImageIcon className="h-4 w-4 text-gray-500" />
                         <span className="text-sm text-gray-600">
-                          {card.cardType === 'digital' ? 'Digital' : 'Printed'}
+                          {card.card_type === 'digital' ? 'Digital' : 'Printed'}
                         </span>
                       </div>
-                      <span className="text-sm font-medium">R{card.price}</span>
+                      <span className="text-sm font-medium">R{(card.price / 100).toFixed(2)}</span>
                     </div>
                     
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Print Option:</span>
-                        <span className="text-sm">{card.printOption}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Scene Type:</span>
-                        <span className="text-sm">{card.sceneType}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">Created:</span>
-                        <span className="text-sm">{format(new Date(card.createdAt), 'MMM d, yyyy')}</span>
+                        <span className="text-sm">{format(new Date(card.created_at), 'MMM d, yyyy')}</span>
                       </div>
                     </div>
                     
@@ -270,7 +231,7 @@ export default function Dashboard() {
                           View
                         </Button>
                       </Link>
-                      {card.cardType === 'digital' && (
+                      {card.card_type === 'digital' && (
                         <Button variant="outline" size="sm" className="flex-1">
                           <Download className="h-4 w-4 mr-1" />
                           Download

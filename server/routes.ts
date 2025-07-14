@@ -577,6 +577,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simplified endpoints that use authenticated user automatically
+  app.get("/api/cards/user", requireAuth, async (req, res) => {
+    try {
+      const cards = await storage.getUserCardsForDashboard(req.user.id);
+      
+      // Convert to dashboard format and add image URLs
+      const dashboardCards = cards.map(card => ({
+        id: card.id,
+        cardType: card.cardType,
+        printOption: card.printOption,
+        sceneType: card.sceneType,
+        conversationData: {}, // Empty to avoid large data
+        frontImageUrl: card.frontImageUrl ? `/api/cards/${card.id}/front-image` : null,
+        insideImageUrl: card.insideImageUrl ? `/api/cards/${card.id}/inside-image` : null,
+        status: card.status,
+        price: card.price,
+        createdAt: card.createdAt
+      }));
+      
+      res.json(dashboardCards);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching user cards: " + error.message });
+    }
+  });
+
   app.get("/api/orders/user/:email", requireAuth, async (req, res) => {
     try {
       const email = req.params.email;
@@ -590,6 +615,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(orders);
     } catch (error: any) {
       res.status(500).json({ message: "Error fetching user orders: " + error.message });
+    }
+  });
+
+  app.get("/api/orders/user", requireAuth, async (req, res) => {
+    try {
+      const orders = await storage.getOrdersByEmail(req.user.email);
+      res.json(orders);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching user orders: " + error.message });
+    }
+  });
+
+  // Get card by ID (optimized endpoint with performance monitoring)
+  app.get("/api/cards/:id", async (req, res) => {
+    const startTime = Date.now();
+    try {
+      const cardId = parseInt(req.params.id);
+      
+      console.log(`[PERF] Fetching card ${cardId} metadata...`);
+      const dbStartTime = Date.now();
+      const card = await storage.getCard(cardId);
+      const dbEndTime = Date.now();
+      console.log(`[PERF] Card metadata query took: ${dbEndTime - dbStartTime}ms`);
+
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      // For performance, only send metadata and serve images as separate endpoints
+      const optimizedCard = {
+        id: card.id,
+        userId: card.userId,
+        cardType: card.cardType,
+        printOption: card.printOption,
+        sceneType: card.sceneType,
+        status: card.status,
+        price: card.price,
+        frontImageUrl: card.frontImageUrl ? `/api/cards/${cardId}/front-image` : null,
+        insideImageUrl: card.insideImageUrl ? `/api/cards/${cardId}/inside-image` : null,
+        conversationData: card.conversationData || {}
+      };
+      
+      // Add caching headers for faster subsequent loads
+      res.set({
+        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+        'ETag': `"${cardId}-${card.status}"`
+      });
+      
+      const endTime = Date.now();
+      console.log(`[PERF] Total card metadata serving time: ${endTime - startTime}ms`);
+      
+      res.json(optimizedCard);
+    } catch (error: any) {
+      const endTime = Date.now();
+      console.error(`[PERF] Card metadata error after ${endTime - startTime}ms:`, error);
+      res.status(500).json({ message: "Error fetching card: " + error.message });
     }
   });
 
@@ -727,52 +808,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get card by ID (optimized endpoint with performance monitoring)
-  app.get("/api/cards/:id", async (req, res) => {
-    const startTime = Date.now();
-    try {
-      const cardId = parseInt(req.params.id);
-      
-      console.log(`[PERF] Fetching card ${cardId} metadata...`);
-      const dbStartTime = Date.now();
-      const card = await storage.getCard(cardId);
-      const dbEndTime = Date.now();
-      console.log(`[PERF] Card metadata query took: ${dbEndTime - dbStartTime}ms`);
 
-      if (!card) {
-        return res.status(404).json({ message: "Card not found" });
-      }
-      
-      // For performance, only send metadata and serve images as separate endpoints
-      const optimizedCard = {
-        id: card.id,
-        userId: card.userId,
-        cardType: card.cardType,
-        printOption: card.printOption,
-        sceneType: card.sceneType,
-        status: card.status,
-        price: card.price,
-        frontImageUrl: card.frontImageUrl ? `/api/cards/${cardId}/front-image` : null,
-        insideImageUrl: card.insideImageUrl ? `/api/cards/${cardId}/inside-image` : null,
-        conversationData: card.conversationData || {}
-      };
-      
-      // Add caching headers for faster subsequent loads
-      res.set({
-        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
-        'ETag': `"${cardId}-${card.status}"`
-      });
-      
-      const endTime = Date.now();
-      console.log(`[PERF] Total card metadata serving time: ${endTime - startTime}ms`);
-      
-      res.json(optimizedCard);
-    } catch (error: any) {
-      const endTime = Date.now();
-      console.error(`[PERF] Card metadata error after ${endTime - startTime}ms:`, error);
-      res.status(500).json({ message: "Error fetching card: " + error.message });
-    }
-  });
 
   // Get card front image (ULTRA-FAST with preloaded email cache)
   app.get("/api/cards/:id/front-image", async (req, res) => {
