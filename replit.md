@@ -124,10 +124,12 @@ Changelog:
   * COMPLETE-ORDER PAGE FIX: Removed "Loading order details..." spinner (setLoading(true)) that was causing 193ms-3534ms delays
   * DELIVERY-DETAILS PAGE FIX: Removed "Loading delivery options..." spinner and eliminated duplicate API calls for instant loading
   * DELIVERY-CHOICE PAGE FIX: Already configured for instant loading without blocking UI spinners
+  * CARD PREVIEW PAGE FIX: Fixed "Card Not Found" flash by starting with loading=true and proper state management
   * WEB FLOW OPTIMIZATION: Main site flow (card generation → delivery details) now loads instantly using preloaded cache data
-  * EMAIL FLOW OPTIMIZATION: Email link clicks now display content instantly without loading screens
-  * INSTANT DISPLAY STRATEGY: All pages now start with loading=false and use cache-first approach with background API calls
+  * EMAIL FLOW OPTIMIZATION: Email link clicks now display content instantly without "Card Not Found" flash
+  * INSTANT DISPLAY STRATEGY: All pages now start with proper loading states and use cache-first approach with background API calls
   * DUPLICATE API ELIMINATION: Removed duplicate API calls in delivery-details.tsx that were causing performance issues
+  * FLASH PREVENTION: Email links now show loading spinner instead of "Card Not Found" before data loads
   * COMPREHENSIVE WORKFLOW: Both email and web flows now provide instant loading across card preview → delivery details → complete order
   * PERFORMANCE VERIFIED: UI delays eliminated from 193ms-3534ms to 0ms for both email links and main site navigation
 - July 13, 2025. COMPLETE PNG-ONLY WORKFLOW IMPLEMENTATION: Successfully implemented comprehensive PNG-only workflow across all card generation routes:

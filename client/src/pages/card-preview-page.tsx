@@ -10,10 +10,12 @@ export default function CardPreviewPage() {
   const { toast } = useToast();
   
   const [cardData, setCardData] = useState<any>(null);
-  const [loading, setLoading] = useState(false); // Start with false for instant display
+  const [loading, setLoading] = useState(true); // Start with true to prevent "Card Not Found" flash
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   useEffect(() => {
-    if (reference) {
+    if (reference && !hasInitialized) {
+      setHasInitialized(true);
       // For email ready references, try to load immediately from cache
       if (reference.startsWith('celebrait_ready_')) {
         loadCardDataInstantly();
@@ -21,7 +23,7 @@ export default function CardPreviewPage() {
         loadCardData();
       }
     }
-  }, [reference]);
+  }, [reference, hasInitialized]);
 
   const loadCardDataInstantly = async () => {
     // For email links, prioritize instant loading
@@ -33,6 +35,7 @@ export default function CardPreviewPage() {
         const card = parsedData.card || parsedData;
         if (card && (card.id || card.conversationData)) {
           setCardData(card);
+          setLoading(false); // Hide loading state since we have data
           console.log(`[INSTANT] Email card preview loaded from cache: ${cacheKey}`);
           
           // Preload images for instant display
@@ -58,6 +61,7 @@ export default function CardPreviewPage() {
         const data = await response.json();
         const card = data.card || data;
         setCardData(card);
+        setLoading(false); // Hide loading state since we have data
         
         // Cache for next time
         sessionStorage.setItem(cacheKey, JSON.stringify(data));
@@ -75,11 +79,11 @@ export default function CardPreviewPage() {
         console.log(`[INSTANT] Email card loaded from API and cached: ${cacheKey}`);
       } else {
         console.error('Failed to load email card data');
-        setLoading(false);
+        setLoading(false); // Show "Card Not Found" since API failed
       }
     } catch (error) {
       console.error('Error loading email card:', error);
-      setLoading(false);
+      setLoading(false); // Show "Card Not Found" since we have no data
     }
   };
 
