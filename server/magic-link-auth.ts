@@ -110,12 +110,16 @@ export class MagicLinkAuth {
         .where(eq(magicLinks.id, magicLink.id));
 
       // Find or create user
+      console.log('Looking for user with email:', magicLink.email);
       let [user] = await db
         .select()
         .from(users)
         .where(eq(users.email, magicLink.email));
 
+      console.log('Existing user found:', user);
+
       if (!user) {
+        console.log('Creating new user for email:', magicLink.email);
         // Create new user
         const [newUser] = await db
           .insert(users)
@@ -126,6 +130,7 @@ export class MagicLinkAuth {
           })
           .returning();
         
+        console.log('New user created:', newUser);
         user = newUser;
       }
 
