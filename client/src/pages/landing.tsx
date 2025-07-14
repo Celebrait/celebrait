@@ -4,6 +4,7 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import sampleCard from "@/assets/sample-card.jpeg";
 import founder1 from "@/assets/founder1.png";
 import founder2 from "@/assets/founder2.png";
@@ -104,7 +105,7 @@ function WatchVideoSection() {
 
 function SeeHowItLooksSection() {
   return (
-    <section className="w-full py-16 pb-24 overflow-hidden">
+    <section className="w-full py-16 pb-24">
       <div className="text-center mb-12">
         <h2 className="text-3xl md:text-4xl font-extrabold">
           <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">
@@ -113,92 +114,56 @@ function SeeHowItLooksSection() {
         </h2>
       </div>
       
-      <div className="relative">
-        <div className="flex gap-4 animate-scroll items-end">
-          {/* First set of card pairs */}
-          {Array.from({ length: 6 }, (_, pairIndex) => (
-            <div key={pairIndex} className="flex gap-4 items-end">
-              {/* Front of card */}
-              <div className="flex-shrink-0 relative">
-                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                  <img
-                    src={sampleCard}
-                    alt={`Sample card front ${pairIndex + 1}`}
-                    className="w-full h-full object-cover"
-                  />
+      <div className="relative max-w-6xl mx-auto px-4">
+        <Carousel
+          opts={{
+            align: "start",
+            loop: true,
+          }}
+          className="w-full"
+        >
+          <CarouselContent className="-ml-4">
+            {Array.from({ length: 6 }, (_, pairIndex) => (
+              <CarouselItem key={pairIndex} className="pl-4 basis-full md:basis-1/2 lg:basis-1/3">
+                <div className="flex gap-4 items-end justify-center">
+                  {/* Front of card */}
+                  <div className="flex-shrink-0 relative">
+                    <div className="w-48 h-48 md:w-56 md:h-56 rounded-2xl overflow-hidden shadow-lg bg-white">
+                      <img
+                        src={sampleCard}
+                        alt={`Sample card front ${pairIndex + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-white px-3 py-1 rounded-full text-xs font-medium text-gray-700 shadow-md">
+                        Front of Card
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Inside of card - slightly higher position */}
+                  <div className="flex-shrink-0 relative -mb-6">
+                    <div className="w-48 h-48 md:w-56 md:h-56 rounded-2xl overflow-hidden shadow-lg bg-white">
+                      <img
+                        src={sampleCard}
+                        alt={`Sample card inside ${pairIndex + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-white px-3 py-1 rounded-full text-xs font-medium text-gray-700 shadow-md">
+                        Inside of Card
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                    Front of Card
-                  </span>
-                </div>
-              </div>
-              
-              {/* Inside of card - slightly higher position */}
-              <div className="flex-shrink-0 relative -mb-8">
-                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                  <img
-                    src={sampleCard}
-                    alt={`Sample card inside ${pairIndex + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                    Inside of Card
-                  </span>
-                </div>
-              </div>
-              
-              {/* Vertical separator after each pair */}
-              {pairIndex < 5 && (
-                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
-              )}
-            </div>
-          ))}
-          
-          {/* Duplicate set for seamless loop */}
-          {Array.from({ length: 6 }, (_, pairIndex) => (
-            <div key={pairIndex + 6} className="flex gap-4 items-end">
-              {/* Front of card */}
-              <div className="flex-shrink-0 relative">
-                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                  <img
-                    src={sampleCard}
-                    alt={`Sample card front ${pairIndex + 7}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                    Front of Card
-                  </span>
-                </div>
-              </div>
-              
-              {/* Inside of card - slightly higher position */}
-              <div className="flex-shrink-0 relative -mb-8">
-                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                  <img
-                    src={sampleCard}
-                    alt={`Sample card inside ${pairIndex + 7}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                    Inside of Card
-                  </span>
-                </div>
-              </div>
-              
-              {/* Vertical separator after each pair */}
-              {pairIndex < 5 && (
-                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
-              )}
-            </div>
-          ))}
-        </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="left-2" />
+          <CarouselNext className="right-2" />
+        </Carousel>
       </div>
     </section>
   );
