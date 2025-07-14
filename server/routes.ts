@@ -143,7 +143,7 @@ setInterval(() => {
 }, 10 * 60 * 1000); // Clean every 10 minutes
 
 // Watermark utility function (legacy - for base64 data)
-async function applyWatermark(imageData: string, opacity: number = 0.3): Promise<string> {
+async function applyWatermark(imageData: string, opacity: number = 0.5): Promise<string> {
   try {
     // Remove data URL prefix if present
     const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
@@ -214,7 +214,7 @@ async function applyWatermarkToPngFile(
   cardId: number, 
   sourceImageType: string, 
   targetImageType: string, 
-  opacity: number = 0.3
+  opacity: number = 0.5
 ): Promise<string> {
   try {
     const fs = await import('fs');
