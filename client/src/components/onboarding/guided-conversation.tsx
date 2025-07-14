@@ -114,6 +114,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [cardId, setCardId] = useState<number | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [currentInput, setCurrentInput] = useState('');
+  const [stepInputs, setStepInputs] = useState<Record<string, string>>({});
   const [showAllOptions, setShowAllOptions] = useState<Record<string, boolean>>({});
   const [showCustomInput, setShowCustomInput] = useState<Record<string, boolean>>({});
   const [editingStep, setEditingStep] = useState<string | null>(null);
@@ -781,6 +782,27 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   }, [currentStep.id]);
 
+  // Restore input when navigating to a step
+  useEffect(() => {
+    if (currentStep && currentStep.id) {
+      // Check if we have saved input for this step
+      if (stepInputs[currentStep.id]) {
+        setCurrentInput(stepInputs[currentStep.id]);
+      } else {
+        // Check if this step has an existing answer
+        const existingAnswer = answers[currentStep.id];
+        if (existingAnswer && typeof existingAnswer === 'string') {
+          setCurrentInput(existingAnswer);
+        } else {
+          // Only clear input if it's not the scene step (handled above)
+          if (currentStep.id !== 'scene') {
+            setCurrentInput('');
+          }
+        }
+      }
+    }
+  }, [currentStep?.id, stepInputs, answers]);
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -818,6 +840,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const handleAnswer = (value: string) => {
     setAnswers(prev => ({ ...prev, [currentStep.id]: value }));
+    
+    // Save this input to stepInputs for future navigation
+    setStepInputs(prev => ({
+      ...prev,
+      [currentStep.id]: value
+    }));
+    
     setCurrentInput('');
     
     // Store recipient name in session storage for immediate access
@@ -1005,9 +1034,34 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const handlePrevious = () => {
     if (currentStepIndex > 0) {
+      // Save current input for this step before navigating back
+      const currentStepId = filteredSteps[currentStepIndex]?.id;
+      if (currentStepId && currentInput.trim()) {
+        setStepInputs(prev => ({
+          ...prev,
+          [currentStepId]: currentInput
+        }));
+      }
+      
+      // Navigate to previous step
       setCurrentStepIndex(prev => prev - 1);
       setEditingStep(null);
       setReturnToSummary(false);
+      
+      // Restore input for the previous step
+      const prevStepId = filteredSteps[currentStepIndex - 1]?.id;
+      if (prevStepId && stepInputs[prevStepId]) {
+        setCurrentInput(stepInputs[prevStepId]);
+      } else {
+        // If no saved input, check if this step has an existing answer
+        const prevStepAnswer = answers[prevStepId];
+        if (prevStepAnswer && typeof prevStepAnswer === 'string') {
+          setCurrentInput(prevStepAnswer);
+        } else {
+          setCurrentInput('');
+        }
+      }
+      
       // Scroll to top
       setTimeout(() => {
         scrollToTop();
@@ -2322,7 +2376,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     <div className="flex space-x-3">
                       <Input
                         value={currentInput}
-                        onChange={(e) => setCurrentInput(e.target.value)}
+                        onChange={(e) => {
+                          setCurrentInput(e.target.value);
+                          // Auto-save input as user types
+                          if (e.target.value.trim()) {
+                            setStepInputs(prev => ({
+                              ...prev,
+                              [currentStep.id]: e.target.value
+                            }));
+                          }
+                        }}
                         placeholder={currentStep.placeholder}
                         className="text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
                         onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
@@ -2864,6 +2927,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                       value={currentInput}
                       onChange={(e) => {
                         setCurrentInput(e.target.value);
+                        // Auto-save input as user types
+                        if (e.target.value.trim()) {
+                          setStepInputs(prev => ({
+                            ...prev,
+                            [currentStep.id]: e.target.value
+                          }));
+                        }
                         if (currentStep.id === 'scene' && !userHasTyped && e.target.value.length > 0) {
                           setUserHasTyped(true);
                           setPlaceholderText('');

@@ -120,6 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 14, 2025. ESSENTIAL INPUT PRESERVATION FIX: Implemented comprehensive input data persistence system for conversation flow navigation:
+  * INPUT PERSISTENCE STATE: Added stepInputs state to store typed input for each conversation step
+  * AUTOMATIC SAVING: Input automatically saved as user types in both Input and Textarea fields
+  * BACK NAVIGATION FIX: handlePrevious function now preserves current input before navigating back and restores previous step input
+  * STEP RESTORATION: Added useEffect to restore saved input when navigating to any step
+  * DUAL FALLBACK SYSTEM: Checks saved stepInputs first, then existing answers for input restoration
+  * REAL-TIME AUTO-SAVE: Input preserved continuously as user types, preventing any data loss
+  * UPLOAD PHOTO ROUTES: Both upload_and_scene and upload_and_transform workflows now preserve typed input during navigation
+  * COMPREHENSIVE COVERAGE: Input persistence works across all conversation steps (name, celebration, scene, inside message, etc.)
 - July 14, 2025. WATERMARK OPACITY REDUCTION: Reduced watermark prominence to improve image visibility:
   * REDUCED OPACITY: Changed watermark text opacity from 0.8 to 0.3 for less prominence over card images
   * MAINTAINED STYLING: Kept same diagonal positioning, font size, and spacing while making text more transparent
