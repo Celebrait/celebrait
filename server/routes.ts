@@ -374,8 +374,14 @@ async function processFluxBinaryOutput(output: any): Promise<string> {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Configure session middleware with memory store (temporarily)
+  // Configure session middleware with database store
+  const pgSession = ConnectPgSimple(session);
   app.use(session({
+    store: new pgSession({
+      conString: process.env.DATABASE_URL,
+      tableName: 'sessions',
+      createTableIfMissing: true,
+    }),
     secret: process.env.SESSION_SECRET || 'celebrait-dev-secret-key',
     resave: false,
     saveUninitialized: false,
