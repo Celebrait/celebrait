@@ -171,7 +171,10 @@ export function AIBrainstormChat({
             }
             break;
           case 'activity':
-            if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
+            if (userInput.toLowerCase().includes('skip')) {
+              // Don't store skip command, just advance to people
+              newState.currentStep = 'people';
+            } else if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               newState.collectedInfo.activity = userInput;
               newState.currentStep = 'people';
             }
@@ -425,8 +428,13 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                                             }
                                             break;
                                           case 'activity':
-                                            newState.collectedInfo.activity = suggestion;
-                                            newState.currentStep = 'people';
+                                            if (suggestion.toLowerCase().includes('skip')) {
+                                              // Don't store skip command, just advance to people
+                                              newState.currentStep = 'people';
+                                            } else {
+                                              newState.collectedInfo.activity = suggestion;
+                                              newState.currentStep = 'people';
+                                            }
                                             break;
                                           case 'people':
                                             if (suggestion.toLowerCase().includes('skip')) {
@@ -767,18 +775,6 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                               className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
                             >
                               Skip This Question
-                            </Button>
-                            
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setUserInput("Skip this step");
-                                setTimeout(() => handleSendMessage(), 100);
-                              }}
-                              className="text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-50"
-                            >
-                              Skip Step
                             </Button>
                           </>
                         )}
