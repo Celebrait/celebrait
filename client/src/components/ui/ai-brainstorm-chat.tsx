@@ -18,6 +18,16 @@ interface AIBrainstormChatProps {
   buttonIcon?: React.ReactNode;
 }
 
+interface ConversationState {
+  currentStep: 'setting' | 'activity' | 'person_details' | 'unique_elements' | 'final_summary';
+  collectedInfo: {
+    setting?: string;
+    activity?: string;
+    personDetails?: string;
+    uniqueElements?: string;
+  };
+}
+
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
@@ -38,6 +48,10 @@ export function AIBrainstormChat({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationState, setConversationState] = useState<ConversationState>({
+    currentStep: 'setting',
+    collectedInfo: {}
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -72,6 +86,7 @@ export function AIBrainstormChat({
         userInput,
         recipientName,
         celebration,
+        conversationStep: conversationState.currentStep,
         conversationHistory: conversationHistory.slice(0, -1) // Exclude the current message
       });
 
@@ -87,6 +102,42 @@ export function AIBrainstormChat({
 
       setMessages(prev => [...prev, typingMessage]);
       setUserInput("");
+
+      // Update conversation state - collect the user's input for current step
+      setConversationState(prev => {
+        const newState = { ...prev };
+        
+        // Store the user's input for the current step
+        switch (prev.currentStep) {
+          case 'setting':
+            newState.collectedInfo.setting = userInput;
+            newState.currentStep = 'activity';
+            break;
+          case 'activity':
+            newState.collectedInfo.activity = userInput;
+            newState.currentStep = 'person_details';
+            break;
+          case 'person_details':
+            newState.collectedInfo.personDetails = userInput;
+            newState.currentStep = 'unique_elements';
+            break;
+          case 'unique_elements':
+            newState.collectedInfo.uniqueElements = userInput;
+            newState.currentStep = 'final_summary';
+            break;
+          case 'final_summary':
+            // Generate final scene description and auto-submit
+            const finalScene = `${newState.collectedInfo.setting || ''} ${newState.collectedInfo.activity || ''} ${newState.collectedInfo.personDetails || ''} ${newState.collectedInfo.uniqueElements || ''} ${userInput}`.trim();
+            setTimeout(() => {
+              onSuggestionSelect(finalScene);
+              setIsOpen(false);
+            }, 1000);
+            break;
+        }
+        
+        return newState;
+      });
+
     } catch (error) {
       console.error('AI brainstorm error:', error);
       toast({
@@ -108,17 +159,19 @@ export function AIBrainstormChat({
 
   const getInitialMessage = () => {
     if (type === "scene") {
-      return `Hi there! ✨ Thank you for uploading those wonderful photos of ${recipientName}! 
+      return `Hi there! ✨ I can see you've uploaded some wonderful photos of ${recipientName}! 
 
-I'm so excited to help you create the perfect magical scene for their ${celebration} card. Let's brainstorm something truly special together that will make ${recipientName} feel absolutely amazed when they see it.
+I'm your warm, imaginative creative partner, and I'm here to help you envision the perfect magical scene for their ${celebration} card. Instead of asking dry questions, I want to guide you gently through discovering what would make ${recipientName} absolutely light up when they see this card.
 
-What kind of feeling or mood are you hoping to create? Are you thinking:
-- Something warm and cozy?
-- An adventurous outdoor scene?
-- Perhaps something elegant and sophisticated?
-- Or maybe fun and playful?
+Let's start with the most important question: **Where should we place ${recipientName} in this scene?**
 
-What's calling to you? I'm here to help you discover the perfect vision! 💫`;
+Think about it - where would they feel most joyful and celebrated? Maybe:
+- In a cozy setting that feels like home?
+- Somewhere in beautiful nature?
+- In a special place that has meaning to them?
+- Or perhaps in a completely magical, dreamy location?
+
+What feels right to you? I'm here to help you explore and build this vision together! 💫`;
     } else {
       return `Hi! I'm here to help you choose the perfect art style for ${recipientName}'s ${celebration} card.
 
@@ -177,6 +230,33 @@ What resonates with you for this ${celebration}?`;
             <Bot className="w-5 h-5 text-purple-500" />
             AI Brainstorming Assistant
           </DialogTitle>
+          {type === "scene" && (
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-1 text-sm text-gray-600">
+                {(['setting', 'activity', 'person_details', 'unique_elements', 'final_summary'] as const).map((step, index) => (
+                  <div key={step} className="flex items-center gap-1">
+                    <div className={`w-2 h-2 rounded-full ${
+                      conversationState.currentStep === step 
+                        ? 'bg-purple-500' 
+                        : index < (['setting', 'activity', 'person_details', 'unique_elements', 'final_summary'] as const).indexOf(conversationState.currentStep)
+                        ? 'bg-green-500' 
+                        : 'bg-gray-300'
+                    }`} />
+                    <span className={`text-xs ${
+                      conversationState.currentStep === step ? 'text-purple-600 font-medium' : 'text-gray-500'
+                    }`}>
+                      {step === 'setting' && 'Location'}
+                      {step === 'activity' && 'Activity'}
+                      {step === 'person_details' && 'Details'}
+                      {step === 'unique_elements' && 'Special'}
+                      {step === 'final_summary' && 'Complete'}
+                    </span>
+                    {index < 4 && <div className="w-2 h-px bg-gray-300" />}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </DialogHeader>
         
         <div className="flex-1 flex flex-col min-h-0">

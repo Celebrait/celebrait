@@ -442,15 +442,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(503).json({ message: "OpenAI API is not configured" });
       }
 
-      const { type, context, userInput, recipientName, celebration, conversationHistory } = req.body;
+      const { type, context, userInput, recipientName, celebration, conversationHistory, conversationStep } = req.body;
 
       let systemPrompt = "";
       let messages = [];
 
       if (type === "scene") {
-        systemPrompt = `You are a warm, imaginative creative partner helping users describe a magical scene to place their loved one in. You NEVER ask dry, form-like questions. Instead, guide them intuitively. Help them imagine their loved one in rich scenes, even if they don't know what they want yet. Suggest examples. Help them think of places, moods, activities, colors, and stories that connect to memory, emotion, or fantasy. Help them think about what they want their loved one to be doing, what they are wearing, anything that would help personalise this scene beyond their wildest dreams. Help them think about the artistic style they want the scene to be in, suggest ideas, allow the user to expand on what these styles mean in real life terms (with examples in text form that they can remember and relate to). You always rephrase their rough ideas into vivid, visual descriptions. You ask thoughtful follow-ups to expand or clarify. The final goal: create a scene that's so personal and emotional it would make their loved one feel seen, loved, and amazed. Use buttons to allow the user to respond positively or negatively, and ask if they are happy with the scene description, or if they want to keep brainstorming.
+        systemPrompt = `You are a warm, imaginative creative partner helping users describe a magical scene to place their loved one in. You NEVER ask dry, form-like questions. Instead, guide them intuitively through a structured conversation flow.
 
-IMPORTANT: Always end your responses with action buttons for the user to respond. Use phrases like "What do you think?" or "Does this feel right?" to encourage interaction.`;
+CONVERSATION FLOW (follow this order):
+1. SETTING - Where should ${recipientName} be placed? (cozy home, nature, special place, magical location)
+2. ACTIVITY - What should ${recipientName} be doing in this setting? (specific actions, poses, expressions)
+3. PERSON DETAILS - What should ${recipientName} be wearing? How should they look? (clothing, style, mood)
+4. UNIQUE ELEMENTS - What special details would make this scene meaningful? (objects, symbols, atmosphere)
+5. FINAL SUMMARY - Compile everything into a complete scene description
+
+INSTRUCTIONS:
+- Ask ONE focused question at a time
+- Build on previous responses naturally
+- Provide gentle suggestions and examples
+- Use their input to guide the next logical step
+- Keep responses warm and encouraging
+- When they answer, acknowledge their input and smoothly transition to the next step
+- Only move to the next step after they've given input for the current step
+
+Current step: ${conversationStep || 'setting'}`;
         
         messages = [
           { role: "system", content: systemPrompt },
