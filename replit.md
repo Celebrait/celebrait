@@ -163,6 +163,8 @@ Changelog:
   * GENERIC MORE IDEAS BUTTON: Changed all "Give Me More Ideas" buttons to use generic "Give me more ideas" text instead of step-specific text
   * CRITICAL CLOTHING SKIP REMINDER: Enhanced people step to prominently remind users they can skip clothing question to let AI choose appropriate attire that matches the scene perfectly
   * PEOPLE STEP ENFORCEMENT: Added mandatory system prompt to ensure clothing skip reminder appears in every people step response
+  * UNIVERSAL TYPING REMINDER: Enhanced all conversation steps to consistently remind users they can type their own response below or choose from provided options
+  * COMPREHENSIVE USER GUIDANCE: Added typing reminder to all step instructions (setting, activity, people, extra detail) and "more ideas" requests
   * ACCESSIBILITY COMPLIANCE: DialogDescription already present to meet accessibility requirements
 - July 15, 2025. ENHANCED AI BRAINSTORMING WITH TYPING ANIMATIONS: Elevated AI chat system to ChatGPT-level responsiveness with guided conversation flow:
   * TYPING ANIMATIONS: Added real-time typing animations like ChatGPT that display AI responses character-by-character at 20ms speed
