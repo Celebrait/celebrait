@@ -462,7 +462,7 @@ INSTRUCTIONS:
 - Build on previous responses naturally
 - For SETTING step: After user provides initial response, provide exactly 3 simple location-based options ONLY. Focus purely on WHERE, not what they're doing. Examples: "Beach in Tenerife", "Mountain trail in Tenerife", "Village square in Tenerife" - NO activities or actions. If user describes an activity instead of a location, acknowledge it and ask specifically WHERE that activity would take place. Always remind user they can type their own response or choose from options. After they respond, ask one follow-up question about location specifics, then ask one more follow-up question to fully refine the location before moving to activity step.
 - For ACTIVITY steps: After user provides initial response, ask if they want anything more specific about that element and provide exactly 3 relevant suggestions. CRITICAL: Always provide exactly 3 numbered options in activity suggestions.
-- For PEOPLE step: Provide immediate suggestions without requiring initial user input, based on location and activity already defined. Always inform users they can skip this question to let AI choose appropriate clothing that matches the scene. CRITICAL: Always provide exactly 3 numbered options in people suggestions.
+- For PEOPLE step: Provide immediate suggestions without requiring initial user input, based on location and activity already defined. CRITICAL: Always remind users prominently that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This should be mentioned in every people step response. CRITICAL: Always provide exactly 3 numbered options in people suggestions.
 - For EXTRA DETAIL step: Allow user to get suggestions immediately or skip the step entirely. CRITICAL: Always provide exactly 3 numbered options in extra detail suggestions.
 - For FINAL APPROVAL step: Summarize the complete scene and tell user they can add more details if they like below. End by stating "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection." Do NOT provide numbered options in this step.
 - Keep responses professional but encouraging
@@ -519,6 +519,14 @@ Current step: ${conversationStep || 'setting'}`;
           messages.push({
             role: "system", 
             content: "Remember: For the ACTIVITY step, always provide exactly 3 numbered options for what the person should be doing. Format them as: 1. First action, 2. Second action, 3. Third action. CRITICAL: Always provide exactly 3 numbered options when answering activity questions."
+          });
+        }
+
+        // Add specific instruction for people step
+        if (conversationStep === 'people') {
+          messages.push({
+            role: "system", 
+            content: "CRITICAL: For the PEOPLE step, you MUST remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This must be mentioned prominently in every people step response. Say something like: 'Remember, you can skip this question to let me choose clothing that perfectly matches the scene!' Always provide exactly 3 numbered options for clothing suggestions."
           });
         }
 

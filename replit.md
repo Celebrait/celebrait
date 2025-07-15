@@ -161,6 +161,8 @@ Changelog:
   * ACTIVITY VS LOCATION DETECTION: Enhanced AI to detect when users describe activities during location step and redirect to proper location questions
   * ACTIVITY STEP 3-OPTION ENFORCEMENT: Added specific AI instructions to always provide exactly 3 numbered options for activity suggestions
   * GENERIC MORE IDEAS BUTTON: Changed all "Give Me More Ideas" buttons to use generic "Give me more ideas" text instead of step-specific text
+  * CRITICAL CLOTHING SKIP REMINDER: Enhanced people step to prominently remind users they can skip clothing question to let AI choose appropriate attire that matches the scene perfectly
+  * PEOPLE STEP ENFORCEMENT: Added mandatory system prompt to ensure clothing skip reminder appears in every people step response
   * ACCESSIBILITY COMPLIANCE: DialogDescription already present to meet accessibility requirements
 - July 15, 2025. ENHANCED AI BRAINSTORMING WITH TYPING ANIMATIONS: Elevated AI chat system to ChatGPT-level responsiveness with guided conversation flow:
   * TYPING ANIMATIONS: Added real-time typing animations like ChatGPT that display AI responses character-by-character at 20ms speed
