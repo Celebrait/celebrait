@@ -157,6 +157,8 @@ Changelog:
   * FINAL PROMPT MESSAGING: Updated final approval step to tell users they can add more details if they like, then proceed with clear call-to-action button
   * EXACT 3-OPTION LIMIT: Enhanced AI prompts to ALWAYS provide exactly 3 numbered options across all conversation steps (activity, people, extra detail)
   * CRITICAL OPTION ENFORCEMENT: Added explicit "CRITICAL: Always provide exactly 3 numbered options" instructions to all step prompts
+  * FINAL APPROVAL BUTTON FIX: Hidden "Choose Option" buttons from final approval step, now only shows "Sounds great, let's go!" button
+  * ACTIVITY VS LOCATION DETECTION: Enhanced AI to detect when users describe activities during location step and redirect to proper location questions
   * ACCESSIBILITY COMPLIANCE: DialogDescription already present to meet accessibility requirements
 - July 15, 2025. ENHANCED AI BRAINSTORMING WITH TYPING ANIMATIONS: Elevated AI chat system to ChatGPT-level responsiveness with guided conversation flow:
   * TYPING ANIMATIONS: Added real-time typing animations like ChatGPT that display AI responses character-by-character at 20ms speed
