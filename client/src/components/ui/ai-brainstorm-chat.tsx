@@ -82,7 +82,7 @@ export function AIBrainstormChat({
               : msg
           )
         );
-      }, initialMessage.content.length * 8); // 8ms per character for faster typing
+      }, initialMessage.content.length * 15); // 15ms per character for moderate typing speed
       
       return () => clearTimeout(typingTimeout);
     } else if (!isOpen) {
@@ -199,13 +199,13 @@ export function AIBrainstormChat({
   };
 
   const getInitialMessage = () => {
-    return `Greetings, earthling ✨ Let's paint a picture with words! 
+    return `Hello! I'm here to help you create a detailed scene description for your card.
 
-The more vivid your description, the more mind blowing your card will be. 
+The more specific and vivid your description, the better your final card will be.
 
-AI loves details, so we can get mad creative or keep it simple - whatever feels right. 
+I'll guide you through this step by step, starting with the most important question:
 
-I'll guide you through crafting the perfect scene, just let me know when you're ready to start`;
+Where should we place ${recipientName} in this scene? Think about the setting or location that would be most meaningful for this ${celebration}.`;
   };
 
   const extractSuggestions = (content: string) => {
@@ -247,7 +247,7 @@ I'll guide you through crafting the perfect scene, just let me know when you're 
           {buttonText}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] w-[95vw] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] w-[95vw] h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bot className="w-5 h-5 text-purple-500" />
@@ -305,7 +305,7 @@ I'll guide you through crafting the perfect scene, just let me know when you're 
                   {message.isTyping ? (
                     <TypingAnimation 
                       text={message.content} 
-                      speed={8}
+                      speed={15}
                       onComplete={() => {
                         // Mark typing as complete
                         setMessages(prev => prev.map(msg => 
@@ -319,22 +319,8 @@ I'll guide you through crafting the perfect scene, just let me know when you're 
                     <p className="whitespace-pre-wrap">{message.content}</p>
                   )}
                   
-                  {message.role === 'assistant' && !message.isTyping && (
+                  {message.role === 'assistant' && !message.isTyping && index > 0 && (
                     <div className="mt-3 space-y-2">
-                      {/* Single "Let's Brainstorm" Button - Only for first message */}
-                      {index === 0 && (
-                        <div className="flex justify-center">
-                          <Button
-                            variant="outline"
-                            size="lg"
-                            onClick={() => setUserInput("Let's brainstorm!")}
-                            className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 border-none font-semibold px-8 py-3"
-                          >
-                            Let's Brainstorm
-                          </Button>
-                        </div>
-                      )}
-                      
                       {/* Extracted Suggestions */}
                       {extractSuggestions(message.content).length > 0 && (
                         <div className="flex flex-wrap gap-2">
@@ -358,34 +344,6 @@ I'll guide you through crafting the perfect scene, just let me know when you're 
                           ))}
                         </div>
                       )}
-                      
-                      {/* Quick Follow-up Buttons */}
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setUserInput("Can you give me more options?")}
-                          className="text-xs text-gray-600 hover:text-gray-800"
-                        >
-                          More Options
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setUserInput("Can you be more specific about this?")}
-                          className="text-xs text-gray-600 hover:text-gray-800"
-                        >
-                          Be More Specific
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setUserInput("This is perfect, thank you!")}
-                          className="text-xs text-gray-600 hover:text-gray-800"
-                        >
-                          Perfect!
-                        </Button>
-                      </div>
                     </div>
                   )}
                 </div>

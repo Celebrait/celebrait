@@ -120,13 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 15, 2025. OPTIMIZED AI BRAINSTORMING UX: Improved chat interface with better sizing, faster typing, and simplified opening experience:
-  * LARGER CHAT WINDOW: Increased dialog size to max-w-4xl and 90vh height with 95vw width for better screen coverage
-  * FASTER TYPING: Reduced typing speed from 20ms to 8ms per character for much faster AI response display
-  * SIMPLIFIED OPENING MESSAGE: Updated to "Greetings, earthling ✨ Let's paint a picture with words!" with encouraging tone
-  * SINGLE ACTION BUTTON: Replaced multiple quick-start buttons with one prominent "Let's Brainstorm" button for cleaner interface
-  * CONSISTENT WINDOW SIZE: Chat window now maintains consistent size across all devices without changing
-  * IMPROVED ACCESSIBILITY: Added DialogDescription to fix accessibility warnings
+- July 15, 2025. REFINED AI BRAINSTORMING UX: Improved chat interface with consistent sizing, balanced typing speed, and professional tone:
+  * CONSISTENT WINDOW SIZE: Fixed chat window to maintain same large size (max-w-4xl, 90vh height, 95vw width) from opening interaction
+  * OPTIMAL TYPING SPEED: Adjusted typing speed to 15ms per character for balanced readability and responsiveness
+  * PROFESSIONAL OPENING MESSAGE: Updated to direct, helpful greeting asking specifically about setting/location for the scene
+  * REMOVED EXTRA BUTTONS: Eliminated "More Options", "Be More Specific", "Perfect!" buttons from opening interaction for cleaner UX
+  * TONED DOWN PLAYFULNESS: Made AI responses more professional and serious while maintaining engagement
+  * USER-FIRST APPROACH: Allow users to type initial response freely without AI suggestions until more context is gathered
+  * IMPROVED SERVER PROMPTS: Updated system prompts to be more professional and avoid suggestions until user provides context
+  * ACCESSIBILITY COMPLIANCE: DialogDescription already present to meet accessibility requirements
 - July 15, 2025. ENHANCED AI BRAINSTORMING WITH TYPING ANIMATIONS: Elevated AI chat system to ChatGPT-level responsiveness with guided conversation flow:
   * TYPING ANIMATIONS: Added real-time typing animations like ChatGPT that display AI responses character-by-character at 20ms speed
   * GUIDED CONVERSATION FLOW: Enhanced system prompts to guide users through discovery process with step-by-step questioning

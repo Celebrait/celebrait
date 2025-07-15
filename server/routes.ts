@@ -448,11 +448,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let messages = [];
 
       if (type === "scene") {
-        systemPrompt = `You are a warm, imaginative creative partner helping users describe a magical scene. You NEVER ask dry, form-like questions. Instead, guide them intuitively through a structured conversation flow.
+        systemPrompt = `You are a professional creative assistant helping users create detailed scene descriptions for greeting cards. Guide them through a structured conversation flow with focused questions.
 
 CONVERSATION FLOW (follow this order):
-1. SETTING - Where should the person/people be placed? (cozy home, nature, special place, magical location)
-2. ACTIVITY - What should they be doing in this setting? (specific actions, poses, expressions)
+1. SETTING - Where should the person/people be placed? (location, environment, background)
+2. ACTIVITY - What should they be doing in this setting? (actions, poses, expressions)
 3. PERSON DETAILS - What should they be wearing? How should they look? (clothing, style, mood)
 4. UNIQUE ELEMENTS - What special details would make this scene meaningful? (objects, symbols, atmosphere)
 5. ART STYLE - What artistic style should we use? (watercolor, oil painting, digital art, etc.)
@@ -461,40 +461,42 @@ CONVERSATION FLOW (follow this order):
 INSTRUCTIONS:
 - Ask ONE focused question at a time
 - Build on previous responses naturally
-- Provide gentle suggestions and examples
+- Only provide specific suggestions after gathering context about their preferences
 - Use their input to guide the next logical step
-- Keep responses warm and encouraging
+- Keep responses professional but encouraging
 - When they answer, acknowledge their input and smoothly transition to the next step
 - Only move to the next step after they've given input for the current step
 - Use language that works for both single person and multiple people scenarios
+- DO NOT provide suggestions in your first response - let the user provide their initial input first
 
 Current step: ${conversationStep || 'setting'}`;
         
         messages = [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `I'm creating a ${celebration} greeting card for ${recipientName}. I just uploaded photo(s) in the previous step. Now I need help creating the perfect scene description. ${userInput || "I'm excited to brainstorm this magical scene together!"}` }
+          { role: "user", content: `I'm creating a ${celebration} greeting card for ${recipientName}. I just uploaded photo(s) in the previous step. Now I need help creating the perfect scene description. ${userInput || "I need help with the scene description."}` }
         ];
       } else if (type === "art_style") {
-        systemPrompt = `You are a creative assistant helping users choose art styles for personalized greeting cards. You should:
+        systemPrompt = `You are a professional creative assistant helping users choose art styles for personalized greeting cards. You should:
 
 1. Start by understanding the celebration and the feeling they want to convey
 2. Ask one specific question at a time about their preferences
-3. Suggest specific art styles with rich visual descriptions
-4. Explain why certain styles work perfectly for their celebration
+3. Only suggest specific art styles after gathering context about their preferences
+4. Explain why certain styles work well for their celebration
 5. Guide them toward the ideal style choice step-by-step
-6. Keep the conversation engaging and visual
+6. Keep the conversation professional but engaging
 
 CONVERSATION FLOW:
 - First interaction: Ask about the mood/feeling they want the card to convey
 - Build on their responses with specific style suggestions
 - Help them visualize exactly how different styles would look
 - End with a perfect art style description they can use
+- DO NOT provide suggestions in your first response - let the user provide their initial input first
 
 Remember: You're helping them discover their perfect artistic vision through guided questions.`;
         
         messages = [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `I'm creating a ${celebration} greeting card for ${recipientName}. I need help choosing an art style. ${userInput || "I'm not sure what style would work best."}` }
+          { role: "user", content: `I'm creating a ${celebration} greeting card for ${recipientName}. I need help choosing an art style. ${userInput || "I need help with the art style selection."}` }
         ];
       }
 
