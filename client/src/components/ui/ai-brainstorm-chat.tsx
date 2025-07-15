@@ -144,6 +144,12 @@ export function AIBrainstormChat({
       setConversationState(prev => {
         const newState = { ...prev };
         
+        console.log('Conversation state update:', {
+          currentStep: prev.currentStep,
+          userInput: userInput,
+          collectedInfo: prev.collectedInfo
+        });
+        
         // Don't advance step if user is asking for more ideas
         if (userInput.toLowerCase().includes('more') && userInput.toLowerCase().includes('ideas')) {
           return newState; // Stay on same step
@@ -194,6 +200,12 @@ export function AIBrainstormChat({
             }
             break;
         }
+        
+        console.log('New conversation state:', {
+          currentStep: newState.currentStep,
+          collectedInfo: newState.collectedInfo,
+          settingRefinements: newState.settingRefinements
+        });
         
         return newState;
       });
