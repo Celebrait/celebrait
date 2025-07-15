@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,7 +36,13 @@ export function AIBrainstormChat({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Auto-scroll to bottom when new messages are added
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
 
   const handleSendMessage = async () => {
     if (!userInput.trim() || isLoading) return;
@@ -47,23 +53,31 @@ export function AIBrainstormChat({
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setIsLoading(true);
 
     try {
+      // Convert messages to OpenAI format for conversation history
+      const conversationHistory = newMessages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
       const response = await apiRequest("POST", "/api/ai-brainstorm", {
         type,
         context: `Current input: "${currentInput}"`,
         userInput,
         recipientName,
-        celebration
+        celebration,
+        conversationHistory: conversationHistory.slice(0, -1) // Exclude the current message
       });
 
       const result = await response.json();
 
       const assistantMessage: ChatMessage = {
         role: "assistant",
-        content: result.suggestions,
+        content: result.response,
         timestamp: new Date()
       };
 
@@ -90,17 +104,54 @@ export function AIBrainstormChat({
 
   const getInitialMessage = () => {
     if (type === "scene") {
-      return `Hi! I'm here to help you brainstorm scene descriptions for ${recipientName}'s ${celebration} card. What kind of scene are you envisioning? Or would you like me to suggest some ideas?`;
+      return `Hi! I'm here to help you brainstorm scene descriptions for ${recipientName}'s ${celebration} card. 
+
+What kind of mood or setting are you imagining? For example:
+- Something cozy and intimate?
+- Outdoors and adventurous?
+- Elegant and sophisticated?
+- Fun and playful?
+
+Tell me what feels right for this celebration!`;
     } else {
-      return `Hi! I'm here to help you choose the perfect art style for ${recipientName}'s ${celebration} card. What style appeals to you, or would you like me to suggest some options?`;
+      return `Hi! I'm here to help you choose the perfect art style for ${recipientName}'s ${celebration} card.
+
+What kind of visual feel are you going for? For example:
+- Soft and romantic (watercolor, pastels)?
+- Bold and modern (digital art, geometric)?
+- Classic and timeless (oil painting, vintage)?
+- Fun and whimsical (cartoon, illustrated)?
+
+What resonates with you for this ${celebration}?`;
     }
   };
 
   const extractSuggestions = (content: string) => {
-    // Simple regex to extract suggestions that look like numbered or bulleted lists
-    const suggestionPattern = /(?:^\d+\.|^-|^•)\s*(.+?)(?=\n\d+\.|^-|^•|\n\n|$)/gm;
-    const matches = content.match(suggestionPattern);
-    return matches ? matches.map(match => match.replace(/^\d+\.|^-|^•/, '').trim()) : [];
+    // Enhanced regex to capture various suggestion formats
+    const patterns = [
+      // Numbered lists: "1. Description" or "1) Description"
+      /(?:^\d+[\.\)]\s*)(.+?)(?=\n\d+[\.\)]|\n\n|$)/gm,
+      // Bulleted lists: "- Description" or "• Description"
+      /(?:^[-•]\s*)(.+?)(?=\n[-•]|\n\n|$)/gm,
+      // Quoted suggestions: "Description" (in quotes)
+      /"([^"]+)"/g,
+      // Bold suggestions: **Description**
+      /\*\*([^*]+)\*\*/g
+    ];
+    
+    let suggestions = [];
+    
+    for (const pattern of patterns) {
+      const matches = content.match(pattern);
+      if (matches) {
+        suggestions.push(...matches.map(match => 
+          match.replace(/^\d+[\.\)]\s*|^[-•]\s*|[""]/g, '').replace(/\*\*/g, '').trim()
+        ).filter(s => s.length > 10 && s.length < 200)); // Filter for reasonable length
+      }
+    }
+    
+    // Remove duplicates and return up to 4 suggestions
+    return [...new Set(suggestions)].slice(0, 4);
   };
 
   return (
@@ -126,12 +177,89 @@ export function AIBrainstormChat({
           {/* Chat Messages */}
           <div className="flex-1 overflow-y-auto space-y-4 p-4 bg-gray-50 rounded-lg">
             {messages.length === 0 && (
-              <div className="flex gap-3">
-                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-white" />
+              <div className="space-y-4">
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                    <Bot className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex-1 bg-white p-3 rounded-lg shadow-sm">
+                    <p className="text-gray-700 whitespace-pre-line">{getInitialMessage()}</p>
+                  </div>
                 </div>
-                <div className="flex-1 bg-white p-3 rounded-lg shadow-sm">
-                  <p className="text-gray-700">{getInitialMessage()}</p>
+                
+                {/* Quick Start Buttons */}
+                <div className="flex flex-wrap gap-2 ml-11">
+                  {type === "scene" ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUserInput("I want something cozy and intimate")}
+                        className="text-xs"
+                      >
+                        Cozy & Intimate
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUserInput("I'm thinking something outdoors and adventurous")}
+                        className="text-xs"
+                      >
+                        Outdoors & Adventurous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUserInput("I want something elegant and sophisticated")}
+                        className="text-xs"
+                      >
+                        Elegant & Sophisticated
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUserInput("I need some creative ideas to get started")}
+                        className="text-xs"
+                      >
+                        Give Me Ideas
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUserInput("I want something soft and romantic")}
+                        className="text-xs"
+                      >
+                        Soft & Romantic
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUserInput("I'm looking for bold and modern")}
+                        className="text-xs"
+                      >
+                        Bold & Modern
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUserInput("I prefer classic and timeless")}
+                        className="text-xs"
+                      >
+                        Classic & Timeless
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUserInput("Show me some art style options")}
+                        className="text-xs"
+                      >
+                        Show Me Options
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -150,25 +278,58 @@ export function AIBrainstormChat({
                 }`}>
                   <p className="whitespace-pre-wrap">{message.content}</p>
                   {message.role === 'assistant' && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {extractSuggestions(message.content).map((suggestion, sugIndex) => (
+                    <div className="mt-3 space-y-2">
+                      {/* Extracted Suggestions */}
+                      {extractSuggestions(message.content).length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {extractSuggestions(message.content).map((suggestion, sugIndex) => (
+                            <Button
+                              key={sugIndex}
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                onSuggestionSelect(suggestion);
+                                setIsOpen(false);
+                                toast({
+                                  title: "Suggestion Applied",
+                                  description: "The AI suggestion has been added to your input.",
+                                });
+                              }}
+                              className="text-xs hover:bg-purple-50 border-purple-200 text-purple-700"
+                            >
+                              Use This
+                            </Button>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Quick Follow-up Buttons */}
+                      <div className="flex flex-wrap gap-2">
                         <Button
-                          key={sugIndex}
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            onSuggestionSelect(suggestion);
-                            setIsOpen(false);
-                            toast({
-                              title: "Suggestion Applied",
-                              description: "The AI suggestion has been added to your input.",
-                            });
-                          }}
-                          className="text-xs"
+                          onClick={() => setUserInput("Can you give me more options?")}
+                          className="text-xs text-gray-600 hover:text-gray-800"
                         >
-                          Use This
+                          More Options
                         </Button>
-                      ))}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setUserInput("Can you be more specific about this?")}
+                          className="text-xs text-gray-600 hover:text-gray-800"
+                        >
+                          Be More Specific
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setUserInput("This is perfect, thank you!")}
+                          className="text-xs text-gray-600 hover:text-gray-800"
+                        >
+                          Perfect!
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -190,6 +351,9 @@ export function AIBrainstormChat({
                 </div>
               </div>
             )}
+            
+            {/* Auto-scroll target */}
+            <div ref={messagesEndRef} />
           </div>
           
           {/* Input Area */}

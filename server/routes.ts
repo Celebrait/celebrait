@@ -442,48 +442,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(503).json({ message: "OpenAI API is not configured" });
       }
 
-      const { type, context, userInput, recipientName, celebration } = req.body;
+      const { type, context, userInput, recipientName, celebration, conversationHistory } = req.body;
 
       let systemPrompt = "";
-      let userPrompt = "";
+      let messages = [];
 
       if (type === "scene") {
-        systemPrompt = `You are a creative assistant helping users brainstorm scene descriptions for personalized greeting cards. You should suggest vivid, detailed scenes that would make beautiful greeting card images. Be encouraging and creative while keeping suggestions appropriate and heartwarming.`;
+        systemPrompt = `You are a creative assistant helping users brainstorm scene descriptions for personalized greeting cards. You should:
+
+1. Ask clarifying questions to understand what they want
+2. Provide specific, actionable suggestions
+3. Build on their ideas and preferences
+4. Guide them toward vivid, detailed descriptions
+5. Keep responses conversational and encouraging
+6. Focus on visual elements that work well for greeting cards
+
+Remember: You're having a conversation, not just providing a list. Ask follow-up questions based on their responses.`;
         
-        userPrompt = `Help me brainstorm a scene description for a ${celebration} greeting card for ${recipientName}. 
-        
-        Context: ${context || "No additional context provided"}
-        What I'm thinking so far: "${userInput || "I'm not sure what to write"}"
-        
-        Please suggest 3-4 specific, detailed scene ideas that would make beautiful greeting card images. Each suggestion should be 1-2 sentences and paint a vivid picture. Focus on settings, emotions, and visual elements that would translate well to artwork.`;
+        messages = [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `I'm creating a ${celebration} greeting card for ${recipientName}. I need help brainstorming the scene description. ${userInput || "I'm not sure where to start."}` }
+        ];
       } else if (type === "art_style") {
-        systemPrompt = `You are a creative assistant helping users choose art styles for personalized greeting cards. You should suggest art styles that would work well for greeting cards and match the user's preferences. Be encouraging and help them visualize how different styles would look.`;
+        systemPrompt = `You are a creative assistant helping users choose art styles for personalized greeting cards. You should:
+
+1. Ask about their preferences and the mood they want
+2. Suggest specific styles with visual descriptions
+3. Explain why certain styles work well for different celebrations
+4. Help them visualize how the style would look
+5. Guide them based on their responses
+6. Keep the conversation flowing naturally
+
+Remember: You're having a conversation, not just providing a list. Ask follow-up questions to understand their vision better.`;
         
-        userPrompt = `Help me choose an art style for a ${celebration} greeting card for ${recipientName}.
-        
-        Context: ${context || "No additional context provided"}
-        What I'm thinking so far: "${userInput || "I'm not sure what art style to choose"}"
-        
-        Please suggest 3-4 specific art styles that would work well for greeting cards. For each style, explain briefly what it would look like and why it might be perfect for this ${celebration} card. Consider styles like watercolor, digital art, oil painting, cartoon, vintage, modern, etc.`;
+        messages = [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `I'm creating a ${celebration} greeting card for ${recipientName}. I need help choosing an art style. ${userInput || "I'm not sure what style would work best."}` }
+        ];
       }
 
-      console.log('AI Brainstorm request:', { type, recipientName, celebration, userInput });
+      // Add conversation history if provided
+      if (conversationHistory && conversationHistory.length > 0) {
+        messages = [
+          { role: "system", content: systemPrompt },
+          ...conversationHistory,
+          { role: "user", content: userInput || "Can you help me with more ideas?" }
+        ];
+      }
+
+      console.log('AI Brainstorm request:', { type, recipientName, celebration, userInput, hasHistory: !!conversationHistory });
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        max_tokens: 600,
+        messages,
+        max_tokens: 400,
         temperature: 0.8 // Higher temperature for more creative suggestions
       });
 
-      const suggestions = response.choices[0].message.content;
+      const aiResponse = response.choices[0].message.content;
       console.log('AI brainstorm response generated successfully');
 
       res.json({ 
-        suggestions,
+        response: aiResponse,
         type,
         context: { recipientName, celebration, userInput }
       });
