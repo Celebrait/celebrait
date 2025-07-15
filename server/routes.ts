@@ -460,14 +460,15 @@ CONVERSATION FLOW (follow this order):
 INSTRUCTIONS:
 - Ask ONE focused question at a time
 - Build on previous responses naturally
-- For SETTING and ACTIVITY steps: After user provides initial response, ask if they want anything specific about that element and provide 3-4 relevant suggestions
+- For SETTING and ACTIVITY steps: After user provides initial response, ask if they want anything more specific about that element and provide 3-4 relevant suggestions
 - For PEOPLE step: Provide immediate suggestions without requiring initial user input, based on location and activity already defined
 - For EXTRA DETAIL step: Allow user to get suggestions immediately or skip the step entirely
 - Keep responses professional but encouraging
-- When they answer, acknowledge their input and smoothly transition to the next step
+- When they answer, acknowledge their input and ask if there's anything more they'd like to focus on before moving to next step
+- Reference all previous answers when asking follow-up questions for deeper specificity
 - Only move to the next step after they've given input for the current step
 - Use language that works for both single person and multiple people scenarios
-- DO NOT provide suggestions in your first response - let the user provide their initial input first
+- When user requests "more ideas", provide fresh suggestions in the same category without advancing steps
 
 Current step: ${conversationStep || 'setting'}`;
         

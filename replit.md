@@ -120,7 +120,7 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 15, 2025. ENHANCED AI CONVERSATION FLOW: Updated conversation steps and interaction patterns based on user requirements:
+- July 15, 2025. ENHANCED AI CONVERSATION FLOW WITH NUMBERED OPTIONS: Updated conversation steps and interaction patterns with proper flow continuation:
   * REFINED CONVERSATION STEPS: Updated from 6 steps to 5 steps - removed art style step to focus on separate onboarding journey
   * LOCATION STEP: After initial user input, AI asks for specifics and provides location-related suggestions with "More Location Ideas" button
   * ACTIVITY STEP: After initial user input, AI asks for specifics and provides activity-related suggestions with "More Activity Ideas" button
@@ -135,6 +135,11 @@ Changelog:
   * TONED DOWN PLAYFULNESS: Made AI responses more professional and serious while maintaining engagement
   * USER-FIRST APPROACH: Allow users to type initial response freely without AI suggestions until more context is gathered
   * IMPROVED SERVER PROMPTS: Updated system prompts to handle new conversation flow and step-specific behaviors
+  * NUMBERED OPTION BUTTONS: Changed "Use This" buttons to "Choose Option 1", "Choose Option 2", etc. for clarity
+  * FLOW CONTINUATION: Option selections now populate chat and continue conversation instead of exiting to main input
+  * INSTANT SUGGESTION BUTTONS: "More Ideas" buttons now instantly show suggestions without populating input box
+  * DEEPER SPECIFICITY: After user selections, AI asks for more specifics referencing all previous answers
+  * IMPROVED STEP LOGIC: Enhanced step progression to handle "more ideas" requests without advancing steps
   * ACCESSIBILITY COMPLIANCE: DialogDescription already present to meet accessibility requirements
 - July 15, 2025. ENHANCED AI BRAINSTORMING WITH TYPING ANIMATIONS: Elevated AI chat system to ChatGPT-level responsiveness with guided conversation flow:
   * TYPING ANIMATIONS: Added real-time typing animations like ChatGPT that display AI responses character-by-character at 20ms speed

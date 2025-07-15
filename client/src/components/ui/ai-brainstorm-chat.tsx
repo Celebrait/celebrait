@@ -141,24 +141,35 @@ export function AIBrainstormChat({
       setConversationState(prev => {
         const newState = { ...prev };
         
-        // Store the user's input for the current step
+        // Don't advance step if user is asking for more ideas
+        if (userInput.toLowerCase().includes('more') && userInput.toLowerCase().includes('ideas')) {
+          return newState; // Stay on same step
+        }
+        
+        // Store the user's input for the current step and advance if it's a real answer
         switch (prev.currentStep) {
           case 'setting':
-            newState.collectedInfo.setting = userInput;
-            newState.currentStep = 'activity';
+            if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
+              newState.collectedInfo.setting = userInput;
+              newState.currentStep = 'activity';
+            }
             break;
           case 'activity':
-            newState.collectedInfo.activity = userInput;
-            newState.currentStep = 'people';
+            if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
+              newState.collectedInfo.activity = userInput;
+              newState.currentStep = 'people';
+            }
             break;
           case 'people':
-            newState.collectedInfo.people = userInput;
-            newState.currentStep = 'extra_detail';
+            if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
+              newState.collectedInfo.people = userInput;
+              newState.currentStep = 'extra_detail';
+            }
             break;
           case 'extra_detail':
             if (userInput.toLowerCase().includes('skip')) {
               newState.currentStep = 'final_approval';
-            } else {
+            } else if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               newState.collectedInfo.extraDetail = userInput;
               newState.currentStep = 'final_approval';
             }
@@ -328,16 +339,12 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                onSuggestionSelect(suggestion);
-                                setIsOpen(false);
-                                toast({
-                                  title: "Suggestion Applied",
-                                  description: "The AI suggestion has been added to your input.",
-                                });
+                                setUserInput(suggestion);
+                                setTimeout(() => handleSendMessage(), 100);
                               }}
                               className="text-xs hover:bg-purple-50 border-purple-200 text-purple-700"
                             >
-                              Use This
+                              Choose Option {sugIndex + 1}
                             </Button>
                           ))}
                         </div>
@@ -349,7 +356,10 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setUserInput("Give me more location ideas")}
+                            onClick={() => {
+                              setUserInput("Give me more location ideas");
+                              setTimeout(() => handleSendMessage(), 100);
+                            }}
                             className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
                           >
                             More Location Ideas
@@ -360,7 +370,10 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setUserInput("Give me more activity ideas")}
+                            onClick={() => {
+                              setUserInput("Give me more activity ideas");
+                              setTimeout(() => handleSendMessage(), 100);
+                            }}
                             className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
                           >
                             More Activity Ideas
@@ -372,7 +385,10 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => setUserInput("Give me ideas for how people should look")}
+                              onClick={() => {
+                                setUserInput("Give me ideas for how people should look");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
                               className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
                             >
                               Get Ideas
@@ -380,7 +396,10 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => setUserInput("Give me more people ideas")}
+                              onClick={() => {
+                                setUserInput("Give me more people ideas");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
                               className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
                             >
                               More Ideas
@@ -393,7 +412,10 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => setUserInput("Give me more extra detail ideas")}
+                              onClick={() => {
+                                setUserInput("Give me more extra detail ideas");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
                               className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
                             >
                               More Ideas
@@ -401,7 +423,10 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => setUserInput("Skip this step")}
+                              onClick={() => {
+                                setUserInput("Skip this step");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
                               className="text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-50"
                             >
                               Skip Step
