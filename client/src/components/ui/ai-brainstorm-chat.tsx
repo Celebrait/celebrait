@@ -339,8 +339,89 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                setUserInput(suggestion);
-                                setTimeout(() => handleSendMessage(), 100);
+                                // Auto-send the message immediately
+                                const userMessage: ChatMessage = {
+                                  role: "user",
+                                  content: suggestion,
+                                  timestamp: new Date()
+                                };
+                                setMessages(prev => [...prev, userMessage]);
+                                setIsLoading(true);
+                                
+                                // Send to AI immediately
+                                const sendMessage = async () => {
+                                  try {
+                                    const conversationHistory = [...messages, userMessage].map(msg => ({
+                                      role: msg.role,
+                                      content: msg.content
+                                    }));
+
+                                    const response = await apiRequest("POST", "/api/ai-brainstorm", {
+                                      type,
+                                      context: `Current input: "${currentInput}"`,
+                                      userInput: suggestion,
+                                      recipientName,
+                                      celebration,
+                                      conversationStep: conversationState.currentStep,
+                                      conversationHistory: conversationHistory.slice(0, -1)
+                                    });
+
+                                    const result = await response.json();
+
+                                    const typingMessage: ChatMessage = {
+                                      role: "assistant",
+                                      content: result.response,
+                                      timestamp: new Date(),
+                                      isTyping: true
+                                    };
+
+                                    setMessages(prev => [...prev, typingMessage]);
+                                    
+                                    // Update conversation state
+                                    setConversationState(prev => {
+                                      const newState = { ...prev };
+                                      
+                                      if (!suggestion.toLowerCase().includes('more') || !suggestion.toLowerCase().includes('ideas')) {
+                                        switch (prev.currentStep) {
+                                          case 'setting':
+                                            newState.collectedInfo.setting = suggestion;
+                                            newState.currentStep = 'activity';
+                                            break;
+                                          case 'activity':
+                                            newState.collectedInfo.activity = suggestion;
+                                            newState.currentStep = 'people';
+                                            break;
+                                          case 'people':
+                                            newState.collectedInfo.people = suggestion;
+                                            newState.currentStep = 'extra_detail';
+                                            break;
+                                          case 'extra_detail':
+                                            if (suggestion.toLowerCase().includes('skip')) {
+                                              newState.currentStep = 'final_approval';
+                                            } else {
+                                              newState.collectedInfo.extraDetail = suggestion;
+                                              newState.currentStep = 'final_approval';
+                                            }
+                                            break;
+                                        }
+                                      }
+                                      
+                                      return newState;
+                                    });
+
+                                  } catch (error) {
+                                    console.error('Error sending message:', error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to send message. Please try again.",
+                                      variant: "destructive"
+                                    });
+                                  } finally {
+                                    setIsLoading(false);
+                                  }
+                                };
+                                
+                                sendMessage();
                               }}
                               className="text-xs hover:bg-purple-50 border-purple-200 text-purple-700"
                             >

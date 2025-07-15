@@ -460,7 +460,8 @@ CONVERSATION FLOW (follow this order):
 INSTRUCTIONS:
 - Ask ONE focused question at a time
 - Build on previous responses naturally
-- For SETTING and ACTIVITY steps: After user provides initial response, ask if they want anything more specific about that element and provide 3-4 relevant suggestions
+- For SETTING step: After user provides initial response, provide exactly 3 simple location-based options ONLY. Focus purely on WHERE, not what they're doing. Examples: "Beach in Tenerife", "Mountain trail in Tenerife", "Village square in Tenerife" - NO activities or actions
+- For ACTIVITY steps: After user provides initial response, ask if they want anything more specific about that element and provide 3-4 relevant suggestions
 - For PEOPLE step: Provide immediate suggestions without requiring initial user input, based on location and activity already defined
 - For EXTRA DETAIL step: Allow user to get suggestions immediately or skip the step entirely
 - Keep responses professional but encouraging
@@ -476,6 +477,14 @@ Current step: ${conversationStep || 'setting'}`;
           { role: "system", content: systemPrompt },
           { role: "user", content: `I'm creating a ${celebration} greeting card for ${recipientName}. I just uploaded photo(s) in the previous step. Now I need help creating the perfect scene description. Current step: ${conversationStep || 'setting'}. ${userInput || "I need help with the scene description."}` }
         ];
+        
+        // Add specific instruction for location step
+        if (conversationStep === 'setting' && userInput && !userInput.includes('Give me more')) {
+          messages.push({
+            role: "system", 
+            content: "Remember: For the SETTING step, only provide 3 simple location variations. Do not include activities, actions, or what people are doing. Focus ONLY on WHERE the scene takes place."
+          });
+        }
       } else if (type === "art_style") {
         systemPrompt = `You are a professional creative assistant helping users choose art styles for personalized greeting cards. You should:
 
