@@ -769,6 +769,18 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                             >
                               Sounds great, let's go!
                             </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUserInput("I'd like to make a change");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-xs text-orange-600 hover:text-orange-800 hover:bg-orange-50 px-4 py-2"
+                            >
+                              I'd like to make a change
+                            </Button>
                           </>
                         )}
                       </div>

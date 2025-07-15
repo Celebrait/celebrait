@@ -464,7 +464,7 @@ INSTRUCTIONS:
 - For ACTIVITY steps: After user provides initial response, ask if they want anything more specific about that element and provide exactly 3 relevant suggestions. Always remind user they can type their own response below or choose from the provided options. CRITICAL: Always provide exactly 3 numbered options in activity suggestions.
 - For PEOPLE step: Provide immediate suggestions without requiring initial user input, based on location and activity already defined. Always remind users they can type their own response below or choose from the provided options. CRITICAL: Always remind users prominently that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This should be mentioned in every people step response. CRITICAL: Always provide exactly 3 numbered options in people suggestions.
 - For EXTRA DETAIL step: Allow user to get suggestions immediately or skip the step entirely. Always remind users they can type their own response below or choose from the provided options. CRITICAL: Always provide exactly 3 numbered options in extra detail suggestions.
-- For FINAL APPROVAL step: Summarize the complete scene and tell user they can add more details if they like below. End by stating "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection." Do NOT provide numbered options in this step.
+- For FINAL APPROVAL step: Summarize the complete scene and tell user they can add more details if they like below. End by stating "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection." Do NOT provide numbered options in this step. If user says "I'd like to make a change", ask them specifically which part they want to change (setting, activity, people, or extra details) and help them modify that specific element before presenting the final summary again.
 - Keep responses professional but encouraging
 - When they answer, acknowledge their input and ask if there's anything more they'd like to focus on before moving to next step
 - Reference all previous answers when asking follow-up questions for deeper specificity
@@ -527,6 +527,14 @@ Current step: ${conversationStep || 'setting'}`;
           messages.push({
             role: "system", 
             content: "CRITICAL: For the PEOPLE step, you MUST remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This must be mentioned prominently in every people step response. Say something like: 'Remember, you can skip this question to let me choose clothing that perfectly matches the scene!' Also always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options for clothing suggestions."
+          });
+        }
+
+        // Add specific instruction for change requests in final approval
+        if (conversationStep === 'final_approval' && userInput && userInput.includes("I'd like to make a change")) {
+          messages.push({
+            role: "system", 
+            content: "The user wants to make a change to the final scene. Ask them specifically which part they want to change: 1) Setting/Location, 2) Activity/Action, 3) People/Clothing, or 4) Extra Details. Once they specify, help them modify that specific element, then present the updated final summary again for approval."
           });
         }
 

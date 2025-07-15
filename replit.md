@@ -165,6 +165,9 @@ Changelog:
   * PEOPLE STEP ENFORCEMENT: Added mandatory system prompt to ensure clothing skip reminder appears in every people step response
   * UNIVERSAL TYPING REMINDER: Enhanced all conversation steps to consistently remind users they can type their own response below or choose from provided options
   * COMPREHENSIVE USER GUIDANCE: Added typing reminder to all step instructions (setting, activity, people, extra detail) and "more ideas" requests
+  * FINAL APPROVAL BUTTON CLEANUP: Removed inappropriate "Skip This Question" and "Give Me More Ideas" buttons from final approval step
+  * CHANGE REQUEST FUNCTIONALITY: Added "I'd like to make a change" button that engages AI to ask which part of prompt to modify before re-summarizing
+  * PROMPT MODIFICATION FLOW: AI now handles change requests by asking user to specify which element to modify (setting, activity, people, extra details)
   * ACCESSIBILITY COMPLIANCE: DialogDescription already present to meet accessibility requirements
 - July 15, 2025. ENHANCED AI BRAINSTORMING WITH TYPING ANIMATIONS: Elevated AI chat system to ChatGPT-level responsiveness with guided conversation flow:
   * TYPING ANIMATIONS: Added real-time typing animations like ChatGPT that display AI responses character-by-character at 20ms speed
