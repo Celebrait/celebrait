@@ -91,7 +91,6 @@ export function AIBrainstormChat({
       setMessages([]);
       setConversationState({
         currentStep: 'setting',
-        settingRefinements: 0,
         collectedInfo: {}
       });
     }
@@ -145,12 +144,6 @@ export function AIBrainstormChat({
       setConversationState(prev => {
         const newState = { ...prev };
         
-        console.log('Conversation state update:', {
-          currentStep: prev.currentStep,
-          userInput: userInput,
-          collectedInfo: prev.collectedInfo
-        });
-        
         // Don't advance step if user is asking for more ideas
         if (userInput.toLowerCase().includes('more') && userInput.toLowerCase().includes('ideas')) {
           return newState; // Stay on same step
@@ -162,35 +155,28 @@ export function AIBrainstormChat({
             if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               // Update setting info and track refinement count
               newState.collectedInfo.setting = userInput;
-              newState.settingRefinements = (prev.settingRefinements || 0) + 1;
+              newState.settingRefinements = prev.settingRefinements + 1;
               
               // Only advance to activity after 2 refinement questions
-              if (newState.settingRefinements >= 2) {
+              if (prev.settingRefinements >= 2) {
                 newState.currentStep = 'activity';
               }
             }
             break;
           case 'activity':
-            if (userInput.toLowerCase().includes('skip')) {
-              // Don't store skip command, just advance to people
-              newState.currentStep = 'people';
-            } else if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
+            if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               newState.collectedInfo.activity = userInput;
               newState.currentStep = 'people';
             }
             break;
           case 'people':
-            if (userInput.toLowerCase().includes('skip')) {
-              // Don't store skip command, just advance to extra_detail
-              newState.currentStep = 'extra_detail';
-            } else if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
+            if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               newState.collectedInfo.people = userInput;
               newState.currentStep = 'extra_detail';
             }
             break;
           case 'extra_detail':
             if (userInput.toLowerCase().includes('skip')) {
-              // Don't store skip command, just advance to final approval
               newState.currentStep = 'final_approval';
             } else if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               newState.collectedInfo.extraDetail = userInput;
@@ -200,12 +186,7 @@ export function AIBrainstormChat({
           case 'final_approval':
             // If user approves, generate final scene description and auto-submit
             if (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('approve') || userInput.toLowerCase().includes('perfect')) {
-              const setting = newState.collectedInfo.setting || '';
-              const activity = newState.collectedInfo.activity || '';
-              const people = newState.collectedInfo.people?.includes('Skip') ? '' : newState.collectedInfo.people || '';
-              const extraDetail = newState.collectedInfo.extraDetail?.includes('Skip') ? '' : newState.collectedInfo.extraDetail || '';
-              
-              const finalScene = `${setting} ${activity} ${people} ${extraDetail}`.trim();
+              const finalScene = `${newState.collectedInfo.setting || ''} ${newState.collectedInfo.activity || ''} ${newState.collectedInfo.people || ''} ${newState.collectedInfo.extraDetail || ''}`.trim();
               setTimeout(() => {
                 onSuggestionSelect(finalScene);
                 setIsOpen(false);
@@ -213,12 +194,6 @@ export function AIBrainstormChat({
             }
             break;
         }
-        
-        console.log('New conversation state:', {
-          currentStep: newState.currentStep,
-          collectedInfo: newState.collectedInfo,
-          settingRefinements: newState.settingRefinements
-        });
         
         return newState;
       });
@@ -420,34 +395,23 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                                         switch (prev.currentStep) {
                                           case 'setting':
                                             newState.collectedInfo.setting = suggestion;
-                                            newState.settingRefinements = (prev.settingRefinements || 0) + 1;
+                                            newState.settingRefinements = prev.settingRefinements + 1;
                                             
                                             // Only advance to activity after 2 refinement questions
-                                            if (newState.settingRefinements >= 2) {
+                                            if (prev.settingRefinements >= 2) {
                                               newState.currentStep = 'activity';
                                             }
                                             break;
                                           case 'activity':
-                                            if (suggestion.toLowerCase().includes('skip')) {
-                                              // Don't store skip command, just advance to people
-                                              newState.currentStep = 'people';
-                                            } else {
-                                              newState.collectedInfo.activity = suggestion;
-                                              newState.currentStep = 'people';
-                                            }
+                                            newState.collectedInfo.activity = suggestion;
+                                            newState.currentStep = 'people';
                                             break;
                                           case 'people':
-                                            if (suggestion.toLowerCase().includes('skip')) {
-                                              // Don't store skip command, just advance to extra_detail
-                                              newState.currentStep = 'extra_detail';
-                                            } else {
-                                              newState.collectedInfo.people = suggestion;
-                                              newState.currentStep = 'extra_detail';
-                                            }
+                                            newState.collectedInfo.people = suggestion;
+                                            newState.currentStep = 'extra_detail';
                                             break;
                                           case 'extra_detail':
                                             if (suggestion.toLowerCase().includes('skip')) {
-                                              // Don't store skip command, just advance to final approval
                                               newState.currentStep = 'final_approval';
                                             } else {
                                               newState.collectedInfo.extraDetail = suggestion;
@@ -482,9 +446,8 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                         </div>
                       )}
                       
-                      {/* Step-specific action buttons - Hide all for final approval */}
-                      {conversationState.currentStep !== 'final_approval' && (
-                        <div className="flex flex-wrap gap-2 mt-2">
+                      {/* Step-specific action buttons */}
+                      <div className="flex flex-wrap gap-2 mt-2">
                         {conversationState.currentStep === 'setting' && (
                           <>
                             <Button
@@ -776,35 +739,39 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                             >
                               Skip This Question
                             </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUserInput("Skip this step");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                            >
+                              Skip Step
+                            </Button>
                           </>
                         )}
                         
-                        </div>
-                      )}
-                      
-                      {/* Final approval button - shown separately */}
-                      {conversationState.currentStep === 'final_approval' && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              // Generate final scene description and close dialog, filtering out skip commands
-                              const setting = conversationState.collectedInfo.setting || '';
-                              const activity = conversationState.collectedInfo.activity || '';
-                              const people = conversationState.collectedInfo.people?.includes('Skip') ? '' : conversationState.collectedInfo.people || '';
-                              const extraDetail = conversationState.collectedInfo.extraDetail?.includes('Skip') ? '' : conversationState.collectedInfo.extraDetail || '';
-                              
-                              const finalScene = `${setting} ${activity} ${people} ${extraDetail}`.trim();
-                              onSuggestionSelect(finalScene);
-                              setIsOpen(false);
-                            }}
-                            className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 font-medium"
-                          >
-                            Sounds great, let's go!
-                          </Button>
-                        </div>
-                      )}
+                        {conversationState.currentStep === 'final_approval' && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                // Generate final scene description and close dialog
+                                const finalScene = `${conversationState.collectedInfo.setting || ''} ${conversationState.collectedInfo.activity || ''} ${conversationState.collectedInfo.people || ''} ${conversationState.collectedInfo.extraDetail || ''}`.trim();
+                                onSuggestionSelect(finalScene);
+                                setIsOpen(false);
+                              }}
+                              className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 font-medium"
+                            >
+                              Sounds great, let's go!
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
