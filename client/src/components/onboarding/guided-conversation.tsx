@@ -976,22 +976,41 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
 
 
-  const detectPhotoContext = (photoDataArray: string[]): string => {
+  const analyzePhotoContent = async (photoDataArray: string[]): Promise<string> => {
+    try {
+      const response = await fetch('/api/analyze-photo-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ photos: photoDataArray })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to analyze photo content');
+      }
+      
+      const analysis = await response.json();
+      return analysis.photoContext;
+    } catch (error) {
+      console.error('Photo content analysis failed:', error);
+      // Fallback to basic photo count detection
+      return detectPhotoContextBasic(photoDataArray);
+    }
+  };
+
+  const detectPhotoContextBasic = (photoDataArray: string[]): string => {
     const photoCount = photoDataArray.length;
     
-    let context = "";
     if (photoCount === 1) {
-      context = "Single photo uploaded - single person focus";
+      return "Single photo uploaded - single person focus";
     } else if (photoCount === 2) {
-      context = "Two photos uploaded - multiple people or different angles";
+      return "Two photos uploaded - multiple people or different angles";
     } else if (photoCount >= 3) {
-      context = "Multiple photos uploaded - multiple people or various shots";
-    } else {
-      context = "Photo context unclear";
+      return "Multiple photos uploaded - multiple people or various shots";
     }
     
-    console.log(`Photo context detection: ${photoCount} photos -> "${context}"`);
-    return context;
+    return "Photo context unclear";
   };
 
   const handlePhotoUploadClick = () => {
@@ -1024,9 +1043,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
             setUploadedPhotos(photoDataArray);
             setAnswers(prev => ({ ...prev, photo_upload: photoDataArray[0] })); // Store first photo for backward compatibility
             
-            // Detect photo context for AI chat adaptation
-            const photoContext = detectPhotoContext(photoDataArray);
-            setAnswers(prev => ({ ...prev, photoContext }));
+            // Analyze photo content to detect people count
+            analyzePhotoContent(photoDataArray).then(photoContext => {
+              console.log(`Photo analysis result: "${photoContext}"`);
+              setAnswers(prev => ({ ...prev, photoContext }));
+            }).catch(error => {
+              console.error('Photo analysis failed, using fallback:', error);
+              const fallbackContext = detectPhotoContextBasic(photoDataArray);
+              setAnswers(prev => ({ ...prev, photoContext: fallbackContext }));
+            });
             
             // Skip analysis for all photo uploads - show success message immediately
             const successMessage = isTransformStyle 

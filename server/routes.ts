@@ -482,7 +482,9 @@ Current step: ${conversationStep || 'setting'}`;
           photoContext.toLowerCase().includes('different people') ||
           photoContext.toLowerCase().includes('various shots') ||
           photoContext.toLowerCase().includes('several') ||
-          photoContext.toLowerCase().includes('different angles')
+          photoContext.toLowerCase().includes('different angles') ||
+          photoContext.toLowerCase().includes('group shot') ||
+          photoContext.toLowerCase().includes('people detected')
         );
 
         const contextualMessage = photoContext ? 
@@ -622,6 +624,74 @@ Remember: You're helping them discover their perfect artistic vision through gui
     } catch (error: any) {
       console.error('AI brainstorm error:', error);
       res.status(500).json({ message: "Failed to generate AI suggestions: " + error.message });
+    }
+  });
+
+  // Analyze photo content to detect number of people
+  app.post('/api/analyze-photo-content', async (req, res) => {
+    try {
+      const { photos } = req.body;
+      
+      if (!photos || !Array.isArray(photos) || photos.length === 0) {
+        return res.status(400).json({ error: 'No photos provided' });
+      }
+
+      // Analyze first photo for people count (can be extended to analyze all photos)
+      const firstPhoto = photos[0];
+      
+      // Use OpenAI Vision API to analyze the photo
+      const openaiResponse = await openai.chat.completions.create({
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Analyze this photo and tell me how many people are visible in it. Respond with just a number (1, 2, 3, etc.) or 'none' if no people are visible."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: firstPhoto
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 10
+      });
+
+      const peopleCount = openaiResponse.choices[0].message.content?.trim();
+      console.log(`Photo analysis - People count: ${peopleCount}`);
+      
+      // Generate appropriate context based on analysis
+      let photoContext = "";
+      const totalPhotos = photos.length;
+      
+      if (peopleCount === 'none' || peopleCount === '0') {
+        photoContext = totalPhotos === 1 ? 
+          "Single photo uploaded - no people detected" : 
+          `${totalPhotos} photos uploaded - no people detected`;
+      } else if (peopleCount === '1') {
+        photoContext = totalPhotos === 1 ? 
+          "Single photo uploaded - single person focus" : 
+          `${totalPhotos} photos uploaded - single person focus`;
+      } else {
+        // Multiple people detected
+        const count = parseInt(peopleCount) || 2;
+        photoContext = totalPhotos === 1 ? 
+          `Single photo uploaded - ${count} people detected in group shot` : 
+          `${totalPhotos} photos uploaded - multiple people detected`;
+      }
+      
+      console.log(`Generated photo context: "${photoContext}"`);
+      
+      res.json({ photoContext });
+      
+    } catch (error) {
+      console.error('Photo analysis error:', error);
+      res.status(500).json({ error: 'Failed to analyze photo content' });
     }
   });
 

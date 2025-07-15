@@ -229,7 +229,9 @@ export function AIBrainstormChat({
       photoContext.toLowerCase().includes('different people') ||
       photoContext.toLowerCase().includes('various shots') ||
       photoContext.toLowerCase().includes('several') ||
-      photoContext.toLowerCase().includes('different angles')
+      photoContext.toLowerCase().includes('different angles') ||
+      photoContext.toLowerCase().includes('group shot') ||
+      photoContext.toLowerCase().includes('people detected')
     );
     
     console.log(`AI Initial Message Debug:

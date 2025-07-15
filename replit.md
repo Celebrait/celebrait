@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 15, 2025. INTELLIGENT PHOTO CONTENT ANALYSIS: Implemented AI-powered photo analysis to detect actual people count in uploaded images:
+  * OPENAI VISION INTEGRATION: Added /api/analyze-photo-content endpoint using OpenAI Vision API to count people in uploaded photos
+  * REAL PEOPLE DETECTION: System now analyzes photo content to detect 1 person, 2+ people, or no people instead of just counting photo files
+  * DYNAMIC CONTEXT GENERATION: Photo context now reflects actual image content: "Single photo uploaded - 2 people detected in group shot" for accurate AI adaptation
+  * FALLBACK SYSTEM: Robust fallback to basic photo count detection if vision analysis fails
+  * ENHANCED AI MESSAGING: AI conversation now accurately adapts to single person vs group scenarios regardless of photo count
+  * COMPREHENSIVE DETECTION: Handles single photos with multiple people, multiple photos with single people, and all combinations
 - July 15, 2025. DYNAMIC AI INITIAL MESSAGING: Enhanced AI conversation to dynamically acknowledge single person vs multiple people scenarios:
   * DYNAMIC INITIAL MESSAGE: AI greeting now adapts based on photo context - acknowledges "multiple people" for group shots and focuses on recipient name for single person photos
   * CONTEXTUAL ACKNOWLEDGMENT: AI explicitly states "I can see from your uploaded photos that we're working with multiple people" or "I can see from your uploaded photo that we're focusing on [name]"
