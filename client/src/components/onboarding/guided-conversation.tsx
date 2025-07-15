@@ -2189,89 +2189,18 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           Need some inspiration? Browse through different artistic styles to spark your creativity.
                         </p>
                         
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 hover:border-purple-300 text-purple-700 hover:text-purple-800 px-6 py-3 rounded-xl font-semibold shadow-sm"
-                            >
-                              <Eye className="w-4 h-4 mr-2" />
-                              Browse Art Style Inspiration
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
-                            <DialogHeader>
-                              <DialogTitle className="flex items-center gap-3">
-                                <Palette className="w-6 h-6 text-purple-600" />
-                                Art Style Inspiration Gallery
-                              </DialogTitle>
-                              <DialogDescription>
-                                Swipe through different artistic styles to find inspiration for your custom description
-                              </DialogDescription>
-                            </DialogHeader>
-                            
-                            <div className="overflow-y-auto max-h-[70vh] p-4">
-                              <Carousel className="w-full">
-                                <CarouselContent className="-ml-4">
-                                  {currentStep.options.map((style) => (
-                                    <CarouselItem key={style.value} className="pl-4 md:basis-1/2 lg:basis-1/3">
-                                      <div className="space-y-3">
-                                        {/* Style preview card */}
-                                        <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center border-2 border-gray-200">
-                                          <div className="text-center">
-                                            <div className={`w-16 h-16 ${style.color} rounded-xl flex items-center justify-center text-3xl mb-3 mx-auto shadow-lg`}>
-                                              {style.emoji}
-                                            </div>
-                                            <p className="text-gray-600 font-medium">
-                                              {style.label}
-                                            </p>
-                                            <p className="text-xs text-gray-500 mt-1">
-                                              Style preview image
-                                            </p>
-                                          </div>
-                                        </div>
-                                        
-                                        {/* Style info */}
-                                        <div className="text-center">
-                                          <h4 className="font-semibold text-gray-800 mb-1">{style.label}</h4>
-                                          <p className="text-sm text-gray-600 mb-2">{style.description}</p>
-                                          
-                                          {/* Use this style button */}
-                                          <Button
-                                            onClick={() => {
-                                              setCurrentInput(style.label.toLowerCase());
-                                              // Close dialog
-                                              document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-                                            }}
-                                            variant="outline"
-                                            size="sm"
-                                            className="w-full border-purple-200 text-purple-600 hover:bg-purple-50"
-                                          >
-                                            Use This Style
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    </CarouselItem>
-                                  ))}
-                                </CarouselContent>
-                                <CarouselPrevious className="left-2" />
-                                <CarouselNext className="right-2" />
-                              </Carousel>
-                              
-                              <div className="mt-6 text-center">
-                                <p className="text-sm text-gray-600 mb-3">
-                                  Found something you like? You can use these as starting points and customize them further!
-                                </p>
-                                <Button 
-                                  onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))}
-                                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2 rounded-xl"
-                                >
-                                  Close & Continue Creating
-                                </Button>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                        <AIBrainstormChat
+                          type="art_style"
+                          recipientName={onboarding.userName}
+                          celebration={answers.celebration || "celebration"}
+                          currentInput={inputValue}
+                          onSuggestionSelect={(suggestion) => {
+                            setInputValue(suggestion);
+                            setStepInputs(prev => ({ ...prev, [currentStep.id]: suggestion }));
+                          }}
+                          buttonText="Get AI Art Style Ideas"
+                          buttonIcon={<Bot className="w-4 h-4" />}
+                        />
                       </div>
                       
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

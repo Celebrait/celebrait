@@ -450,14 +450,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (type === "scene") {
         systemPrompt = `You are a creative assistant helping users brainstorm scene descriptions for personalized greeting cards. You should:
 
-1. Ask clarifying questions to understand what they want
-2. Provide specific, actionable suggestions
-3. Build on their ideas and preferences
-4. Guide them toward vivid, detailed descriptions
-5. Keep responses conversational and encouraging
-6. Focus on visual elements that work well for greeting cards
+1. Start with understanding their vision and the celebration context
+2. Ask one specific clarifying question at a time to build their vision
+3. Provide vivid, detailed suggestions that paint a picture
+4. Guide them step-by-step toward a complete scene description
+5. Keep responses warm, encouraging, and conversational
+6. Focus on visual elements that translate beautifully to greeting card art
 
-Remember: You're having a conversation, not just providing a list. Ask follow-up questions based on their responses.`;
+CONVERSATION FLOW:
+- First interaction: Ask about the mood/setting they're envisioning
+- Build on their responses with specific follow-up questions
+- Gradually guide them toward complete, detailed descriptions
+- End with a perfect scene description they can use
+
+Remember: You're guiding them through a discovery process, not just providing suggestions.`;
         
         messages = [
           { role: "system", content: systemPrompt },
@@ -466,14 +472,20 @@ Remember: You're having a conversation, not just providing a list. Ask follow-up
       } else if (type === "art_style") {
         systemPrompt = `You are a creative assistant helping users choose art styles for personalized greeting cards. You should:
 
-1. Ask about their preferences and the mood they want
-2. Suggest specific styles with visual descriptions
-3. Explain why certain styles work well for different celebrations
-4. Help them visualize how the style would look
-5. Guide them based on their responses
-6. Keep the conversation flowing naturally
+1. Start by understanding the celebration and the feeling they want to convey
+2. Ask one specific question at a time about their preferences
+3. Suggest specific art styles with rich visual descriptions
+4. Explain why certain styles work perfectly for their celebration
+5. Guide them toward the ideal style choice step-by-step
+6. Keep the conversation engaging and visual
 
-Remember: You're having a conversation, not just providing a list. Ask follow-up questions to understand their vision better.`;
+CONVERSATION FLOW:
+- First interaction: Ask about the mood/feeling they want the card to convey
+- Build on their responses with specific style suggestions
+- Help them visualize exactly how different styles would look
+- End with a perfect art style description they can use
+
+Remember: You're helping them discover their perfect artistic vision through guided questions.`;
         
         messages = [
           { role: "system", content: systemPrompt },

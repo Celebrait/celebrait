@@ -120,6 +120,18 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 15, 2025. ENHANCED AI BRAINSTORMING WITH TYPING ANIMATIONS: Elevated AI chat system to ChatGPT-level responsiveness with guided conversation flow:
+  * TYPING ANIMATIONS: Added real-time typing animations like ChatGPT that display AI responses character-by-character at 20ms speed
+  * GUIDED CONVERSATION FLOW: Enhanced system prompts to guide users through discovery process with step-by-step questioning
+  * PERFECT CONVERSATION MANAGEMENT: AI now asks one specific clarifying question at a time to build user's vision incrementally
+  * REPLACED INSPIRATION BUTTON: Removed "Browse Art Style Inspiration" button and replaced with AI brainstorming chat on art style steps
+  * ENHANCED SUGGESTION EXTRACTION: Improved regex patterns to capture various suggestion formats (numbered lists, bullets, quotes, bold)
+  * CONVERSATION HISTORY: Full conversation context maintained throughout chat session for natural flow
+  * SPECIALIZED PROMPTS: Different conversation flows for scene descriptions vs art style guidance with celebration-specific context
+  * QUICK START BUTTONS: Added contextual starter buttons (Cozy & Intimate, Bold & Modern, etc.) for immediate engagement
+  * FOLLOW-UP ACTIONS: Smart follow-up buttons (More Options, Be More Specific, Perfect!) appear after each AI response
+  * AUTO-SCROLL: Smooth auto-scrolling keeps conversation in view as messages are added
+  * TYPING COMPLETION: AI responses marked as complete after typing animation finishes, enabling user interaction
 - July 14, 2025. AI BRAINSTORMING ASSISTANT FEATURE: Implemented AI-powered chatbot assistance for scene descriptions and art style choices:
   * AI BRAINSTORMING ENDPOINT: Created `/api/ai-brainstorm` endpoint using OpenAI GPT-4o with specialized prompts for scene and art style suggestions
   * INTERACTIVE CHAT COMPONENT: Built AIBrainstormChat component with real-time conversation interface, message history, and suggestion extraction

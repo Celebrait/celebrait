@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Bot, User, Sparkles, Loader2, MessageCircle, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { TypingAnimation } from "@/components/ui/typing-animation";
 
 interface AIBrainstormChatProps {
   type: "scene" | "art_style";
@@ -21,6 +22,7 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  isTyping?: boolean;
 }
 
 export function AIBrainstormChat({ 
@@ -75,13 +77,15 @@ export function AIBrainstormChat({
 
       const result = await response.json();
 
-      const assistantMessage: ChatMessage = {
+      // Add typing animation message
+      const typingMessage: ChatMessage = {
         role: "assistant",
         content: result.response,
-        timestamp: new Date()
+        timestamp: new Date(),
+        isTyping: true
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages(prev => [...prev, typingMessage]);
       setUserInput("");
     } catch (error) {
       console.error('AI brainstorm error:', error);
@@ -276,8 +280,24 @@ What resonates with you for this ${celebration}?`;
                     ? 'bg-blue-500 text-white ml-12' 
                     : 'bg-white text-gray-700'
                 }`}>
-                  <p className="whitespace-pre-wrap">{message.content}</p>
-                  {message.role === 'assistant' && (
+                  {message.isTyping ? (
+                    <TypingAnimation 
+                      text={message.content} 
+                      speed={20}
+                      onComplete={() => {
+                        // Mark typing as complete
+                        setMessages(prev => prev.map(msg => 
+                          msg.timestamp === message.timestamp 
+                            ? { ...msg, isTyping: false }
+                            : msg
+                        ));
+                      }}
+                    />
+                  ) : (
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  )}
+                  
+                  {message.role === 'assistant' && !message.isTyping && (
                     <div className="mt-3 space-y-2">
                       {/* Extracted Suggestions */}
                       {extractSuggestions(message.content).length > 0 && (
