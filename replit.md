@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 15, 2025. OPTIMIZED AI BRAINSTORMING UX: Improved chat interface with better sizing, faster typing, and simplified opening experience:
+  * LARGER CHAT WINDOW: Increased dialog size to max-w-4xl and 90vh height with 95vw width for better screen coverage
+  * FASTER TYPING: Reduced typing speed from 20ms to 8ms per character for much faster AI response display
+  * SIMPLIFIED OPENING MESSAGE: Updated to "Greetings, earthling ✨ Let's paint a picture with words!" with encouraging tone
+  * SINGLE ACTION BUTTON: Replaced multiple quick-start buttons with one prominent "Let's Brainstorm" button for cleaner interface
+  * CONSISTENT WINDOW SIZE: Chat window now maintains consistent size across all devices without changing
+  * IMPROVED ACCESSIBILITY: Added DialogDescription to fix accessibility warnings
 - July 15, 2025. ENHANCED AI BRAINSTORMING WITH TYPING ANIMATIONS: Elevated AI chat system to ChatGPT-level responsiveness with guided conversation flow:
   * TYPING ANIMATIONS: Added real-time typing animations like ChatGPT that display AI responses character-by-character at 20ms speed
   * GUIDED CONVERSATION FLOW: Enhanced system prompts to guide users through discovery process with step-by-step questioning

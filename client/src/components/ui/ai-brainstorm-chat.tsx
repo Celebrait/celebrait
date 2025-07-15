@@ -82,7 +82,7 @@ export function AIBrainstormChat({
               : msg
           )
         );
-      }, initialMessage.content.length * 20); // 20ms per character
+      }, initialMessage.content.length * 8); // 8ms per character for faster typing
       
       return () => clearTimeout(typingTimeout);
     } else if (!isOpen) {
@@ -199,39 +199,13 @@ export function AIBrainstormChat({
   };
 
   const getInitialMessage = () => {
-    if (type === "scene") {
-      return `Hi there! ✨ I can see you've uploaded some wonderful photos! 
+    return `Greetings, earthling ✨ Let's paint a picture with words! 
 
-I'm your warm, imaginative creative partner, and I'm here to help you envision the perfect magical scene for ${recipientName}'s ${celebration} card. Instead of overwhelming you with options, I want to guide you gently through a structured conversation to discover what would make them absolutely light up when they see this card.
+The more vivid your description, the more mind blowing your card will be. 
 
-We'll work together through 6 simple steps:
-1. **Location** - Where should we place them in this scene?
-2. **Activity** - What should they be doing?
-3. **Details** - How should they look and what should they wear?
-4. **Special Elements** - What meaningful details should we add?
-5. **Art Style** - What artistic style should we use?
-6. **Final Approval** - Review and approve the complete description
+AI loves details, so we can get mad creative or keep it simple - whatever feels right. 
 
-Let's start with the most important question: **Where should we place ${recipientName} in this scene?**
-
-Think about it - where would they feel most joyful and celebrated? Maybe:
-- In a cozy setting that feels like home?
-- Somewhere in beautiful nature?
-- In a special place that has meaning to them?
-- Or perhaps in a completely magical, dreamy location?
-
-What feels right to you? I'm here to help you explore and build this vision together! 💫`;
-    } else {
-      return `Hi! I'm here to help you choose the perfect art style for ${recipientName}'s ${celebration} card.
-
-What kind of visual feel are you going for? For example:
-- Soft and romantic (watercolor, pastels)?
-- Bold and modern (digital art, geometric)?
-- Classic and timeless (oil painting, vintage)?
-- Fun and whimsical (cartoon, illustrated)?
-
-What resonates with you for this ${celebration}?`;
-    }
+I'll guide you through crafting the perfect scene, just let me know when you're ready to start`;
   };
 
   const extractSuggestions = (content: string) => {
@@ -273,7 +247,7 @@ What resonates with you for this ${celebration}?`;
           {buttonText}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] w-[95vw] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bot className="w-5 h-5 text-purple-500" />
@@ -331,7 +305,7 @@ What resonates with you for this ${celebration}?`;
                   {message.isTyping ? (
                     <TypingAnimation 
                       text={message.content} 
-                      speed={20}
+                      speed={8}
                       onComplete={() => {
                         // Mark typing as complete
                         setMessages(prev => prev.map(msg => 
@@ -347,80 +321,17 @@ What resonates with you for this ${celebration}?`;
                   
                   {message.role === 'assistant' && !message.isTyping && (
                     <div className="mt-3 space-y-2">
-                      {/* Quick Start Buttons - Only for first message */}
+                      {/* Single "Let's Brainstorm" Button - Only for first message */}
                       {index === 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {type === "scene" ? (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setUserInput("I want something cozy and intimate")}
-                                className="text-xs"
-                              >
-                                Cozy & Intimate
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setUserInput("I'm thinking something outdoors and adventurous")}
-                                className="text-xs"
-                              >
-                                Outdoors & Adventurous
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setUserInput("I want something elegant and sophisticated")}
-                                className="text-xs"
-                              >
-                                Elegant & Sophisticated
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setUserInput("I need some creative ideas to get started")}
-                                className="text-xs"
-                              >
-                                Give Me Ideas
-                              </Button>
-                            </>
-                          ) : (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setUserInput("I want something soft and romantic")}
-                                className="text-xs"
-                              >
-                                Soft & Romantic
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setUserInput("I'm looking for bold and modern")}
-                                className="text-xs"
-                              >
-                                Bold & Modern
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setUserInput("I prefer classic and timeless")}
-                                className="text-xs"
-                              >
-                                Classic & Timeless
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setUserInput("Show me some art style options")}
-                                className="text-xs"
-                              >
-                                Show Me Options
-                              </Button>
-                            </>
-                          )}
+                        <div className="flex justify-center">
+                          <Button
+                            variant="outline"
+                            size="lg"
+                            onClick={() => setUserInput("Let's brainstorm!")}
+                            className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 border-none font-semibold px-8 py-3"
+                          >
+                            Let's Brainstorm
+                          </Button>
                         </div>
                       )}
                       
