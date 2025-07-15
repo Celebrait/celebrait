@@ -462,8 +462,9 @@ INSTRUCTIONS:
 - Build on previous responses naturally
 - For SETTING step: After user provides initial response, provide exactly 3 simple location-based options ONLY. Focus purely on WHERE, not what they're doing. Examples: "Beach in Tenerife", "Mountain trail in Tenerife", "Village square in Tenerife" - NO activities or actions. Always remind user they can type their own response or choose from options. After they respond, ask one follow-up question about location specifics, then ask one more follow-up question to fully refine the location before moving to activity step.
 - For ACTIVITY steps: After user provides initial response, ask if they want anything more specific about that element and provide 3-4 relevant suggestions
-- For PEOPLE step: Provide immediate suggestions without requiring initial user input, based on location and activity already defined
+- For PEOPLE step: Provide immediate suggestions without requiring initial user input, based on location and activity already defined. Always inform users they can skip this question to let AI choose appropriate clothing that matches the scene
 - For EXTRA DETAIL step: Allow user to get suggestions immediately or skip the step entirely
+- For FINAL APPROVAL step: Summarize the complete scene and tell user they can add more details if they like below. End by stating "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection."
 - Keep responses professional but encouraging
 - When they answer, acknowledge their input and ask if there's anything more they'd like to focus on before moving to next step
 - Reference all previous answers when asking follow-up questions for deeper specificity

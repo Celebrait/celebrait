@@ -753,6 +753,24 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                             </Button>
                           </>
                         )}
+                        
+                        {conversationState.currentStep === 'final_approval' && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                // Generate final scene description and close dialog
+                                const finalScene = `${conversationState.collectedInfo.setting || ''} ${conversationState.collectedInfo.activity || ''} ${conversationState.collectedInfo.people || ''} ${conversationState.collectedInfo.extraDetail || ''}`.trim();
+                                onSuggestionSelect(finalScene);
+                                setIsOpen(false);
+                              }}
+                              className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 font-medium"
+                            >
+                              Sounds great, let's go!
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   )}
