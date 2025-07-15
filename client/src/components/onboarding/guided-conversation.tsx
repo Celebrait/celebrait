@@ -2193,9 +2193,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           type="art_style"
                           recipientName={onboarding.userName}
                           celebration={answers.celebration || "celebration"}
-                          currentInput={inputValue}
+                          currentInput={currentInput}
                           onSuggestionSelect={(suggestion) => {
-                            setInputValue(suggestion);
+                            setCurrentInput(suggestion);
                             setStepInputs(prev => ({ ...prev, [currentStep.id]: suggestion }));
                           }}
                           buttonText="Get AI Art Style Ideas"
