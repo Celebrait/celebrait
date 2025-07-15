@@ -442,7 +442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(503).json({ message: "OpenAI API is not configured" });
       }
 
-      const { type, context, userInput, recipientName, celebration, conversationHistory, conversationStep, settingRefinements } = req.body;
+      const { type, context, userInput, recipientName, celebration, conversationHistory, conversationStep, settingRefinements, photoContext } = req.body;
 
       let systemPrompt = "";
       let messages = [];
@@ -471,6 +471,7 @@ INSTRUCTIONS:
 - Only move to the next step after they've given input for the current step
 - Use language that works for both single person and multiple people scenarios
 - When user requests "more ideas", provide fresh suggestions in the same category without advancing steps
+- PHOTO CONTEXT AWARENESS: ${photoContext ? `Photo context: ${photoContext}. Adapt your language and suggestions based on whether this is a single person, group shot, or multiple photos of different people.` : 'No specific photo context provided - use general language for person/people.'}
 
 Current step: ${conversationStep || 'setting'}`;
         
@@ -524,9 +525,13 @@ Current step: ${conversationStep || 'setting'}`;
 
         // Add specific instruction for people step
         if (conversationStep === 'people') {
+          const photoContextInstruction = photoContext ? 
+            `Photo context: ${photoContext}. Adapt your clothing suggestions accordingly - if it's a single person, focus on individual styling; if it's a group, consider coordinated or complementary outfits; if multiple different people, suggest how to make them work together visually.` : 
+            'No specific photo context - use general language for person/people clothing suggestions.';
+          
           messages.push({
             role: "system", 
-            content: "CRITICAL: For the PEOPLE step, you MUST remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This must be mentioned prominently in every people step response. Say something like: 'Remember, you can skip this question to let me choose clothing that perfectly matches the scene!' Also always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options for clothing suggestions."
+            content: `CRITICAL: For the PEOPLE step, you MUST remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This must be mentioned prominently in every people step response. Say something like: 'Remember, you can skip this question to let me choose clothing that perfectly matches the scene!' Also always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options for clothing suggestions. ${photoContextInstruction}`
           });
         }
 

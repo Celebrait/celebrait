@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 15, 2025. PHOTO CONTEXT AWARENESS ENHANCEMENT: Complete integration of photo context awareness into AI conversation chatbot:
+  * PHOTO CONTEXT INTEGRATION: AI chatbot now receives photo context from uploaded images for personalized conversation guidance
+  * INTELLIGENT CONVERSATION ADAPTATION: AI adapts conversation based on photo scenarios (single person, group shot, multiple people) for more relevant suggestions
+  * CONTEXTUAL RECOMMENDATIONS: AI provides location, activity, and people suggestions tailored to what's visible in uploaded photos
+  * ENHANCED PROMPTING: System prompts now include photo context to help AI understand image content and provide better guidance
+  * SEAMLESS IMPLEMENTATION: Photo context passes through all AI chat API calls for consistent conversation experience
+  * COMPREHENSIVE COVERAGE: All AI brainstorm chat API calls now include photo context parameter for complete functionality
 - July 15, 2025. ENHANCED AI CONVERSATION FLOW WITH NUMBERED OPTIONS: Updated conversation steps and interaction patterns with proper flow continuation:
   * REFINED CONVERSATION STEPS: Updated from 6 steps to 5 steps - removed art style step to focus on separate onboarding journey
   * LOCATION STEP: After initial user input, AI asks for specifics and provides location-related suggestions with "More Location Ideas" button

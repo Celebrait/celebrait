@@ -16,6 +16,7 @@ interface AIBrainstormChatProps {
   onSuggestionSelect: (suggestion: string) => void;
   buttonText?: string;
   buttonIcon?: React.ReactNode;
+  photoContext?: string;
 }
 
 interface ConversationState {
@@ -43,7 +44,8 @@ export function AIBrainstormChat({
   currentInput, 
   onSuggestionSelect,
   buttonText = "Get AI Help",
-  buttonIcon = <Bot className="w-4 h-4" />
+  buttonIcon = <Bot className="w-4 h-4" />,
+  photoContext = ""
 }: AIBrainstormChatProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -124,7 +126,8 @@ export function AIBrainstormChat({
         celebration,
         conversationStep: conversationState.currentStep,
         settingRefinements: conversationState.settingRefinements,
-        conversationHistory: conversationHistory.slice(0, -1) // Exclude the current message
+        conversationHistory: conversationHistory.slice(0, -1), // Exclude the current message
+        photoContext
       });
 
       const result = await response.json();
@@ -373,7 +376,8 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                                       celebration,
                                       conversationStep: conversationState.currentStep,
                                       settingRefinements: conversationState.settingRefinements,
-                                      conversationHistory: conversationHistory.slice(0, -1)
+                                      conversationHistory: conversationHistory.slice(0, -1),
+                                      photoContext
                                     });
 
                                     const result = await response.json();
@@ -479,7 +483,8 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                                       celebration,
                                       conversationStep: conversationState.currentStep,
                                       settingRefinements: conversationState.settingRefinements,
-                                      conversationHistory: conversationHistory.slice(0, -1)
+                                      conversationHistory: conversationHistory.slice(0, -1),
+                                      photoContext
                                     });
 
                                     const result = await response.json();
@@ -552,7 +557,8 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                                       celebration,
                                       conversationStep: nextStep,
                                       settingRefinements: newRefinements,
-                                      conversationHistory: conversationHistory.slice(0, -1)
+                                      conversationHistory: conversationHistory.slice(0, -1),
+                                      photoContext
                                     });
 
                                     const result = await response.json();
@@ -622,7 +628,8 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                                         celebration,
                                         conversationStep: 'activity',
                                         settingRefinements: 3,
-                                        conversationHistory: conversationHistory.slice(0, -1)
+                                        conversationHistory: conversationHistory.slice(0, -1),
+                                        photoContext
                                       });
 
                                       const result = await response.json();

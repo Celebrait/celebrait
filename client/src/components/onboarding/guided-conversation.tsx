@@ -976,6 +976,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
 
 
+  const detectPhotoContext = (photoDataArray: string[]): string => {
+    const photoCount = photoDataArray.length;
+    
+    if (photoCount === 1) {
+      return "Single photo uploaded - likely contains one person or a small group";
+    } else if (photoCount === 2) {
+      return "Two photos uploaded - likely different people or multiple angles of same person";
+    } else if (photoCount >= 3) {
+      return "Multiple photos uploaded - likely different people or various group shots";
+    }
+    
+    return "Photo context unclear";
+  };
+
   const handlePhotoUploadClick = () => {
     if (!hasCopyrightConsent) {
       setCopyrightConsentOpen(true);
@@ -1005,6 +1019,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
           if (filesProcessed === filesToProcess.length) {
             setUploadedPhotos(photoDataArray);
             setAnswers(prev => ({ ...prev, photo_upload: photoDataArray[0] })); // Store first photo for backward compatibility
+            
+            // Detect photo context for AI chat adaptation
+            const photoContext = detectPhotoContext(photoDataArray);
+            setAnswers(prev => ({ ...prev, photoContext }));
             
             // Skip analysis for all photo uploads - show success message immediately
             const successMessage = isTransformStyle 
@@ -2945,6 +2963,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         }}
                         buttonText="Start Creative Conversation"
                         buttonIcon={<Sparkles className="w-4 h-4" />}
+                        photoContext={answers.photoContext || ''}
                       />
                     </div>
                   </div>
