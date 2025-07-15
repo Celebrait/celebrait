@@ -339,8 +339,8 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                   
                   {message.role === 'assistant' && !message.isTyping && index > 0 && (
                     <div className="mt-3 space-y-2">
-                      {/* Extracted Suggestions */}
-                      {extractSuggestions(message.content).length > 0 && (
+                      {/* Extracted Suggestions - Hide for final approval step */}
+                      {extractSuggestions(message.content).length > 0 && conversationState.currentStep !== 'final_approval' && (
                         <div className="flex flex-wrap gap-2">
                           {extractSuggestions(message.content).map((suggestion, sugIndex) => (
                             <Button
