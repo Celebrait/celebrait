@@ -446,8 +446,9 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                         </div>
                       )}
                       
-                      {/* Step-specific action buttons */}
-                      <div className="flex flex-wrap gap-2 mt-2">
+                      {/* Step-specific action buttons - Hide all for final approval */}
+                      {conversationState.currentStep !== 'final_approval' && (
+                        <div className="flex flex-wrap gap-2 mt-2">
                         {conversationState.currentStep === 'setting' && (
                           <>
                             <Button
@@ -754,24 +755,27 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                           </>
                         )}
                         
-                        {conversationState.currentStep === 'final_approval' && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                // Generate final scene description and close dialog
-                                const finalScene = `${conversationState.collectedInfo.setting || ''} ${conversationState.collectedInfo.activity || ''} ${conversationState.collectedInfo.people || ''} ${conversationState.collectedInfo.extraDetail || ''}`.trim();
-                                onSuggestionSelect(finalScene);
-                                setIsOpen(false);
-                              }}
-                              className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 font-medium"
-                            >
-                              Sounds great, let's go!
-                            </Button>
-                          </>
-                        )}
-                      </div>
+                        </div>
+                      )}
+                      
+                      {/* Final approval button - shown separately */}
+                      {conversationState.currentStep === 'final_approval' && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              // Generate final scene description and close dialog
+                              const finalScene = `${conversationState.collectedInfo.setting || ''} ${conversationState.collectedInfo.activity || ''} ${conversationState.collectedInfo.people || ''} ${conversationState.collectedInfo.extraDetail || ''}`.trim();
+                              onSuggestionSelect(finalScene);
+                              setIsOpen(false);
+                            }}
+                            className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 font-medium"
+                          >
+                            Sounds great, let's go!
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

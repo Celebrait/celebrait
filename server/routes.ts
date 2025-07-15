@@ -546,6 +546,14 @@ Remember: You're helping them discover their perfect artistic vision through gui
           { role: "user", content: userInput || "Can you help me with more ideas?" }
         ];
       }
+      
+      // Special handling for final approval step - ensure no numbered options
+      if (conversationStep === 'final_approval') {
+        messages.push({
+          role: "system",
+          content: "CRITICAL: This is the final approval step. Do NOT provide any numbered options (1., 2., 3., etc.) in your response. Simply provide a summary of the scene and end with the instruction about clicking 'Sounds great, let's go!' to continue to art style selection. No numbered suggestions should appear in this step."
+        });
+      }
 
       console.log('AI Brainstorm request:', { type, recipientName, celebration, userInput, hasHistory: !!conversationHistory });
 
