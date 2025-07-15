@@ -513,6 +513,22 @@ Current step: ${conversationStep || 'setting'}`;
             Never ask questions without providing these 3 numbered options. ${refinementInstruction}`
           });
         }
+
+        // Add specific instruction for activity step
+        if (conversationStep === 'activity' && userInput && !userInput.includes('Give me more')) {
+          messages.push({
+            role: "system", 
+            content: "Remember: For the ACTIVITY step, always provide exactly 3 numbered options for what the person should be doing. Format them as: 1. First action, 2. Second action, 3. Third action. CRITICAL: Always provide exactly 3 numbered options when answering activity questions."
+          });
+        }
+
+        // Add specific instruction for more ideas requests
+        if (userInput && userInput.includes('Give me more')) {
+          messages.push({
+            role: "system", 
+            content: "The user is asking for more ideas. Provide exactly 3 new numbered options relevant to the current conversation step. Always provide exactly 3 numbered options formatted as: 1. First option, 2. Second option, 3. Third option."
+          });
+        }
       } else if (type === "art_style") {
         systemPrompt = `You are a professional creative assistant helping users choose art styles for personalized greeting cards. You should:
 

@@ -457,7 +457,7 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                                 // Auto-send the message immediately
                                 const userMessage: ChatMessage = {
                                   role: "user",
-                                  content: "Give me more location ideas",
+                                  content: "Give me more ideas",
                                   timestamp: new Date()
                                 };
                                 setMessages(prev => [...prev, userMessage]);
@@ -474,7 +474,7 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                                     const response = await apiRequest("POST", "/api/ai-brainstorm", {
                                       type,
                                       context: `Current input: "${currentInput}"`,
-                                      userInput: "Give me more location ideas",
+                                      userInput: "Give me more ideas",
                                       recipientName,
                                       celebration,
                                       conversationStep: conversationState.currentStep,
@@ -664,7 +664,7 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setUserInput("Give me more activity ideas");
+                                setUserInput("Give me more ideas");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
                               className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
@@ -692,7 +692,7 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setUserInput("Give me more people ideas");
+                                setUserInput("Give me more ideas");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
                               className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
@@ -720,7 +720,7 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setUserInput("Give me more extra detail ideas");
+                                setUserInput("Give me more ideas");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
                               className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
