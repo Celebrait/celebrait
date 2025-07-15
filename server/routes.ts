@@ -444,22 +444,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { type, context, userInput, recipientName, celebration, conversationHistory, conversationStep, settingRefinements, photoContext } = req.body;
 
+      // Define isMultiplePeople at the top level to be available throughout the function
+      const isMultiplePeople = photoContext && (
+        photoContext.toLowerCase().includes('multiple photos') ||
+        photoContext.toLowerCase().includes('two photos') ||
+        photoContext.toLowerCase().includes('multiple people') ||
+        photoContext.toLowerCase().includes('different people') ||
+        photoContext.toLowerCase().includes('various shots') ||
+        photoContext.toLowerCase().includes('several') ||
+        photoContext.toLowerCase().includes('different angles') ||
+        photoContext.toLowerCase().includes('group shot') ||
+        photoContext.toLowerCase().includes('people detected')
+      );
+
       let systemPrompt = "";
       let messages = [];
 
       if (type === "scene") {
-        // Define isMultiplePeople first before using it in systemPrompt
-        const isMultiplePeople = photoContext && (
-          photoContext.toLowerCase().includes('multiple photos') ||
-          photoContext.toLowerCase().includes('two photos') ||
-          photoContext.toLowerCase().includes('multiple people') ||
-          photoContext.toLowerCase().includes('different people') ||
-          photoContext.toLowerCase().includes('various shots') ||
-          photoContext.toLowerCase().includes('several') ||
-          photoContext.toLowerCase().includes('different angles') ||
-          photoContext.toLowerCase().includes('group shot') ||
-          photoContext.toLowerCase().includes('people detected')
-        );
         
         systemPrompt = `You are a professional creative assistant helping users create detailed scene descriptions for greeting cards. Guide them through a structured conversation flow with focused questions.
 
