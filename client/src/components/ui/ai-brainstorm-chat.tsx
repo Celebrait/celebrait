@@ -20,6 +20,7 @@ interface AIBrainstormChatProps {
 
 interface ConversationState {
   currentStep: 'setting' | 'activity' | 'people' | 'extra_detail' | 'final_approval';
+  settingRefinements: number; // Track number of location refinement questions asked
   collectedInfo: {
     setting?: string;
     activity?: string;
@@ -50,6 +51,7 @@ export function AIBrainstormChat({
   const [isLoading, setIsLoading] = useState(false);
   const [conversationState, setConversationState] = useState<ConversationState>({
     currentStep: 'setting',
+    settingRefinements: 0,
     collectedInfo: {}
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -121,6 +123,7 @@ export function AIBrainstormChat({
         recipientName,
         celebration,
         conversationStep: conversationState.currentStep,
+        settingRefinements: conversationState.settingRefinements,
         conversationHistory: conversationHistory.slice(0, -1) // Exclude the current message
       });
 
@@ -150,8 +153,14 @@ export function AIBrainstormChat({
         switch (prev.currentStep) {
           case 'setting':
             if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
+              // Update setting info and track refinement count
               newState.collectedInfo.setting = userInput;
-              newState.currentStep = 'activity';
+              newState.settingRefinements = prev.settingRefinements + 1;
+              
+              // Only advance to activity after 2 refinement questions
+              if (prev.settingRefinements >= 2) {
+                newState.currentStep = 'activity';
+              }
             }
             break;
           case 'activity':
@@ -242,8 +251,8 @@ Where should we place ${recipientName} in this scene? Think about the setting or
       }
     }
     
-    // Remove duplicates and return up to 4 suggestions
-    return [...new Set(suggestions)].slice(0, 4);
+    // Remove duplicates and return up to 3 suggestions
+    return [...new Set(suggestions)].slice(0, 3);
   };
 
   return (
@@ -363,6 +372,7 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                                       recipientName,
                                       celebration,
                                       conversationStep: conversationState.currentStep,
+                                      settingRefinements: conversationState.settingRefinements,
                                       conversationHistory: conversationHistory.slice(0, -1)
                                     });
 
@@ -385,7 +395,12 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                                         switch (prev.currentStep) {
                                           case 'setting':
                                             newState.collectedInfo.setting = suggestion;
-                                            newState.currentStep = 'activity';
+                                            newState.settingRefinements = prev.settingRefinements + 1;
+                                            
+                                            // Only advance to activity after 2 refinement questions
+                                            if (prev.settingRefinements >= 2) {
+                                              newState.currentStep = 'activity';
+                                            }
                                             break;
                                           case 'activity':
                                             newState.collectedInfo.activity = suggestion;
@@ -462,30 +477,17 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                         )}
                         
                         {conversationState.currentStep === 'people' && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setUserInput("Give me ideas for how people should look");
-                                setTimeout(() => handleSendMessage(), 100);
-                              }}
-                              className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
-                            >
-                              Get Ideas
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setUserInput("Give me more people ideas");
-                                setTimeout(() => handleSendMessage(), 100);
-                              }}
-                              className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
-                            >
-                              More Ideas
-                            </Button>
-                          </>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setUserInput("Give me more people ideas");
+                              setTimeout(() => handleSendMessage(), 100);
+                            }}
+                            className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                          >
+                            More Ideas
+                          </Button>
                         )}
                         
                         {conversationState.currentStep === 'extra_detail' && (

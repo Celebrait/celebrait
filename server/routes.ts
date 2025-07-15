@@ -442,7 +442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(503).json({ message: "OpenAI API is not configured" });
       }
 
-      const { type, context, userInput, recipientName, celebration, conversationHistory, conversationStep } = req.body;
+      const { type, context, userInput, recipientName, celebration, conversationHistory, conversationStep, settingRefinements } = req.body;
 
       let systemPrompt = "";
       let messages = [];
@@ -460,7 +460,7 @@ CONVERSATION FLOW (follow this order):
 INSTRUCTIONS:
 - Ask ONE focused question at a time
 - Build on previous responses naturally
-- For SETTING step: After user provides initial response, provide exactly 3 simple location-based options ONLY. Focus purely on WHERE, not what they're doing. Examples: "Beach in Tenerife", "Mountain trail in Tenerife", "Village square in Tenerife" - NO activities or actions
+- For SETTING step: After user provides initial response, provide exactly 3 simple location-based options ONLY. Focus purely on WHERE, not what they're doing. Examples: "Beach in Tenerife", "Mountain trail in Tenerife", "Village square in Tenerife" - NO activities or actions. Always remind user they can type their own response or choose from options. After they respond, ask one follow-up question about location specifics, then ask one more follow-up question to fully refine the location before moving to activity step.
 - For ACTIVITY steps: After user provides initial response, ask if they want anything more specific about that element and provide 3-4 relevant suggestions
 - For PEOPLE step: Provide immediate suggestions without requiring initial user input, based on location and activity already defined
 - For EXTRA DETAIL step: Allow user to get suggestions immediately or skip the step entirely
@@ -480,9 +480,19 @@ Current step: ${conversationStep || 'setting'}`;
         
         // Add specific instruction for location step
         if (conversationStep === 'setting' && userInput && !userInput.includes('Give me more')) {
+          let refinementInstruction = "";
+          
+          if (settingRefinements === 0) {
+            refinementInstruction = "This is the initial location input. Provide 3 simple location variations and ask the first follow-up question for more specifics.";
+          } else if (settingRefinements === 1) {
+            refinementInstruction = "This is the first refinement. Ask one more follow-up question to fully refine the location before moving to activity step.";
+          } else if (settingRefinements >= 2) {
+            refinementInstruction = "This is the final location refinement. After this response, move to the activity step.";
+          }
+          
           messages.push({
             role: "system", 
-            content: "Remember: For the SETTING step, only provide 3 simple location variations. Do not include activities, actions, or what people are doing. Focus ONLY on WHERE the scene takes place."
+            content: `Remember: For the SETTING step, only provide 3 simple location variations. Do not include activities, actions, or what people are doing. Focus ONLY on WHERE the scene takes place. Always mention that the user can type their own response OR choose from the options. ${refinementInstruction}`
           });
         }
       } else if (type === "art_style") {

@@ -142,6 +142,9 @@ Changelog:
   * IMPROVED STEP LOGIC: Enhanced step progression to handle "more ideas" requests without advancing steps
   * LOCATION STEP FOCUS: AI now provides exactly 3 simple location options only - no activities or context, just WHERE the scene takes place
   * AUTO-SEND OPTION BUTTONS: "Choose Option" buttons now immediately send selection and continue chat flow automatically
+  * LOCATION REFINEMENT SYSTEM: Implemented two follow-up questions for location refinement before advancing to activity step
+  * OPTION LIMIT ENFORCEMENT: Limited suggestions to exactly 3 options and removed duplicate buttons for cleaner interface
+  * TYPING REMINDER: AI now reminds users they can type their own response or choose from provided options
   * ACCESSIBILITY COMPLIANCE: DialogDescription already present to meet accessibility requirements
 - July 15, 2025. ENHANCED AI BRAINSTORMING WITH TYPING ANIMATIONS: Elevated AI chat system to ChatGPT-level responsiveness with guided conversation flow:
   * TYPING ANIMATIONS: Added real-time typing animations like ChatGPT that display AI responses character-by-character at 20ms speed
