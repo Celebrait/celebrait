@@ -979,15 +979,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const detectPhotoContext = (photoDataArray: string[]): string => {
     const photoCount = photoDataArray.length;
     
+    let context = "";
     if (photoCount === 1) {
-      return "Single photo uploaded - likely contains one person or a small group";
+      context = "Single photo uploaded - single person focus";
     } else if (photoCount === 2) {
-      return "Two photos uploaded - likely different people or multiple angles of same person";
+      context = "Two photos uploaded - multiple people or different angles";
     } else if (photoCount >= 3) {
-      return "Multiple photos uploaded - likely different people or various group shots";
+      context = "Multiple photos uploaded - multiple people or various shots";
+    } else {
+      context = "Photo context unclear";
     }
     
-    return "Photo context unclear";
+    console.log(`Photo context detection: ${photoCount} photos -> "${context}"`);
+    return context;
   };
 
   const handlePhotoUploadClick = () => {

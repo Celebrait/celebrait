@@ -476,12 +476,13 @@ INSTRUCTIONS:
 Current step: ${conversationStep || 'setting'}`;
         
         const isMultiplePeople = photoContext && (
-          photoContext.toLowerCase().includes('group') ||
-          photoContext.toLowerCase().includes('multiple') ||
-          photoContext.toLowerCase().includes('people') ||
-          photoContext.toLowerCase().includes('3 people') ||
-          photoContext.toLowerCase().includes('two people') ||
-          photoContext.toLowerCase().includes('several')
+          photoContext.toLowerCase().includes('multiple photos') ||
+          photoContext.toLowerCase().includes('two photos') ||
+          photoContext.toLowerCase().includes('multiple people') ||
+          photoContext.toLowerCase().includes('different people') ||
+          photoContext.toLowerCase().includes('various shots') ||
+          photoContext.toLowerCase().includes('several') ||
+          photoContext.toLowerCase().includes('different angles')
         );
 
         const contextualMessage = photoContext ? 
