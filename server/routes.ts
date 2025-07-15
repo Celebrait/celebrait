@@ -453,16 +453,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 CONVERSATION FLOW (follow this order):
 1. SETTING - Where should the person/people be placed? (location, environment, background)
 2. ACTIVITY - What should they be doing in this setting? (actions, poses, expressions)
-3. PERSON DETAILS - What should they be wearing? How should they look? (clothing, style, mood)
-4. UNIQUE ELEMENTS - What special details would make this scene meaningful? (objects, symbols, atmosphere)
-5. ART STYLE - What artistic style should we use? (watercolor, oil painting, digital art, etc.)
-6. FINAL APPROVAL - Present complete scene description for user approval
+3. PEOPLE - What should they be wearing? How should they look? (clothing, style, mood)
+4. EXTRA DETAIL - What special details would make this scene meaningful? (objects, symbols, atmosphere)
+5. FINAL APPROVAL - Present complete scene description for user approval
 
 INSTRUCTIONS:
 - Ask ONE focused question at a time
 - Build on previous responses naturally
-- Only provide specific suggestions after gathering context about their preferences
-- Use their input to guide the next logical step
+- For SETTING and ACTIVITY steps: After user provides initial response, ask if they want anything specific about that element and provide 3-4 relevant suggestions
+- For PEOPLE step: Provide immediate suggestions without requiring initial user input, based on location and activity already defined
+- For EXTRA DETAIL step: Allow user to get suggestions immediately or skip the step entirely
 - Keep responses professional but encouraging
 - When they answer, acknowledge their input and smoothly transition to the next step
 - Only move to the next step after they've given input for the current step
@@ -473,7 +473,7 @@ Current step: ${conversationStep || 'setting'}`;
         
         messages = [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `I'm creating a ${celebration} greeting card for ${recipientName}. I just uploaded photo(s) in the previous step. Now I need help creating the perfect scene description. ${userInput || "I need help with the scene description."}` }
+          { role: "user", content: `I'm creating a ${celebration} greeting card for ${recipientName}. I just uploaded photo(s) in the previous step. Now I need help creating the perfect scene description. Current step: ${conversationStep || 'setting'}. ${userInput || "I need help with the scene description."}` }
         ];
       } else if (type === "art_style") {
         systemPrompt = `You are a professional creative assistant helping users choose art styles for personalized greeting cards. You should:

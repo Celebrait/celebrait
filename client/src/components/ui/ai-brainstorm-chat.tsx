@@ -19,13 +19,12 @@ interface AIBrainstormChatProps {
 }
 
 interface ConversationState {
-  currentStep: 'setting' | 'activity' | 'person_details' | 'unique_elements' | 'art_style' | 'final_approval';
+  currentStep: 'setting' | 'activity' | 'people' | 'extra_detail' | 'final_approval';
   collectedInfo: {
     setting?: string;
     activity?: string;
-    personDetails?: string;
-    uniqueElements?: string;
-    artStyle?: string;
+    people?: string;
+    extraDetail?: string;
   };
 }
 
@@ -150,24 +149,24 @@ export function AIBrainstormChat({
             break;
           case 'activity':
             newState.collectedInfo.activity = userInput;
-            newState.currentStep = 'person_details';
+            newState.currentStep = 'people';
             break;
-          case 'person_details':
-            newState.collectedInfo.personDetails = userInput;
-            newState.currentStep = 'unique_elements';
+          case 'people':
+            newState.collectedInfo.people = userInput;
+            newState.currentStep = 'extra_detail';
             break;
-          case 'unique_elements':
-            newState.collectedInfo.uniqueElements = userInput;
-            newState.currentStep = 'art_style';
-            break;
-          case 'art_style':
-            newState.collectedInfo.artStyle = userInput;
-            newState.currentStep = 'final_approval';
+          case 'extra_detail':
+            if (userInput.toLowerCase().includes('skip')) {
+              newState.currentStep = 'final_approval';
+            } else {
+              newState.collectedInfo.extraDetail = userInput;
+              newState.currentStep = 'final_approval';
+            }
             break;
           case 'final_approval':
             // If user approves, generate final scene description and auto-submit
             if (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('approve') || userInput.toLowerCase().includes('perfect')) {
-              const finalScene = `${newState.collectedInfo.setting || ''} ${newState.collectedInfo.activity || ''} ${newState.collectedInfo.personDetails || ''} ${newState.collectedInfo.uniqueElements || ''} ${newState.collectedInfo.artStyle || ''}`.trim();
+              const finalScene = `${newState.collectedInfo.setting || ''} ${newState.collectedInfo.activity || ''} ${newState.collectedInfo.people || ''} ${newState.collectedInfo.extraDetail || ''}`.trim();
               setTimeout(() => {
                 onSuggestionSelect(finalScene);
                 setIsOpen(false);
@@ -259,12 +258,12 @@ Where should we place ${recipientName} in this scene? Think about the setting or
           {type === "scene" && (
             <div className="flex items-center gap-2 mt-2">
               <div className="flex items-center gap-1 text-sm text-gray-600">
-                {(['setting', 'activity', 'person_details', 'unique_elements', 'art_style', 'final_approval'] as const).map((step, index) => (
+                {(['setting', 'activity', 'people', 'extra_detail', 'final_approval'] as const).map((step, index) => (
                   <div key={step} className="flex items-center gap-1">
                     <div className={`w-2 h-2 rounded-full ${
                       conversationState.currentStep === step 
                         ? 'bg-purple-500' 
-                        : index < (['setting', 'activity', 'person_details', 'unique_elements', 'art_style', 'final_approval'] as const).indexOf(conversationState.currentStep)
+                        : index < (['setting', 'activity', 'people', 'extra_detail', 'final_approval'] as const).indexOf(conversationState.currentStep)
                         ? 'bg-green-500' 
                         : 'bg-gray-300'
                     }`} />
@@ -273,12 +272,11 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                     }`}>
                       {step === 'setting' && 'Location'}
                       {step === 'activity' && 'Activity'}
-                      {step === 'person_details' && 'Details'}
-                      {step === 'unique_elements' && 'Special'}
-                      {step === 'art_style' && 'Style'}
+                      {step === 'people' && 'People'}
+                      {step === 'extra_detail' && 'Extra Detail'}
                       {step === 'final_approval' && 'Approve'}
                     </span>
-                    {index < 5 && <div className="w-2 h-px bg-gray-300" />}
+                    {index < 4 && <div className="w-2 h-px bg-gray-300" />}
                   </div>
                 ))}
               </div>
@@ -344,6 +342,73 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                           ))}
                         </div>
                       )}
+                      
+                      {/* Step-specific action buttons */}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {conversationState.currentStep === 'setting' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setUserInput("Give me more location ideas")}
+                            className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                          >
+                            More Location Ideas
+                          </Button>
+                        )}
+                        
+                        {conversationState.currentStep === 'activity' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setUserInput("Give me more activity ideas")}
+                            className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                          >
+                            More Activity Ideas
+                          </Button>
+                        )}
+                        
+                        {conversationState.currentStep === 'people' && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setUserInput("Give me ideas for how people should look")}
+                              className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                            >
+                              Get Ideas
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setUserInput("Give me more people ideas")}
+                              className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                            >
+                              More Ideas
+                            </Button>
+                          </>
+                        )}
+                        
+                        {conversationState.currentStep === 'extra_detail' && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setUserInput("Give me more extra detail ideas")}
+                              className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                            >
+                              More Ideas
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setUserInput("Skip this step")}
+                              className="text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                            >
+                              Skip Step
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

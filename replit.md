@@ -120,14 +120,21 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 15, 2025. REFINED AI BRAINSTORMING UX: Improved chat interface with consistent sizing, balanced typing speed, and professional tone:
+- July 15, 2025. ENHANCED AI CONVERSATION FLOW: Updated conversation steps and interaction patterns based on user requirements:
+  * REFINED CONVERSATION STEPS: Updated from 6 steps to 5 steps - removed art style step to focus on separate onboarding journey
+  * LOCATION STEP: After initial user input, AI asks for specifics and provides location-related suggestions with "More Location Ideas" button
+  * ACTIVITY STEP: After initial user input, AI asks for specifics and provides activity-related suggestions with "More Activity Ideas" button
+  * PEOPLE STEP: Renamed from "Details" - allows immediate suggestions without requiring initial input, includes "Get Ideas" and "More Ideas" buttons
+  * EXTRA DETAIL STEP: Renamed from "Special" - allows immediate suggestions or skip functionality with "More Ideas" and "Skip Step" buttons
+  * STEP PROGRESSION: Updated conversation state management to handle new step names and flow logic
+  * SKIP FUNCTIONALITY: Added ability to skip Extra Detail step entirely if user chooses
   * CONSISTENT WINDOW SIZE: Fixed chat window to maintain same large size (max-w-4xl, 90vh height, 95vw width) from opening interaction
   * OPTIMAL TYPING SPEED: Adjusted typing speed to 15ms per character for balanced readability and responsiveness
   * PROFESSIONAL OPENING MESSAGE: Updated to direct, helpful greeting asking specifically about setting/location for the scene
   * REMOVED EXTRA BUTTONS: Eliminated "More Options", "Be More Specific", "Perfect!" buttons from opening interaction for cleaner UX
   * TONED DOWN PLAYFULNESS: Made AI responses more professional and serious while maintaining engagement
   * USER-FIRST APPROACH: Allow users to type initial response freely without AI suggestions until more context is gathered
-  * IMPROVED SERVER PROMPTS: Updated system prompts to be more professional and avoid suggestions until user provides context
+  * IMPROVED SERVER PROMPTS: Updated system prompts to handle new conversation flow and step-specific behaviors
   * ACCESSIBILITY COMPLIANCE: DialogDescription already present to meet accessibility requirements
 - July 15, 2025. ENHANCED AI BRAINSTORMING WITH TYPING ANIMATIONS: Elevated AI chat system to ChatGPT-level responsiveness with guided conversation flow:
   * TYPING ANIMATIONS: Added real-time typing animations like ChatGPT that display AI responses character-by-character at 20ms speed
