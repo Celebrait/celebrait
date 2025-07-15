@@ -563,8 +563,12 @@ Current step: ${conversationStep || 'setting'}`;
             'No specific photo context - use general language for person/people clothing suggestions.';
           
           const peopleLanguage = isMultiplePeople ? 
-            "clothing suggestions for everyone" : 
+            "group clothing coordination suggestions" : 
             `clothing suggestions for ${recipientName}`;
+          
+          const groupClothingGuidance = isMultiplePeople ? 
+            `For GROUP CLOTHING: Suggest coordinated group-level styling based on the scene location and celebration type. Focus on overall aesthetic and coordination rather than individual person details. Examples: "Coordinated formal wear in navy and gold tones", "Casual beach attire with complementary colors", "Festive party outfits with birthday theme". Make it clear users can specify the GENERAL LOOK of the group but not individual clothing details.` :
+            `For INDIVIDUAL CLOTHING: Suggest specific clothing options that match the scene and celebration.`;
           
           messages.push({
             role: "system", 
@@ -575,7 +579,7 @@ Current step: ${conversationStep || 'setting'}`;
             
             DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond in the people step.
             
-            For the PEOPLE step, you MUST remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This must be mentioned prominently in every people step response. Say something like: 'Remember, you can skip this question to let me choose clothing that perfectly matches the scene!' Also always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options for ${peopleLanguage}. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response. ${photoContextInstruction}`
+            For the PEOPLE step, you MUST remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This must be mentioned prominently in every people step response. Say something like: 'Remember, you can skip this question to let me choose clothing that perfectly matches the scene!' Also always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options for ${peopleLanguage}. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response. ${groupClothingGuidance} ${photoContextInstruction}`
           });
         }
 
