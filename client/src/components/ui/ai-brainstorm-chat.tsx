@@ -177,13 +177,17 @@ export function AIBrainstormChat({
             }
             break;
           case 'people':
-            if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
+            if (userInput.toLowerCase().includes('skip')) {
+              // Don't store skip command, just advance to extra_detail
+              newState.currentStep = 'extra_detail';
+            } else if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               newState.collectedInfo.people = userInput;
               newState.currentStep = 'extra_detail';
             }
             break;
           case 'extra_detail':
             if (userInput.toLowerCase().includes('skip')) {
+              // Don't store skip command, just advance to final approval
               newState.currentStep = 'final_approval';
             } else if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               newState.collectedInfo.extraDetail = userInput;
@@ -193,7 +197,12 @@ export function AIBrainstormChat({
           case 'final_approval':
             // If user approves, generate final scene description and auto-submit
             if (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('approve') || userInput.toLowerCase().includes('perfect')) {
-              const finalScene = `${newState.collectedInfo.setting || ''} ${newState.collectedInfo.activity || ''} ${newState.collectedInfo.people || ''} ${newState.collectedInfo.extraDetail || ''}`.trim();
+              const setting = newState.collectedInfo.setting || '';
+              const activity = newState.collectedInfo.activity || '';
+              const people = newState.collectedInfo.people?.includes('Skip') ? '' : newState.collectedInfo.people || '';
+              const extraDetail = newState.collectedInfo.extraDetail?.includes('Skip') ? '' : newState.collectedInfo.extraDetail || '';
+              
+              const finalScene = `${setting} ${activity} ${people} ${extraDetail}`.trim();
               setTimeout(() => {
                 onSuggestionSelect(finalScene);
                 setIsOpen(false);
@@ -420,11 +429,17 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                                             newState.currentStep = 'people';
                                             break;
                                           case 'people':
-                                            newState.collectedInfo.people = suggestion;
-                                            newState.currentStep = 'extra_detail';
+                                            if (suggestion.toLowerCase().includes('skip')) {
+                                              // Don't store skip command, just advance to extra_detail
+                                              newState.currentStep = 'extra_detail';
+                                            } else {
+                                              newState.collectedInfo.people = suggestion;
+                                              newState.currentStep = 'extra_detail';
+                                            }
                                             break;
                                           case 'extra_detail':
                                             if (suggestion.toLowerCase().includes('skip')) {
+                                              // Don't store skip command, just advance to final approval
                                               newState.currentStep = 'final_approval';
                                             } else {
                                               newState.collectedInfo.extraDetail = suggestion;
@@ -778,8 +793,13 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                              // Generate final scene description and close dialog
-                              const finalScene = `${conversationState.collectedInfo.setting || ''} ${conversationState.collectedInfo.activity || ''} ${conversationState.collectedInfo.people || ''} ${conversationState.collectedInfo.extraDetail || ''}`.trim();
+                              // Generate final scene description and close dialog, filtering out skip commands
+                              const setting = conversationState.collectedInfo.setting || '';
+                              const activity = conversationState.collectedInfo.activity || '';
+                              const people = conversationState.collectedInfo.people?.includes('Skip') ? '' : conversationState.collectedInfo.people || '';
+                              const extraDetail = conversationState.collectedInfo.extraDetail?.includes('Skip') ? '' : conversationState.collectedInfo.extraDetail || '';
+                              
+                              const finalScene = `${setting} ${activity} ${people} ${extraDetail}`.trim();
                               onSuggestionSelect(finalScene);
                               setIsOpen(false);
                             }}
