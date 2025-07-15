@@ -464,6 +464,13 @@ INSTRUCTIONS:
 - For ACTIVITY steps: After user provides initial response, ask if they want anything more specific about that element and provide exactly 3 relevant suggestions. CRITICAL: Always provide exactly 3 numbered options in activity suggestions.
 - For PEOPLE step: Provide immediate suggestions without requiring initial user input, based on location and activity already defined. Always inform users they can skip this question to let AI choose appropriate clothing that matches the scene. CRITICAL: Always provide exactly 3 numbered options in people suggestions.
 - For EXTRA DETAIL step: Allow user to get suggestions immediately or skip the step entirely. CRITICAL: Always provide exactly 3 numbered options in extra detail suggestions.
+
+ABSOLUTE REQUIREMENT: EVERY response must include exactly 3 numbered options in this format:
+1. First specific option
+2. Second specific option  
+3. Third specific option
+
+NEVER provide fewer than 3 options. NEVER provide more than 3 options. This is mandatory for ALL responses except final approval.
 - For FINAL APPROVAL step: Summarize the complete scene and tell user they can add more details if they like below. End by stating "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection." Do NOT provide numbered options in this step.
 - Keep responses professional but encouraging
 - When they answer, acknowledge their input and ask if there's anything more they'd like to focus on before moving to next step
@@ -496,21 +503,24 @@ Current step: ${conversationStep || 'setting'}`;
             if (userInput.toLowerCase().includes('creating') || userInput.toLowerCase().includes('doing') || userInput.toLowerCase().includes('making') || userInput.toLowerCase().includes('working') || userInput.toLowerCase().includes('party') || userInput.toLowerCase().includes('event')) {
               refinementInstruction = "The user has described an activity rather than a location. Acknowledge this and ask specifically WHERE this activity would take place. For example: 'I see you're creating a balloon arch at a client's party - that sounds wonderful! Where would this party be taking place?' Then provide 3 simple location options where this activity could happen.";
             } else {
-              refinementInstruction = "This is the initial location input. Provide 3 simple location variations and ask the first follow-up question with exactly 3 specific options for more specifics.";
+              refinementInstruction = "This is the initial location input. Provide 3 simple location variations and ask the first follow-up question with exactly 3 specific options for more specifics. CRITICAL: You must include exactly 3 numbered options in your response.";
             }
           } else if (settingRefinements === 1) {
-            refinementInstruction = "This is the first refinement. Ask one more follow-up question with exactly 3 specific options to fully refine the location before moving to activity step.";
+            refinementInstruction = "This is the first refinement. Ask one more follow-up question with exactly 3 specific options to fully refine the location before moving to activity step. CRITICAL: You must include exactly 3 numbered options in your response.";
           } else if (settingRefinements >= 2) {
-            refinementInstruction = "This is the final location refinement. After this response, move to the activity step.";
+            refinementInstruction = "This is the final location refinement. After this response, move to the activity step. CRITICAL: You must include exactly 3 numbered options in your response.";
           }
           
           messages.push({
             role: "system", 
-            content: `Remember: For the SETTING step, only provide 3 simple location variations. Do not include activities, actions, or what people are doing. Focus ONLY on WHERE the scene takes place. Always mention that the user can type their own response OR choose from the options. CRITICAL: When asking follow-up questions, you MUST provide exactly 3 numbered options in this format:
+            content: `CRITICAL REQUIREMENT: You MUST ALWAYS provide exactly 3 numbered options in this format:
             1. First specific option
             2. Second specific option  
             3. Third specific option
-            Never ask questions without providing these 3 numbered options. ${refinementInstruction}`
+            
+            NEVER ask questions without providing these 3 numbered options. This is mandatory for ALL responses.
+            
+            For the SETTING step, only provide 3 simple location variations. Do not include activities, actions, or what people are doing. Focus ONLY on WHERE the scene takes place. Always mention that the user can type their own response OR choose from the options. ${refinementInstruction}`
           });
         }
       } else if (type === "art_style") {
