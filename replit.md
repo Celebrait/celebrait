@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 15, 2025. DYNAMIC AI INITIAL MESSAGING: Enhanced AI conversation to dynamically acknowledge single person vs multiple people scenarios:
+  * DYNAMIC INITIAL MESSAGE: AI greeting now adapts based on photo context - acknowledges "multiple people" for group shots and focuses on recipient name for single person photos
+  * CONTEXTUAL ACKNOWLEDGMENT: AI explicitly states "I can see from your uploaded photos that we're working with multiple people" or "I can see from your uploaded photo that we're focusing on [name]"
+  * IMPROVED SERVER PROMPTS: Enhanced server-side system prompts to better handle contextual messaging based on photo scenarios
+  * COMPREHENSIVE PHOTO CONTEXT: All AIBrainstormChat instances now receive photoContext parameter for consistent adaptation
+  * INTELLIGENT LANGUAGE ADAPTATION: AI uses "everyone" vs recipient name based on photo context analysis for more natural conversation flow
 - July 15, 2025. PHOTO CONTEXT AWARENESS ENHANCEMENT: Complete integration of photo context awareness into AI conversation chatbot:
   * PHOTO CONTEXT INTEGRATION: AI chatbot now receives photo context from uploaded images for personalized conversation guidance
   * INTELLIGENT CONVERSATION ADAPTATION: AI adapts conversation based on photo scenarios (single person, group shot, multiple people) for more relevant suggestions

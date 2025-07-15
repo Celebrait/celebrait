@@ -475,9 +475,25 @@ INSTRUCTIONS:
 
 Current step: ${conversationStep || 'setting'}`;
         
+        const isMultiplePeople = photoContext && (
+          photoContext.toLowerCase().includes('group') ||
+          photoContext.toLowerCase().includes('multiple') ||
+          photoContext.toLowerCase().includes('people') ||
+          photoContext.toLowerCase().includes('3 people') ||
+          photoContext.toLowerCase().includes('two people') ||
+          photoContext.toLowerCase().includes('several')
+        );
+
+        const contextualMessage = photoContext ? 
+          (isMultiplePeople ? 
+            `I'm creating a ${celebration} greeting card for ${recipientName}. I uploaded multiple photos with several people in the previous step. Now I need help creating the perfect scene description that works for multiple people. Current step: ${conversationStep || 'setting'}. ${userInput || "I need help with the scene description."}` :
+            `I'm creating a ${celebration} greeting card for ${recipientName}. I uploaded a photo of ${recipientName} in the previous step. Now I need help creating the perfect scene description. Current step: ${conversationStep || 'setting'}. ${userInput || "I need help with the scene description."}`
+          ) : 
+          `I'm creating a ${celebration} greeting card for ${recipientName}. I just uploaded photo(s) in the previous step. Now I need help creating the perfect scene description. Current step: ${conversationStep || 'setting'}. ${userInput || "I need help with the scene description."}`;
+
         messages = [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `I'm creating a ${celebration} greeting card for ${recipientName}. I just uploaded photo(s) in the previous step. Now I need help creating the perfect scene description. Current step: ${conversationStep || 'setting'}. ${userInput || "I need help with the scene description."}` }
+          { role: "user", content: contextualMessage }
         ];
         
         // Add specific instruction for location step

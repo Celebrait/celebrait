@@ -221,13 +221,30 @@ export function AIBrainstormChat({
   };
 
   const getInitialMessage = () => {
+    // Analyze photo context to determine if we're dealing with single person or multiple people
+    const isMultiplePeople = photoContext && (
+      photoContext.toLowerCase().includes('group') ||
+      photoContext.toLowerCase().includes('multiple') ||
+      photoContext.toLowerCase().includes('people') ||
+      photoContext.toLowerCase().includes('3 people') ||
+      photoContext.toLowerCase().includes('two people') ||
+      photoContext.toLowerCase().includes('several')
+    );
+    
+    const personReference = isMultiplePeople ? 'everyone' : recipientName;
+    const contextAcknowledgment = photoContext ? 
+      (isMultiplePeople ? 
+        `I can see from your uploaded photos that we're working with multiple people in this scene. ` :
+        `I can see from your uploaded photo that we're focusing on ${recipientName} for this scene. `
+      ) : '';
+    
     return `Hello! I'm here to help you create a detailed scene description for your card.
 
-The more specific and vivid your description, the better your final card will be.
+${contextAcknowledgment}The more specific and vivid your description, the better your final card will be.
 
 I'll guide you through this step by step, starting with the most important question:
 
-Where should we place ${recipientName} in this scene? Think about the setting or location that would be most meaningful for this ${celebration}.`;
+Where should we place ${personReference} in this scene? Think about the setting or location that would be most meaningful for this ${celebration}.`;
   };
 
   const extractSuggestions = (content: string) => {
