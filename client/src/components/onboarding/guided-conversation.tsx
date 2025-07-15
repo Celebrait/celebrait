@@ -101,7 +101,7 @@ interface ConversationStep {
   id: string;
   question: string;
   aiMessage: string | JSX.Element;
-  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload' | 'photo_creation_choice' | 'people_details' | 'email_collection' | 'generation_confirmation' | 'art_style_grid';
+  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload' | 'photo_creation_choice' | 'people_details' | 'email_collection' | 'generation_confirmation' | 'art_style_grid' | 'ai_chat';
   options?: Array<{ value: string; label: string; description?: string; color?: string; icon?: string; details?: string; disabled?: boolean; inspiration?: string; emoji?: string }>;
   placeholder?: string;
   required?: boolean;
@@ -459,8 +459,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       question: onboarding.selectedSceneType === 'scene-only' ? 'What scene or visual should the card show?' : `Where should ${answers.name || 'they'} be and what should they be doing?`,
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
         ? `Now for the creative part! Since you want a scene-only card, describe the beautiful visual or scene you'd like me to create. Think about the mood, setting, and atmosphere that would be perfect for this ${answers.celebration} celebration.`
-        : `Now for the real magic! ✨ This is where create the scene for ${answers.name || 'their'}'s' ${answers.celebration || 'celebration'} card. Where should they be and what should they be doing?`,
-      type: 'textarea',
+        : `Perfect! I can see you've uploaded a wonderful photo of ${answers.name || 'the recipient'}. Now let's create something magical together! I'm here to help you envision the perfect scene for their ${answers.celebration || 'celebration'} card. Let's explore some creative possibilities...`,
+      type: 'ai_chat',
       placeholder: onboarding.selectedSceneType === 'scene-only' 
         ? 'e.g., a beautiful sunset over mountains with floating balloons, or a cozy fireplace with warm golden light and scattered rose petals...'
         : 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...'
@@ -2919,6 +2919,31 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         Continue
                         <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Chat - Only for scene step */}
+                {currentStep.type === 'ai_chat' && (
+                  <div className="space-y-4">
+                    <div className="flex justify-center">
+                      <AIBrainstormChat
+                        type="scene"
+                        recipientName={answers.name || 'the recipient'}
+                        celebration={answers.celebration || 'celebration'}
+                        currentInput={currentInput}
+                        onSuggestionSelect={(suggestion) => {
+                          setCurrentInput(suggestion);
+                          setStepInputs(prev => ({
+                            ...prev,
+                            [currentStep.id]: suggestion
+                          }));
+                          // Auto-submit the suggestion to proceed to next step
+                          handleTextSubmit();
+                        }}
+                        buttonText="Start Creative Conversation"
+                        buttonIcon={<Sparkles className="w-4 h-4" />}
+                      />
                     </div>
                   </div>
                 )}

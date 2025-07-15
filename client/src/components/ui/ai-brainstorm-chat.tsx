@@ -108,15 +108,17 @@ export function AIBrainstormChat({
 
   const getInitialMessage = () => {
     if (type === "scene") {
-      return `Hi! I'm here to help you brainstorm scene descriptions for ${recipientName}'s ${celebration} card. 
+      return `Hi there! ✨ Thank you for uploading those wonderful photos of ${recipientName}! 
 
-What kind of mood or setting are you imagining? For example:
-- Something cozy and intimate?
-- Outdoors and adventurous?
-- Elegant and sophisticated?
-- Fun and playful?
+I'm so excited to help you create the perfect magical scene for their ${celebration} card. Let's brainstorm something truly special together that will make ${recipientName} feel absolutely amazed when they see it.
 
-Tell me what feels right for this celebration!`;
+What kind of feeling or mood are you hoping to create? Are you thinking:
+- Something warm and cozy?
+- An adventurous outdoor scene?
+- Perhaps something elegant and sophisticated?
+- Or maybe fun and playful?
+
+What's calling to you? I'm here to help you discover the perfect vision! 💫`;
     } else {
       return `Hi! I'm here to help you choose the perfect art style for ${recipientName}'s ${celebration} card.
 

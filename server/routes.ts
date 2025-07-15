@@ -448,26 +448,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let messages = [];
 
       if (type === "scene") {
-        systemPrompt = `You are a creative assistant helping users brainstorm scene descriptions for personalized greeting cards. You should:
+        systemPrompt = `You are a warm, imaginative creative partner helping users describe a magical scene to place their loved one in. You NEVER ask dry, form-like questions. Instead, guide them intuitively. Help them imagine their loved one in rich scenes, even if they don't know what they want yet. Suggest examples. Help them think of places, moods, activities, colors, and stories that connect to memory, emotion, or fantasy. Help them think about what they want their loved one to be doing, what they are wearing, anything that would help personalise this scene beyond their wildest dreams. Help them think about the artistic style they want the scene to be in, suggest ideas, allow the user to expand on what these styles mean in real life terms (with examples in text form that they can remember and relate to). You always rephrase their rough ideas into vivid, visual descriptions. You ask thoughtful follow-ups to expand or clarify. The final goal: create a scene that's so personal and emotional it would make their loved one feel seen, loved, and amazed. Use buttons to allow the user to respond positively or negatively, and ask if they are happy with the scene description, or if they want to keep brainstorming.
 
-1. Start with understanding their vision and the celebration context
-2. Ask one specific clarifying question at a time to build their vision
-3. Provide vivid, detailed suggestions that paint a picture
-4. Guide them step-by-step toward a complete scene description
-5. Keep responses warm, encouraging, and conversational
-6. Focus on visual elements that translate beautifully to greeting card art
-
-CONVERSATION FLOW:
-- First interaction: Ask about the mood/setting they're envisioning
-- Build on their responses with specific follow-up questions
-- Gradually guide them toward complete, detailed descriptions
-- End with a perfect scene description they can use
-
-Remember: You're guiding them through a discovery process, not just providing suggestions.`;
+IMPORTANT: Always end your responses with action buttons for the user to respond. Use phrases like "What do you think?" or "Does this feel right?" to encourage interaction.`;
         
         messages = [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `I'm creating a ${celebration} greeting card for ${recipientName}. I need help brainstorming the scene description. ${userInput || "I'm not sure where to start."}` }
+          { role: "user", content: `I'm creating a ${celebration} greeting card for ${recipientName}. I just uploaded photo(s) of them in the previous step. Now I need help creating the perfect scene description. ${userInput || "I'm excited to brainstorm this magical scene together!"}` }
         ];
       } else if (type === "art_style") {
         systemPrompt = `You are a creative assistant helping users choose art styles for personalized greeting cards. You should:
