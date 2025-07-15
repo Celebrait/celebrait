@@ -511,6 +511,80 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                             >
                               Give Me More Ideas
                             </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                // Auto-send continue message
+                                const userMessage: ChatMessage = {
+                                  role: "user",
+                                  content: "Continue as we are - proceed to next step",
+                                  timestamp: new Date()
+                                };
+                                setMessages(prev => [...prev, userMessage]);
+                                setIsLoading(true);
+                                
+                                // Determine next step based on current refinements
+                                const nextStep = conversationState.settingRefinements >= 2 ? 'activity' : 'setting';
+                                const newRefinements = conversationState.settingRefinements >= 2 ? 3 : conversationState.settingRefinements + 1;
+                                
+                                // Update conversation state
+                                setConversationState(prev => ({
+                                  ...prev,
+                                  currentStep: nextStep,
+                                  settingRefinements: newRefinements
+                                }));
+                                
+                                // Send to AI immediately
+                                const sendMessage = async () => {
+                                  try {
+                                    const conversationHistory = [...messages, userMessage].map(msg => ({
+                                      role: msg.role,
+                                      content: msg.content
+                                    }));
+
+                                    const response = await apiRequest("POST", "/api/ai-brainstorm", {
+                                      type,
+                                      context: `Current input: "${currentInput}"`,
+                                      userInput: "Continue as we are - proceed to next step",
+                                      recipientName,
+                                      celebration,
+                                      conversationStep: nextStep,
+                                      settingRefinements: newRefinements,
+                                      conversationHistory: conversationHistory.slice(0, -1)
+                                    });
+
+                                    const result = await response.json();
+
+                                    const typingMessage: ChatMessage = {
+                                      role: "assistant",
+                                      content: result.response,
+                                      timestamp: new Date(),
+                                      isTyping: true
+                                    };
+
+                                    setMessages(prev => [...prev, typingMessage]);
+
+                                  } catch (error) {
+                                    console.error('Error sending message:', error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to send message. Please try again.",
+                                      variant: "destructive"
+                                    });
+                                  } finally {
+                                    setIsLoading(false);
+                                  }
+                                };
+                                
+                                sendMessage();
+                              }}
+                              className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
+                            >
+                              Continue as we are
+                            </Button>
+                            
                             {conversationState.settingRefinements > 0 && (
                               <Button
                                 variant="ghost"
@@ -585,31 +659,59 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                         )}
                         
                         {conversationState.currentStep === 'activity' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setUserInput("Give me more activity ideas");
-                              setTimeout(() => handleSendMessage(), 100);
-                            }}
-                            className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
-                          >
-                            More Activity Ideas
-                          </Button>
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUserInput("Give me more activity ideas");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                            >
+                              Give Me More Ideas
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUserInput("Continue as we are - proceed to next step");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
+                            >
+                              Continue as we are
+                            </Button>
+                          </>
                         )}
                         
                         {conversationState.currentStep === 'people' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setUserInput("Give me more people ideas");
-                              setTimeout(() => handleSendMessage(), 100);
-                            }}
-                            className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
-                          >
-                            More Ideas
-                          </Button>
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUserInput("Give me more people ideas");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                            >
+                              Give Me More Ideas
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUserInput("Continue as we are - proceed to next step");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
+                            >
+                              Continue as we are
+                            </Button>
+                          </>
                         )}
                         
                         {conversationState.currentStep === 'extra_detail' && (
@@ -623,8 +725,21 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                               }}
                               className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
                             >
-                              More Ideas
+                              Give Me More Ideas
                             </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUserInput("Continue as we are - proceed to next step");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
+                            >
+                              Continue as we are
+                            </Button>
+                            
                             <Button
                               variant="ghost"
                               size="sm"

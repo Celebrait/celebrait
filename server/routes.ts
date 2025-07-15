@@ -484,6 +484,12 @@ Current step: ${conversationStep || 'setting'}`;
           
           if (userInput.includes('Skip location refinement')) {
             refinementInstruction = "User has chosen to skip location refinement. Move directly to the activity step and ask about what the person should be doing in the scene.";
+          } else if (userInput.includes('Continue as we are')) {
+            if (settingRefinements < 2) {
+              refinementInstruction = "User is satisfied with current location. Ask the next follow-up question with exactly 3 specific options to continue refining the location.";
+            } else {
+              refinementInstruction = "User is satisfied with current location. Move to the activity step and ask about what the person should be doing in the scene.";
+            }
           } else if (settingRefinements === 0) {
             refinementInstruction = "This is the initial location input. Provide 3 simple location variations and ask the first follow-up question with exactly 3 specific options for more specifics.";
           } else if (settingRefinements === 1) {
