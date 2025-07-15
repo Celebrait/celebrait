@@ -449,17 +449,139 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                       {/* Step-specific action buttons */}
                       <div className="flex flex-wrap gap-2 mt-2">
                         {conversationState.currentStep === 'setting' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setUserInput("Give me more location ideas");
-                              setTimeout(() => handleSendMessage(), 100);
-                            }}
-                            className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
-                          >
-                            More Location Ideas
-                          </Button>
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                // Auto-send the message immediately
+                                const userMessage: ChatMessage = {
+                                  role: "user",
+                                  content: "Give me more location ideas",
+                                  timestamp: new Date()
+                                };
+                                setMessages(prev => [...prev, userMessage]);
+                                setIsLoading(true);
+                                
+                                // Send to AI immediately
+                                const sendMessage = async () => {
+                                  try {
+                                    const conversationHistory = [...messages, userMessage].map(msg => ({
+                                      role: msg.role,
+                                      content: msg.content
+                                    }));
+
+                                    const response = await apiRequest("POST", "/api/ai-brainstorm", {
+                                      type,
+                                      context: `Current input: "${currentInput}"`,
+                                      userInput: "Give me more location ideas",
+                                      recipientName,
+                                      celebration,
+                                      conversationStep: conversationState.currentStep,
+                                      settingRefinements: conversationState.settingRefinements,
+                                      conversationHistory: conversationHistory.slice(0, -1)
+                                    });
+
+                                    const result = await response.json();
+
+                                    const typingMessage: ChatMessage = {
+                                      role: "assistant",
+                                      content: result.response,
+                                      timestamp: new Date(),
+                                      isTyping: true
+                                    };
+
+                                    setMessages(prev => [...prev, typingMessage]);
+
+                                  } catch (error) {
+                                    console.error('Error sending message:', error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to send message. Please try again.",
+                                      variant: "destructive"
+                                    });
+                                  } finally {
+                                    setIsLoading(false);
+                                  }
+                                };
+                                
+                                sendMessage();
+                              }}
+                              className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                            >
+                              More Location Ideas
+                            </Button>
+                            {conversationState.settingRefinements > 0 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  // Auto-send skip message
+                                  const userMessage: ChatMessage = {
+                                    role: "user",
+                                    content: "Skip location refinement - move to activity step",
+                                    timestamp: new Date()
+                                  };
+                                  setMessages(prev => [...prev, userMessage]);
+                                  setIsLoading(true);
+                                  
+                                  // Update conversation state to move to activity
+                                  setConversationState(prev => ({
+                                    ...prev,
+                                    currentStep: 'activity',
+                                    settingRefinements: 3 // Set to 3 to indicate completed
+                                  }));
+                                  
+                                  // Send to AI immediately
+                                  const sendMessage = async () => {
+                                    try {
+                                      const conversationHistory = [...messages, userMessage].map(msg => ({
+                                        role: msg.role,
+                                        content: msg.content
+                                      }));
+
+                                      const response = await apiRequest("POST", "/api/ai-brainstorm", {
+                                        type,
+                                        context: `Current input: "${currentInput}"`,
+                                        userInput: "Skip location refinement - move to activity step",
+                                        recipientName,
+                                        celebration,
+                                        conversationStep: 'activity',
+                                        settingRefinements: 3,
+                                        conversationHistory: conversationHistory.slice(0, -1)
+                                      });
+
+                                      const result = await response.json();
+
+                                      const typingMessage: ChatMessage = {
+                                        role: "assistant",
+                                        content: result.response,
+                                        timestamp: new Date(),
+                                        isTyping: true
+                                      };
+
+                                      setMessages(prev => [...prev, typingMessage]);
+
+                                    } catch (error) {
+                                      console.error('Error sending message:', error);
+                                      toast({
+                                        title: "Error",
+                                        description: "Failed to send message. Please try again.",
+                                        variant: "destructive"
+                                      });
+                                    } finally {
+                                      setIsLoading(false);
+                                    }
+                                  };
+                                  
+                                  sendMessage();
+                                }}
+                                className="text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                              >
+                                Skip Location Details
+                              </Button>
+                            )}
+                          </>
                         )}
                         
                         {conversationState.currentStep === 'activity' && (

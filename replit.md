@@ -145,6 +145,8 @@ Changelog:
   * LOCATION REFINEMENT SYSTEM: Implemented two follow-up questions for location refinement before advancing to activity step
   * OPTION LIMIT ENFORCEMENT: Limited suggestions to exactly 3 options and removed duplicate buttons for cleaner interface
   * TYPING REMINDER: AI now reminds users they can type their own response or choose from provided options
+  * AUTO-SEND MORE IDEAS: "More Location Ideas" button now auto-sends like "Choose Option" buttons for consistent behavior
+  * SKIP LOCATION REFINEMENT: Added "Skip Location Details" button allowing users to bypass additional location questions and move directly to activity step
   * ACCESSIBILITY COMPLIANCE: DialogDescription already present to meet accessibility requirements
 - July 15, 2025. ENHANCED AI BRAINSTORMING WITH TYPING ANIMATIONS: Elevated AI chat system to ChatGPT-level responsiveness with guided conversation flow:
   * TYPING ANIMATIONS: Added real-time typing animations like ChatGPT that display AI responses character-by-character at 20ms speed
