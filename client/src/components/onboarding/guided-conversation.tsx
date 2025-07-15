@@ -459,11 +459,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       question: onboarding.selectedSceneType === 'scene-only' ? 'What scene or visual should the card show?' : `Where should ${answers.name || 'they'} be and what should they be doing?`,
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
         ? `Now for the creative part! Since you want a scene-only card, describe the beautiful visual or scene you'd like me to create. Think about the mood, setting, and atmosphere that would be perfect for this ${answers.celebration} celebration.`
-        : `Perfect! I can see you've uploaded a wonderful photo of ${answers.name || 'the recipient'}. Now let's create something magical together! I'm here to help you envision the perfect scene for their ${answers.celebration || 'celebration'} card. Let's explore some creative possibilities...`,
-      type: 'ai_chat',
+        : `Perfect! I can see you've uploaded a wonderful photo. Now let's create something magical together! Describe the perfect scene for ${answers.name || 'the recipient'}'s ${answers.celebration || 'celebration'} card. Think about the setting, activity, and atmosphere that would make them feel truly special.`,
+      type: 'textarea',
       placeholder: onboarding.selectedSceneType === 'scene-only' 
         ? 'e.g., a beautiful sunset over mountains with floating balloons, or a cozy fireplace with warm golden light and scattered rose petals...'
-        : 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...'
+        : 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...',
+      showAIButton: true,
+      aiButtonText: "Stuck for ideas? Brainstorm with AI"
     },
     {
       id: 'art_style',
@@ -2878,7 +2880,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                               [currentStep.id]: suggestion
                             }));
                           }}
-                          buttonText={currentStep.id === 'scene' ? 'Get AI Scene Ideas' : 'Get AI Art Style Ideas'}
+                          buttonText={currentStep.id === 'scene' ? 'Stuck for ideas? Brainstorm with AI' : 'Get AI Art Style Ideas'}
                           buttonIcon={currentStep.id === 'scene' ? <Sparkles className="w-4 h-4" /> : <Palette className="w-4 h-4" />}
                         />
                       </div>

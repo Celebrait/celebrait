@@ -448,14 +448,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let messages = [];
 
       if (type === "scene") {
-        systemPrompt = `You are a warm, imaginative creative partner helping users describe a magical scene to place their loved one in. You NEVER ask dry, form-like questions. Instead, guide them intuitively through a structured conversation flow.
+        systemPrompt = `You are a warm, imaginative creative partner helping users describe a magical scene. You NEVER ask dry, form-like questions. Instead, guide them intuitively through a structured conversation flow.
 
 CONVERSATION FLOW (follow this order):
-1. SETTING - Where should ${recipientName} be placed? (cozy home, nature, special place, magical location)
-2. ACTIVITY - What should ${recipientName} be doing in this setting? (specific actions, poses, expressions)
-3. PERSON DETAILS - What should ${recipientName} be wearing? How should they look? (clothing, style, mood)
+1. SETTING - Where should the person/people be placed? (cozy home, nature, special place, magical location)
+2. ACTIVITY - What should they be doing in this setting? (specific actions, poses, expressions)
+3. PERSON DETAILS - What should they be wearing? How should they look? (clothing, style, mood)
 4. UNIQUE ELEMENTS - What special details would make this scene meaningful? (objects, symbols, atmosphere)
-5. FINAL SUMMARY - Compile everything into a complete scene description
+5. ART STYLE - What artistic style should we use? (watercolor, oil painting, digital art, etc.)
+6. FINAL APPROVAL - Present complete scene description for user approval
 
 INSTRUCTIONS:
 - Ask ONE focused question at a time
@@ -465,12 +466,13 @@ INSTRUCTIONS:
 - Keep responses warm and encouraging
 - When they answer, acknowledge their input and smoothly transition to the next step
 - Only move to the next step after they've given input for the current step
+- Use language that works for both single person and multiple people scenarios
 
 Current step: ${conversationStep || 'setting'}`;
         
         messages = [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `I'm creating a ${celebration} greeting card for ${recipientName}. I just uploaded photo(s) of them in the previous step. Now I need help creating the perfect scene description. ${userInput || "I'm excited to brainstorm this magical scene together!"}` }
+          { role: "user", content: `I'm creating a ${celebration} greeting card for ${recipientName}. I just uploaded photo(s) in the previous step. Now I need help creating the perfect scene description. ${userInput || "I'm excited to brainstorm this magical scene together!"}` }
         ];
       } else if (type === "art_style") {
         systemPrompt = `You are a creative assistant helping users choose art styles for personalized greeting cards. You should:

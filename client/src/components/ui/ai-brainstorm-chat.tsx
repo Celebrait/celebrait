@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Bot, User, Sparkles, Loader2, MessageCircle, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -19,12 +19,13 @@ interface AIBrainstormChatProps {
 }
 
 interface ConversationState {
-  currentStep: 'setting' | 'activity' | 'person_details' | 'unique_elements' | 'final_summary';
+  currentStep: 'setting' | 'activity' | 'person_details' | 'unique_elements' | 'art_style' | 'final_approval';
   collectedInfo: {
     setting?: string;
     activity?: string;
     personDetails?: string;
     uniqueElements?: string;
+    artStyle?: string;
   };
 }
 
@@ -59,6 +60,40 @@ export function AIBrainstormChat({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
+
+  // Initialize with auto-typing AI greeting message when dialog opens
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      const initialMessage: ChatMessage = {
+        role: "assistant",
+        content: getInitialMessage(),
+        timestamp: new Date(),
+        isTyping: true
+      };
+      
+      setMessages([initialMessage]);
+      
+      // Simulate typing completion
+      const typingTimeout = setTimeout(() => {
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.timestamp === initialMessage.timestamp 
+              ? { ...msg, isTyping: false }
+              : msg
+          )
+        );
+      }, initialMessage.content.length * 20); // 20ms per character
+      
+      return () => clearTimeout(typingTimeout);
+    } else if (!isOpen) {
+      // Reset when dialog closes
+      setMessages([]);
+      setConversationState({
+        currentStep: 'setting',
+        collectedInfo: {}
+      });
+    }
+  }, [isOpen]);
 
   const handleSendMessage = async () => {
     if (!userInput.trim() || isLoading) return;
@@ -123,15 +158,21 @@ export function AIBrainstormChat({
             break;
           case 'unique_elements':
             newState.collectedInfo.uniqueElements = userInput;
-            newState.currentStep = 'final_summary';
+            newState.currentStep = 'art_style';
             break;
-          case 'final_summary':
-            // Generate final scene description and auto-submit
-            const finalScene = `${newState.collectedInfo.setting || ''} ${newState.collectedInfo.activity || ''} ${newState.collectedInfo.personDetails || ''} ${newState.collectedInfo.uniqueElements || ''} ${userInput}`.trim();
-            setTimeout(() => {
-              onSuggestionSelect(finalScene);
-              setIsOpen(false);
-            }, 1000);
+          case 'art_style':
+            newState.collectedInfo.artStyle = userInput;
+            newState.currentStep = 'final_approval';
+            break;
+          case 'final_approval':
+            // If user approves, generate final scene description and auto-submit
+            if (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('approve') || userInput.toLowerCase().includes('perfect')) {
+              const finalScene = `${newState.collectedInfo.setting || ''} ${newState.collectedInfo.activity || ''} ${newState.collectedInfo.personDetails || ''} ${newState.collectedInfo.uniqueElements || ''} ${newState.collectedInfo.artStyle || ''}`.trim();
+              setTimeout(() => {
+                onSuggestionSelect(finalScene);
+                setIsOpen(false);
+              }, 1000);
+            }
             break;
         }
         
@@ -159,9 +200,17 @@ export function AIBrainstormChat({
 
   const getInitialMessage = () => {
     if (type === "scene") {
-      return `Hi there! ✨ I can see you've uploaded some wonderful photos of ${recipientName}! 
+      return `Hi there! ✨ I can see you've uploaded some wonderful photos! 
 
-I'm your warm, imaginative creative partner, and I'm here to help you envision the perfect magical scene for their ${celebration} card. Instead of asking dry questions, I want to guide you gently through discovering what would make ${recipientName} absolutely light up when they see this card.
+I'm your warm, imaginative creative partner, and I'm here to help you envision the perfect magical scene for ${recipientName}'s ${celebration} card. Instead of overwhelming you with options, I want to guide you gently through a structured conversation to discover what would make them absolutely light up when they see this card.
+
+We'll work together through 6 simple steps:
+1. **Location** - Where should we place them in this scene?
+2. **Activity** - What should they be doing?
+3. **Details** - How should they look and what should they wear?
+4. **Special Elements** - What meaningful details should we add?
+5. **Art Style** - What artistic style should we use?
+6. **Final Approval** - Review and approve the complete description
 
 Let's start with the most important question: **Where should we place ${recipientName} in this scene?**
 
@@ -230,15 +279,18 @@ What resonates with you for this ${celebration}?`;
             <Bot className="w-5 h-5 text-purple-500" />
             AI Brainstorming Assistant
           </DialogTitle>
+          <DialogDescription className="hidden">
+            Chat with AI to brainstorm creative ideas for your greeting card
+          </DialogDescription>
           {type === "scene" && (
             <div className="flex items-center gap-2 mt-2">
               <div className="flex items-center gap-1 text-sm text-gray-600">
-                {(['setting', 'activity', 'person_details', 'unique_elements', 'final_summary'] as const).map((step, index) => (
+                {(['setting', 'activity', 'person_details', 'unique_elements', 'art_style', 'final_approval'] as const).map((step, index) => (
                   <div key={step} className="flex items-center gap-1">
                     <div className={`w-2 h-2 rounded-full ${
                       conversationState.currentStep === step 
                         ? 'bg-purple-500' 
-                        : index < (['setting', 'activity', 'person_details', 'unique_elements', 'final_summary'] as const).indexOf(conversationState.currentStep)
+                        : index < (['setting', 'activity', 'person_details', 'unique_elements', 'art_style', 'final_approval'] as const).indexOf(conversationState.currentStep)
                         ? 'bg-green-500' 
                         : 'bg-gray-300'
                     }`} />
@@ -249,9 +301,10 @@ What resonates with you for this ${celebration}?`;
                       {step === 'activity' && 'Activity'}
                       {step === 'person_details' && 'Details'}
                       {step === 'unique_elements' && 'Special'}
-                      {step === 'final_summary' && 'Complete'}
+                      {step === 'art_style' && 'Style'}
+                      {step === 'final_approval' && 'Approve'}
                     </span>
-                    {index < 4 && <div className="w-2 h-px bg-gray-300" />}
+                    {index < 5 && <div className="w-2 h-px bg-gray-300" />}
                   </div>
                 ))}
               </div>
@@ -262,93 +315,6 @@ What resonates with you for this ${celebration}?`;
         <div className="flex-1 flex flex-col min-h-0">
           {/* Chat Messages */}
           <div className="flex-1 overflow-y-auto space-y-4 p-4 bg-gray-50 rounded-lg">
-            {messages.length === 0 && (
-              <div className="space-y-4">
-                <div className="flex gap-3">
-                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
-                    <Bot className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="flex-1 bg-white p-3 rounded-lg shadow-sm">
-                    <p className="text-gray-700 whitespace-pre-line">{getInitialMessage()}</p>
-                  </div>
-                </div>
-                
-                {/* Quick Start Buttons */}
-                <div className="flex flex-wrap gap-2 ml-11">
-                  {type === "scene" ? (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setUserInput("I want something cozy and intimate")}
-                        className="text-xs"
-                      >
-                        Cozy & Intimate
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setUserInput("I'm thinking something outdoors and adventurous")}
-                        className="text-xs"
-                      >
-                        Outdoors & Adventurous
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setUserInput("I want something elegant and sophisticated")}
-                        className="text-xs"
-                      >
-                        Elegant & Sophisticated
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setUserInput("I need some creative ideas to get started")}
-                        className="text-xs"
-                      >
-                        Give Me Ideas
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setUserInput("I want something soft and romantic")}
-                        className="text-xs"
-                      >
-                        Soft & Romantic
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setUserInput("I'm looking for bold and modern")}
-                        className="text-xs"
-                      >
-                        Bold & Modern
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setUserInput("I prefer classic and timeless")}
-                        className="text-xs"
-                      >
-                        Classic & Timeless
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setUserInput("Show me some art style options")}
-                        className="text-xs"
-                      >
-                        Show Me Options
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
             
             {messages.map((message, index) => (
               <div key={index} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : ''}`}>
@@ -381,6 +347,83 @@ What resonates with you for this ${celebration}?`;
                   
                   {message.role === 'assistant' && !message.isTyping && (
                     <div className="mt-3 space-y-2">
+                      {/* Quick Start Buttons - Only for first message */}
+                      {index === 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {type === "scene" ? (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setUserInput("I want something cozy and intimate")}
+                                className="text-xs"
+                              >
+                                Cozy & Intimate
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setUserInput("I'm thinking something outdoors and adventurous")}
+                                className="text-xs"
+                              >
+                                Outdoors & Adventurous
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setUserInput("I want something elegant and sophisticated")}
+                                className="text-xs"
+                              >
+                                Elegant & Sophisticated
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setUserInput("I need some creative ideas to get started")}
+                                className="text-xs"
+                              >
+                                Give Me Ideas
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setUserInput("I want something soft and romantic")}
+                                className="text-xs"
+                              >
+                                Soft & Romantic
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setUserInput("I'm looking for bold and modern")}
+                                className="text-xs"
+                              >
+                                Bold & Modern
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setUserInput("I prefer classic and timeless")}
+                                className="text-xs"
+                              >
+                                Classic & Timeless
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setUserInput("Show me some art style options")}
+                                className="text-xs"
+                              >
+                                Show Me Options
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                      
                       {/* Extracted Suggestions */}
                       {extractSuggestions(message.content).length > 0 && (
                         <div className="flex flex-wrap gap-2">
