@@ -509,7 +509,7 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                               }}
                               className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
                             >
-                              More Location Ideas
+                              Give Me More Ideas
                             </Button>
                             {conversationState.settingRefinements > 0 && (
                               <Button

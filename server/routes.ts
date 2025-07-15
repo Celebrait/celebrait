@@ -485,16 +485,16 @@ Current step: ${conversationStep || 'setting'}`;
           if (userInput.includes('Skip location refinement')) {
             refinementInstruction = "User has chosen to skip location refinement. Move directly to the activity step and ask about what the person should be doing in the scene.";
           } else if (settingRefinements === 0) {
-            refinementInstruction = "This is the initial location input. Provide 3 simple location variations and ask the first follow-up question for more specifics.";
+            refinementInstruction = "This is the initial location input. Provide 3 simple location variations and ask the first follow-up question with exactly 3 specific options for more specifics.";
           } else if (settingRefinements === 1) {
-            refinementInstruction = "This is the first refinement. Ask one more follow-up question to fully refine the location before moving to activity step.";
+            refinementInstruction = "This is the first refinement. Ask one more follow-up question with exactly 3 specific options to fully refine the location before moving to activity step.";
           } else if (settingRefinements >= 2) {
             refinementInstruction = "This is the final location refinement. After this response, move to the activity step.";
           }
           
           messages.push({
             role: "system", 
-            content: `Remember: For the SETTING step, only provide 3 simple location variations. Do not include activities, actions, or what people are doing. Focus ONLY on WHERE the scene takes place. Always mention that the user can type their own response OR choose from the options. ${refinementInstruction}`
+            content: `Remember: For the SETTING step, only provide 3 simple location variations. Do not include activities, actions, or what people are doing. Focus ONLY on WHERE the scene takes place. Always mention that the user can type their own response OR choose from the options. When asking follow-up questions, ALWAYS provide exactly 3 specific options for the user to choose from. ${refinementInstruction}`
           });
         }
       } else if (type === "art_style") {
