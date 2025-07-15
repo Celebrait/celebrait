@@ -91,6 +91,7 @@ export function AIBrainstormChat({
       setMessages([]);
       setConversationState({
         currentStep: 'setting',
+        settingRefinements: 0,
         collectedInfo: {}
       });
     }
@@ -161,10 +162,10 @@ export function AIBrainstormChat({
             if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               // Update setting info and track refinement count
               newState.collectedInfo.setting = userInput;
-              newState.settingRefinements = prev.settingRefinements + 1;
+              newState.settingRefinements = (prev.settingRefinements || 0) + 1;
               
               // Only advance to activity after 2 refinement questions
-              if (prev.settingRefinements >= 2) {
+              if (newState.settingRefinements >= 2) {
                 newState.currentStep = 'activity';
               }
             }
@@ -407,10 +408,10 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                                         switch (prev.currentStep) {
                                           case 'setting':
                                             newState.collectedInfo.setting = suggestion;
-                                            newState.settingRefinements = prev.settingRefinements + 1;
+                                            newState.settingRefinements = (prev.settingRefinements || 0) + 1;
                                             
                                             // Only advance to activity after 2 refinement questions
-                                            if (prev.settingRefinements >= 2) {
+                                            if (newState.settingRefinements >= 2) {
                                               newState.currentStep = 'activity';
                                             }
                                             break;
