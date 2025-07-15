@@ -584,7 +584,7 @@ Remember: You're helping them discover their perfect artistic vision through gui
         ];
       }
 
-      console.log('AI Brainstorm request:', { type, recipientName, celebration, userInput, hasHistory: !!conversationHistory });
+      console.log('AI Brainstorm request:', { type, recipientName, celebration, userInput, hasHistory: !!conversationHistory, photoContext });
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
