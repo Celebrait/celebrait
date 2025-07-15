@@ -484,11 +484,11 @@ Current step: ${conversationStep || 'setting'}`;
           
           if (userInput.includes('Skip location refinement')) {
             refinementInstruction = "User has chosen to skip location refinement. Move directly to the activity step and ask about what the person should be doing in the scene.";
-          } else if (userInput.includes('Continue as we are')) {
+          } else if (userInput.includes('Skip this question')) {
             if (settingRefinements < 2) {
-              refinementInstruction = "User is satisfied with current location. Ask the next follow-up question with exactly 3 specific options to continue refining the location.";
+              refinementInstruction = "User has skipped this follow-up question. Ask the next follow-up question with exactly 3 specific options to continue refining the location.";
             } else {
-              refinementInstruction = "User is satisfied with current location. Move to the activity step and ask about what the person should be doing in the scene.";
+              refinementInstruction = "User has skipped this follow-up question. Move to the activity step and ask about what the person should be doing in the scene.";
             }
           } else if (settingRefinements === 0) {
             refinementInstruction = "This is the initial location input. Provide 3 simple location variations and ask the first follow-up question with exactly 3 specific options for more specifics.";
@@ -500,7 +500,11 @@ Current step: ${conversationStep || 'setting'}`;
           
           messages.push({
             role: "system", 
-            content: `Remember: For the SETTING step, only provide 3 simple location variations. Do not include activities, actions, or what people are doing. Focus ONLY on WHERE the scene takes place. Always mention that the user can type their own response OR choose from the options. When asking follow-up questions, ALWAYS provide exactly 3 specific options for the user to choose from. ${refinementInstruction}`
+            content: `Remember: For the SETTING step, only provide 3 simple location variations. Do not include activities, actions, or what people are doing. Focus ONLY on WHERE the scene takes place. Always mention that the user can type their own response OR choose from the options. CRITICAL: When asking follow-up questions, you MUST provide exactly 3 numbered options in this format:
+            1. First specific option
+            2. Second specific option  
+            3. Third specific option
+            Never ask questions without providing these 3 numbered options. ${refinementInstruction}`
           });
         }
       } else if (type === "art_style") {

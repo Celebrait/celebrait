@@ -149,8 +149,9 @@ Changelog:
   * SKIP LOCATION REFINEMENT: Added "Skip Location Details" button allowing users to bypass additional location questions and move directly to activity step
   * BUTTON TEXT UPDATE: Changed "More Location Ideas" to "Give Me More Ideas" throughout conversation interface
   * FOLLOW-UP EXAMPLES: Enhanced AI prompts to always provide exactly 3 specific options in follow-up questions during location refinement
-  * CONTINUE AS WE ARE: Added "Continue as we are" button to all conversation steps allowing users to proceed with current selection without further changes
-  * UNIVERSAL BUTTON BEHAVIOR: All conversation buttons now use consistent auto-send behavior and green styling for "Continue as we are" actions
+  * SKIP THIS QUESTION: Added "Skip This Question" button to all conversation steps allowing users to proceed with current selection without further changes
+  * UNIVERSAL BUTTON BEHAVIOR: All conversation buttons now use consistent auto-send behavior and green styling for "Skip This Question" actions
+  * ENHANCED AI PROMPTS: Strengthened system prompts to always provide exactly 3 numbered options in follow-up questions with explicit formatting requirements
   * ACCESSIBILITY COMPLIANCE: DialogDescription already present to meet accessibility requirements
 - July 15, 2025. ENHANCED AI BRAINSTORMING WITH TYPING ANIMATIONS: Elevated AI chat system to ChatGPT-level responsiveness with guided conversation flow:
   * TYPING ANIMATIONS: Added real-time typing animations like ChatGPT that display AI responses character-by-character at 20ms speed

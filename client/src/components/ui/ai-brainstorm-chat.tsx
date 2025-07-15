@@ -519,7 +519,7 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                                 // Auto-send continue message
                                 const userMessage: ChatMessage = {
                                   role: "user",
-                                  content: "Continue as we are - proceed to next step",
+                                  content: "Skip this question - proceed to next step",
                                   timestamp: new Date()
                                 };
                                 setMessages(prev => [...prev, userMessage]);
@@ -547,7 +547,7 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                                     const response = await apiRequest("POST", "/api/ai-brainstorm", {
                                       type,
                                       context: `Current input: "${currentInput}"`,
-                                      userInput: "Continue as we are - proceed to next step",
+                                      userInput: "Skip this question - proceed to next step",
                                       recipientName,
                                       celebration,
                                       conversationStep: nextStep,
@@ -582,7 +582,7 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                               }}
                               className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
                             >
-                              Continue as we are
+                              Skip This Question
                             </Button>
                             
                             {conversationState.settingRefinements > 0 && (
@@ -676,12 +676,12 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setUserInput("Continue as we are - proceed to next step");
+                                setUserInput("Skip this question - proceed to next step");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
                               className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
                             >
-                              Continue as we are
+                              Skip This Question
                             </Button>
                           </>
                         )}
@@ -704,12 +704,12 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setUserInput("Continue as we are - proceed to next step");
+                                setUserInput("Skip this question - proceed to next step");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
                               className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
                             >
-                              Continue as we are
+                              Skip This Question
                             </Button>
                           </>
                         )}
@@ -732,12 +732,12 @@ Where should we place ${recipientName} in this scene? Think about the setting or
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setUserInput("Continue as we are - proceed to next step");
+                                setUserInput("Skip this question - proceed to next step");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
                               className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
                             >
-                              Continue as we are
+                              Skip This Question
                             </Button>
                             
                             <Button
