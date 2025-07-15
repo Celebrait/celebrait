@@ -130,6 +130,7 @@ Changelog:
   * CONSISTENT LANGUAGE FIX: Fixed AI conversation inconsistency where it correctly detected single person but later switched to plural language ("friend") - now maintains consistent singular/plural language throughout entire conversation based on photo analysis
   * CRITICAL BUG FIX: Fixed JavaScript error "Cannot access 'isMultiplePeople' before initialization" that was causing AI brainstorm to fail - moved variable definition before system prompt usage
   * ENHANCED 3-OPTION ENFORCEMENT: Strengthened AI instructions with explicit "CRITICAL REQUIREMENT" sections to prevent open-ended questions and ensure exactly 3 numbered options are always provided
+  * FINAL APPROVAL STEP FIX: Fixed broken final approval step where "Sounds great, let's go!" and "I'd like to make a change" buttons were missing - AI now provides summary without numbered options in final step
 - July 15, 2025. DYNAMIC AI INITIAL MESSAGING: Enhanced AI conversation to dynamically acknowledge single person vs multiple people scenarios:
   * DYNAMIC INITIAL MESSAGE: AI greeting now adapts based on photo context - acknowledges "multiple people" for group shots and focuses on recipient name for single person photos
   * CONTEXTUAL ACKNOWLEDGMENT: AI explicitly states "I can see from your uploaded photos that we're working with multiple people" or "I can see from your uploaded photo that we're focusing on [name]"
