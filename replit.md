@@ -155,6 +155,8 @@ Changelog:
   * PEOPLE CLOTHING GUIDANCE: Enhanced people step to inform users they can skip and let AI choose appropriate clothing that matches the scene
   * FINAL APPROVAL SIMPLIFICATION: Removed "Give Me More Ideas" and "Skip This Question" buttons from final summary step, replaced with single "Sounds great, let's go!" button that advances to art style selection
   * FINAL PROMPT MESSAGING: Updated final approval step to tell users they can add more details if they like, then proceed with clear call-to-action button
+  * EXACT 3-OPTION LIMIT: Enhanced AI prompts to ALWAYS provide exactly 3 numbered options across all conversation steps (activity, people, extra detail)
+  * CRITICAL OPTION ENFORCEMENT: Added explicit "CRITICAL: Always provide exactly 3 numbered options" instructions to all step prompts
   * ACCESSIBILITY COMPLIANCE: DialogDescription already present to meet accessibility requirements
 - July 15, 2025. ENHANCED AI BRAINSTORMING WITH TYPING ANIMATIONS: Elevated AI chat system to ChatGPT-level responsiveness with guided conversation flow:
   * TYPING ANIMATIONS: Added real-time typing animations like ChatGPT that display AI responses character-by-character at 20ms speed
