@@ -127,6 +127,7 @@ Changelog:
   * FALLBACK SYSTEM: Robust fallback to basic photo count detection if vision analysis fails
   * ENHANCED AI MESSAGING: AI conversation now accurately adapts to single person vs group scenarios regardless of photo count
   * COMPREHENSIVE DETECTION: Handles single photos with multiple people, multiple photos with single people, and all combinations
+  * CONSISTENT LANGUAGE FIX: Fixed AI conversation inconsistency where it correctly detected single person but later switched to plural language ("friend") - now maintains consistent singular/plural language throughout entire conversation based on photo analysis
 - July 15, 2025. DYNAMIC AI INITIAL MESSAGING: Enhanced AI conversation to dynamically acknowledge single person vs multiple people scenarios:
   * DYNAMIC INITIAL MESSAGE: AI greeting now adapts based on photo context - acknowledges "multiple people" for group shots and focuses on recipient name for single person photos
   * CONTEXTUAL ACKNOWLEDGMENT: AI explicitly states "I can see from your uploaded photos that we're working with multiple people" or "I can see from your uploaded photo that we're focusing on [name]"

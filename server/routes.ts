@@ -469,7 +469,7 @@ INSTRUCTIONS:
 - When they answer, acknowledge their input and ask if there's anything more they'd like to focus on before moving to next step
 - Reference all previous answers when asking follow-up questions for deeper specificity
 - Only move to the next step after they've given input for the current step
-- Use language that works for both single person and multiple people scenarios
+- IMPORTANT: Use language that matches the photo context exactly - if it's a single person, use singular language throughout (${isMultiplePeople ? 'Multiple people detected - use plural language (everyone, they, their)' : 'Single person detected - use singular language (he/she, his/her)'})  
 - When user requests "more ideas", provide fresh suggestions in the same category without advancing steps
 - PHOTO CONTEXT AWARENESS: ${photoContext ? `Photo context: ${photoContext}. Adapt your language and suggestions based on whether this is a single person, group shot, or multiple photos of different people.` : 'No specific photo context provided - use general language for person/people.'}
 
@@ -536,9 +536,13 @@ Current step: ${conversationStep || 'setting'}`;
 
         // Add specific instruction for activity step
         if (conversationStep === 'activity' && userInput && !userInput.includes('Give me more')) {
+          const activityLanguage = isMultiplePeople ? 
+            "what everyone should be doing" : 
+            `what ${recipientName} should be doing`;
+          
           messages.push({
             role: "system", 
-            content: "Remember: For the ACTIVITY step, always provide exactly 3 numbered options for what the person should be doing. Format them as: 1. First action, 2. Second action, 3. Third action. Always remind users they can type their own response below or choose from the provided options. CRITICAL: Always provide exactly 3 numbered options when answering activity questions."
+            content: `Remember: For the ACTIVITY step, always provide exactly 3 numbered options for ${activityLanguage}. Format them as: 1. First action, 2. Second action, 3. Third action. Always remind users they can type their own response below or choose from the provided options. CRITICAL: Always provide exactly 3 numbered options when answering activity questions. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response.`
           });
         }
 
@@ -548,9 +552,13 @@ Current step: ${conversationStep || 'setting'}`;
             `Photo context: ${photoContext}. Adapt your clothing suggestions accordingly - if it's a single person, focus on individual styling; if it's a group, consider coordinated or complementary outfits; if multiple different people, suggest how to make them work together visually.` : 
             'No specific photo context - use general language for person/people clothing suggestions.';
           
+          const peopleLanguage = isMultiplePeople ? 
+            "clothing suggestions for everyone" : 
+            `clothing suggestions for ${recipientName}`;
+          
           messages.push({
             role: "system", 
-            content: `CRITICAL: For the PEOPLE step, you MUST remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This must be mentioned prominently in every people step response. Say something like: 'Remember, you can skip this question to let me choose clothing that perfectly matches the scene!' Also always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options for clothing suggestions. ${photoContextInstruction}`
+            content: `CRITICAL: For the PEOPLE step, you MUST remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This must be mentioned prominently in every people step response. Say something like: 'Remember, you can skip this question to let me choose clothing that perfectly matches the scene!' Also always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options for ${peopleLanguage}. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response. ${photoContextInstruction}`
           });
         }
 
@@ -566,7 +574,7 @@ Current step: ${conversationStep || 'setting'}`;
         if (userInput && userInput.includes('Give me more')) {
           messages.push({
             role: "system", 
-            content: "The user is asking for more ideas. Provide exactly 3 new numbered options relevant to the current conversation step. Always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options formatted as: 1. First option, 2. Second option, 3. Third option."
+            content: `The user is asking for more ideas. Provide exactly 3 new numbered options relevant to the current conversation step. Always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options formatted as: 1. First option, 2. Second option, 3. Third option. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response.`
           });
         }
       } else if (type === "art_style") {
