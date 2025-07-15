@@ -444,24 +444,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { type, context, userInput, recipientName, celebration, conversationHistory, conversationStep, settingRefinements, photoContext } = req.body;
 
-      // Define isMultiplePeople at the top level to be available throughout the function
-      const isMultiplePeople = photoContext && (
-        photoContext.toLowerCase().includes('multiple photos') ||
-        photoContext.toLowerCase().includes('two photos') ||
-        photoContext.toLowerCase().includes('multiple people') ||
-        photoContext.toLowerCase().includes('different people') ||
-        photoContext.toLowerCase().includes('various shots') ||
-        photoContext.toLowerCase().includes('several') ||
-        photoContext.toLowerCase().includes('different angles') ||
-        photoContext.toLowerCase().includes('group shot') ||
-        photoContext.toLowerCase().includes('people detected')
-      );
-
       let systemPrompt = "";
       let messages = [];
 
       if (type === "scene") {
-        
         systemPrompt = `You are a professional creative assistant helping users create detailed scene descriptions for greeting cards. Guide them through a structured conversation flow with focused questions.
 
 CONVERSATION FLOW (follow this order):
@@ -488,6 +474,18 @@ INSTRUCTIONS:
 - PHOTO CONTEXT AWARENESS: ${photoContext ? `Photo context: ${photoContext}. Adapt your language and suggestions based on whether this is a single person, group shot, or multiple photos of different people.` : 'No specific photo context provided - use general language for person/people.'}
 
 Current step: ${conversationStep || 'setting'}`;
+        
+        const isMultiplePeople = photoContext && (
+          photoContext.toLowerCase().includes('multiple photos') ||
+          photoContext.toLowerCase().includes('two photos') ||
+          photoContext.toLowerCase().includes('multiple people') ||
+          photoContext.toLowerCase().includes('different people') ||
+          photoContext.toLowerCase().includes('various shots') ||
+          photoContext.toLowerCase().includes('several') ||
+          photoContext.toLowerCase().includes('different angles') ||
+          photoContext.toLowerCase().includes('group shot') ||
+          photoContext.toLowerCase().includes('people detected')
+        );
 
         const contextualMessage = photoContext ? 
           (isMultiplePeople ? 
@@ -565,12 +563,8 @@ Current step: ${conversationStep || 'setting'}`;
             'No specific photo context - use general language for person/people clothing suggestions.';
           
           const peopleLanguage = isMultiplePeople ? 
-            "group clothing coordination suggestions" : 
+            "clothing suggestions for everyone" : 
             `clothing suggestions for ${recipientName}`;
-          
-          const groupClothingGuidance = isMultiplePeople ? 
-            `For GROUP CLOTHING: Suggest coordinated group-level styling based on the scene location and celebration type. Focus on overall aesthetic and coordination rather than individual person details. Examples: "Coordinated formal wear in navy and gold tones", "Casual beach attire with complementary colors", "Festive party outfits with birthday theme". Make it clear users can specify the GENERAL LOOK of the group but not individual clothing details.` :
-            `For INDIVIDUAL CLOTHING: Suggest specific clothing options that match the scene and celebration.`;
           
           messages.push({
             role: "system", 
@@ -581,7 +575,7 @@ Current step: ${conversationStep || 'setting'}`;
             
             DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond in the people step.
             
-            For the PEOPLE step, you MUST remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This must be mentioned prominently in every people step response. Say something like: 'Remember, you can skip this question to let me choose clothing that perfectly matches the scene!' Also always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options for ${peopleLanguage}. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response. ${groupClothingGuidance} ${photoContextInstruction}`
+            For the PEOPLE step, you MUST remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This must be mentioned prominently in every people step response. Say something like: 'Remember, you can skip this question to let me choose clothing that perfectly matches the scene!' Also always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options for ${peopleLanguage}. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response. ${photoContextInstruction}`
           });
         }
 
