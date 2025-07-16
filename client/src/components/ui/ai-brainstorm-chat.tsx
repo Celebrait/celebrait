@@ -466,11 +466,12 @@ Please type your ideas below to get started.`;
                         </div>
                       )}
                       
-                      {/* Show suggestion request buttons on first AI response in each step */}
+                      {/* Show suggestion request buttons on AI response after user input (not initial message) */}
                       {message.role === 'assistant' && 
                        !conversationState.hasSuggestions && 
                        extractSuggestions(message.content).length === 0 && 
-                       conversationState.currentStep !== 'final_approval' && (
+                       conversationState.currentStep !== 'final_approval' &&
+                       messages.filter(m => m.role === 'user').length > 0 && (
                         <div className="flex flex-col gap-2 mt-2 w-full">
                           <Button
                             variant="outline"

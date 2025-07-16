@@ -520,8 +520,25 @@ Current step: ${conversationStep || 'setting'}`;
           { role: "user", content: contextualMessage }
         ];
         
+        // Check if user is asking to skip the current step
+        if (userInput && (userInput.toLowerCase().includes('skip this question') || userInput.toLowerCase().includes('skip'))) {
+          // User wants to skip current step - provide transition message to next step
+          const nextStepName = conversationStep === 'setting' ? 'activity' : 
+                              conversationStep === 'activity' ? 'people' :
+                              conversationStep === 'people' ? 'extra_detail' : 'final_approval';
+          
+          const nextStepPrompt = nextStepName === 'activity' ? 'What activity should they be doing in this setting?' :
+                                nextStepName === 'people' ? 'Who should be featured in this scene?' :
+                                nextStepName === 'extra_detail' ? 'Any special details or elements you\'d like to include?' :
+                                'Let me summarize your scene for final approval.';
+          
+          messages.push({
+            role: "system",
+            content: `The user has chosen to skip the current step. Provide a brief transition message and ask about the next step (${nextStepName}). Ask: "${nextStepPrompt}" and add "You can type your own response below or I can provide suggestions if you'd like."`
+          });
+        } 
         // Check if user is asking for suggestions
-        if (userInput && (userInput.includes('Give me') || userInput.includes('suggestions') || userInput.includes('ideas'))) {
+        else if (userInput && (userInput.includes('Give me') || userInput.includes('suggestions') || userInput.includes('ideas'))) {
           messages.push({
             role: "system", 
             content: `The user is asking for suggestions. Provide exactly 3 numbered options in this format:
@@ -550,7 +567,7 @@ Current step: ${conversationStep || 'setting'}`;
             2. Ask for more specifics about the current step (${conversationStep})
             3. MANDATORY: Add: "You can type your own response below or I can provide suggestions if you'd like."
             
-            Keep the response natural and conversational.`
+            Keep the response natural and conversational.
             
             ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
             
@@ -597,7 +614,22 @@ Remember: You're helping them discover their perfect artistic vision through gui
         ];
         
         // Apply same suggestion logic even with conversation history
-        if (userInput && (userInput.includes('Give me') || userInput.includes('suggestions') || userInput.includes('ideas'))) {
+        if (userInput && (userInput.toLowerCase().includes('skip this question') || userInput.toLowerCase().includes('skip'))) {
+          // User wants to skip current step - provide transition message to next step
+          const nextStepName = conversationStep === 'setting' ? 'activity' : 
+                              conversationStep === 'activity' ? 'people' :
+                              conversationStep === 'people' ? 'extra_detail' : 'final_approval';
+          
+          const nextStepPrompt = nextStepName === 'activity' ? 'What activity should they be doing in this setting?' :
+                                nextStepName === 'people' ? 'Who should be featured in this scene?' :
+                                nextStepName === 'extra_detail' ? 'Any special details or elements you\'d like to include?' :
+                                'Let me summarize your scene for final approval.';
+          
+          messages.push({
+            role: "system",
+            content: `The user has chosen to skip the current step. Provide a brief transition message and ask about the next step (${nextStepName}). Ask: "${nextStepPrompt}" and add "You can type your own response below or I can provide suggestions if you'd like."`
+          });
+        } else if (userInput && (userInput.includes('Give me') || userInput.includes('suggestions') || userInput.includes('ideas'))) {
           messages.push({
             role: "system", 
             content: `The user is asking for suggestions. Provide exactly 3 numbered options in this format:
@@ -620,7 +652,7 @@ Remember: You're helping them discover their perfect artistic vision through gui
             2. Ask for more specifics about the current step (${conversationStep})
             3. MANDATORY: Add: "You can type your own response below or I can provide suggestions if you'd like."
             
-            Keep the response natural and conversational.`
+            Keep the response natural and conversational.
             
             ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
             
