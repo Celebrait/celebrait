@@ -120,6 +120,14 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 16, 2025. CRITICAL LAUNCH FIXES: Fixed two blocking issues preventing suggestion buttons from working properly:
+  * CONVERSATION HISTORY OVERRIDE FIX: Fixed critical bug where conversation history logic was bypassing suggestion offer system - now applies suggestion logic even with conversation history
+  * SKIP BUTTON RESTORATION: Added back "Skip This Question" button alongside "Give Me More Suggestions" when AI presents 3 options
+  * FLOW ADVANCEMENT FIX: Adjusted setting refinement counter to properly advance from location to activity step after sufficient interaction
+  * DUAL BUTTON SYSTEM: Users now see both "Give Me More Suggestions" and "Skip This Question" buttons when AI presents 3 options
+  * CONSISTENT SUGGESTION OFFERS: AI now properly asks "Would you like me to give you some suggestions?" after user's initial response in all steps
+  * STEP PROGRESSION: Skip button properly advances conversation from setting → activity → people → extra_detail → final_approval
+  * LAUNCH READY: Both suggestion button types now work correctly for user's launch date requirement
 - July 16, 2025. AI SUGGESTION-ON-DEMAND SYSTEM: Completely redesigned AI brainstorming to provide suggestions only when users explicitly request them:
   * ON-DEMAND APPROACH: AI no longer automatically provides numbered suggestions in responses
   * BUTTON-TRIGGERED SUGGESTIONS: AI only provides 3 numbered options when user clicks suggestion buttons or explicitly asks for ideas
