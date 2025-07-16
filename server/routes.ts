@@ -623,6 +623,18 @@ Current step: ${conversationStep || 'setting'}`;
               
               ABSOLUTELY FORBIDDEN: Do not mention activities, people, or clothing. Only ask about the location/setting.`
             });
+          } else if (conversationStep === 'setting' && settingRefinements >= 2) {
+            // After 2 setting interactions, MUST advance to activity step
+            messages.push({
+              role: "system", 
+              content: `CRITICAL: The user has completed the location/setting step (${settingRefinements} interactions). You are now in the ACTIVITY step. 
+              
+              MANDATORY: Ask about what activity they should be doing in the setting that was established. Ask: "What activity should they be doing in this setting?" 
+              
+              MANDATORY: Add: "You can type your own response below or I can provide suggestions if you'd like."
+              
+              ABSOLUTELY FORBIDDEN: Do not mention location, setting, or ask follow-up questions about the setting. Only focus on ACTIVITY - what they should be doing in the established setting.`
+            });
           } else {
             // User has provided their initial response - always offer suggestions
             messages.push({

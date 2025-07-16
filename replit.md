@@ -120,6 +120,14 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 16, 2025. FINAL LOCATION STEP FIX: Corrected server-side logic to properly enforce exactly 2 location follow-ups maximum:
+  * ROOT CAUSE IDENTIFIED: Server logic was using settingRefinements >= 3 instead of >= 2, causing AI to ask third location follow-up
+  * PROPER THRESHOLD: Server now uses settingRefinements >= 2 to match user requirement of maximum 2 follow-ups after initial response
+  * COMPREHENSIVE FIX: Updated all enforcement points (regular responses, suggestion responses, skip logic) to use >= 2 threshold
+  * CORRECT FLOW: Initial response (settingRefinements = 1) → first follow-up (settingRefinements = 2) → automatic advance to activity step
+  * ACTIVITY ENFORCEMENT: When settingRefinements >= 2, server forces AI to ask activity questions and provide activity suggestions
+  * STEP VALIDATION: Added explicit condition for settingRefinements >= 2 to prevent any third location follow-up
+  * ALIGNED LOGIC: Server logic now properly aligned with frontend expectation of 2 follow-ups maximum
 - July 16, 2025. CRITICAL BUG FIX: Implemented comprehensive server-side enforcement to prevent endless location follow-ups:
   * IDENTIFIED ISSUE: Location step failing to advance to activity step after 3 user responses, continuing with location follow-up questions indefinitely
   * ROOT CAUSE: Server-side logic was not properly enforcing step transition when settingRefinements >= 2 - AI kept asking location follow-ups instead of switching to activity questions
