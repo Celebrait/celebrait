@@ -120,6 +120,45 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 16, 2025. CRITICAL STEP COMBINATION FIX: Fixed AI combining multiple conversation steps in single responses:
+  * SINGLE STEP ENFORCEMENT: Updated system prompts to strictly enforce single-step responses - AI now focuses only on current step
+  * SUGGESTION ISOLATION: When providing suggestions, AI no longer combines with questions about next step (e.g., activity + people)
+  * STEP BOUNDARY PROTECTION: Added explicit instructions to never mention or ask about next step until user explicitly advances
+  * CURRENT STEP FOCUS: Enhanced prompts with "CRITICAL: Only focus on current step" instructions to prevent step jumping
+  * ACTIVITY STEP FIXED: Activity suggestions now stay strictly on activities without jumping to people/clothing questions
+  * PEOPLE STEP ISOLATION: People step discussions isolated from activity or setting mentions
+  * STRUCTURED FLOW: Conversation now properly flows: setting → activity → people → extra_detail without AI combining steps
+  * CONVERSATION INTEGRITY: Each step maintains its distinct purpose and boundaries for cleaner user experience
+- July 16, 2025. CRITICAL LAUNCH FIXES: Fixed two blocking issues preventing suggestion buttons from working properly:
+  * CONVERSATION HISTORY OVERRIDE FIX: Fixed critical bug where conversation history logic was bypassing suggestion offer system - now applies suggestion logic even with conversation history
+  * SKIP BUTTON RESTORATION: Added back "Skip This Question" button alongside "Give Me More Suggestions" when AI presents 3 options
+  * FLOW ADVANCEMENT FIX: Adjusted setting refinement counter to properly advance from location to activity step after sufficient interaction
+  * DUAL BUTTON SYSTEM: Users now see both "Give Me More Suggestions" and "Skip This Question" buttons when AI presents 3 options
+  * CONSISTENT SUGGESTION OFFERS: AI now properly asks "Would you like me to give you some suggestions?" after user's initial response in all steps
+  * STEP PROGRESSION: Skip button properly advances conversation from setting → activity → people → extra_detail → final_approval
+  * TYPING REMINDER SYSTEM: AI consistently reminds users "You can type your own response below or..." throughout all interactions
+  * PLACEHOLDER TEXT: Updated input placeholder to "Type your response here" for clarity
+  * CLOTHING SKIP EMPHASIS: Enhanced people step to prominently mention skipping clothing question lets AI choose appropriate attire
+  * MANDATORY PROMPTS: Strengthened system prompts with "MANDATORY" instructions to ensure AI follows typing reminders and clothing skip emphasis
+  * CRITICAL FIXES: Updated all suggestion system prompts to use "MANDATORY" instead of "SPECIAL INSTRUCTION" for consistent AI behavior
+  * EXACT PHRASE FIX: Fixed critical issue where AI was saying "let me know if you'd like me to give you some suggestions" instead of exact phrase "Would you like me to give you some suggestions?" that triggers frontend suggestion button
+  * BUTTON TRIGGER REPAIR: Added explicit instruction to use exact phrase that frontend recognizes for suggestion button display
+  * STATE-BASED BUTTON LOGIC: Completely replaced complex trigger word matching with simple state-based logic - suggestion button now appears after first AI response in each step
+  * SIMPLIFIED FRONTEND: Eliminated all phrase matching logic and replaced with clean conditional: show button when AI responds, no suggestions exist, and not in final step
+  * NATURAL AI RESPONSES: Simplified server prompts to be more conversational without requiring exact trigger phrases
+  * CRITICAL INITIAL MESSAGE FIX: Added messageIndex > 0 condition to prevent suggestion button from appearing on opening AI message - users must provide input first
+  * FOLLOW-UP QUESTION BUTTON FIX: Fixed hasSuggestions flag reset issue - buttons now properly appear on AI follow-up questions after user selects suggested options
+  * SUGGESTION SELECTION RESET: Added hasSuggestions = false when user selects from suggestion options to enable button display on subsequent AI responses
+  * LAUNCH READY: Both suggestion button types now work correctly for user's launch date requirement
+- July 16, 2025. AI SUGGESTION-ON-DEMAND SYSTEM: Completely redesigned AI brainstorming to provide suggestions only when users explicitly request them:
+  * ON-DEMAND APPROACH: AI no longer automatically provides numbered suggestions in responses
+  * BUTTON-TRIGGERED SUGGESTIONS: AI only provides 3 numbered options when user clicks suggestion buttons or explicitly asks for ideas
+  * CONVERSATIONAL FLOW: AI asks clarifying questions and ends with "Would you like me to give you some suggestions?" when user hasn't requested suggestions
+  * SIMPLIFIED SYSTEM PROMPTS: Removed complex step-specific instructions and replaced with streamlined suggestion-on-demand logic
+  * BOTH TYPES UPDATED: Updated both scene description and art style brainstorming to use consistent suggestion-on-demand approach
+  * CLEANER INTERACTION: Users can now have natural conversations with AI without being overwhelmed by automatic suggestions
+  * EXPLICIT REQUEST DETECTION: System detects when users ask for suggestions (e.g., "Give me some suggestions", "What styles would work?")
+  * MAINTAINED QUALITY: Preserved high-quality 3-option format and contextual relevance when suggestions are requested
 - July 15, 2025. INTELLIGENT PHOTO CONTENT ANALYSIS: Implemented AI-powered photo analysis to detect actual people count in uploaded images:
   * OPENAI VISION INTEGRATION: Added /api/analyze-photo-content endpoint using OpenAI Vision API to count people in uploaded photos
   * REAL PEOPLE DETECTION: System now analyzes photo content to detect 1 person, 2+ people, or no people instead of just counting photo files
