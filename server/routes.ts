@@ -532,8 +532,8 @@ Current step: ${conversationStep || 'setting'}`;
           // CRITICAL FIX: Correct the step calculation based on settingRefinements
           let targetStepName = conversationStep;
           
-          // If we're in setting step with 3+ refinements, should advance to activity
-          if (settingRefinements >= 3) {
+          // If we're in setting step with 2+ refinements, should advance to activity
+          if (settingRefinements >= 2) {
             targetStepName = 'activity';
           }
           
@@ -555,8 +555,8 @@ Current step: ${conversationStep || 'setting'}`;
         else if (userInput && (userInput.includes('Give me') || userInput.includes('suggestions') || userInput.includes('ideas'))) {
           console.log('SERVER SUGGESTION LOGIC: settingRefinements =', settingRefinements, 'conversationStep =', conversationStep);
           
-          if (settingRefinements >= 3) {
-            // After 3 setting interactions, MUST provide activity suggestions
+          if (settingRefinements >= 2) {
+            // After 2 setting interactions, MUST provide activity suggestions
             messages.push({
               role: "system", 
               content: `CRITICAL: The user has completed the location/setting step (${settingRefinements} interactions). You are now in the ACTIVITY step. 
@@ -599,8 +599,8 @@ Current step: ${conversationStep || 'setting'}`;
           // CRITICAL FIX: Enforce step transitions based on settingRefinements
           console.log('SERVER STEP LOGIC: settingRefinements =', settingRefinements, 'conversationStep =', conversationStep);
           
-          if (settingRefinements >= 3) {
-            // After 3 setting interactions, MUST advance to activity step
+          if (settingRefinements >= 2) {
+            // After 2 setting interactions, MUST advance to activity step
             messages.push({
               role: "system", 
               content: `CRITICAL: The user has completed the location/setting step (${settingRefinements} interactions). You are now in the ACTIVITY step. 
@@ -611,8 +611,8 @@ Current step: ${conversationStep || 'setting'}`;
               
               ABSOLUTELY FORBIDDEN: Do not mention location, setting, or ask follow-up questions about the setting. Only focus on ACTIVITY - what they should be doing in the established setting.`
             });
-          } else if (conversationStep === 'setting' && settingRefinements < 3) {
-            // Still in setting step with less than 3 refinements - can ask location follow-up
+          } else if (conversationStep === 'setting' && settingRefinements < 2) {
+            // Still in setting step with less than 2 refinements - can ask location follow-up
             messages.push({
               role: "system", 
               content: `CRITICAL: You are in the SETTING step (${settingRefinements} interactions so far). You can ask ONE more follow-up question about the location/setting.
