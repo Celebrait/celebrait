@@ -470,47 +470,20 @@ CONVERSATION FLOW (follow this order):
 4. EXTRA DETAIL - What special details would make this scene meaningful? (objects, symbols, atmosphere)
 5. FINAL APPROVAL - Present complete scene description for user approval
 
-CRITICAL INSTRUCTION - SUGGESTION-ON-DEMAND APPROACH:
-- Do NOT automatically provide numbered suggestions in your responses
-- Only provide numbered suggestions when the user explicitly asks for them (e.g., "Yes, please give me some suggestions" or "Give me more suggestions")
-- In your FIRST response, do NOT offer suggestions - ask a clarifying question and wait for their initial input
-- Only after they have provided their initial response should you offer "Would you like me to give you some suggestions?"
-- When user DOES ask for suggestions, provide exactly 3 numbered options in this format:
-  1. First specific option
-  2. Second specific option  
-  3. Third specific option
-- ALWAYS include after suggestions: "You can type your own response below or choose from the options above."
-- ALWAYS include after initial responses: "You can type your own response below or..."
-- CRITICAL: After providing suggestions, do NOT ask about the next step or combine multiple steps. Only focus on the current step.
-
 INSTRUCTIONS:
 - Ask ONE focused question at a time
 - Build on previous responses naturally
-- CRITICAL: NEVER combine multiple conversation steps in a single response. Only focus on the current step specified in the Current step parameter.
-- CRITICAL: Do NOT mention or ask about the next step until the user explicitly advances to it.
-- For SETTING step: 
-  * First interaction: Ask a clarifying question about location without offering suggestions
-  * After user provides initial response: Acknowledge it and ask for more specifics, then end with "Would you like me to give you some suggestions?"
-  * ONLY discuss setting/location - do NOT mention activities, people, or clothing
-- For ACTIVITY steps: 
-  * First interaction: Ask about what they should be doing without offering suggestions
-  * After user provides initial response: Acknowledge it and ask for more specifics, then end with "Would you like me to give you some suggestions?"
-  * ONLY discuss activities/actions - do NOT mention people, clothing, or other steps
-- For PEOPLE step: 
-  * First interaction: Ask about clothing/appearance preferences without offering suggestions
-  * After user provides initial response: Acknowledge it and ask for more specifics, then end with "Would you like me to give you some suggestions?"
-  * CRITICAL FOR PEOPLE STEP: ALWAYS prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option.
-  * ONLY discuss people/clothing - do NOT mention activities, settings, or other steps
-- For EXTRA DETAIL step: 
-  * First interaction: Ask about special details without offering suggestions
-  * After user provides initial response: Ask for more specifics, then end with "Would you like me to give you some suggestions?"
-  * ONLY discuss extra details - do NOT mention other steps
-- For FINAL APPROVAL step: Summarize the complete scene and tell user they can add more details if they like below. End by stating "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection." Do NOT provide numbered options in this step.
+- For SETTING step: After user provides initial response, provide exactly 3 simple location-based options ONLY. Focus purely on WHERE, not what they're doing. Examples: "Beach in Tenerife", "Mountain trail in Tenerife", "Village square in Tenerife" - NO activities or actions. If user describes an activity instead of a location, acknowledge it and ask specifically WHERE that activity would take place. Always remind user they can type their own response below or choose from the provided options. After they respond, ask one follow-up question about location specifics, then ask one more follow-up question to fully refine the location before moving to activity step.
+- For ACTIVITY steps: After user provides initial response, ask if they want anything more specific about that element and provide exactly 3 relevant suggestions. Always remind user they can type their own response below or choose from the provided options. CRITICAL: Always provide exactly 3 numbered options in activity suggestions.
+- For PEOPLE step: Provide immediate suggestions without requiring initial user input, based on location and activity already defined. Always remind users they can type their own response below or choose from the provided options. CRITICAL: Always remind users prominently that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This should be mentioned in every people step response. CRITICAL: Always provide exactly 3 numbered options in people suggestions.
+- For EXTRA DETAIL step: Allow user to get suggestions immediately or skip the step entirely. Always remind users they can type their own response below or choose from the provided options. CRITICAL: Always provide exactly 3 numbered options in extra detail suggestions.
+- For FINAL APPROVAL step: Summarize the complete scene and tell user they can add more details if they like below. End by stating "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection." Do NOT provide numbered options in this step. If user says "I'd like to make a change", ask them specifically which part they want to change (setting, activity, people, or extra details) and help them modify that specific element before presenting the final summary again.
 - Keep responses professional but encouraging
 - When they answer, acknowledge their input and ask if there's anything more they'd like to focus on before moving to next step
 - Reference all previous answers when asking follow-up questions for deeper specificity
 - Only move to the next step after they've given input for the current step
 - IMPORTANT: Use language that matches the photo context exactly - if it's a single person, use singular language throughout (${isMultiplePeople ? 'Multiple people detected - use plural language (everyone, they, their)' : 'Single person detected - use singular language (he/she, his/her)'})  
+- When user requests "more ideas", provide fresh suggestions in the same category without advancing steps
 - PHOTO CONTEXT AWARENESS: ${photoContext ? `Photo context: ${photoContext}. Adapt your language and suggestions based on whether this is a single person, group shot, or multiple photos of different people.` : 'No specific photo context provided - use general language for person/people.'}
 
 Current step: ${conversationStep || 'setting'}`;
@@ -527,153 +500,138 @@ Current step: ${conversationStep || 'setting'}`;
           { role: "user", content: contextualMessage }
         ];
         
-        // Check if user is asking to skip the current step
-        if (userInput && (userInput.toLowerCase().includes('skip this question') || userInput.toLowerCase().includes('skip'))) {
-          // CRITICAL FIX: Correct the step calculation based on settingRefinements
-          let targetStepName = conversationStep;
+        // Add specific instruction for location step
+        if (conversationStep === 'setting' && userInput && !userInput.includes('Give me more')) {
+          let refinementInstruction = "";
           
-          // If we're in setting step with 2+ refinements, should advance to activity
-          if (settingRefinements >= 2) {
-            targetStepName = 'activity';
+          if (userInput.includes('Skip location refinement')) {
+            refinementInstruction = "User has chosen to skip location refinement. Move directly to the activity step and ask about what the person should be doing in the scene.";
+          } else if (userInput.includes('Skip this question')) {
+            if (settingRefinements < 2) {
+              refinementInstruction = "User has skipped this follow-up question. Ask the next follow-up question with exactly 3 specific options to continue refining the location.";
+            } else {
+              refinementInstruction = "User has skipped this follow-up question. Move to the activity step and ask about what the person should be doing in the scene.";
+            }
+          } else if (settingRefinements === 0) {
+            // Check if user provided activity instead of location
+            if (userInput.toLowerCase().includes('creating') || userInput.toLowerCase().includes('doing') || userInput.toLowerCase().includes('making') || userInput.toLowerCase().includes('working') || userInput.toLowerCase().includes('party') || userInput.toLowerCase().includes('event')) {
+              refinementInstruction = "The user has described an activity rather than a location. Acknowledge this and ask specifically WHERE this activity would take place. For example: 'I see you're creating a balloon arch at a client's party - that sounds wonderful! Where would this party be taking place?' Then provide 3 simple location options where this activity could happen.";
+            } else {
+              refinementInstruction = "This is the initial location input. Provide 3 simple location variations and ask the first follow-up question with exactly 3 specific options for more specifics.";
+            }
+          } else if (settingRefinements === 1) {
+            refinementInstruction = "This is the first refinement. Ask one more follow-up question with exactly 3 specific options to fully refine the location before moving to activity step.";
+          } else if (settingRefinements >= 2) {
+            refinementInstruction = "This is the final location refinement. After this response, move to the activity step.";
           }
           
-          console.log('SKIP SERVER: settingRefinements:', settingRefinements, 'received step:', conversationStep, 'corrected step:', targetStepName);
-          
-          const targetStepPrompt = targetStepName === 'activity' ? 'What activity should they be doing in this setting?' :
-                                  targetStepName === 'people' ? 'What should they be wearing and how should they look?' :
-                                  targetStepName === 'extra_detail' ? 'Any special details or elements you\'d like to include?' :
-                                  'Let me summarize your scene for final approval.';
-          
-          messages.push({
-            role: "system",
-            content: `The user has chosen to skip the previous step. Provide a brief transition message and ask about the current step (${targetStepName}). Ask: "${targetStepPrompt}" and add "You can type your own response below or I can provide suggestions if you'd like."
-            
-            ${targetStepName === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}`
-          });
-        } 
-        // Check if user is asking for suggestions
-        else if (userInput && (userInput.includes('Give me') || userInput.includes('suggestions') || userInput.includes('ideas'))) {
-          console.log('SERVER SUGGESTION LOGIC: settingRefinements =', settingRefinements, 'conversationStep =', conversationStep);
-          
-          if (settingRefinements >= 2) {
-            // After 2 setting interactions, MUST provide activity suggestions
-            messages.push({
-              role: "system", 
-              content: `CRITICAL: The user has completed the location/setting step (${settingRefinements} interactions). You are now in the ACTIVITY step. 
-              
-              Provide exactly 3 numbered activity suggestions in this format:
-              1. First specific activity option
-              2. Second specific activity option  
-              3. Third specific activity option
-              
-              MANDATORY: After the suggestions, add: "You can type your own response below or choose from the options above."
-              
-              ABSOLUTELY FORBIDDEN: Do not mention location, setting, or ask follow-up questions about the setting. Only provide ACTIVITY suggestions - what they should be doing in the established setting.`
-            });
-          } else {
-            messages.push({
-              role: "system", 
-              content: `The user is asking for suggestions. Provide exactly 3 numbered options in this format:
-              1. First specific option
-              2. Second specific option  
-              3. Third specific option
-              
-              MANDATORY: After the suggestions, add: "You can type your own response below or choose from the options above."
-              
-              ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
-              
-              CRITICAL: Only focus on the current step (${conversationStep}). Do NOT ask about the next step or mention any other steps. Stay strictly on the current conversation step only.
-              
-              ABSOLUTELY FORBIDDEN: ${conversationStep === 'activity' ? 'Do not mention clothing, people, or what the person should wear. Only provide activity suggestions.' : conversationStep === 'setting' ? 'Do not mention activities, people, or clothing. Only provide setting/location suggestions.' : conversationStep === 'people' ? 'Do not mention activities or settings. Only provide people/clothing suggestions.' : 'Do not mention other conversation steps. Only provide suggestions for the current step.'}
-              
-              Make sure the suggestions are relevant to the current conversation step (${conversationStep}). Keep the suggestions specific and actionable.`
-            });
-          }
-        } else if (conversationHistory && conversationHistory.length === 0) {
-          // First interaction - do not offer suggestions
           messages.push({
             role: "system", 
-            content: `This is the first interaction in this conversation step. Do NOT offer suggestions. Ask a clarifying question about the ${conversationStep} and wait for their initial response. Do not end with "Would you like me to give you some suggestions?"`
+            content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
+            1. First specific option
+            2. Second specific option  
+            3. Third specific option
+            
+            DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond in the setting step.
+            
+            For the SETTING step, only provide 3 simple location variations. Do not include activities, actions, or what people are doing. Focus ONLY on WHERE the scene takes place. Always mention that the user can type their own response OR choose from the options. ${refinementInstruction}`
           });
-        } else if (conversationHistory && conversationHistory.length > 0 && !userInput.includes('Give me') && !userInput.includes('suggestions') && !userInput.includes('ideas')) {
-          // CRITICAL FIX: Enforce step transitions based on settingRefinements
-          console.log('SERVER STEP LOGIC: settingRefinements =', settingRefinements, 'conversationStep =', conversationStep);
+        }
+
+        // Add specific instruction for activity step
+        if (conversationStep === 'activity' && userInput && !userInput.includes('Give me more')) {
+          const activityLanguage = isMultiplePeople ? 
+            "what everyone should be doing" : 
+            `what ${recipientName} should be doing`;
           
-          if (settingRefinements >= 2) {
-            // After 2 setting interactions, MUST advance to activity step
+          messages.push({
+            role: "system", 
+            content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
+            1. First specific option
+            2. Second specific option  
+            3. Third specific option
+            
+            DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond in the activity step.
+            
+            For the ACTIVITY step, always provide exactly 3 numbered options for ${activityLanguage}. Always remind users they can type their own response below or choose from the provided options. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response.`
+          });
+        }
+
+        // Add specific instruction for people step
+        if (conversationStep === 'people') {
+          const photoContextInstruction = photoContext ? 
+            `Photo context: ${photoContext}. Adapt your clothing suggestions accordingly - if it's a single person, focus on individual styling; if it's a group, consider coordinated or complementary outfits; if multiple different people, suggest how to make them work together visually.` : 
+            'No specific photo context - use general language for person/people clothing suggestions.';
+          
+          const peopleLanguage = isMultiplePeople ? 
+            "clothing suggestions for everyone" : 
+            `clothing suggestions for ${recipientName}`;
+          
+          messages.push({
+            role: "system", 
+            content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
+            1. First specific option
+            2. Second specific option  
+            3. Third specific option
+            
+            DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond in the people step.
+            
+            For the PEOPLE step, you MUST remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This must be mentioned prominently in every people step response. Say something like: 'Remember, you can skip this question to let me choose clothing that perfectly matches the scene!' Also always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options for ${peopleLanguage}. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response. ${photoContextInstruction}`
+          });
+        }
+
+        // Add specific instruction for final approval step
+        if (conversationStep === 'final_approval') {
+          if (userInput && userInput.includes("I'd like to make a change")) {
             messages.push({
               role: "system", 
-              content: `CRITICAL: The user has completed the location/setting step (${settingRefinements} interactions). You are now in the ACTIVITY step. 
-              
-              MANDATORY: Ask about what activity they should be doing in the setting that was established. Ask: "What activity should they be doing in this setting?" 
-              
-              MANDATORY: Add: "You can type your own response below or I can provide suggestions if you'd like."
-              
-              ABSOLUTELY FORBIDDEN: Do not mention location, setting, or ask follow-up questions about the setting. Only focus on ACTIVITY - what they should be doing in the established setting.`
-            });
-          } else if (conversationStep === 'setting' && settingRefinements < 2) {
-            // Still in setting step with less than 2 refinements - can ask location follow-up
-            messages.push({
-              role: "system", 
-              content: `CRITICAL: You are in the SETTING step (${settingRefinements} interactions so far). You can ask ONE more follow-up question about the location/setting.
-              
-              1. Acknowledge their input briefly
-              2. Ask for more specifics about the LOCATION/SETTING only
-              3. MANDATORY: Add: "You can type your own response below or I can provide suggestions if you'd like."
-              
-              ABSOLUTELY FORBIDDEN: Do not mention activities, people, or clothing. Only ask about the location/setting.`
-            });
-          } else if (conversationStep === 'setting' && settingRefinements >= 2) {
-            // After 2 setting interactions, MUST advance to activity step
-            messages.push({
-              role: "system", 
-              content: `CRITICAL: The user has completed the location/setting step (${settingRefinements} interactions). You are now in the ACTIVITY step. 
-              
-              MANDATORY: Ask about what activity they should be doing in the setting that was established. Ask: "What activity should they be doing in this setting?" 
-              
-              MANDATORY: Add: "You can type your own response below or I can provide suggestions if you'd like."
-              
-              ABSOLUTELY FORBIDDEN: Do not mention location, setting, or ask follow-up questions about the setting. Only focus on ACTIVITY - what they should be doing in the established setting.`
+              content: "The user wants to make a change to the final scene. Ask them specifically which part they want to change: 1) Setting/Location, 2) Activity/Action, 3) People/Clothing, or 4) Extra Details. Once they specify, help them modify that specific element, then present the updated final summary again for approval."
             });
           } else {
-            // User has provided their initial response - always offer suggestions
             messages.push({
               role: "system", 
-              content: `CRITICAL: The user has provided their initial response about the ${conversationStep}. You MUST:
-              1. Acknowledge their input briefly
-              2. Ask for more specifics about the current step (${conversationStep})
-              3. MANDATORY: Add: "You can type your own response below or I can provide suggestions if you'd like."
+              content: `CRITICAL REQUIREMENT: You are in the FINAL APPROVAL step. DO NOT provide numbered options. DO NOT provide bullet points. DO NOT ask questions.
               
-              Keep the response natural and conversational.
+              Your response should:
+              1. Acknowledge what they've shared
+              2. Present a complete, cohesive scene summary incorporating all the elements they've chosen
+              3. End with: "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection."
               
-              ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
-              
-              This is mandatory - do not skip the suggestion offer or typing reminder.`
+              Do NOT provide any numbered options or suggestions. This is the final summary step where they review and approve the complete scene description.`
             });
           }
+        }
+
+        // Add specific instruction for more ideas requests (but NOT in final approval)
+        if (userInput && userInput.includes('Give me more') && conversationStep !== 'final_approval') {
+          messages.push({
+            role: "system", 
+            content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
+            1. First specific option
+            2. Second specific option  
+            3. Third specific option
+            
+            DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond to a "more ideas" request.
+            
+            The user is asking for more ideas. Provide exactly 3 new numbered options relevant to the current conversation step. Always remind users they can type their own response below or choose from the provided options. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response.`
+          });
         }
       } else if (type === "art_style") {
         systemPrompt = `You are a professional creative assistant helping users choose art styles for personalized greeting cards. You should:
 
 1. Start by understanding the celebration and the feeling they want to convey
 2. Ask one specific question at a time about their preferences
-3. Only suggest specific art styles when the user explicitly asks for suggestions
+3. Only suggest specific art styles after gathering context about their preferences
 4. Explain why certain styles work well for their celebration
 5. Guide them toward the ideal style choice step-by-step
 6. Keep the conversation professional but engaging
 
-CRITICAL INSTRUCTION - SUGGESTION-ON-DEMAND APPROACH:
-- Do NOT automatically provide numbered suggestions in your responses
-- Only provide numbered suggestions when the user explicitly asks for them (e.g., "Give me some suggestions" or "What styles would work?")
-- In your FIRST response, do NOT offer suggestions - ask a clarifying question and wait for their initial input
-- Only after they have provided their initial response should you offer "Would you like me to suggest some art styles?"
-- When user DOES ask for suggestions, provide exactly 3 numbered options with explanations
-
 CONVERSATION FLOW:
-- First interaction: Ask about the mood/feeling they want the card to convey (no suggestion offer)
-- Build on their responses with follow-up questions
-- Help them visualize exactly how different styles would look when they ask for suggestions
+- First interaction: Ask about the mood/feeling they want the card to convey
+- Build on their responses with specific style suggestions
+- Help them visualize exactly how different styles would look
 - End with a perfect art style description they can use
+- DO NOT provide suggestions in your first response - let the user provide their initial input first
 
 Remember: You're helping them discover their perfect artistic vision through guided questions.`;
         
@@ -690,74 +648,9 @@ Remember: You're helping them discover their perfect artistic vision through gui
           ...conversationHistory,
           { role: "user", content: userInput || "Can you help me with more ideas?" }
         ];
-        
-        // Apply same suggestion logic even with conversation history
-        if (userInput && (userInput.toLowerCase().includes('skip this question') || userInput.toLowerCase().includes('skip'))) {
-          // User wants to skip - the frontend already calculated the next step and sent it as conversationStep
-          // So we don't need to calculate next step again, just use the conversationStep as the target step
-          const targetStepName = conversationStep; // This is already the next step from frontend
-          
-          // Special handling for when photo is uploaded - skip people step
-          if (targetStepName === 'people' && photoContext && photoContext.includes('photo uploaded')) {
-            messages.push({
-              role: "system",
-              content: `The user has chosen to skip the previous step. Since a photo was uploaded, we already know who should be featured in the scene. Move directly to asking about extra details or special elements. Ask: "Any special details or elements you'd like to include in this scene?" and add "You can type your own response below or I can provide suggestions if you'd like."`
-            });
-          } else {
-            const targetStepPrompt = targetStepName === 'activity' ? 'What activity should they be doing in this setting?' :
-                                    targetStepName === 'people' ? 'Who should be featured in this scene?' :
-                                    targetStepName === 'extra_detail' ? 'Any special details or elements you\'d like to include?' :
-                                    'Let me summarize your scene for final approval.';
-            
-            messages.push({
-              role: "system",
-              content: `The user has chosen to skip the previous step. Provide a brief transition message and ask about the current step (${targetStepName}). Ask: "${targetStepPrompt}" and add "You can type your own response below or I can provide suggestions if you'd like."`
-            });
-          }
-        } else if (userInput && (userInput.includes('Give me') || userInput.includes('suggestions') || userInput.includes('ideas'))) {
-          messages.push({
-            role: "system", 
-            content: `The user is asking for suggestions. Provide exactly 3 numbered options in this format:
-            1. First specific option
-            2. Second specific option  
-            3. Third specific option
-            
-            MANDATORY: After the suggestions, add: "You can type your own response below or choose from the options above."
-            
-            ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
-            
-            CRITICAL: Only focus on the current step (${conversationStep}). Do NOT ask about the next step or mention any other steps. Stay strictly on the current conversation step only.
-            
-            ABSOLUTELY FORBIDDEN: ${conversationStep === 'activity' ? 'Do not mention clothing, people, or what the person should wear. Only provide activity suggestions.' : conversationStep === 'setting' ? 'Do not mention activities, people, or clothing. Only provide setting/location suggestions.' : conversationStep === 'people' ? 'Do not mention activities or settings. Only provide people/clothing suggestions.' : 'Do not mention other conversation steps. Only provide suggestions for the current step.'}
-            
-            Make sure the suggestions are relevant to the current conversation step (${conversationStep}). Keep the suggestions specific and actionable.`
-          });
-        } else if (!userInput.includes('Give me') && !userInput.includes('suggestions') && !userInput.includes('ideas')) {
-          // User provided a substantive response - offer suggestions
-          messages.push({
-            role: "system", 
-            content: `CRITICAL: The user has provided a substantive response about the ${conversationStep}. You MUST:
-            1. Acknowledge their input briefly
-            2. Ask for more specifics about the current step (${conversationStep})
-            3. MANDATORY: Add: "You can type your own response below or I can provide suggestions if you'd like."
-            
-            Keep the response natural and conversational.
-            
-            ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
-            
-            This is mandatory - do not skip the suggestion offer or typing reminder.`
-          });
-        }
       }
 
-      console.log('=== AI BRAINSTORM SERVER CALL ===');
-      console.log('type:', type);
-      console.log('conversationStep:', conversationStep);
-      console.log('settingRefinements:', settingRefinements);
-      console.log('userInput:', userInput);
-      console.log('recipientName:', recipientName);
-      console.log('celebration:', celebration);
-      console.log('photoContext:', photoContext);
+      console.log('AI Brainstorm request:', { type, recipientName, celebration, userInput, hasHistory: !!conversationHistory, photoContext });
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
