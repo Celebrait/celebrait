@@ -526,14 +526,11 @@ Current step: ${conversationStep || 'setting'}`;
           
           messages.push({
             role: "system", 
-            content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
+            content: `Remember: For the SETTING step, only provide 3 simple location variations. Do not include activities, actions, or what people are doing. Focus ONLY on WHERE the scene takes place. Always mention that the user can type their own response OR choose from the options. CRITICAL: When asking follow-up questions, you MUST provide exactly 3 numbered options in this format:
             1. First specific option
             2. Second specific option  
             3. Third specific option
-            
-            DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond in the setting step.
-            
-            For the SETTING step, only provide 3 simple location variations. Do not include activities, actions, or what people are doing. Focus ONLY on WHERE the scene takes place. Always mention that the user can type their own response OR choose from the options. ${refinementInstruction}`
+            Never ask questions without providing these 3 numbered options. ${refinementInstruction}`
           });
         }
 
@@ -545,14 +542,7 @@ Current step: ${conversationStep || 'setting'}`;
           
           messages.push({
             role: "system", 
-            content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
-            1. First specific option
-            2. Second specific option  
-            3. Third specific option
-            
-            DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond in the activity step.
-            
-            For the ACTIVITY step, always provide exactly 3 numbered options for ${activityLanguage}. Always remind users they can type their own response below or choose from the provided options. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response.`
+            content: `Remember: For the ACTIVITY step, always provide exactly 3 numbered options for ${activityLanguage}. Format them as: 1. First action, 2. Second action, 3. Third action. Always remind users they can type their own response below or choose from the provided options. CRITICAL: Always provide exactly 3 numbered options when answering activity questions. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response.`
           });
         }
 
@@ -568,14 +558,7 @@ Current step: ${conversationStep || 'setting'}`;
           
           messages.push({
             role: "system", 
-            content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
-            1. First specific option
-            2. Second specific option  
-            3. Third specific option
-            
-            DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond in the people step.
-            
-            For the PEOPLE step, you MUST remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This must be mentioned prominently in every people step response. Say something like: 'Remember, you can skip this question to let me choose clothing that perfectly matches the scene!' Also always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options for ${peopleLanguage}. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response. ${photoContextInstruction}`
+            content: `CRITICAL: For the PEOPLE step, you MUST remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This must be mentioned prominently in every people step response. Say something like: 'Remember, you can skip this question to let me choose clothing that perfectly matches the scene!' Also always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options for ${peopleLanguage}. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response. ${photoContextInstruction}`
           });
         }
 
@@ -591,14 +574,7 @@ Current step: ${conversationStep || 'setting'}`;
         if (userInput && userInput.includes('Give me more')) {
           messages.push({
             role: "system", 
-            content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
-            1. First specific option
-            2. Second specific option  
-            3. Third specific option
-            
-            DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond to a "more ideas" request.
-            
-            The user is asking for more ideas. Provide exactly 3 new numbered options relevant to the current conversation step. Always remind users they can type their own response below or choose from the provided options. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response.`
+            content: `The user is asking for more ideas. Provide exactly 3 new numbered options relevant to the current conversation step. Always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options formatted as: 1. First option, 2. Second option, 3. Third option. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response.`
           });
         }
       } else if (type === "art_style") {
