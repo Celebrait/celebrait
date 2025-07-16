@@ -120,14 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 16, 2025. CRITICAL BUG INVESTIGATION: Investigating critical conversation flow bug where location step jumps directly to final summary:
+- July 16, 2025. CRITICAL BUG FIX: Fixed conversation flow bug where location step was jumping directly to final summary:
   * IDENTIFIED ISSUE: Location step failing to advance to activity step after 3 user responses
-  * FRONTEND LOGIC: Added comprehensive debugging to track step advancement and conversation state
-  * SERVER DEBUGGING: Added detailed logging to trace conversation steps and API calls
-  * STEP ADVANCEMENT: Fixed settingRefinements counting logic and removed photo context skip logic
-  * DIAGNOSIS: Conversation jumping from setting → extra_detail → final_approval, completely skipping activity and people steps
-  * DEBUGGING ADDED: Console logging on both frontend and server to trace exact step progression
-  * INVESTIGATION FOCUS: Systematic debugging of conversation state management and step advancement mechanisms
+  * ROOT CAUSE: Frontend skip button logic was sending wrong step parameter to server - after 3 setting refinements, skip should go to activity but was sending people step
+  * SERVER-SIDE FIX: Added logic to correct step calculation based on settingRefinements count - when settingRefinements >= 3, skip button correctly advances to activity step
+  * DEBUGGING ADDED: Console logging on both frontend and server to trace exact step progression and step calculation
+  * FLOW CORRECTION: Fixed conversation flow to properly advance setting (3 responses) → activity → people → extra_detail → final_approval
+  * STEP VALIDATION: Server now validates and corrects step advancement based on conversation progress rather than relying solely on frontend state
 - July 16, 2025. REFINED AI SUGGESTION BUTTON FLOW: Enhanced AI brainstorming approach with clearer initial suggestion requests:
   * DUAL BUTTON SYSTEM: Added "Give Me Some Suggestions" button with "Skip This Question" for immediate suggestion access on all steps except location
   * LOCATION EXCEPTION: Setting/location step requires text input first before showing suggestion buttons, maintaining focused approach

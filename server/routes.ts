@@ -529,9 +529,15 @@ Current step: ${conversationStep || 'setting'}`;
         
         // Check if user is asking to skip the current step
         if (userInput && (userInput.toLowerCase().includes('skip this question') || userInput.toLowerCase().includes('skip'))) {
-          // User wants to skip - the frontend already calculated the next step and sent it as conversationStep
-          // So we don't need to calculate next step again, just use the conversationStep as the target step
-          const targetStepName = conversationStep; // This is already the next step from frontend
+          // CRITICAL FIX: Correct the step calculation based on settingRefinements
+          let targetStepName = conversationStep;
+          
+          // If we're in setting step with 3+ refinements, should advance to activity
+          if (settingRefinements >= 3) {
+            targetStepName = 'activity';
+          }
+          
+          console.log('SKIP SERVER: settingRefinements:', settingRefinements, 'received step:', conversationStep, 'corrected step:', targetStepName);
           
           const targetStepPrompt = targetStepName === 'activity' ? 'What activity should they be doing in this setting?' :
                                   targetStepName === 'people' ? 'What should they be wearing and how should they look?' :
