@@ -166,13 +166,13 @@ export function AIBrainstormChat({
         // Store the user's input for the current step and advance if it's a real answer
         switch (prev.currentStep) {
           case 'setting':
-            if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
+            if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more') && !userInput.toLowerCase().includes('skip')) {
               // Update setting info and track refinement count
               newState.collectedInfo.setting = userInput;
               newState.settingRefinements = prev.settingRefinements + 1;
               
-              // Only advance to activity after 3 refinement questions  
-              if (prev.settingRefinements >= 3) {
+              // Only advance to activity after 4 refinement questions (increased from 3)
+              if (prev.settingRefinements >= 4) {
                 newState.currentStep = 'activity';
                 newState.hasSuggestions = false; // Reset suggestions for new step
               }
@@ -181,7 +181,12 @@ export function AIBrainstormChat({
           case 'activity':
             if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               newState.collectedInfo.activity = userInput;
-              newState.currentStep = 'people';
+              // Skip people step if photo is uploaded (we already know who to feature)
+              if (photoContext && photoContext.includes('photo uploaded')) {
+                newState.currentStep = 'extra_detail';
+              } else {
+                newState.currentStep = 'people';
+              }
               newState.hasSuggestions = false; // Reset suggestions for new step
             }
             break;

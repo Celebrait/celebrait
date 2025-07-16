@@ -629,15 +629,23 @@ Remember: You're helping them discover their perfect artistic vision through gui
           // So we don't need to calculate next step again, just use the conversationStep as the target step
           const targetStepName = conversationStep; // This is already the next step from frontend
           
-          const targetStepPrompt = targetStepName === 'activity' ? 'What activity should they be doing in this setting?' :
-                                  targetStepName === 'people' ? 'Who should be featured in this scene?' :
-                                  targetStepName === 'extra_detail' ? 'Any special details or elements you\'d like to include?' :
-                                  'Let me summarize your scene for final approval.';
-          
-          messages.push({
-            role: "system",
-            content: `The user has chosen to skip the previous step. Provide a brief transition message and ask about the current step (${targetStepName}). Ask: "${targetStepPrompt}" and add "You can type your own response below or I can provide suggestions if you'd like."`
-          });
+          // Special handling for when photo is uploaded - skip people step
+          if (targetStepName === 'people' && photoContext && photoContext.includes('photo uploaded')) {
+            messages.push({
+              role: "system",
+              content: `The user has chosen to skip the previous step. Since a photo was uploaded, we already know who should be featured in the scene. Move directly to asking about extra details or special elements. Ask: "Any special details or elements you'd like to include in this scene?" and add "You can type your own response below or I can provide suggestions if you'd like."`
+            });
+          } else {
+            const targetStepPrompt = targetStepName === 'activity' ? 'What activity should they be doing in this setting?' :
+                                    targetStepName === 'people' ? 'Who should be featured in this scene?' :
+                                    targetStepName === 'extra_detail' ? 'Any special details or elements you\'d like to include?' :
+                                    'Let me summarize your scene for final approval.';
+            
+            messages.push({
+              role: "system",
+              content: `The user has chosen to skip the previous step. Provide a brief transition message and ask about the current step (${targetStepName}). Ask: "${targetStepPrompt}" and add "You can type your own response below or I can provide suggestions if you'd like."`
+            });
+          }
         } else if (userInput && (userInput.includes('Give me') || userInput.includes('suggestions') || userInput.includes('ideas'))) {
           messages.push({
             role: "system", 
