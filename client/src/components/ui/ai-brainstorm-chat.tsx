@@ -557,7 +557,7 @@ Please type your ideas below to get started.`;
                       
                       {/* Show "Give Me More Ideas" button when AI presents options */}
                       {message.role === "assistant" && 
-                       suggestions.length > 0 && 
+                       extractSuggestions(message.content).length > 0 && 
                        (message.content.toLowerCase().includes('which of these resonates') ||
                         message.content.toLowerCase().includes('do any of these options') ||
                         message.content.toLowerCase().includes('which option') ||
