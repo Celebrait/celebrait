@@ -120,6 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 16, 2025. AI SUGGESTION-ON-DEMAND SYSTEM: Completely redesigned AI brainstorming to provide suggestions only when users explicitly request them:
+  * ON-DEMAND APPROACH: AI no longer automatically provides numbered suggestions in responses
+  * BUTTON-TRIGGERED SUGGESTIONS: AI only provides 3 numbered options when user clicks suggestion buttons or explicitly asks for ideas
+  * CONVERSATIONAL FLOW: AI asks clarifying questions and ends with "Would you like me to give you some suggestions?" when user hasn't requested suggestions
+  * SIMPLIFIED SYSTEM PROMPTS: Removed complex step-specific instructions and replaced with streamlined suggestion-on-demand logic
+  * BOTH TYPES UPDATED: Updated both scene description and art style brainstorming to use consistent suggestion-on-demand approach
+  * CLEANER INTERACTION: Users can now have natural conversations with AI without being overwhelmed by automatic suggestions
+  * EXPLICIT REQUEST DETECTION: System detects when users ask for suggestions (e.g., "Give me some suggestions", "What styles would work?")
+  * MAINTAINED QUALITY: Preserved high-quality 3-option format and contextual relevance when suggestions are requested
 - July 15, 2025. INTELLIGENT PHOTO CONTENT ANALYSIS: Implemented AI-powered photo analysis to detect actual people count in uploaded images:
   * OPENAI VISION INTEGRATION: Added /api/analyze-photo-content endpoint using OpenAI Vision API to count people in uploaded photos
   * REAL PEOPLE DETECTION: System now analyzes photo content to detect 1 person, 2+ people, or no people instead of just counting photo files

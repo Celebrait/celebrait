@@ -470,20 +470,28 @@ CONVERSATION FLOW (follow this order):
 4. EXTRA DETAIL - What special details would make this scene meaningful? (objects, symbols, atmosphere)
 5. FINAL APPROVAL - Present complete scene description for user approval
 
+CRITICAL INSTRUCTION - SUGGESTION-ON-DEMAND APPROACH:
+- Do NOT automatically provide numbered suggestions in your responses
+- Only provide numbered suggestions when the user explicitly asks for them (e.g., "Yes, please give me some suggestions" or "Give me more suggestions")
+- When user does NOT ask for suggestions, ask a clarifying question and end with "Would you like me to give you some suggestions?"
+- When user DOES ask for suggestions, provide exactly 3 numbered options in this format:
+  1. First specific option
+  2. Second specific option  
+  3. Third specific option
+
 INSTRUCTIONS:
 - Ask ONE focused question at a time
 - Build on previous responses naturally
-- For SETTING step: After user provides initial response, provide exactly 3 simple location-based options ONLY. Focus purely on WHERE, not what they're doing. Examples: "Beach in Tenerife", "Mountain trail in Tenerife", "Village square in Tenerife" - NO activities or actions. If user describes an activity instead of a location, acknowledge it and ask specifically WHERE that activity would take place. Always remind user they can type their own response below or choose from the provided options. After they respond, ask one follow-up question about location specifics, then ask one more follow-up question to fully refine the location before moving to activity step.
-- For ACTIVITY steps: After user provides initial response, ask if they want anything more specific about that element and provide exactly 3 relevant suggestions. Always remind user they can type their own response below or choose from the provided options. CRITICAL: Always provide exactly 3 numbered options in activity suggestions.
-- For PEOPLE step: Provide immediate suggestions without requiring initial user input, based on location and activity already defined. Always remind users they can type their own response below or choose from the provided options. CRITICAL: Always remind users prominently that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This should be mentioned in every people step response. CRITICAL: Always provide exactly 3 numbered options in people suggestions.
-- For EXTRA DETAIL step: Allow user to get suggestions immediately or skip the step entirely. Always remind users they can type their own response below or choose from the provided options. CRITICAL: Always provide exactly 3 numbered options in extra detail suggestions.
-- For FINAL APPROVAL step: Summarize the complete scene and tell user they can add more details if they like below. End by stating "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection." Do NOT provide numbered options in this step. If user says "I'd like to make a change", ask them specifically which part they want to change (setting, activity, people, or extra details) and help them modify that specific element before presenting the final summary again.
+- For SETTING step: When user provides initial response, acknowledge it and ask a clarifying question about location specifics, then end with "Would you like me to give you some suggestions?"
+- For ACTIVITY steps: When user provides initial response, acknowledge it and ask for more specifics about the activity, then end with "Would you like me to give you some suggestions?"
+- For PEOPLE step: Acknowledge what they've shared so far and ask about clothing/appearance preferences, then end with "Would you like me to give you some suggestions?"
+- For EXTRA DETAIL step: Ask about special details that would make the scene meaningful, then end with "Would you like me to give you some suggestions?"
+- For FINAL APPROVAL step: Summarize the complete scene and tell user they can add more details if they like below. End by stating "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection." Do NOT provide numbered options in this step.
 - Keep responses professional but encouraging
 - When they answer, acknowledge their input and ask if there's anything more they'd like to focus on before moving to next step
 - Reference all previous answers when asking follow-up questions for deeper specificity
 - Only move to the next step after they've given input for the current step
 - IMPORTANT: Use language that matches the photo context exactly - if it's a single person, use singular language throughout (${isMultiplePeople ? 'Multiple people detected - use plural language (everyone, they, their)' : 'Single person detected - use singular language (he/she, his/her)'})  
-- When user requests "more ideas", provide fresh suggestions in the same category without advancing steps
 - PHOTO CONTEXT AWARENESS: ${photoContext ? `Photo context: ${photoContext}. Adapt your language and suggestions based on whether this is a single person, group shot, or multiple photos of different people.` : 'No specific photo context provided - use general language for person/people.'}
 
 Current step: ${conversationStep || 'setting'}`;
@@ -500,120 +508,16 @@ Current step: ${conversationStep || 'setting'}`;
           { role: "user", content: contextualMessage }
         ];
         
-        // Add specific instruction for location step
-        if (conversationStep === 'setting' && userInput && !userInput.includes('Give me more')) {
-          let refinementInstruction = "";
-          
-          if (userInput.includes('Skip location refinement')) {
-            refinementInstruction = "User has chosen to skip location refinement. Move directly to the activity step and ask about what the person should be doing in the scene.";
-          } else if (userInput.includes('Skip this question')) {
-            if (settingRefinements < 2) {
-              refinementInstruction = "User has skipped this follow-up question. Ask the next follow-up question with exactly 3 specific options to continue refining the location.";
-            } else {
-              refinementInstruction = "User has skipped this follow-up question. Move to the activity step and ask about what the person should be doing in the scene.";
-            }
-          } else if (settingRefinements === 0) {
-            // Check if user provided activity instead of location
-            if (userInput.toLowerCase().includes('creating') || userInput.toLowerCase().includes('doing') || userInput.toLowerCase().includes('making') || userInput.toLowerCase().includes('working') || userInput.toLowerCase().includes('party') || userInput.toLowerCase().includes('event')) {
-              refinementInstruction = "The user has described an activity rather than a location. Acknowledge this and ask specifically WHERE this activity would take place. For example: 'I see you're creating a balloon arch at a client's party - that sounds wonderful! Where would this party be taking place?' Then provide 3 simple location options where this activity could happen.";
-            } else {
-              refinementInstruction = "This is the initial location input. Provide 3 simple location variations and ask the first follow-up question with exactly 3 specific options for more specifics.";
-            }
-          } else if (settingRefinements === 1) {
-            refinementInstruction = "This is the first refinement. Ask one more follow-up question with exactly 3 specific options to fully refine the location before moving to activity step.";
-          } else if (settingRefinements >= 2) {
-            refinementInstruction = "This is the final location refinement. After this response, move to the activity step.";
-          }
-          
+        // Check if user is asking for suggestions
+        if (userInput && (userInput.includes('Give me') || userInput.includes('suggestions') || userInput.includes('ideas'))) {
           messages.push({
             role: "system", 
-            content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
+            content: `The user is asking for suggestions. Provide exactly 3 numbered options in this format:
             1. First specific option
             2. Second specific option  
             3. Third specific option
             
-            DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond in the setting step.
-            
-            For the SETTING step, only provide 3 simple location variations. Do not include activities, actions, or what people are doing. Focus ONLY on WHERE the scene takes place. Always mention that the user can type their own response OR choose from the options. ${refinementInstruction}`
-          });
-        }
-
-        // Add specific instruction for activity step
-        if (conversationStep === 'activity' && userInput && !userInput.includes('Give me more')) {
-          const activityLanguage = isMultiplePeople ? 
-            "what everyone should be doing" : 
-            `what ${recipientName} should be doing`;
-          
-          messages.push({
-            role: "system", 
-            content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
-            1. First specific option
-            2. Second specific option  
-            3. Third specific option
-            
-            DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond in the activity step.
-            
-            For the ACTIVITY step, always provide exactly 3 numbered options for ${activityLanguage}. Always remind users they can type their own response below or choose from the provided options. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response.`
-          });
-        }
-
-        // Add specific instruction for people step
-        if (conversationStep === 'people') {
-          const photoContextInstruction = photoContext ? 
-            `Photo context: ${photoContext}. Adapt your clothing suggestions accordingly - if it's a single person, focus on individual styling; if it's a group, consider coordinated or complementary outfits; if multiple different people, suggest how to make them work together visually.` : 
-            'No specific photo context - use general language for person/people clothing suggestions.';
-          
-          const peopleLanguage = isMultiplePeople ? 
-            "clothing suggestions for everyone" : 
-            `clothing suggestions for ${recipientName}`;
-          
-          messages.push({
-            role: "system", 
-            content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
-            1. First specific option
-            2. Second specific option  
-            3. Third specific option
-            
-            DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond in the people step.
-            
-            For the PEOPLE step, you MUST remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This must be mentioned prominently in every people step response. Say something like: 'Remember, you can skip this question to let me choose clothing that perfectly matches the scene!' Also always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options for ${peopleLanguage}. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response. ${photoContextInstruction}`
-          });
-        }
-
-        // Add specific instruction for final approval step
-        if (conversationStep === 'final_approval') {
-          if (userInput && userInput.includes("I'd like to make a change")) {
-            messages.push({
-              role: "system", 
-              content: "The user wants to make a change to the final scene. Ask them specifically which part they want to change: 1) Setting/Location, 2) Activity/Action, 3) People/Clothing, or 4) Extra Details. Once they specify, help them modify that specific element, then present the updated final summary again for approval."
-            });
-          } else {
-            messages.push({
-              role: "system", 
-              content: `CRITICAL REQUIREMENT: You are in the FINAL APPROVAL step. DO NOT provide numbered options. DO NOT provide bullet points. DO NOT ask questions.
-              
-              Your response should:
-              1. Acknowledge what they've shared
-              2. Present a complete, cohesive scene summary incorporating all the elements they've chosen
-              3. End with: "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection."
-              
-              Do NOT provide any numbered options or suggestions. This is the final summary step where they review and approve the complete scene description.`
-            });
-          }
-        }
-
-        // Add specific instruction for more ideas requests (but NOT in final approval)
-        if (userInput && userInput.includes('Give me more') && conversationStep !== 'final_approval') {
-          messages.push({
-            role: "system", 
-            content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
-            1. First specific option
-            2. Second specific option  
-            3. Third specific option
-            
-            DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond to a "more ideas" request.
-            
-            The user is asking for more ideas. Provide exactly 3 new numbered options relevant to the current conversation step. Always remind users they can type their own response below or choose from the provided options. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response.`
+            Make sure the suggestions are relevant to the current conversation step (${conversationStep}). Keep the suggestions specific and actionable.`
           });
         }
       } else if (type === "art_style") {
@@ -621,17 +525,22 @@ Current step: ${conversationStep || 'setting'}`;
 
 1. Start by understanding the celebration and the feeling they want to convey
 2. Ask one specific question at a time about their preferences
-3. Only suggest specific art styles after gathering context about their preferences
+3. Only suggest specific art styles when the user explicitly asks for suggestions
 4. Explain why certain styles work well for their celebration
 5. Guide them toward the ideal style choice step-by-step
 6. Keep the conversation professional but engaging
 
+CRITICAL INSTRUCTION - SUGGESTION-ON-DEMAND APPROACH:
+- Do NOT automatically provide numbered suggestions in your responses
+- Only provide numbered suggestions when the user explicitly asks for them (e.g., "Give me some suggestions" or "What styles would work?")
+- When user does NOT ask for suggestions, ask a clarifying question and end with "Would you like me to suggest some art styles?"
+- When user DOES ask for suggestions, provide exactly 3 numbered options with explanations
+
 CONVERSATION FLOW:
 - First interaction: Ask about the mood/feeling they want the card to convey
-- Build on their responses with specific style suggestions
-- Help them visualize exactly how different styles would look
+- Build on their responses with follow-up questions
+- Help them visualize exactly how different styles would look when they ask for suggestions
 - End with a perfect art style description they can use
-- DO NOT provide suggestions in your first response - let the user provide their initial input first
 
 Remember: You're helping them discover their perfect artistic vision through guided questions.`;
         
