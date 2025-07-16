@@ -22,7 +22,6 @@ interface AIBrainstormChatProps {
 interface ConversationState {
   currentStep: 'setting' | 'activity' | 'people' | 'extra_detail' | 'final_approval';
   settingRefinements: number; // Track number of location refinement questions asked
-  hasSuggestions: boolean; // Track if user has seen suggestions in current step
   collectedInfo: {
     setting?: string;
     activity?: string;
@@ -55,7 +54,6 @@ export function AIBrainstormChat({
   const [conversationState, setConversationState] = useState<ConversationState>({
     currentStep: 'setting',
     settingRefinements: 0,
-    hasSuggestions: false,
     collectedInfo: {}
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -97,8 +95,6 @@ export function AIBrainstormChat({
       setMessages([]);
       setConversationState({
         currentStep: 'setting',
-        settingRefinements: 0,
-        hasSuggestions: false,
         collectedInfo: {}
       });
     }
@@ -158,53 +154,38 @@ export function AIBrainstormChat({
           return newState; // Stay on same step
         }
         
-        // Reset hasSuggestions when user provides substantive input (not asking for suggestions)
-        if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('suggestions') && !userInput.toLowerCase().includes('more')) {
-          newState.hasSuggestions = false;
-        }
-        
         // Store the user's input for the current step and advance if it's a real answer
         switch (prev.currentStep) {
           case 'setting':
-            if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more') && !userInput.toLowerCase().includes('skip')) {
+            if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               // Update setting info and track refinement count
               newState.collectedInfo.setting = userInput;
               newState.settingRefinements = prev.settingRefinements + 1;
               
-              // Only advance to activity after 4 refinement questions (increased from 3)
-              if (prev.settingRefinements >= 4) {
+              // Only advance to activity after 2 refinement questions
+              if (prev.settingRefinements >= 2) {
                 newState.currentStep = 'activity';
-                newState.hasSuggestions = false; // Reset suggestions for new step
               }
             }
             break;
           case 'activity':
             if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               newState.collectedInfo.activity = userInput;
-              // Skip people step if photo is uploaded (we already know who to feature)
-              if (photoContext && photoContext.includes('photo uploaded')) {
-                newState.currentStep = 'extra_detail';
-              } else {
-                newState.currentStep = 'people';
-              }
-              newState.hasSuggestions = false; // Reset suggestions for new step
+              newState.currentStep = 'people';
             }
             break;
           case 'people':
             if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               newState.collectedInfo.people = userInput;
               newState.currentStep = 'extra_detail';
-              newState.hasSuggestions = false; // Reset suggestions for new step
             }
             break;
           case 'extra_detail':
             if (userInput.toLowerCase().includes('skip')) {
               newState.currentStep = 'final_approval';
-              newState.hasSuggestions = false; // Reset suggestions for new step
             } else if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               newState.collectedInfo.extraDetail = userInput;
               newState.currentStep = 'final_approval';
-              newState.hasSuggestions = false; // Reset suggestions for new step
             }
             break;
           case 'final_approval':
@@ -278,18 +259,16 @@ ${contextAcknowledgment}The more specific and vivid your description, the better
 
 I'll guide you through this step by step, starting with the most important question:
 
-Where should we place ${personReference} in this scene? Think about the setting or location that would be most meaningful for this ${celebration}.
-
-Please type your ideas below to get started.`;
+Where should we place ${personReference} in this scene? Think about the setting or location that would be most meaningful for this ${celebration}.`;
   };
 
   const extractSuggestions = (content: string) => {
     // Enhanced regex to capture various suggestion formats
     const patterns = [
-      // Numbered lists: "1. Description" or "1) Description" - improved to handle multi-line descriptions
-      /(?:^\d+[\.\)]\s*)(.+?)(?=\n\d+[\.\)]|\n\n|\n$|$)/gms,
+      // Numbered lists: "1. Description" or "1) Description"
+      /(?:^\d+[\.\)]\s*)(.+?)(?=\n\d+[\.\)]|\n\n|$)/gm,
       // Bulleted lists: "- Description" or "• Description"
-      /(?:^[-•]\s*)(.+?)(?=\n[-•]|\n\n|\n$|$)/gms,
+      /(?:^[-•]\s*)(.+?)(?=\n[-•]|\n\n|$)/gm,
       // Quoted suggestions: "Description" (in quotes)
       /"([^"]+)"/g,
       // Bold suggestions: **Description**
@@ -303,13 +282,9 @@ Please type your ideas below to get started.`;
       if (matches) {
         suggestions.push(...matches.map(match => 
           match.replace(/^\d+[\.\)]\s*|^[-•]\s*|[""]/g, '').replace(/\*\*/g, '').trim()
-        ).filter(s => s.length > 10 && s.length < 500)); // Increased max length to handle longer descriptions
+        ).filter(s => s.length > 10 && s.length < 200)); // Filter for reasonable length
       }
     }
-    
-    // Debug logging to see what's being extracted
-    console.log('AI Response content:', content);
-    console.log('Extracted suggestions:', suggestions);
     
     // Remove duplicates and return up to 3 suggestions
     return [...new Set(suggestions)].slice(0, 3);
@@ -358,17 +333,15 @@ Please type your ideas below to get started.`;
                             ? { ...msg, isTyping: false }
                             : msg
                         ));
-                        
-                        // No need to check for specific phrases - button logic is now state-based
                       }}
                     />
                   ) : (
                     <p className="whitespace-pre-wrap">{message.content}</p>
                   )}
                   
-                  {message.role === 'assistant' && !message.isTyping && (
+                  {message.role === 'assistant' && !message.isTyping && index > 0 && (
                     <div className="mt-3 space-y-2">
-                      {/* Show numbered suggestions only after AI has been asked for suggestions */}
+                      {/* Extracted Suggestions - Hide for final approval step */}
                       {extractSuggestions(message.content).length > 0 && conversationState.currentStep !== 'final_approval' && (
                         <div className="flex flex-col gap-2 w-full">
                           {extractSuggestions(message.content).map((suggestion, sugIndex) => (
@@ -420,9 +393,6 @@ Please type your ideas below to get started.`;
                                     // Update conversation state
                                     setConversationState(prev => {
                                       const newState = { ...prev };
-                                      
-                                      // Reset hasSuggestions when user selects an option
-                                      newState.hasSuggestions = false;
                                       
                                       if (!suggestion.toLowerCase().includes('more') || !suggestion.toLowerCase().includes('ideas')) {
                                         switch (prev.currentStep) {
@@ -479,98 +449,18 @@ Please type your ideas below to get started.`;
                         </div>
                       )}
                       
-                      {/* Show suggestion request buttons on AI response after user input (not initial message) */}
-                      {message.role === 'assistant' && 
-                       !conversationState.hasSuggestions && 
-                       extractSuggestions(message.content).length === 0 && 
-                       conversationState.currentStep !== 'final_approval' &&
-                       messages.filter(m => m.role === 'user').length > 0 &&
-                       index > 0 && (
-                        <div className="flex flex-col gap-2 mt-2 w-full">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              // Request suggestions from AI
-                              const userMessage: ChatMessage = {
-                                role: "user",
-                                content: "Yes, please give me some suggestions",
-                                timestamp: new Date()
-                              };
-                              setMessages(prev => [...prev, userMessage]);
-                              setIsLoading(true);
-                              
-                              // Update state to indicate user has requested suggestions
-                              setConversationState(prev => ({
-                                ...prev,
-                                hasSuggestions: true
-                              }));
-                              
-                              // Send to AI immediately
-                              const sendMessage = async () => {
-                                try {
-                                  const conversationHistory = [...messages, userMessage].map(msg => ({
-                                    role: msg.role,
-                                    content: msg.content
-                                  }));
-
-                                  const response = await apiRequest("POST", "/api/ai-brainstorm", {
-                                    type,
-                                    context: `Current input: "${currentInput}"`,
-                                    userInput: "Yes, please give me some suggestions",
-                                    recipientName,
-                                    celebration,
-                                    conversationStep: conversationState.currentStep,
-                                    settingRefinements: conversationState.settingRefinements,
-                                    conversationHistory: conversationHistory.slice(0, -1),
-                                    photoContext
-                                  });
-
-                                  const result = await response.json();
-
-                                  const typingMessage: ChatMessage = {
-                                    role: "assistant",
-                                    content: result.response,
-                                    timestamp: new Date(),
-                                    isTyping: true
-                                  };
-
-                                  setMessages(prev => [...prev, typingMessage]);
-
-                                } catch (error) {
-                                  console.error('Error sending message:', error);
-                                  toast({
-                                    title: "Error",
-                                    description: "Failed to send message. Please try again.",
-                                    variant: "destructive"
-                                  });
-                                } finally {
-                                  setIsLoading(false);
-                                }
-                              };
-                              
-                              sendMessage();
-                            }}
-                            className="text-sm bg-purple-500 hover:bg-purple-600 text-white py-3 px-4 rounded-lg"
-                          >
-                            Give Me Some Suggestions
-                          </Button>
-                        </div>
-                      )}
-                      
-                      {/* Show "Give Me More Ideas" and "Skip This Question" buttons when AI presents options */}
-                      {message.role === "assistant" && 
-                       extractSuggestions(message.content).length > 0 && (
-                        <div className="flex flex-col gap-2 mt-2 w-full">
-                          <div className="flex gap-2">
+                      {/* Step-specific action buttons */}
+                      <div className="flex flex-col gap-2 mt-2 w-full">
+                        {conversationState.currentStep === 'setting' && (
+                          <>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                // Request more suggestions from AI
+                                // Auto-send the message immediately
                                 const userMessage: ChatMessage = {
                                   role: "user",
-                                  content: "Give me more suggestions",
+                                  content: "Give me more ideas",
                                   timestamp: new Date()
                                 };
                                 setMessages(prev => [...prev, userMessage]);
@@ -587,7 +477,7 @@ Please type your ideas below to get started.`;
                                     const response = await apiRequest("POST", "/api/ai-brainstorm", {
                                       type,
                                       context: `Current input: "${currentInput}"`,
-                                      userInput: "Give me more suggestions",
+                                      userInput: "Give me more ideas",
                                       recipientName,
                                       celebration,
                                       conversationStep: conversationState.currentStep,
@@ -621,61 +511,52 @@ Please type your ideas below to get started.`;
                                 
                                 sendMessage();
                               }}
-                              className="text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-3 px-4 rounded-lg flex-1"
+                              className="text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-3 px-4 rounded-lg text-left justify-start w-full"
                             >
-                              Give Me More Suggestions
+                              Give Me More Ideas
                             </Button>
                             
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                // Skip to next step
-                                setConversationState(prev => {
-                                  const newState = { ...prev };
-                                  switch (prev.currentStep) {
-                                    case 'setting':
-                                      newState.currentStep = 'activity';
-                                      break;
-                                    case 'activity':
-                                      newState.currentStep = 'people';
-                                      break;
-                                    case 'people':
-                                      newState.currentStep = 'extra_detail';
-                                      break;
-                                    case 'extra_detail':
-                                      newState.currentStep = 'final_approval';
-                                      break;
-                                  }
-                                  newState.hasSuggestions = false;
-                                  return newState;
-                                });
-                                
-                                // Add skip message to conversation
-                                const skipMessage: ChatMessage = {
+                                // Auto-send continue message
+                                const userMessage: ChatMessage = {
                                   role: "user",
-                                  content: "Skip this question",
+                                  content: "Skip this question - proceed to next step",
                                   timestamp: new Date()
                                 };
-                                setMessages(prev => [...prev, skipMessage]);
+                                setMessages(prev => [...prev, userMessage]);
+                                setIsLoading(true);
                                 
-                                // Send skip message to continue conversation
-                                const sendSkipMessage = async () => {
-                                  setIsLoading(true);
+                                // Determine next step based on current refinements
+                                const nextStep = conversationState.settingRefinements >= 2 ? 'activity' : 'setting';
+                                const newRefinements = conversationState.settingRefinements >= 2 ? 3 : conversationState.settingRefinements + 1;
+                                
+                                // Update conversation state
+                                setConversationState(prev => ({
+                                  ...prev,
+                                  currentStep: nextStep,
+                                  settingRefinements: newRefinements
+                                }));
+                                
+                                // Send to AI immediately
+                                const sendMessage = async () => {
                                   try {
-                                    const nextStep = conversationState.currentStep === 'setting' ? 'activity' : 
-                                                   conversationState.currentStep === 'activity' ? 'people' :
-                                                   conversationState.currentStep === 'people' ? 'extra_detail' : 'final_approval';
-                                                   
+                                    const conversationHistory = [...messages, userMessage].map(msg => ({
+                                      role: msg.role,
+                                      content: msg.content
+                                    }));
+
                                     const response = await apiRequest("POST", "/api/ai-brainstorm", {
                                       type,
                                       context: `Current input: "${currentInput}"`,
-                                      userInput: "Skip this question",
+                                      userInput: "Skip this question - proceed to next step",
                                       recipientName,
                                       celebration,
                                       conversationStep: nextStep,
-                                      settingRefinements: conversationState.settingRefinements,
-                                      conversationHistory: [...messages, skipMessage].slice(0, -1),
+                                      settingRefinements: newRefinements,
+                                      conversationHistory: conversationHistory.slice(0, -1),
                                       photoContext
                                     });
 
@@ -691,10 +572,10 @@ Please type your ideas below to get started.`;
                                     setMessages(prev => [...prev, typingMessage]);
 
                                   } catch (error) {
-                                    console.error('Error sending skip message:', error);
+                                    console.error('Error sending message:', error);
                                     toast({
                                       title: "Error",
-                                      description: "Failed to skip. Please try again.",
+                                      description: "Failed to send message. Please try again.",
                                       variant: "destructive"
                                     });
                                   } finally {
@@ -702,15 +583,213 @@ Please type your ideas below to get started.`;
                                   }
                                 };
                                 
-                                sendSkipMessage();
+                                sendMessage();
                               }}
-                              className="text-sm text-green-600 hover:text-green-800 hover:bg-green-50 py-3 px-4 rounded-lg"
+                              className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
                             >
                               Skip This Question
                             </Button>
-                          </div>
-                        </div>
-                      )}
+                            
+                            {conversationState.settingRefinements > 0 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  // Auto-send skip message
+                                  const userMessage: ChatMessage = {
+                                    role: "user",
+                                    content: "Skip location refinement - move to activity step",
+                                    timestamp: new Date()
+                                  };
+                                  setMessages(prev => [...prev, userMessage]);
+                                  setIsLoading(true);
+                                  
+                                  // Update conversation state to move to activity
+                                  setConversationState(prev => ({
+                                    ...prev,
+                                    currentStep: 'activity',
+                                    settingRefinements: 3 // Set to 3 to indicate completed
+                                  }));
+                                  
+                                  // Send to AI immediately
+                                  const sendMessage = async () => {
+                                    try {
+                                      const conversationHistory = [...messages, userMessage].map(msg => ({
+                                        role: msg.role,
+                                        content: msg.content
+                                      }));
+
+                                      const response = await apiRequest("POST", "/api/ai-brainstorm", {
+                                        type,
+                                        context: `Current input: "${currentInput}"`,
+                                        userInput: "Skip location refinement - move to activity step",
+                                        recipientName,
+                                        celebration,
+                                        conversationStep: 'activity',
+                                        settingRefinements: 3,
+                                        conversationHistory: conversationHistory.slice(0, -1),
+                                        photoContext
+                                      });
+
+                                      const result = await response.json();
+
+                                      const typingMessage: ChatMessage = {
+                                        role: "assistant",
+                                        content: result.response,
+                                        timestamp: new Date(),
+                                        isTyping: true
+                                      };
+
+                                      setMessages(prev => [...prev, typingMessage]);
+
+                                    } catch (error) {
+                                      console.error('Error sending message:', error);
+                                      toast({
+                                        title: "Error",
+                                        description: "Failed to send message. Please try again.",
+                                        variant: "destructive"
+                                      });
+                                    } finally {
+                                      setIsLoading(false);
+                                    }
+                                  };
+                                  
+                                  sendMessage();
+                                }}
+                                className="text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                              >
+                                Skip Location Details
+                              </Button>
+                            )}
+                          </>
+                        )}
+                        
+                        {conversationState.currentStep === 'activity' && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUserInput("Give me more ideas");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                            >
+                              Give Me More Ideas
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUserInput("Skip this question - proceed to next step");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-sm text-green-600 hover:text-green-800 hover:bg-green-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                            >
+                              Skip This Question
+                            </Button>
+                          </>
+                        )}
+                        
+                        {conversationState.currentStep === 'people' && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUserInput("Give me more ideas");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                            >
+                              Give Me More Ideas
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUserInput("Skip this question - proceed to next step");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-sm text-green-600 hover:text-green-800 hover:bg-green-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                            >
+                              Skip This Question
+                            </Button>
+                          </>
+                        )}
+                        
+                        {conversationState.currentStep === 'extra_detail' && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUserInput("Give me more ideas");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                            >
+                              Give Me More Ideas
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUserInput("Skip this question - proceed to next step");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-sm text-green-600 hover:text-green-800 hover:bg-green-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                            >
+                              Skip This Question
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUserInput("Skip this step");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                            >
+                              Skip Step
+                            </Button>
+                          </>
+                        )}
+                        
+                        {conversationState.currentStep === 'final_approval' && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                // Generate final scene description and close dialog
+                                const finalScene = `${conversationState.collectedInfo.setting || ''} ${conversationState.collectedInfo.activity || ''} ${conversationState.collectedInfo.people || ''} ${conversationState.collectedInfo.extraDetail || ''}`.trim();
+                                onSuggestionSelect(finalScene);
+                                setIsOpen(false);
+                              }}
+                              className="text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 font-medium rounded-lg w-full"
+                            >
+                              Sounds great, let's go!
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUserInput("I'd like to make a change");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-sm text-orange-600 hover:text-orange-800 hover:bg-orange-50 px-4 py-3 rounded-lg text-left justify-start w-full"
+                            >
+                              I'd like to make a change
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -738,7 +817,7 @@ Please type your ideas below to get started.`;
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Type your response here"
+              placeholder={type === "scene" ? "Ask anything" : "What art style are you thinking of?"}
               disabled={isLoading}
               className="flex-1 rounded-full border-gray-300 focus:border-purple-500 focus:ring-purple-500"
             />
