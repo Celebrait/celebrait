@@ -471,7 +471,8 @@ Please type your ideas below to get started.`;
                        !conversationState.hasSuggestions && 
                        extractSuggestions(message.content).length === 0 && 
                        conversationState.currentStep !== 'final_approval' &&
-                       messages.filter(m => m.role === 'user').length > 0 && (
+                       messages.filter(m => m.role === 'user').length > 0 &&
+                       index > 0 && (
                         <div className="flex flex-col gap-2 mt-2 w-full">
                           <Button
                             variant="outline"

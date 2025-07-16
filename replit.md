@@ -137,6 +137,7 @@ Changelog:
   * STATE-BASED BUTTON LOGIC: Completely replaced complex trigger word matching with simple state-based logic - suggestion button now appears after first AI response in each step
   * SIMPLIFIED FRONTEND: Eliminated all phrase matching logic and replaced with clean conditional: show button when AI responds, no suggestions exist, and not in final step
   * NATURAL AI RESPONSES: Simplified server prompts to be more conversational without requiring exact trigger phrases
+  * CRITICAL INITIAL MESSAGE FIX: Added messageIndex > 0 condition to prevent suggestion button from appearing on opening AI message - users must provide input first
   * LAUNCH READY: Both suggestion button types now work correctly for user's launch date requirement
 - July 16, 2025. AI SUGGESTION-ON-DEMAND SYSTEM: Completely redesigned AI brainstorming to provide suggestions only when users explicitly request them:
   * ON-DEMAND APPROACH: AI no longer automatically provides numbered suggestions in responses
