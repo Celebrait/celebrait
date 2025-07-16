@@ -553,23 +553,42 @@ Current step: ${conversationStep || 'setting'}`;
         } 
         // Check if user is asking for suggestions
         else if (userInput && (userInput.includes('Give me') || userInput.includes('suggestions') || userInput.includes('ideas'))) {
-          messages.push({
-            role: "system", 
-            content: `The user is asking for suggestions. Provide exactly 3 numbered options in this format:
-            1. First specific option
-            2. Second specific option  
-            3. Third specific option
-            
-            MANDATORY: After the suggestions, add: "You can type your own response below or choose from the options above."
-            
-            ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
-            
-            CRITICAL: Only focus on the current step (${conversationStep}). Do NOT ask about the next step or mention any other steps. Stay strictly on the current conversation step only.
-            
-            ABSOLUTELY FORBIDDEN: ${conversationStep === 'activity' ? 'Do not mention clothing, people, or what the person should wear. Only provide activity suggestions.' : conversationStep === 'setting' ? 'Do not mention activities, people, or clothing. Only provide setting/location suggestions.' : conversationStep === 'people' ? 'Do not mention activities or settings. Only provide people/clothing suggestions.' : 'Do not mention other conversation steps. Only provide suggestions for the current step.'}
-            
-            Make sure the suggestions are relevant to the current conversation step (${conversationStep}). Keep the suggestions specific and actionable.`
-          });
+          console.log('SERVER SUGGESTION LOGIC: settingRefinements =', settingRefinements, 'conversationStep =', conversationStep);
+          
+          if (settingRefinements >= 3) {
+            // After 3 setting interactions, MUST provide activity suggestions
+            messages.push({
+              role: "system", 
+              content: `CRITICAL: The user has completed the location/setting step (${settingRefinements} interactions). You are now in the ACTIVITY step. 
+              
+              Provide exactly 3 numbered activity suggestions in this format:
+              1. First specific activity option
+              2. Second specific activity option  
+              3. Third specific activity option
+              
+              MANDATORY: After the suggestions, add: "You can type your own response below or choose from the options above."
+              
+              ABSOLUTELY FORBIDDEN: Do not mention location, setting, or ask follow-up questions about the setting. Only provide ACTIVITY suggestions - what they should be doing in the established setting.`
+            });
+          } else {
+            messages.push({
+              role: "system", 
+              content: `The user is asking for suggestions. Provide exactly 3 numbered options in this format:
+              1. First specific option
+              2. Second specific option  
+              3. Third specific option
+              
+              MANDATORY: After the suggestions, add: "You can type your own response below or choose from the options above."
+              
+              ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
+              
+              CRITICAL: Only focus on the current step (${conversationStep}). Do NOT ask about the next step or mention any other steps. Stay strictly on the current conversation step only.
+              
+              ABSOLUTELY FORBIDDEN: ${conversationStep === 'activity' ? 'Do not mention clothing, people, or what the person should wear. Only provide activity suggestions.' : conversationStep === 'setting' ? 'Do not mention activities, people, or clothing. Only provide setting/location suggestions.' : conversationStep === 'people' ? 'Do not mention activities or settings. Only provide people/clothing suggestions.' : 'Do not mention other conversation steps. Only provide suggestions for the current step.'}
+              
+              Make sure the suggestions are relevant to the current conversation step (${conversationStep}). Keep the suggestions specific and actionable.`
+            });
+          }
         } else if (conversationHistory && conversationHistory.length === 0) {
           // First interaction - do not offer suggestions
           messages.push({
@@ -577,18 +596,32 @@ Current step: ${conversationStep || 'setting'}`;
             content: `This is the first interaction in this conversation step. Do NOT offer suggestions. Ask a clarifying question about the ${conversationStep} and wait for their initial response. Do not end with "Would you like me to give you some suggestions?"`
           });
         } else if (conversationHistory && conversationHistory.length > 0 && !userInput.includes('Give me') && !userInput.includes('suggestions') && !userInput.includes('ideas')) {
-          // CRITICAL FIX: Check if we should transition to next step based on settingRefinements
-          if (settingRefinements >= 3 && conversationStep === 'activity') {
-            // This is actually the activity step - the frontend correctly sent activity
+          // CRITICAL FIX: Enforce step transitions based on settingRefinements
+          console.log('SERVER STEP LOGIC: settingRefinements =', settingRefinements, 'conversationStep =', conversationStep);
+          
+          if (settingRefinements >= 3) {
+            // After 3 setting interactions, MUST advance to activity step
             messages.push({
               role: "system", 
-              content: `CRITICAL: The user has completed the location/setting step (3 interactions). You are now in the ACTIVITY step. 
+              content: `CRITICAL: The user has completed the location/setting step (${settingRefinements} interactions). You are now in the ACTIVITY step. 
               
-              Ask about what activity they should be doing in the setting that was established. Ask: "What activity should they be doing in this setting?" 
+              MANDATORY: Ask about what activity they should be doing in the setting that was established. Ask: "What activity should they be doing in this setting?" 
               
               MANDATORY: Add: "You can type your own response below or I can provide suggestions if you'd like."
               
-              ABSOLUTELY FORBIDDEN: Do not mention location, setting, or ask follow-up questions about the setting. Only focus on ACTIVITY - what they should be doing.`
+              ABSOLUTELY FORBIDDEN: Do not mention location, setting, or ask follow-up questions about the setting. Only focus on ACTIVITY - what they should be doing in the established setting.`
+            });
+          } else if (conversationStep === 'setting' && settingRefinements < 3) {
+            // Still in setting step with less than 3 refinements - can ask location follow-up
+            messages.push({
+              role: "system", 
+              content: `CRITICAL: You are in the SETTING step (${settingRefinements} interactions so far). You can ask ONE more follow-up question about the location/setting.
+              
+              1. Acknowledge their input briefly
+              2. Ask for more specifics about the LOCATION/SETTING only
+              3. MANDATORY: Add: "You can type your own response below or I can provide suggestions if you'd like."
+              
+              ABSOLUTELY FORBIDDEN: Do not mention activities, people, or clothing. Only ask about the location/setting.`
             });
           } else {
             // User has provided their initial response - always offer suggestions

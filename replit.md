@@ -120,12 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 16, 2025. CRITICAL BUG FIX: Fixed conversation flow bug where location step was continuing with endless follow-ups instead of advancing to activity:
+- July 16, 2025. CRITICAL BUG FIX: Implemented comprehensive server-side enforcement to prevent endless location follow-ups:
   * IDENTIFIED ISSUE: Location step failing to advance to activity step after 3 user responses, continuing with location follow-up questions indefinitely
   * ROOT CAUSE: Server-side logic was not properly enforcing step transition when settingRefinements >= 3 - AI kept asking location follow-ups instead of switching to activity questions
-  * SERVER-SIDE FIX: Added critical logic to detect when settingRefinements >= 3 and conversationStep === 'activity' to force transition to activity step
+  * COMPREHENSIVE SERVER-SIDE FIX: Added multiple layers of enforcement to guarantee step transitions:
+    - When settingRefinements >= 3: Forces AI to ask activity questions regardless of conversationStep parameter
+    - When settingRefinements < 3: Allows ONE more location follow-up question only
+    - Updated both regular responses and suggestion responses to respect settingRefinements limits
   * STEP ENFORCEMENT: Server now detects completed location step (3 interactions) and forces AI to ask activity questions instead of location follow-ups
-  * DEBUGGING ADDED: Console logging on both frontend and server to trace exact step progression and step calculation
+  * DEBUGGING ADDED: Enhanced console logging for both step logic and suggestion logic to trace exact step progression
   * FLOW CORRECTION: Fixed conversation flow to properly advance setting (3 responses) → activity → people → extra_detail → final_approval
   * STEP VALIDATION: Server now validates and corrects step advancement based on conversation progress rather than relying solely on frontend state
 - July 16, 2025. REFINED AI SUGGESTION BUTTON FLOW: Enhanced AI brainstorming approach with clearer initial suggestion requests:
