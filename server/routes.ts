@@ -534,6 +534,12 @@ Current step: ${conversationStep || 'setting'}`;
             role: "system", 
             content: `This is the first interaction in this conversation step. Do NOT offer suggestions. Ask a clarifying question about the ${conversationStep} and wait for their initial response. Do not end with "Would you like me to give you some suggestions?"`
           });
+        } else if (conversationHistory && conversationHistory.length > 0 && !userInput.includes('Give me') && !userInput.includes('suggestions') && !userInput.includes('ideas')) {
+          // User has provided their initial response - now offer suggestions
+          messages.push({
+            role: "system", 
+            content: `The user has provided their initial response. Acknowledge their input and ask for more specifics, then end with "Would you like me to give you some suggestions?"`
+          });
         }
       } else if (type === "art_style") {
         systemPrompt = `You are a professional creative assistant helping users choose art styles for personalized greeting cards. You should:

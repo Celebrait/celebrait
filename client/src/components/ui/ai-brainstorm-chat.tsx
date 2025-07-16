@@ -263,7 +263,7 @@ I'll guide you through this step by step, starting with the most important quest
 
 Where should we place ${personReference} in this scene? Think about the setting or location that would be most meaningful for this ${celebration}.
 
-Would you like me to give you some suggestions, or would you prefer to type your own ideas below?`;
+Please type your ideas below to get started.`;
   };
 
   const extractSuggestions = (content: string) => {
