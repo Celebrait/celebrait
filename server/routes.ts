@@ -444,22 +444,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { type, context, userInput, recipientName, celebration, conversationHistory, conversationStep, settingRefinements, photoContext } = req.body;
 
+      // Determine if we're dealing with single person or multiple people first
+      const isMultiplePeople = photoContext && (
+        photoContext.toLowerCase().includes('multiple photos') ||
+        photoContext.toLowerCase().includes('two photos') ||
+        photoContext.toLowerCase().includes('multiple people') ||
+        photoContext.toLowerCase().includes('different people') ||
+        photoContext.toLowerCase().includes('various shots') ||
+        photoContext.toLowerCase().includes('several') ||
+        photoContext.toLowerCase().includes('different angles') ||
+        photoContext.toLowerCase().includes('group shot') ||
+        photoContext.toLowerCase().includes('people detected')
+      );
+
       let systemPrompt = "";
       let messages = [];
 
       if (type === "scene") {
-        // Determine if we're dealing with single person or multiple people first
-        const isMultiplePeople = photoContext && (
-          photoContext.toLowerCase().includes('multiple photos') ||
-          photoContext.toLowerCase().includes('two photos') ||
-          photoContext.toLowerCase().includes('multiple people') ||
-          photoContext.toLowerCase().includes('different people') ||
-          photoContext.toLowerCase().includes('various shots') ||
-          photoContext.toLowerCase().includes('several') ||
-          photoContext.toLowerCase().includes('different angles') ||
-          photoContext.toLowerCase().includes('group shot') ||
-          photoContext.toLowerCase().includes('people detected')
-        );
+        
+        // Create language instruction based on photo context
+        const languageInstruction = isMultiplePeople ? 
+          'Multiple people detected - use plural language (everyone, they, their)' : 
+          'Single person detected - use singular language (he/she, his/her)';
+        
+        const photoContextAwareness = photoContext ? 
+          `Photo context: ${photoContext}. Adapt your language and suggestions based on whether this is a single person, group shot, or multiple photos of different people.` : 
+          'No specific photo context provided - use general language for person/people.';
         
         systemPrompt = `You are a professional creative assistant helping users create detailed scene descriptions for greeting cards. Guide them through a structured conversation flow with focused questions.
 
@@ -482,9 +492,9 @@ INSTRUCTIONS:
 - When they answer, acknowledge their input and ask if there's anything more they'd like to focus on before moving to next step
 - Reference all previous answers when asking follow-up questions for deeper specificity
 - Only move to the next step after they've given input for the current step
-- IMPORTANT: Use language that matches the photo context exactly - if it's a single person, use singular language throughout (${isMultiplePeople ? 'Multiple people detected - use plural language (everyone, they, their)' : 'Single person detected - use singular language (he/she, his/her)'})  
+- IMPORTANT: Use language that matches the photo context exactly - if it's a single person, use singular language throughout (${languageInstruction})  
 - When user requests "more ideas", provide fresh suggestions in the same category without advancing steps
-- PHOTO CONTEXT AWARENESS: ${photoContext ? `Photo context: ${photoContext}. Adapt your language and suggestions based on whether this is a single person, group shot, or multiple photos of different people.` : 'No specific photo context provided - use general language for person/people.'}
+- PHOTO CONTEXT AWARENESS: ${photoContextAwareness}
 
 Current step: ${conversationStep || 'setting'}`;
         
