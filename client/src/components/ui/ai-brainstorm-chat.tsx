@@ -124,6 +124,12 @@ export function AIBrainstormChat({
         content: msg.content
       }));
 
+      console.log('=== AI BRAINSTORM API CALL ===');
+      console.log('Current step:', conversationState.currentStep);
+      console.log('Setting refinements:', conversationState.settingRefinements);
+      console.log('User input:', userInput);
+      console.log('Collected info:', conversationState.collectedInfo);
+
       const response = await apiRequest("POST", "/api/ai-brainstorm", {
         type,
         context: `Current input: "${currentInput}"`,
@@ -173,6 +179,7 @@ export function AIBrainstormChat({
               
               // Advance to activity after 3 total user responses (initial + 2 follow-ups)
               if (newState.settingRefinements >= 3) {
+                console.log('ADVANCING FROM SETTING TO ACTIVITY - settingRefinements:', newState.settingRefinements);
                 newState.currentStep = 'activity';
                 newState.hasSuggestions = false; // Reset suggestions for new step
               }
@@ -181,13 +188,9 @@ export function AIBrainstormChat({
           case 'activity':
             if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               newState.collectedInfo.activity = userInput;
-              // Skip people step if photo is uploaded (we already know who to feature)
-              if (photoContext && photoContext.includes('photo uploaded')) {
-                newState.currentStep = 'extra_detail';
-              } else {
-                newState.currentStep = 'people';
-              }
+              newState.currentStep = 'people'; // Always go to people step regardless of photo context
               newState.hasSuggestions = false; // Reset suggestions for new step
+              console.log('ADVANCING FROM ACTIVITY TO PEOPLE');
             }
             break;
           case 'people':
@@ -195,16 +198,19 @@ export function AIBrainstormChat({
               newState.collectedInfo.people = userInput;
               newState.currentStep = 'extra_detail';
               newState.hasSuggestions = false; // Reset suggestions for new step
+              console.log('ADVANCING FROM PEOPLE TO EXTRA_DETAIL');
             }
             break;
           case 'extra_detail':
             if (userInput.toLowerCase().includes('skip')) {
               newState.currentStep = 'final_approval';
               newState.hasSuggestions = false; // Reset suggestions for new step
+              console.log('SKIPPING TO FINAL_APPROVAL');
             } else if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               newState.collectedInfo.extraDetail = userInput;
               newState.currentStep = 'final_approval';
               newState.hasSuggestions = false; // Reset suggestions for new step
+              console.log('ADVANCING FROM EXTRA_DETAIL TO FINAL_APPROVAL');
             }
             break;
           case 'final_approval':
