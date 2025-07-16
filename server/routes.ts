@@ -548,10 +548,9 @@ Current step: ${conversationStep || 'setting'}`;
             content: `CRITICAL: The user has provided their initial response about the ${conversationStep}. You MUST:
             1. Acknowledge their input briefly
             2. Ask for more specifics about the current step (${conversationStep})
-            3. MANDATORY: Add: "You can type your own response below or..."
-            4. End with EXACTLY this phrase: "Would you like me to give you some suggestions?"
+            3. MANDATORY: Add: "You can type your own response below or I can provide suggestions if you'd like."
             
-            DO NOT say "let me know if you'd like me to give you some suggestions" - use the EXACT phrase above.
+            Keep the response natural and conversational.`
             
             ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
             
@@ -619,10 +618,9 @@ Remember: You're helping them discover their perfect artistic vision through gui
             content: `CRITICAL: The user has provided a substantive response about the ${conversationStep}. You MUST:
             1. Acknowledge their input briefly
             2. Ask for more specifics about the current step (${conversationStep})
-            3. MANDATORY: Add: "You can type your own response below or..."
-            4. End with EXACTLY this phrase: "Would you like me to give you some suggestions?"
+            3. MANDATORY: Add: "You can type your own response below or I can provide suggestions if you'd like."
             
-            DO NOT say "let me know if you'd like me to give you some suggestions" - use the EXACT phrase above.
+            Keep the response natural and conversational.`
             
             ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
             

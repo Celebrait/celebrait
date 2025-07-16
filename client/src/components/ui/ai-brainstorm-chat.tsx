@@ -349,18 +349,7 @@ Please type your ideas below to get started.`;
                             : msg
                         ));
                         
-                        // Check if AI is offering suggestions and update state
-                        const offersSuggestions = message.content.toLowerCase().includes('would you like me to give you some suggestions') ||
-                                                message.content.toLowerCase().includes('if you\'d like, i can offer some suggestions') ||
-                                                message.content.toLowerCase().includes('would you like me to provide some suggestions') ||
-                                                message.content.toLowerCase().includes('would you like some suggestions');
-                        
-                        if (offersSuggestions) {
-                          setConversationState(prev => ({
-                            ...prev,
-                            hasSuggestions: false // Set to false so the button appears
-                          }));
-                        }
+                        // No need to check for specific phrases - button logic is now state-based
                       }}
                     />
                   ) : (
@@ -477,12 +466,11 @@ Please type your ideas below to get started.`;
                         </div>
                       )}
                       
-                      {/* Show suggestion request buttons only if message asks for suggestions */}
-                      {(message.content.toLowerCase().includes('would you like me to give you some suggestions') ||
-                        message.content.toLowerCase().includes('would you like me to suggest') ||
-                        message.content.toLowerCase().includes('i can offer some suggestions') ||
-                        message.content.toLowerCase().includes('if you\'d like, i can offer some suggestions')) && 
-                       !conversationState.hasSuggestions && (
+                      {/* Show suggestion request buttons on first AI response in each step */}
+                      {message.role === 'assistant' && 
+                       !conversationState.hasSuggestions && 
+                       extractSuggestions(message.content).length === 0 && 
+                       conversationState.currentStep !== 'final_approval' && (
                         <div className="flex flex-col gap-2 mt-2 w-full">
                           <Button
                             variant="outline"
