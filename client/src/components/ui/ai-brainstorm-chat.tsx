@@ -458,7 +458,10 @@ Please type your ideas below to get started.`;
                       )}
                       
                       {/* Show suggestion request buttons only if message asks for suggestions */}
-                      {message.content.toLowerCase().includes('would you like me to give you some suggestions') && 
+                      {(message.content.toLowerCase().includes('would you like me to give you some suggestions') ||
+                        message.content.toLowerCase().includes('would you like me to suggest') ||
+                        message.content.toLowerCase().includes('i can offer some suggestions') ||
+                        message.content.toLowerCase().includes('if you\'d like, i can offer some suggestions')) && 
                        !conversationState.hasSuggestions && (
                         <div className="flex flex-col gap-2 mt-2 w-full">
                           <Button

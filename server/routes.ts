@@ -538,7 +538,7 @@ Current step: ${conversationStep || 'setting'}`;
           // User has provided their initial response - now offer suggestions
           messages.push({
             role: "system", 
-            content: `The user has provided their initial response. Acknowledge their input and ask for more specifics, then end with "Would you like me to give you some suggestions?"`
+            content: `The user has provided their initial response. Acknowledge their input and ask for more specifics, then end with the exact phrase "Would you like me to give you some suggestions?"`
           });
         }
       } else if (type === "art_style") {
