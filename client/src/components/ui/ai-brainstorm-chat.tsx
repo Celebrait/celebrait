@@ -269,10 +269,10 @@ Please type your ideas below to get started.`;
   const extractSuggestions = (content: string) => {
     // Enhanced regex to capture various suggestion formats
     const patterns = [
-      // Numbered lists: "1. Description" or "1) Description"
-      /(?:^\d+[\.\)]\s*)(.+?)(?=\n\d+[\.\)]|\n\n|$)/gm,
+      // Numbered lists: "1. Description" or "1) Description" - improved to handle multi-line descriptions
+      /(?:^\d+[\.\)]\s*)(.+?)(?=\n\d+[\.\)]|\n\n|\n$|$)/gms,
       // Bulleted lists: "- Description" or "• Description"
-      /(?:^[-•]\s*)(.+?)(?=\n[-•]|\n\n|$)/gm,
+      /(?:^[-•]\s*)(.+?)(?=\n[-•]|\n\n|\n$|$)/gms,
       // Quoted suggestions: "Description" (in quotes)
       /"([^"]+)"/g,
       // Bold suggestions: **Description**
@@ -286,9 +286,13 @@ Please type your ideas below to get started.`;
       if (matches) {
         suggestions.push(...matches.map(match => 
           match.replace(/^\d+[\.\)]\s*|^[-•]\s*|[""]/g, '').replace(/\*\*/g, '').trim()
-        ).filter(s => s.length > 10 && s.length < 200)); // Filter for reasonable length
+        ).filter(s => s.length > 10 && s.length < 500)); // Increased max length to handle longer descriptions
       }
     }
+    
+    // Debug logging to see what's being extracted
+    console.log('AI Response content:', content);
+    console.log('Extracted suggestions:', suggestions);
     
     // Remove duplicates and return up to 3 suggestions
     return [...new Set(suggestions)].slice(0, 3);
