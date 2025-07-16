@@ -558,6 +558,8 @@ Current step: ${conversationStep || 'setting'}`;
             
             CRITICAL: Only focus on the current step (${conversationStep}). Do NOT ask about the next step or mention any other steps. Stay strictly on the current conversation step only.
             
+            ABSOLUTELY FORBIDDEN: ${conversationStep === 'activity' ? 'Do not mention clothing, people, or what the person should wear. Only provide activity suggestions.' : conversationStep === 'setting' ? 'Do not mention activities, people, or clothing. Only provide setting/location suggestions.' : conversationStep === 'people' ? 'Do not mention activities or settings. Only provide people/clothing suggestions.' : 'Do not mention other conversation steps. Only provide suggestions for the current step.'}
+            
             Make sure the suggestions are relevant to the current conversation step (${conversationStep}). Keep the suggestions specific and actionable.`
           });
         } else if (conversationHistory && conversationHistory.length === 0) {
@@ -649,6 +651,8 @@ Remember: You're helping them discover their perfect artistic vision through gui
             ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
             
             CRITICAL: Only focus on the current step (${conversationStep}). Do NOT ask about the next step or mention any other steps. Stay strictly on the current conversation step only.
+            
+            ABSOLUTELY FORBIDDEN: ${conversationStep === 'activity' ? 'Do not mention clothing, people, or what the person should wear. Only provide activity suggestions.' : conversationStep === 'setting' ? 'Do not mention activities, people, or clothing. Only provide setting/location suggestions.' : conversationStep === 'people' ? 'Do not mention activities or settings. Only provide people/clothing suggestions.' : 'Do not mention other conversation steps. Only provide suggestions for the current step.'}
             
             Make sure the suggestions are relevant to the current conversation step (${conversationStep}). Keep the suggestions specific and actionable.`
           });
