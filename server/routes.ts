@@ -534,13 +534,15 @@ Current step: ${conversationStep || 'setting'}`;
           const targetStepName = conversationStep; // This is already the next step from frontend
           
           const targetStepPrompt = targetStepName === 'activity' ? 'What activity should they be doing in this setting?' :
-                                  targetStepName === 'people' ? 'Who should be featured in this scene?' :
+                                  targetStepName === 'people' ? 'What should they be wearing and how should they look?' :
                                   targetStepName === 'extra_detail' ? 'Any special details or elements you\'d like to include?' :
                                   'Let me summarize your scene for final approval.';
           
           messages.push({
             role: "system",
-            content: `The user has chosen to skip the previous step. Provide a brief transition message and ask about the current step (${targetStepName}). Ask: "${targetStepPrompt}" and add "You can type your own response below or I can provide suggestions if you'd like."`
+            content: `The user has chosen to skip the previous step. Provide a brief transition message and ask about the current step (${targetStepName}). Ask: "${targetStepPrompt}" and add "You can type your own response below or I can provide suggestions if you'd like."
+            
+            ${targetStepName === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}`
           });
         } 
         // Check if user is asking for suggestions
