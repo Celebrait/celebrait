@@ -348,6 +348,19 @@ Please type your ideas below to get started.`;
                             ? { ...msg, isTyping: false }
                             : msg
                         ));
+                        
+                        // Check if AI is offering suggestions and update state
+                        const offersSuggestions = message.content.toLowerCase().includes('would you like me to give you some suggestions') ||
+                                                message.content.toLowerCase().includes('if you\'d like, i can offer some suggestions') ||
+                                                message.content.toLowerCase().includes('would you like me to provide some suggestions') ||
+                                                message.content.toLowerCase().includes('would you like some suggestions');
+                        
+                        if (offersSuggestions) {
+                          setConversationState(prev => ({
+                            ...prev,
+                            hasSuggestions: false // Set to false so the button appears
+                          }));
+                        }
                       }}
                     />
                   ) : (
