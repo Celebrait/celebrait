@@ -535,10 +535,18 @@ Current step: ${conversationStep || 'setting'}`;
             content: `This is the first interaction in this conversation step. Do NOT offer suggestions. Ask a clarifying question about the ${conversationStep} and wait for their initial response. Do not end with "Would you like me to give you some suggestions?"`
           });
         } else if (conversationHistory && conversationHistory.length > 0 && !userInput.includes('Give me') && !userInput.includes('suggestions') && !userInput.includes('ideas')) {
-          // User has provided their initial response - now offer suggestions
+          // Check if this is the first user response in this step by looking at conversation history
+          const stepKeywords = {
+            'setting': ['where', 'place', 'location', 'setting'],
+            'activity': ['doing', 'activity', 'pose', 'action'],
+            'people': ['wearing', 'appearance', 'look', 'clothing'],
+            'extra_detail': ['detail', 'additional', 'special', 'extra']
+          };
+          
+          // If this is the first substantive response about this step, offer suggestions
           messages.push({
             role: "system", 
-            content: `The user has provided their initial response. Acknowledge their input and ask for more specifics, then end with the exact phrase "Would you like me to give you some suggestions?"`
+            content: `The user has provided their initial response about the ${conversationStep}. Acknowledge their input and ask for more specifics about the current step (${conversationStep}), then end with the exact phrase "Would you like me to give you some suggestions?"`
           });
         }
       } else if (type === "art_style") {
