@@ -479,6 +479,8 @@ CRITICAL INSTRUCTION - SUGGESTION-ON-DEMAND APPROACH:
   1. First specific option
   2. Second specific option  
   3. Third specific option
+- ALWAYS include after suggestions: "You can type your own response below or choose from the options above."
+- ALWAYS include after initial responses: "You can type your own response below or..."
 
 INSTRUCTIONS:
 - Ask ONE focused question at a time
@@ -492,6 +494,7 @@ INSTRUCTIONS:
 - For PEOPLE step: 
   * First interaction: Ask about clothing/appearance preferences without offering suggestions
   * After user provides initial response: Acknowledge it and ask for more specifics, then end with "Would you like me to give you some suggestions?"
+  * CRITICAL FOR PEOPLE STEP: ALWAYS prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option.
 - For EXTRA DETAIL step: 
   * First interaction: Ask about special details without offering suggestions
   * After user provides initial response: Ask for more specifics, then end with "Would you like me to give you some suggestions?"
@@ -526,9 +529,9 @@ Current step: ${conversationStep || 'setting'}`;
             2. Second specific option  
             3. Third specific option
             
-            After the suggestions, add: "You can type your own response below or choose from the options above."
+            MANDATORY: After the suggestions, add: "You can type your own response below or choose from the options above."
             
-            ${conversationStep === 'people' ? 'SPECIAL INSTRUCTION FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This should be emphasized as a helpful option.' : ''}
+            ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
             
             Make sure the suggestions are relevant to the current conversation step (${conversationStep}). Keep the suggestions specific and actionable.`
           });
@@ -545,10 +548,10 @@ Current step: ${conversationStep || 'setting'}`;
             content: `CRITICAL: The user has provided their initial response about the ${conversationStep}. You MUST:
             1. Acknowledge their input briefly
             2. Ask for more specifics about the current step (${conversationStep})
-            3. Add: "You can type your own response below or..."
+            3. MANDATORY: Add: "You can type your own response below or..."
             4. End with EXACTLY this phrase: "Would you like me to give you some suggestions?"
             
-            ${conversationStep === 'people' ? 'SPECIAL INSTRUCTION FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This should be emphasized as a helpful option.' : ''}
+            ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
             
             This is mandatory - do not skip the suggestion offer or typing reminder.`
           });
@@ -601,9 +604,9 @@ Remember: You're helping them discover their perfect artistic vision through gui
             2. Second specific option  
             3. Third specific option
             
-            After the suggestions, add: "You can type your own response below or choose from the options above."
+            MANDATORY: After the suggestions, add: "You can type your own response below or choose from the options above."
             
-            ${conversationStep === 'people' ? 'SPECIAL INSTRUCTION FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This should be emphasized as a helpful option.' : ''}
+            ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
             
             Make sure the suggestions are relevant to the current conversation step (${conversationStep}). Keep the suggestions specific and actionable.`
           });
@@ -614,10 +617,10 @@ Remember: You're helping them discover their perfect artistic vision through gui
             content: `CRITICAL: The user has provided a substantive response about the ${conversationStep}. You MUST:
             1. Acknowledge their input briefly
             2. Ask for more specifics about the current step (${conversationStep})
-            3. Add: "You can type your own response below or..."
+            3. MANDATORY: Add: "You can type your own response below or..."
             4. End with EXACTLY this phrase: "Would you like me to give you some suggestions?"
             
-            ${conversationStep === 'people' ? 'SPECIAL INSTRUCTION FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This should be emphasized as a helpful option.' : ''}
+            ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
             
             This is mandatory - do not skip the suggestion offer or typing reminder.`
           });
