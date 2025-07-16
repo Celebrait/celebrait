@@ -171,8 +171,8 @@ export function AIBrainstormChat({
               newState.collectedInfo.setting = userInput;
               newState.settingRefinements = prev.settingRefinements + 1;
               
-              // Only advance to activity after 2 refinement questions
-              if (prev.settingRefinements >= 2) {
+              // Advance to activity after 3 total user responses (initial + 2 follow-ups)
+              if (newState.settingRefinements >= 3) {
                 newState.currentStep = 'activity';
                 newState.hasSuggestions = false; // Reset suggestions for new step
               }
