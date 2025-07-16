@@ -584,6 +584,30 @@ Remember: You're helping them discover their perfect artistic vision through gui
           ...conversationHistory,
           { role: "user", content: userInput || "Can you help me with more ideas?" }
         ];
+        
+        // Apply same suggestion logic even with conversation history
+        if (userInput && (userInput.includes('Give me') || userInput.includes('suggestions') || userInput.includes('ideas'))) {
+          messages.push({
+            role: "system", 
+            content: `The user is asking for suggestions. Provide exactly 3 numbered options in this format:
+            1. First specific option
+            2. Second specific option  
+            3. Third specific option
+            
+            Make sure the suggestions are relevant to the current conversation step (${conversationStep}). Keep the suggestions specific and actionable.`
+          });
+        } else if (!userInput.includes('Give me') && !userInput.includes('suggestions') && !userInput.includes('ideas')) {
+          // User provided a substantive response - offer suggestions
+          messages.push({
+            role: "system", 
+            content: `CRITICAL: The user has provided a substantive response about the ${conversationStep}. You MUST:
+            1. Acknowledge their input briefly
+            2. Ask for more specifics about the current step (${conversationStep})
+            3. End with EXACTLY this phrase: "Would you like me to give you some suggestions?"
+            
+            This is mandatory - do not skip the suggestion offer.`
+          });
+        }
       }
 
       console.log('AI Brainstorm request:', { type, recipientName, celebration, userInput, hasHistory: !!conversationHistory, photoContext });
