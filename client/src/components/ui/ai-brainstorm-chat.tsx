@@ -472,12 +472,26 @@ Please type your ideas below to get started.`;
                       )}
                       
                       {/* Show suggestion request buttons on AI response after user input (not initial message) */}
-                      {message.role === 'assistant' && 
-                       !conversationState.hasSuggestions && 
-                       extractSuggestions(message.content).length === 0 && 
-                       conversationState.currentStep !== 'final_approval' &&
-                       messages.filter(m => m.role === 'user').length > 0 &&
-                       index > 0 && (
+                      {(() => {
+                        const shouldShowButtons = message.role === 'assistant' && 
+                                                !conversationState.hasSuggestions && 
+                                                extractSuggestions(message.content).length === 0 && 
+                                                conversationState.currentStep !== 'final_approval' &&
+                                                messages.filter(m => m.role === 'user').length > 0 &&
+                                                index > 0;
+                        
+                        console.log('Button display check:', {
+                          messageRole: message.role,
+                          hasSuggestions: conversationState.hasSuggestions,
+                          extractedSuggestions: extractSuggestions(message.content).length,
+                          currentStep: conversationState.currentStep,
+                          userMessagesCount: messages.filter(m => m.role === 'user').length,
+                          messageIndex: index,
+                          shouldShowButtons
+                        });
+                        
+                        return shouldShowButtons;
+                      })() && (
                         <div className="flex flex-col gap-2 mt-2 w-full">
                           <Button
                             variant="outline"
