@@ -522,19 +522,18 @@ Current step: ${conversationStep || 'setting'}`;
         
         // Check if user is asking to skip the current step
         if (userInput && (userInput.toLowerCase().includes('skip this question') || userInput.toLowerCase().includes('skip'))) {
-          // User wants to skip current step - provide transition message to next step
-          const nextStepName = conversationStep === 'setting' ? 'activity' : 
-                              conversationStep === 'activity' ? 'people' :
-                              conversationStep === 'people' ? 'extra_detail' : 'final_approval';
+          // User wants to skip - the frontend already calculated the next step and sent it as conversationStep
+          // So we don't need to calculate next step again, just use the conversationStep as the target step
+          const targetStepName = conversationStep; // This is already the next step from frontend
           
-          const nextStepPrompt = nextStepName === 'activity' ? 'What activity should they be doing in this setting?' :
-                                nextStepName === 'people' ? 'Who should be featured in this scene?' :
-                                nextStepName === 'extra_detail' ? 'Any special details or elements you\'d like to include?' :
-                                'Let me summarize your scene for final approval.';
+          const targetStepPrompt = targetStepName === 'activity' ? 'What activity should they be doing in this setting?' :
+                                  targetStepName === 'people' ? 'Who should be featured in this scene?' :
+                                  targetStepName === 'extra_detail' ? 'Any special details or elements you\'d like to include?' :
+                                  'Let me summarize your scene for final approval.';
           
           messages.push({
             role: "system",
-            content: `The user has chosen to skip the current step. Provide a brief transition message and ask about the next step (${nextStepName}). Ask: "${nextStepPrompt}" and add "You can type your own response below or I can provide suggestions if you'd like."`
+            content: `The user has chosen to skip the previous step. Provide a brief transition message and ask about the current step (${targetStepName}). Ask: "${targetStepPrompt}" and add "You can type your own response below or I can provide suggestions if you'd like."`
           });
         } 
         // Check if user is asking for suggestions
@@ -615,19 +614,18 @@ Remember: You're helping them discover their perfect artistic vision through gui
         
         // Apply same suggestion logic even with conversation history
         if (userInput && (userInput.toLowerCase().includes('skip this question') || userInput.toLowerCase().includes('skip'))) {
-          // User wants to skip current step - provide transition message to next step
-          const nextStepName = conversationStep === 'setting' ? 'activity' : 
-                              conversationStep === 'activity' ? 'people' :
-                              conversationStep === 'people' ? 'extra_detail' : 'final_approval';
+          // User wants to skip - the frontend already calculated the next step and sent it as conversationStep
+          // So we don't need to calculate next step again, just use the conversationStep as the target step
+          const targetStepName = conversationStep; // This is already the next step from frontend
           
-          const nextStepPrompt = nextStepName === 'activity' ? 'What activity should they be doing in this setting?' :
-                                nextStepName === 'people' ? 'Who should be featured in this scene?' :
-                                nextStepName === 'extra_detail' ? 'Any special details or elements you\'d like to include?' :
-                                'Let me summarize your scene for final approval.';
+          const targetStepPrompt = targetStepName === 'activity' ? 'What activity should they be doing in this setting?' :
+                                  targetStepName === 'people' ? 'Who should be featured in this scene?' :
+                                  targetStepName === 'extra_detail' ? 'Any special details or elements you\'d like to include?' :
+                                  'Let me summarize your scene for final approval.';
           
           messages.push({
             role: "system",
-            content: `The user has chosen to skip the current step. Provide a brief transition message and ask about the next step (${nextStepName}). Ask: "${nextStepPrompt}" and add "You can type your own response below or I can provide suggestions if you'd like."`
+            content: `The user has chosen to skip the previous step. Provide a brief transition message and ask about the current step (${targetStepName}). Ask: "${targetStepPrompt}" and add "You can type your own response below or I can provide suggestions if you'd like."`
           });
         } else if (userInput && (userInput.includes('Give me') || userInput.includes('suggestions') || userInput.includes('ideas'))) {
           messages.push({
