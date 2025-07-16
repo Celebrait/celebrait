@@ -158,6 +158,11 @@ export function AIBrainstormChat({
           return newState; // Stay on same step
         }
         
+        // Reset hasSuggestions when user provides substantive input (not asking for suggestions)
+        if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('suggestions') && !userInput.toLowerCase().includes('more')) {
+          newState.hasSuggestions = false;
+        }
+        
         // Store the user's input for the current step and advance if it's a real answer
         switch (prev.currentStep) {
           case 'setting':
