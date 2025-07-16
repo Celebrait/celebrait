@@ -481,23 +481,30 @@ CRITICAL INSTRUCTION - SUGGESTION-ON-DEMAND APPROACH:
   3. Third specific option
 - ALWAYS include after suggestions: "You can type your own response below or choose from the options above."
 - ALWAYS include after initial responses: "You can type your own response below or..."
+- CRITICAL: After providing suggestions, do NOT ask about the next step or combine multiple steps. Only focus on the current step.
 
 INSTRUCTIONS:
 - Ask ONE focused question at a time
 - Build on previous responses naturally
+- CRITICAL: NEVER combine multiple conversation steps in a single response. Only focus on the current step specified in the Current step parameter.
+- CRITICAL: Do NOT mention or ask about the next step until the user explicitly advances to it.
 - For SETTING step: 
   * First interaction: Ask a clarifying question about location without offering suggestions
   * After user provides initial response: Acknowledge it and ask for more specifics, then end with "Would you like me to give you some suggestions?"
+  * ONLY discuss setting/location - do NOT mention activities, people, or clothing
 - For ACTIVITY steps: 
   * First interaction: Ask about what they should be doing without offering suggestions
   * After user provides initial response: Acknowledge it and ask for more specifics, then end with "Would you like me to give you some suggestions?"
+  * ONLY discuss activities/actions - do NOT mention people, clothing, or other steps
 - For PEOPLE step: 
   * First interaction: Ask about clothing/appearance preferences without offering suggestions
   * After user provides initial response: Acknowledge it and ask for more specifics, then end with "Would you like me to give you some suggestions?"
   * CRITICAL FOR PEOPLE STEP: ALWAYS prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option.
+  * ONLY discuss people/clothing - do NOT mention activities, settings, or other steps
 - For EXTRA DETAIL step: 
   * First interaction: Ask about special details without offering suggestions
   * After user provides initial response: Ask for more specifics, then end with "Would you like me to give you some suggestions?"
+  * ONLY discuss extra details - do NOT mention other steps
 - For FINAL APPROVAL step: Summarize the complete scene and tell user they can add more details if they like below. End by stating "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection." Do NOT provide numbered options in this step.
 - Keep responses professional but encouraging
 - When they answer, acknowledge their input and ask if there's anything more they'd like to focus on before moving to next step
@@ -548,6 +555,8 @@ Current step: ${conversationStep || 'setting'}`;
             MANDATORY: After the suggestions, add: "You can type your own response below or choose from the options above."
             
             ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
+            
+            CRITICAL: Only focus on the current step (${conversationStep}). Do NOT ask about the next step or mention any other steps. Stay strictly on the current conversation step only.
             
             Make sure the suggestions are relevant to the current conversation step (${conversationStep}). Keep the suggestions specific and actionable.`
           });
@@ -638,6 +647,8 @@ Remember: You're helping them discover their perfect artistic vision through gui
             MANDATORY: After the suggestions, add: "You can type your own response below or choose from the options above."
             
             ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
+            
+            CRITICAL: Only focus on the current step (${conversationStep}). Do NOT ask about the next step or mention any other steps. Stay strictly on the current conversation step only.
             
             Make sure the suggestions are relevant to the current conversation step (${conversationStep}). Keep the suggestions specific and actionable.`
           });

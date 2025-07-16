@@ -120,6 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 16, 2025. CRITICAL STEP COMBINATION FIX: Fixed AI combining multiple conversation steps in single responses:
+  * SINGLE STEP ENFORCEMENT: Updated system prompts to strictly enforce single-step responses - AI now focuses only on current step
+  * SUGGESTION ISOLATION: When providing suggestions, AI no longer combines with questions about next step (e.g., activity + people)
+  * STEP BOUNDARY PROTECTION: Added explicit instructions to never mention or ask about next step until user explicitly advances
+  * CURRENT STEP FOCUS: Enhanced prompts with "CRITICAL: Only focus on current step" instructions to prevent step jumping
+  * ACTIVITY STEP FIXED: Activity suggestions now stay strictly on activities without jumping to people/clothing questions
+  * PEOPLE STEP ISOLATION: People step discussions isolated from activity or setting mentions
+  * STRUCTURED FLOW: Conversation now properly flows: setting → activity → people → extra_detail without AI combining steps
+  * CONVERSATION INTEGRITY: Each step maintains its distinct purpose and boundaries for cleaner user experience
 - July 16, 2025. CRITICAL LAUNCH FIXES: Fixed two blocking issues preventing suggestion buttons from working properly:
   * CONVERSATION HISTORY OVERRIDE FIX: Fixed critical bug where conversation history logic was bypassing suggestion offer system - now applies suggestion logic even with conversation history
   * SKIP BUTTON RESTORATION: Added back "Skip This Question" button alongside "Give Me More Suggestions" when AI presents 3 options
