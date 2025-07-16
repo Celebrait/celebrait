@@ -97,6 +97,8 @@ export function AIBrainstormChat({
       setMessages([]);
       setConversationState({
         currentStep: 'setting',
+        settingRefinements: 0,
+        hasSuggestions: false,
         collectedInfo: {}
       });
     }
@@ -167,6 +169,7 @@ export function AIBrainstormChat({
               // Only advance to activity after 2 refinement questions
               if (prev.settingRefinements >= 2) {
                 newState.currentStep = 'activity';
+                newState.hasSuggestions = false; // Reset suggestions for new step
               }
             }
             break;
@@ -174,20 +177,24 @@ export function AIBrainstormChat({
             if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               newState.collectedInfo.activity = userInput;
               newState.currentStep = 'people';
+              newState.hasSuggestions = false; // Reset suggestions for new step
             }
             break;
           case 'people':
             if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               newState.collectedInfo.people = userInput;
               newState.currentStep = 'extra_detail';
+              newState.hasSuggestions = false; // Reset suggestions for new step
             }
             break;
           case 'extra_detail':
             if (userInput.toLowerCase().includes('skip')) {
               newState.currentStep = 'final_approval';
+              newState.hasSuggestions = false; // Reset suggestions for new step
             } else if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
               newState.collectedInfo.extraDetail = userInput;
               newState.currentStep = 'final_approval';
+              newState.hasSuggestions = false; // Reset suggestions for new step
             }
             break;
           case 'final_approval':
