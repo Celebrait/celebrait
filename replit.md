@@ -129,6 +129,8 @@ Changelog:
   * STREAMLINED UX: Two clear paths for AI assistance - initial suggestions and more ideas - with consistent skip functionality
   * ACTIVITY/PEOPLE/EXTRA_DETAIL STEPS: All non-location steps now show suggestion buttons immediately without requiring initial text input
   * MAINTAINED FLOW: Location step preserves requirement for user input first to maintain focused conversation approach
+  * STRUCTURED LOCATION FLOW: Location step now has exactly 2 follow-up questions before advancing to activity step
+  * PEOPLE STEP FIX: Fixed people step being skipped and corrected prompt to ask about clothing/appearance instead of "who should be featured"
 - July 16, 2025. CRITICAL STEP COMBINATION FIX: Fixed AI combining multiple conversation steps in single responses:
   * SINGLE STEP ENFORCEMENT: Updated system prompts to strictly enforce single-step responses - AI now focuses only on current step
   * SUGGESTION ISOLATION: When providing suggestions, AI no longer combines with questions about next step (e.g., activity + people)
