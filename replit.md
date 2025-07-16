@@ -120,10 +120,11 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 16, 2025. CRITICAL BUG FIX: Fixed conversation flow bug where location step was jumping directly to final summary:
-  * IDENTIFIED ISSUE: Location step failing to advance to activity step after 3 user responses
-  * ROOT CAUSE: Frontend skip button logic was sending wrong step parameter to server - after 3 setting refinements, skip should go to activity but was sending people step
-  * SERVER-SIDE FIX: Added logic to correct step calculation based on settingRefinements count - when settingRefinements >= 3, skip button correctly advances to activity step
+- July 16, 2025. CRITICAL BUG FIX: Fixed conversation flow bug where location step was continuing with endless follow-ups instead of advancing to activity:
+  * IDENTIFIED ISSUE: Location step failing to advance to activity step after 3 user responses, continuing with location follow-up questions indefinitely
+  * ROOT CAUSE: Server-side logic was not properly enforcing step transition when settingRefinements >= 3 - AI kept asking location follow-ups instead of switching to activity questions
+  * SERVER-SIDE FIX: Added critical logic to detect when settingRefinements >= 3 and conversationStep === 'activity' to force transition to activity step
+  * STEP ENFORCEMENT: Server now detects completed location step (3 interactions) and forces AI to ask activity questions instead of location follow-ups
   * DEBUGGING ADDED: Console logging on both frontend and server to trace exact step progression and step calculation
   * FLOW CORRECTION: Fixed conversation flow to properly advance setting (3 responses) → activity → people → extra_detail → final_approval
   * STEP VALIDATION: Server now validates and corrects step advancement based on conversation progress rather than relying solely on frontend state

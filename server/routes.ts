@@ -577,20 +577,35 @@ Current step: ${conversationStep || 'setting'}`;
             content: `This is the first interaction in this conversation step. Do NOT offer suggestions. Ask a clarifying question about the ${conversationStep} and wait for their initial response. Do not end with "Would you like me to give you some suggestions?"`
           });
         } else if (conversationHistory && conversationHistory.length > 0 && !userInput.includes('Give me') && !userInput.includes('suggestions') && !userInput.includes('ideas')) {
-          // User has provided their initial response - always offer suggestions
-          messages.push({
-            role: "system", 
-            content: `CRITICAL: The user has provided their initial response about the ${conversationStep}. You MUST:
-            1. Acknowledge their input briefly
-            2. Ask for more specifics about the current step (${conversationStep})
-            3. MANDATORY: Add: "You can type your own response below or I can provide suggestions if you'd like."
-            
-            Keep the response natural and conversational.
-            
-            ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
-            
-            This is mandatory - do not skip the suggestion offer or typing reminder.`
-          });
+          // CRITICAL FIX: Check if we should transition to next step based on settingRefinements
+          if (settingRefinements >= 3 && conversationStep === 'activity') {
+            // This is actually the activity step - the frontend correctly sent activity
+            messages.push({
+              role: "system", 
+              content: `CRITICAL: The user has completed the location/setting step (3 interactions). You are now in the ACTIVITY step. 
+              
+              Ask about what activity they should be doing in the setting that was established. Ask: "What activity should they be doing in this setting?" 
+              
+              MANDATORY: Add: "You can type your own response below or I can provide suggestions if you'd like."
+              
+              ABSOLUTELY FORBIDDEN: Do not mention location, setting, or ask follow-up questions about the setting. Only focus on ACTIVITY - what they should be doing.`
+            });
+          } else {
+            // User has provided their initial response - always offer suggestions
+            messages.push({
+              role: "system", 
+              content: `CRITICAL: The user has provided their initial response about the ${conversationStep}. You MUST:
+              1. Acknowledge their input briefly
+              2. Ask for more specifics about the current step (${conversationStep})
+              3. MANDATORY: Add: "You can type your own response below or I can provide suggestions if you'd like."
+              
+              Keep the response natural and conversational.
+              
+              ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
+              
+              This is mandatory - do not skip the suggestion offer or typing reminder.`
+            });
+          }
         }
       } else if (type === "art_style") {
         systemPrompt = `You are a professional creative assistant helping users choose art styles for personalized greeting cards. You should:
