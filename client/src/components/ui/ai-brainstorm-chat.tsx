@@ -735,7 +735,7 @@ Please type your ideas below to get started.`;
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={type === "scene" ? "Ask anything" : "What art style are you thinking of?"}
+              placeholder="Type your response here"
               disabled={isLoading}
               className="flex-1 rounded-full border-gray-300 focus:border-purple-500 focus:ring-purple-500"
             />

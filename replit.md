@@ -127,6 +127,9 @@ Changelog:
   * DUAL BUTTON SYSTEM: Users now see both "Give Me More Suggestions" and "Skip This Question" buttons when AI presents 3 options
   * CONSISTENT SUGGESTION OFFERS: AI now properly asks "Would you like me to give you some suggestions?" after user's initial response in all steps
   * STEP PROGRESSION: Skip button properly advances conversation from setting → activity → people → extra_detail → final_approval
+  * TYPING REMINDER SYSTEM: AI consistently reminds users "You can type your own response below or..." throughout all interactions
+  * PLACEHOLDER TEXT: Updated input placeholder to "Type your response here" for clarity
+  * CLOTHING SKIP EMPHASIS: Enhanced people step to prominently mention skipping clothing question lets AI choose appropriate attire
   * LAUNCH READY: Both suggestion button types now work correctly for user's launch date requirement
 - July 16, 2025. AI SUGGESTION-ON-DEMAND SYSTEM: Completely redesigned AI brainstorming to provide suggestions only when users explicitly request them:
   * ON-DEMAND APPROACH: AI no longer automatically provides numbered suggestions in responses
