@@ -473,7 +473,8 @@ CONVERSATION FLOW (follow this order):
 CRITICAL INSTRUCTION - SUGGESTION-ON-DEMAND APPROACH:
 - Do NOT automatically provide numbered suggestions in your responses
 - Only provide numbered suggestions when the user explicitly asks for them (e.g., "Yes, please give me some suggestions" or "Give me more suggestions")
-- When user does NOT ask for suggestions, ask a clarifying question and end with "Would you like me to give you some suggestions?"
+- In your FIRST response, do NOT offer suggestions - ask a clarifying question and wait for their initial input
+- Only after they have provided their initial response should you offer "Would you like me to give you some suggestions?"
 - When user DOES ask for suggestions, provide exactly 3 numbered options in this format:
   1. First specific option
   2. Second specific option  
@@ -482,10 +483,18 @@ CRITICAL INSTRUCTION - SUGGESTION-ON-DEMAND APPROACH:
 INSTRUCTIONS:
 - Ask ONE focused question at a time
 - Build on previous responses naturally
-- For SETTING step: When user provides initial response, acknowledge it and ask a clarifying question about location specifics, then end with "Would you like me to give you some suggestions?"
-- For ACTIVITY steps: When user provides initial response, acknowledge it and ask for more specifics about the activity, then end with "Would you like me to give you some suggestions?"
-- For PEOPLE step: Acknowledge what they've shared so far and ask about clothing/appearance preferences, then end with "Would you like me to give you some suggestions?"
-- For EXTRA DETAIL step: Ask about special details that would make the scene meaningful, then end with "Would you like me to give you some suggestions?"
+- For SETTING step: 
+  * First interaction: Ask a clarifying question about location without offering suggestions
+  * After user provides initial response: Acknowledge it and ask for more specifics, then end with "Would you like me to give you some suggestions?"
+- For ACTIVITY steps: 
+  * First interaction: Ask about what they should be doing without offering suggestions
+  * After user provides initial response: Acknowledge it and ask for more specifics, then end with "Would you like me to give you some suggestions?"
+- For PEOPLE step: 
+  * First interaction: Ask about clothing/appearance preferences without offering suggestions
+  * After user provides initial response: Acknowledge it and ask for more specifics, then end with "Would you like me to give you some suggestions?"
+- For EXTRA DETAIL step: 
+  * First interaction: Ask about special details without offering suggestions
+  * After user provides initial response: Ask for more specifics, then end with "Would you like me to give you some suggestions?"
 - For FINAL APPROVAL step: Summarize the complete scene and tell user they can add more details if they like below. End by stating "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection." Do NOT provide numbered options in this step.
 - Keep responses professional but encouraging
 - When they answer, acknowledge their input and ask if there's anything more they'd like to focus on before moving to next step
@@ -519,6 +528,12 @@ Current step: ${conversationStep || 'setting'}`;
             
             Make sure the suggestions are relevant to the current conversation step (${conversationStep}). Keep the suggestions specific and actionable.`
           });
+        } else if (conversationHistory && conversationHistory.length === 0) {
+          // First interaction - do not offer suggestions
+          messages.push({
+            role: "system", 
+            content: `This is the first interaction in this conversation step. Do NOT offer suggestions. Ask a clarifying question about the ${conversationStep} and wait for their initial response. Do not end with "Would you like me to give you some suggestions?"`
+          });
         }
       } else if (type === "art_style") {
         systemPrompt = `You are a professional creative assistant helping users choose art styles for personalized greeting cards. You should:
@@ -533,11 +548,12 @@ Current step: ${conversationStep || 'setting'}`;
 CRITICAL INSTRUCTION - SUGGESTION-ON-DEMAND APPROACH:
 - Do NOT automatically provide numbered suggestions in your responses
 - Only provide numbered suggestions when the user explicitly asks for them (e.g., "Give me some suggestions" or "What styles would work?")
-- When user does NOT ask for suggestions, ask a clarifying question and end with "Would you like me to suggest some art styles?"
+- In your FIRST response, do NOT offer suggestions - ask a clarifying question and wait for their initial input
+- Only after they have provided their initial response should you offer "Would you like me to suggest some art styles?"
 - When user DOES ask for suggestions, provide exactly 3 numbered options with explanations
 
 CONVERSATION FLOW:
-- First interaction: Ask about the mood/feeling they want the card to convey
+- First interaction: Ask about the mood/feeling they want the card to convey (no suggestion offer)
 - Build on their responses with follow-up questions
 - Help them visualize exactly how different styles would look when they ask for suggestions
 - End with a perfect art style description they can use
