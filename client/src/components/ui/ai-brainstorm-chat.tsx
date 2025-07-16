@@ -670,6 +670,18 @@ Where should we place ${personReference} in this scene? Think about the setting 
                               variant="ghost"
                               size="sm"
                               onClick={() => {
+                                setUserInput("Give Me Some Suggestions");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                            >
+                              Give Me Some Suggestions
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
                                 setUserInput("Give me more ideas");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
@@ -698,6 +710,18 @@ Where should we place ${personReference} in this scene? Think about the setting 
                               variant="ghost"
                               size="sm"
                               onClick={() => {
+                                setUserInput("Give Me Some Suggestions");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                            >
+                              Give Me Some Suggestions
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
                                 setUserInput("Give me more ideas");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
@@ -722,6 +746,18 @@ Where should we place ${personReference} in this scene? Think about the setting 
                         
                         {conversationState.currentStep === 'extra_detail' && (
                           <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUserInput("Give Me Some Suggestions");
+                                setTimeout(() => handleSendMessage(), 100);
+                              }}
+                              className="text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                            >
+                              Give Me Some Suggestions
+                            </Button>
+                            
                             <Button
                               variant="ghost"
                               size="sm"

@@ -544,17 +544,29 @@ Current step: ${conversationStep || 'setting'}`;
             "what everyone should be doing" : 
             `what ${recipientName} should be doing`;
           
-          messages.push({
-            role: "system", 
-            content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
-            1. First specific option
-            2. Second specific option  
-            3. Third specific option
-            
-            DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond in the activity step.
-            
-            For the ACTIVITY step, always provide exactly 3 numbered options for ${activityLanguage}. Always remind users they can type their own response below or choose from the provided options. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response.`
-          });
+          // Check if this is the first activity question or if user is asking for suggestions
+          if (userInput.includes('Give me some suggestions') || userInput.includes('Give Me Some Suggestions')) {
+            messages.push({
+              role: "system", 
+              content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
+              1. First specific option
+              2. Second specific option  
+              3. Third specific option
+              
+              DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond to a suggestion request.
+              
+              The user is asking for suggestions. Provide exactly 3 numbered options for ${activityLanguage}. Always remind users they can type their own response below or choose from the provided options. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response.`
+            });
+          } else {
+            messages.push({
+              role: "system", 
+              content: `CRITICAL REQUIREMENT: This is the initial activity question. DO NOT provide numbered options yet. 
+              
+              Ask ${activityLanguage} in this setting, and tell them they can type their own response below or click "Give Me Some Suggestions" for ideas. Also mention they can click "Skip This Question" to move to the next step.
+              
+              Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response. Keep the question conversational and encouraging.`
+            });
+          }
         }
 
         // Add specific instruction for people step
@@ -567,17 +579,60 @@ Current step: ${conversationStep || 'setting'}`;
             "clothing suggestions for everyone" : 
             `clothing suggestions for ${recipientName}`;
           
-          messages.push({
-            role: "system", 
-            content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
-            1. First specific option
-            2. Second specific option  
-            3. Third specific option
-            
-            DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond in the people step.
-            
-            For the PEOPLE step, you MUST remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This must be mentioned prominently in every people step response. Say something like: 'Remember, you can skip this question to let me choose clothing that perfectly matches the scene!' Also always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options for ${peopleLanguage}. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response. ${photoContextInstruction}`
-          });
+          // Check if user is asking for suggestions
+          if (userInput && (userInput.includes('Give me some suggestions') || userInput.includes('Give Me Some Suggestions'))) {
+            messages.push({
+              role: "system", 
+              content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
+              1. First specific option
+              2. Second specific option  
+              3. Third specific option
+              
+              DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond to a suggestion request.
+              
+              The user is asking for suggestions. Provide exactly 3 numbered options for ${peopleLanguage}. Always remind users they can type their own response below or choose from the provided options. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response. ${photoContextInstruction}`
+            });
+          } else {
+            messages.push({
+              role: "system", 
+              content: `CRITICAL REQUIREMENT: This is the initial people/clothing question. DO NOT provide numbered options yet.
+              
+              Ask about ${peopleLanguage} for this scene, and tell them they can type their own response below or click "Give Me Some Suggestions" for ideas. Also mention they can click "Skip This Question" to move to the next step or let AI choose appropriate clothing that matches the scene perfectly.
+              
+              Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response. Keep the question conversational and encouraging. ${photoContextInstruction}`
+            });
+          }
+        }
+
+        // Add specific instruction for extra_detail step
+        if (conversationStep === 'extra_detail') {
+          const extraDetailLanguage = isMultiplePeople ? 
+            "special details for everyone in the scene" : 
+            `special details for ${recipientName} in the scene`;
+          
+          // Check if user is asking for suggestions
+          if (userInput && (userInput.includes('Give me some suggestions') || userInput.includes('Give Me Some Suggestions'))) {
+            messages.push({
+              role: "system", 
+              content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
+              1. First specific option
+              2. Second specific option  
+              3. Third specific option
+              
+              DO NOT ask open-ended questions. DO NOT provide bullet points. DO NOT ask multiple questions. You MUST provide exactly 3 numbered options EVERY time you respond to a suggestion request.
+              
+              The user is asking for suggestions. Provide exactly 3 numbered options for ${extraDetailLanguage} - think objects, symbols, atmosphere, or meaningful elements. Always remind users they can type their own response below or choose from the provided options. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response.`
+            });
+          } else {
+            messages.push({
+              role: "system", 
+              content: `CRITICAL REQUIREMENT: This is the initial extra detail question. DO NOT provide numbered options yet.
+              
+              Ask about what special details would make this scene meaningful for ${recipientName}'s ${celebration} - think objects, symbols, atmosphere, or meaningful elements. Tell them they can type their own response below or click "Give Me Some Suggestions" for ideas. Also mention they can click "Skip This Question" to move to the final approval step.
+              
+              Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response. Keep the question conversational and encouraging.`
+            });
+          }
         }
 
         // Add specific instruction for final approval step
