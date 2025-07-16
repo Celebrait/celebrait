@@ -120,6 +120,18 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 16, 2025. CHATGPT-STYLE MOBILE AI BRAINSTORM INTERFACE: Complete redesign of AI brainstorm chat to match ChatGPT mobile interface with brand integration:
+  * MOBILE-FIRST FULL-SCREEN DESIGN: Chat window now fills entire screen on mobile (100% width/height) with responsive desktop fallback
+  * REMOVED ICONS AND PROGRESS: Eliminated bot/user icons from message bubbles and removed step progress indicators for cleaner appearance
+  * CHATGPT-STYLE MESSAGES: Message bubbles use rounded corners (rounded-2xl) with proper indentation, 85% width, and larger padding (p-4)
+  * BRAND COLOR INTEGRATION: Updated all UI elements to use Celebrait brand colors (bg-gradient-celebrait, ethereal-purple, warm-pink)
+  * BUTTON STYLING HIERARCHY: Different button types now have distinct styling - Option buttons (brand gradient), More Ideas (blue), Skip (orange)
+  * MODERN INPUT FIELD: ChatGPT-style rounded input with embedded ArrowUp send button using brand gradient when active
+  * IMPROVED LOADING ANIMATION: Cleaner loading state without icons, matching message bubble styling
+  * AUTO-SCROLL DURING TYPING: Enhanced auto-scroll behavior that continues scrolling every 100ms during typing animations
+  * PLACEHOLDER TEXT UPDATE: Changed input placeholder to "Type your response here..." for better UX
+  * ENHANCED RESPONSIVENESS: Better mobile keyboard handling, wider text areas, and improved input field design
+  * INSTANT FULL OPENING: Window opens immediately to full size without expansion delays for seamless experience
 - July 15, 2025. INTELLIGENT PHOTO CONTENT ANALYSIS: Implemented AI-powered photo analysis to detect actual people count in uploaded images:
   * OPENAI VISION INTEGRATION: Added /api/analyze-photo-content endpoint using OpenAI Vision API to count people in uploaded photos
   * REAL PEOPLE DETECTION: System now analyzes photo content to detect 1 person, 2+ people, or no people instead of just counting photo files

@@ -59,10 +59,21 @@ export function AIBrainstormChat({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Auto-scroll to bottom when new messages are added
+  // Auto-scroll to bottom when new messages are added AND during typing
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
+
+  // Auto-scroll during typing animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (messages.some(msg => msg.isTyping)) {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 100); // Scroll every 100ms during typing
+
+    return () => clearInterval(interval);
+  }, [messages]);
 
   // Initialize with auto-typing AI greeting message when dialog opens
   useEffect(() => {
@@ -436,7 +447,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 
                                 sendMessage();
                               }}
-                              className="w-full sm:w-auto text-sm bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+                              className="w-full sm:w-auto text-sm bg-gradient-celebrait hover:opacity-90 text-white px-4 py-3 rounded-lg border-0 font-medium shadow-sm"
                             >
                               Choose Option {sugIndex + 1}
                             </Button>
@@ -506,7 +517,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 
                                 sendMessage();
                               }}
-                              className="w-full sm:w-auto text-sm bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+                              className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
                               Give Me More Ideas
                             </Button>
@@ -580,7 +591,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 
                                 sendMessage();
                               }}
-                              className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
+                              className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
                               Skip This Question
                             </Button>
@@ -651,7 +662,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                   
                                   sendMessage();
                                 }}
-                                className="text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                                className="w-full sm:w-auto text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                               >
                                 Skip Location Details
                               </Button>
@@ -668,7 +679,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 setUserInput("Give me more ideas");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
-                              className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                              className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
                               Give Me More Ideas
                             </Button>
@@ -680,7 +691,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 setUserInput("Skip this question - proceed to next step");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
-                              className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
+                              className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
                               Skip This Question
                             </Button>
@@ -696,7 +707,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 setUserInput("Give me more ideas");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
-                              className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                              className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
                               Give Me More Ideas
                             </Button>
@@ -708,7 +719,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 setUserInput("Skip this question - proceed to next step");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
-                              className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
+                              className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
                               Skip This Question
                             </Button>
@@ -724,7 +735,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 setUserInput("Give me more ideas");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
-                              className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                              className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
                               Give Me More Ideas
                             </Button>
@@ -733,22 +744,10 @@ Where should we place ${personReference} in this scene? Think about the setting 
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setUserInput("Skip this question - proceed to next step");
+                                setUserInput("Skip this step - I'm satisfied with current details");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
-                              className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
-                            >
-                              Skip This Question
-                            </Button>
-                            
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setUserInput("Skip this step");
-                                setTimeout(() => handleSendMessage(), 100);
-                              }}
-                              className="text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                              className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
                               Skip Step
                             </Button>
@@ -766,7 +765,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 onSuggestionSelect(finalScene);
                                 setIsOpen(false);
                               }}
-                              className="w-full sm:w-auto text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-6 py-3 rounded-lg border-0 font-medium"
+                              className="w-full sm:w-auto text-sm bg-gradient-celebrait hover:opacity-90 text-white px-6 py-3 rounded-lg border-0 font-medium shadow-lg"
                             >
                               Sounds great, let's go!
                             </Button>
@@ -813,7 +812,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={type === "scene" ? "Ask anything..." : "What art style are you thinking of?"}
+                placeholder="Type your response here..."
                 disabled={isLoading}
                 className="pr-12 py-3 text-base bg-gray-100 border-gray-200 rounded-full focus:bg-white focus:border-purple-300 transition-colors"
               />
@@ -823,7 +822,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                 size="sm"
                 className={`absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full w-8 h-8 p-0 transition-all ${
                   userInput.trim() && !isLoading
-                    ? 'bg-black hover:bg-gray-800 text-white'
+                    ? 'bg-gradient-celebrait hover:opacity-90 text-white'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
