@@ -61,9 +61,7 @@ export function AIBrainstormChat({
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
   // Initialize with auto-typing AI greeting message when dialog opens
@@ -219,10 +217,6 @@ export function AIBrainstormChat({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
-      // Keep input focused to prevent mobile keyboard from closing
-      if (e.currentTarget instanceof HTMLInputElement) {
-        e.currentTarget.focus();
-      }
     }
   };
 
@@ -301,26 +295,59 @@ Where should we place ${personReference} in this scene? Think about the setting 
           {buttonText}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[95vh] w-[95vw] h-[95vh] flex flex-col p-0 gap-0">
-        <DialogHeader className="p-4 pb-2 border-b">
-          <DialogTitle className="text-lg font-semibold text-center">
+      <DialogContent className="max-w-4xl max-h-[90vh] w-[95vw] h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Bot className="w-5 h-5 text-purple-500" />
             AI Brainstorming Assistant
           </DialogTitle>
           <DialogDescription className="hidden">
             Chat with AI to brainstorm creative ideas for your greeting card
           </DialogDescription>
+          {type === "scene" && (
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-1 text-sm text-gray-600">
+                {(['setting', 'activity', 'people', 'extra_detail', 'final_approval'] as const).map((step, index) => (
+                  <div key={step} className="flex items-center gap-1">
+                    <div className={`w-2 h-2 rounded-full ${
+                      conversationState.currentStep === step 
+                        ? 'bg-purple-500' 
+                        : index < (['setting', 'activity', 'people', 'extra_detail', 'final_approval'] as const).indexOf(conversationState.currentStep)
+                        ? 'bg-green-500' 
+                        : 'bg-gray-300'
+                    }`} />
+                    <span className={`text-xs ${
+                      conversationState.currentStep === step ? 'text-purple-600 font-medium' : 'text-gray-500'
+                    }`}>
+                      {step === 'setting' && 'Location'}
+                      {step === 'activity' && 'Activity'}
+                      {step === 'people' && 'People'}
+                      {step === 'extra_detail' && 'Extra Detail'}
+                      {step === 'final_approval' && 'Approve'}
+                    </span>
+                    {index < 4 && <div className="w-2 h-px bg-gray-300" />}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </DialogHeader>
         
         <div className="flex-1 flex flex-col min-h-0">
           {/* Chat Messages */}
-          <div className="flex-1 overflow-y-auto space-y-3 p-4 bg-white">
+          <div className="flex-1 overflow-y-auto space-y-4 p-4 bg-gray-50 rounded-lg">
             
             {messages.map((message, index) => (
-              <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] p-3 rounded-2xl ${
+              <div key={index} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : ''}`}>
+                {message.role === 'assistant' && (
+                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                    <Bot className="w-4 h-4 text-white" />
+                  </div>
+                )}
+                <div className={`flex-1 max-w-[80%] p-3 rounded-lg shadow-sm ${
                   message.role === 'user' 
-                    ? 'bg-blue-500 text-white rounded-br-md' 
-                    : 'bg-gray-100 text-gray-800 rounded-bl-md'
+                    ? 'bg-blue-500 text-white ml-12' 
+                    : 'bg-white text-gray-700'
                 }`}>
                   {message.isTyping ? (
                     <TypingAnimation 
@@ -343,7 +370,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                     <div className="mt-3 space-y-2">
                       {/* Extracted Suggestions - Hide for final approval step */}
                       {extractSuggestions(message.content).length > 0 && conversationState.currentStep !== 'final_approval' && (
-                        <div className="flex flex-col gap-2 w-full">
+                        <div className="flex flex-wrap gap-2">
                           {extractSuggestions(message.content).map((suggestion, sugIndex) => (
                             <Button
                               key={sugIndex}
@@ -441,7 +468,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 
                                 sendMessage();
                               }}
-                              className="text-sm hover:bg-purple-50 border-purple-200 text-purple-700 py-3 px-4 rounded-lg text-left justify-start"
+                              className="text-xs hover:bg-purple-50 border-purple-200 text-purple-700"
                             >
                               Choose Option {sugIndex + 1}
                             </Button>
@@ -450,7 +477,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                       )}
                       
                       {/* Step-specific action buttons */}
-                      <div className="flex flex-col gap-2 mt-2 w-full">
+                      <div className="flex flex-wrap gap-2 mt-2">
                         {conversationState.currentStep === 'setting' && (
                           <>
                             <Button
@@ -511,7 +538,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 
                                 sendMessage();
                               }}
-                              className="text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                              className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
                             >
                               Give Me More Ideas
                             </Button>
@@ -656,7 +683,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                   
                                   sendMessage();
                                 }}
-                                className="text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                                className="text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-50"
                               >
                                 Skip Location Details
                               </Button>
@@ -673,7 +700,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 setUserInput("Give me more ideas");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
-                              className="text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                              className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
                             >
                               Give Me More Ideas
                             </Button>
@@ -685,7 +712,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 setUserInput("Skip this question - proceed to next step");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
-                              className="text-sm text-green-600 hover:text-green-800 hover:bg-green-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                              className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
                             >
                               Skip This Question
                             </Button>
@@ -701,7 +728,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 setUserInput("Give me more ideas");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
-                              className="text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                              className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
                             >
                               Give Me More Ideas
                             </Button>
@@ -713,7 +740,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 setUserInput("Skip this question - proceed to next step");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
-                              className="text-sm text-green-600 hover:text-green-800 hover:bg-green-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                              className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
                             >
                               Skip This Question
                             </Button>
@@ -729,7 +756,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 setUserInput("Give me more ideas");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
-                              className="text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                              className="text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-50"
                             >
                               Give Me More Ideas
                             </Button>
@@ -741,7 +768,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 setUserInput("Skip this question - proceed to next step");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
-                              className="text-sm text-green-600 hover:text-green-800 hover:bg-green-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                              className="text-xs text-green-600 hover:text-green-800 hover:bg-green-50"
                             >
                               Skip This Question
                             </Button>
@@ -753,7 +780,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 setUserInput("Skip this step");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
-                              className="text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 py-3 px-4 rounded-lg text-left justify-start w-full"
+                              className="text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-50"
                             >
                               Skip Step
                             </Button>
@@ -771,7 +798,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 onSuggestionSelect(finalScene);
                                 setIsOpen(false);
                               }}
-                              className="text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 font-medium rounded-lg w-full"
+                              className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 font-medium"
                             >
                               Sounds great, let's go!
                             </Button>
@@ -783,7 +810,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 setUserInput("I'd like to make a change");
                                 setTimeout(() => handleSendMessage(), 100);
                               }}
-                              className="text-sm text-orange-600 hover:text-orange-800 hover:bg-orange-50 px-4 py-3 rounded-lg text-left justify-start w-full"
+                              className="text-xs text-orange-600 hover:text-orange-800 hover:bg-orange-50 px-4 py-2"
                             >
                               I'd like to make a change
                             </Button>
@@ -793,16 +820,21 @@ Where should we place ${personReference} in this scene? Think about the setting 
                     </div>
                   )}
                 </div>
+                {message.role === 'user' && (
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
+                )}
               </div>
             ))}
             
             {isLoading && (
-              <div className="flex justify-start">
-                <div className="max-w-[85%] bg-gray-100 text-gray-800 rounded-2xl rounded-bl-md p-3">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <p className="text-gray-600">AI is thinking...</p>
-                  </div>
+              <div className="flex gap-3">
+                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                  <Loader2 className="w-4 h-4 text-white animate-spin" />
+                </div>
+                <div className="flex-1 bg-white p-3 rounded-lg shadow-sm">
+                  <p className="text-gray-500">AI is thinking...</p>
                 </div>
               </div>
             )}
@@ -812,19 +844,19 @@ Where should we place ${personReference} in this scene? Think about the setting 
           </div>
           
           {/* Input Area */}
-          <div className="flex gap-2 p-4 pt-2 border-t bg-gray-50">
+          <div className="flex gap-2 mt-4">
             <Input
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={type === "scene" ? "Ask anything" : "What art style are you thinking of?"}
+              placeholder={type === "scene" ? "Describe what you're looking for..." : "What art style are you thinking of?"}
               disabled={isLoading}
-              className="flex-1 rounded-full border-gray-300 focus:border-purple-500 focus:ring-purple-500"
+              className="flex-1"
             />
             <Button 
               onClick={handleSendMessage}
               disabled={isLoading || !userInput.trim()}
-              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-full px-4"
+              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
             >
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

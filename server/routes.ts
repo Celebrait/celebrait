@@ -448,19 +448,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let messages = [];
 
       if (type === "scene") {
-        // First, determine if we're dealing with multiple people
-        const isMultiplePeople = photoContext && (
-          photoContext.toLowerCase().includes('multiple photos') ||
-          photoContext.toLowerCase().includes('two photos') ||
-          photoContext.toLowerCase().includes('multiple people') ||
-          photoContext.toLowerCase().includes('different people') ||
-          photoContext.toLowerCase().includes('various shots') ||
-          photoContext.toLowerCase().includes('several') ||
-          photoContext.toLowerCase().includes('different angles') ||
-          photoContext.toLowerCase().includes('group shot') ||
-          photoContext.toLowerCase().includes('people detected')
-        );
-
         systemPrompt = `You are a professional creative assistant helping users create detailed scene descriptions for greeting cards. Guide them through a structured conversation flow with focused questions.
 
 CONVERSATION FLOW (follow this order):
@@ -487,6 +474,18 @@ INSTRUCTIONS:
 - PHOTO CONTEXT AWARENESS: ${photoContext ? `Photo context: ${photoContext}. Adapt your language and suggestions based on whether this is a single person, group shot, or multiple photos of different people.` : 'No specific photo context provided - use general language for person/people.'}
 
 Current step: ${conversationStep || 'setting'}`;
+        
+        const isMultiplePeople = photoContext && (
+          photoContext.toLowerCase().includes('multiple photos') ||
+          photoContext.toLowerCase().includes('two photos') ||
+          photoContext.toLowerCase().includes('multiple people') ||
+          photoContext.toLowerCase().includes('different people') ||
+          photoContext.toLowerCase().includes('various shots') ||
+          photoContext.toLowerCase().includes('several') ||
+          photoContext.toLowerCase().includes('different angles') ||
+          photoContext.toLowerCase().includes('group shot') ||
+          photoContext.toLowerCase().includes('people detected')
+        );
 
         const contextualMessage = photoContext ? 
           (isMultiplePeople ? 
@@ -580,30 +579,16 @@ Current step: ${conversationStep || 'setting'}`;
           });
         }
 
-        // Add specific instruction for final approval step
-        if (conversationStep === 'final_approval') {
-          if (userInput && userInput.includes("I'd like to make a change")) {
-            messages.push({
-              role: "system", 
-              content: "The user wants to make a change to the final scene. Ask them specifically which part they want to change: 1) Setting/Location, 2) Activity/Action, 3) People/Clothing, or 4) Extra Details. Once they specify, help them modify that specific element, then present the updated final summary again for approval."
-            });
-          } else {
-            messages.push({
-              role: "system", 
-              content: `CRITICAL REQUIREMENT: You are in the FINAL APPROVAL step. DO NOT provide numbered options. DO NOT provide bullet points. DO NOT ask questions.
-              
-              Your response should:
-              1. Acknowledge what they've shared
-              2. Present a complete, cohesive scene summary incorporating all the elements they've chosen
-              3. End with: "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection."
-              
-              Do NOT provide any numbered options or suggestions. This is the final summary step where they review and approve the complete scene description.`
-            });
-          }
+        // Add specific instruction for change requests in final approval
+        if (conversationStep === 'final_approval' && userInput && userInput.includes("I'd like to make a change")) {
+          messages.push({
+            role: "system", 
+            content: "The user wants to make a change to the final scene. Ask them specifically which part they want to change: 1) Setting/Location, 2) Activity/Action, 3) People/Clothing, or 4) Extra Details. Once they specify, help them modify that specific element, then present the updated final summary again for approval."
+          });
         }
 
-        // Add specific instruction for more ideas requests (but NOT in final approval)
-        if (userInput && userInput.includes('Give me more') && conversationStep !== 'final_approval') {
+        // Add specific instruction for more ideas requests
+        if (userInput && userInput.includes('Give me more')) {
           messages.push({
             role: "system", 
             content: `CRITICAL REQUIREMENT: You MUST provide exactly 3 numbered options in this format:
