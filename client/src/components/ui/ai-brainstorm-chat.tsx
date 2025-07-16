@@ -557,13 +557,7 @@ Please type your ideas below to get started.`;
                       
                       {/* Show "Give Me More Ideas" button when AI presents options */}
                       {message.role === "assistant" && 
-                       extractSuggestions(message.content).length > 0 && 
-                       (message.content.toLowerCase().includes('which of these resonates') ||
-                        message.content.toLowerCase().includes('do any of these options') ||
-                        message.content.toLowerCase().includes('which option') ||
-                        message.content.toLowerCase().includes('would you like to explore something different') ||
-                        message.content.toLowerCase().includes('which of these options') ||
-                        message.content.toLowerCase().includes('what do you think')) && (
+                       extractSuggestions(message.content).length > 0 && (
                         <div className="flex flex-col gap-2 mt-2 w-full">
                           <Button
                             variant="ghost"

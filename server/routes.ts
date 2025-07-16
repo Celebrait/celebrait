@@ -538,7 +538,12 @@ Current step: ${conversationStep || 'setting'}`;
           // User has provided their initial response - always offer suggestions
           messages.push({
             role: "system", 
-            content: `The user has provided their initial response about the ${conversationStep}. Acknowledge their input and ask for more specifics about the current step (${conversationStep}), then end with the exact phrase "Would you like me to give you some suggestions?"`
+            content: `CRITICAL: The user has provided their initial response about the ${conversationStep}. You MUST:
+            1. Acknowledge their input briefly
+            2. Ask for more specifics about the current step (${conversationStep})
+            3. End with EXACTLY this phrase: "Would you like me to give you some suggestions?"
+            
+            This is mandatory - do not skip the suggestion offer.`
           });
         }
       } else if (type === "art_style") {
