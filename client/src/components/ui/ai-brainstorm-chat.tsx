@@ -104,6 +104,7 @@ export function AIBrainstormChat({
       setMessages([]);
       setConversationState({
         currentStep: 'setting',
+        settingRefinements: 0,
         collectedInfo: {}
       });
     }
@@ -157,6 +158,18 @@ export function AIBrainstormChat({
       // Update conversation state - collect the user's input for current step
       setConversationState(prev => {
         const newState = { ...prev };
+        
+        // Check if AI response indicates final approval stage
+        const aiResponse = result.response || '';
+        const isFinalApprovalResponse = aiResponse.includes("When you're ready to proceed") || 
+                                       aiResponse.includes("click 'Sounds great, let's go!'") ||
+                                       aiResponse.includes("art style selection") ||
+                                       aiResponse.includes("complete scene description");
+        
+        if (isFinalApprovalResponse) {
+          newState.currentStep = 'final_approval';
+          return newState;
+        }
         
         // Don't advance step if user is asking for more ideas
         if (userInput.toLowerCase().includes('more') && userInput.toLowerCase().includes('ideas')) {
@@ -292,7 +305,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
     }
     
     // Remove duplicates and return up to 3 suggestions
-    return [...new Set(suggestions)].slice(0, 3);
+    return Array.from(new Set(suggestions)).slice(0, 3);
   };
 
   return (
@@ -399,6 +412,18 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                     // Update conversation state
                                     setConversationState(prev => {
                                       const newState = { ...prev };
+                                      
+                                      // Check if AI response indicates final approval stage
+                                      const aiResponse = result.response || '';
+                                      const isFinalApprovalResponse = aiResponse.includes("When you're ready to proceed") || 
+                                                                     aiResponse.includes("click 'Sounds great, let's go!'") ||
+                                                                     aiResponse.includes("art style selection") ||
+                                                                     aiResponse.includes("complete scene description");
+                                      
+                                      if (isFinalApprovalResponse) {
+                                        newState.currentStep = 'final_approval';
+                                        return newState;
+                                      }
                                       
                                       if (!suggestion.toLowerCase().includes('more') || !suggestion.toLowerCase().includes('ideas')) {
                                         switch (prev.currentStep) {
