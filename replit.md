@@ -132,6 +132,8 @@ Changelog:
   * CLOTHING SKIP EMPHASIS: Enhanced people step to prominently mention skipping clothing question lets AI choose appropriate attire
   * MANDATORY PROMPTS: Strengthened system prompts with "MANDATORY" instructions to ensure AI follows typing reminders and clothing skip emphasis
   * CRITICAL FIXES: Updated all suggestion system prompts to use "MANDATORY" instead of "SPECIAL INSTRUCTION" for consistent AI behavior
+  * EXACT PHRASE FIX: Fixed critical issue where AI was saying "let me know if you'd like me to give you some suggestions" instead of exact phrase "Would you like me to give you some suggestions?" that triggers frontend suggestion button
+  * BUTTON TRIGGER REPAIR: Added explicit instruction to use exact phrase that frontend recognizes for suggestion button display
   * LAUNCH READY: Both suggestion button types now work correctly for user's launch date requirement
 - July 16, 2025. AI SUGGESTION-ON-DEMAND SYSTEM: Completely redesigned AI brainstorming to provide suggestions only when users explicitly request them:
   * ON-DEMAND APPROACH: AI no longer automatically provides numbered suggestions in responses

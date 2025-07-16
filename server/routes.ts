@@ -551,6 +551,8 @@ Current step: ${conversationStep || 'setting'}`;
             3. MANDATORY: Add: "You can type your own response below or..."
             4. End with EXACTLY this phrase: "Would you like me to give you some suggestions?"
             
+            DO NOT say "let me know if you'd like me to give you some suggestions" - use the EXACT phrase above.
+            
             ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
             
             This is mandatory - do not skip the suggestion offer or typing reminder.`
@@ -619,6 +621,8 @@ Remember: You're helping them discover their perfect artistic vision through gui
             2. Ask for more specifics about the current step (${conversationStep})
             3. MANDATORY: Add: "You can type your own response below or..."
             4. End with EXACTLY this phrase: "Would you like me to give you some suggestions?"
+            
+            DO NOT say "let me know if you'd like me to give you some suggestions" - use the EXACT phrase above.
             
             ${conversationStep === 'people' ? 'MANDATORY FOR PEOPLE STEP: Prominently mention that users can skip the clothing question to let the AI choose appropriate clothing that matches the scene perfectly. This must be emphasized as a helpful option at the end of your response.' : ''}
             
