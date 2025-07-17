@@ -582,6 +582,14 @@ Current step: ${conversationStep || 'setting'}`;
           });
         }
 
+        // Add specific instruction for change_request step
+        if (conversationStep === 'change_request') {
+          messages.push({
+            role: "system", 
+            content: "The user has requested to make a change. Ask them specifically which part of the scene they want to change: setting, activity, people, or extra details. Do NOT show any buttons or suggestions - just ask them to type which part they want to change. Once they specify what to change, help them modify that specific element, then present the updated final summary again with the two buttons ('Sounds great, let's go!' and 'I'd like to make a change') for approval."
+          });
+        }
+
         // Add specific instruction for more ideas requests
         if (userInput && userInput.includes('Give me more')) {
           messages.push({

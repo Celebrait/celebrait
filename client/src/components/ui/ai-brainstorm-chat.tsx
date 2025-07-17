@@ -220,6 +220,12 @@ export function AIBrainstormChat({
               }, 1000);
             }
             break;
+          case 'change_request':
+            // User has specified what they want to change
+            // Keep in change_request state until they provide the new information
+            // Then return to final_approval
+            newState.currentStep = 'final_approval';
+            break;
         }
         
         return newState;
@@ -466,6 +472,12 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                               newState.collectedInfo.extraDetail = suggestion;
                                               newState.currentStep = 'final_approval';
                                             }
+                                            break;
+                                          case 'change_request':
+                                            // User has specified what they want to change
+                                            // Keep in change_request state until they provide the new information
+                                            // Then return to final_approval
+                                            newState.currentStep = 'final_approval';
                                             break;
                                         }
                                       }
@@ -1028,14 +1040,33 @@ Where should we place ${personReference} in this scene? Think about the setting 
                           </>
                         )}
                         
-                        {conversationState.currentStep === 'final_approval' && (
+                        {(conversationState.currentStep === 'final_approval' || conversationState.currentStep === 'change_request') && (
                           <>
                             <Button
                               variant="ghost"
                               size="default"
                               onClick={() => {
-                                // Generate final scene description and close dialog
-                                const finalScene = `${conversationState.collectedInfo.setting || ''} ${conversationState.collectedInfo.activity || ''} ${conversationState.collectedInfo.people || ''} ${conversationState.collectedInfo.extraDetail || ''}`.trim();
+                                // Get the complete scene description from the AI's last message
+                                const lastAssistantMessage = messages.filter(m => m.role === 'assistant').pop();
+                                let finalScene = '';
+                                
+                                if (lastAssistantMessage && lastAssistantMessage.content) {
+                                  // Extract the scene description from the AI's final summary
+                                  const content = lastAssistantMessage.content;
+                                  const sceneMatch = content.match(/Here's the complete scene description[^:]*:\s*(.+?)(?=\n\n|Please let me know|$)/s);
+                                  
+                                  if (sceneMatch) {
+                                    finalScene = sceneMatch[1].trim();
+                                  } else {
+                                    // Fallback to simple concatenation if no formatted summary found
+                                    finalScene = `${conversationState.collectedInfo.setting || ''} ${conversationState.collectedInfo.activity || ''} ${conversationState.collectedInfo.people || ''} ${conversationState.collectedInfo.extraDetail || ''}`.trim();
+                                  }
+                                } else {
+                                  // Fallback to simple concatenation
+                                  finalScene = `${conversationState.collectedInfo.setting || ''} ${conversationState.collectedInfo.activity || ''} ${conversationState.collectedInfo.people || ''} ${conversationState.collectedInfo.extraDetail || ''}`.trim();
+                                }
+                                
+                                console.log('Final scene description:', finalScene);
                                 onSuggestionSelect(finalScene);
                                 setIsOpen(false);
                               }}
@@ -1048,8 +1079,65 @@ Where should we place ${personReference} in this scene? Think about the setting 
                               variant="ghost"
                               size="default"
                               onClick={() => {
-                                setUserInput("I'd like to make a change");
-                                setTimeout(() => handleSendMessage(), 100);
+                                // Auto-send the message immediately
+                                const userMessage: ChatMessage = {
+                                  role: "user",
+                                  content: "I'd like to make a change",
+                                  timestamp: new Date()
+                                };
+                                setMessages(prev => [...prev, userMessage]);
+                                setIsLoading(true);
+                                
+                                // Update conversation state to change_request
+                                setConversationState(prev => ({
+                                  ...prev,
+                                  currentStep: 'change_request'
+                                }));
+                                
+                                // Send to AI immediately
+                                const sendMessage = async () => {
+                                  try {
+                                    const conversationHistory = [...messages, userMessage].map(msg => ({
+                                      role: msg.role,
+                                      content: msg.content
+                                    }));
+
+                                    const response = await apiRequest("POST", "/api/ai-brainstorm", {
+                                      type,
+                                      context: `Current input: "${currentInput}"`,
+                                      userInput: "I'd like to make a change",
+                                      recipientName,
+                                      celebration,
+                                      conversationStep: 'change_request',
+                                      settingRefinements: conversationState.settingRefinements,
+                                      conversationHistory: conversationHistory.slice(0, -1),
+                                      photoContext
+                                    });
+
+                                    const result = await response.json();
+
+                                    const typingMessage: ChatMessage = {
+                                      role: "assistant",
+                                      content: result.response,
+                                      timestamp: new Date(),
+                                      isTyping: true
+                                    };
+
+                                    setMessages(prev => [...prev, typingMessage]);
+
+                                  } catch (error) {
+                                    console.error('Error sending message:', error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to send message. Please try again.",
+                                      variant: "destructive"
+                                    });
+                                  } finally {
+                                    setIsLoading(false);
+                                  }
+                                };
+                                
+                                sendMessage();
                               }}
                               className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
