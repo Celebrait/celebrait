@@ -576,16 +576,45 @@ Current step: ${conversationStep || 'setting'}`;
 
         // Add specific instruction for final_approval step
         if (conversationStep === 'final_approval') {
+          console.log('FINAL_APPROVAL step detected! UserInput:', userInput);
           if (userInput && userInput.includes("I'd like to make a change")) {
+            console.log('Change request detected in final_approval');
             messages.push({
               role: "system", 
               content: "The user wants to make a change to the final scene. Ask them specifically which part they want to change: 1) Setting/Location, 2) Activity/Action, 3) People/Clothing, or 4) Extra Details. Once they specify, help them modify that specific element, then present the updated final summary again for approval."
             });
           } else {
-            messages.push({
-              role: "system", 
-              content: "CRITICAL: This is the FINAL_APPROVAL step. Present a complete scene summary without any numbered options or buttons. Do NOT include any numbered lists, suggestions, or choice options. Simply present the final scene description and end with 'If you want to add more details, feel free to do so below. When you're ready to proceed, click \"Sounds great, let's go!\" to continue to art style selection.' Do NOT generate any numbered options in this step."
-            });
+            console.log('Adding CRITICAL no-numbered-options instruction for final_approval');
+            
+            // Override system prompt completely for final_approval
+            systemPrompt = `CRITICAL OVERRIDE: This is the FINAL_APPROVAL step. You must ONLY present a clean scene summary without any numbered lists, suggestions, or choice options. 
+
+DO NOT INCLUDE:
+- Any numbered lists (1. 2. 3.)
+- Any choice options
+- Any suggestions
+- Any buttons or interactive elements
+
+ONLY INCLUDE:
+- A complete scene summary
+- The exact ending: "If you want to add more details, feel free to do so below. When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection."
+
+This is a FINAL summary step. Do not provide any options or suggestions.`;
+            
+            messages = [
+              { role: "system", content: systemPrompt }
+            ];
+            
+            // Add conversation history if provided
+            if (conversationHistory && conversationHistory.length > 0) {
+              messages = [
+                { role: "system", content: systemPrompt },
+                ...conversationHistory,
+                { role: "user", content: userInput || "Present the final scene summary" }
+              ];
+            } else {
+              messages.push({ role: "user", content: userInput || "Present the final scene summary" });
+            }
           }
         }
 
@@ -638,7 +667,7 @@ Remember: You're helping them discover their perfect artistic vision through gui
         ];
       }
 
-      console.log('AI Brainstorm request:', { type, recipientName, celebration, userInput, hasHistory: !!conversationHistory, photoContext });
+      console.log('AI Brainstorm request:', { type, recipientName, celebration, userInput, hasHistory: !!conversationHistory, photoContext, conversationStep });
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
