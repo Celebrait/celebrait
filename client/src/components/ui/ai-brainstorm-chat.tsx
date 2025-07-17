@@ -403,8 +403,8 @@ Where should we place ${personReference} in this scene? Think about the setting 
                   
                   {message.role === 'assistant' && !message.isTyping && index > 0 && (
                     <div className="mt-4 space-y-3">
-                      {/* Extracted Suggestions - Hide for final approval step */}
-                      {extractSuggestions(message.content).length > 0 && conversationState.currentStep !== 'final_approval' && (
+                      {/* Extracted Suggestions - Hide for final approval and change request steps */}
+                      {extractSuggestions(message.content).length > 0 && conversationState.currentStep !== 'final_approval' && conversationState.currentStep !== 'change_request' && (
                         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                           {extractSuggestions(message.content).map((suggestion, sugIndex) => (
                             <Button
