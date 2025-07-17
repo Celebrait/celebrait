@@ -130,18 +130,6 @@ export function AIBrainstormChat({
         content: msg.content
       }));
 
-      console.log('Sending AI brainstorm request:', {
-        type,
-        context: `Current input: "${currentInput}"`,
-        userInput,
-        recipientName,
-        celebration,
-        conversationStep: conversationState.currentStep,
-        settingRefinements: conversationState.settingRefinements,
-        conversationHistory: conversationHistory.slice(0, -1), // Exclude the current message
-        photoContext
-      });
-
       const response = await apiRequest("POST", "/api/ai-brainstorm", {
         type,
         context: `Current input: "${currentInput}"`,
@@ -154,9 +142,7 @@ export function AIBrainstormChat({
         photoContext
       });
 
-      console.log('Response received:', response.status, response.statusText);
       const result = await response.json();
-      console.log('Response parsed:', result);
 
       // Add typing animation message
       const typingMessage: ChatMessage = {
@@ -247,10 +233,9 @@ export function AIBrainstormChat({
 
     } catch (error) {
       console.error('AI brainstorm error:', error);
-      console.error('Error details:', error instanceof Error ? error.message : error);
       toast({
         title: "Error",
-        description: `Failed to get AI suggestions: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        description: "Failed to get AI suggestions. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -302,11 +287,6 @@ Where should we place ${personReference} in this scene? Think about the setting 
   };
 
   const extractSuggestions = (content: string) => {
-    // Don't extract suggestions if we're in final_approval step
-    if (conversationState.currentStep === 'final_approval') {
-      return [];
-    }
-    
     // Enhanced regex to capture various suggestion formats
     const patterns = [
       // Numbered lists: "1. Description" or "1) Description" - improved to handle multiline
@@ -342,10 +322,8 @@ Where should we place ${personReference} in this scene? Think about the setting 
     }
     
     // Debug logging
-    if (suggestions.length > 0) {
-      console.log('Extracting suggestions from:', content);
-      console.log('Found suggestions:', suggestions);
-    }
+    console.log('Extracting suggestions from:', content);
+    console.log('Found suggestions:', suggestions);
     
     // Remove duplicates and return up to 3 suggestions
     return Array.from(new Set(suggestions)).slice(0, 3);
@@ -403,8 +381,8 @@ Where should we place ${personReference} in this scene? Think about the setting 
                   
                   {message.role === 'assistant' && !message.isTyping && index > 0 && (
                     <div className="mt-4 space-y-3">
-                      {/* Extracted Suggestions - Hide for final approval and change request steps */}
-                      {extractSuggestions(message.content).length > 0 && conversationState.currentStep !== 'final_approval' && conversationState.currentStep !== 'change_request' && (
+                      {/* Extracted Suggestions - Hide for final approval step */}
+                      {extractSuggestions(message.content).length > 0 && conversationState.currentStep !== 'final_approval' && (
                         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                           {extractSuggestions(message.content).map((suggestion, sugIndex) => (
                             <Button
@@ -531,112 +509,6 @@ Where should we place ${personReference} in this scene? Think about the setting 
                       
                       {/* Step-specific action buttons */}
                       <div className="flex flex-col gap-2 mt-2 sm:flex-row sm:flex-wrap">
-                        {/* FINAL APPROVAL BUTTONS - HARDCODED TO SHOW ONLY 2 BUTTONS */}
-                        {conversationState.currentStep === 'final_approval' && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="default"
-                              onClick={() => {
-                                // Get the complete scene description from the AI's last message
-                                const lastAssistantMessage = messages.filter(m => m.role === 'assistant').pop();
-                                let finalScene = '';
-                                
-                                if (lastAssistantMessage && lastAssistantMessage.content) {
-                                  // Extract the scene description from the AI's final summary
-                                  const content = lastAssistantMessage.content;
-                                  const sceneMatch = content.match(/Here's the complete scene description[^:]*:\s*(.+?)(?=\n\n|Please let me know|$)/s);
-                                  
-                                  if (sceneMatch) {
-                                    finalScene = sceneMatch[1].trim();
-                                  } else {
-                                    // Fallback to simple concatenation if no formatted summary found
-                                    finalScene = `${conversationState.collectedInfo.setting || ''} ${conversationState.collectedInfo.activity || ''} ${conversationState.collectedInfo.people || ''} ${conversationState.collectedInfo.extraDetail || ''}`.trim();
-                                  }
-                                } else {
-                                  // Fallback to simple concatenation
-                                  finalScene = `${conversationState.collectedInfo.setting || ''} ${conversationState.collectedInfo.activity || ''} ${conversationState.collectedInfo.people || ''} ${conversationState.collectedInfo.extraDetail || ''}`.trim();
-                                }
-                                
-                                console.log('Final scene description:', finalScene);
-                                onSuggestionSelect(finalScene);
-                                setIsOpen(false);
-                              }}
-                              className="w-full sm:w-auto text-sm bg-gradient-celebrait hover:opacity-90 text-white px-6 py-3 rounded-lg border-0 font-medium shadow-lg"
-                            >
-                              Sounds great, let's go!
-                            </Button>
-                            
-                            <Button
-                              variant="ghost"
-                              size="default"
-                              onClick={() => {
-                                // Auto-send the message immediately
-                                const userMessage: ChatMessage = {
-                                  role: "user",
-                                  content: "I'd like to make a change",
-                                  timestamp: new Date()
-                                };
-                                setMessages(prev => [...prev, userMessage]);
-                                setIsLoading(true);
-                                
-                                // Update conversation state to change_request
-                                setConversationState(prev => ({
-                                  ...prev,
-                                  currentStep: 'change_request'
-                                }));
-                                
-                                // Send to AI immediately
-                                const sendMessage = async () => {
-                                  try {
-                                    const conversationHistory = [...messages, userMessage].map(msg => ({
-                                      role: msg.role,
-                                      content: msg.content
-                                    }));
-
-                                    const response = await apiRequest("POST", "/api/ai-brainstorm", {
-                                      type,
-                                      context: `Current input: "${currentInput}"`,
-                                      userInput: "I'd like to make a change",
-                                      recipientName,
-                                      celebration,
-                                      conversationStep: 'change_request',
-                                      settingRefinements: conversationState.settingRefinements,
-                                      conversationHistory: conversationHistory.slice(0, -1),
-                                      photoContext
-                                    });
-
-                                    const result = await response.json();
-
-                                    const typingMessage: ChatMessage = {
-                                      role: "assistant",
-                                      content: result.response,
-                                      timestamp: new Date(),
-                                      isTyping: true
-                                    };
-
-                                    setMessages(prev => [...prev, typingMessage]);
-
-                                  } catch (error) {
-                                    console.error('Error sending message:', error);
-                                    toast({
-                                      title: "Error",
-                                      description: "Failed to send message. Please try again.",
-                                      variant: "destructive"
-                                    });
-                                  } finally {
-                                    setIsLoading(false);
-                                  }
-                                };
-                                
-                                sendMessage();
-                              }}
-                              className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
-                            >
-                              I'd like to make a change
-                            </Button>
-                          </>
-                        )}
                         {conversationState.currentStep === 'setting' && (
                           <>
                             <Button
@@ -1167,7 +1039,112 @@ Where should we place ${personReference} in this scene? Think about the setting 
                             </Button>
                           </>
                         )}
+                        
+                        {(conversationState.currentStep === 'final_approval' || conversationState.currentStep === 'change_request') && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="default"
+                              onClick={() => {
+                                // Get the complete scene description from the AI's last message
+                                const lastAssistantMessage = messages.filter(m => m.role === 'assistant').pop();
+                                let finalScene = '';
+                                
+                                if (lastAssistantMessage && lastAssistantMessage.content) {
+                                  // Extract the scene description from the AI's final summary
+                                  const content = lastAssistantMessage.content;
+                                  const sceneMatch = content.match(/Here's the complete scene description[^:]*:\s*(.+?)(?=\n\n|Please let me know|$)/s);
+                                  
+                                  if (sceneMatch) {
+                                    finalScene = sceneMatch[1].trim();
+                                  } else {
+                                    // Fallback to simple concatenation if no formatted summary found
+                                    finalScene = `${conversationState.collectedInfo.setting || ''} ${conversationState.collectedInfo.activity || ''} ${conversationState.collectedInfo.people || ''} ${conversationState.collectedInfo.extraDetail || ''}`.trim();
+                                  }
+                                } else {
+                                  // Fallback to simple concatenation
+                                  finalScene = `${conversationState.collectedInfo.setting || ''} ${conversationState.collectedInfo.activity || ''} ${conversationState.collectedInfo.people || ''} ${conversationState.collectedInfo.extraDetail || ''}`.trim();
+                                }
+                                
+                                console.log('Final scene description:', finalScene);
+                                onSuggestionSelect(finalScene);
+                                setIsOpen(false);
+                              }}
+                              className="w-full sm:w-auto text-sm bg-gradient-celebrait hover:opacity-90 text-white px-6 py-3 rounded-lg border-0 font-medium shadow-lg"
+                            >
+                              Sounds great, let's go!
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="default"
+                              onClick={() => {
+                                // Auto-send the message immediately
+                                const userMessage: ChatMessage = {
+                                  role: "user",
+                                  content: "I'd like to make a change",
+                                  timestamp: new Date()
+                                };
+                                setMessages(prev => [...prev, userMessage]);
+                                setIsLoading(true);
+                                
+                                // Update conversation state to change_request
+                                setConversationState(prev => ({
+                                  ...prev,
+                                  currentStep: 'change_request'
+                                }));
+                                
+                                // Send to AI immediately
+                                const sendMessage = async () => {
+                                  try {
+                                    const conversationHistory = [...messages, userMessage].map(msg => ({
+                                      role: msg.role,
+                                      content: msg.content
+                                    }));
 
+                                    const response = await apiRequest("POST", "/api/ai-brainstorm", {
+                                      type,
+                                      context: `Current input: "${currentInput}"`,
+                                      userInput: "I'd like to make a change",
+                                      recipientName,
+                                      celebration,
+                                      conversationStep: 'change_request',
+                                      settingRefinements: conversationState.settingRefinements,
+                                      conversationHistory: conversationHistory.slice(0, -1),
+                                      photoContext
+                                    });
+
+                                    const result = await response.json();
+
+                                    const typingMessage: ChatMessage = {
+                                      role: "assistant",
+                                      content: result.response,
+                                      timestamp: new Date(),
+                                      isTyping: true
+                                    };
+
+                                    setMessages(prev => [...prev, typingMessage]);
+
+                                  } catch (error) {
+                                    console.error('Error sending message:', error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to send message. Please try again.",
+                                      variant: "destructive"
+                                    });
+                                  } finally {
+                                    setIsLoading(false);
+                                  }
+                                };
+                                
+                                sendMessage();
+                              }}
+                              className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+                            >
+                              I'd like to make a change
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   )}
