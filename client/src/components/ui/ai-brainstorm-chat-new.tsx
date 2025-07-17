@@ -64,7 +64,6 @@ export function AIBrainstormChat({
   });
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   // Auto-scroll to bottom when new messages are added
@@ -345,21 +344,59 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
   };
 
   const renderButtons = () => {
+    // Don't render buttons at bottom - they should be inline with messages
+    return null;
+  };
+
+  const renderInlineButtons = (messageIndex: number) => {
     const { currentStep, showSuggestions, settingRefinements, activityRefinements } = conversationState;
+    
+    // Only show buttons for the most recent assistant message
+    const isLastAssistantMessage = messageIndex === messages.length - 1 || 
+      (messageIndex === messages.length - 2 && messages[messages.length - 1].role === 'user');
+    
+    if (!isLastAssistantMessage) {
+      return null;
+    }
+    
+    // Show suggestions if available
+    if (showSuggestions && suggestions.length > 0) {
+      return (
+        <div className="space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            {suggestions.map((suggestion, index) => (
+              <Button
+                key={`option-${index}`}
+                variant="ghost"
+                size="default"
+                onClick={() => handleButtonClick(`Choose Option ${index + 1}`)}
+                className="w-full sm:w-auto text-sm bg-gradient-celebrait hover:opacity-90 text-white px-4 py-3 rounded-lg border-0 font-medium shadow-sm"
+              >
+                Choose Option {index + 1}
+              </Button>
+            ))}
+          </div>
+        </div>
+      );
+    }
     
     // Final approval step - special case
     if (currentStep === 'final_approval') {
       return (
-        <div className="flex flex-col gap-2 mt-2 sm:flex-row sm:flex-wrap">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button
+            variant="ghost"
+            size="default"
             onClick={() => handleButtonClick("Sounds great, let's go!")}
-            className="w-full sm:w-auto text-sm bg-gradient-celebrait hover:opacity-90 text-white px-4 py-3 rounded-lg border-0 font-medium shadow-sm"
+            className="w-full sm:w-auto text-sm bg-gradient-celebrait hover:opacity-90 text-white px-6 py-3 rounded-lg border-0 font-medium shadow-lg"
           >
             Sounds great, let's go!
           </Button>
           <Button
+            variant="ghost"
+            size="default"
             onClick={() => handleButtonClick("I'd like to make a change")}
-            className="w-full sm:w-auto text-sm bg-gradient-to-r from-orange-500 to-red-500 hover:opacity-90 text-white px-4 py-3 rounded-lg border-0 font-medium shadow-sm"
+            className="w-full sm:w-auto text-sm bg-gradient-to-r from-orange-500 to-red-500 hover:opacity-90 text-white px-6 py-3 rounded-lg border-0 font-medium shadow-lg"
           >
             I'd like to make a change
           </Button>
@@ -377,63 +414,129 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
       return null;
     }
     
-    // All other steps show appropriate buttons
+    // Step-specific action buttons
     const buttons = [];
     
-    // Get Suggestions button (if suggestions not already shown)
-    if (!showSuggestions) {
+    // Get Suggestions button for appropriate steps
+    if (currentStep === 'setting' && settingRefinements > 0) {
       buttons.push(
         <Button
           key="get-suggestions"
+          variant="ghost"
+          size="default"
           onClick={() => handleButtonClick("Get Suggestions")}
-          className="w-full sm:w-auto text-sm bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg border-0 font-medium shadow-sm"
+          className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
         >
-          Get Suggestions
+          Give Me More Ideas
         </Button>
       );
     }
     
-    // If suggestions are shown, show option buttons
-    if (showSuggestions && suggestions.length > 0) {
-      suggestions.forEach((suggestion, index) => {
-        buttons.push(
-          <Button
-            key={`option-${index}`}
-            onClick={() => handleButtonClick(`Choose Option ${index + 1}`)}
-            className="w-full sm:w-auto text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-lg border-0 font-medium shadow-sm"
-          >
-            Choose Option {index + 1}
-          </Button>
-        );
-      });
-      
-      // More suggestions button
+    if (currentStep === 'activity') {
       buttons.push(
         <Button
-          key="more-suggestions"
-          onClick={() => handleButtonClick("Get More Suggestions")}
-          className="w-full sm:w-auto text-sm bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg border-0 font-medium shadow-sm"
+          key="get-suggestions"
+          variant="ghost"
+          size="default"
+          onClick={() => handleButtonClick("Get Suggestions")}
+          className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
         >
-          Get More Suggestions
+          Give Me More Ideas
         </Button>
       );
     }
     
-    // Skip button (always available except for initial setting question)
-    if (currentStep !== 'setting' || settingRefinements > 0) {
+    if (currentStep === 'people') {
+      buttons.push(
+        <Button
+          key="get-suggestions"
+          variant="ghost"
+          size="default"
+          onClick={() => handleButtonClick("Get Suggestions")}
+          className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+        >
+          Get Ideas
+        </Button>
+      );
+    }
+    
+    if (currentStep === 'extra_detail') {
+      buttons.push(
+        <Button
+          key="get-suggestions"
+          variant="ghost"
+          size="default"
+          onClick={() => handleButtonClick("Get Suggestions")}
+          className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+        >
+          More Ideas
+        </Button>
+      );
+    }
+    
+    // Skip button for appropriate steps
+    if (currentStep === 'setting' && settingRefinements > 0) {
       buttons.push(
         <Button
           key="skip"
+          variant="ghost"
+          size="sm"
           onClick={() => handleButtonClick("Skip This Question")}
-          className="w-full sm:w-auto text-sm bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-3 rounded-lg border-0 font-medium shadow-sm"
+          className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
         >
           Skip This Question
         </Button>
       );
     }
     
+    if (currentStep === 'activity') {
+      buttons.push(
+        <Button
+          key="skip"
+          variant="ghost"
+          size="sm"
+          onClick={() => handleButtonClick("Skip This Question")}
+          className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+        >
+          Skip This Question
+        </Button>
+      );
+    }
+    
+    if (currentStep === 'people') {
+      buttons.push(
+        <Button
+          key="skip"
+          variant="ghost"
+          size="sm"
+          onClick={() => handleButtonClick("Skip This Question")}
+          className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+        >
+          Skip This Question
+        </Button>
+      );
+    }
+    
+    if (currentStep === 'extra_detail') {
+      buttons.push(
+        <Button
+          key="skip"
+          variant="ghost"
+          size="sm"
+          onClick={() => handleButtonClick("Skip This Question")}
+          className="w-full sm:w-auto text-sm bg-green-100 hover:bg-green-200 text-green-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+        >
+          Skip Step
+        </Button>
+      );
+    }
+    
+    if (buttons.length === 0) {
+      return null;
+    }
+    
     return (
-      <div className="flex flex-col gap-2 mt-2 sm:flex-row sm:flex-wrap">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {buttons}
       </div>
     );
@@ -449,27 +552,35 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
       </DialogTrigger>
       <DialogContent className="w-[100vw] h-[100vh] max-w-none max-h-none p-0 gap-0 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 border-none shadow-none md:w-[95vw] md:max-w-4xl md:h-[90vh] md:max-h-[90vh] md:border-2 md:border-purple-200/30 md:shadow-2xl md:rounded-lg">
         <div className="flex flex-col h-full overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={chatContainerRef}>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
+              <div key={index}>
                 <div
-                  className={`rounded-2xl p-4 max-w-[85%] ${
-                    message.role === 'user'
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
-                      : 'bg-white/90 backdrop-blur-sm border border-gray-200 text-gray-800'
-                  }`}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  {message.isTyping ? (
-                    <TypingAnimation text={message.content} speed={15} />
-                  ) : (
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                      {message.content}
-                    </p>
-                  )}
+                  <div
+                    className={`rounded-2xl p-4 max-w-[85%] ${
+                      message.role === 'user'
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                        : 'bg-white/90 backdrop-blur-sm border border-gray-200 text-gray-800'
+                    }`}
+                  >
+                    {message.isTyping ? (
+                      <TypingAnimation text={message.content} speed={15} />
+                    ) : (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                        {message.content}
+                      </p>
+                    )}
+                  </div>
                 </div>
+                
+                {/* Render buttons inline after each assistant message */}
+                {message.role === 'assistant' && !message.isTyping && (
+                  <div className="mt-3 space-y-3">
+                    {renderInlineButtons(index)}
+                  </div>
+                )}
               </div>
             ))}
             
