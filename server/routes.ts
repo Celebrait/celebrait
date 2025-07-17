@@ -480,21 +480,20 @@ CONVERSATION FLOW (follow this order):
 4. EXTRA DETAIL - What special details would make this scene meaningful? (objects, symbols, atmosphere)
 5. FINAL APPROVAL - Present complete scene description for user approval
 
-CRITICAL INSTRUCTIONS:
+INSTRUCTIONS:
 - Ask ONE focused question at a time
 - Build on previous responses naturally
-- NEVER provide numbered suggestions automatically in your response
-- Instead, after asking your question, always ask: "Would you like me to provide some suggestions, or would you prefer to type your own response below?"
-- Only provide the 3 numbered suggestions when the user specifically asks for "more ideas" or requests suggestions
-- When user asks for suggestions, provide exactly 3 numbered options relevant to the current step
-- Always remind user they can type their own response below or use the "Give Me More Ideas" button if they want suggestions
-- For SETTING step: Focus purely on WHERE, not what they're doing. Examples: "Beach in Phuket", "Mountain trail in Chiang Mai", "Village square in Bangkok" - NO activities or actions.
-- For ACTIVITY steps: Provide activity suggestions relevant to the chosen location.
-- For PEOPLE step: Provide clothing and appearance suggestions. Always remind users they can skip this question to let AI choose appropriate attire.
-- For EXTRA DETAIL step: Provide meaningful detail suggestions that enhance the scene.
-- For FINAL APPROVAL step: Summarize the complete scene and tell user they can add more details if they like below. End by stating "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection." Do NOT provide numbered options in this step.
+- For SETTING step: After user provides initial response, provide exactly 3 simple location-based options ONLY. Focus purely on WHERE, not what they're doing. Examples: "Beach in Tenerife", "Mountain trail in Tenerife", "Village square in Tenerife" - NO activities or actions. If user describes an activity instead of a location, acknowledge it and ask specifically WHERE that activity would take place. Always remind user they can type their own response below or choose from the provided options. After they respond, ask one follow-up question about location specifics, then ask one more follow-up question to fully refine the location before moving to activity step.
+- For ACTIVITY steps: After user provides initial response, ask if they want anything more specific about that element and provide exactly 3 relevant suggestions. Always remind user they can type their own response below or choose from the provided options. CRITICAL: Always provide exactly 3 numbered options in activity suggestions.
+- For PEOPLE step: Provide immediate suggestions without requiring initial user input, based on location and activity already defined. Always remind users they can type their own response below or choose from the provided options. CRITICAL: Always remind users prominently that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This should be mentioned in every people step response. CRITICAL: Always provide exactly 3 numbered options in people suggestions.
+- For EXTRA DETAIL step: Allow user to get suggestions immediately or skip the step entirely. Always remind users they can type their own response below or choose from the provided options. CRITICAL: Always provide exactly 3 numbered options in extra detail suggestions.
+- For FINAL APPROVAL step: Summarize the complete scene and tell user they can add more details if they like below. End by stating "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection." Do NOT provide numbered options in this step. If user says "I'd like to make a change", ask them specifically which part they want to change (setting, activity, people, or extra details) and help them modify that specific element before presenting the final summary again.
 - Keep responses professional but encouraging
+- When they answer, acknowledge their input and ask if there's anything more they'd like to focus on before moving to next step
+- Reference all previous answers when asking follow-up questions for deeper specificity
+- Only move to the next step after they've given input for the current step
 - IMPORTANT: Use language that matches the photo context exactly - if it's a single person, use singular language throughout (${languageInstruction})  
+- When user requests "more ideas", provide fresh suggestions in the same category without advancing steps
 - PHOTO CONTEXT AWARENESS: ${photoContextAwareness}
 
 Current step: ${conversationStep || 'setting'}`;
@@ -512,77 +511,55 @@ Current step: ${conversationStep || 'setting'}`;
           { role: "user", content: contextualMessage }
         ];
         
-        // Handle "Give me more ideas" requests
-        if (userInput && userInput.toLowerCase().includes('give me more ideas')) {
-          messages.push({
-            role: "system", 
-            content: `The user has requested more ideas. Provide exactly 3 numbered suggestions relevant to the current step (${conversationStep || 'setting'}). Format them as:
-            1. First suggestion
-            2. Second suggestion  
-            3. Third suggestion
-            
-            For SETTING step: Focus purely on WHERE the scene takes place - no activities or actions.
-            For ACTIVITY step: Focus on what the person/people should be doing in the chosen location.
-            For PEOPLE step: Focus on clothing and appearance suggestions.
-            For EXTRA DETAIL step: Focus on meaningful details that enhance the scene.
-            
-            After providing the suggestions, remind the user they can type their own response below or choose from the options.`
-          });
-        } else if (conversationStep === 'setting' && userInput && userInput.includes('Skip')) {
-          // Handle skip for setting step
-          if (settingRefinements >= 2) {
-            // If we've done 2 refinements, skip to activity
-            messages.push({
-              role: "system", 
-              content: `The user has chosen to skip the final location refinement. Move to the ACTIVITY step and ask what the person/people should be doing in the location they've chosen. Ask: 'Would you like me to provide some activity suggestions for what ${recipientName} should be doing, or would you prefer to continue with your own ideas?' Do not provide numbered suggestions automatically.`
-            });
-          } else {
-            // If less than 2 refinements, skip to next refinement or activity
-            const nextRefinement = settingRefinements + 1;
-            if (nextRefinement >= 2) {
-              messages.push({
-                role: "system", 
-                content: `The user has chosen to skip this location refinement. Move to the ACTIVITY step and ask what the person/people should be doing in the location they've chosen. Ask: 'Would you like me to provide some activity suggestions for what ${recipientName} should be doing, or would you prefer to continue with your own ideas?' Do not provide numbered suggestions automatically.`
-              });
-            } else {
-              messages.push({
-                role: "system", 
-                content: `The user has chosen to skip this location refinement. Ask the next location follow-up question to get more specifics about the location. Then ask: 'Would you like me to provide some location suggestions, or would you prefer to continue with your own ideas?' Do not provide numbered suggestions automatically.`
-              });
-            }
-          }
-        } else if (conversationStep === 'setting' && userInput && !userInput.includes('Skip')) {
-          // Regular setting step processing
+        // Add specific instruction for location step
+        if (conversationStep === 'setting' && userInput && !userInput.includes('Give me more')) {
           let refinementInstruction = "";
           
-          if (settingRefinements === 0) {
-            refinementInstruction = "This is the initial location input. Acknowledge their input and ask a follow-up question to get more specific about the location details. Then ask: 'Would you like me to provide some specific location suggestions, or would you prefer to continue with your own ideas?'";
+          if (userInput.includes('Skip location refinement')) {
+            refinementInstruction = "User has chosen to skip location refinement. Move directly to the activity step and ask about what the person should be doing in the scene.";
+          } else if (userInput.includes('Skip this question')) {
+            if (settingRefinements < 2) {
+              refinementInstruction = "User has skipped this follow-up question. Ask the next follow-up question with exactly 3 specific options to continue refining the location.";
+            } else {
+              refinementInstruction = "User has skipped this follow-up question. Move to the activity step and ask about what the person should be doing in the scene.";
+            }
+          } else if (settingRefinements === 0) {
+            // Check if user provided activity instead of location
+            if (userInput.toLowerCase().includes('creating') || userInput.toLowerCase().includes('doing') || userInput.toLowerCase().includes('making') || userInput.toLowerCase().includes('working') || userInput.toLowerCase().includes('party') || userInput.toLowerCase().includes('event')) {
+              refinementInstruction = "The user has described an activity rather than a location. Acknowledge this and ask specifically WHERE this activity would take place. For example: 'I see you're creating a balloon arch at a client's party - that sounds wonderful! Where would this party be taking place?' Then provide 3 simple location options where this activity could happen.";
+            } else {
+              refinementInstruction = "This is the initial location input. Provide 3 simple location variations and ask the first follow-up question with exactly 3 specific options for more specifics.";
+            }
           } else if (settingRefinements === 1) {
-            refinementInstruction = "This is the first refinement. Ask one more follow-up question about location specifics to get even more detailed. Then ask: 'Would you like me to provide some more specific location suggestions, or would you prefer to continue with your own ideas?'";
+            refinementInstruction = "This is the first refinement. Ask one more follow-up question with exactly 3 specific options to fully refine the location before moving to activity step.";
           } else if (settingRefinements >= 2) {
-            refinementInstruction = "This is the final location refinement. After this response, move to the activity step and ask about what the person/people should be doing in this location.";
+            refinementInstruction = "This is the final location refinement. After this response, move to the activity step.";
           }
           
           messages.push({
             role: "system", 
-            content: `Remember: For the SETTING step, focus ONLY on WHERE the scene takes place. Do not provide numbered suggestions automatically - only ask if they want suggestions. ${refinementInstruction}`
+            content: `Remember: For the SETTING step, only provide 3 simple location variations. Do not include activities, actions, or what people are doing. Focus ONLY on WHERE the scene takes place. Always mention that the user can type their own response OR choose from the options. CRITICAL: When asking follow-up questions, you MUST provide exactly 3 numbered options in this format:
+            1. First specific option
+            2. Second specific option  
+            3. Third specific option
+            Never ask questions without providing these 3 numbered options. ${refinementInstruction}`
           });
         }
 
-        // Handle activity step
-        if (conversationStep === 'activity' && userInput && !userInput.includes('Skip') && !userInput.toLowerCase().includes('give me more ideas')) {
+        // Add specific instruction for activity step
+        if (conversationStep === 'activity' && userInput && !userInput.includes('Give me more')) {
           const activityLanguage = isMultiplePeople ? 
             "what everyone should be doing" : 
             `what ${recipientName} should be doing`;
           
           messages.push({
             role: "system", 
-            content: `For the ACTIVITY step, acknowledge their input and ask: 'Would you like me to provide some activity suggestions for ${activityLanguage}, or would you prefer to continue with your own ideas?' Do not provide numbered suggestions automatically. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response.`
+            content: `Remember: For the ACTIVITY step, always provide exactly 3 numbered options for ${activityLanguage}. Format them as: 1. First action, 2. Second action, 3. Third action. Always remind users they can type their own response below or choose from the provided options. CRITICAL: Always provide exactly 3 numbered options when answering activity questions. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response.`
           });
         }
 
-        // Handle people step
-        if (conversationStep === 'people' && userInput && !userInput.includes('Skip') && !userInput.toLowerCase().includes('give me more ideas')) {
+        // Add specific instruction for people step
+        if (conversationStep === 'people') {
           const photoContextInstruction = photoContext ? 
             `Photo context: ${photoContext}. Adapt your clothing suggestions accordingly - if it's a single person, focus on individual styling; if it's a group, consider coordinated or complementary outfits; if multiple different people, suggest how to make them work together visually.` : 
             'No specific photo context - use general language for person/people clothing suggestions.';
@@ -593,15 +570,7 @@ Current step: ${conversationStep || 'setting'}`;
           
           messages.push({
             role: "system", 
-            content: `For the PEOPLE step, remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. Ask: 'Would you like me to provide some ${peopleLanguage}, or would you prefer to type your own ideas? You can also skip this question to let me choose clothing that perfectly matches the scene!' Do not provide numbered suggestions automatically. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response. ${photoContextInstruction}`
-          });
-        }
-
-        // Handle extra detail step
-        if (conversationStep === 'extra_detail' && userInput && !userInput.includes('Skip') && !userInput.toLowerCase().includes('give me more ideas')) {
-          messages.push({
-            role: "system", 
-            content: `For the EXTRA DETAIL step, acknowledge their input and ask: 'Would you like me to provide some suggestions for meaningful details that would enhance the scene, or would you prefer to continue with your own ideas? You can also skip this question if you're satisfied with the current level of detail.' Do not provide numbered suggestions automatically.`
+            content: `CRITICAL: For the PEOPLE step, you MUST remind users that they can skip this question to let AI choose appropriate clothing that matches the scene perfectly. This must be mentioned prominently in every people step response. Say something like: 'Remember, you can skip this question to let me choose clothing that perfectly matches the scene!' Also always remind users they can type their own response below or choose from the provided options. Always provide exactly 3 numbered options for ${peopleLanguage}. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response. ${photoContextInstruction}`
           });
         }
 
