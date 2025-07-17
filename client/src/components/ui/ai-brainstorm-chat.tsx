@@ -302,6 +302,11 @@ Where should we place ${personReference} in this scene? Think about the setting 
   };
 
   const extractSuggestions = (content: string) => {
+    // Don't extract suggestions if we're in final_approval step
+    if (conversationState.currentStep === 'final_approval') {
+      return [];
+    }
+    
     // Enhanced regex to capture various suggestion formats
     const patterns = [
       // Numbered lists: "1. Description" or "1) Description" - improved to handle multiline
@@ -337,8 +342,10 @@ Where should we place ${personReference} in this scene? Think about the setting 
     }
     
     // Debug logging
-    console.log('Extracting suggestions from:', content);
-    console.log('Found suggestions:', suggestions);
+    if (suggestions.length > 0) {
+      console.log('Extracting suggestions from:', content);
+      console.log('Found suggestions:', suggestions);
+    }
     
     // Remove duplicates and return up to 3 suggestions
     return Array.from(new Set(suggestions)).slice(0, 3);
