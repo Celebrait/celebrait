@@ -68,16 +68,18 @@ export function AIBrainstormChat({
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }, 100);
   }, [messages, isLoading]);
 
-  // Auto-scroll during typing animation
+  // Smooth auto-scroll during typing animation
   useEffect(() => {
     const interval = setInterval(() => {
       if (messages.some(msg => msg.isTyping)) {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
       }
-    }, 50); // More frequent scrolling for smoother experience
+    }, 200); // Less frequent, smoother scrolling
 
     return () => clearInterval(interval);
   }, [messages]);
@@ -95,17 +97,17 @@ export function AIBrainstormChat({
     }
   }, [isOpen]);
 
-  // Handle typing animation completion
+  // Handle typing animation completion with better timing
   useEffect(() => {
     const typingMessage = messages.find(msg => msg.isTyping);
     if (typingMessage) {
       const timer = setTimeout(() => {
         setMessages(prev => prev.map(msg => ({ ...msg, isTyping: false })));
-        // Ensure scroll to bottom after typing completes
+        // Gentle scroll to bottom after typing completes
         setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        }, 100);
-      }, Math.max(typingMessage.content.length * 8, 500)); // Minimum 500ms, 8ms per character
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+        }, 300);
+      }, Math.max(typingMessage.content.length * 20, 1200)); // Slower, more natural timing
 
       return () => clearTimeout(timer);
     }
@@ -380,9 +382,9 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
               <Button
                 key={`option-${index}`}
                 variant="ghost"
-                size="default"
+                size="sm"
                 onClick={() => handleButtonClick(`Choose Option ${index + 1}`)}
-                className="w-full sm:w-auto text-sm bg-gradient-celebrait hover:opacity-90 text-white px-4 py-3 rounded-lg border-0 font-medium shadow-sm"
+                className="text-sm bg-gradient-celebrait hover:opacity-90 text-white px-3 py-2 rounded-md border-0 font-medium shadow-sm transition-all duration-200"
               >
                 Choose Option {index + 1}
               </Button>
@@ -393,9 +395,9 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <Button
               variant="ghost"
-              size="default"
+              size="sm"
               onClick={() => handleButtonClick("Get More Suggestions")}
-              className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+              className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-md border border-blue-200 font-medium transition-all duration-200"
             >
               Get More Suggestions
             </Button>
@@ -403,7 +405,7 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
               variant="ghost"
               size="sm"
               onClick={() => handleButtonClick("Skip This Question")}
-              className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+              className="text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 px-3 py-2 rounded-md border border-orange-200 font-medium transition-all duration-200"
             >
               Skip This Question
             </Button>
@@ -418,17 +420,17 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button
             variant="ghost"
-            size="default"
+            size="sm"
             onClick={() => handleButtonClick("Sounds great, let's go!")}
-            className="w-full sm:w-auto text-sm bg-gradient-celebrait hover:opacity-90 text-white px-6 py-3 rounded-lg border-0 font-medium shadow-lg"
+            className="text-sm bg-gradient-celebrait hover:opacity-90 text-white px-4 py-2 rounded-md border-0 font-medium shadow-sm transition-all duration-200"
           >
             Sounds great, let's go!
           </Button>
           <Button
             variant="ghost"
-            size="default"
+            size="sm"
             onClick={() => handleButtonClick("I'd like to make a change")}
-            className="w-full sm:w-auto text-sm bg-gradient-to-r from-orange-500 to-red-500 hover:opacity-90 text-white px-6 py-3 rounded-lg border-0 font-medium shadow-lg"
+            className="text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 px-4 py-2 rounded-md border border-orange-200 font-medium transition-all duration-200"
           >
             I'd like to make a change
           </Button>
@@ -455,9 +457,9 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
         <Button
           key="get-suggestions"
           variant="ghost"
-          size="default"
+          size="sm"
           onClick={() => handleButtonClick("Get Suggestions")}
-          className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+          className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-md border border-blue-200 font-medium transition-all duration-200"
         >
           Give Me More Ideas
         </Button>
@@ -469,9 +471,9 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
         <Button
           key="get-suggestions"
           variant="ghost"
-          size="default"
+          size="sm"
           onClick={() => handleButtonClick("Get Suggestions")}
-          className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+          className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-md border border-blue-200 font-medium transition-all duration-200"
         >
           Give Me More Ideas
         </Button>
@@ -483,9 +485,9 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
         <Button
           key="get-suggestions"
           variant="ghost"
-          size="default"
+          size="sm"
           onClick={() => handleButtonClick("Get Suggestions")}
-          className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+          className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-md border border-blue-200 font-medium transition-all duration-200"
         >
           Get Ideas
         </Button>
@@ -497,9 +499,9 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
         <Button
           key="get-suggestions"
           variant="ghost"
-          size="default"
+          size="sm"
           onClick={() => handleButtonClick("Get Suggestions")}
-          className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+          className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-md border border-blue-200 font-medium transition-all duration-200"
         >
           More Ideas
         </Button>
@@ -514,7 +516,7 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
           variant="ghost"
           size="sm"
           onClick={() => handleButtonClick("Skip This Question")}
-          className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+          className="text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 px-3 py-2 rounded-md border border-orange-200 font-medium transition-all duration-200"
         >
           Skip This Question
         </Button>
@@ -528,7 +530,7 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
           variant="ghost"
           size="sm"
           onClick={() => handleButtonClick("Skip This Question")}
-          className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+          className="text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 px-3 py-2 rounded-md border border-orange-200 font-medium transition-all duration-200"
         >
           Skip This Question
         </Button>
@@ -542,7 +544,7 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
           variant="ghost"
           size="sm"
           onClick={() => handleButtonClick("Skip This Question")}
-          className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+          className="text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 px-3 py-2 rounded-md border border-orange-200 font-medium transition-all duration-200"
         >
           Skip This Question
         </Button>
@@ -556,7 +558,7 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
           variant="ghost"
           size="sm"
           onClick={() => handleButtonClick("Skip This Question")}
-          className="w-full sm:w-auto text-sm bg-green-100 hover:bg-green-200 text-green-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+          className="text-sm bg-green-50 hover:bg-green-100 text-green-700 px-3 py-2 rounded-md border border-green-200 font-medium transition-all duration-200"
         >
           Skip Step
         </Button>
@@ -582,29 +584,49 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
           {buttonText}
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[100vw] h-[100vh] max-w-none max-h-none p-0 gap-0 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 border-none shadow-none md:w-[95vw] md:max-w-4xl md:h-[90vh] md:max-h-[90vh] md:border-2 md:border-purple-200/30 md:shadow-2xl md:rounded-lg">
+      <DialogContent className="w-[100vw] h-[100vh] max-w-none max-h-none p-0 gap-0 bg-white border-none shadow-none md:w-[95vw] md:max-w-4xl md:h-[90vh] md:max-h-[90vh] md:border md:border-gray-200 md:shadow-lg md:rounded-lg">
         <DialogTitle className="sr-only">AI Brainstorm Chat</DialogTitle>
         <DialogDescription className="sr-only">
           Interactive AI conversation to help brainstorm ideas for your {type} description
         </DialogDescription>
         <div className="flex flex-col h-full overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((message, index) => (
-              <div key={index}>
-                <div
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
+          {/* Header */}
+          <div className="p-4 border-b border-gray-200 bg-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800">AI Brainstorm Assistant</h2>
+                <p className="text-sm text-gray-600">Let's brainstorm creative ideas for your card together!</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsOpen(false)}
+                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+          
+          {/* Messages area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+            <div className="max-w-4xl mx-auto">
+              {messages.map((message, index) => (
+                <div key={index} className="mb-4">
                   <div
-                    className={`rounded-2xl p-4 max-w-[85%] ${
-                      message.role === 'user'
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
-                        : 'bg-white/90 backdrop-blur-sm border border-gray-200 text-gray-800'
-                    }`}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
+                    <div
+                      className={`rounded-2xl p-4 max-w-[75%] ${
+                        message.role === 'user'
+                          ? 'bg-gradient-celebrait text-white shadow-sm'
+                          : 'bg-white border border-gray-200 text-gray-800 shadow-sm'
+                      }`}
+                    >
                     {message.isTyping ? (
-                      <TypingAnimation text={message.content} speed={8} />
+                      <TypingAnimation text={message.content} speed={25} />
                     ) : (
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                      <p className="text-base leading-relaxed whitespace-pre-wrap">
                         {message.content}
                       </p>
                     )}
@@ -633,6 +655,7 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
             )}
             
             <div ref={messagesEndRef} />
+            </div>
           </div>
           
           {/* Action buttons */}
@@ -641,24 +664,24 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
           </div>
           
           {/* Input area */}
-          <div className="p-4 border-t border-white/20 bg-white/80 backdrop-blur-sm">
-            <div className="flex items-center gap-2">
+          <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+            <div className="flex items-center gap-3 max-w-4xl mx-auto">
               <div className="relative flex-1">
                 <Input
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your response here..."
-                  className="pr-12 rounded-xl border-2 border-gray-300 bg-white focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 h-12 text-sm"
+                  className="pr-12 rounded-xl border border-gray-200 bg-white focus:border-purple-400 focus:ring-1 focus:ring-purple-400/20 h-12 text-base shadow-sm"
                   disabled={isLoading}
                 />
                 <Button
                   onClick={() => handleSendMessage()}
                   disabled={!userInput.trim() || isLoading}
-                  className={`absolute right-1 top-1 h-10 w-10 rounded-lg p-0 ${
+                  className={`absolute right-2 top-2 h-8 w-8 rounded-lg p-0 transition-all duration-200 ${
                     userInput.trim() && !isLoading 
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white'
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      ? 'bg-gradient-celebrait hover:opacity-90 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   }`}
                 >
                   <ArrowUp className="w-4 h-4" />
