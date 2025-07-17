@@ -10,7 +10,7 @@ import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
-import { AIBrainstormChat } from "@/components/ui/ai-brainstorm-chat";
+import { AIBrainstormChat } from "@/components/ui/ai-brainstorm-chat-new";
 
 // Example prompts for the scene description
 const EXAMPLE_PROMPTS = [
@@ -2250,6 +2250,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           buttonText="Get AI Art Style Ideas"
                           buttonIcon={<Bot className="w-4 h-4" />}
                           photoContext={answers.photoContext || ''}
+                          userName={onboarding.userName}
                         />
                       </div>
                       
@@ -2931,6 +2932,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           buttonText={currentStep.id === 'scene' ? 'Stuck for ideas? Brainstorm with AI' : 'Get AI Art Style Ideas'}
                           buttonIcon={currentStep.id === 'scene' ? <Sparkles className="w-4 h-4" /> : <Palette className="w-4 h-4" />}
                           photoContext={answers.photoContext || ''}
+                          userName={onboarding.userName}
                         />
                       </div>
                     )}
@@ -2995,6 +2997,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         buttonText="Start Creative Conversation"
                         buttonIcon={<Sparkles className="w-4 h-4" />}
                         photoContext={answers.photoContext || ''}
+                        userName={onboarding.userName}
                       />
                     </div>
                   </div>
