@@ -574,12 +574,19 @@ Current step: ${conversationStep || 'setting'}`;
           });
         }
 
-        // Add specific instruction for change requests in final approval
-        if (conversationStep === 'final_approval' && userInput && userInput.includes("I'd like to make a change")) {
-          messages.push({
-            role: "system", 
-            content: "The user wants to make a change to the final scene. Ask them specifically which part they want to change: 1) Setting/Location, 2) Activity/Action, 3) People/Clothing, or 4) Extra Details. Once they specify, help them modify that specific element, then present the updated final summary again for approval."
-          });
+        // Add specific instruction for final_approval step
+        if (conversationStep === 'final_approval') {
+          if (userInput && userInput.includes("I'd like to make a change")) {
+            messages.push({
+              role: "system", 
+              content: "The user wants to make a change to the final scene. Ask them specifically which part they want to change: 1) Setting/Location, 2) Activity/Action, 3) People/Clothing, or 4) Extra Details. Once they specify, help them modify that specific element, then present the updated final summary again for approval."
+            });
+          } else {
+            messages.push({
+              role: "system", 
+              content: "CRITICAL: This is the FINAL_APPROVAL step. Present a complete scene summary without any numbered options or buttons. Do NOT include any numbered lists, suggestions, or choice options. Simply present the final scene description and end with 'If you want to add more details, feel free to do so below. When you're ready to proceed, click \"Sounds great, let's go!\" to continue to art style selection.' Do NOT generate any numbered options in this step."
+            });
+          }
         }
 
         // Add specific instruction for change_request step
