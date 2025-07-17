@@ -130,6 +130,18 @@ export function AIBrainstormChat({
         content: msg.content
       }));
 
+      console.log('Sending AI brainstorm request:', {
+        type,
+        context: `Current input: "${currentInput}"`,
+        userInput,
+        recipientName,
+        celebration,
+        conversationStep: conversationState.currentStep,
+        settingRefinements: conversationState.settingRefinements,
+        conversationHistory: conversationHistory.slice(0, -1), // Exclude the current message
+        photoContext
+      });
+
       const response = await apiRequest("POST", "/api/ai-brainstorm", {
         type,
         context: `Current input: "${currentInput}"`,
@@ -142,7 +154,9 @@ export function AIBrainstormChat({
         photoContext
       });
 
+      console.log('Response received:', response.status, response.statusText);
       const result = await response.json();
+      console.log('Response parsed:', result);
 
       // Add typing animation message
       const typingMessage: ChatMessage = {
@@ -233,9 +247,10 @@ export function AIBrainstormChat({
 
     } catch (error) {
       console.error('AI brainstorm error:', error);
+      console.error('Error details:', error instanceof Error ? error.message : error);
       toast({
         title: "Error",
-        description: "Failed to get AI suggestions. Please try again.",
+        description: `Failed to get AI suggestions: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
         variant: "destructive"
       });
     } finally {
