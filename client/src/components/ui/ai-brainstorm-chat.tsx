@@ -701,8 +701,59 @@ Where should we place ${personReference} in this scene? Think about the setting 
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setUserInput("Give me more ideas");
-                                setTimeout(() => handleSendMessage(), 100);
+                                // Auto-send the message immediately
+                                const userMessage: ChatMessage = {
+                                  role: "user",
+                                  content: "Give me more ideas",
+                                  timestamp: new Date()
+                                };
+                                setMessages(prev => [...prev, userMessage]);
+                                setIsLoading(true);
+                                
+                                // Send to AI immediately
+                                const sendMessage = async () => {
+                                  try {
+                                    const conversationHistory = [...messages, userMessage].map(msg => ({
+                                      role: msg.role,
+                                      content: msg.content
+                                    }));
+
+                                    const response = await apiRequest("POST", "/api/ai-brainstorm", {
+                                      type,
+                                      context: `Current input: "${currentInput}"`,
+                                      userInput: "Give me more ideas",
+                                      recipientName,
+                                      celebration,
+                                      conversationStep: conversationState.currentStep,
+                                      settingRefinements: conversationState.settingRefinements,
+                                      conversationHistory: conversationHistory.slice(0, -1),
+                                      photoContext
+                                    });
+
+                                    const result = await response.json();
+
+                                    const typingMessage: ChatMessage = {
+                                      role: "assistant",
+                                      content: result.response,
+                                      timestamp: new Date(),
+                                      isTyping: true
+                                    };
+
+                                    setMessages(prev => [...prev, typingMessage]);
+
+                                  } catch (error) {
+                                    console.error('Error sending message:', error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to send message. Please try again.",
+                                      variant: "destructive"
+                                    });
+                                  } finally {
+                                    setIsLoading(false);
+                                  }
+                                };
+                                
+                                sendMessage();
                               }}
                               className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
@@ -729,8 +780,59 @@ Where should we place ${personReference} in this scene? Think about the setting 
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setUserInput("Give me more ideas");
-                                setTimeout(() => handleSendMessage(), 100);
+                                // Auto-send the message immediately
+                                const userMessage: ChatMessage = {
+                                  role: "user",
+                                  content: "Give me more ideas",
+                                  timestamp: new Date()
+                                };
+                                setMessages(prev => [...prev, userMessage]);
+                                setIsLoading(true);
+                                
+                                // Send to AI immediately
+                                const sendMessage = async () => {
+                                  try {
+                                    const conversationHistory = [...messages, userMessage].map(msg => ({
+                                      role: msg.role,
+                                      content: msg.content
+                                    }));
+
+                                    const response = await apiRequest("POST", "/api/ai-brainstorm", {
+                                      type,
+                                      context: `Current input: "${currentInput}"`,
+                                      userInput: "Give me more ideas",
+                                      recipientName,
+                                      celebration,
+                                      conversationStep: conversationState.currentStep,
+                                      settingRefinements: conversationState.settingRefinements,
+                                      conversationHistory: conversationHistory.slice(0, -1),
+                                      photoContext
+                                    });
+
+                                    const result = await response.json();
+
+                                    const typingMessage: ChatMessage = {
+                                      role: "assistant",
+                                      content: result.response,
+                                      timestamp: new Date(),
+                                      isTyping: true
+                                    };
+
+                                    setMessages(prev => [...prev, typingMessage]);
+
+                                  } catch (error) {
+                                    console.error('Error sending message:', error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to send message. Please try again.",
+                                      variant: "destructive"
+                                    });
+                                  } finally {
+                                    setIsLoading(false);
+                                  }
+                                };
+                                
+                                sendMessage();
                               }}
                               className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
@@ -757,8 +859,59 @@ Where should we place ${personReference} in this scene? Think about the setting 
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setUserInput("Give me more ideas");
-                                setTimeout(() => handleSendMessage(), 100);
+                                // Auto-send the message immediately
+                                const userMessage: ChatMessage = {
+                                  role: "user",
+                                  content: "Give me more ideas",
+                                  timestamp: new Date()
+                                };
+                                setMessages(prev => [...prev, userMessage]);
+                                setIsLoading(true);
+                                
+                                // Send to AI immediately
+                                const sendMessage = async () => {
+                                  try {
+                                    const conversationHistory = [...messages, userMessage].map(msg => ({
+                                      role: msg.role,
+                                      content: msg.content
+                                    }));
+
+                                    const response = await apiRequest("POST", "/api/ai-brainstorm", {
+                                      type,
+                                      context: `Current input: "${currentInput}"`,
+                                      userInput: "Give me more ideas",
+                                      recipientName,
+                                      celebration,
+                                      conversationStep: conversationState.currentStep,
+                                      settingRefinements: conversationState.settingRefinements,
+                                      conversationHistory: conversationHistory.slice(0, -1),
+                                      photoContext
+                                    });
+
+                                    const result = await response.json();
+
+                                    const typingMessage: ChatMessage = {
+                                      role: "assistant",
+                                      content: result.response,
+                                      timestamp: new Date(),
+                                      isTyping: true
+                                    };
+
+                                    setMessages(prev => [...prev, typingMessage]);
+
+                                  } catch (error) {
+                                    console.error('Error sending message:', error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to send message. Please try again.",
+                                      variant: "destructive"
+                                    });
+                                  } finally {
+                                    setIsLoading(false);
+                                  }
+                                };
+                                
+                                sendMessage();
                               }}
                               className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
