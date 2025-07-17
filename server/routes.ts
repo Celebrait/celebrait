@@ -528,16 +528,39 @@ Current step: ${conversationStep || 'setting'}`;
             
             After providing the suggestions, remind the user they can type their own response below or choose from the options.`
           });
+        } else if (conversationStep === 'setting' && userInput && userInput.includes('Skip')) {
+          // Handle skip for setting step
+          if (settingRefinements >= 2) {
+            // If we've done 2 refinements, skip to activity
+            messages.push({
+              role: "system", 
+              content: `The user has chosen to skip the final location refinement. Move to the ACTIVITY step and ask what the person/people should be doing in the location they've chosen. Ask: 'Would you like me to provide some activity suggestions for what ${recipientName} should be doing, or would you prefer to continue with your own ideas?' Do not provide numbered suggestions automatically.`
+            });
+          } else {
+            // If less than 2 refinements, skip to next refinement or activity
+            const nextRefinement = settingRefinements + 1;
+            if (nextRefinement >= 2) {
+              messages.push({
+                role: "system", 
+                content: `The user has chosen to skip this location refinement. Move to the ACTIVITY step and ask what the person/people should be doing in the location they've chosen. Ask: 'Would you like me to provide some activity suggestions for what ${recipientName} should be doing, or would you prefer to continue with your own ideas?' Do not provide numbered suggestions automatically.`
+              });
+            } else {
+              messages.push({
+                role: "system", 
+                content: `The user has chosen to skip this location refinement. Ask the next location follow-up question to get more specifics about the location. Then ask: 'Would you like me to provide some location suggestions, or would you prefer to continue with your own ideas?' Do not provide numbered suggestions automatically.`
+              });
+            }
+          }
         } else if (conversationStep === 'setting' && userInput && !userInput.includes('Skip')) {
           // Regular setting step processing
           let refinementInstruction = "";
           
           if (settingRefinements === 0) {
-            refinementInstruction = "This is the initial location input. Acknowledge their input and ask: 'Would you like me to provide some location suggestions, or would you prefer to continue with your own ideas?'";
+            refinementInstruction = "This is the initial location input. Acknowledge their input and ask a follow-up question to get more specific about the location details. Then ask: 'Would you like me to provide some specific location suggestions, or would you prefer to continue with your own ideas?'";
           } else if (settingRefinements === 1) {
-            refinementInstruction = "This is the first refinement. Ask one more follow-up question about location specifics.";
+            refinementInstruction = "This is the first refinement. Ask one more follow-up question about location specifics to get even more detailed. Then ask: 'Would you like me to provide some more specific location suggestions, or would you prefer to continue with your own ideas?'";
           } else if (settingRefinements >= 2) {
-            refinementInstruction = "This is the final location refinement. After this response, move to the activity step.";
+            refinementInstruction = "This is the final location refinement. After this response, move to the activity step and ask about what the person/people should be doing in this location.";
           }
           
           messages.push({
