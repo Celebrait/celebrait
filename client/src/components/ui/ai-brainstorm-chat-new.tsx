@@ -77,7 +77,7 @@ export function AIBrainstormChat({
       if (messages.some(msg => msg.isTyping)) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }
-    }, 100);
+    }, 50); // More frequent scrolling for smoother experience
 
     return () => clearInterval(interval);
   }, [messages]);
@@ -97,11 +97,18 @@ export function AIBrainstormChat({
 
   // Handle typing animation completion
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMessages(prev => prev.map(msg => ({ ...msg, isTyping: false })));
-    }, 1500);
+    const typingMessage = messages.find(msg => msg.isTyping);
+    if (typingMessage) {
+      const timer = setTimeout(() => {
+        setMessages(prev => prev.map(msg => ({ ...msg, isTyping: false })));
+        // Ensure scroll to bottom after typing completes
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }, Math.max(typingMessage.content.length * 8, 500)); // Minimum 500ms, 8ms per character
 
-    return () => clearTimeout(timer);
+      return () => clearTimeout(timer);
+    }
   }, [messages]);
 
   const getInitialMessage = () => {
@@ -206,6 +213,7 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
       if (userMessage === "Get More Suggestions") {
         const extractedSuggestions = extractSuggestionsFromResponse(aiResponse);
         setSuggestions(extractedSuggestions);
+        newState.showSuggestions = true;
         return newState;
       }
       
@@ -352,10 +360,10 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
     const { currentStep, showSuggestions, settingRefinements, activityRefinements } = conversationState;
     
     // Only show buttons for the most recent assistant message
-    const isLastAssistantMessage = messageIndex === messages.length - 1 || 
-      (messageIndex === messages.length - 2 && messages[messages.length - 1].role === 'user');
+    const lastAssistantIndex = messages.map((msg, idx) => msg.role === 'assistant' ? idx : -1)
+      .filter(idx => idx !== -1).pop();
     
-    if (!isLastAssistantMessage) {
+    if (messageIndex !== lastAssistantIndex) {
       return null;
     }
     
@@ -375,6 +383,26 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
                 Choose Option {index + 1}
               </Button>
             ))}
+          </div>
+          
+          {/* Additional buttons when suggestions are shown */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Button
+              variant="ghost"
+              size="default"
+              onClick={() => handleButtonClick("Get More Suggestions")}
+              className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+            >
+              Get More Suggestions
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleButtonClick("Skip This Question")}
+              className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+            >
+              Skip This Question
+            </Button>
           </div>
         </div>
       );
@@ -551,6 +579,10 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
         </Button>
       </DialogTrigger>
       <DialogContent className="w-[100vw] h-[100vh] max-w-none max-h-none p-0 gap-0 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 border-none shadow-none md:w-[95vw] md:max-w-4xl md:h-[90vh] md:max-h-[90vh] md:border-2 md:border-purple-200/30 md:shadow-2xl md:rounded-lg">
+        <DialogTitle className="sr-only">AI Brainstorm Chat</DialogTitle>
+        <DialogDescription className="sr-only">
+          Interactive AI conversation to help brainstorm ideas for your {type} description
+        </DialogDescription>
         <div className="flex flex-col h-full overflow-hidden">
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((message, index) => (
@@ -566,7 +598,7 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
                     }`}
                   >
                     {message.isTyping ? (
-                      <TypingAnimation text={message.content} speed={15} />
+                      <TypingAnimation text={message.content} speed={8} />
                     ) : (
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">
                         {message.content}
