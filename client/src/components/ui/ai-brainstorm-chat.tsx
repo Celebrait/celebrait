@@ -283,10 +283,10 @@ Where should we place ${personReference} in this scene? Think about the setting 
   const extractSuggestions = (content: string) => {
     // Enhanced regex to capture various suggestion formats
     const patterns = [
-      // Numbered lists: "1. Description" or "1) Description"
-      /(?:^\d+[\.\)]\s*)(.+?)(?=\n\d+[\.\)]|\n\n|$)/gm,
+      // Numbered lists: "1. Description" or "1) Description" - improved to handle multiline
+      /(?:^|\n)(\d+[\.\)]\s*)(.+?)(?=\n\d+[\.\)]|\n\n|$)/gm,
       // Bulleted lists: "- Description" or "• Description"
-      /(?:^[-•]\s*)(.+?)(?=\n[-•]|\n\n|$)/gm,
+      /(?:^|\n)([-•]\s*)(.+?)(?=\n[-•]|\n\n|$)/gm,
       // Quoted suggestions: "Description" (in quotes)
       /"([^"]+)"/g,
       // Bold suggestions: **Description**
@@ -295,14 +295,29 @@ Where should we place ${personReference} in this scene? Think about the setting 
     
     let suggestions = [];
     
-    for (const pattern of patterns) {
-      const matches = content.match(pattern);
-      if (matches) {
-        suggestions.push(...matches.map(match => 
-          match.replace(/^\d+[\.\)]\s*|^[-•]\s*|[""]/g, '').replace(/\*\*/g, '').trim()
-        ).filter(s => s.length > 10 && s.length < 200)); // Filter for reasonable length
+    // Try numbered list pattern first (most common) - handle both line breaks and inline
+    const numberedMatches = content.match(/\d+[\.\)]\s*([^\n\r\d]+?)(?=\s*\d+[\.\)]|\n\n|$)/g);
+    if (numberedMatches && numberedMatches.length > 0) {
+      suggestions = numberedMatches.map(match => 
+        match.replace(/^\d+[\.\)]\s*/, '').trim()
+      ).filter(s => s.length > 2 && s.length < 200);
+    }
+    
+    // If no numbered matches, try other patterns
+    if (suggestions.length === 0) {
+      for (const pattern of patterns) {
+        const matches = content.match(pattern);
+        if (matches) {
+          suggestions.push(...matches.map(match => 
+            match.replace(/^\d+[\.\)]\s*|^[-•]\s*|[""]/g, '').replace(/\*\*/g, '').trim()
+          ).filter(s => s.length > 2 && s.length < 200)); // More lenient length filter
+        }
       }
     }
+    
+    // Debug logging
+    console.log('Extracting suggestions from:', content);
+    console.log('Found suggestions:', suggestions);
     
     // Remove duplicates and return up to 3 suggestions
     return Array.from(new Set(suggestions)).slice(0, 3);
