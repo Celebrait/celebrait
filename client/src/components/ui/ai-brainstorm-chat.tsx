@@ -486,17 +486,25 @@ Where should we place ${personReference} in this scene? Think about the setting 
                       <div className="flex flex-col gap-2 mt-2 sm:flex-row sm:flex-wrap">
                         {conversationState.currentStep === 'setting' && (
                           <>
-                            {/* Only show Give Me More Ideas button if suggestions exist but aren't shown yet */}
-                            {extractSuggestions(message.content).length > 0 && !showSuggestions[index] && (
+                            {/* Show Give Me More Ideas button if AI asks for suggestions OR if suggestions exist but aren't shown yet */}
+                            {(message.content.toLowerCase().includes('would you like me to provide') || 
+                              message.content.toLowerCase().includes('suggestions') || 
+                              extractSuggestions(message.content).length > 0) && !showSuggestions[index] && (
                               <Button
                                 variant="ghost"
                                 size="default"
                                 onClick={() => {
-                                  // Show suggestions for this message
-                                  setShowSuggestions(prev => ({
-                                    ...prev,
-                                    [index]: true
-                                  }));
+                                  // If no suggestions exist yet, request them from AI
+                                  if (extractSuggestions(message.content).length === 0) {
+                                    setUserInput("Give me more ideas");
+                                    setTimeout(() => handleSendMessage(), 100);
+                                  } else {
+                                    // Show existing suggestions
+                                    setShowSuggestions(prev => ({
+                                      ...prev,
+                                      [index]: true
+                                    }));
+                                  }
                                 }}
                                 className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                               >
@@ -578,93 +586,31 @@ Where should we place ${personReference} in this scene? Think about the setting 
                               Skip This Question
                             </Button>
                             
-                            {conversationState.settingRefinements > 0 && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  // Auto-send skip message
-                                  const userMessage: ChatMessage = {
-                                    role: "user",
-                                    content: "Skip location refinement - move to activity step",
-                                    timestamp: new Date()
-                                  };
-                                  setMessages(prev => [...prev, userMessage]);
-                                  setIsLoading(true);
-                                  
-                                  // Update conversation state to move to activity
-                                  setConversationState(prev => ({
-                                    ...prev,
-                                    currentStep: 'activity',
-                                    settingRefinements: 3 // Set to 3 to indicate completed
-                                  }));
-                                  
-                                  // Send to AI immediately
-                                  const sendMessage = async () => {
-                                    try {
-                                      const conversationHistory = [...messages, userMessage].map(msg => ({
-                                        role: msg.role,
-                                        content: msg.content
-                                      }));
 
-                                      const response = await apiRequest("POST", "/api/ai-brainstorm", {
-                                        type,
-                                        context: `Current input: "${currentInput}"`,
-                                        userInput: "Skip location refinement - move to activity step",
-                                        recipientName,
-                                        celebration,
-                                        conversationStep: 'activity',
-                                        settingRefinements: 3,
-                                        conversationHistory: conversationHistory.slice(0, -1),
-                                        photoContext
-                                      });
-
-                                      const result = await response.json();
-
-                                      const typingMessage: ChatMessage = {
-                                        role: "assistant",
-                                        content: result.response,
-                                        timestamp: new Date(),
-                                        isTyping: true
-                                      };
-
-                                      setMessages(prev => [...prev, typingMessage]);
-
-                                    } catch (error) {
-                                      console.error('Error sending message:', error);
-                                      toast({
-                                        title: "Error",
-                                        description: "Failed to send message. Please try again.",
-                                        variant: "destructive"
-                                      });
-                                    } finally {
-                                      setIsLoading(false);
-                                    }
-                                  };
-                                  
-                                  sendMessage();
-                                }}
-                                className="w-full sm:w-auto text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
-                              >
-                                Skip Location Details
-                              </Button>
-                            )}
                           </>
                         )}
                         
                         {conversationState.currentStep === 'activity' && (
                           <>
-                            {/* Only show Give Me More Ideas button if suggestions exist but aren't shown yet */}
-                            {extractSuggestions(message.content).length > 0 && !showSuggestions[index] && (
+                            {/* Show Give Me More Ideas button if AI asks for suggestions OR if suggestions exist but aren't shown yet */}
+                            {(message.content.toLowerCase().includes('would you like me to provide') || 
+                              message.content.toLowerCase().includes('suggestions') || 
+                              extractSuggestions(message.content).length > 0) && !showSuggestions[index] && (
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
-                                  // Show suggestions for this message
-                                  setShowSuggestions(prev => ({
-                                    ...prev,
-                                    [index]: true
-                                  }));
+                                  // If no suggestions exist yet, request them from AI
+                                  if (extractSuggestions(message.content).length === 0) {
+                                    setUserInput("Give me more ideas");
+                                    setTimeout(() => handleSendMessage(), 100);
+                                  } else {
+                                    // Show existing suggestions
+                                    setShowSuggestions(prev => ({
+                                      ...prev,
+                                      [index]: true
+                                    }));
+                                  }
                                 }}
                                 className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                               >
@@ -688,17 +634,25 @@ Where should we place ${personReference} in this scene? Think about the setting 
                         
                         {conversationState.currentStep === 'people' && (
                           <>
-                            {/* Only show Give Me More Ideas button if suggestions exist but aren't shown yet */}
-                            {extractSuggestions(message.content).length > 0 && !showSuggestions[index] && (
+                            {/* Show Give Me More Ideas button if AI asks for suggestions OR if suggestions exist but aren't shown yet */}
+                            {(message.content.toLowerCase().includes('would you like me to provide') || 
+                              message.content.toLowerCase().includes('suggestions') || 
+                              extractSuggestions(message.content).length > 0) && !showSuggestions[index] && (
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
-                                  // Show suggestions for this message
-                                  setShowSuggestions(prev => ({
-                                    ...prev,
-                                    [index]: true
-                                  }));
+                                  // If no suggestions exist yet, request them from AI
+                                  if (extractSuggestions(message.content).length === 0) {
+                                    setUserInput("Give me more ideas");
+                                    setTimeout(() => handleSendMessage(), 100);
+                                  } else {
+                                    // Show existing suggestions
+                                    setShowSuggestions(prev => ({
+                                      ...prev,
+                                      [index]: true
+                                    }));
+                                  }
                                 }}
                                 className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                               >
@@ -722,17 +676,25 @@ Where should we place ${personReference} in this scene? Think about the setting 
                         
                         {conversationState.currentStep === 'extra_detail' && (
                           <>
-                            {/* Only show Give Me More Ideas button if suggestions exist but aren't shown yet */}
-                            {extractSuggestions(message.content).length > 0 && !showSuggestions[index] && (
+                            {/* Show Give Me More Ideas button if AI asks for suggestions OR if suggestions exist but aren't shown yet */}
+                            {(message.content.toLowerCase().includes('would you like me to provide') || 
+                              message.content.toLowerCase().includes('suggestions') || 
+                              extractSuggestions(message.content).length > 0) && !showSuggestions[index] && (
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
-                                  // Show suggestions for this message
-                                  setShowSuggestions(prev => ({
-                                    ...prev,
-                                    [index]: true
-                                  }));
+                                  // If no suggestions exist yet, request them from AI
+                                  if (extractSuggestions(message.content).length === 0) {
+                                    setUserInput("Give me more ideas");
+                                    setTimeout(() => handleSendMessage(), 100);
+                                  } else {
+                                    // Show existing suggestions
+                                    setShowSuggestions(prev => ({
+                                      ...prev,
+                                      [index]: true
+                                    }));
+                                  }
                                 }}
                                 className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                               >
