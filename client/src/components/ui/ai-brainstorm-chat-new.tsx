@@ -201,6 +201,8 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
       // Reset suggestions when moving to new interaction
       newState.showSuggestions = false;
       
+      console.log('UpdateConversationState:', { userMessage, currentStep: prev.currentStep, aiResponse: aiResponse.substring(0, 50) });
+      
       // Handle different message types
       if (userMessage === "Get Suggestions") {
         newState.showSuggestions = true;
@@ -241,8 +243,10 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
         return newState;
       }
       
-      // Handle regular user input
-      return handleUserResponse(newState, userMessage);
+      // Handle regular user input  
+      const result = handleUserResponse(newState, userMessage);
+      console.log('After handleUserResponse:', { newStep: result.currentStep, userMessage });
+      return result;
     });
   };
 
@@ -409,7 +413,7 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
     }
     
     // Final approval step - special case
-    if (currentStep === 'final_approval') {
+    if (currentStep === 'final_approval' && !showSuggestions) {
       return (
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button
