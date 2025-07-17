@@ -120,6 +120,21 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 17, 2025. AI BRAINSTORM CHAT COMPONENT COMPLETE REBUILD: Rebuilt AI brainstorm chat from scratch with clean architecture and ChatGPT-style interface:
+  * CLEAN ARCHITECTURE: Created new ai-brainstorm-chat-new.tsx component with simplified state management and reliable conversation flow
+  * PROPER STEP FLOW: Implemented exact step sequence - setting → activity → people → extra_detail → final_approval with correct progression logic
+  * PROGRESSIVE DISCLOSURE: No suggestions shown by default, only after "Get Suggestions" button clicked, preventing overwhelming UI
+  * PERSONAL AI ADDRESSING: AI consistently addresses user by name and uses "you and the others" for multiple people scenarios
+  * FOLLOW-UP QUESTIONS: AI asks for MORE SPECIFIC details about previously established information for deeper conversation
+  * CHATGPT-STYLE DESIGN: Full-screen mobile interface (100% width/height) with 85% message bubble width, rounded-2xl corners, and proper indentation
+  * BRAND COLOR INTEGRATION: Purple-to-pink gradient for user messages, blue buttons for "More Ideas", orange gradients for "Skip" actions
+  * MODERN INPUT FIELD: Rounded input with embedded ArrowUp send button that activates with brand gradient when text is entered
+  * BUTTON HIERARCHY: Option buttons use brand gradient, "More Ideas" buttons use blue, "Skip" buttons use orange-to-red gradient
+  * IMPROVED LOADING: Clean loading animation with bouncing dots matching message bubble styling
+  * AUTO-SCROLL BEHAVIOR: Enhanced scroll behavior during typing animations with 100ms intervals
+  * RELIABLE STATE MANAGEMENT: Proper conversation state tracking with collected information and step progression
+  * SKIP FUNCTIONALITY: Skip always advances to next step, not next follow-up question
+  * COMPREHENSIVE TESTING: Component now handles all conversation scenarios with proper error handling and user feedback
 - July 16, 2025. CHATGPT-STYLE MOBILE AI BRAINSTORM INTERFACE: Complete redesign of AI brainstorm chat to match ChatGPT mobile interface with brand integration:
   * MOBILE-FIRST FULL-SCREEN DESIGN: Chat window now fills entire screen on mobile (100% width/height) with responsive desktop fallback
   * REMOVED ICONS AND PROGRESS: Eliminated bot/user icons from message bubbles and removed step progress indicators for cleaner appearance

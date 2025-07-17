@@ -64,6 +64,7 @@ export function AIBrainstormChat({
   });
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   // Auto-scroll to bottom when new messages are added
@@ -399,7 +400,7 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
           <Button
             key={`option-${index}`}
             onClick={() => handleButtonClick(`Choose Option ${index + 1}`)}
-            className="w-full sm:w-auto text-sm bg-gradient-celebrait hover:opacity-90 text-white px-4 py-3 rounded-lg border-0 font-medium shadow-sm"
+            className="w-full sm:w-auto text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-lg border-0 font-medium shadow-sm"
           >
             Choose Option {index + 1}
           </Button>
@@ -424,7 +425,7 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
         <Button
           key="skip"
           onClick={() => handleButtonClick("Skip This Question")}
-          className="w-full sm:w-auto text-sm bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg border-0 font-medium shadow-sm"
+          className="w-full sm:w-auto text-sm bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-3 rounded-lg border-0 font-medium shadow-sm"
         >
           Skip This Question
         </Button>
@@ -446,28 +447,19 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
           {buttonText}
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[95vw] max-w-4xl h-[90vh] max-h-[90vh] p-0 gap-0 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 border-2 border-purple-200/30 shadow-2xl">
-        <DialogHeader className="p-6 pb-0">
-          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-ethereal-purple to-warm-pink bg-clip-text text-transparent">
-            AI Scene Assistant
-          </DialogTitle>
-          <DialogDescription className="text-gray-600 text-base">
-            Let's create the perfect scene description for your {celebration} card
-          </DialogDescription>
-        </DialogHeader>
-        
+      <DialogContent className="w-[100vw] h-[100vh] max-w-none max-h-none p-0 gap-0 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 border-none shadow-none md:w-[95vw] md:max-w-4xl md:h-[90vh] md:max-h-[90vh] md:border-2 md:border-purple-200/30 md:shadow-2xl md:rounded-lg">
         <div className="flex flex-col h-full overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={chatContainerRef}>
             {messages.map((message, index) => (
               <div
                 key={index}
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`rounded-2xl px-4 py-4 max-w-[85%] ${
+                  className={`rounded-2xl p-4 max-w-[85%] ${
                     message.role === 'user'
-                      ? 'bg-gradient-celebrait text-white'
-                      : 'bg-white/80 backdrop-blur-sm border border-white/20 text-gray-800'
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                      : 'bg-white/90 backdrop-blur-sm border border-gray-200 text-gray-800'
                   }`}
                 >
                   {message.isTyping ? (
@@ -483,10 +475,11 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
             
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-4 max-w-[85%]">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm text-gray-600">AI is thinking...</span>
+                <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-2xl p-4 max-w-[85%]">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                   </div>
                 </div>
               </div>
@@ -496,12 +489,12 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
           </div>
           
           {/* Action buttons */}
-          <div className="p-6 pt-0">
+          <div className="px-4 pb-2">
             {renderButtons()}
           </div>
           
           {/* Input area */}
-          <div className="p-6 pt-0 border-t border-white/20">
+          <div className="p-4 border-t border-white/20 bg-white/80 backdrop-blur-sm">
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
                 <Input
@@ -509,13 +502,17 @@ ${contextAcknowledgment}Let's start with the setting - where should this scene t
                   onChange={(e) => setUserInput(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your response here..."
-                  className="pr-12 rounded-full border-2 border-purple-200/30 bg-white/80 backdrop-blur-sm focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 h-12 text-sm"
+                  className="pr-12 rounded-xl border-2 border-gray-300 bg-white focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 h-12 text-sm"
                   disabled={isLoading}
                 />
                 <Button
                   onClick={() => handleSendMessage()}
                   disabled={!userInput.trim() || isLoading}
-                  className="absolute right-1 top-1 h-10 w-10 rounded-full bg-gradient-celebrait hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed p-0"
+                  className={`absolute right-1 top-1 h-10 w-10 rounded-lg p-0 ${
+                    userInput.trim() && !isLoading 
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
                 >
                   <ArrowUp className="w-4 h-4" />
                 </Button>
