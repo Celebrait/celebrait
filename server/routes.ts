@@ -639,7 +639,7 @@ Celebration: ${celebration}
 Recipient: ${recipientName}
 ${photoContext ? `Photo context: ${photoContext}` : ''}
 
-You must respond with valid JSON in this exact format:
+You must respond with valid JSON in this exact format (no markdown code blocks, just plain JSON):
 {
   "message": "A warm personal message to ${userName} introducing the suggestions",
   "suggestions": [
@@ -668,10 +668,19 @@ You must respond with valid JSON in this exact format:
       console.log('Art style suggestions response generated successfully');
       
       try {
-        const parsedResponse = JSON.parse(response);
+        // Clean up the response by removing markdown code blocks if present
+        let cleanResponse = response;
+        if (response.includes('```json')) {
+          cleanResponse = response.replace(/```json\s*/, '').replace(/```\s*$/, '');
+        } else if (response.includes('```')) {
+          cleanResponse = response.replace(/```\s*/, '').replace(/```\s*$/, '');
+        }
+        
+        const parsedResponse = JSON.parse(cleanResponse);
         res.json(parsedResponse);
       } catch (parseError) {
         console.error('Failed to parse AI response as JSON:', parseError);
+        console.error('Raw response:', response);
         res.status(500).json({ error: "Failed to parse AI response" });
       }
     } catch (error) {
