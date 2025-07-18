@@ -614,6 +614,158 @@ Remember: You're helping them discover their perfect artistic vision through gui
     }
   });
 
+  // Art Style Suggestions endpoint
+  app.post("/api/art-style-suggestions", async (req, res) => {
+    if (!hasOpenAI || !openai) {
+      return res.status(503).json({ error: "OpenAI API not configured" });
+    }
+
+    try {
+      const { sceneDescription, celebration, recipientName, photoContext, userName } = req.body;
+      
+      console.log('Art Style Suggestions request:', { sceneDescription, celebration, recipientName, photoContext, userName });
+      
+      const systemPrompt = `You are an expert art style consultant specializing in greeting card design. Your job is to analyze scenes and recommend the most suitable art styles that would create beautiful, meaningful cards.
+
+Key guidelines:
+1. Analyze the scene description and celebration type carefully
+2. Recommend 3-4 diverse art styles that would work exceptionally well
+3. For each style, provide: name, description, why it works, famous example, mood, and difficulty level
+4. Consider the emotional impact and technical feasibility
+5. Provide educational context so users understand each style
+
+Scene: "${sceneDescription}"
+Celebration: ${celebration}
+Recipient: ${recipientName}
+${photoContext ? `Photo context: ${photoContext}` : ''}
+
+You must respond with valid JSON in this exact format:
+{
+  "message": "A warm personal message to ${userName} introducing the suggestions",
+  "suggestions": [
+    {
+      "name": "Style Name",
+      "description": "Clear description of the style",
+      "whyItWorks": "Specific reason why this style suits this scene",
+      "famousExample": "Famous artist, movie, or recognizable reference",
+      "mood": "One word mood (e.g., 'playful', 'elegant', 'nostalgic')",
+      "difficulty": "easy" | "medium" | "advanced"
+    }
+  ]
+}`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: "Please analyze this scene and provide art style suggestions in the required JSON format." }
+        ],
+        max_tokens: 1500,
+        temperature: 0.7
+      });
+
+      const response = completion.choices[0].message.content;
+      console.log('Art style suggestions response generated successfully');
+      
+      try {
+        const parsedResponse = JSON.parse(response);
+        res.json(parsedResponse);
+      } catch (parseError) {
+        console.error('Failed to parse AI response as JSON:', parseError);
+        res.status(500).json({ error: "Failed to parse AI response" });
+      }
+    } catch (error) {
+      console.error('Art style suggestions error:', error);
+      res.status(500).json({ error: "Failed to generate style suggestions" });
+    }
+  });
+
+  // Art Style Chat endpoint
+  app.post("/api/art-style-chat", async (req, res) => {
+    if (!hasOpenAI || !openai) {
+      return res.status(503).json({ error: "OpenAI API not configured" });
+    }
+
+    try {
+      const { 
+        userMessage, 
+        sceneDescription, 
+        celebration, 
+        recipientName, 
+        photoContext, 
+        userName, 
+        isExpertMode, 
+        conversationHistory 
+      } = req.body;
+      
+      console.log('Art Style Chat request:', { userMessage, sceneDescription, celebration, recipientName, isExpertMode });
+      
+      const systemPrompt = `You are an expert art style consultant having a conversation with ${userName} about choosing the perfect art style for their ${celebration} card for ${recipientName}.
+
+Scene context: "${sceneDescription}"
+${photoContext ? `Photo context: ${photoContext}` : ''}
+Expert mode: ${isExpertMode ? 'User prefers direct input but may still want suggestions' : 'User prefers guided suggestions'}
+
+Your role:
+1. Be warm, helpful, and educational
+2. Answer questions about art styles with specific examples
+3. Provide suggestions when asked
+4. Help users understand why certain styles work better
+5. If user seems unsure, offer to provide structured suggestions
+
+If providing suggestions, respond with JSON in this format:
+{
+  "message": "Your conversational response",
+  "suggestions": [
+    {
+      "name": "Style Name",
+      "description": "Clear description",
+      "whyItWorks": "Why it suits this scene",
+      "famousExample": "Famous reference",
+      "mood": "One word mood",
+      "difficulty": "easy" | "medium" | "advanced"
+    }
+  ]
+}
+
+If just having a conversation (no suggestions), respond with:
+{
+  "message": "Your conversational response"
+}`;
+
+      const messages = [
+        { role: "system", content: systemPrompt },
+        ...conversationHistory.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        })),
+        { role: "user", content: userMessage }
+      ];
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: messages,
+        max_tokens: 1500,
+        temperature: 0.7
+      });
+
+      const response = completion.choices[0].message.content;
+      console.log('Art style chat response generated successfully');
+      
+      try {
+        const parsedResponse = JSON.parse(response);
+        res.json(parsedResponse);
+      } catch (parseError) {
+        console.error('Failed to parse AI response as JSON:', parseError);
+        // If not JSON, treat as plain text response
+        res.json({ message: response });
+      }
+    } catch (error) {
+      console.error('Art style chat error:', error);
+      res.status(500).json({ error: "Failed to generate chat response" });
+    }
+  });
+
   // Analyze photo content to detect number of people
   app.post('/api/analyze-photo-content', async (req, res) => {
     try {

@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
 import { AIBrainstormChat } from "@/components/ui/ai-brainstorm-chat-new";
+import { ArtStyleSelector } from "@/components/ui/art-style-selector";
 
 // Example prompts for the scene description
 const EXAMPLE_PROMPTS = [
@@ -101,7 +102,7 @@ interface ConversationStep {
   id: string;
   question: string;
   aiMessage: string | JSX.Element;
-  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload' | 'photo_creation_choice' | 'people_details' | 'email_collection' | 'generation_confirmation' | 'art_style_grid' | 'ai_chat';
+  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload' | 'photo_creation_choice' | 'people_details' | 'email_collection' | 'generation_confirmation' | 'art_style_grid' | 'art_style_enhanced' | 'ai_chat';
   options?: Array<{ value: string; label: string; description?: string; color?: string; icon?: string; details?: string; disabled?: boolean; inspiration?: string; emoji?: string }>;
   placeholder?: string;
   required?: boolean;
@@ -473,7 +474,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
         ? `Perfect! Now let's choose the art style for your scene. This sets the whole mood and feel - I want to make sure it captures the perfect atmosphere for this ${answers.celebration} celebration!`
         : `Perfect! ✨ Now let's choose the art style for ${answers.name || 'their'}'s ${answers.celebration} card.`,
-      type: 'art_style_grid',
+      type: 'art_style_enhanced',
       options: [
         { 
           value: 'ai_painterly', 
@@ -2254,6 +2255,79 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         />
                       </div>
                       
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0">
+                            <Sparkles className="w-5 h-5 text-blue-500 mt-0.5" />
+                          </div>
+                          <div className="ml-3">
+                            <h4 className="text-sm font-semibold text-blue-800">Examples that work great:</h4>
+                            <p className="text-sm text-blue-700 mt-1">
+                              "watercolor with soft pastels", "vintage travel poster", "anime manga style", "realistic oil painting", 
+                              "minimalist line art", "cyberpunk neon", "impressionist brushstrokes"
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {currentStep.type === 'art_style_enhanced' && (
+                  <div className="space-y-6">
+                    {/* Enhanced Art Style Selection */}
+                    <div className="space-y-4">
+                      <div className="text-center">
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">Choose Your Art Style</h3>
+                        <p className="text-gray-600 mb-4">
+                          Let our AI help you find the perfect artistic style for your card, or describe your own vision.
+                        </p>
+                      </div>
+                      
+                      {/* Art Style Selector Component */}
+                      <div className="flex justify-center">
+                        <ArtStyleSelector
+                          sceneDescription={answers.scene || "beautiful celebration scene"}
+                          celebration={answers.celebration || "celebration"}
+                          recipientName={answers.name || "recipient"}
+                          currentStyle={currentInput}
+                          onStyleSelect={(style) => {
+                            setCurrentInput(style);
+                            setStepInputs(prev => ({ ...prev, [currentStep.id]: style }));
+                          }}
+                          buttonText="Get AI Art Style Suggestions"
+                          photoContext={answers.photoContext || ''}
+                          userName={onboarding.userName}
+                        />
+                      </div>
+                      
+                      {/* Manual Input Option */}
+                      <div className="space-y-4">
+                        <div className="text-center">
+                          <p className="text-gray-600 text-sm">Or describe your own artistic vision:</p>
+                        </div>
+                        
+                        <div className="flex space-x-3">
+                          <Input
+                            value={currentInput}
+                            onChange={(e) => setCurrentInput(e.target.value)}
+                            placeholder="e.g., watercolor painting, vintage poster, anime style, oil painting..."
+                            className="text-lg p-4 rounded-xl border-2 border-purple-200 focus:border-purple-400 bg-white shadow-sm"
+                            onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
+                          />
+                          <Button 
+                            onClick={handleTextSubmit}
+                            disabled={!currentInput.trim()}
+                            className="px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 shadow-lg"
+                          >
+                            <ArrowRight className="w-5 h-5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Inspiration section */}
+                    <div className="border-t pt-6">
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <div className="flex items-start">
                           <div className="flex-shrink-0">
