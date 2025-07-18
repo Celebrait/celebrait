@@ -100,26 +100,24 @@ export function ArtStyleSelector({
     
     setIsLoading(true);
     try {
-      const response = await apiRequest('/api/art-style-suggestions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sceneDescription,
-          celebration,
-          recipientName,
-          photoContext,
-          userName
-        })
+      const response = await apiRequest('POST', '/api/art-style-suggestions', {
+        sceneDescription,
+        celebration,
+        recipientName,
+        photoContext,
+        userName
       });
 
-      if (response.suggestions) {
-        setSuggestions(response.suggestions);
+      const result = await response.json();
+
+      if (result.suggestions) {
+        setSuggestions(result.suggestions);
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: response.message,
+          content: result.message,
           timestamp: new Date(),
           isTyping: true,
-          suggestions: response.suggestions
+          suggestions: result.suggestions
         }]);
       }
     } catch (error) {
@@ -176,31 +174,29 @@ export function ArtStyleSelector({
 
     setIsLoading(true);
     try {
-      const response = await apiRequest('/api/art-style-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userMessage,
-          sceneDescription,
-          celebration,
-          recipientName,
-          photoContext,
-          userName,
-          isExpertMode,
-          conversationHistory: messages
-        })
+      const response = await apiRequest('POST', '/api/art-style-chat', {
+        userMessage,
+        sceneDescription,
+        celebration,
+        recipientName,
+        photoContext,
+        userName,
+        isExpertMode,
+        conversationHistory: messages
       });
+
+      const result = await response.json();
 
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: response.message,
+        content: result.message,
         timestamp: new Date(),
         isTyping: true,
-        suggestions: response.suggestions || []
+        suggestions: result.suggestions || []
       }]);
 
-      if (response.suggestions) {
-        setSuggestions(response.suggestions);
+      if (result.suggestions) {
+        setSuggestions(result.suggestions);
       }
     } catch (error) {
       console.error('Error in art style chat:', error);
