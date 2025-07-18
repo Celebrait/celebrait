@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 18, 2025. ENHANCED VISUAL THEME APPROACH: Revolutionized the art style selection to use broader, more relatable "visual themes" instead of traditional art terminology:
+  * EXPANDED THEME CATEGORIES: Added thematic concepts (fairytale, superhero), era styles (90s, vintage), mood aesthetics (cozy, bohemian), and cultural themes (military, sports)
+  * USER-FRIENDLY TERMINOLOGY: Replaced intimidating "art style" language with accessible "visual theme" concepts that users naturally understand
+  * COMPREHENSIVE CATEGORIES: Classic & Timeless, Fun & Playful, Modern & Stylish, Fantasy & Adventure, Nostalgic & Retro, Cultural & Themed, Mood & Aesthetic
+  * ENHANCED AI PROMPTS: Updated system prompts to think beyond traditional art techniques and include thematic concepts users can relate to
+  * FRONTEND UPDATES: Changed all user-facing text from "Art Style" to "Visual Theme" for consistency and accessibility
+  * SINGLE INTERACTION: Maintained efficient one-step suggestion process while expanding the creative possibilities
 - July 18, 2025. CRITICAL AI REFERENCE FIX: Fixed major issue where AI brainstorm assistant incorrectly referenced "the user" instead of only the recipient throughout the conversation flow:
   * RECIPIENT-ONLY FOCUS: Updated all AI prompts to reference only the recipient (e.g., "John" or "John and the others") and never the user
   * SCENE DESCRIPTION ACCURACY: AI now correctly describes scenes featuring the recipient, not the user creating the card

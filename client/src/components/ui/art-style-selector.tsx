@@ -54,7 +54,7 @@ export function ArtStyleSelector({
   recipientName,
   currentStyle,
   onStyleSelect,
-  buttonText = "Choose Art Style",
+  buttonText = "Choose Visual Theme",
   photoContext = "",
   userName = "User"
 }: ArtStyleSelectorProps) {
@@ -72,8 +72,8 @@ export function ArtStyleSelector({
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       const welcomeMessage = isExpertMode 
-        ? `Hi ${userName}! I see you prefer to specify your art style directly. You can type any style you want, or I can still provide suggestions based on your scene: "${sceneDescription}". What would you like to do?`
-        : `Hi ${userName}! I'm here to help you choose the perfect art style for your ${celebration} card. I've analyzed your scene: "${sceneDescription}" and I'm ready to suggest styles that would work beautifully. Would you like to see my recommendations?`;
+        ? `Hi ${userName}! I see you prefer to specify your visual theme directly. You can type any theme you want (like "90s Soccer Style" or "Fairytale Magic"), or I can provide suggestions based on your scene: "${sceneDescription}". What would you like to do?`
+        : `Hi ${userName}! I'm here to help you choose the perfect visual theme for your ${celebration} card. I've analyzed your scene: "${sceneDescription}" and I'm ready to suggest themes that would work beautifully. Would you like to see my recommendations?`;
       
       setMessages([{
         role: 'assistant',
@@ -136,7 +136,7 @@ export function ArtStyleSelector({
     onStyleSelect(style);
     setIsOpen(false);
     toast({
-      title: "Style Selected",
+      title: "Theme Selected",
       description: `"${style}" has been applied to your card.`,
     });
   };
@@ -271,7 +271,7 @@ export function ArtStyleSelector({
               size="sm"
             >
               <CheckCircle className="w-4 h-4 mr-2" />
-              Use This Style
+              Use This Theme
             </Button>
             
             <Button
@@ -312,9 +312,9 @@ export function ArtStyleSelector({
         </Button>
       </DialogTrigger>
       <DialogContent className="w-[100vw] h-[100vh] max-w-none max-h-none p-0 gap-0 bg-white border-none shadow-none md:w-[95vw] md:max-w-5xl md:h-[90vh] md:max-h-[90vh] md:border md:border-gray-200 md:shadow-lg md:rounded-lg">
-        <DialogTitle className="sr-only">Art Style Selector</DialogTitle>
+        <DialogTitle className="sr-only">Visual Theme Selector</DialogTitle>
         <DialogDescription className="sr-only">
-          AI-powered art style suggestions for your greeting card
+          AI-powered visual theme suggestions for your greeting card
         </DialogDescription>
         
         <div className="flex flex-col h-full overflow-hidden">
@@ -322,7 +322,7 @@ export function ArtStyleSelector({
           <div className="p-4 border-b border-gray-200 bg-white">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <h2 className="text-lg font-semibold text-gray-800">Art Style Assistant</h2>
+                <h2 className="text-lg font-semibold text-gray-800">Visual Theme Assistant</h2>
                 <p className="text-sm text-gray-600">Find the perfect art style for your {celebration} card</p>
               </div>
               
