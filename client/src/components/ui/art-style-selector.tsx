@@ -143,19 +143,38 @@ export function ArtStyleSelector({
 
   const handleCopyStyle = async (styleName: string) => {
     try {
+      // Copy to clipboard
       await navigator.clipboard.writeText(styleName);
       setCopiedStyle(styleName);
+      
+      // Open Google Images search in a new tab
+      const searchQuery = encodeURIComponent(`${styleName} art style examples`);
+      const googleImagesUrl = `https://www.google.com/search?q=${searchQuery}&tbm=isch`;
+      window.open(googleImagesUrl, '_blank');
+      
       toast({
-        title: "Copied!",
-        description: `"${styleName}" copied to clipboard. You can now research this style online.`,
+        title: "Copied & Searching!",
+        description: `"${styleName}" copied to clipboard and Google Images opened for research.`,
       });
       setTimeout(() => setCopiedStyle(null), 2000);
     } catch (error) {
-      toast({
-        title: "Copy failed",
-        description: "Please select and copy the style name manually.",
-        variant: "destructive"
-      });
+      // Fallback: at least try to open the search even if clipboard fails
+      try {
+        const searchQuery = encodeURIComponent(`${styleName} art style examples`);
+        const googleImagesUrl = `https://www.google.com/search?q=${searchQuery}&tbm=isch`;
+        window.open(googleImagesUrl, '_blank');
+        
+        toast({
+          title: "Search opened",
+          description: `Google Images search opened for "${styleName}". Please copy the style name manually.`,
+        });
+      } catch (searchError) {
+        toast({
+          title: "Copy failed",
+          description: "Please select and copy the style name manually.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -264,9 +283,9 @@ export function ArtStyleSelector({
               {copiedStyle === suggestion.name ? (
                 <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
               ) : (
-                <Copy className="w-4 h-4 mr-2" />
+                <ExternalLink className="w-4 h-4 mr-2" />
               )}
-              Copy to Research
+              {copiedStyle === suggestion.name ? "Opened!" : "Research Examples"}
             </Button>
             
             <Button
