@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 18, 2025. CRITICAL AI REFERENCE FIX: Fixed major issue where AI brainstorm assistant incorrectly referenced "the user" instead of only the recipient throughout the conversation flow:
+  * RECIPIENT-ONLY FOCUS: Updated all AI prompts to reference only the recipient (e.g., "John" or "John and the others") and never the user
+  * SCENE DESCRIPTION ACCURACY: AI now correctly describes scenes featuring the recipient, not the user creating the card
+  * CONSISTENT LANGUAGE: Fixed both single person and multiple people scenarios to maintain proper recipient focus
+  * COMPREHENSIVE UPDATES: Applied fix to /api/ai-brainstorm, /api/art-style-suggestions, and /api/art-style-chat endpoints
+  * CRITICAL RULE ENFORCEMENT: Added explicit rules in system prompts to prevent AI from referencing the user as subject of the card
+  * PEOPLE REFERENCE LOGIC: Enhanced logic to properly determine "John" vs "John and the others" based on photo context
 - July 18, 2025. ENHANCED ART STYLE SELECTOR INTEGRATION: Successfully integrated sophisticated Art Style Selector component into conversation flow:
   * DUAL-PATH ARCHITECTURE: Implemented guided AI suggestions (default) and expert mode for confident users with seamless switching between modes
   * EDUCATIONAL ENHANCEMENT: Added rich descriptions with "why it works" explanations, famous references, and copy-paste functionality for research

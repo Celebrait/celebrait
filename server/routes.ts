@@ -462,16 +462,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (type === "scene") {
         const userReference = userName || "User";
-        const peopleReference = isMultiplePeople ? "you and the others" : recipientName;
+        const peopleReference = isMultiplePeople ? `${recipientName} and the others` : recipientName;
         
         systemPrompt = `You are a professional creative assistant helping ${userReference} create detailed scene descriptions for greeting cards. 
 
 CRITICAL RULES:
-1. ALWAYS address the user as "${userReference}" in your responses
-2. When referring to people in the scene, use "${peopleReference}"
-3. For suggestions, provide exactly 3 numbered options when requested
-4. Follow-up questions must seek MORE SPECIFIC details about previous answers
-5. Never show suggestions unless user clicks "Get Suggestions"
+1. ALWAYS address the user as "${userReference}" in your responses  
+2. When referring to people in the scene, ONLY use "${peopleReference}" - NEVER reference the user themselves
+3. This card is FOR ${recipientName}, so all scene descriptions should feature ${peopleReference}, not the user
+4. For suggestions, provide exactly 3 numbered options when requested
+5. Follow-up questions must seek MORE SPECIFIC details about previous answers
+6. Never show suggestions unless user clicks "Get Suggestions"
 
 CONVERSATION FLOW:
 1. SETTING (initial + 2 follow-ups) - WHERE the scene takes place
@@ -494,7 +495,7 @@ ACTIVITY STEP:
 - Only show 3 suggestions when user clicks "Get Suggestions"
 
 PEOPLE STEP:
-- Ask about clothing and appearance
+- Ask about clothing and appearance of ${peopleReference}
 - ALWAYS remind that they can skip to let AI choose appropriate clothing
 - Only show 3 suggestions when user clicks "Get Suggestions"
 
@@ -503,7 +504,7 @@ EXTRA DETAIL STEP:
 - Only show 3 suggestions when user clicks "Get Suggestions"
 
 FINAL APPROVAL STEP:
-- Summarize complete scene description
+- Summarize complete scene description featuring ${peopleReference}
 - Tell user they can add more details if they like
 - End with: "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection."
 
@@ -540,7 +541,7 @@ Current step: ${conversationStep || 'setting'}`;
         if (userInput === "Get Suggestions" || userInput === "Get More Suggestions") {
           messages.push({
             role: "system", 
-            content: `The user is requesting suggestions for the ${conversationStep} step. Provide exactly 3 numbered options relevant to this step. Format as: 1. First option, 2. Second option, 3. Third option. Use ${isMultiplePeople ? 'plural language (everyone, they, their)' : 'singular language (he/she, his/her)'} consistently throughout your response.`
+            content: `The user is requesting suggestions for the ${conversationStep} step. Provide exactly 3 numbered options relevant to this step. Format as: 1. First option, 2. Second option, 3. Third option. Use ${isMultiplePeople ? `plural language referring to ${recipientName} and the others (they, their)` : `singular language referring to ${recipientName} (he/she, his/her)`} consistently throughout your response. Remember: all suggestions should be about ${peopleReference}, not the user.`
           });
         }
         
@@ -625,14 +626,31 @@ Remember: You're helping them discover their perfect artistic vision through gui
       
       console.log('Art Style Suggestions request:', { sceneDescription, celebration, recipientName, photoContext, userName });
       
+      // Determine if multiple people are involved
+      const isMultiplePeople = photoContext && (
+        photoContext.toLowerCase().includes('multiple photos') ||
+        photoContext.toLowerCase().includes('two photos') ||
+        photoContext.toLowerCase().includes('multiple people') ||
+        photoContext.toLowerCase().includes('different people') ||
+        photoContext.toLowerCase().includes('various shots') ||
+        photoContext.toLowerCase().includes('several') ||
+        photoContext.toLowerCase().includes('different angles') ||
+        photoContext.toLowerCase().includes('group shot') ||
+        photoContext.toLowerCase().includes('people detected')
+      );
+
+      const peopleReference = isMultiplePeople ? `${recipientName} and the others` : recipientName;
+
       const systemPrompt = `You are an expert art style consultant specializing in greeting card design. Your job is to analyze scenes and recommend the most suitable art styles that would create beautiful, meaningful cards.
 
-Key guidelines:
-1. Analyze the scene description and celebration type carefully
-2. Recommend 3-4 diverse art styles that would work exceptionally well
-3. For each style, provide: name, description, why it works, famous example, mood, and difficulty level
-4. Consider the emotional impact and technical feasibility
-5. Provide educational context so users understand each style
+CRITICAL RULES:
+1. This card is FOR ${recipientName} - all references should be about ${peopleReference}, NEVER about the user
+2. When discussing the scene, always refer to ${peopleReference} as the subject(s) of the card
+3. Analyze the scene description and celebration type carefully
+4. Recommend 3-4 diverse art styles that would work exceptionally well
+5. For each style, provide: name, description, why it works, famous example, mood, and difficulty level
+6. Consider the emotional impact and technical feasibility
+7. Provide educational context so users understand each style
 
 Scene: "${sceneDescription}"
 Celebration: ${celebration}
@@ -641,12 +659,12 @@ ${photoContext ? `Photo context: ${photoContext}` : ''}
 
 You must respond with valid JSON in this exact format (no markdown code blocks, just plain JSON):
 {
-  "message": "A warm personal message to ${userName} introducing the suggestions",
+  "message": "A warm personal message to ${userName || 'the user'} introducing the suggestions about ${peopleReference}",
   "suggestions": [
     {
       "name": "Style Name",
       "description": "Clear description of the style",
-      "whyItWorks": "Specific reason why this style suits this scene",
+      "whyItWorks": "Specific reason why this style suits this scene featuring ${peopleReference}",
       "famousExample": "Famous artist, movie, or recognizable reference",
       "mood": "One word mood (e.g., 'playful', 'elegant', 'nostalgic')",
       "difficulty": "easy" | "medium" | "advanced"
@@ -709,7 +727,27 @@ You must respond with valid JSON in this exact format (no markdown code blocks, 
       
       console.log('Art Style Chat request:', { userMessage, sceneDescription, celebration, recipientName, isExpertMode });
       
+      // Determine if multiple people are involved
+      const isMultiplePeople = photoContext && (
+        photoContext.toLowerCase().includes('multiple photos') ||
+        photoContext.toLowerCase().includes('two photos') ||
+        photoContext.toLowerCase().includes('multiple people') ||
+        photoContext.toLowerCase().includes('different people') ||
+        photoContext.toLowerCase().includes('various shots') ||
+        photoContext.toLowerCase().includes('several') ||
+        photoContext.toLowerCase().includes('different angles') ||
+        photoContext.toLowerCase().includes('group shot') ||
+        photoContext.toLowerCase().includes('people detected')
+      );
+
+      const peopleReference = isMultiplePeople ? `${recipientName} and the others` : recipientName;
+
       const systemPrompt = `You are an expert art style consultant having a conversation with ${userName} about choosing the perfect art style for their ${celebration} card for ${recipientName}.
+
+CRITICAL RULES:
+1. This card is FOR ${recipientName} - all references should be about ${peopleReference}, NEVER about the user
+2. When discussing the scene, always refer to ${peopleReference} as the subject(s) of the card
+3. Focus on how art styles will portray ${peopleReference} in the scene
 
 Scene context: "${sceneDescription}"
 ${photoContext ? `Photo context: ${photoContext}` : ''}
@@ -719,17 +757,17 @@ Your role:
 1. Be warm, helpful, and educational
 2. Answer questions about art styles with specific examples
 3. Provide suggestions when asked
-4. Help users understand why certain styles work better
+4. Help users understand why certain styles work better for portraying ${peopleReference}
 5. If user seems unsure, offer to provide structured suggestions
 
 If providing suggestions, respond with JSON in this format:
 {
-  "message": "Your conversational response",
+  "message": "Your conversational response about ${peopleReference}",
   "suggestions": [
     {
       "name": "Style Name",
       "description": "Clear description",
-      "whyItWorks": "Why it suits this scene",
+      "whyItWorks": "Why it suits this scene featuring ${peopleReference}",
       "famousExample": "Famous reference",
       "mood": "One word mood",
       "difficulty": "easy" | "medium" | "advanced"
@@ -739,7 +777,7 @@ If providing suggestions, respond with JSON in this format:
 
 If just having a conversation (no suggestions), respond with:
 {
-  "message": "Your conversational response"
+  "message": "Your conversational response about ${peopleReference}"
 }`;
 
       const messages = [
