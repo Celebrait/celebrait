@@ -120,14 +120,14 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 19, 2025. REFINED ART STYLE APPROACH: Pivoted from broad "visual themes" back to established art styles with scene-aware guidance after user feedback about search inconsistency:
-  * ESTABLISHED ART STYLES FOCUS: Returned to traditional, recognizable art techniques (watercolor, oil painting, digital illustration, etc.) for consistent search results
-  * SCENE-AWARE GUIDANCE: Added contextual style selection based on scene type (intimate→watercolor, celebratory→vibrant acrylics, elegant→oil painting)
-  * TRADITIONAL CATEGORIES: Focused on Traditional Fine Art, Illustration Styles, Photography Styles, Classical Art Movements, and Cultural Art Styles
-  * SEARCH RELIABILITY: Emphasized established art terminology that produces consistent, reliable visual results when researched
-  * BALANCED APPROACH: Maintained scene-specific recommendations while ensuring searchable, consistent art style names
-  * USER TRUST: Eliminated confusion between AI suggestions and Google search results by using well-established art terminology
-  * PRECISE SEARCH TERMS: AI now provides established art style keywords like "watercolor portrait painting" instead of abstract theme concepts
+- July 19, 2025. CREATIVE THEMES WITH FAMOUS REFERENCE SOLUTION: Implemented hybrid approach combining creative themes with reliable, widely-recognized famous references for consistent search results:
+  * FAMOUS REFERENCE NAMING: Creative themes now use iconic, broadly recognized references like "Monet's Garden Style", "Disney Princess Magic", "Van Gogh Starry Night"
+  * SEARCH RELIABILITY: Famous references chosen for their consistent, recognizable visual results when googled (art movements, iconic artists, cultural aesthetics)
+  * CREATIVE ENGAGEMENT: Maintained engaging, relatable theme names while ensuring users get predictable search results
+  * BROAD RECOGNITION: References selected for wide cultural understanding and visual consistency across search platforms
+  * SCENE-AWARE CREATIVITY: AI matches creative famous references to scene context (intimate→Monet gardens, celebratory→Disney magic, elegant→Renaissance masters)
+  * BALANCED APPROACH: Combined user preference for creative themes with need for reliable, searchable reference points
+  * ICONIC AESTHETICS: Leveraged well-established visual languages (Disney style, impressionist masters, pop art legends) for consistent user experience
 - July 19, 2025. NO SUGGESTIONS IN OPENING STATEMENTS: Enhanced AI brainstorm chat to never provide suggestions in opening messages, only when explicitly requested:
   * DECLUTTERED OPENING: AI now asks simple questions without providing options in opening statements  
   * SUGGESTION ON REQUEST: Suggestions only appear when user clicks "Give Me More Ideas" button

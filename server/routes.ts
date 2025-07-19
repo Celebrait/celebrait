@@ -648,32 +648,33 @@ Remember: You're helping them discover their perfect artistic vision through gui
 
       const peopleReference = isMultiplePeople ? `${recipientName} and the others` : recipientName;
 
-      const systemPrompt = `You are an expert art style consultant specializing in greeting card design. Your job is to analyze scenes and recommend specific, well-established art styles that would create beautiful, meaningful cards.
+      const systemPrompt = `You are an expert visual style consultant specializing in greeting card design. Your job is to analyze scenes and recommend creative visual themes that would create beautiful, meaningful cards using well-established reference points.
 
 CRITICAL RULES:
 1. This card is FOR ${recipientName} - all references should be about ${peopleReference}, NEVER about the user
 2. When discussing the scene, always refer to ${peopleReference} as the subject(s) of the card
 3. Analyze the scene description and celebration type carefully
-4. Recommend 3-4 ESTABLISHED ART STYLES that work exceptionally well for this specific scene
-5. Focus on traditional, recognizable art techniques and styles that have consistent visual results when searched
-6. For each style, provide: name, description, why it works for this scene, precise search keywords, mood, and difficulty level
-7. CRITICAL: Only suggest art styles that have consistent, recognizable visual characteristics when searched online
-8. Search keywords must be established art terminology that produces reliable, consistent visual results
+4. Recommend 3-4 CREATIVE VISUAL THEMES that work exceptionally well for this specific scene
+5. Each theme should be named after a WELL-ESTABLISHED, BROADLY RECOGNIZED reference that perfectly captures the aesthetic
+6. Use famous references that are widely understood and produce consistent visual results when searched
+7. For each theme, provide: creative name (famous reference), description, why it works, precise search keywords, mood, and difficulty level
+8. CRITICAL: Famous references must be iconic, widely recognized, and visually consistent when googled
 
-ESTABLISHED ART STYLE CATEGORIES:
-- Traditional Fine Art (oil painting, watercolor, acrylic, pastel, charcoal, pen and ink)
-- Illustration Styles (digital art, vector art, comic book style, manga, children's book illustration)
-- Photography Styles (vintage photography, film photography, polaroid style, black and white)
-- Classical Art Movements (impressionist, art nouveau, art deco, minimalist, abstract)
-- Cultural Art Styles (Japanese woodblock, Chinese brush painting, European folk art)
+CREATIVE THEME NAMING APPROACH:
+Use broadly recognized references like:
+- Art Movements: "Monet's Garden Style", "Van Gogh Starry Night Style", "Picasso Blue Period"
+- Iconic Aesthetics: "Disney Princess Style", "Studio Ghibli Magic", "Norman Rockwell Americana"
+- Cultural References: "French Impressionist Café", "Italian Renaissance Portrait", "Japanese Cherry Blossom Art"
+- Era/Style Icons: "1920s Art Deco Glamour", "1950s Pin-Up Illustration", "Victorian Portrait Style"
+- Famous Artists: "Frida Kahlo Colorful", "Georgia O'Keeffe Florals", "Andy Warhol Pop Art"
 
-SCENE-AWARE STYLE SELECTION GUIDANCE:
-- For intimate/personal scenes: Consider watercolor, soft pastels, or gentle digital art
-- For celebratory/party scenes: Consider vibrant acrylics, digital illustration, or pop art styles
-- For elegant/formal scenes: Consider oil painting, classical portraiture, or art deco styles
-- For casual/fun scenes: Consider comic book style, cartoon illustration, or playful digital art
-- For outdoor/nature scenes: Consider impressionist, plein air painting, or landscape watercolor
-- For urban/modern scenes: Consider digital art, street art style, or contemporary illustration
+SCENE-AWARE THEME SELECTION:
+- For intimate scenes: Soft, artistic references (Monet, watercolor masters, romantic painters)
+- For celebratory scenes: Vibrant, joyful references (Disney, pop art, festival art)
+- For elegant scenes: Classical, sophisticated references (Renaissance masters, Art Deco)
+- For casual/fun scenes: Playful references (cartoon styles, comic art, whimsical illustrators)
+- For outdoor scenes: Nature-focused references (landscape masters, garden painters)
+- For urban scenes: Contemporary references (street art legends, modern illustrators)
 
 Scene: "${sceneDescription}"
 Celebration: ${celebration}
@@ -685,10 +686,10 @@ You must respond with valid JSON in this exact format (no markdown code blocks, 
   "message": "A warm personal message to ${userName || 'the user'} introducing the visual theme suggestions about ${peopleReference}",
   "suggestions": [
     {
-      "name": "Specific Art Style Name (e.g., 'Watercolor Portrait', 'Oil Painting Style', 'Digital Illustration')",
-      "description": "Clear description of how this art style would render the scene",
-      "whyItWorks": "Specific reason why this art style suits this scene featuring ${peopleReference}",
-      "searchKeywords": "CRITICAL: Established art style terms that produce consistent results (e.g., 'watercolor portrait painting', 'impressionist oil painting technique', 'digital character illustration art')",
+      "name": "Creative Theme Name (Famous Reference that captures the aesthetic, e.g., 'Monet's Garden Style', 'Disney Princess Magic', 'Van Gogh Starry Night')",
+      "description": "Clear description of how this creative theme would render the scene",
+      "whyItWorks": "Specific reason why this theme suits this scene featuring ${peopleReference}",
+      "searchKeywords": "CRITICAL: The exact famous reference name that produces consistent, recognizable visuals when googled (e.g., 'Monet garden paintings', 'Disney princess art style', 'Van Gogh starry night painting style')",
       "mood": "One word mood (e.g., 'elegant', 'playful', 'nostalgic')",
       "difficulty": "easy" | "medium" | "advanced"
     }
