@@ -654,26 +654,33 @@ CRITICAL RULES:
 1. This card is FOR ${recipientName} - all references should be about ${peopleReference}, NEVER about the user
 2. When discussing the scene, always refer to ${peopleReference} as the subject(s) of the card
 3. Analyze the scene description and celebration type carefully
-4. Recommend 3-4 SIMPLE, ACCESSIBLE VISUAL THEMES that work well for this scene
-5. Use EASY, RELATABLE references that anyone can understand and search for
-6. Keep theme names short, friendly, and non-intimidating
-7. For each theme, provide: simple name, brief description, why it works, easy search terms, mood, and difficulty level
-8. CRITICAL: Focus on approachable, widely-known visual styles that feel accessible to everyone
+4. Recommend 3-4 CREATIVE VISUAL THEMES that work exceptionally well for this specific scene
+5. NEVER use generic art style names like "Comic Book Style", "Watercolor", "Digital Art" - these are BANNED
+6. ALWAYS use famous reference names like "Marvel Comics Style", "Monet's Garden Style", "Disney Animation Magic"
+7. Each theme MUST be named after a SPECIFIC, FAMOUS reference that perfectly captures the aesthetic
+8. For each theme, provide: creative name (famous reference), description, why it works, precise search keywords, mood, and difficulty level
+9. CRITICAL: Famous references must be iconic, widely recognized, and visually consistent when googled
 
-SIMPLE THEME NAMING APPROACH:
-Use easy, relatable references like:
-- Basic Art Styles: "Watercolor Style", "Cartoon Style", "Vintage Photo Style"
-- Simple Famous References: "Disney Style", "Fairy Tale Style", "Comic Book Style"  
-- Easy Concepts: "Dreamy Style", "Colorful Style", "Classic Style", "Fun Style"
-- Accessible Terms: "Soft Painting", "Bright Colors", "Old-School", "Artistic"
+MANDATORY CREATIVE THEME NAMING EXAMPLES:
+NEVER USE: "Comic Book Style" - USE: "Marvel Comics Style" or "DC Comics Style"
+NEVER USE: "Watercolor" - USE: "Monet's Garden Style" or "Turner Seascape Style"
+NEVER USE: "Digital Art" - USE: "Disney Animation Magic" or "Pixar Movie Style"
+NEVER USE: "Pop Art" - USE: "Andy Warhol Pop Art" or "Roy Lichtenstein Comics"
+
+REQUIRED REFERENCE CATEGORIES:
+- Art Movements: "Monet's Water Lilies", "Van Gogh Starry Night", "Picasso Blue Period"
+- Animation Studios: "Disney Princess Magic", "Studio Ghibli Fantasy", "Pixar Character Style"
+- Famous Artists: "Norman Rockwell Americana", "Frida Kahlo Vibrant", "Georgia O'Keeffe Florals"
+- Cultural Icons: "Japanese Anime Style", "French Impressionist Café", "Art Deco Gatsby Era"
+- Movie/TV Aesthetics: "Tim Burton Gothic", "Wes Anderson Symmetry", "Harry Potter Magic"
 
 SCENE-AWARE THEME SELECTION:
-- For intimate scenes: Soft styles (Watercolor, Dreamy, Gentle)
-- For celebratory scenes: Fun styles (Disney, Colorful, Bright)
-- For elegant scenes: Classic styles (Vintage, Artistic, Elegant)
-- For casual/fun scenes: Playful styles (Cartoon, Comic Book, Fun)
-- For outdoor scenes: Natural styles (Watercolor, Soft Painting, Fresh)
-- For urban scenes: Modern styles (Cool, Artistic, Contemporary)
+- For intimate scenes: Soft, artistic references (Monet, watercolor masters, romantic painters)
+- For celebratory scenes: Vibrant, joyful references (Disney, pop art, festival art)
+- For elegant scenes: Classical, sophisticated references (Renaissance masters, Art Deco)
+- For casual/fun scenes: Playful references (cartoon styles, comic art, whimsical illustrators)
+- For outdoor scenes: Nature-focused references (landscape masters, garden painters)
+- For urban scenes: Contemporary references (street art legends, modern illustrators)
 
 Scene: "${sceneDescription}"
 Celebration: ${celebration}
@@ -685,11 +692,11 @@ You must respond with valid JSON in this exact format (no markdown code blocks, 
   "message": "A warm personal message to ${userName || 'the user'} introducing the visual theme suggestions about ${peopleReference}",
   "suggestions": [
     {
-      "name": "Simple Theme Name (Easy, friendly reference, e.g., 'Watercolor Style', 'Disney Style', 'Cartoon Style')",
-      "description": "Brief, simple description of how this style would look",
-      "whyItWorks": "Easy reason why this style works for ${peopleReference}",
-      "searchKeywords": "CRITICAL: Simple, accessible search terms anyone can use (e.g., 'watercolor painting', 'Disney art style', 'cartoon illustration')",
-      "mood": "One word mood (e.g., 'soft', 'fun', 'classic')",
+      "name": "Creative Theme Name (Famous Reference that captures the aesthetic, e.g., 'Monet's Garden Style', 'Disney Princess Magic', 'Van Gogh Starry Night')",
+      "description": "Clear description of how this creative theme would render the scene",
+      "whyItWorks": "Specific reason why this theme suits this scene featuring ${peopleReference}",
+      "searchKeywords": "CRITICAL: The exact famous reference name that produces consistent, recognizable visuals when googled (e.g., 'Monet garden paintings', 'Disney princess art style', 'Van Gogh starry night painting style')",
+      "mood": "One word mood (e.g., 'elegant', 'playful', 'nostalgic')",
       "difficulty": "easy" | "medium" | "advanced"
     }
   ]
