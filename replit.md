@@ -120,14 +120,14 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 19, 2025. CREATIVE THEMES WITH FAMOUS REFERENCE SOLUTION: Implemented hybrid approach combining creative themes with reliable, widely-recognized famous references for consistent search results:
-  * FAMOUS REFERENCE NAMING: Creative themes now use iconic, broadly recognized references like "Monet's Garden Style", "Disney Princess Magic", "Van Gogh Starry Night"
-  * SEARCH RELIABILITY: Famous references chosen for their consistent, recognizable visual results when googled (art movements, iconic artists, cultural aesthetics)
-  * CREATIVE ENGAGEMENT: Maintained engaging, relatable theme names while ensuring users get predictable search results
-  * BROAD RECOGNITION: References selected for wide cultural understanding and visual consistency across search platforms
-  * SCENE-AWARE CREATIVITY: AI matches creative famous references to scene context (intimate→Monet gardens, celebratory→Disney magic, elegant→Renaissance masters)
-  * BALANCED APPROACH: Combined user preference for creative themes with need for reliable, searchable reference points
-  * ICONIC AESTHETICS: Leveraged well-established visual languages (Disney style, impressionist masters, pop art legends) for consistent user experience
+- July 19, 2025. SIMPLIFIED ACCESSIBLE THEMES: Refined visual themes to be simple, friendly, and non-intimidating for target audience after feedback about complexity:
+  * ACCESSIBLE NAMING: Changed from complex references to simple, easy terms like "Watercolor Style", "Disney Style", "Cartoon Style"
+  * USER-FRIENDLY APPROACH: Eliminated intimidating art terminology in favor of approachable, everyday language
+  * SIMPLIFIED CATEGORIES: Focused on basic, widely-understood visual styles (Watercolor, Cartoon, Vintage Photo, Disney, Dreamy, Colorful)
+  * EASY SEARCH TERMS: Provided simple search keywords anyone can use without art knowledge ("watercolor painting", "Disney art style")
+  * REDUCED COMPLEXITY: Shortened descriptions and explanations to prevent overwhelming non-technical users
+  * MAINTAINED CREATIVITY: Kept creative aspect while making themes feel accessible and friendly to everyone
+  * SCENE-AWARE SIMPLICITY: AI still matches appropriate styles to scenes but using simple terminology (intimate→Soft styles, celebratory→Fun styles)
 - July 19, 2025. NO SUGGESTIONS IN OPENING STATEMENTS: Enhanced AI brainstorm chat to never provide suggestions in opening messages, only when explicitly requested:
   * DECLUTTERED OPENING: AI now asks simple questions without providing options in opening statements  
   * SUGGESTION ON REQUEST: Suggestions only appear when user clicks "Give Me More Ideas" button
