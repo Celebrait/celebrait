@@ -35,7 +35,7 @@ interface StyleSuggestion {
   name: string;
   description: string;
   whyItWorks: string;
-  searchKeywords: string;
+  famousExample: string;
   mood: string;
   difficulty: 'easy' | 'medium' | 'advanced';
 }
@@ -68,22 +68,19 @@ export function ArtStyleSelector({
   const [copiedStyle, setCopiedStyle] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Initialize conversation when opened - automatically get the first suggestion
+  // Initialize conversation when opened
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      if (isExpertMode) {
-        const welcomeMessage = `Hi ${userName}! I see you prefer to specify your visual theme directly. You can type any theme you want (like "90s Soccer Style" or "Fairytale Magic"), or I can provide suggestions based on your scene: "${sceneDescription}". What would you like to do?`;
-        
-        setMessages([{
-          role: 'assistant',
-          content: welcomeMessage,
-          timestamp: new Date(),
-          isTyping: true
-        }]);
-      } else {
-        // In guided mode, automatically get the first suggestion
-        handleGetSuggestions();
-      }
+      const welcomeMessage = isExpertMode 
+        ? `Hi ${userName}! I see you prefer to specify your visual theme directly. You can type any theme you want (like "90s Soccer Style" or "Fairytale Magic"), or I can provide suggestions based on your scene: "${sceneDescription}". What would you like to do?`
+        : `Hi ${userName}! I'm here to help you choose the perfect visual theme for your ${celebration} card. I've analyzed your scene: "${sceneDescription}" and I'm ready to suggest themes that would work beautifully. Would you like to see my recommendations?`;
+      
+      setMessages([{
+        role: 'assistant',
+        content: welcomeMessage,
+        timestamp: new Date(),
+        isTyping: true
+      }]);
     }
   }, [isOpen, isExpertMode, messages.length, userName, celebration, sceneDescription]);
 
@@ -151,24 +148,19 @@ export function ArtStyleSelector({
       setCopiedStyle(styleName);
       
       // Open Google Images search in a new tab
-      // Use search keywords if available, otherwise fallback to style name
-      const suggestion = suggestions.find(s => s.name === styleName);
-      const searchTerms = suggestion?.searchKeywords || `${styleName} art style examples`;
-      const searchQuery = encodeURIComponent(searchTerms);
+      const searchQuery = encodeURIComponent(`${styleName} art style examples`);
       const googleImagesUrl = `https://www.google.com/search?q=${searchQuery}&tbm=isch`;
       window.open(googleImagesUrl, '_blank');
       
       toast({
         title: "Copied & Searching!",
-        description: `"${styleName}" copied to clipboard and Google Images opened for visual reference.`,
+        description: `"${styleName}" copied to clipboard and Google Images opened for research.`,
       });
       setTimeout(() => setCopiedStyle(null), 2000);
     } catch (error) {
       // Fallback: at least try to open the search even if clipboard fails
       try {
-        const suggestion = suggestions.find(s => s.name === styleName);
-        const searchTerms = suggestion?.searchKeywords || `${styleName} art style examples`;
-        const searchQuery = encodeURIComponent(searchTerms);
+        const searchQuery = encodeURIComponent(`${styleName} art style examples`);
         const googleImagesUrl = `https://www.google.com/search?q=${searchQuery}&tbm=isch`;
         window.open(googleImagesUrl, '_blank');
         
@@ -186,11 +178,10 @@ export function ArtStyleSelector({
     }
   };
 
-  const handleSendMessage = async (messageOverride?: string) => {
-    const messageToSend = messageOverride || userInput.trim();
-    if (!messageToSend || isLoading) return;
+  const handleSendMessage = async () => {
+    if (!userInput.trim() || isLoading) return;
     
-    const userMessage = messageToSend;
+    const userMessage = userInput.trim();
     setUserInput("");
     
     // Add user message
@@ -246,13 +237,13 @@ export function ArtStyleSelector({
   };
 
   const renderStyleSuggestion = (suggestion: StyleSuggestion, index: number) => (
-    <Card key={index} className="mb-4 border-l-4 border-l-purple-500 bg-gradient-to-r from-purple-50 to-pink-50">
+    <Card key={index} className="mb-4 border-l-4 border-l-purple-500">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <CardTitle className="text-xl text-purple-700 mb-2">{suggestion.name}</CardTitle>
-            <Badge variant="secondary" className="mb-3">{suggestion.mood}</Badge>
-            <p className="text-base text-gray-700 mb-3 leading-relaxed">{suggestion.description}</p>
+            <CardTitle className="text-lg text-purple-700 mb-1">{suggestion.name}</CardTitle>
+            <Badge variant="secondary" className="mb-2">{suggestion.mood}</Badge>
+            <p className="text-sm text-gray-600 mb-2">{suggestion.description}</p>
           </div>
           <Badge variant={suggestion.difficulty === 'easy' ? 'default' : suggestion.difficulty === 'medium' ? 'secondary' : 'destructive'}>
             {suggestion.difficulty}
@@ -260,41 +251,51 @@ export function ArtStyleSelector({
         </div>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="space-y-4">
-          <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border-l-4 border-l-blue-400">
-            <p className="text-base text-blue-900 leading-relaxed">
-              <strong className="text-blue-800">Why this is perfect for your scene:</strong> {suggestion.whyItWorks}
+        <div className="space-y-3">
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Why it works:</strong> {suggestion.whyItWorks}
             </p>
           </div>
           
-          <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border-l-4 border-l-green-400">
-            <p className="text-sm text-green-800 leading-relaxed">
-              <strong>Visual reference for Google search:</strong> {suggestion.searchKeywords}
+          <div className="bg-green-50 p-3 rounded-lg">
+            <p className="text-sm text-green-800">
+              <strong>Famous example:</strong> {suggestion.famousExample}
             </p>
           </div>
           
-          <div className="flex flex-wrap gap-3 pt-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               onClick={() => handleStyleSelect(suggestion.name)}
-              className="bg-gradient-celebrait hover:opacity-90 text-white text-base px-6 py-2"
-              size="default"
+              className="bg-gradient-celebrait hover:opacity-90 text-white"
+              size="sm"
             >
-              <CheckCircle className="w-5 h-5 mr-2" />
-              Use This Perfect Match
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Use This Theme
             </Button>
             
             <Button
               onClick={() => handleCopyStyle(suggestion.name)}
               variant="outline"
-              size="default"
-              className="border-purple-300 text-purple-700 hover:bg-purple-50 px-4 py-2"
+              size="sm"
+              className="border-gray-300"
             >
               {copiedStyle === suggestion.name ? (
-                <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
+                <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
               ) : (
-                <ExternalLink className="w-5 h-5 mr-2" />
+                <ExternalLink className="w-4 h-4 mr-2" />
               )}
-              {copiedStyle === suggestion.name ? "Search Opened!" : "See Visual Examples"}
+              {copiedStyle === suggestion.name ? "Opened!" : "Research Examples"}
+            </Button>
+            
+            <Button
+              onClick={() => setSelectedSuggestion(suggestion)}
+              variant="ghost"
+              size="sm"
+              className="text-purple-600"
+            >
+              <Info className="w-4 h-4 mr-2" />
+              More Info
             </Button>
           </div>
         </div>
@@ -407,28 +408,17 @@ export function ArtStyleSelector({
           </div>
 
           {/* Action buttons */}
-          {!isExpertMode && messages.length > 0 && suggestions.length > 0 && (
+          {!isExpertMode && messages.length > 0 && suggestions.length === 0 && (
             <div className="px-4 pb-2">
-              <div className="max-w-4xl mx-auto flex gap-3">
+              <div className="max-w-4xl mx-auto">
                 <Button
                   onClick={handleGetSuggestions}
                   disabled={isLoading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-gradient-celebrait hover:opacity-90 text-white"
                   size="sm"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Get Another Suggestion
-                </Button>
-                <Button
-                  onClick={() => {
-                    handleSendMessage("I'd like to brainstorm different ideas");
-                  }}
-                  disabled={isLoading}
-                  variant="outline"
-                  size="sm"
-                  className="border-purple-300 text-purple-600 hover:bg-purple-50"
-                >
-                  Chat About Ideas
+                  Get Style Suggestions
                 </Button>
               </div>
             </div>
