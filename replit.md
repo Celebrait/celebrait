@@ -128,6 +128,8 @@ Changelog:
   * BACKEND VALIDATION: Added checks to detect opening messages and explicitly instruct AI not to provide suggestions
   * FRONTEND INTEGRATION: Updated chat component to call AI endpoint for initial messages instead of hardcoded text
   * USER CONTROL: Users now have complete control over when they want to see suggestions versus typing their own responses
+  * BUTTON CONSISTENCY: Fixed inconsistent button copy/colors throughout chat flow - all "More Ideas" buttons now say "Give Me More Ideas"
+  * SEAMLESS UX: Reduced staggered button disappearing effect with improved timing and loading state management
 - July 18, 2025. ENHANCED VISUAL THEME APPROACH: Revolutionized the art style selection to use broader, more relatable "visual themes" instead of traditional art terminology:
   * EXPANDED THEME CATEGORIES: Added thematic concepts (fairytale, superhero), era styles (90s, vintage), mood aesthetics (cozy, bohemian), and cultural themes (military, sports)
   * USER-FRIENDLY TERMINOLOGY: Replaced intimidating "art style" language with accessible "visual theme" concepts that users naturally understand

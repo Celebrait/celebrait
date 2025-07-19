@@ -367,7 +367,10 @@ export function AIBrainstormChat({
   };
 
   const handleButtonClick = (action: string) => {
-    handleSendMessage(action);
+    // Add a small delay to prevent immediate button disappearance
+    setTimeout(() => {
+      handleSendMessage(action);
+    }, 100);
   };
 
   const renderButtons = () => {
@@ -378,11 +381,12 @@ export function AIBrainstormChat({
   const renderInlineButtons = (messageIndex: number) => {
     const { currentStep, showSuggestions, settingRefinements, activityRefinements } = conversationState;
     
-    // Only show buttons for the most recent assistant message
+    // Only show buttons for the most recent assistant message, but keep them during loading
     const lastAssistantIndex = messages.map((msg, idx) => msg.role === 'assistant' ? idx : -1)
       .filter(idx => idx !== -1).pop();
     
-    if (messageIndex !== lastAssistantIndex) {
+    // Show buttons if this is the last assistant message, unless we're loading a new response
+    if (messageIndex !== lastAssistantIndex || (isLoading && messages[messages.length - 1]?.role === 'user')) {
       return null;
     }
     
@@ -409,10 +413,10 @@ export function AIBrainstormChat({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleButtonClick("Get More Suggestions")}
+              onClick={() => handleButtonClick("Give Me More Ideas")}
               className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-md border border-blue-200 font-medium transition-all duration-200"
             >
-              Get More Suggestions
+              Give Me More Ideas
             </Button>
             <Button
               variant="ghost"
@@ -471,7 +475,7 @@ export function AIBrainstormChat({
           key="get-suggestions"
           variant="ghost"
           size="sm"
-          onClick={() => handleButtonClick("Get Suggestions")}
+          onClick={() => handleButtonClick("Give Me More Ideas")}
           className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-md border border-blue-200 font-medium transition-all duration-200"
         >
           Give Me More Ideas
@@ -485,7 +489,7 @@ export function AIBrainstormChat({
           key="get-suggestions"
           variant="ghost"
           size="sm"
-          onClick={() => handleButtonClick("Get Suggestions")}
+          onClick={() => handleButtonClick("Give Me More Ideas")}
           className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-md border border-blue-200 font-medium transition-all duration-200"
         >
           Give Me More Ideas
@@ -499,10 +503,10 @@ export function AIBrainstormChat({
           key="get-suggestions"
           variant="ghost"
           size="sm"
-          onClick={() => handleButtonClick("Get Suggestions")}
+          onClick={() => handleButtonClick("Give Me More Ideas")}
           className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-md border border-blue-200 font-medium transition-all duration-200"
         >
-          Get Ideas
+          Give Me More Ideas
         </Button>
       );
     }
@@ -513,10 +517,10 @@ export function AIBrainstormChat({
           key="get-suggestions"
           variant="ghost"
           size="sm"
-          onClick={() => handleButtonClick("Get Suggestions")}
+          onClick={() => handleButtonClick("Give Me More Ideas")}
           className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-md border border-blue-200 font-medium transition-all duration-200"
         >
-          More Ideas
+          Give Me More Ideas
         </Button>
       );
     }
@@ -571,9 +575,9 @@ export function AIBrainstormChat({
           variant="ghost"
           size="sm"
           onClick={() => handleButtonClick("Skip This Question")}
-          className="text-sm bg-green-50 hover:bg-green-100 text-green-700 px-3 py-2 rounded-md border border-green-200 font-medium transition-all duration-200"
+          className="text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 px-3 py-2 rounded-md border border-orange-200 font-medium transition-all duration-200"
         >
-          Skip Step
+          Skip This Question
         </Button>
       );
     }
