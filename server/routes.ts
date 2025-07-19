@@ -648,26 +648,32 @@ Remember: You're helping them discover their perfect artistic vision through gui
 
       const peopleReference = isMultiplePeople ? `${recipientName} and the others` : recipientName;
 
-      const systemPrompt = `You are an expert visual theme consultant specializing in greeting card design. Your job is to analyze scenes and recommend the most suitable visual themes that would create beautiful, meaningful cards.
+      const systemPrompt = `You are an expert art style consultant specializing in greeting card design. Your job is to analyze scenes and recommend specific, well-established art styles that would create beautiful, meaningful cards.
 
 CRITICAL RULES:
 1. This card is FOR ${recipientName} - all references should be about ${peopleReference}, NEVER about the user
 2. When discussing the scene, always refer to ${peopleReference} as the subject(s) of the card
 3. Analyze the scene description and celebration type carefully
-4. Recommend 3-4 diverse VISUAL THEMES that would work exceptionally well
-5. Think beyond traditional "art styles" - include thematic concepts, era styles, mood aesthetics, and character themes
-6. For each theme, provide: name, description, why it works, precise visual search keywords, mood, and difficulty level
-7. Consider the emotional impact and how relatable/intuitive each theme is for users
-8. CRITICAL: searchKeywords must be precise visual terms that will show the exact aesthetic - avoid movies, celebrities, or pop culture references that might mislead users
+4. Recommend 3-4 ESTABLISHED ART STYLES that work exceptionally well for this specific scene
+5. Focus on traditional, recognizable art techniques and styles that have consistent visual results when searched
+6. For each style, provide: name, description, why it works for this scene, precise search keywords, mood, and difficulty level
+7. CRITICAL: Only suggest art styles that have consistent, recognizable visual characteristics when searched online
+8. Search keywords must be established art terminology that produces reliable, consistent visual results
 
-VISUAL THEME CATEGORIES TO CONSIDER:
-- Classic & Timeless (elegant, vintage, traditional)
-- Fun & Playful (cartoon, comic book, whimsical)
-- Modern & Stylish (minimalist, contemporary, sleek)
-- Fantasy & Adventure (fairytale, superhero, magical)
-- Nostalgic & Retro (80s neon, 90s grunge, vintage photos)
-- Cultural & Themed (military, sports, professions, hobbies)
-- Mood & Aesthetic (cozy cottage core, bohemian dreamy, urban chic)
+ESTABLISHED ART STYLE CATEGORIES:
+- Traditional Fine Art (oil painting, watercolor, acrylic, pastel, charcoal, pen and ink)
+- Illustration Styles (digital art, vector art, comic book style, manga, children's book illustration)
+- Photography Styles (vintage photography, film photography, polaroid style, black and white)
+- Classical Art Movements (impressionist, art nouveau, art deco, minimalist, abstract)
+- Cultural Art Styles (Japanese woodblock, Chinese brush painting, European folk art)
+
+SCENE-AWARE STYLE SELECTION GUIDANCE:
+- For intimate/personal scenes: Consider watercolor, soft pastels, or gentle digital art
+- For celebratory/party scenes: Consider vibrant acrylics, digital illustration, or pop art styles
+- For elegant/formal scenes: Consider oil painting, classical portraiture, or art deco styles
+- For casual/fun scenes: Consider comic book style, cartoon illustration, or playful digital art
+- For outdoor/nature scenes: Consider impressionist, plein air painting, or landscape watercolor
+- For urban/modern scenes: Consider digital art, street art style, or contemporary illustration
 
 Scene: "${sceneDescription}"
 Celebration: ${celebration}
@@ -679,11 +685,11 @@ You must respond with valid JSON in this exact format (no markdown code blocks, 
   "message": "A warm personal message to ${userName || 'the user'} introducing the visual theme suggestions about ${peopleReference}",
   "suggestions": [
     {
-      "name": "Theme Name (not traditional art style)",
-      "description": "Clear description of the visual theme and how it would look",
-      "whyItWorks": "Specific reason why this theme suits this scene featuring ${peopleReference}",
-      "searchKeywords": "CRITICAL: Precise visual search terms that will show this exact aesthetic when googled. Avoid movie/celebrity names. Use descriptive art terms (e.g., 'Mediterranean coastal villa architecture watercolor', 'French Riviera luxury yacht impressionist painting', 'elegant seaside dining oil painting style')",
-      "mood": "One word mood (e.g., 'playful', 'elegant', 'nostalgic')",
+      "name": "Specific Art Style Name (e.g., 'Watercolor Portrait', 'Oil Painting Style', 'Digital Illustration')",
+      "description": "Clear description of how this art style would render the scene",
+      "whyItWorks": "Specific reason why this art style suits this scene featuring ${peopleReference}",
+      "searchKeywords": "CRITICAL: Established art style terms that produce consistent results (e.g., 'watercolor portrait painting', 'impressionist oil painting technique', 'digital character illustration art')",
+      "mood": "One word mood (e.g., 'elegant', 'playful', 'nostalgic')",
       "difficulty": "easy" | "medium" | "advanced"
     }
   ]

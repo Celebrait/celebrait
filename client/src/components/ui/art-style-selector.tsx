@@ -263,7 +263,7 @@ export function ArtStyleSelector({
           
           <div className="bg-green-50 p-3 rounded-lg">
             <p className="text-sm text-green-800">
-              <strong>Search keywords:</strong> {suggestion.searchKeywords}
+              <strong>Art style search:</strong> {suggestion.searchKeywords}
             </p>
           </div>
           
