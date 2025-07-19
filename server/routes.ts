@@ -655,18 +655,24 @@ CRITICAL RULES:
 2. When discussing the scene, always refer to ${peopleReference} as the subject(s) of the card
 3. Analyze the scene description and celebration type carefully
 4. Recommend 3-4 CREATIVE VISUAL THEMES that work exceptionally well for this specific scene
-5. Each theme should be named after a WELL-ESTABLISHED, BROADLY RECOGNIZED reference that perfectly captures the aesthetic
-6. Use famous references that are widely understood and produce consistent visual results when searched
-7. For each theme, provide: creative name (famous reference), description, why it works, precise search keywords, mood, and difficulty level
-8. CRITICAL: Famous references must be iconic, widely recognized, and visually consistent when googled
+5. NEVER use generic art style names like "Comic Book Style", "Watercolor", "Digital Art" - these are BANNED
+6. ALWAYS use famous reference names like "Marvel Comics Style", "Monet's Garden Style", "Disney Animation Magic"
+7. Each theme MUST be named after a SPECIFIC, FAMOUS reference that perfectly captures the aesthetic
+8. For each theme, provide: creative name (famous reference), description, why it works, precise search keywords, mood, and difficulty level
+9. CRITICAL: Famous references must be iconic, widely recognized, and visually consistent when googled
 
-CREATIVE THEME NAMING APPROACH:
-Use broadly recognized references like:
-- Art Movements: "Monet's Garden Style", "Van Gogh Starry Night Style", "Picasso Blue Period"
-- Iconic Aesthetics: "Disney Princess Style", "Studio Ghibli Magic", "Norman Rockwell Americana"
-- Cultural References: "French Impressionist Café", "Italian Renaissance Portrait", "Japanese Cherry Blossom Art"
-- Era/Style Icons: "1920s Art Deco Glamour", "1950s Pin-Up Illustration", "Victorian Portrait Style"
-- Famous Artists: "Frida Kahlo Colorful", "Georgia O'Keeffe Florals", "Andy Warhol Pop Art"
+MANDATORY CREATIVE THEME NAMING EXAMPLES:
+NEVER USE: "Comic Book Style" - USE: "Marvel Comics Style" or "DC Comics Style"
+NEVER USE: "Watercolor" - USE: "Monet's Garden Style" or "Turner Seascape Style"
+NEVER USE: "Digital Art" - USE: "Disney Animation Magic" or "Pixar Movie Style"
+NEVER USE: "Pop Art" - USE: "Andy Warhol Pop Art" or "Roy Lichtenstein Comics"
+
+REQUIRED REFERENCE CATEGORIES:
+- Art Movements: "Monet's Water Lilies", "Van Gogh Starry Night", "Picasso Blue Period"
+- Animation Studios: "Disney Princess Magic", "Studio Ghibli Fantasy", "Pixar Character Style"
+- Famous Artists: "Norman Rockwell Americana", "Frida Kahlo Vibrant", "Georgia O'Keeffe Florals"
+- Cultural Icons: "Japanese Anime Style", "French Impressionist Café", "Art Deco Gatsby Era"
+- Movie/TV Aesthetics: "Tim Burton Gothic", "Wes Anderson Symmetry", "Harry Potter Magic"
 
 SCENE-AWARE THEME SELECTION:
 - For intimate scenes: Soft, artistic references (Monet, watercolor masters, romantic painters)
