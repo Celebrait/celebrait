@@ -470,9 +470,10 @@ CRITICAL RULES:
 1. ALWAYS address the user as "${userReference}" in your responses  
 2. When referring to people in the scene, ONLY use "${peopleReference}" - NEVER reference the user themselves
 3. This card is FOR ${recipientName}, so all scene descriptions should feature ${peopleReference}, not the user
-4. For suggestions, provide exactly 3 numbered options when requested
-5. Follow-up questions must seek MORE SPECIFIC details about previous answers
-6. Never show suggestions unless user clicks "Get Suggestions"
+4. NEVER provide suggestions in opening statements or unless explicitly requested
+5. Only provide exactly 3 numbered options when user inputs "Get Suggestions" or "Get More Suggestions"
+6. Follow-up questions must seek MORE SPECIFIC details about previous answers
+7. Keep opening messages simple and ask only one clear question
 
 CONVERSATION FLOW:
 1. SETTING (initial + 2 follow-ups) - WHERE the scene takes place
@@ -484,24 +485,24 @@ CONVERSATION FLOW:
 STEP-SPECIFIC INSTRUCTIONS:
 
 SETTING STEP:
-- Initial: User must type location (no suggestions shown)
+- Initial: Ask simple question about WHERE scene takes place (NEVER provide suggestions)
 - Follow-up 1: Ask for MORE SPECIFIC location details based on their answer
 - Follow-up 2: Ask for EVEN MORE SPECIFIC location details  
-- Only show 3 suggestions when user clicks "Get Suggestions"
+- Only show 3 suggestions when user clicks "Give Me More Ideas" button
 
 ACTIVITY STEP:
-- Initial: Ask what ${peopleReference} should be doing
+- Initial: Ask simple question about what ${peopleReference} should be doing (NEVER provide suggestions)
 - Follow-up: Ask for MORE SPECIFIC activity details based on their answer
-- Only show 3 suggestions when user clicks "Get Suggestions"
+- Only show 3 suggestions when user clicks "Give Me More Ideas" button
 
 PEOPLE STEP:
-- Ask about clothing and appearance of ${peopleReference}
+- Ask simple question about clothing and appearance of ${peopleReference} (NEVER provide suggestions)
 - ALWAYS remind that they can skip to let AI choose appropriate clothing
-- Only show 3 suggestions when user clicks "Get Suggestions"
+- Only show 3 suggestions when user clicks "Give Me More Ideas" button
 
 EXTRA DETAIL STEP:
-- Ask about special details to make scene meaningful
-- Only show 3 suggestions when user clicks "Get Suggestions"
+- Ask simple question about special details to make scene meaningful (NEVER provide suggestions)
+- Only show 3 suggestions when user clicks "Give Me More Ideas" button
 
 FINAL APPROVAL STEP:
 - Summarize complete scene description featuring ${peopleReference}
@@ -538,10 +539,16 @@ Current step: ${conversationStep || 'setting'}`;
         ];
         
         // Add step-specific instructions based on current state
-        if (userInput === "Get Suggestions" || userInput === "Get More Suggestions") {
+        if (userInput === "Get Suggestions" || userInput === "Get More Suggestions" || userInput === "Give Me More Ideas") {
           messages.push({
             role: "system", 
             content: `The user is requesting suggestions for the ${conversationStep} step. Provide exactly 3 numbered options relevant to this step. Format as: 1. First option, 2. Second option, 3. Third option. Use ${isMultiplePeople ? `plural language referring to ${recipientName} and the others (they, their)` : `singular language referring to ${recipientName} (he/she, his/her)`} consistently throughout your response. Remember: all suggestions should be about ${peopleReference}, not the user.`
+          });
+        } else if (!conversationHistory || conversationHistory.length === 0) {
+          // This is an opening message - add extra emphasis to NOT provide suggestions
+          messages.push({
+            role: "system",
+            content: `This is an opening message. Do NOT provide any suggestions or numbered options. Simply ask a clear, simple question about the ${conversationStep} step. Wait for their response before offering any suggestions.`
           });
         }
         

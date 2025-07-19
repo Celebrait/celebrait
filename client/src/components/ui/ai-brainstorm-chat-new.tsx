@@ -87,13 +87,7 @@ export function AIBrainstormChat({
   // Initialize conversation when dialog opens
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      const initialMessage = getInitialMessage();
-      setMessages([{
-        role: "assistant",
-        content: initialMessage,
-        timestamp: new Date(),
-        isTyping: true
-      }]);
+      handleInitialMessage();
     }
   }, [isOpen]);
 
@@ -113,28 +107,47 @@ export function AIBrainstormChat({
     }
   }, [messages]);
 
-  const getInitialMessage = () => {
-    const isMultiplePeople = photoContext && (
-      photoContext.toLowerCase().includes('multiple photos') ||
-      photoContext.toLowerCase().includes('two photos') ||
-      photoContext.toLowerCase().includes('multiple people') ||
-      photoContext.toLowerCase().includes('different people') ||
-      photoContext.toLowerCase().includes('various shots') ||
-      photoContext.toLowerCase().includes('several') ||
-      photoContext.toLowerCase().includes('different angles') ||
-      photoContext.toLowerCase().includes('group shot') ||
-      photoContext.toLowerCase().includes('people detected')
-    );
+  const handleInitialMessage = async () => {
+    setIsLoading(true);
+    
+    try {
+      const response = await apiRequest("POST", "/api/ai-brainstorm", {
+        type,
+        userInput: "Start conversation",
+        recipientName,
+        celebration,
+        conversationStep: conversationState.currentStep,
+        settingRefinements: conversationState.settingRefinements,
+        activityRefinements: conversationState.activityRefinements,
+        conversationHistory: [], // Empty for initial message
+        photoContext,
+        userName,
+        collectedInfo: conversationState.collectedInfo
+      });
 
-    const contextAcknowledgment = photoContext ? 
-      (isMultiplePeople ? 
-        `I can see from your uploaded photos that we're working with you and the others in this scene. ` :
-        `I can see from your uploaded photo that we're focusing on ${recipientName} for this scene. `
-      ) : '';
+      const result = await response.json();
 
-    return `Hello ${userName}! I'm here to help you create a detailed scene description for your ${celebration} card.
+      const typingMessage: ChatMessage = {
+        role: "assistant",
+        content: result.response,
+        timestamp: new Date(),
+        isTyping: true
+      };
 
-${contextAcknowledgment}Let's start with the setting - where should this scene take place? Please describe the location or environment you have in mind.`;
+      setMessages([typingMessage]);
+      
+    } catch (error) {
+      console.error('Initial AI message error:', error);
+      // Fallback to simple message if API fails
+      setMessages([{
+        role: "assistant",
+        content: `Hello ${userName}! I'm here to help you create a detailed scene description for your ${celebration} card. Let's start with the setting - where should this scene take place?`,
+        timestamp: new Date(),
+        isTyping: true
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSendMessage = async (message: string = userInput) => {
