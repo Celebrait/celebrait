@@ -227,7 +227,7 @@ export function AIBrainstormChat({
         return newState;
       }
       
-      if (userMessage === "Get More Suggestions") {
+      if (userMessage === "Get More Suggestions" || userMessage === "Give Me More Ideas") {
         const extractedSuggestions = extractSuggestionsFromResponse(aiResponse);
         setSuggestions(extractedSuggestions);
         newState.showSuggestions = true;
@@ -308,8 +308,12 @@ export function AIBrainstormChat({
         } else {
           // Follow-up refinement
           newState.collectedInfo.activity = `${newState.collectedInfo.activity} ${userMessage}`;
-          newState.currentStep = 'people';
-          newState.activityRefinements = 0;
+          newState.activityRefinements++;
+          
+          if (newState.activityRefinements >= 2) {
+            newState.currentStep = 'people';
+            newState.activityRefinements = 0;
+          }
         }
         break;
         
