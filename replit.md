@@ -120,6 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 19, 2025. CRITICAL VISUAL THEME SEARCH FIX: Fixed misleading "famous examples" in art style suggestions that caused user confusion when researching styles:
+  * SEARCH KEYWORDS REPLACEMENT: Replaced "famousExample" field with "searchKeywords" field containing precise visual search terms
+  * MISLEADING REFERENCES ELIMINATED: Removed movie/celebrity references like "To Catch a Thief" for "Mediterranean elegance" that showed irrelevant search results
+  * PRECISE VISUAL TERMS: AI now provides specific art terminology like "Mediterranean coastal villa architecture watercolor" instead of pop culture references
+  * ENHANCED SEARCH INTEGRATION: Google Images search now uses the precise searchKeywords instead of generic style name + "examples"
+  * USER RESEARCH ACCURACY: Users can now research styles and see visuals that actually match the suggested theme
+  * BACKEND VALIDATION: Added critical instructions to AI to avoid pop culture references and focus on visual descriptive terms
+  * UI UPDATES: Updated art style selector to display "Search keywords" instead of "Famous example" with proper visual search terms
+  * TRUST IMPROVEMENT: Eliminated disconnect between AI suggestions and user research results for consistent theme understanding
 - July 19, 2025. NO SUGGESTIONS IN OPENING STATEMENTS: Enhanced AI brainstorm chat to never provide suggestions in opening messages, only when explicitly requested:
   * DECLUTTERED OPENING: AI now asks simple questions without providing options in opening statements  
   * SUGGESTION ON REQUEST: Suggestions only appear when user clicks "Give Me More Ideas" button

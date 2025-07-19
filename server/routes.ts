@@ -656,8 +656,9 @@ CRITICAL RULES:
 3. Analyze the scene description and celebration type carefully
 4. Recommend 3-4 diverse VISUAL THEMES that would work exceptionally well
 5. Think beyond traditional "art styles" - include thematic concepts, era styles, mood aesthetics, and character themes
-6. For each theme, provide: name, description, why it works, famous example, mood, and difficulty level
+6. For each theme, provide: name, description, why it works, precise visual search keywords, mood, and difficulty level
 7. Consider the emotional impact and how relatable/intuitive each theme is for users
+8. CRITICAL: searchKeywords must be precise visual terms that will show the exact aesthetic - avoid movies, celebrities, or pop culture references that might mislead users
 
 VISUAL THEME CATEGORIES TO CONSIDER:
 - Classic & Timeless (elegant, vintage, traditional)
@@ -681,7 +682,7 @@ You must respond with valid JSON in this exact format (no markdown code blocks, 
       "name": "Theme Name (not traditional art style)",
       "description": "Clear description of the visual theme and how it would look",
       "whyItWorks": "Specific reason why this theme suits this scene featuring ${peopleReference}",
-      "famousExample": "Movie, character, era, or recognizable reference that exemplifies this theme",
+      "searchKeywords": "CRITICAL: Precise visual search terms that will show this exact aesthetic when googled. Avoid movie/celebrity names. Use descriptive art terms (e.g., 'Mediterranean coastal villa architecture watercolor', 'French Riviera luxury yacht impressionist painting', 'elegant seaside dining oil painting style')",
       "mood": "One word mood (e.g., 'playful', 'elegant', 'nostalgic')",
       "difficulty": "easy" | "medium" | "advanced"
     }

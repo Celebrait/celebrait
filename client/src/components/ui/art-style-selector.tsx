@@ -35,7 +35,7 @@ interface StyleSuggestion {
   name: string;
   description: string;
   whyItWorks: string;
-  famousExample: string;
+  searchKeywords: string;
   mood: string;
   difficulty: 'easy' | 'medium' | 'advanced';
 }
@@ -148,7 +148,10 @@ export function ArtStyleSelector({
       setCopiedStyle(styleName);
       
       // Open Google Images search in a new tab
-      const searchQuery = encodeURIComponent(`${styleName} art style examples`);
+      // Use search keywords if available, otherwise fallback to style name
+      const suggestion = suggestions.find(s => s.name === styleName);
+      const searchTerms = suggestion?.searchKeywords || `${styleName} art style examples`;
+      const searchQuery = encodeURIComponent(searchTerms);
       const googleImagesUrl = `https://www.google.com/search?q=${searchQuery}&tbm=isch`;
       window.open(googleImagesUrl, '_blank');
       
@@ -260,7 +263,7 @@ export function ArtStyleSelector({
           
           <div className="bg-green-50 p-3 rounded-lg">
             <p className="text-sm text-green-800">
-              <strong>Famous example:</strong> {suggestion.famousExample}
+              <strong>Search keywords:</strong> {suggestion.searchKeywords}
             </p>
           </div>
           
