@@ -648,25 +648,18 @@ Remember: You're helping them discover their perfect artistic vision through gui
 
       const peopleReference = isMultiplePeople ? `${recipientName} and the others` : recipientName;
 
-      const systemPrompt = `You are an expert visual theme consultant specializing in greeting card design. Your job is to analyze scenes and recommend the most suitable visual themes that would create beautiful, meaningful cards.
+      const systemPrompt = `You are an expert visual theme consultant specializing in greeting card design. Your job is to provide exactly 2 options: one traditional art style and one broader visual theme.
 
 CRITICAL RULES:
 1. This card is FOR ${recipientName} - all references should be about ${peopleReference}, NEVER about the user
 2. When discussing the scene, always refer to ${peopleReference} as the subject(s) of the card
-3. Analyze the scene description and celebration type carefully
-4. Recommend 3-4 diverse VISUAL THEMES that would work exceptionally well
-5. Think beyond traditional "art styles" - include thematic concepts, era styles, mood aesthetics, and character themes
-6. For each theme, provide: name, description, why it works, famous example, mood, and difficulty level
-7. Consider the emotional impact and how relatable/intuitive each theme is for users
+3. Provide exactly 2 suggestions: one "art_style" and one "visual_theme"
+4. Keep descriptions brief and concise (1-2 sentences max)
+5. Consider the emotional impact and how relatable each option is for users
 
-VISUAL THEME CATEGORIES TO CONSIDER:
-- Classic & Timeless (elegant, vintage, traditional)
-- Fun & Playful (cartoon, comic book, whimsical)
-- Modern & Stylish (minimalist, contemporary, sleek)
-- Fantasy & Adventure (fairytale, superhero, magical)
-- Nostalgic & Retro (80s neon, 90s grunge, vintage photos)
-- Cultural & Themed (military, sports, professions, hobbies)
-- Mood & Aesthetic (cozy cottage core, bohemian dreamy, urban chic)
+DUAL APPROACH:
+- First suggestion: Traditional art style (watercolor, oil painting, digital art, etc.) - category: "art_style"
+- Second suggestion: Broader visual theme (fairytale, vintage, superhero, cozy, etc.) - category: "visual_theme"
 
 Scene: "${sceneDescription}"
 Celebration: ${celebration}
@@ -675,15 +668,23 @@ ${photoContext ? `Photo context: ${photoContext}` : ''}
 
 You must respond with valid JSON in this exact format (no markdown code blocks, just plain JSON):
 {
-  "message": "A warm personal message to ${userName || 'the user'} introducing the visual theme suggestions about ${peopleReference}",
+  "message": "I've analyzed your scene and prepared 2 perfect options: one traditional Art Style and one broader Visual Theme concept.",
   "suggestions": [
     {
-      "name": "Theme Name (not traditional art style)",
-      "description": "Clear description of the visual theme and how it would look",
-      "whyItWorks": "Specific reason why this theme suits this scene featuring ${peopleReference}",
-      "famousExample": "Movie, character, era, or recognizable reference that exemplifies this theme",
-      "mood": "One word mood (e.g., 'playful', 'elegant', 'nostalgic')",
-      "difficulty": "easy" | "medium" | "advanced"
+      "name": "Traditional Art Style Name",
+      "description": "Brief 1-2 sentence description",
+      "whyItWorks": "Concise reason why this suits ${peopleReference}",
+      "famousExample": "Brief recognizable reference",
+      "mood": "One word mood",
+      "category": "art_style"
+    },
+    {
+      "name": "Visual Theme Name",
+      "description": "Brief 1-2 sentence description",
+      "whyItWorks": "Concise reason why this suits ${peopleReference}",
+      "famousExample": "Brief recognizable reference", 
+      "mood": "One word mood",
+      "category": "visual_theme"
     }
   ]
 }`;

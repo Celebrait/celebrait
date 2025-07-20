@@ -120,6 +120,17 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 20, 2025. STREAMLINED ART STYLE SELECTION: Completely redesigned art style selection for MVP simplicity and better user experience:
+  * DUAL-OPTION APPROACH: Now shows exactly 2 options at once - one traditional "Art Style" and one broader "Visual Theme" concept
+  * SIMPLIFIED CHOICES: Reduced from overwhelming 12+ grid options to manageable 2-option selection for decision paralysis prevention
+  * CATEGORY LABELS: Replaced confusing "difficulty" labels with clear "Art Style" vs "Visual Theme" categories
+  * BRIEF DESCRIPTIONS: Cut down verbose explanations to concise 1-2 sentence descriptions with research links
+  * GET 2 MORE BUTTON: Added cycling functionality to explore different art style + visual theme pairs
+  * AI CHAT INTEGRATION: Maintained sophisticated AI chat for users who want to develop custom styles
+  * BACKEND OPTIMIZATION: Updated AI prompts to generate exactly 2 suggestions with proper categorization
+  * GOOGLE RESEARCH: Preserved external link functionality for users to research specific styles
+  * MVP FOCUS: Prioritized scene description as core value while simplifying style selection complexity
+  * OPENING EXPLANATION: Added clear explanation to users about the dual approach (art style + visual theme)
 - July 19, 2025. NO SUGGESTIONS IN OPENING STATEMENTS: Enhanced AI brainstorm chat to never provide suggestions in opening messages, only when explicitly requested:
   * DECLUTTERED OPENING: AI now asks simple questions without providing options in opening statements  
   * SUGGESTION ON REQUEST: Suggestions only appear when user clicks "Give Me More Ideas" button

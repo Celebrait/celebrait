@@ -37,7 +37,7 @@ interface StyleSuggestion {
   whyItWorks: string;
   famousExample: string;
   mood: string;
-  difficulty: 'easy' | 'medium' | 'advanced';
+  category: 'art_style' | 'visual_theme';
 }
 
 interface ChatMessage {
@@ -73,7 +73,7 @@ export function ArtStyleSelector({
     if (isOpen && messages.length === 0) {
       const welcomeMessage = isExpertMode 
         ? `Hi ${userName}! I see you prefer to specify your visual theme directly. You can type any theme you want (like "90s Soccer Style" or "Fairytale Magic"), or I can provide suggestions based on your scene: "${sceneDescription}". What would you like to do?`
-        : `Hi ${userName}! I'm here to help you choose the perfect visual theme for your ${celebration} card. I've analyzed your scene: "${sceneDescription}" and I'm ready to suggest themes that would work beautifully. Would you like to see my recommendations?`;
+        : `Hi ${userName}! I'll show you 2 perfect options: one traditional Art Style and one broader Visual Theme. Both are tailored to your scene and celebration. You can choose one, get 2 more suggestions, or chat with me to develop your own custom style.`;
       
       setMessages([{
         role: 'assistant',
@@ -111,13 +111,15 @@ export function ArtStyleSelector({
       const result = await response.json();
 
       if (result.suggestions) {
-        setSuggestions(result.suggestions);
+        // Ensure we only show 2 suggestions - one art style + one visual theme
+        const limitedSuggestions = result.suggestions.slice(0, 2);
+        setSuggestions(limitedSuggestions);
         setMessages(prev => [...prev, {
           role: 'assistant',
           content: result.message,
           timestamp: new Date(),
           isTyping: true,
-          suggestions: result.suggestions
+          suggestions: limitedSuggestions
         }]);
       }
     } catch (error) {
@@ -245,23 +247,19 @@ export function ArtStyleSelector({
             <Badge variant="secondary" className="mb-2">{suggestion.mood}</Badge>
             <p className="text-sm text-gray-600 mb-2">{suggestion.description}</p>
           </div>
-          <Badge variant={suggestion.difficulty === 'easy' ? 'default' : suggestion.difficulty === 'medium' ? 'secondary' : 'destructive'}>
-            {suggestion.difficulty}
+          <Badge variant={suggestion.category === 'art_style' ? 'default' : 'secondary'}>
+            {suggestion.category === 'art_style' ? 'Art Style' : 'Visual Theme'}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="pt-0">
         <div className="space-y-3">
-          <div className="bg-blue-50 p-3 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Why it works:</strong> {suggestion.whyItWorks}
-            </p>
+          <div className="text-xs text-gray-500 mb-2">
+            <strong>Why it works:</strong> {suggestion.whyItWorks}
           </div>
           
-          <div className="bg-green-50 p-3 rounded-lg">
-            <p className="text-sm text-green-800">
-              <strong>Famous example:</strong> {suggestion.famousExample}
-            </p>
+          <div className="text-xs text-gray-500 mb-3">
+            <strong>Example:</strong> {suggestion.famousExample}
           </div>
           
           <div className="flex flex-wrap gap-2">
@@ -388,6 +386,20 @@ export function ArtStyleSelector({
                   {message.role === 'assistant' && !message.isTyping && message.suggestions && message.suggestions.length > 0 && (
                     <div className="mt-4 space-y-3">
                       {message.suggestions.map((suggestion, idx) => renderStyleSuggestion(suggestion, idx))}
+                      
+                      {/* Get 2 More button */}
+                      <div className="flex justify-center mt-4">
+                        <Button
+                          onClick={handleGetSuggestions}
+                          disabled={isLoading}
+                          variant="outline"
+                          className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                          size="sm"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Get 2 More Options
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
