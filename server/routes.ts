@@ -629,7 +629,7 @@ Remember: You're helping them discover their perfect artistic vision through gui
     }
 
     try {
-      const { sceneDescription, celebration, recipientName, photoContext, userName } = req.body;
+      const { sceneDescription, celebration, recipientName, photoContext, userName, previousSuggestions } = req.body;
       
       console.log('Art Style Suggestions request:', { sceneDescription, celebration, recipientName, photoContext, userName });
       
@@ -648,18 +648,34 @@ Remember: You're helping them discover their perfect artistic vision through gui
 
       const peopleReference = isMultiplePeople ? `${recipientName} and the others` : recipientName;
 
-      const systemPrompt = `You are an expert visual theme consultant specializing in greeting card design. Your job is to provide exactly 2 options: one traditional art style and one broader visual theme.
+      // Build list of previously suggested items to avoid duplicates
+      const avoidList = previousSuggestions && previousSuggestions.length > 0 
+        ? previousSuggestions.map(s => s.name).join(', ')
+        : '';
+
+      const systemPrompt = `You are an expert visual theme consultant specializing in greeting card design. Your job is to provide exactly 2 options: one traditional art style and one specific famous theme.
 
 CRITICAL RULES:
 1. This card is FOR ${recipientName} - all references should be about ${peopleReference}, NEVER about the user
 2. When discussing the scene, always refer to ${peopleReference} as the subject(s) of the card
-3. Provide exactly 2 suggestions: one "art_style" and one "visual_theme"
+3. Provide exactly 2 suggestions: one "art_style" and one "famous_theme"
 4. Keep descriptions brief and concise (1-2 sentences max)
 5. Consider the emotional impact and how relatable each option is for users
+6. AVOID REPETITION: ${avoidList ? `Do NOT suggest any of these previously provided themes: ${avoidList}` : 'Provide completely fresh suggestions'}
 
 DUAL APPROACH:
-- First suggestion: Traditional art style (watercolor, oil painting, digital art, etc.) - category: "art_style"
-- Second suggestion: Broader visual theme (fairytale, vintage, superhero, cozy, etc.) - category: "visual_theme"
+- First suggestion: Traditional art style (watercolor, oil painting, digital art, cartoon style, realistic portrait, etc.) - category: "art_style"
+- Second suggestion: Famous Theme from well-known references that users can easily research and understand (Disney movie themes like "Finding Nemo underwater adventure", movie genres like "Star Wars space opera", famous art movements like "Van Gogh Starry Night style", iconic TV shows like "Friends coffee shop vibes", specific historical periods like "1920s Great Gatsby elegance", famous books like "Harry Potter magical world", etc.) - category: "famous_theme"
+
+FAMOUS THEME EXAMPLES:
+- Movie themes: "Pixar Up balloon adventure", "Marvel superhero comic book", "Disney Frozen ice palace"
+- TV show themes: "The Office workplace comedy", "Friends apartment hangout", "Stranger Things 80s nostalgia"
+- Art movements: "Monet impressionist garden", "Picasso cubist portrait", "Andy Warhol pop art"
+- Historical periods: "1950s diner aesthetic", "Victorian steampunk", "1980s neon synthwave"
+- Book/Game themes: "Lord of the Rings fantasy epic", "Minecraft blocky pixel art", "Alice in Wonderland whimsical"
+- Cultural phenomena: "Japanese anime style", "Instagram aesthetic", "Pinterest cottage core"
+
+IMPORTANT: For famous themes, use SPECIFIC, WELL-KNOWN references that users can easily Google and find visual examples of. Avoid vague terms like "fairytale" - instead use "Disney Beauty and the Beast castle ballroom" or "Shrek fairy tale parody".
 
 Scene: "${sceneDescription}"
 Celebration: ${celebration}
@@ -668,7 +684,7 @@ ${photoContext ? `Photo context: ${photoContext}` : ''}
 
 You must respond with valid JSON in this exact format (no markdown code blocks, just plain JSON):
 {
-  "message": "I've analyzed your scene and prepared 2 perfect options: one traditional Art Style and one broader Visual Theme concept.",
+  "message": "I've analyzed your scene and prepared 2 perfect options: one traditional Art Style and one Famous Theme from well-known references.",
   "suggestions": [
     {
       "name": "Traditional Art Style Name",
@@ -679,12 +695,12 @@ You must respond with valid JSON in this exact format (no markdown code blocks, 
       "category": "art_style"
     },
     {
-      "name": "Visual Theme Name",
-      "description": "Brief 1-2 sentence description",
+      "name": "Specific Famous Theme Name (e.g., Disney Pixar Up Adventure, Van Gogh Starry Night, Friends TV Show Vibes)",
+      "description": "Brief 1-2 sentence description of the famous theme",
       "whyItWorks": "Concise reason why this suits ${peopleReference}",
-      "famousExample": "Brief recognizable reference", 
+      "famousExample": "Specific well-known reference that users can easily Google for visual examples", 
       "mood": "One word mood",
-      "category": "visual_theme"
+      "category": "famous_theme"
     }
   ]
 }`;
@@ -765,26 +781,25 @@ CRITICAL RULES:
 1. This card is FOR ${recipientName} - all references should be about ${peopleReference}, NEVER about the user
 2. When discussing the scene, always refer to ${peopleReference} as the subject(s) of the card
 3. Focus on how visual themes will portray ${peopleReference} in the scene
-4. Think beyond traditional "art styles" - include thematic concepts, era styles, mood aesthetics, and character themes
+4. Emphasize FAMOUS THEMES from well-known references that users can easily research and understand
 
 Scene context: "${sceneDescription}"
 ${photoContext ? `Photo context: ${photoContext}` : ''}
 Expert mode: ${isExpertMode ? 'User prefers direct input but may still want suggestions' : 'User prefers guided suggestions'}
 
-VISUAL THEME CATEGORIES TO CONSIDER:
-- Classic & Timeless (elegant, vintage, traditional)
-- Fun & Playful (cartoon, comic book, whimsical)
-- Modern & Stylish (minimalist, contemporary, sleek)
-- Fantasy & Adventure (fairytale, superhero, magical)
-- Nostalgic & Retro (80s neon, 90s grunge, vintage photos)
-- Cultural & Themed (military, sports, professions, hobbies)
-- Mood & Aesthetic (cozy cottage core, bohemian dreamy, urban chic)
+FAMOUS THEME CATEGORIES TO CONSIDER:
+- Movie themes: "Pixar Up balloon adventure", "Marvel superhero comic book", "Disney Frozen ice palace", "Star Wars space opera"
+- TV show themes: "The Office workplace comedy", "Friends apartment hangout", "Stranger Things 80s nostalgia"
+- Art movements: "Van Gogh Starry Night style", "Monet impressionist garden", "Picasso cubist portrait", "Andy Warhol pop art"
+- Historical periods: "1950s diner aesthetic", "Victorian steampunk", "1980s neon synthwave", "1920s Great Gatsby elegance"
+- Book/Game themes: "Lord of the Rings fantasy epic", "Minecraft blocky pixel art", "Alice in Wonderland whimsical", "Harry Potter magical world"
+- Cultural phenomena: "Japanese anime style", "Instagram aesthetic", "Pinterest cottage core"
 
 Your role:
 1. Be warm, helpful, and educational
-2. Answer questions about visual themes with specific examples
-3. Provide suggestions when asked (think themes, not just art techniques)
-4. Help users understand why certain themes work better for portraying ${peopleReference}
+2. Answer questions about famous themes with specific, well-known examples
+3. Provide suggestions when asked (focus on famous themes users can easily Google)
+4. Help users understand why certain famous themes work better for portraying ${peopleReference}
 5. If user seems unsure, offer to provide structured suggestions
 
 If providing suggestions, respond with JSON in this format:
@@ -792,12 +807,12 @@ If providing suggestions, respond with JSON in this format:
   "message": "Your conversational response about ${peopleReference}",
   "suggestions": [
     {
-      "name": "Theme Name (not traditional art style)",
-      "description": "Clear description of the visual theme",
+      "name": "Specific Famous Theme Name (e.g., Pixar Up Adventure, Van Gogh Starry Night)",
+      "description": "Clear description of the famous theme with specific references",
       "whyItWorks": "Why it suits this scene featuring ${peopleReference}",
-      "famousExample": "Movie, character, era, or recognizable reference",
+      "famousExample": "Specific well-known reference that users can easily Google for visual examples",
       "mood": "One word mood",
-      "difficulty": "easy" | "medium" | "advanced"
+      "category": "famous_theme"
     }
   ]
 }

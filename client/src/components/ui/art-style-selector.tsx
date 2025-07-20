@@ -37,7 +37,7 @@ interface StyleSuggestion {
   whyItWorks: string;
   famousExample: string;
   mood: string;
-  category: 'art_style' | 'visual_theme';
+  category: 'art_style' | 'famous_theme';
 }
 
 interface ChatMessage {
@@ -64,6 +64,7 @@ export function ArtStyleSelector({
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<StyleSuggestion[]>([]);
+  const [allPreviousSuggestions, setAllPreviousSuggestions] = useState<StyleSuggestion[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState<StyleSuggestion | null>(null);
   const [copiedStyle, setCopiedStyle] = useState<string | null>(null);
   const { toast } = useToast();
@@ -72,8 +73,8 @@ export function ArtStyleSelector({
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       const welcomeMessage = isExpertMode 
-        ? `Hi ${userName}! I see you prefer to specify your visual theme directly. You can type any theme you want (like "90s Soccer Style" or "Fairytale Magic"), or I can provide suggestions based on your scene: "${sceneDescription}". What would you like to do?`
-        : `Hi ${userName}! I'll show you 2 perfect options: one traditional Art Style and one broader Visual Theme. Both are tailored to your scene and celebration. You can choose one, get 2 more suggestions, or chat with me to develop your own custom style.`;
+        ? `Hi ${userName}! I see you prefer to specify your visual theme directly. You can type any theme you want (like "Pixar Up Adventure Style" or "Van Gogh Starry Night"), or I can provide suggestions based on your scene: "${sceneDescription}". What would you like to do?`
+        : `Hi ${userName}! I'll show you 2 perfect options: one traditional Art Style and one Famous Theme from well-known references. Both are tailored to your scene and celebration. You can choose one, get 2 more suggestions, or chat with me to develop your own custom style.`;
       
       setMessages([{
         role: 'assistant',
@@ -105,15 +106,20 @@ export function ArtStyleSelector({
         celebration,
         recipientName,
         photoContext,
-        userName
+        userName,
+        previousSuggestions: allPreviousSuggestions
       });
 
       const result = await response.json();
 
       if (result.suggestions) {
-        // Ensure we only show 2 suggestions - one art style + one visual theme
+        // Ensure we only show 2 suggestions - one art style + one famous theme
         const limitedSuggestions = result.suggestions.slice(0, 2);
         setSuggestions(limitedSuggestions);
+        
+        // Add new suggestions to the all previous suggestions list
+        setAllPreviousSuggestions(prev => [...prev, ...limitedSuggestions]);
+        
         setMessages(prev => [...prev, {
           role: 'assistant',
           content: result.message,
@@ -248,7 +254,7 @@ export function ArtStyleSelector({
             <p className="text-sm text-gray-600 mb-2">{suggestion.description}</p>
           </div>
           <Badge variant={suggestion.category === 'art_style' ? 'default' : 'secondary'}>
-            {suggestion.category === 'art_style' ? 'Art Style' : 'Visual Theme'}
+            {suggestion.category === 'art_style' ? 'Art Style' : 'Famous Theme'}
           </Badge>
         </div>
       </CardHeader>
