@@ -505,16 +505,11 @@ export function AIBrainstormChat({
       return null;
     }
     
-    // Setting step - initial question has no buttons
-    if (currentStep === 'setting' && settingRefinements === 0) {
-      return null;
-    }
-    
     // Step-specific action buttons
     const buttons = [];
     
     // Get Suggestions button for appropriate steps
-    if (currentStep === 'setting' && settingRefinements > 0) {
+    if (currentStep === 'setting') {
       buttons.push(
         <Button
           key="get-suggestions"
@@ -571,7 +566,7 @@ export function AIBrainstormChat({
     }
     
     // Skip button for appropriate steps
-    if (currentStep === 'setting' && settingRefinements > 0) {
+    if (currentStep === 'setting') {
       buttons.push(
         <Button
           key="skip"
