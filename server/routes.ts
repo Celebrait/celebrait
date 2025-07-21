@@ -504,11 +504,13 @@ PEOPLE STEP:
 EXTRA DETAIL STEP:
 - Ask simple question about special details to make scene meaningful (NEVER provide suggestions)
 - Only show 3 suggestions when user clicks "Give Me More Ideas" button
+- CRITICAL: If user skips this step, automatically transition to FINAL APPROVAL
 
 FINAL APPROVAL STEP:
 - Summarize complete scene description featuring ${peopleReference}
 - Tell user they can add more details if they like
 - End with: "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection."
+- CRITICAL: Only show "Sounds great, let's go!" and "I'd like to make a change" buttons in this step
 
 CHANGE REQUEST:
 - Ask specifically what they want to change
@@ -549,14 +551,14 @@ Current step: ${conversationStep || 'setting'}`;
           // This is an opening message - add extra emphasis to NOT provide suggestions
           messages.push({
             role: "system",
-            content: `This is an opening message. Do NOT provide any suggestions or numbered options. Simply ask a clear, simple question about the ${conversationStep} step. Wait for their response before offering any suggestions.`
+            content: `This is an opening message. Use this EXACT text as your response: "Greetings, earthling ✨ Let's paint a picture with words!\n\nI'll need your creative input for this first question, but after this you can ask me for suggestions throughout.\n\nTo get us started, where would you like the scene to take place for ${recipientName}'s ${celebration} greeting card?"`
           });
         }
         
         if (conversationStep === 'final_approval') {
           messages.push({
             role: "system", 
-            content: `Generate a complete scene summary using all collected information. Present the final scene description in a professional manner. CRITICAL: Do NOT include any numbered suggestions, options, or lists in your response. This is a final summary, not a suggestion step. End with instructions to click the appropriate button to proceed or make changes.`
+            content: `Generate a complete scene summary using all collected information. Present the final scene description in a professional manner. CRITICAL: Do NOT include any numbered suggestions, options, or lists in your response. This is a final summary, not a suggestion step. End with instructions to click the appropriate button to proceed or make changes. IMPORTANT: You are in the FINAL APPROVAL step - this means the frontend will show "Sounds great, let's go!" and "I'd like to make a change" buttons.`
           });
         }
         
