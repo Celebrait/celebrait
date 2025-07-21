@@ -461,16 +461,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let messages = [];
 
       if (type === "scene") {
-        const userReference = userName || "User";
-        // CRITICAL FIX: Always use recipient name only for scene descriptions
-        // The uploaded photo provides visual reference for all people who should be included
-        // Adding "and the others" confuses AI image generation to create extra people
+        // CRITICAL FIX: Never address the user by name in scene descriptions
+        // Scene descriptions should only reference the recipient, not the user creating the card
         const peopleReference = recipientName;
         
-        systemPrompt = `You are a professional creative assistant helping ${userReference} create detailed scene descriptions for greeting cards. 
+        systemPrompt = `You are a professional creative assistant helping someone create detailed scene descriptions for greeting cards. 
 
 CRITICAL RULES:
-1. ALWAYS address the user as "${userReference}" in your responses  
+1. NEVER address the user by name in your responses - use neutral language like "you" or avoid direct address
 2. When referring to people in the scene, ONLY use "${peopleReference}" - NEVER reference the user themselves
 3. This card is FOR ${recipientName}, so all scene descriptions should feature ${peopleReference}, not the user
 4. NEVER provide suggestions in opening statements or unless explicitly requested
@@ -558,14 +556,14 @@ Current step: ${conversationStep || 'setting'}`;
         if (conversationStep === 'final_approval') {
           messages.push({
             role: "system", 
-            content: `Generate a complete scene summary using all collected information. Address ${userReference} personally and present the final scene description. CRITICAL: Do NOT include any numbered suggestions, options, or lists in your response. This is a final summary, not a suggestion step. End with instructions to click the appropriate button to proceed or make changes.`
+            content: `Generate a complete scene summary using all collected information. Present the final scene description in a professional manner. CRITICAL: Do NOT include any numbered suggestions, options, or lists in your response. This is a final summary, not a suggestion step. End with instructions to click the appropriate button to proceed or make changes.`
           });
         }
         
         if (conversationStep === 'change_request') {
           messages.push({
             role: "system", 
-            content: `Ask ${userReference} specifically what they want to change about the scene. After they specify, help modify that element and present an updated summary.`
+            content: `Ask specifically what they want to change about the scene. After they specify, help modify that element and present an updated summary.`
           });
         }
       } else if (type === "art_style") {

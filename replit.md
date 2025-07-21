@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 21, 2025. CRITICAL SCENE DESCRIPTION REGRESSION FIX: Fixed AI conversation system reverting to addressing "User" instead of recipient:
+  * REGRESSION IDENTIFIED: AI conversation system was addressing the user as "User" instead of only referencing the recipient in scene descriptions
+  * CRITICAL RULE VIOLATION: Scene descriptions should never address the user creating the card, only reference the recipient
+  * SYSTEM PROMPT FIX: Removed all ${userReference} variables that caused AI to address "User" directly
+  * NEUTRAL LANGUAGE: Updated prompts to use neutral language and focus only on recipient-based scene descriptions
+  * CONVERSATION CONSISTENCY: Ensured all conversation steps maintain recipient-only focus throughout the entire flow
+  * COMPREHENSIVE FIX: Updated final approval, change request, and all conversation prompts to eliminate user addressing
 - July 21, 2025. CRITICAL IMAGE GENERATION "OTHERS" BUG FIX: Fixed severe issue where AI generated extra people beyond those in uploaded photos:
   * ROOT CAUSE IDENTIFIED: AI brainstorm system incorrectly used "recipientName and the others" in scene descriptions when multiple people detected in photos
   * IMAGE GENERATION CONFUSION: OpenAI interpreted "and the others" as instruction to add additional people beyond those in reference photos
