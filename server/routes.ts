@@ -565,7 +565,7 @@ Current step: ${conversationStep || 'setting'}`;
         if (conversationStep === 'change_request') {
           messages.push({
             role: "system", 
-            content: `Ask specifically what they want to change about the scene. After they specify, help modify that element and present an updated summary.`
+            content: `The user wants to make a change to the scene. Process their change request and provide a complete updated scene description. Format your response as: "Got it! Let's update the scene with that detail:\n\n[COMPLETE UPDATED SCENE DESCRIPTION]\n\nWhen you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection." Make sure the scene description is complete and includes all previous elements plus the new changes.`
           });
         }
       } else if (type === "art_style") {

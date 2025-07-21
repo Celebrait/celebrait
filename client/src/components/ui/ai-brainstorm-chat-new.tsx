@@ -378,32 +378,46 @@ export function AIBrainstormChat({
     const lastAssistantMessage = assistantMessages[assistantMessages.length - 1];
     const content = lastAssistantMessage.content;
 
-    // Try to extract scene description from various formats
-    // Look for "Here's the complete scene description" or similar patterns
-    let sceneMatch = content.match(/Here's the (?:complete|updated) scene description[^:]*:\s*(.+?)(?=\n\n|When you're ready|Perfect!|$)/);
-    
-    if (sceneMatch) {
-      return sceneMatch[1].trim();
-    }
+    // Enhanced pattern matching for various AI response formats
+    const patterns = [
+      // Pattern 1: "Here's the complete/updated scene description:"
+      /Here's the (?:complete|updated) scene description[^:]*:\s*([\s\S]+?)(?=\n\n|When you're ready|Perfect!|$)/,
+      
+      // Pattern 2: "updated scene description:" 
+      /updated scene description[^:]*:\s*([\s\S]+?)(?=\n\n|Please|$)/,
+      
+      // Pattern 3: After "Got it!" or "Understood!" with scene content
+      /(?:Got it!|Understood!)[^:]*:\s*([\s\S]+?)(?=\n\n|When you're ready|Perfect!|$)/,
+      
+      // Pattern 4: Multi-line scene description after colon
+      /Let's update the scene[^:]*:\s*([\s\S]+?)(?=\n\n|When you're ready|Perfect!|$)/,
+      
+      // Pattern 5: Scene content between quotes or after "scene:"
+      /scene[^:]*:\s*([\s\S]+?)(?=\n\n|When you're ready|Perfect!|$)/,
+      
+      // Pattern 6: Complete paragraph that looks like a scene description
+      /^([A-Z][^.!?]*(?:[.!?][^.!?]*){2,})(?=\n\n|When you're ready|Perfect!|$)/,
+      
+      // Pattern 7: Content after "Here's" that spans multiple sentences
+      /Here's[^:]*:\s*([\s\S]+?)(?=\n\n|When you're ready|Perfect!|$)/
+    ];
 
-    // Look for "updated scene description" patterns
-    sceneMatch = content.match(/updated scene description[^:]*:\s*(.+?)(?=\n\n|Please|$)/);
-    
-    if (sceneMatch) {
-      return sceneMatch[1].trim();
-    }
-
-    // Look for scene description after "Understood" or "Here's"
-    sceneMatch = content.match(/(?:Understood|Here's)[^:]*:\s*(.+?)(?=\n\n|When you're ready|Perfect!|$)/);
-    
-    if (sceneMatch) {
-      const extracted = sceneMatch[1].trim();
-      // Make sure it's actually a scene description and not just conversation text
-      if (extracted.length > 20 && !extracted.toLowerCase().includes('what would you like')) {
-        return extracted;
+    for (const pattern of patterns) {
+      const match = content.match(pattern);
+      if (match && match[1]) {
+        const extracted = match[1].trim();
+        // Validate it's actually a scene description (not just conversation)
+        if (extracted.length > 30 && 
+            !extracted.toLowerCase().includes('what would you like') &&
+            !extracted.toLowerCase().includes('which element') &&
+            (extracted.includes('.') || extracted.length > 50)) {
+          console.log('Successfully extracted scene:', extracted);
+          return extracted;
+        }
       }
     }
 
+    console.log('Pattern matching failed, using collected info fallback');
     // Fallback to collected info if pattern matching fails
     return generateFinalScene(conversationState.collectedInfo);
   };
