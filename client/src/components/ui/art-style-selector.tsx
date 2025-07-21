@@ -37,7 +37,7 @@ interface StyleSuggestion {
   whyItWorks: string;
   famousExample: string;
   mood: string;
-  category: 'art_style' | 'famous_theme';
+  category: 'art_style' | 'visual_style_reference';
 }
 
 interface ChatMessage {
@@ -73,8 +73,8 @@ export function ArtStyleSelector({
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       const welcomeMessage = isExpertMode 
-        ? `Hi ${userName}! I see you prefer to specify your visual theme directly. You can type any theme you want (like "Pixar Up Adventure Style" or "Van Gogh Starry Night"), or I can provide suggestions based on your scene: "${sceneDescription}". What would you like to do?`
-        : `Hi ${userName}! I'll show you 2 perfect options: one traditional Art Style and one Famous Theme from well-known references. Both are tailored to your scene and celebration. You can choose one, get 2 more suggestions, or chat with me to develop your own custom style.`;
+        ? `Hi ${userName}! I see you prefer to specify your visual theme directly. You can type any theme you want (like "3D Computer Animated Adventure" or "Impressionist Garden Painting"), or I can provide suggestions based on your scene: "${sceneDescription}". What would you like to do?`
+        : `Hi ${userName}! I'll show you 2 perfect options: one traditional Art Style and one Visual Style Reference with searchable aesthetic terms. Both are tailored to your scene and celebration. You can choose one, get 2 more suggestions, or chat with me to develop your own custom style.`;
       
       setMessages([{
         role: 'assistant',
@@ -254,7 +254,7 @@ export function ArtStyleSelector({
             <p className="text-sm text-gray-600 mb-2">{suggestion.description}</p>
           </div>
           <Badge variant={suggestion.category === 'art_style' ? 'default' : 'secondary'}>
-            {suggestion.category === 'art_style' ? 'Art Style' : 'Famous Theme'}
+            {suggestion.category === 'art_style' ? 'Art Style' : 'Visual Style'}
           </Badge>
         </div>
       </CardHeader>

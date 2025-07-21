@@ -120,15 +120,16 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 20, 2025. ENHANCED FAMOUS THEMES & SUGGESTION TRACKING: Fixed critical issues with visual theme suggestions and AI suggestion repetition:
-  * FAMOUS THEMES APPROACH: Replaced vague "Visual Theme" category with specific "Famous Themes" using well-known references
-  * RESEARCH-FRIENDLY: Themes now use specific examples like "Disney Pixar Up Adventure", "Van Gogh Starry Night", "Friends TV Show Vibes" that users can easily Google for visual examples
+- July 20, 2025. VISUAL STYLE REFERENCES & COPYRIGHT-SAFE APPROACH: Redesigned theme suggestions to be legally compliant while maintaining specificity and searchability:
+  * COPYRIGHT-SAFE DESIGN: Replaced direct copyrighted references with descriptive aesthetic terms that capture recognizable styles without legal issues
+  * VISUAL STYLE REFERENCES: Changed from "Famous Themes" to "Visual Style References" using descriptive terms like "3D Computer Animated Adventure", "Impressionist Garden Painting", "1920s Art Deco Elegance"
+  * SEARCHABLE AESTHETICS: Focus on aesthetic terms that produce consistent Google search results without mentioning specific copyrighted properties
   * SUGGESTION TRACKING: Added previousSuggestions tracking to prevent AI from repeating the same suggestions when users click "Get 2 More"
-  * CATEGORY UPDATES: Updated all UI labels from "Visual Theme" to "Famous Theme" throughout the interface
-  * BACKEND OPTIMIZATION: Enhanced AI prompts with specific famous theme categories (movies, TV shows, art movements, historical periods, books/games)
+  * CATEGORY SYSTEM: Updated from art_style/famous_theme to art_style/visual_style_reference throughout the system
+  * BACKEND OPTIMIZATION: Enhanced AI prompts with copyright-safe aesthetic categories (animation styles, art movements, time periods, genre aesthetics, cultural aesthetics, photography styles)
   * AVOID REPETITION: Critical fix ensuring AI continuously provides NEW suggestions instead of reworking previous ones
-  * EXPECTATION SETTING: Users now see famous references they can research to understand exactly what visual style they're choosing
-  * COMPREHENSIVE EXAMPLES: Added extensive examples of famous themes to guide AI toward specific, recognizable references
+  * EXPECTATION SETTING: Users get descriptive aesthetic terms they can research for consistent visual examples without copyright concerns
+  * LEGAL COMPLIANCE: Comprehensive approach that maintains user experience while avoiding any potential copyright infringement issues
 - July 20, 2025. STREAMLINED ART STYLE SELECTION: Completely redesigned art style selection for MVP simplicity and better user experience:
   * DUAL-OPTION APPROACH: Now shows exactly 2 options at once - one traditional "Art Style" and one broader "Visual Theme" concept
   * SIMPLIFIED CHOICES: Reduced from overwhelming 12+ grid options to manageable 2-option selection for decision paralysis prevention
