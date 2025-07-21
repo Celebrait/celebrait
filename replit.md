@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 21, 2025. CRITICAL CHANGE REQUEST BUG FIX: Fixed issue where scene modifications weren't applied to final scene description:
+  * CHANGE REQUEST LOGIC FIX: When users requested changes like "Kayla dressed as superman", the AI correctly updated the scene but the final output ignored these changes
+  * EXTRACTION ENHANCEMENT: Created extractFinalSceneFromConversation() function to extract updated scene descriptions from AI responses
+  * PATTERN MATCHING: Added robust pattern matching to find scene descriptions in various AI response formats
+  * FALLBACK SYSTEM: Maintained fallback to collected info if pattern matching fails for backward compatibility
+  * COMPREHENSIVE COVERAGE: Handles "updated scene description", "complete scene description", and other AI response formats
+  * CRITICAL RESOLUTION: Final scene descriptions now include all user-requested modifications instead of reverting to original collected data
 - July 21, 2025. CRITICAL SCENE DESCRIPTION REGRESSION FIX: Fixed AI conversation system reverting to addressing "User" instead of recipient:
   * REGRESSION IDENTIFIED: AI conversation system was addressing the user as "User" instead of only referencing the recipient in scene descriptions
   * CRITICAL RULE VIOLATION: Scene descriptions should never address the user creating the card, only reference the recipient

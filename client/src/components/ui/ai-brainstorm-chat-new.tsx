@@ -253,8 +253,8 @@ export function AIBrainstormChat({
       }
       
       if (userMessage === "Sounds great, let's go!") {
-        // Generate final scene description and close dialog
-        const finalScene = generateFinalScene(newState.collectedInfo);
+        // Extract final scene description from the most recent AI response
+        const finalScene = extractFinalSceneFromConversation();
         setTimeout(() => {
           onSuggestionSelect(finalScene);
           setIsOpen(false);
@@ -365,6 +365,47 @@ export function AIBrainstormChat({
 
   const generateFinalScene = (info: ConversationState['collectedInfo']) => {
     return `${info.setting || ''} ${info.activity || ''} ${info.people || ''} ${info.extraDetail || ''}`.trim();
+  }
+
+  const extractFinalSceneFromConversation = () => {
+    // Get the most recent assistant message that contains the final scene description
+    const assistantMessages = messages.filter(m => m.role === 'assistant');
+    if (assistantMessages.length === 0) {
+      // Fallback to collected info if no assistant messages
+      return generateFinalScene(conversationState.collectedInfo);
+    }
+
+    const lastAssistantMessage = assistantMessages[assistantMessages.length - 1];
+    const content = lastAssistantMessage.content;
+
+    // Try to extract scene description from various formats
+    // Look for "Here's the complete scene description" or similar patterns
+    let sceneMatch = content.match(/Here's the (?:complete|updated) scene description[^:]*:\s*(.+?)(?=\n\n|When you're ready|Perfect!|$)/);
+    
+    if (sceneMatch) {
+      return sceneMatch[1].trim();
+    }
+
+    // Look for "updated scene description" patterns
+    sceneMatch = content.match(/updated scene description[^:]*:\s*(.+?)(?=\n\n|Please|$)/);
+    
+    if (sceneMatch) {
+      return sceneMatch[1].trim();
+    }
+
+    // Look for scene description after "Understood" or "Here's"
+    sceneMatch = content.match(/(?:Understood|Here's)[^:]*:\s*(.+?)(?=\n\n|When you're ready|Perfect!|$)/);
+    
+    if (sceneMatch) {
+      const extracted = sceneMatch[1].trim();
+      // Make sure it's actually a scene description and not just conversation text
+      if (extracted.length > 20 && !extracted.toLowerCase().includes('what would you like')) {
+        return extracted;
+      }
+    }
+
+    // Fallback to collected info if pattern matching fails
+    return generateFinalScene(conversationState.collectedInfo);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
