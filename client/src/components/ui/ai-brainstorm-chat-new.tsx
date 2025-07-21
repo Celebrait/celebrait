@@ -21,7 +21,7 @@ interface AIBrainstormChatProps {
 }
 
 interface ConversationState {
-  currentStep: 'setting' | 'activity' | 'people' | 'extra_detail' | 'final_approval' | 'change_request';
+  currentStep: 'greeting' | 'setting' | 'activity' | 'people' | 'extra_detail' | 'final_approval' | 'change_request';
   settingRefinements: number;
   activityRefinements: number;
   showSuggestions: boolean;
@@ -56,7 +56,7 @@ export function AIBrainstormChat({
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [conversationState, setConversationState] = useState<ConversationState>({
-    currentStep: 'setting',
+    currentStep: 'greeting',
     settingRefinements: 0,
     activityRefinements: 0,
     showSuggestions: false,
@@ -108,46 +108,15 @@ export function AIBrainstormChat({
   }, [messages]);
 
   const handleInitialMessage = async () => {
-    setIsLoading(true);
-    
-    try {
-      const response = await apiRequest("POST", "/api/ai-brainstorm", {
-        type,
-        userInput: "Start conversation",
-        recipientName,
-        celebration,
-        conversationStep: conversationState.currentStep,
-        settingRefinements: conversationState.settingRefinements,
-        activityRefinements: conversationState.activityRefinements,
-        conversationHistory: [], // Empty for initial message
-        photoContext,
-        userName,
-        collectedInfo: conversationState.collectedInfo
-      });
+    // Show the new human greeting message immediately
+    const greetingMessage: ChatMessage = {
+      role: "assistant",
+      content: `Greetings, earthling ✨ Let's paint a picture with words! I'm here to guide you through crafting the perfect scene for the front of ${recipientName}'s ${celebration} card.\n\nYou can ask me for suggestions, type your own responses, or skip each step.\n\nJust let me know when you're ready to get started.`,
+      timestamp: new Date(),
+      isTyping: true
+    };
 
-      const result = await response.json();
-
-      const typingMessage: ChatMessage = {
-        role: "assistant",
-        content: result.response,
-        timestamp: new Date(),
-        isTyping: true
-      };
-
-      setMessages([typingMessage]);
-      
-    } catch (error) {
-      console.error('Initial AI message error:', error);
-      // Fallback to simple message if API fails
-      setMessages([{
-        role: "assistant",
-        content: `Hello ${userName}! I'm here to help you create a detailed scene description for your ${celebration} card. Let's start with the setting - where should this scene take place?`,
-        timestamp: new Date(),
-        isTyping: true
-      }]);
-    } finally {
-      setIsLoading(false);
-    }
+    setMessages([greetingMessage]);
   };
 
   const handleSendMessage = async (message: string = userInput) => {
@@ -252,6 +221,12 @@ export function AIBrainstormChat({
         return newState;
       }
       
+      if (userMessage === "Get Started") {
+        // Advance from greeting to first question
+        newState.currentStep = 'setting';
+        return newState;
+      }
+
       if (userMessage === "Sounds great, let's go!") {
         // Extract final scene description from the most recent AI response
         const finalScene = extractFinalSceneFromConversation();
@@ -287,6 +262,11 @@ export function AIBrainstormChat({
     const newState = { ...state };
     
     switch (state.currentStep) {
+      case 'greeting':
+        // This should not happen as Get Started is handled separately
+        newState.currentStep = 'setting';
+        break;
+        
       case 'setting':
         if (state.settingRefinements === 0) {
           // Initial setting input
@@ -439,6 +419,22 @@ export function AIBrainstormChat({
       return null;
     }
     
+    // Greeting step - show Get Started button
+    if (currentStep === 'greeting') {
+      return (
+        <div className="flex justify-center">
+          <Button
+            variant="ghost"
+            size="lg"
+            onClick={() => handleButtonClick("Get Started")}
+            className="text-lg bg-gradient-celebrait hover:opacity-90 text-white px-8 py-3 rounded-lg border-0 font-semibold shadow-lg transition-all duration-200 transform hover:scale-105"
+          >
+            Get Started
+          </Button>
+        </div>
+      );
+    }
+
     // Final approval step - special case - ALWAYS show these buttons in final approval, regardless of showSuggestions
     if (currentStep === 'final_approval') {
       return (
