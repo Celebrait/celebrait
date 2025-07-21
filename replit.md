@@ -120,15 +120,6 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 21, 2025. AI CONVERSATION HUMANIZATION: Enhanced AI brainstorming chat to be more human, personal, and engaging:
-  * HUMAN GREETING: Added "Greetings, earthling ✨ Let's paint a picture with words!" opening message with Get Started button
-  * WARM PERSONALITY: Updated AI prompts to be friendly, conversational, and encouraging while maintaining professionalism
-  * PERSONAL CONTEXT: AI now references previous answers to show it's listening and creates conversation continuity
-  * CONSISTENT OPTIONS: AI consistently reminds users they can "click 'Give Me More Ideas' for suggestions, type your own response, or skip this question"
-  * ENTHUSIASTIC RESPONSES: AI uses phrases like "That sounds wonderful!", "I love that idea!", and "Perfect!" to show engagement
-  * BUILDING CONVERSATION: Each follow-up builds on previous answers with specific references to user's choices
-  * GREETING STEP: Added new conversation state with prominent "Get Started" button before advancing to location questions
-  * COMPREHENSIVE FLOW: Enhanced all conversation steps (setting, activity, people, extra detail, final approval) with warmer, more personal language
 - July 21, 2025. CRITICAL CHANGE REQUEST BUG FIX: Fixed issue where scene modifications weren't applied to final scene description:
   * CHANGE REQUEST LOGIC FIX: When users requested changes like "Kayla dressed as superman", the AI correctly updated the scene but the final output ignored these changes
   * EXTRACTION ENHANCEMENT: Created extractFinalSceneFromConversation() function to extract updated scene descriptions from AI responses
