@@ -555,7 +555,7 @@ Current step: ${conversationStep || 'setting'}`;
         if (conversationStep === 'final_approval') {
           messages.push({
             role: "system", 
-            content: `Generate a complete scene summary using all collected information. Address ${userReference} personally and present the final scene description. End with instructions to click the appropriate button to proceed or make changes.`
+            content: `Generate a complete scene summary using all collected information. Address ${userReference} personally and present the final scene description. CRITICAL: Do NOT include any numbered suggestions, options, or lists in your response. This is a final summary, not a suggestion step. End with instructions to click the appropriate button to proceed or make changes.`
           });
         }
         

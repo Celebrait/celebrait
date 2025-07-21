@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 20, 2025. CRITICAL AI BRAINSTORM FINAL BUTTONS FIX: Fixed critical issue where final summary step didn't show "Sounds great, let's go!" buttons:
+  * FINAL APPROVAL PRIORITY: Made final approval step take precedence over suggestion display logic
+  * SERVER PROMPT ENHANCEMENT: Added explicit instruction to AI to NOT include numbered suggestions in final summary responses
+  * CLIENT LOGIC HARDENING: Ensured final approval buttons always show regardless of showSuggestions state
+  * BUTTON ORDERING: Moved final approval check to first position to prevent suggestion buttons from appearing instead
+  * CRITICAL RESOLUTION: Users can now always proceed from final scene summary with the correct action buttons
 - July 20, 2025. VISUAL STYLE REFERENCES & COPYRIGHT-SAFE APPROACH: Redesigned theme suggestions to be legally compliant while maintaining specificity and searchability:
   * COPYRIGHT-SAFE DESIGN: Replaced direct copyrighted references with descriptive aesthetic terms that capture recognizable styles without legal issues
   * VISUAL STYLE REFERENCES: Changed from "Famous Themes" to "Visual Style References" using descriptive terms like "3D Computer Animated Adventure", "Impressionist Garden Painting", "1920s Art Deco Elegance"

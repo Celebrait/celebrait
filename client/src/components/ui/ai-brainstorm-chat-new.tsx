@@ -228,6 +228,10 @@ export function AIBrainstormChat({
       }
       
       if (userMessage === "Get More Suggestions" || userMessage === "Give Me More Ideas") {
+        // Don't show suggestions in final approval step - this should trigger the final summary
+        if (prev.currentStep === 'final_approval') {
+          return newState;
+        }
         const extractedSuggestions = extractSuggestionsFromResponse(aiResponse);
         setSuggestions(extractedSuggestions);
         newState.showSuggestions = true;
@@ -394,7 +398,31 @@ export function AIBrainstormChat({
       return null;
     }
     
-    // Show suggestions if available
+    // Final approval step - special case - ALWAYS show these buttons in final approval, regardless of showSuggestions
+    if (currentStep === 'final_approval') {
+      return (
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleButtonClick("Sounds great, let's go!")}
+            className="text-sm bg-gradient-celebrait hover:opacity-90 text-white px-4 py-2 rounded-md border-0 font-medium shadow-sm transition-all duration-200"
+          >
+            Sounds great, let's go!
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleButtonClick("I'd like to make a change")}
+            className="text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 px-4 py-2 rounded-md border border-orange-200 font-medium transition-all duration-200"
+          >
+            I'd like to make a change
+          </Button>
+        </div>
+      );
+    }
+    
+    // Show suggestions if available (for all steps except final approval)
     if (showSuggestions && suggestions.length > 0) {
       return (
         <div className="space-y-3">
@@ -431,30 +459,6 @@ export function AIBrainstormChat({
               Skip This Question
             </Button>
           </div>
-        </div>
-      );
-    }
-    
-    // Final approval step - special case
-    if (currentStep === 'final_approval' && !showSuggestions) {
-      return (
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleButtonClick("Sounds great, let's go!")}
-            className="text-sm bg-gradient-celebrait hover:opacity-90 text-white px-4 py-2 rounded-md border-0 font-medium shadow-sm transition-all duration-200"
-          >
-            Sounds great, let's go!
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleButtonClick("I'd like to make a change")}
-            className="text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 px-4 py-2 rounded-md border border-orange-200 font-medium transition-all duration-200"
-          >
-            I'd like to make a change
-          </Button>
         </div>
       );
     }
