@@ -462,7 +462,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (type === "scene") {
         const userReference = userName || "User";
-        const peopleReference = isMultiplePeople ? `${recipientName} and the others` : recipientName;
+        // CRITICAL FIX: Always use recipient name only for scene descriptions
+        // The uploaded photo provides visual reference for all people who should be included
+        // Adding "and the others" confuses AI image generation to create extra people
+        const peopleReference = recipientName;
         
         systemPrompt = `You are a professional creative assistant helping ${userReference} create detailed scene descriptions for greeting cards. 
 
@@ -542,7 +545,7 @@ Current step: ${conversationStep || 'setting'}`;
         if (userInput === "Get Suggestions" || userInput === "Get More Suggestions" || userInput === "Give Me More Ideas") {
           messages.push({
             role: "system", 
-            content: `The user is requesting suggestions for the ${conversationStep} step. Provide exactly 3 numbered options relevant to this step. Format as: 1. First option, 2. Second option, 3. Third option. Use ${isMultiplePeople ? `plural language referring to ${recipientName} and the others (they, their)` : `singular language referring to ${recipientName} (he/she, his/her)`} consistently throughout your response. Remember: all suggestions should be about ${peopleReference}, not the user.`
+            content: `The user is requesting suggestions for the ${conversationStep} step. Provide exactly 3 numbered options relevant to this step. Format as: 1. First option, 2. Second option, 3. Third option. Use ${isMultiplePeople ? `plural language referring to the people in the scene (they, their)` : `singular language referring to ${recipientName} (he/she, his/her)`} consistently throughout your response. Remember: all suggestions should be about ${peopleReference}, not the user.`
           });
         } else if (!conversationHistory || conversationHistory.length === 0) {
           // This is an opening message - add extra emphasis to NOT provide suggestions

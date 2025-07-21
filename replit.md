@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 21, 2025. CRITICAL IMAGE GENERATION "OTHERS" BUG FIX: Fixed severe issue where AI generated extra people beyond those in uploaded photos:
+  * ROOT CAUSE IDENTIFIED: AI brainstorm system incorrectly used "recipientName and the others" in scene descriptions when multiple people detected in photos
+  * IMAGE GENERATION CONFUSION: OpenAI interpreted "and the others" as instruction to add additional people beyond those in reference photos
+  * PROMPT CONTAMINATION: The phrase "Kayla and the others" caused AI to generate 2 people from photo PLUS 2 extra people, resulting in 4 total instead of 2
+  * LOGIC ERROR FIX: Changed peopleReference to always use recipient name only, since uploaded photos provide complete visual reference
+  * LANGUAGE REFERENCE FIX: Updated suggestion prompts to use "people in the scene" instead of "recipientName and the others"
+  * CRITICAL RESOLUTION: AI image generation now only creates people actually present in uploaded reference photos
 - July 21, 2025. CRITICAL ART STYLE CHAT JSON & SUGGESTION COUNT FIX: Fixed two critical issues in art style chat system:
   * JSON PARSING FIX: Added robust JSON cleanup logic to handle AI responses with markdown code blocks or malformed JSON
   * EXACT 2 SUGGESTIONS: Enhanced prompts to force AI to always provide exactly 2 suggestions (1 art style + 1 visual style reference) when users ask for themes
