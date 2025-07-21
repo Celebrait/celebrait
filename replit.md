@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 21, 2025. CRITICAL ART STYLE CHAT JSON & SUGGESTION COUNT FIX: Fixed two critical issues in art style chat system:
+  * JSON PARSING FIX: Added robust JSON cleanup logic to handle AI responses with markdown code blocks or malformed JSON
+  * EXACT 2 SUGGESTIONS: Enhanced prompts to force AI to always provide exactly 2 suggestions (1 art style + 1 visual style reference) when users ask for themes
+  * EXPLICIT THEME HANDLING: Added specific instruction for theme requests (Disney, soccer, vintage, etc.) to always return structured JSON suggestions
+  * ERROR HANDLING: Improved error handling with detailed logging and graceful fallback to plain text responses
+  * CONSISTENCY: Aligned art-style-chat endpoint with art-style-suggestions endpoint formatting and validation
 - July 20, 2025. CRITICAL AI BRAINSTORM FINAL BUTTONS FIX: Fixed critical issue where final summary step didn't show "Sounds great, let's go!" buttons:
   * FINAL APPROVAL PRIORITY: Made final approval step take precedence over suggestion display logic
   * SERVER PROMPT ENHANCEMENT: Added explicit instruction to AI to NOT include numbered suggestions in final summary responses

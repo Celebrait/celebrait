@@ -798,14 +798,25 @@ VISUAL STYLE REFERENCE CATEGORIES TO CONSIDER:
 Your role:
 1. Be warm, helpful, and educational
 2. Answer questions about visual style references with descriptive aesthetic terms
-3. Provide suggestions when asked (focus on searchable aesthetic terms without copyright issues)
-4. Help users understand why certain visual styles work better for portraying ${peopleReference}
-5. If user seems unsure, offer to provide structured suggestions
+3. When users ask for specific themes (Disney, soccer, vintage, etc.), ALWAYS provide exactly 2 structured suggestions in JSON format
+4. Provide suggestions when asked (focus on searchable aesthetic terms without copyright issues)
+5. Help users understand why certain visual styles work better for portraying ${peopleReference}
+6. If user seems unsure, offer to provide structured suggestions
 
-If providing suggestions, respond with JSON in this format:
+CRITICAL: Always provide EXACTLY 2 suggestions when the user asks for style ideas - one art_style and one visual_style_reference.
+
+If providing suggestions, respond with valid JSON in this exact format (no markdown code blocks, just plain JSON):
 {
   "message": "Your conversational response about ${peopleReference}",
   "suggestions": [
+    {
+      "name": "Traditional Art Style Name",
+      "description": "Clear description of the art technique",
+      "whyItWorks": "Why it suits this scene featuring ${peopleReference}",
+      "famousExample": "Brief recognizable reference",
+      "mood": "One word mood",
+      "category": "art_style"
+    },
     {
       "name": "Visual Style Reference Name (e.g., 3D Computer Animated Adventure, Impressionist Garden Painting)",
       "description": "Clear description of the visual style aesthetic",
@@ -817,7 +828,7 @@ If providing suggestions, respond with JSON in this format:
   ]
 }
 
-If just having a conversation (no suggestions), respond with:
+If just having a conversation (no suggestions), respond with valid JSON:
 {
   "message": "Your conversational response about ${peopleReference}"
 }`;
@@ -828,7 +839,8 @@ If just having a conversation (no suggestions), respond with:
           role: msg.role,
           content: msg.content
         })),
-        { role: "user", content: userMessage }
+        { role: "user", content: userMessage },
+        { role: "system", content: `Based on the user's message, if they are asking for specific themes, ideas, or suggestions (like Disney, soccer, vintage, modern, etc.), you MUST respond with the JSON format including exactly 2 suggestions. If they're just asking questions or having a conversation, respond with just the message field in JSON format.` }
       ];
 
       const completion = await openai.chat.completions.create({
@@ -842,10 +854,19 @@ If just having a conversation (no suggestions), respond with:
       console.log('Art style chat response generated successfully');
       
       try {
-        const parsedResponse = JSON.parse(response);
+        // Clean up the response by removing markdown code blocks if present
+        let cleanResponse = response;
+        if (response.includes('```json')) {
+          cleanResponse = response.replace(/```json\s*/, '').replace(/```\s*$/, '');
+        } else if (response.includes('```')) {
+          cleanResponse = response.replace(/```\s*/, '').replace(/```\s*$/, '');
+        }
+        
+        const parsedResponse = JSON.parse(cleanResponse);
         res.json(parsedResponse);
       } catch (parseError) {
         console.error('Failed to parse AI response as JSON:', parseError);
+        console.error('Raw response:', response);
         // If not JSON, treat as plain text response
         res.json({ message: response });
       }
