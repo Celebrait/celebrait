@@ -29,8 +29,8 @@ export function TypingAnimation({ text, speed = 30, onComplete }: TypingAnimatio
     } else if (currentChunkIndex >= textChunks.length && isTyping) {
       setIsTyping(false);
       if (onComplete) {
-        // Small delay to ensure smooth completion
-        setTimeout(onComplete, 100);
+        // Immediate completion for faster button appearance
+        setTimeout(onComplete, 10);
       }
     }
   }, [currentChunkIndex, textChunks, speed, onComplete, isTyping]);

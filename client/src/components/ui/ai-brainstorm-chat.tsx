@@ -379,8 +379,8 @@ Where should we place ${personReference} in this scene? Think about the setting 
                     <p className="whitespace-pre-wrap text-base leading-relaxed">{message.content}</p>
                   )}
                   
-                  {message.role === 'assistant' && !message.isTyping && index > 0 && (
-                    <div className="mt-4 space-y-3">
+                  {message.role === 'assistant' && index > 0 && (
+                    <div className={`mt-4 space-y-3 transition-opacity duration-300 ${message.isTyping ? 'opacity-0' : 'opacity-100'}`}>
                       {/* Extracted Suggestions - Hide for final approval step */}
                       {extractSuggestions(message.content).length > 0 && conversationState.currentStep !== 'final_approval' && (
                         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
