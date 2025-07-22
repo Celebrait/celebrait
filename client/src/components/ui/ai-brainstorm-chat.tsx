@@ -20,7 +20,7 @@ interface AIBrainstormChatProps {
 }
 
 interface ConversationState {
-  currentStep: 'setting' | 'activity' | 'people' | 'extra_detail' | 'final_approval';
+  currentStep: 'setting' | 'activity' | 'people' | 'extra_detail' | 'final_approval' | 'change_request';
   settingRefinements: number; // Track number of location refinement questions asked
   collectedInfo: {
     setting?: string;
@@ -96,7 +96,7 @@ export function AIBrainstormChat({
               : msg
           )
         );
-      }, initialMessage.content.length * 15); // 15ms per character for moderate typing speed
+      }, initialMessage.content.length * 20); // 20ms per character to match ChatGPT speed
       
       return () => clearTimeout(typingTimeout);
     } else if (!isOpen) {
@@ -286,7 +286,7 @@ I'll guide you through this step by step, starting with the most important quest
 Where should we place ${personReference} in this scene? Think about the setting or location that would be most meaningful for this ${celebration}.`;
   };
 
-  const extractSuggestions = (content: string) => {
+  const extractSuggestions = (content: string): string[] => {
     // Enhanced regex to capture various suggestion formats
     const patterns = [
       // Numbered lists: "1. Description" or "1) Description" - improved to handle multiline
@@ -299,7 +299,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
       /\*\*([^*]+)\*\*/g
     ];
     
-    let suggestions = [];
+    let suggestions: string[] = [];
     
     // Try numbered list pattern first (most common) - handle both line breaks and inline
     const numberedMatches = content.match(/\d+[\.\)]\s*([^\n\r\d]+?)(?=\s*\d+[\.\)]|\n\n|$)/g);
@@ -365,7 +365,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                   {message.isTyping ? (
                     <TypingAnimation 
                       text={message.content} 
-                      speed={15}
+                      speed={20}
                       onComplete={() => {
                         // Mark typing as complete
                         setMessages(prev => prev.map(msg => 
@@ -1053,7 +1053,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 if (lastAssistantMessage && lastAssistantMessage.content) {
                                   // Extract the scene description from the AI's final summary
                                   const content = lastAssistantMessage.content;
-                                  const sceneMatch = content.match(/Here's the complete scene description[^:]*:\s*(.+?)(?=\n\n|Please let me know|$)/s);
+                                  const sceneMatch = content.match(/Here's the complete scene description[^:]*:\s*([\s\S]+?)(?=\n\n|Please let me know|$)/);
                                   
                                   if (sceneMatch) {
                                     finalScene = sceneMatch[1].trim();
