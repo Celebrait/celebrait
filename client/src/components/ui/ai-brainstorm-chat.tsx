@@ -365,9 +365,9 @@ Where should we place ${personReference} in this scene? Think about the setting 
                   {message.isTyping ? (
                     <TypingAnimation 
                       text={message.content} 
-                      speed={40}
+                      speed={20}
                       onComplete={() => {
-                        // Mark typing as complete
+                        // Mark typing as complete immediately
                         setMessages(prev => prev.map(msg => 
                           msg.timestamp === message.timestamp 
                             ? { ...msg, isTyping: false }
