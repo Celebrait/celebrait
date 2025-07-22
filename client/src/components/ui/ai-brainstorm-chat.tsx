@@ -20,7 +20,7 @@ interface AIBrainstormChatProps {
 }
 
 interface ConversationState {
-  currentStep: 'setting' | 'activity' | 'people' | 'extra_detail' | 'final_approval' | 'change_request';
+  currentStep: 'setting' | 'activity' | 'people' | 'extra_detail' | 'final_approval';
   settingRefinements: number; // Track number of location refinement questions asked
   collectedInfo: {
     setting?: string;
@@ -96,7 +96,7 @@ export function AIBrainstormChat({
               : msg
           )
         );
-      }, initialMessage.content.split(/(\s+|\n)/).filter(chunk => chunk.length > 0).length * 40); // 40ms per word chunk for smooth animation
+      }, initialMessage.content.length * 15); // 15ms per character for moderate typing speed
       
       return () => clearTimeout(typingTimeout);
     } else if (!isOpen) {
@@ -286,7 +286,7 @@ I'll guide you through this step by step, starting with the most important quest
 Where should we place ${personReference} in this scene? Think about the setting or location that would be most meaningful for this ${celebration}.`;
   };
 
-  const extractSuggestions = (content: string): string[] => {
+  const extractSuggestions = (content: string) => {
     // Enhanced regex to capture various suggestion formats
     const patterns = [
       // Numbered lists: "1. Description" or "1) Description" - improved to handle multiline
@@ -299,7 +299,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
       /\*\*([^*]+)\*\*/g
     ];
     
-    let suggestions: string[] = [];
+    let suggestions = [];
     
     // Try numbered list pattern first (most common) - handle both line breaks and inline
     const numberedMatches = content.match(/\d+[\.\)]\s*([^\n\r\d]+?)(?=\s*\d+[\.\)]|\n\n|$)/g);
@@ -365,9 +365,9 @@ Where should we place ${personReference} in this scene? Think about the setting 
                   {message.isTyping ? (
                     <TypingAnimation 
                       text={message.content} 
-                      speed={20}
+                      speed={15}
                       onComplete={() => {
-                        // Mark typing as complete immediately
+                        // Mark typing as complete
                         setMessages(prev => prev.map(msg => 
                           msg.timestamp === message.timestamp 
                             ? { ...msg, isTyping: false }
@@ -379,133 +379,134 @@ Where should we place ${personReference} in this scene? Think about the setting 
                     <p className="whitespace-pre-wrap text-base leading-relaxed">{message.content}</p>
                   )}
                   
-                  {/* AI Suggestion Buttons with immediate fade-in after typing */}
-                  {message.role === 'assistant' && index > 0 && extractSuggestions(message.content).length > 0 && conversationState.currentStep !== 'final_approval' && (
-                    <div className={`mt-4 transition-all duration-300 ease-in-out ${message.isTyping ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}>
-                      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                        {extractSuggestions(message.content).map((suggestion, sugIndex) => (
-                          <Button
-                            key={sugIndex}
-                            variant="outline"
-                            size="default"
-                            onClick={() => {
-                              // Auto-send the message immediately
-                              const userMessage: ChatMessage = {
-                                role: "user",
-                                content: suggestion,
-                                timestamp: new Date()
-                              };
-                              setMessages(prev => [...prev, userMessage]);
-                              setIsLoading(true);
-                              
-                              // Send to AI immediately
-                              const sendMessage = async () => {
-                                try {
-                                  const conversationHistory = [...messages, userMessage].map(msg => ({
-                                    role: msg.role,
-                                    content: msg.content
-                                  }));
-
-                                  const response = await apiRequest("POST", "/api/ai-brainstorm", {
-                                    type,
-                                    context: `Current input: "${currentInput}"`,
-                                    userInput: suggestion,
-                                    recipientName,
-                                    celebration,
-                                    conversationStep: conversationState.currentStep,
-                                    settingRefinements: conversationState.settingRefinements,
-                                    conversationHistory: conversationHistory.slice(0, -1),
-                                    photoContext
-                                  });
-
-                                  const result = await response.json();
-
-                                  const typingMessage: ChatMessage = {
-                                    role: "assistant",
-                                    content: result.response,
-                                    timestamp: new Date(),
-                                    isTyping: true
-                                  };
-
-                                  setMessages(prev => [...prev, typingMessage]);
-                                  
-                                  // Update conversation state
-                                  setConversationState(prev => {
-                                    const newState = { ...prev };
-                                    
-                                    // Check if AI response indicates final approval stage
-                                    const aiResponse = result.response || '';
-                                    const isFinalApprovalResponse = aiResponse.includes("When you're ready to proceed") || 
-                                                                   aiResponse.includes("click 'Sounds great, let's go!'") ||
-                                                                   aiResponse.includes("art style selection") ||
-                                                                   aiResponse.includes("complete scene description");
-                                    
-                                    if (isFinalApprovalResponse) {
-                                      newState.currentStep = 'final_approval';
-                                      return newState;
-                                    }
-                                    
-                                    if (!suggestion.toLowerCase().includes('more') || !suggestion.toLowerCase().includes('ideas')) {
-                                      switch (prev.currentStep) {
-                                        case 'setting':
-                                          newState.collectedInfo.setting = suggestion;
-                                          newState.settingRefinements = prev.settingRefinements + 1;
-                                          
-                                          // Only advance to activity after 2 refinement questions
-                                          if (prev.settingRefinements >= 2) {
-                                            newState.currentStep = 'activity';
-                                          }
-                                          break;
-                                        case 'activity':
-                                          newState.collectedInfo.activity = suggestion;
-                                          newState.currentStep = 'people';
-                                          break;
-                                        case 'people':
-                                          newState.collectedInfo.people = suggestion;
-                                          newState.currentStep = 'extra_detail';
-                                          break;
-                                        case 'extra_detail':
-                                          if (suggestion.toLowerCase().includes('skip')) {
-                                            newState.currentStep = 'final_approval';
-                                          } else {
-                                            newState.collectedInfo.extraDetail = suggestion;
-                                            newState.currentStep = 'final_approval';
-                                          }
-                                          break;
-                                        case 'change_request':
-                                          newState.currentStep = 'final_approval';
-                                          break;
-                                      }
-                                    }
-                                    
-                                    return newState;
-                                  });
-
-                                } catch (error) {
-                                  console.error('Error sending message:', error);
-                                  toast({
-                                    title: "Error",
-                                    description: "Failed to send message. Please try again.",
-                                    variant: "destructive"
-                                  });
-                                } finally {
-                                  setIsLoading(false);
-                                }
-                              };
-                              
-                              sendMessage();
-                            }}
-                            className="w-full sm:w-auto text-sm bg-gradient-celebrait hover:opacity-90 text-white px-4 py-3 rounded-lg border-0 font-medium shadow-sm"
-                          >
-                            Choose Option {sugIndex + 1}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {message.role === 'assistant' && index > 0 && (
+                  {message.role === 'assistant' && !message.isTyping && index > 0 && (
                     <div className="mt-4 space-y-3">
+                      {/* Extracted Suggestions - Hide for final approval step */}
+                      {extractSuggestions(message.content).length > 0 && conversationState.currentStep !== 'final_approval' && (
+                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                          {extractSuggestions(message.content).map((suggestion, sugIndex) => (
+                            <Button
+                              key={sugIndex}
+                              variant="outline"
+                              size="default"
+                              onClick={() => {
+                                // Auto-send the message immediately
+                                const userMessage: ChatMessage = {
+                                  role: "user",
+                                  content: suggestion,
+                                  timestamp: new Date()
+                                };
+                                setMessages(prev => [...prev, userMessage]);
+                                setIsLoading(true);
+                                
+                                // Send to AI immediately
+                                const sendMessage = async () => {
+                                  try {
+                                    const conversationHistory = [...messages, userMessage].map(msg => ({
+                                      role: msg.role,
+                                      content: msg.content
+                                    }));
+
+                                    const response = await apiRequest("POST", "/api/ai-brainstorm", {
+                                      type,
+                                      context: `Current input: "${currentInput}"`,
+                                      userInput: suggestion,
+                                      recipientName,
+                                      celebration,
+                                      conversationStep: conversationState.currentStep,
+                                      settingRefinements: conversationState.settingRefinements,
+                                      conversationHistory: conversationHistory.slice(0, -1),
+                                      photoContext
+                                    });
+
+                                    const result = await response.json();
+
+                                    const typingMessage: ChatMessage = {
+                                      role: "assistant",
+                                      content: result.response,
+                                      timestamp: new Date(),
+                                      isTyping: true
+                                    };
+
+                                    setMessages(prev => [...prev, typingMessage]);
+                                    
+                                    // Update conversation state
+                                    setConversationState(prev => {
+                                      const newState = { ...prev };
+                                      
+                                      // Check if AI response indicates final approval stage
+                                      const aiResponse = result.response || '';
+                                      const isFinalApprovalResponse = aiResponse.includes("When you're ready to proceed") || 
+                                                                     aiResponse.includes("click 'Sounds great, let's go!'") ||
+                                                                     aiResponse.includes("art style selection") ||
+                                                                     aiResponse.includes("complete scene description");
+                                      
+                                      if (isFinalApprovalResponse) {
+                                        newState.currentStep = 'final_approval';
+                                        return newState;
+                                      }
+                                      
+                                      if (!suggestion.toLowerCase().includes('more') || !suggestion.toLowerCase().includes('ideas')) {
+                                        switch (prev.currentStep) {
+                                          case 'setting':
+                                            newState.collectedInfo.setting = suggestion;
+                                            newState.settingRefinements = prev.settingRefinements + 1;
+                                            
+                                            // Only advance to activity after 2 refinement questions
+                                            if (prev.settingRefinements >= 2) {
+                                              newState.currentStep = 'activity';
+                                            }
+                                            break;
+                                          case 'activity':
+                                            newState.collectedInfo.activity = suggestion;
+                                            newState.currentStep = 'people';
+                                            break;
+                                          case 'people':
+                                            newState.collectedInfo.people = suggestion;
+                                            newState.currentStep = 'extra_detail';
+                                            break;
+                                          case 'extra_detail':
+                                            if (suggestion.toLowerCase().includes('skip')) {
+                                              newState.currentStep = 'final_approval';
+                                            } else {
+                                              newState.collectedInfo.extraDetail = suggestion;
+                                              newState.currentStep = 'final_approval';
+                                            }
+                                            break;
+                                          case 'change_request':
+                                            // User has specified what they want to change
+                                            // Keep in change_request state until they provide the new information
+                                            // Then return to final_approval
+                                            newState.currentStep = 'final_approval';
+                                            break;
+                                        }
+                                      }
+                                      
+                                      return newState;
+                                    });
+
+                                  } catch (error) {
+                                    console.error('Error sending message:', error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to send message. Please try again.",
+                                      variant: "destructive"
+                                    });
+                                  } finally {
+                                    setIsLoading(false);
+                                  }
+                                };
+                                
+                                sendMessage();
+                              }}
+                              className="w-full sm:w-auto text-sm bg-gradient-celebrait hover:opacity-90 text-white px-4 py-3 rounded-lg border-0 font-medium shadow-sm"
+                            >
+                              Choose Option {sugIndex + 1}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
+                      
                       {/* Step-specific action buttons */}
                       <div className="flex flex-col gap-2 mt-2 sm:flex-row sm:flex-wrap">
                         {conversationState.currentStep === 'setting' && (
@@ -1052,7 +1053,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 if (lastAssistantMessage && lastAssistantMessage.content) {
                                   // Extract the scene description from the AI's final summary
                                   const content = lastAssistantMessage.content;
-                                  const sceneMatch = content.match(/Here's the complete scene description[^:]*:\s*([\s\S]+?)(?=\n\n|Please let me know|$)/);
+                                  const sceneMatch = content.match(/Here's the complete scene description[^:]*:\s*(.+?)(?=\n\n|Please let me know|$)/s);
                                   
                                   if (sceneMatch) {
                                     finalScene = sceneMatch[1].trim();
