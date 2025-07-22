@@ -96,7 +96,7 @@ export function AIBrainstormChat({
               : msg
           )
         );
-      }, initialMessage.content.length * 20); // 20ms per character to match ChatGPT speed
+      }, initialMessage.content.split(/(\s+|\n)/).filter(chunk => chunk.length > 0).length * 40); // 40ms per word chunk for smooth animation
       
       return () => clearTimeout(typingTimeout);
     } else if (!isOpen) {
@@ -365,7 +365,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                   {message.isTyping ? (
                     <TypingAnimation 
                       text={message.content} 
-                      speed={20}
+                      speed={40}
                       onComplete={() => {
                         // Mark typing as complete
                         setMessages(prev => prev.map(msg => 

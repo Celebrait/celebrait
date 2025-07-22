@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 interface TypingAnimationProps {
   text: string;
@@ -6,40 +6,47 @@ interface TypingAnimationProps {
   onComplete?: () => void;
 }
 
-export function TypingAnimation({ text, speed = 20, onComplete }: TypingAnimationProps) {
-  const [displayedText, setDisplayedText] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(0);
+export function TypingAnimation({ text, speed = 30, onComplete }: TypingAnimationProps) {
+  const [displayedChunks, setDisplayedChunks] = useState<string[]>([]);
+  const [currentChunkIndex, setCurrentChunkIndex] = useState(0);
   const [isTyping, setIsTyping] = useState(true);
 
+  // Split text into smart chunks (words with punctuation handling)
+  const textChunks = useMemo(() => {
+    // Split by spaces but preserve punctuation and line breaks
+    const chunks = text.split(/(\s+|\n)/).filter(chunk => chunk.length > 0);
+    return chunks;
+  }, [text]);
+
   useEffect(() => {
-    if (currentIndex < text.length && isTyping) {
+    if (currentChunkIndex < textChunks.length && isTyping) {
       const timeout = setTimeout(() => {
-        setDisplayedText(prev => prev + text[currentIndex]);
-        setCurrentIndex(prev => prev + 1);
+        setDisplayedChunks(prev => [...prev, textChunks[currentChunkIndex]]);
+        setCurrentChunkIndex(prev => prev + 1);
       }, speed);
 
       return () => clearTimeout(timeout);
-    } else if (currentIndex >= text.length && isTyping) {
+    } else if (currentChunkIndex >= textChunks.length && isTyping) {
       setIsTyping(false);
       if (onComplete) {
-        // Delay the completion callback slightly to ensure smooth animation
-        setTimeout(onComplete, 50);
+        // Small delay to ensure smooth completion
+        setTimeout(onComplete, 100);
       }
     }
-  }, [currentIndex, text, speed, onComplete, isTyping]);
+  }, [currentChunkIndex, textChunks, speed, onComplete, isTyping]);
 
   // Reset when text changes
   useEffect(() => {
-    setDisplayedText("");
-    setCurrentIndex(0);
+    setDisplayedChunks([]);
+    setCurrentChunkIndex(0);
     setIsTyping(true);
   }, [text]);
 
   return (
     <div className="whitespace-pre-wrap">
-      {displayedText}
-      {isTyping && currentIndex < text.length && (
-        <span className="inline-block w-2 h-5 bg-gray-400 animate-pulse ml-1" />
+      {displayedChunks.join('')}
+      {isTyping && currentChunkIndex < textChunks.length && (
+        <span className="inline-block w-0.5 h-5 bg-gray-600 animate-pulse ml-0.5" />
       )}
     </div>
   );
