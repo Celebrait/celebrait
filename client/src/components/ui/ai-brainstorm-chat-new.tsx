@@ -241,7 +241,9 @@ export function AIBrainstormChat({
       }
       
       if (userMessage === "Skip This Question") {
-        return advanceToNextStep(newState);
+        const advancedState = advanceToNextStep(newState);
+        console.log('SKIP_QUESTION_DEBUG: Advanced from', prev.currentStep, 'to', advancedState.currentStep);
+        return advancedState;
       }
       
       if (userMessage.startsWith("Choose Option")) {
@@ -266,7 +268,15 @@ export function AIBrainstormChat({
       
       // Handle regular user input  
       const result = handleUserResponse(newState, userMessage);
-      console.log('After handleUserResponse:', { newStep: result.currentStep, userMessage });
+      console.log('After handleUserResponse:', { 
+        previousStep: prev.currentStep, 
+        newStep: result.currentStep, 
+        userMessage,
+        refinements: {
+          setting: result.settingRefinements,
+          activity: result.activityRefinements
+        }
+      });
       return result;
     });
   };
@@ -445,6 +455,15 @@ export function AIBrainstormChat({
 
   const renderInlineButtons = (messageIndex: number) => {
     const { currentStep, showSuggestions, settingRefinements, activityRefinements } = conversationState;
+    
+    // DEBUG: Log current step for troubleshooting
+    console.log('RENDER_BUTTONS_DEBUG:', { 
+      currentStep, 
+      showSuggestions, 
+      messageIndex,
+      messageRole: messages[messageIndex]?.role,
+      isLoading
+    });
     
     // Only show buttons for the most recent assistant message, but keep them during loading
     const lastAssistantIndex = messages.map((msg, idx) => msg.role === 'assistant' ? idx : -1)
