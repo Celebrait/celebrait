@@ -164,22 +164,26 @@ export function AIBrainstormChat({
         const isFinalApprovalResponse = aiResponse.includes("When you're ready to proceed") || 
                                        aiResponse.includes("click 'Sounds great, let's go!'") ||
                                        aiResponse.includes("art style selection") ||
-                                       aiResponse.includes("complete scene description");
+                                       aiResponse.includes("complete scene description") ||
+                                       aiResponse.includes("final scene") ||
+                                       aiResponse.includes("scene description") ||
+                                       aiResponse.includes("ready to move") ||
+                                       aiResponse.includes("Let's move on to");
         
         if (isFinalApprovalResponse) {
           newState.currentStep = 'final_approval';
           return newState;
         }
         
-        // Don't advance step if user is asking for more ideas
-        if (userInput.toLowerCase().includes('more') && userInput.toLowerCase().includes('ideas')) {
+        // Don't advance step if user is asking for ideas
+        if (userInput.toLowerCase().includes('get ideas') || userInput.toLowerCase().includes('more ideas')) {
           return newState; // Stay on same step
         }
         
         // Store the user's input for the current step and advance if it's a real answer
         switch (prev.currentStep) {
           case 'setting':
-            if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
+            if (!userInput.toLowerCase().includes('get ideas') && !userInput.toLowerCase().includes('more ideas')) {
               // Update setting info and track refinement count
               newState.collectedInfo.setting = userInput;
               newState.settingRefinements = prev.settingRefinements + 1;
@@ -191,13 +195,13 @@ export function AIBrainstormChat({
             }
             break;
           case 'activity':
-            if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
+            if (!userInput.toLowerCase().includes('get ideas') && !userInput.toLowerCase().includes('more ideas')) {
               newState.collectedInfo.activity = userInput;
               newState.currentStep = 'people';
             }
             break;
           case 'people':
-            if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
+            if (!userInput.toLowerCase().includes('get ideas') && !userInput.toLowerCase().includes('more ideas')) {
               newState.collectedInfo.people = userInput;
               newState.currentStep = 'extra_detail';
             }
@@ -205,7 +209,7 @@ export function AIBrainstormChat({
           case 'extra_detail':
             if (userInput.toLowerCase().includes('skip')) {
               newState.currentStep = 'final_approval';
-            } else if (!userInput.toLowerCase().includes('give me') && !userInput.toLowerCase().includes('more')) {
+            } else if (!userInput.toLowerCase().includes('get ideas') && !userInput.toLowerCase().includes('more ideas')) {
               newState.collectedInfo.extraDetail = userInput;
               newState.currentStep = 'final_approval';
             }
@@ -381,8 +385,8 @@ Where should we place ${personReference} in this scene? Think about the setting 
                   
                   {message.role === 'assistant' && !message.isTyping && index > 0 && (
                     <div className="mt-4 space-y-3">
-                      {/* Extracted Suggestions - Hide for final approval step */}
-                      {extractSuggestions(message.content).length > 0 && conversationState.currentStep !== 'final_approval' && (
+                      {/* Extracted Suggestions - Hide for final approval and change request steps */}
+                      {extractSuggestions(message.content).length > 0 && conversationState.currentStep !== 'final_approval' && conversationState.currentStep !== 'change_request' && (
                         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                           {extractSuggestions(message.content).map((suggestion, sugIndex) => (
                             <Button
@@ -439,14 +443,18 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                       const isFinalApprovalResponse = aiResponse.includes("When you're ready to proceed") || 
                                                                      aiResponse.includes("click 'Sounds great, let's go!'") ||
                                                                      aiResponse.includes("art style selection") ||
-                                                                     aiResponse.includes("complete scene description");
+                                                                     aiResponse.includes("complete scene description") ||
+                                                                     aiResponse.includes("final scene") ||
+                                                                     aiResponse.includes("scene description") ||
+                                                                     aiResponse.includes("ready to move") ||
+                                                                     aiResponse.includes("Let's move on to");
                                       
                                       if (isFinalApprovalResponse) {
                                         newState.currentStep = 'final_approval';
                                         return newState;
                                       }
                                       
-                                      if (!suggestion.toLowerCase().includes('more') || !suggestion.toLowerCase().includes('ideas')) {
+                                      if (!suggestion.toLowerCase().includes('get ideas') && !suggestion.toLowerCase().includes('more ideas')) {
                                         switch (prev.currentStep) {
                                           case 'setting':
                                             newState.collectedInfo.setting = suggestion;
