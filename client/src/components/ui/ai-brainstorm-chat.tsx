@@ -569,9 +569,9 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 
                                 sendMessage();
                               }}
-                              className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+                              className="w-full sm:w-auto text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
-                              Give Me More Ideas
+                              Get Ideas
                             </Button>
                             
                             <Button
@@ -643,7 +643,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 
                                 sendMessage();
                               }}
-                              className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+                              className="w-full sm:w-auto text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
                               Skip This Question
                             </Button>
@@ -710,9 +710,9 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 
                                 sendMessage();
                               }}
-                              className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+                              className="w-full sm:w-auto text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
-                              Give Me More Ideas
+                              Get Ideas
                             </Button>
                             
                             <Button
@@ -773,7 +773,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 
                                 sendMessage();
                               }}
-                              className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+                              className="w-full sm:w-auto text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
                               Skip This Question
                             </Button>
@@ -840,9 +840,9 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 
                                 sendMessage();
                               }}
-                              className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+                              className="w-full sm:w-auto text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
-                              Give Me More Ideas
+                              Get Ideas
                             </Button>
                             
                             <Button
@@ -903,7 +903,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 
                                 sendMessage();
                               }}
-                              className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+                              className="w-full sm:w-auto text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
                               Skip This Question
                             </Button>
@@ -970,9 +970,9 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 
                                 sendMessage();
                               }}
-                              className="w-full sm:w-auto text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+                              className="w-full sm:w-auto text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
-                              Give Me More Ideas
+                              Get Ideas
                             </Button>
                             
                             <Button
@@ -1033,7 +1033,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 
                                 sendMessage();
                               }}
-                              className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+                              className="w-full sm:w-auto text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
                               Skip Step
                             </Button>
@@ -1139,7 +1139,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 
                                 sendMessage();
                               }}
-                              className="w-full sm:w-auto text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg border-0 font-medium transition-colors"
+                              className="w-full sm:w-auto text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
                               I'd like to make a change
                             </Button>
