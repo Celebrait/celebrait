@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 23, 2025. OPENAI IMAGE QUALITY ENHANCEMENT FOR UPLOAD PHOTO + DESCRIBE SCENE: Updated all OpenAI API quality parameters from "low" to "high" for upload photo + describe scene workflow:
+  * FRONT CARD GENERATION: Changed quality from "low" to "high" in /api/generate-images endpoint for front card image generation
+  * INSIDE CARD GENERATION: Changed quality from "low" to "high" in /api/generate-images endpoint for inside card image generation
+  * SCENE EDITING: Changed quality from "low" to "high" in /api/edit-scene-gpt-image-1 endpoint for scene modification
+  * INSIDE CARD STANDALONE: Changed quality from "low" to "high" in /api/generate-inside-card endpoint for inside card creation
+  * IMPROVED OUTPUT: All four OpenAI GPT-Image-1 API calls now use "high" quality setting for better image generation results
+  * WORKFLOW SPECIFIC: Only affects upload photo + describe scene workflow, other workflows remain unchanged
 - July 21, 2025. CRITICAL CHANGE REQUEST BUG FIX: Fixed issue where scene modifications weren't applied to final scene description:
   * CHANGE REQUEST LOGIC FIX: When users requested changes like "Kayla dressed as superman", the AI correctly updated the scene but the final output ignored these changes
   * EXTRACTION ENHANCEMENT: Created extractFinalSceneFromConversation() function to extract updated scene descriptions from AI responses
