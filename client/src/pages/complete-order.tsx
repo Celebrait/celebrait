@@ -287,19 +287,19 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
   };
 
   const handleBack = () => {
-    // Scroll to top and add fade transition to main content only
+    // Scroll to top and add fade transition to content area only
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    const mainContent = document.querySelector('main');
-    if (mainContent) {
-      mainContent.style.opacity = '0.8';
+    const contentArea = document.querySelector('.fade-transition-content');
+    if (contentArea) {
+      (contentArea as HTMLElement).style.opacity = '0.8';
     }
     
     setTimeout(() => {
       setLocation(`/card-preview/${cardId}`);
       setTimeout(() => {
-        const newMainContent = document.querySelector('main');
-        if (newMainContent) {
-          newMainContent.style.opacity = '1';
+        const newContentArea = document.querySelector('.fade-transition-content');
+        if (newContentArea) {
+          (newContentArea as HTMLElement).style.opacity = '1';
         }
       }, 100);
     }, 150);
@@ -323,7 +323,7 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
       <Header />
       
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 fade-transition-content">
         <div className="mb-6">
           <Button 
             variant="ghost" 

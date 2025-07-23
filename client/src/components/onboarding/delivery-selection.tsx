@@ -60,7 +60,7 @@ export default function DeliverySelection({ onDeliverySelected, onBack }: Delive
 
 
   return (
-    <div className={`space-y-8 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+    <div className={`space-y-8 transition-opacity duration-500 fade-transition-content ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       {/* Header Section */}
       <div className="text-center mb-8">
         <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
@@ -81,18 +81,18 @@ export default function DeliverySelection({ onDeliverySelected, onBack }: Delive
             key={option.id}
             onClick={() => {
               if (option.disabled) return;
-              // Scroll to top and add fade transition to main content only
+              // Scroll to top and add fade transition to content area only
               window.scrollTo({ top: 0, behavior: 'smooth' });
-              const mainContent = document.querySelector('main');
-              if (mainContent) {
-                mainContent.style.opacity = '0.8';
+              const contentArea = document.querySelector('.fade-transition-content');
+              if (contentArea) {
+                (contentArea as HTMLElement).style.opacity = '0.8';
               }
               setTimeout(() => {
                 onDeliverySelected(option.id as 'printed' | 'digital');
                 setTimeout(() => {
-                  const newMainContent = document.querySelector('main');
-                  if (newMainContent) {
-                    newMainContent.style.opacity = '1';
+                  const newContentArea = document.querySelector('.fade-transition-content');
+                  if (newContentArea) {
+                    (newContentArea as HTMLElement).style.opacity = '1';
                   }
                 }, 100);
               }, 150);

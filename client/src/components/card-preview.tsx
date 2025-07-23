@@ -90,11 +90,11 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
     // Store digital delivery type selection
     sessionStorage.setItem('selectedDeliveryType', 'digital');
     
-    // Scroll to top and add fade transition to main content only
+    // Scroll to top and add fade transition to content area only
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    const mainContent = document.querySelector('main');
-    if (mainContent) {
-      mainContent.style.opacity = '0.8';
+    const contentArea = document.querySelector('.fade-transition-content');
+    if (contentArea) {
+      (contentArea as HTMLElement).style.opacity = '0.8';
     }
     
     setTimeout(() => {
@@ -103,9 +103,9 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
         console.log('[DIGITAL-ONLY] Going to complete order page');
         setLocation(`/complete-order/${card.id}?type=digital`);
         setTimeout(() => {
-          const newMainContent = document.querySelector('main');
-          if (newMainContent) {
-            newMainContent.style.opacity = '1';
+          const newContentArea = document.querySelector('.fade-transition-content');
+          if (newContentArea) {
+            (newContentArea as HTMLElement).style.opacity = '1';
           }
         }, 100);
       } catch (error) {
@@ -113,9 +113,9 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
         // Force page reload as fallback
         window.location.href = `/complete-order/${card.id}?type=digital`;
         setTimeout(() => {
-          const newMainContent = document.querySelector('main');
-          if (newMainContent) {
-            newMainContent.style.opacity = '1';
+          const newContentArea = document.querySelector('.fade-transition-content');
+          if (newContentArea) {
+            (newContentArea as HTMLElement).style.opacity = '1';
           }
         }, 100);
       }
@@ -136,7 +136,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
 
 
   return (
-    <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20">
+    <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20 fade-transition-content">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-800 mb-4">
           {onboarding.answers?.name ? `${onboarding.answers.name}'s` : 'Your'} card is ready! 🎉
