@@ -287,7 +287,16 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
   };
 
   const handleBack = () => {
-    setLocation(`/card-preview/${cardId}`);
+    // Scroll to top and add fade transition
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.body.style.opacity = '0.8';
+    
+    setTimeout(() => {
+      setLocation(`/card-preview/${cardId}`);
+      setTimeout(() => {
+        document.body.style.opacity = '1';
+      }, 100);
+    }, 150);
   };
 
   if (loading) {
@@ -320,89 +329,10 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
           </Button>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Left Column - Card Preview */}
-          <div className="space-y-6">
-            <Card className="bg-white/80 backdrop-blur-sm border-white/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Heart className="w-5 h-5 text-pink-500" />
-                  Your Card Preview
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {card && (
-                  <div className="space-y-4">
-                    {/* Toggle buttons */}
-                    <div className="flex justify-center space-x-2 bg-gray-100 p-1 rounded-lg">
-                      <button
-                        onClick={() => setCurrentView('front')}
-                        className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
-                          currentView === 'front' 
-                            ? 'bg-white text-gray-800 shadow-sm' 
-                            : 'text-gray-600 hover:text-gray-800'
-                        }`}
-                      >
-                        Front Design
-                      </button>
-                      <button
-                        onClick={() => setCurrentView('inside')}
-                        className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
-                          currentView === 'inside' 
-                            ? 'bg-white text-gray-800 shadow-sm' 
-                            : 'text-gray-600 hover:text-gray-800'
-                        }`}
-                      >
-                        Inside Design
-                      </button>
-                    </div>
-
-                    {/* Card image */}
-                    <div className="w-full">
-                      <img 
-                        src={currentView === 'front' 
-                          ? `/api/cards/${card.id}/fast-front-image` 
-                          : `/api/cards/${card.id}/fast-inside-image`}
-                        alt={`Card ${currentView} Design`}
-                        className="w-full h-auto rounded-lg shadow-lg border border-gray-200"
-                      />
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Order Summary */}
-            <Card className="bg-white/80 backdrop-blur-sm border-white/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-green-500" />
-                  Order Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Digital Card</span>
-                    <span className="font-semibold">R5.00</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Delivery</span>
-                    <span className="font-semibold text-green-600">Free</span>
-                  </div>
-                  <div className="border-t pt-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-semibold">Total</span>
-                      <span className="text-lg font-bold text-green-600">R5.00</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column - Order Form */}
-          <div className="space-y-6">
+        {/* Mobile/Tablet Layout (underneath) vs Desktop Layout (side by side) */}
+        <div className="flex flex-col lg:grid lg:grid-cols-2 lg:gap-8">
+          {/* Order Form - Shows first on mobile/tablet, left on desktop */}
+          <div className="space-y-6 order-1 lg:order-1">
             <Card className="bg-white/80 backdrop-blur-sm border-white/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -492,6 +422,34 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
               </CardContent>
             </Card>
 
+            {/* Order Summary */}
+            <Card className="bg-white/80 backdrop-blur-sm border-white/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-green-500" />
+                  Order Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Digital Card</span>
+                    <span className="font-semibold">R5.00</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Delivery</span>
+                    <span className="font-semibold text-green-600">Free</span>
+                  </div>
+                  <div className="border-t pt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-semibold">Total</span>
+                      <span className="text-lg font-bold text-green-600">R5.00</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <Button
               onClick={handleSubmit}
               disabled={!isFormValid() || submitting}
@@ -499,6 +457,58 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
             >
               {submitting ? 'Processing...' : `Complete Order - R5.00`}
             </Button>
+          </div>
+
+          {/* Card Preview - Shows underneath on mobile/tablet, right side on desktop */}
+          <div className="space-y-6 order-2 lg:order-2 mt-8 lg:mt-0">
+            <Card className="bg-white/80 backdrop-blur-sm border-white/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Heart className="w-5 h-5 text-pink-500" />
+                  Your Card Preview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {card && (
+                  <div className="space-y-4">
+                    {/* Toggle buttons */}
+                    <div className="flex justify-center space-x-2 bg-gray-100 p-1 rounded-lg">
+                      <button
+                        onClick={() => setCurrentView('front')}
+                        className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
+                          currentView === 'front' 
+                            ? 'bg-white text-gray-800 shadow-sm' 
+                            : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                      >
+                        Front Design
+                      </button>
+                      <button
+                        onClick={() => setCurrentView('inside')}
+                        className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
+                          currentView === 'inside' 
+                            ? 'bg-white text-gray-800 shadow-sm' 
+                            : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                      >
+                        Inside Design
+                      </button>
+                    </div>
+
+                    {/* Card image */}
+                    <div className="w-full">
+                      <img 
+                        src={currentView === 'front' 
+                          ? `/api/cards/${card.id}/fast-front-image` 
+                          : `/api/cards/${card.id}/fast-inside-image`}
+                        alt={`Card ${currentView} Design`}
+                        className="w-full h-auto rounded-lg shadow-lg border border-gray-200"
+                      />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>
