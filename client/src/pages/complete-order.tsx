@@ -287,14 +287,20 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
   };
 
   const handleBack = () => {
-    // Scroll to top and add fade transition
+    // Scroll to top and add fade transition to main content only
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    document.body.style.opacity = '0.8';
+    const mainContent = document.querySelector('main');
+    if (mainContent) {
+      mainContent.style.opacity = '0.8';
+    }
     
     setTimeout(() => {
       setLocation(`/card-preview/${cardId}`);
       setTimeout(() => {
-        document.body.style.opacity = '1';
+        const newMainContent = document.querySelector('main');
+        if (newMainContent) {
+          newMainContent.style.opacity = '1';
+        }
       }, 100);
     }, 150);
   };

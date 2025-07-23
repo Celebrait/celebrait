@@ -90,9 +90,12 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
     // Store digital delivery type selection
     sessionStorage.setItem('selectedDeliveryType', 'digital');
     
-    // Scroll to top and add fade transition
+    // Scroll to top and add fade transition to main content only
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    document.body.style.opacity = '0.8';
+    const mainContent = document.querySelector('main');
+    if (mainContent) {
+      mainContent.style.opacity = '0.8';
+    }
     
     setTimeout(() => {
       try {
@@ -100,14 +103,20 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
         console.log('[DIGITAL-ONLY] Going to complete order page');
         setLocation(`/complete-order/${card.id}?type=digital`);
         setTimeout(() => {
-          document.body.style.opacity = '1';
+          const newMainContent = document.querySelector('main');
+          if (newMainContent) {
+            newMainContent.style.opacity = '1';
+          }
         }, 100);
       } catch (error) {
         console.error('Navigation failed:', error);
         // Force page reload as fallback
         window.location.href = `/complete-order/${card.id}?type=digital`;
         setTimeout(() => {
-          document.body.style.opacity = '1';
+          const newMainContent = document.querySelector('main');
+          if (newMainContent) {
+            newMainContent.style.opacity = '1';
+          }
         }, 100);
       }
     }, 150);

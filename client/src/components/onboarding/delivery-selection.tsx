@@ -81,13 +81,19 @@ export default function DeliverySelection({ onDeliverySelected, onBack }: Delive
             key={option.id}
             onClick={() => {
               if (option.disabled) return;
-              // Scroll to top and add fade transition
+              // Scroll to top and add fade transition to main content only
               window.scrollTo({ top: 0, behavior: 'smooth' });
-              document.body.style.opacity = '0.8';
+              const mainContent = document.querySelector('main');
+              if (mainContent) {
+                mainContent.style.opacity = '0.8';
+              }
               setTimeout(() => {
                 onDeliverySelected(option.id as 'printed' | 'digital');
                 setTimeout(() => {
-                  document.body.style.opacity = '1';
+                  const newMainContent = document.querySelector('main');
+                  if (newMainContent) {
+                    newMainContent.style.opacity = '1';
+                  }
                 }, 100);
               }, 150);
             }}
