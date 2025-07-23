@@ -287,16 +287,16 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
   };
 
   const handleBack = () => {
-    // Scroll to top and add fade transition
+    // Scroll to top and add noticeable fade transition
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    document.body.style.opacity = '0.8';
+    document.body.style.opacity = '0.5';
     
     setTimeout(() => {
       setLocation(`/card-preview/${cardId}`);
       setTimeout(() => {
         document.body.style.opacity = '1';
-      }, 100);
-    }, 150);
+      }, 150);
+    }, 300);
   };
 
   if (loading) {
@@ -333,6 +333,34 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
         <div className="flex flex-col lg:grid lg:grid-cols-2 lg:gap-8">
           {/* Order Form - Shows first on mobile/tablet, left on desktop */}
           <div className="space-y-6 order-1 lg:order-1">
+            {/* Order Summary - First */}
+            <Card className="bg-white/80 backdrop-blur-sm border-white/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-green-500" />
+                  Order Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Digital Card</span>
+                    <span className="font-semibold">R5.00</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Delivery</span>
+                    <span className="font-semibold text-green-600">Free</span>
+                  </div>
+                  <div className="border-t pt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-semibold">Total</span>
+                      <span className="text-lg font-bold text-green-600">R5.00</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="bg-white/80 backdrop-blur-sm border-white/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -419,34 +447,6 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
                     You'll receive the digital card via email and can share it with anyone you'd like.
                   </p>
                 )}
-              </CardContent>
-            </Card>
-
-            {/* Order Summary */}
-            <Card className="bg-white/80 backdrop-blur-sm border-white/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-green-500" />
-                  Order Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Digital Card</span>
-                    <span className="font-semibold">R5.00</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Delivery</span>
-                    <span className="font-semibold text-green-600">Free</span>
-                  </div>
-                  <div className="border-t pt-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-semibold">Total</span>
-                      <span className="text-lg font-bold text-green-600">R5.00</span>
-                    </div>
-                  </div>
-                </div>
               </CardContent>
             </Card>
 

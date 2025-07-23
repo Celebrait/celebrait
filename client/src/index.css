@@ -165,7 +165,10 @@ body {
     animation: fade-in 0.4s ease-out forwards;
   }
 
-  /* Clean transitions removed - using AI loading component instead */
+  /* Body transition for smooth page navigation fade effects */
+  body {
+    transition: opacity 0.3s ease-out;
+  }
 
   @keyframes pulse-soft {
     0%, 100% { opacity: 1; }
