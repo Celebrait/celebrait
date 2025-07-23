@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 23, 2025. CRITICAL AI BRAINSTORM FINAL BUTTONS FIX: Fixed major bug where AI brainstorm chat showed wrong final buttons in final approval step:
+  * FINAL APPROVAL PRIORITY: Made final approval step take absolute precedence over suggestion display logic - renderInlineButtons now shows final buttons regardless of showSuggestions state
+  * BUTTON LOGIC HARDENING: Added explicit checks to prevent "Give Me More Ideas" and "Skip This Question" buttons from appearing in final approval step
+  * CRITICAL RESOLUTION: Users now always see "Sounds great, let's go!" and "I'd like to make a change" buttons in final approval step instead of generic suggestion buttons
+  * CONVERSATION STATE FIX: Enhanced updateConversationState to ignore "Give Me More Ideas" requests in final approval step to prevent wrong button display
+  * DEBUG LOGGING: Added console logging to track final approval button rendering for debugging future issues
 - July 23, 2025. OPENAI IMAGE QUALITY ENHANCEMENT FOR UPLOAD PHOTO + DESCRIBE SCENE: Updated all OpenAI API quality parameters from "low" to "high" for upload photo + describe scene workflow:
   * FRONT CARD GENERATION: Changed quality from "low" to "high" in /api/generate-images endpoint for front card image generation
   * INSIDE CARD GENERATION: Changed quality from "low" to "high" in /api/generate-images endpoint for inside card image generation

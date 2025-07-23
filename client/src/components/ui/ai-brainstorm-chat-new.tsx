@@ -228,9 +228,11 @@ export function AIBrainstormChat({
       }
       
       if (userMessage === "Get More Suggestions" || userMessage === "Give Me More Ideas") {
-        // Don't show suggestions in final approval step - this should trigger the final summary
+        // CRITICAL FIX: In final approval step, "Give Me More Ideas" should NOT show suggestions
+        // Instead, it should keep the final approval buttons visible
         if (prev.currentStep === 'final_approval') {
-          return newState;
+          console.log('FINAL_APPROVAL_FIX: Ignoring Give Me More Ideas in final approval step');
+          return newState; // Keep final approval buttons, don't show suggestions
         }
         const extractedSuggestions = extractSuggestionsFromResponse(aiResponse);
         setSuggestions(extractedSuggestions);
@@ -453,8 +455,9 @@ export function AIBrainstormChat({
       return null;
     }
     
-    // Final approval step - special case - ALWAYS show these buttons in final approval, regardless of showSuggestions
+    // Final approval step - CRITICAL FIX: ALWAYS show these buttons in final approval, completely ignore showSuggestions
     if (currentStep === 'final_approval') {
+      console.log('FINAL_APPROVAL_BUTTONS: Showing final approval buttons');
       return (
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button
@@ -478,7 +481,7 @@ export function AIBrainstormChat({
     }
     
     // Show suggestions if available (for all steps except final approval)
-    if (showSuggestions && suggestions.length > 0) {
+    if (showSuggestions && suggestions.length > 0 && currentStep !== 'final_approval') {
       return (
         <div className="space-y-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
