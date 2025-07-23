@@ -518,7 +518,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 // Auto-send the message immediately
                                 const userMessage: ChatMessage = {
                                   role: "user",
-                                  content: "Give me more ideas",
+                                  content: "Get ideas",
                                   timestamp: new Date()
                                 };
                                 setMessages(prev => [...prev, userMessage]);
@@ -535,7 +535,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                     const response = await apiRequest("POST", "/api/ai-brainstorm", {
                                       type,
                                       context: `Current input: "${currentInput}"`,
-                                      userInput: "Give me more ideas",
+                                      userInput: "Get ideas",
                                       recipientName,
                                       celebration,
                                       conversationStep: conversationState.currentStep,
@@ -659,7 +659,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 // Auto-send the message immediately
                                 const userMessage: ChatMessage = {
                                   role: "user",
-                                  content: "Give me more ideas",
+                                  content: "Get ideas",
                                   timestamp: new Date()
                                 };
                                 setMessages(prev => [...prev, userMessage]);
@@ -676,7 +676,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                     const response = await apiRequest("POST", "/api/ai-brainstorm", {
                                       type,
                                       context: `Current input: "${currentInput}"`,
-                                      userInput: "Give me more ideas",
+                                      userInput: "Get ideas",
                                       recipientName,
                                       celebration,
                                       conversationStep: conversationState.currentStep,
@@ -789,7 +789,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 // Auto-send the message immediately
                                 const userMessage: ChatMessage = {
                                   role: "user",
-                                  content: "Give me more ideas",
+                                  content: "Get ideas",
                                   timestamp: new Date()
                                 };
                                 setMessages(prev => [...prev, userMessage]);
@@ -806,7 +806,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                     const response = await apiRequest("POST", "/api/ai-brainstorm", {
                                       type,
                                       context: `Current input: "${currentInput}"`,
-                                      userInput: "Give me more ideas",
+                                      userInput: "Get ideas",
                                       recipientName,
                                       celebration,
                                       conversationStep: conversationState.currentStep,
@@ -919,7 +919,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 // Auto-send the message immediately
                                 const userMessage: ChatMessage = {
                                   role: "user",
-                                  content: "Give me more ideas",
+                                  content: "Get ideas",
                                   timestamp: new Date()
                                 };
                                 setMessages(prev => [...prev, userMessage]);
@@ -936,7 +936,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                     const response = await apiRequest("POST", "/api/ai-brainstorm", {
                                       type,
                                       context: `Current input: "${currentInput}"`,
-                                      userInput: "Give me more ideas",
+                                      userInput: "Get ideas",
                                       recipientName,
                                       celebration,
                                       conversationStep: conversationState.currentStep,
