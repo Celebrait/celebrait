@@ -1,4 +1,4 @@
-// CACHE BUSTER v2.0 - Get Ideas 🔥 buttons with purple styling - 2025-01-23
+// CACHE BUSTER v2.0 - Get Ideas buttons with purple styling - 2025-01-23
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -572,7 +572,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                               }}
                               className="w-full sm:w-auto text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
-                              Get Ideas 🔥
+                              Get Ideas
                             </Button>
                             
                             <Button
@@ -713,7 +713,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                               }}
                               className="w-full sm:w-auto text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
-                              Get Ideas 🔥
+                              Get Ideas
                             </Button>
                             
                             <Button
@@ -843,7 +843,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                               }}
                               className="w-full sm:w-auto text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
-                              Get Ideas 🔥
+                              Get Ideas
                             </Button>
                             
                             <Button
@@ -973,7 +973,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                               }}
                               className="w-full sm:w-auto text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-3 rounded-lg border-0 font-medium transition-colors"
                             >
-                              Get Ideas 🔥
+                              Get Ideas
                             </Button>
                             
                             <Button
@@ -1201,4 +1201,4 @@ Where should we place ${personReference} in this scene? Think about the setting 
       </DialogContent>
     </Dialog>
   );
-}
+}/* FORCE REFRESH 1753297842 */
