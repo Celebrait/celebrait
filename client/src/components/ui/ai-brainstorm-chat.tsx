@@ -1,4 +1,3 @@
-// CACHE BUSTER v2.0 - Get Ideas buttons with purple styling - 2025-01-23
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +20,7 @@ interface AIBrainstormChatProps {
 }
 
 interface ConversationState {
-  currentStep: 'setting' | 'activity' | 'people' | 'extra_detail' | 'final_approval' | 'change_request';
+  currentStep: 'setting' | 'activity' | 'people' | 'extra_detail' | 'final_approval';
   settingRefinements: number; // Track number of location refinement questions asked
   collectedInfo: {
     setting?: string;
@@ -287,7 +286,7 @@ I'll guide you through this step by step, starting with the most important quest
 Where should we place ${personReference} in this scene? Think about the setting or location that would be most meaningful for this ${celebration}.`;
   };
 
-  const extractSuggestions = (content: string): string[] => {
+  const extractSuggestions = (content: string) => {
     // Enhanced regex to capture various suggestion formats
     const patterns = [
       // Numbered lists: "1. Description" or "1) Description" - improved to handle multiline
@@ -300,7 +299,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
       /\*\*([^*]+)\*\*/g
     ];
     
-    let suggestions: string[] = [];
+    let suggestions = [];
     
     // Try numbered list pattern first (most common) - handle both line breaks and inline
     const numberedMatches = content.match(/\d+[\.\)]\s*([^\n\r\d]+?)(?=\s*\d+[\.\)]|\n\n|$)/g);
@@ -1201,4 +1200,4 @@ Where should we place ${personReference} in this scene? Think about the setting 
       </DialogContent>
     </Dialog>
   );
-}/* FORCE REFRESH 1753297842 */
+}
