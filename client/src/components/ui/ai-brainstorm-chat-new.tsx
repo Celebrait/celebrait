@@ -241,11 +241,11 @@ export function AIBrainstormChat({
         return newState;
       }
       
-      if (userMessage === "Get More Suggestions" || userMessage === "Give Me More Ideas") {
-        // CRITICAL FIX: In final approval step, "Give Me More Ideas" should NOT show suggestions
+      if (userMessage === "Get More Suggestions" || userMessage === "Get Ideas") {
+        // CRITICAL FIX: In final approval step, "Get Ideas" should NOT show suggestions
         // Instead, it should keep the final approval buttons visible
         if (prev.currentStep === 'final_approval') {
-          console.log('FINAL_APPROVAL_FIX: Ignoring Give Me More Ideas in final approval step');
+          console.log('FINAL_APPROVAL_FIX: Ignoring Get Ideas in final approval step');
           return newState; // Keep final approval buttons, don't show suggestions
         }
         const extractedSuggestions = extractSuggestionsFromResponse(aiResponse);
@@ -536,10 +536,10 @@ export function AIBrainstormChat({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleButtonClick("Give Me More Ideas")}
+              onClick={() => handleButtonClick("Get Ideas")}
               className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-md border border-blue-200 font-medium transition-all duration-200"
             >
-              Give Me More Ideas
+              Get Ideas
             </Button>
             <Button
               variant="ghost"

@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 24, 2025. BUTTON TEXT SIMPLIFICATION: Changed all "Give Me More Ideas" buttons to "Get Ideas" throughout AI brainstorm chat:
+  * CLIENT-SIDE UPDATE: Updated button text in ai-brainstorm-chat-new.tsx from "Give Me More Ideas" to "Get Ideas"
+  * MESSAGE HANDLING: Updated conversation state logic to recognize "Get Ideas" instead of "Give Me More Ideas"
+  * SERVER-SIDE UPDATE: Updated ai-brainstorm endpoint in server/routes.ts to handle "Get Ideas" requests
+  * CONSISTENT MESSAGING: Updated comments and debug logs to reflect new button text
+  * USER EXPERIENCE: Shorter, cleaner button text reduces cognitive load and UI clutter
 - July 23, 2025. CRITICAL AI BRAINSTORM FINAL BUTTONS FIX: Fixed major bug where AI brainstorm chat showed wrong final buttons in final approval step:
   * FINAL APPROVAL PRIORITY: Made final approval step take absolute precedence over suggestion display logic - renderInlineButtons now shows final buttons regardless of showSuggestions state
   * BUTTON LOGIC HARDENING: Added explicit checks to prevent "Give Me More Ideas" and "Skip This Question" buttons from appearing in final approval step
