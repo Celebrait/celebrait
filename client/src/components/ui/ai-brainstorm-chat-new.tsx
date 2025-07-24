@@ -218,6 +218,20 @@ export function AIBrainstormChat({
       
       console.log('UpdateConversationState:', { userMessage, currentStep: prev.currentStep, aiResponse: aiResponse.substring(0, 50) });
       
+      // Handle restart requests - reset conversation state to beginning
+      if (userMessage.toLowerCase().includes('start again') || 
+          userMessage.toLowerCase().includes('start fresh') || 
+          userMessage.toLowerCase().includes('restart')) {
+        console.log('RESTART_DETECTED: Resetting conversation state to beginning');
+        return {
+          currentStep: 'setting',
+          settingRefinements: 0,
+          activityRefinements: 0,
+          showSuggestions: false,
+          collectedInfo: {}
+        };
+      }
+      
       // Handle different message types
       if (userMessage === "Get Suggestions") {
         newState.showSuggestions = true;
