@@ -1172,6 +1172,39 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   };
 
+  // Helper function for robust API calls with timeout and error handling
+  const makeRobustAPICall = async (url: string, body: any, errorPrefix: string = "API call") => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
+      
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+        credentials: "include"
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`${errorPrefix} Error ${response.status}: ${errorText}`);
+      }
+      
+      return await response.json();
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        throw new Error(`${errorPrefix} timed out. This can happen during high server load. Please try again.`);
+      } else if (error.message?.includes('Failed to fetch')) {
+        throw new Error(`Network connection error during ${errorPrefix.toLowerCase()}. Please check your internet connection and try again.`);
+      } else {
+        throw error;
+      }
+    }
+  };
+
   const generateCardWithEmail = async (email: string) => {
     try {
       console.log('Generating card with email notification:', email);
@@ -1439,9 +1472,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const artStyle = answers.art_style || 'watercolor painting';
     const frontCardText = answers.message || '';
     
-    // Generate front card using GPT-Image-1 with multiple images
+    // Generate front card using GPT-Image-1 with multiple images with timeout and retry
     console.log('[DEBUG] Calling edit-scene-gpt-image-1 with cardId:', useCardId);
-    const frontResponse = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
+    
+    // Generate front card using robust API call
+    const frontResult = await makeRobustAPICall("/api/edit-scene-gpt-image-1", {
       cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
       imageData: referenceImages[0], // Keep for backward compatibility
       imageDataArray: referenceImages, // Send all images
@@ -1449,9 +1484,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       style: artStyle,
       includeText: !!frontCardText,
       cardText: frontCardText
-    });
-
-    const frontResult = await frontResponse.json();
+    }, "Front card generation");
     const frontImageUrl = frontResult.imageUrl;
     console.log('Front card generated:', frontResult);
 
@@ -1460,13 +1493,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     let insideOriginalUrl = null;
     if (answers.inside_message) {
       console.log('[DEBUG] Calling generate-inside-card with cardId:', useCardId);
-      const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
+      const insideResult = await makeRobustAPICall("/api/generate-inside-card", {
         cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
         frontCardImage: frontImageUrl,
         insideText: answers.inside_message
-      });
+      }, "Inside card generation");
       
-      const insideResult = await insideResponse.json();
       insideImageUrl = insideResult.imageUrl;
       insideOriginalUrl = insideResult.originalImageUrl;
       console.log('Inside card generated:', insideResult);
@@ -1513,14 +1545,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     
     // Generate front card using GPT-Image-1 transform style endpoint with multiple images
     console.log('[DEBUG] Calling transform-style-gpt-image-1 with cardId:', useCardId);
-    const frontResponse = await apiRequest("POST", "/api/transform-style-gpt-image-1", {
+    const frontResult = await makeRobustAPICall("/api/transform-style-gpt-image-1", {
       cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
       imageData: referenceImages[0], // Keep for backward compatibility
       imageDataArray: referenceImages, // Send all images
       style: transformPrompt
-    });
-
-    const frontResult = await frontResponse.json();
+    }, "Front card transform generation");
     const frontImageUrl = frontResult.imageUrl;
     console.log('Front card transformed:', frontResult);
 
@@ -1529,13 +1559,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     let insideOriginalUrl = null;
     if (answers.inside_message) {
       console.log('[DEBUG] Calling generate-inside-card with cardId:', useCardId);
-      const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
+      const insideResult = await makeRobustAPICall("/api/generate-inside-card", {
         cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
         frontCardImage: frontImageUrl,
         insideText: answers.inside_message
-      });
-      
-      const insideResult = await insideResponse.json();
+      }, "Inside card generation (transform)");
       insideImageUrl = insideResult.imageUrl;
       insideOriginalUrl = insideResult.originalImageUrl;
       console.log('Inside card generated:', insideResult);
