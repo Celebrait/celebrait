@@ -39,37 +39,65 @@ export default function ConnectivityTest() {
       addResult('Basic GET', 'error', `Fetch failed: ${error.message}`);
     }
 
-    // Test 2: Basic POST endpoint
+    // Test 2: Simple POST endpoint
     try {
-      addResult('Basic POST', 'running', 'Testing POST request...');
-      console.log('[DEBUG] Testing basic POST endpoint');
+      addResult('Simple POST', 'running', 'Testing simple POST request...');
+      console.log('[DEBUG] Testing simple POST endpoint');
       
-      const response = await fetch('/api/test-card-ready-email', {
+      const response = await fetch('/api/connectivity-test-post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          test: 'data',
+          message: 'connectivity test'
+        })
+      });
+      
+      console.log('[DEBUG] Simple POST response received:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        addResult('Simple POST', 'success', 'POST request successful', data);
+      } else {
+        const errorText = await response.text();
+        addResult('Simple POST', 'error', `HTTP ${response.status}: ${errorText}`);
+      }
+    } catch (error: any) {
+      console.error('[DEBUG] Simple POST test failed:', error);
+      addResult('Simple POST', 'error', `Fetch failed: ${error.message}`);
+    }
+
+    // Test 3: Complex POST endpoint (email service)
+    try {
+      addResult('Complex POST', 'running', 'Testing complex POST with email service...');
+      console.log('[DEBUG] Testing complex POST endpoint');
+      
+      const response = await fetch('/api/send-card-ready-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           email: 'test@example.com',
-          recipientName: 'Test User',
-          celebration: 'birthday'
+          cardId: 1 // Use a test card ID
         })
       });
       
-      console.log('[DEBUG] POST response received:', response.status);
+      console.log('[DEBUG] Complex POST response received:', response.status);
       
       if (response.ok) {
         const data = await response.json();
-        addResult('Basic POST', 'success', 'POST request successful', data);
+        addResult('Complex POST', 'success', 'Complex POST request successful', data);
       } else {
         const errorText = await response.text();
-        addResult('Basic POST', 'error', `HTTP ${response.status}: ${errorText}`);
+        addResult('Complex POST', 'error', `HTTP ${response.status}: ${errorText}`);
       }
     } catch (error: any) {
-      console.error('[DEBUG] POST test failed:', error);
-      addResult('Basic POST', 'error', `Fetch failed: ${error.message}`);
+      console.error('[DEBUG] Complex POST test failed:', error);
+      addResult('Complex POST', 'error', `Fetch failed: ${error.message}`);
     }
 
-    // Test 3: Timeout test with shorter duration
+    // Test 4: Timeout test with shorter duration
     try {
       addResult('Timeout Test', 'running', 'Testing 10-second timeout...');
       console.log('[DEBUG] Testing timeout behavior');

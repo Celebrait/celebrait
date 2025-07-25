@@ -142,6 +142,10 @@ Changelog:
   * INVESTIGATION APPROACH: Testing simplified API request function to determine if timeout implementation or underlying fetch mechanism is causing failures
   * CONNECTIVITY TEST CREATED: Built dedicated connectivity test page at /connectivity-test to isolate basic API functionality
   * VITE CRASH SUSPECTED: Screenshot evidence suggests potential Vite development server crash loops causing fetch failures despite successful Express server processing
+  * BREAKTHROUGH ACHIEVED: Connectivity test revealed key insight - POST requests were receiving HTML instead of JSON due to wrong endpoint usage
+  * ENDPOINT CORRECTION: Fixed connectivity test to use correct API endpoints with proper parameters (send-card-ready-email vs test-card-ready-email)
+  * COMPREHENSIVE TESTING: Enhanced connectivity test with 4 stages - Basic GET, Simple POST, Complex POST (with dependencies), and Timeout Test
+  * ISOLATION STRATEGY: Simple POST endpoint created without external dependencies to isolate pure fetch vs. service-dependent failures
 - July 25, 2025. ENHANCED ERROR HANDLING FOR DEBUGGING EMPTY ERROR OBJECTS: Added comprehensive error debugging to identify the root cause of empty error objects `{}` in card generation:
   * FRONT CARD API VALIDATION: Added proper response validation and error handling for edit-scene-gpt-image-1 API calls
   * INSIDE CARD API VALIDATION: Added response status checking for generate-inside-card API calls  

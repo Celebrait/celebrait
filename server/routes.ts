@@ -5187,6 +5187,17 @@ ${formatInstruction}`;
     });
   });
 
+  // Simple POST test endpoint
+  app.post("/api/connectivity-test-post", (req, res) => {
+    console.log('[DEBUG] POST connectivity test endpoint hit with body:', req.body);
+    res.json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      message: "POST request handled successfully",
+      received: req.body
+    });
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
