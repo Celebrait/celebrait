@@ -465,8 +465,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       placeholder: onboarding.selectedSceneType === 'scene-only' 
         ? 'e.g., a beautiful sunset over mountains with floating balloons, or a cozy fireplace with warm golden light and scattered rose petals...'
         : 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...',
-      showAIButton: true,
-      aiButtonText: "Stuck for ideas? Brainstorm with AI"
+
     },
     {
       id: 'art_style',
@@ -1181,11 +1180,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       // Store the notification email
       answers.notification_email = email;
       
+      // Ensure card is initialized
+      let currentCardId = cardId;
+      if (!currentCardId) {
+        currentCardId = await initializeCard();
+      }
+      
       // Generate the card normally  
       if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
-        await generateCardWithGPTImage();
+        await generateCardWithGPTImage(currentCardId);
       } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotos.length > 0) {
-        await generateCardWithGPTImageTransform();
+        await generateCardWithGPTImageTransform(currentCardId);
       } else {
         // Use existing DALL-E workflow
         const frontPrompt = buildImagePrompt();
@@ -1370,10 +1375,22 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
       if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
         console.log('Using GPT Image scene generation with cardId:', currentCardId);
-        generatedCard = await generateCardWithGPTImage(currentCardId);
+        try {
+          generatedCard = await generateCardWithGPTImage(currentCardId);
+          console.log('GPT Image scene generation completed successfully');
+        } catch (gptError) {
+          console.error('GPT Image scene generation failed:', gptError);
+          throw gptError;
+        }
       } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotos.length > 0) {
         console.log('Using GPT Image transform generation with cardId:', currentCardId);
-        generatedCard = await generateCardWithGPTImageTransform(currentCardId);
+        try {
+          generatedCard = await generateCardWithGPTImageTransform(currentCardId);
+          console.log('GPT Image transform generation completed successfully');
+        } catch (gptError) {
+          console.error('GPT Image transform generation failed:', gptError);
+          throw gptError;
+        }
       } else {
         console.log('Using DALLE generation');
         // For now, show test card since DALLE is not implemented
@@ -1445,6 +1462,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       cardText: frontCardText
     });
 
+    if (!frontResponse.ok) {
+      const errorText = await frontResponse.text();
+      console.error('[DEBUG] Front card generation failed:', frontResponse.status, errorText);
+      throw new Error(`Front card generation failed: ${frontResponse.status} - ${errorText}`);
+    }
+
     const frontResult = await frontResponse.json();
     const frontImageUrl = frontResult.imageUrl;
     console.log('Front card generated:', frontResult);
@@ -1485,7 +1508,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       status: 'completed'
     });
 
+    if (!updateResponse.ok) {
+      const errorText = await updateResponse.text();
+      console.error('[DEBUG] Update card images failed in GPT Image:', updateResponse.status, errorText);
+      throw new Error(`Failed to update card images: ${updateResponse.status} - ${errorText}`);
+    }
+
     const updatedCard = await updateResponse.json();
+    console.log('[DEBUG] GPT Image card updated successfully:', updatedCard.id);
     return updatedCard;
   };
 

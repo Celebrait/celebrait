@@ -127,6 +127,13 @@ Changelog:
   * COMPREHENSIVE FIX: Updated all API calls in both functions to consistently use useCardId parameter instead of local cardId variable
   * ROUTES AFFECTED: Fixed generate-inside-card and update-card-images API calls in both GPT image generation workflows
   * CRITICAL RESOLUTION: Upload photo + describe scene and upload photo + transform style workflows now complete successfully without fetch errors
+- July 25, 2025. ENHANCED ERROR HANDLING FOR DEBUGGING EMPTY ERROR OBJECTS: Added comprehensive error debugging to identify the root cause of empty error objects `{}` in card generation:
+  * FRONT CARD API VALIDATION: Added proper response validation and error handling for edit-scene-gpt-image-1 API calls
+  * INSIDE CARD API VALIDATION: Added response status checking for generate-inside-card API calls  
+  * UPDATE CARD VALIDATION: Added error handling for update-card-images API calls with detailed error logging
+  * GRANULAR ERROR CATCHING: Added specific try-catch blocks around GPT image generation functions for better error isolation
+  * DEBUG LOGGING: Enhanced console logging to track exactly which API call is failing and provide detailed error messages
+  * ERROR CONTEXT: Improved error messages to include API endpoint, status code, and response text for comprehensive debugging
 - July 23, 2025. CRITICAL AI BRAINSTORM FINAL BUTTONS FIX: Fixed major bug where AI brainstorm chat showed wrong final buttons in final approval step:
   * FINAL APPROVAL PRIORITY: Made final approval step take absolute precedence over suggestion display logic - renderInlineButtons now shows final buttons regardless of showSuggestions state
   * BUTTON LOGIC HARDENING: Added explicit checks to prevent "Give Me More Ideas" and "Skip This Question" buttons from appearing in final approval step
