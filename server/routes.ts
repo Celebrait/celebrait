@@ -3574,7 +3574,6 @@ ${formatInstruction}`;
         formData.append('quality', 'high');
         formData.append('moderation', 'low');
         formData.append('background', 'auto');
-        formData.append('preserve_faces', 'true');
 
         // Use node-fetch with proper FormData handling
         const fetch = (await import('node-fetch')).default;
