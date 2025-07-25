@@ -1525,7 +1525,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       console.log('[DEBUG] GPT Image card updated successfully:', updatedCard.id);
       return updatedCard;
     
-    } catch (error) {
+    } catch (error: any) {
       console.error('[DEBUG] Error in generateCardWithGPTImage:', error);
       console.error('[DEBUG] Error details:', {
         message: error.message,

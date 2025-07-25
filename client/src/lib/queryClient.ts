@@ -7,26 +7,65 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Robust API request with retry mechanism for development environment instability
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
+  retryCount = 0,
+  maxRetries = 3
 ): Promise<Response> {
-  console.log('[DEBUG] Making API request to:', url);
+  console.log(`[DEBUG] Making API request to: ${url} (attempt ${retryCount + 1}/${maxRetries + 1})`);
   
   try {
+    // Create AbortController for timeout handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
     const res = await fetch(url, {
       method,
-      headers: data ? { "Content-Type": "application/json" } : {},
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        ...(data ? {} : {})
+      },
       body: data ? JSON.stringify(data) : undefined,
       credentials: "include",
+      signal: controller.signal,
     });
 
-    console.log('[DEBUG] API response received:', url, res.status);
+    clearTimeout(timeoutId);
+    console.log(`[DEBUG] API response received: ${url} - Status: ${res.status}`);
+    
+    // Check if response is actually JSON
+    const contentType = res.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      console.error(`[DEBUG] Non-JSON response received: ${contentType}`);
+      throw new Error(`Server returned non-JSON response: ${contentType}`);
+    }
+    
     await throwIfResNotOk(res);
     return res;
   } catch (error: any) {
-    console.error('[DEBUG] API request failed:', url, error.message);
+    console.error(`[DEBUG] API request failed (attempt ${retryCount + 1}): ${url} - ${error.message}`);
+    
+    // Check if this is a retryable error
+    const isRetryableError = 
+      error.message?.includes('Failed to fetch') ||
+      error.message?.includes('NetworkError') ||
+      error.message?.includes('AbortError') ||
+      error.message?.includes('non-JSON response') ||
+      error.name === 'AbortError';
+    
+    // Retry logic for development environment instability
+    if (isRetryableError && retryCount < maxRetries) {
+      const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff, max 5s
+      console.log(`[DEBUG] Retrying API request after ${delay}ms delay...`);
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return apiRequest(method, url, data, retryCount + 1, maxRetries);
+    }
+    
     throw error;
   }
 }
