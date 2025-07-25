@@ -75,19 +75,31 @@ const emailLinkCache = new Map<string, {
   timestamp: number;
 }>();
 
+// Processing queue to prevent concurrent Sharp operations that may cause resource contention
+const pngProcessingQueue = new Map<number, Promise<any>>();
+
 /**
  * CRITICAL: Convert Base64 images to PNG files immediately upon generation
  * This prevents performance issues from large Base64 strings in the database
  */
 async function convertBase64ToPngFile(base64Data: string, cardId: number, imageType: string): Promise<string> {
   try {
+    // Check if there's already a PNG processing operation for this card
+    const processingKey = cardId;
+    if (pngProcessingQueue.has(processingKey)) {
+      console.log(`[PNG_CONVERSION] Waiting for existing PNG processing for card ${cardId} to complete...`);
+      await pngProcessingQueue.get(processingKey);
+      console.log(`[PNG_CONVERSION] Previous PNG processing for card ${cardId} completed, continuing...`);
+    }
+    
     console.log(`[PNG_CONVERSION] Converting ${imageType} image for card ${cardId} from Base64 to PNG file`);
     
     // Remove data URL prefix if present
     const cleanBase64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
     const imageBuffer = Buffer.from(cleanBase64, 'base64');
     
-    // Convert to PNG format using Sharp for optimal compression
+    // Convert to PNG format using Sharp for optimal compression with resource management
+    const startTime = Date.now();
     const pngBuffer = await sharp(imageBuffer)
       .png({ 
         compressionLevel: 6, // Balanced compression
@@ -95,6 +107,9 @@ async function convertBase64ToPngFile(base64Data: string, cardId: number, imageT
         progressive: false   // Standard PNG
       })
       .toBuffer();
+    
+    const processingTime = Date.now() - startTime;
+    console.log(`[PNG_CONVERSION] Sharp processing took ${processingTime}ms for ${imageType} image (${pngBuffer.length} bytes)`);
     
     // Store the PNG file directly using filesystem operations
     const fs = await import('fs');
@@ -113,6 +128,9 @@ async function convertBase64ToPngFile(base64Data: string, cardId: number, imageT
   } catch (error) {
     console.error(`[PNG_CONVERSION] Error converting ${imageType} image for card ${cardId}:`, error);
     throw new Error(`Failed to convert ${imageType} image to PNG file: ${error.message}`);
+  } finally {
+    // Clean up processing queue
+    pngProcessingQueue.delete(cardId);
   }
 }
 
@@ -3597,19 +3615,32 @@ ${formatInstruction}`;
         if (cardId) {
           console.log('[PNG_ONLY] Converting scene image to PNG and creating watermarked/unwatermarked versions...');
           
-          // Step 1: Convert base64 to PNG file immediately (unwatermarked original)
-          const unwatermarkedFrontPngUrl = await convertBase64ToPngFile(imageUrl, cardId, 'front_unwatermarked');
-          console.log('[PNG_ONLY] Unwatermarked front PNG created:', unwatermarkedFrontPngUrl);
+          try {
+            // Step 1: Convert base64 to PNG file immediately (unwatermarked original)
+            const unwatermarkedFrontPngUrl = await convertBase64ToPngFile(imageUrl, cardId, 'front_unwatermarked');
+            console.log('[PNG_ONLY] Unwatermarked front PNG created:', unwatermarkedFrontPngUrl);
+            
+            // Step 2: Apply watermark to PNG file and create watermarked PNG file
+            const frontImagePngUrl = await applyWatermarkToPngFile(cardId, 'front_unwatermarked', 'front');
+            console.log('[PNG_ONLY] Watermarked front PNG created:', frontImagePngUrl);
           
-          // Step 2: Apply watermark to PNG file and create watermarked PNG file
-          const frontImagePngUrl = await applyWatermarkToPngFile(cardId, 'front_unwatermarked', 'front');
-          console.log('[PNG_ONLY] Watermarked front PNG created:', frontImagePngUrl);
-          
-          res.json({ 
-            imageUrl: frontImagePngUrl, // Return PNG file URL instead of Base64
-            originalImageUrl: imageUrl, // Store original for secure access
-            usage: (responseData as any).usage
-          });
+            res.json({ 
+              imageUrl: frontImagePngUrl, // Return PNG file URL instead of Base64
+              originalImageUrl: imageUrl, // Store original for secure access
+              usage: (responseData as any).usage
+            });
+          } catch (pngError: any) {
+            console.error('[PNG_ONLY] Error during PNG processing:', pngError);
+            // Fallback to original response if PNG processing fails
+            const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
+            console.log('PNG processing failed, using base64 watermark fallback');
+            
+            res.json({ 
+              imageUrl: watermarkedImageUrl,
+              originalImageUrl: imageUrl,
+              usage: (responseData as any).usage
+            });
+          }
         } else {
           // Fallback for requests without cardId (legacy support)
           const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
@@ -4069,18 +4100,30 @@ ${formatInstruction}`;
         if (cardId) {
           console.log('[PNG_ONLY] Converting transformed image to PNG and creating watermarked/unwatermarked versions...');
           
-          // Step 1: Convert base64 to PNG file immediately (unwatermarked original)
-          const unwatermarkedFrontPngUrl = await convertBase64ToPngFile(imageUrl, cardId, 'front_unwatermarked');
-          console.log('[PNG_ONLY] Unwatermarked front PNG created:', unwatermarkedFrontPngUrl);
-          
-          // Step 2: Apply watermark to PNG file and create watermarked PNG file
-          const frontImagePngUrl = await applyWatermarkToPngFile(cardId, 'front_unwatermarked', 'front');
-          console.log('[PNG_ONLY] Watermarked front PNG created:', frontImagePngUrl);
-          
-          res.json({ 
-            imageUrl: frontImagePngUrl, // Return PNG file URL instead of Base64
-            originalImageUrl: imageUrl // Store original for secure access
-          });
+          try {
+            // Step 1: Convert base64 to PNG file immediately (unwatermarked original)
+            const unwatermarkedFrontPngUrl = await convertBase64ToPngFile(imageUrl, cardId, 'front_unwatermarked');
+            console.log('[PNG_ONLY] Unwatermarked front PNG created:', unwatermarkedFrontPngUrl);
+            
+            // Step 2: Apply watermark to PNG file and create watermarked PNG file
+            const frontImagePngUrl = await applyWatermarkToPngFile(cardId, 'front_unwatermarked', 'front');
+            console.log('[PNG_ONLY] Watermarked front PNG created:', frontImagePngUrl);
+            
+            res.json({ 
+              imageUrl: frontImagePngUrl, // Return PNG file URL instead of Base64
+              originalImageUrl: imageUrl // Store original for secure access
+            });
+          } catch (pngError: any) {
+            console.error('[PNG_ONLY] Error during PNG processing:', pngError);
+            // Fallback to original response if PNG processing fails
+            const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
+            console.log('PNG processing failed, using base64 watermark fallback');
+            
+            res.json({ 
+              imageUrl: watermarkedImageUrl,
+              originalImageUrl: imageUrl
+            });
+          }
         } else {
           // Fallback for requests without cardId (legacy support)
           const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);

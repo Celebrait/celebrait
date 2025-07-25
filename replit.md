@@ -120,12 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 25, 2025. CRITICAL TIMEOUT BUG FIX: Fixed client and server-side timeouts causing "Front card generation timed out" errors:
-  * CLIENT TIMEOUT INCREASE: Increased client-side fetch timeout from 90 seconds to 3 minutes (180 seconds) for complete server processing
-  * SERVER TIMEOUT INCREASE: Increased OpenAI API timeout on server from 30 seconds to 2 minutes (120 seconds) for GPT-Image-1 requests
-  * ROOT CAUSE IDENTIFIED: Server was successfully processing OpenAI requests and PNG conversion, but client was timing out before receiving response
-  * COMPREHENSIVE FIX: Both edit-scene-gpt-image-1 and transform-style-gpt-image-1 endpoints now have adequate timeout margins
-  * ROBUST ERROR HANDLING: Maintained clear timeout error messages while allowing sufficient processing time for complex image generation
+- July 25, 2025. CRITICAL RESOURCE CONTENTION BUG FIX: Fixed intermittent timeout issues caused by Sharp image processing resource bottlenecks:
+  * ROOT CAUSE IDENTIFIED: Intermittent timeout issues were caused by concurrent Sharp PNG processing operations creating resource contention, not OpenAI API delays
+  * RESOURCE MANAGEMENT: Added processing queue to prevent concurrent Sharp operations for the same card from causing memory/CPU bottlenecks
+  * ENHANCED ERROR HANDLING: Added comprehensive try-catch blocks around PNG conversion with fallback to base64 watermarking if PNG processing fails
+  * PERFORMANCE MONITORING: Added Sharp processing time logging to identify bottlenecks during PNG conversion and watermarking operations
+  * SEQUENTIAL PROCESSING: Implemented queue system to ensure PNG operations complete sequentially, preventing resource conflicts
+  * ROBUST FALLBACK SYSTEM: If PNG processing fails due to resource issues, system automatically falls back to reliable base64 watermarking
+  * COMPREHENSIVE FIX: Applied to both edit-scene-gpt-image-1 and transform-style-gpt-image-1 endpoints for consistent behavior
+  * HISTORICAL CONTEXT: Issue started appearing after July 23rd quality enhancement, but root cause was resource contention, not quality setting
 - July 25, 2025. CRITICAL CARD GENERATION BUG FIX: Fixed major card generation failures that were causing empty error objects and generation crashes:
   * TYPESCRIPT ERRORS RESOLVED: Removed invalid 'showAIButton' property from ConversationStep type that was causing compilation errors
   * PARAMETER MISMATCH FIX: Fixed critical cardId parameter mismatches where functions used 'cardId', 'useCardId', and 'currentCardId' inconsistently
