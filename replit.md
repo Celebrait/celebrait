@@ -134,6 +134,12 @@ Changelog:
   * GRACEFUL TIMEOUT HANDLING: Proper timeout error messages instead of generic "Failed to fetch" errors
   * PERFORMANCE OPTIMIZATION: Standard 30-second timeout for non-image endpoints, 2-minute timeout for image generation
   * COMPREHENSIVE FIX: Addresses the core issue where server completes successfully but client times out before receiving response
+- July 25, 2025. DEBUGGING PERSISTENT "FAILED TO FETCH" WITH SIMPLIFIED API REQUEST: Temporarily removed timeout mechanism to isolate root cause:
+  * TIMEOUT REMOVAL: Temporarily disabled AbortController timeout mechanism to test if it was causing the fetch failures
+  * ENHANCED LOGGING: Added detailed debug logging to track API request flow and identify exact failure point
+  * SERVER SUCCESS CONFIRMED: Server logs consistently show successful completion of image generation and PNG file creation
+  * CLIENT FAILURE PATTERN: Client consistently receives "Failed to fetch" error despite server success, suggesting network or development server issue
+  * INVESTIGATION APPROACH: Testing simplified API request function to determine if timeout implementation or underlying fetch mechanism is causing failures
 - July 25, 2025. ENHANCED ERROR HANDLING FOR DEBUGGING EMPTY ERROR OBJECTS: Added comprehensive error debugging to identify the root cause of empty error objects `{}` in card generation:
   * FRONT CARD API VALIDATION: Added proper response validation and error handling for edit-scene-gpt-image-1 API calls
   * INSIDE CARD API VALIDATION: Added response status checking for generate-inside-card API calls  
