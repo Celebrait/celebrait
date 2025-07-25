@@ -5177,6 +5177,16 @@ ${formatInstruction}`;
     }
   });
 
+  // Simple connectivity test endpoint
+  app.get("/api/connectivity-test", (req, res) => {
+    console.log('[DEBUG] Connectivity test endpoint hit');
+    res.json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      message: "Server is responding normally"
+    });
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

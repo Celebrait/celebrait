@@ -140,6 +140,8 @@ Changelog:
   * SERVER SUCCESS CONFIRMED: Server logs consistently show successful completion of image generation and PNG file creation
   * CLIENT FAILURE PATTERN: Client consistently receives "Failed to fetch" error despite server success, suggesting network or development server issue
   * INVESTIGATION APPROACH: Testing simplified API request function to determine if timeout implementation or underlying fetch mechanism is causing failures
+  * CONNECTIVITY TEST CREATED: Built dedicated connectivity test page at /connectivity-test to isolate basic API functionality
+  * VITE CRASH SUSPECTED: Screenshot evidence suggests potential Vite development server crash loops causing fetch failures despite successful Express server processing
 - July 25, 2025. ENHANCED ERROR HANDLING FOR DEBUGGING EMPTY ERROR OBJECTS: Added comprehensive error debugging to identify the root cause of empty error objects `{}` in card generation:
   * FRONT CARD API VALIDATION: Added proper response validation and error handling for edit-scene-gpt-image-1 API calls
   * INSIDE CARD API VALIDATION: Added response status checking for generate-inside-card API calls  

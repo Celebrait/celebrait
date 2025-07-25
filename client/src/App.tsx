@@ -24,6 +24,7 @@ import StyleTest from "@/pages/style-test";
 import GPTImageTest from "@/pages/gpt-image-test";
 import TestCardPreview from "@/pages/test-card-preview";
 import TestDashboard from "@/pages/test-dashboard";
+import ConnectivityTest from "@/pages/connectivity-test";
 import NotFound from "@/pages/not-found";
 import PaymentWithTips from "@/pages/payment-with-tips";
 import DeliveryChoice from "@/pages/delivery-choice";
@@ -59,6 +60,7 @@ function Router() {
         <Route path="/gpt-image-test" component={GPTImageTest} />
         <Route path="/test-card-preview" component={TestCardPreview} />
         <Route path="/test-dashboard" component={TestDashboard} />
+        <Route path="/connectivity-test" component={ConnectivityTest} />
         <Route path="/delivery-choice/:cardId" component={DeliveryChoice} />
         <Route path="/delivery-details/:reference" component={DeliveryDetails} />
         <Route path="/privacy-policy" component={PrivacyPolicy} />
