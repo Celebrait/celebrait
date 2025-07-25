@@ -20,7 +20,19 @@ export async function apiRequest(
   try {
     // Create AbortController for timeout handling
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
+    // Determine appropriate timeout based on endpoint
+    const isImageGeneration = url.includes('edit-scene') || 
+                             url.includes('generate-inside-card') || 
+                             url.includes('transform-style') || 
+                             url.includes('generate-images');
+    
+    const timeout = isImageGeneration ? 180000 : 30000; // 3 minutes for image generation, 30s for others
+    console.log(`[DEBUG] Using ${timeout/1000}s timeout for ${isImageGeneration ? 'image generation' : 'regular'} endpoint: ${url}`);
+    const timeoutId = setTimeout(() => {
+      console.log(`[DEBUG] Request timed out after ${timeout/1000}s: ${url}`);
+      controller.abort();
+    }, timeout);
     
     const res = await fetch(url, {
       method,
@@ -57,13 +69,20 @@ export async function apiRequest(
       error.message?.includes('non-JSON response') ||
       error.name === 'AbortError';
     
+    // For image generation endpoints, be more aggressive with retries since server often completes successfully
+    const isImageGenerationEndpoint = url.includes('edit-scene') || 
+                                     url.includes('generate-inside-card') || 
+                                     url.includes('transform-style') || 
+                                     url.includes('generate-images');
+    const effectiveMaxRetries = isImageGenerationEndpoint ? 5 : maxRetries;
+    
     // Retry logic for development environment instability
-    if (isRetryableError && retryCount < maxRetries) {
-      const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff, max 5s
-      console.log(`[DEBUG] Retrying API request after ${delay}ms delay...`);
+    if (isRetryableError && retryCount < effectiveMaxRetries) {
+      const delay = Math.min(1000 * Math.pow(2, retryCount), 8000); // Exponential backoff, max 8s
+      console.log(`[DEBUG] Retrying API request after ${delay}ms delay... (${retryCount + 1}/${effectiveMaxRetries})`);
       
       await new Promise(resolve => setTimeout(resolve, delay));
-      return apiRequest(method, url, data, retryCount + 1, maxRetries);
+      return apiRequest(method, url, data, retryCount + 1, effectiveMaxRetries);
     }
     
     throw error;
