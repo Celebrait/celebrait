@@ -3504,17 +3504,28 @@ If just having a conversation (no suggestions), respond with valid JSON:
         ? '8) COMPOSE FOR PORTRAIT FORMAT - ensure all elements fit within a portrait boundary'
         : '8) COMPOSE FOR SQUARE FORMAT - ensure all elements fit within a square boundary';
       
-      let fullPrompt = `${aspectDescription} Create a completely new scene featuring the ${characterText}. CRITICAL INSTRUCTIONS FOR ACCURATE LIKENESS: 
-1) PRESERVE EXACT FACIAL FEATURES: Maintain precise facial structure, eye shape, eye color, nose shape, mouth shape, jawline, cheekbones, and any distinctive facial characteristics from the reference image(s)
-2) MAINTAIN PHYSICAL ACCURACY: Keep exact skin tone, hair color, hair texture, hair style, facial hair (if present), body build, and height proportions as shown in the reference
-3) PRESERVE DISTINCTIVE FEATURES: Include any unique characteristics like freckles, dimples, scars, tattoos, or other identifying marks visible in the reference
-4) FACIAL EXPRESSION CONSISTENCY: While adapting expressions to fit the new scene, maintain the person's natural facial structure and recognizable features
-5) DO NOT copy or replicate their original positioning, poses, spatial relationships, or interactions from the reference image
-6) CREATE AN ENTIRELY NEW COMPOSITION where characters are arranged differently and naturally for this new scene: ${scenePrompt}
-7) If multiple people were together in the reference, separate them and place them in new positions that fit the scene
-8) Give each character new poses, actions, and interactions that match the described scenario, not their original photo
-9) Choose NEW CLOTHING for each person that appropriately matches the occasion and setting described in the scene
-10) Completely reimagine how the characters would naturally be positioned and interact in this new environment
+      let fullPrompt = `${aspectDescription} Create a completely new scene featuring the ${characterText}. CRITICAL FACIAL ANALYSIS AND IDENTICAL RECREATION REQUIREMENTS:
+
+STEP 1 - ANALYZE THE FACE(S) IN DETAIL:
+Study each person's face with precision focus on: exact eye shape and spacing, precise nose bridge width and nostril shape, specific lip fullness and mouth corners, exact cheekbone prominence, jawline definition, chin shape, forehead proportions, eyebrow arch and thickness, skin texture and tone variations, any asymmetries or unique facial characteristics.
+
+STEP 2 - RECREATE IDENTICAL FACES:
+1) FACIAL STRUCTURE MATCH: Recreate the EXACT facial bone structure - same cheekbone height, same jawline angle, same forehead shape, same chin projection
+2) EYE PRECISION: Match exact eye shape (almond, round, hooded), eye spacing, eyelid fold pattern, iris color, eyebrow shape and arch
+3) NOSE ACCURACY: Replicate precise nose bridge width, nostril shape, nose tip definition, any bumps or unique nose characteristics  
+4) MOUTH DUPLICATION: Copy exact lip fullness, mouth width, corner shape, any asymmetries or distinctive mouth features
+5) SKIN MATCHING: Preserve exact skin tone, texture, any blemishes, freckles, moles, or distinctive skin characteristics
+6) HAIR PRECISION: Match exact hair color, texture, natural growth patterns, hairline shape
+7) FACIAL EXPRESSION: Adapt expression to scene while maintaining all structural facial elements identical to reference
+8) DISTINCTIVE MARKS: Include any scars, dimples, laugh lines, or other identifying facial features
+
+SCENE CREATION REQUIREMENTS:
+9) DO NOT copy original positioning, poses, or spatial relationships from reference image
+10) CREATE ENTIRELY NEW COMPOSITION for this scene: ${scenePrompt}
+11) Place characters in new positions that naturally fit the described scenario
+12) Give characters new poses and interactions appropriate for the scene
+13) Choose appropriate clothing for the occasion while maintaining identical faces
+14) Reimagine character positioning and interactions for the new environment
 ${formatInstruction}`;
       if (style && style.trim()) {
         fullPrompt = `${fullPrompt}, rendered in ${style} art style`;
