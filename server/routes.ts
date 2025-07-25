@@ -3549,7 +3549,7 @@ ${formatInstruction}`;
 
         // Add timeout handling for GPT-Image-1 requests
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('GPT-Image-1 scene edit request timed out - this model may require special OpenAI API access')), 30000);
+          setTimeout(() => reject(new Error('GPT-Image-1 scene edit request timed out - this model may require special OpenAI API access')), 120000);
         });
 
         const responsePromise = (async () => {
@@ -3960,7 +3960,7 @@ ${formatInstruction}`;
 
         // Add timeout handling for GPT-Image-1 requests
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('GPT-Image-1 request timed out - this model may require special OpenAI API access')), 30000);
+          setTimeout(() => reject(new Error('GPT-Image-1 request timed out - this model may require special OpenAI API access')), 120000);
         });
 
         const responsePromise = (async () => {

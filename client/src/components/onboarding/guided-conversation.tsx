@@ -1176,7 +1176,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const makeRobustAPICall = async (url: string, body: any, errorPrefix: string = "API call") => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout for complete server processing
       
       const response = await fetch(url, {
         method: "POST",

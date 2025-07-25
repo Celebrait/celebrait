@@ -120,6 +120,12 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 25, 2025. CRITICAL TIMEOUT BUG FIX: Fixed client and server-side timeouts causing "Front card generation timed out" errors:
+  * CLIENT TIMEOUT INCREASE: Increased client-side fetch timeout from 90 seconds to 3 minutes (180 seconds) for complete server processing
+  * SERVER TIMEOUT INCREASE: Increased OpenAI API timeout on server from 30 seconds to 2 minutes (120 seconds) for GPT-Image-1 requests
+  * ROOT CAUSE IDENTIFIED: Server was successfully processing OpenAI requests and PNG conversion, but client was timing out before receiving response
+  * COMPREHENSIVE FIX: Both edit-scene-gpt-image-1 and transform-style-gpt-image-1 endpoints now have adequate timeout margins
+  * ROBUST ERROR HANDLING: Maintained clear timeout error messages while allowing sufficient processing time for complex image generation
 - July 25, 2025. CRITICAL CARD GENERATION BUG FIX: Fixed major card generation failures that were causing empty error objects and generation crashes:
   * TYPESCRIPT ERRORS RESOLVED: Removed invalid 'showAIButton' property from ConversationStep type that was causing compilation errors
   * PARAMETER MISMATCH FIX: Fixed critical cardId parameter mismatches where functions used 'cardId', 'useCardId', and 'currentCardId' inconsistently
