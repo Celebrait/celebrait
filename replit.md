@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 25, 2025. CRITICAL CARD GENERATION BUG FIX: Fixed major card generation failures that were causing empty error objects and generation crashes:
+  * TYPESCRIPT ERRORS RESOLVED: Removed invalid 'showAIButton' property from ConversationStep type that was causing compilation errors
+  * PARAMETER MISMATCH FIX: Fixed critical cardId parameter mismatches where functions used 'cardId', 'useCardId', and 'currentCardId' inconsistently
+  * ENHANCED ERROR HANDLING: Improved error message extraction to handle empty error objects with fallback to error.toString() and descriptive messages
+  * CARD ID INITIALIZATION: Added proper cardId initialization in generateCardWithEmail function to prevent undefined variable errors
+  * FUNCTION SIGNATURE FIX: Corrected all GPT image generation function calls to use consistent cardId parameter names
+  * CRITICAL RESOLUTION: Card generation now works properly without throwing empty error objects that confused users
 - July 23, 2025. CRITICAL AI BRAINSTORM FINAL BUTTONS FIX: Fixed major bug where AI brainstorm chat showed wrong final buttons in final approval step:
   * FINAL APPROVAL PRIORITY: Made final approval step take absolute precedence over suggestion display logic - renderInlineButtons now shows final buttons regardless of showSuggestions state
   * BUTTON LOGIC HARDENING: Added explicit checks to prevent "Give Me More Ideas" and "Skip This Question" buttons from appearing in final approval step

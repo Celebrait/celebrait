@@ -464,9 +464,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       type: 'textarea',
       placeholder: onboarding.selectedSceneType === 'scene-only' 
         ? 'e.g., a beautiful sunset over mountains with floating balloons, or a cozy fireplace with warm golden light and scattered rose petals...'
-        : 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...',
-      showAIButton: true,
-      aiButtonText: "Stuck for ideas? Brainstorm with AI"
+        : 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...'
     },
     {
       id: 'art_style',
@@ -1181,11 +1179,18 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       // Store the notification email
       answers.notification_email = email;
       
+      // Initialize card if needed
+      let currentCardId = cardId;
+      if (!currentCardId) {
+        currentCardId = await initializeCard();
+        console.log('[DEBUG] After initialization, cardId is:', currentCardId);
+      }
+      
       // Generate the card normally  
       if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
-        await generateCardWithGPTImage();
+        await generateCardWithGPTImage(currentCardId);
       } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotos.length > 0) {
-        await generateCardWithGPTImageTransform();
+        await generateCardWithGPTImageTransform(currentCardId);
       } else {
         // Use existing DALL-E workflow
         const frontPrompt = buildImagePrompt();
@@ -1194,7 +1199,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         const insidePrompt = buildInsidePrompt();
 
         const response = await apiRequest("POST", "/api/generate-images", {
-          cardId,
+          cardId: currentCardId,
           frontPrompt,
           insidePrompt,
           photoData: answers.photo_upload || null,
@@ -1222,7 +1227,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
           });
             
           const emailResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
-            cardId: cardId,
+            cardId: currentCardId,
             customerEmail: email,
             customerName: userName
           });
@@ -1412,9 +1417,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
     } catch (error: any) {
       console.error('Card generation error:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error occurred during card generation';
       toast({
         title: "Error",
-        description: `Failed to generate card: ${error.message}`,
+        description: `Failed to generate card: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
@@ -1453,9 +1459,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     let insideImageUrl = null;
     let insideOriginalUrl = null;
     if (answers.inside_message) {
-      console.log('[DEBUG] Calling generate-inside-card with cardId:', cardId);
+      console.log('[DEBUG] Calling generate-inside-card with cardId:', useCardId);
       const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-        cardId, // CRITICAL: Include cardId for PNG conversion
+        cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
         frontCardImage: frontImageUrl,
         insideText: answers.inside_message
       });
@@ -1478,7 +1484,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
     // Update the card in storage
     const updateResponse = await apiRequest("POST", "/api/update-card-images", {
-      cardId,
+      cardId: useCardId,
       frontImageUrl: frontImageUrl,
       insideImageUrl,
       conversationData,
