@@ -464,7 +464,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       type: 'textarea',
       placeholder: onboarding.selectedSceneType === 'scene-only' 
         ? 'e.g., a beautiful sunset over mountains with floating balloons, or a cozy fireplace with warm golden light and scattered rose petals...'
-        : 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...'
+        : 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...',
+      showAIButton: true,
+      aiButtonText: "Stuck for ideas? Brainstorm with AI"
     },
     {
       id: 'art_style',
@@ -1181,9 +1183,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
       // Generate the card normally  
       if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
-        await generateCardWithGPTImage(email);
+        await generateCardWithGPTImage();
       } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotos.length > 0) {
-        await generateCardWithGPTImageTransform(email);
+        await generateCardWithGPTImageTransform();
       } else {
         // Use existing DALL-E workflow
         const frontPrompt = buildImagePrompt();
@@ -1420,7 +1422,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   };
 
-  const generateCardWithGPTImage = async (useCardId?: number | string) => {
+  const generateCardWithGPTImage = async (useCardId: number) => {
     console.log('Using GPT-Image-1 for photo + scene workflow with cardId:', useCardId);
     
     // Use all uploaded photos for GPT-Image-1 scene generation
@@ -1487,7 +1489,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     return updatedCard;
   };
 
-  const generateCardWithGPTImageTransform = async (useCardId?: number | string) => {
+  const generateCardWithGPTImageTransform = async (useCardId: number) => {
     console.log('Using GPT-Image-1 for photo + transform style workflow with cardId:', useCardId);
     
     // Use all uploaded photos for GPT-Image-1 style transformation
