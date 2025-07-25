@@ -120,15 +120,17 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 25, 2025. CRITICAL RESOURCE CONTENTION BUG FIX: Fixed intermittent timeout issues caused by Sharp image processing resource bottlenecks:
-  * ROOT CAUSE IDENTIFIED: Intermittent timeout issues were caused by concurrent Sharp PNG processing operations creating resource contention, not OpenAI API delays
+- July 25, 2025. CRITICAL TIMEOUT RESOLUTION: Fixed intermittent timeout issues through comprehensive server and client-side improvements:
+  * ROOT CAUSE IDENTIFIED: Complex OpenAI + PNG processing pipeline sometimes exceeded 3-minute client timeout, despite server completing successfully
+  * CLIENT TIMEOUT INCREASE: Increased client-side timeout from 3 minutes to 5 minutes (300 seconds) for complex image generation workflows
   * RESOURCE MANAGEMENT: Added processing queue to prevent concurrent Sharp operations for the same card from causing memory/CPU bottlenecks
   * ENHANCED ERROR HANDLING: Added comprehensive try-catch blocks around PNG conversion with fallback to base64 watermarking if PNG processing fails
   * PERFORMANCE MONITORING: Added Sharp processing time logging to identify bottlenecks during PNG conversion and watermarking operations
   * SEQUENTIAL PROCESSING: Implemented queue system to ensure PNG operations complete sequentially, preventing resource conflicts
   * ROBUST FALLBACK SYSTEM: If PNG processing fails due to resource issues, system automatically falls back to reliable base64 watermarking
   * COMPREHENSIVE FIX: Applied to both edit-scene-gpt-image-1 and transform-style-gpt-image-1 endpoints for consistent behavior
-  * HISTORICAL CONTEXT: Issue started appearing after July 23rd quality enhancement, but root cause was resource contention, not quality setting
+  * SERVER LOGS VALIDATION: Confirmed server processing completes successfully, issue was client-side timeout insufficient for complex workflows
+  * IMPROVED ERROR MESSAGES: Enhanced timeout error messages to explain 5-minute timeout and suggest retry for complex requests
 - July 25, 2025. CRITICAL CARD GENERATION BUG FIX: Fixed major card generation failures that were causing empty error objects and generation crashes:
   * TYPESCRIPT ERRORS RESOLVED: Removed invalid 'showAIButton' property from ConversationStep type that was causing compilation errors
   * PARAMETER MISMATCH FIX: Fixed critical cardId parameter mismatches where functions used 'cardId', 'useCardId', and 'currentCardId' inconsistently

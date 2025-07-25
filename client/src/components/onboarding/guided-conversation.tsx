@@ -1176,7 +1176,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const makeRobustAPICall = async (url: string, body: any, errorPrefix: string = "API call") => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout for complete server processing
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout for complete server processing
       
       const response = await fetch(url, {
         method: "POST",
@@ -1196,7 +1196,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       return await response.json();
     } catch (error: any) {
       if (error.name === 'AbortError') {
-        throw new Error(`${errorPrefix} timed out. This can happen during high server load. Please try again.`);
+        throw new Error(`${errorPrefix} timed out after 5 minutes. The server may be processing a complex request. Please try again in a moment.`);
       } else if (error.message?.includes('Failed to fetch')) {
         throw new Error(`Network connection error during ${errorPrefix.toLowerCase()}. Please check your internet connection and try again.`);
       } else {
