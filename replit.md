@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 25, 2025. CRITICAL CARD GENERATION "FAILED TO FETCH" BUG FIX: Fixed major issue where image generation was failing with empty error objects:
+  * ROOT CAUSE IDENTIFIED: generateCardWithGPTImage() and generateCardWithGPTImageTransform() functions received useCardId parameter but incorrectly used local cardId variable in API calls
+  * CARDID PARAMETER INCONSISTENCY: Inside card generation and card update API calls were using cardId (potentially null/undefined) instead of useCardId (guaranteed valid)
+  * API CALL FAILURES: This caused "failed to fetch" errors when cardId was null while useCardId contained the proper card ID from initialization
+  * COMPREHENSIVE FIX: Updated all API calls in both functions to consistently use useCardId parameter instead of local cardId variable
+  * ROUTES AFFECTED: Fixed generate-inside-card and update-card-images API calls in both GPT image generation workflows
+  * CRITICAL RESOLUTION: Upload photo + describe scene and upload photo + transform style workflows now complete successfully without fetch errors
 - July 23, 2025. CRITICAL AI BRAINSTORM FINAL BUTTONS FIX: Fixed major bug where AI brainstorm chat showed wrong final buttons in final approval step:
   * FINAL APPROVAL PRIORITY: Made final approval step take absolute precedence over suggestion display logic - renderInlineButtons now shows final buttons regardless of showSuggestions state
   * BUTTON LOGIC HARDENING: Added explicit checks to prevent "Give Me More Ideas" and "Skip This Question" buttons from appearing in final approval step

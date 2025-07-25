@@ -1453,9 +1453,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     let insideImageUrl = null;
     let insideOriginalUrl = null;
     if (answers.inside_message) {
-      console.log('[DEBUG] Calling generate-inside-card with cardId:', cardId);
+      console.log('[DEBUG] Calling generate-inside-card with cardId:', useCardId);
       const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-        cardId, // CRITICAL: Include cardId for PNG conversion
+        cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
         frontCardImage: frontImageUrl,
         insideText: answers.inside_message
       });
@@ -1478,7 +1478,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
     // Update the card in storage
     const updateResponse = await apiRequest("POST", "/api/update-card-images", {
-      cardId,
+      cardId: useCardId,
       frontImageUrl: frontImageUrl,
       insideImageUrl,
       conversationData,
