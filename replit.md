@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 25, 2025. ENHANCED LIKENESS ACCURACY FOR UPLOAD PHOTO + DESCRIBE SCENE: Significantly improved OpenAI prompt to create more accurate representations of uploaded people:
+  * FACIAL FEATURE PRESERVATION: Added specific instructions to maintain exact facial structure, eye shape, eye color, nose shape, mouth shape, jawline, and cheekbones
+  * PHYSICAL ACCURACY: Enhanced prompt to preserve skin tone, hair color, hair texture, hair style, facial hair, body build, and height proportions
+  * DISTINCTIVE FEATURES: Added instructions to include freckles, dimples, scars, tattoos, and other identifying marks
+  * FACIAL EXPRESSION CONSISTENCY: Maintains natural facial structure while adapting expressions to new scene
+  * PROMPT RESTRUCTURE: Reorganized critical instructions with numbered priority system for better AI interpretation
+  * LIKENESS FOCUS: Shifted from "appearance references" to "exact preservation" for significantly improved accuracy
 - July 25, 2025. CRITICAL TIMEOUT RESOLUTION: Fixed intermittent timeout issues through comprehensive server and client-side improvements:
   * ROOT CAUSE IDENTIFIED: Complex OpenAI + PNG processing pipeline sometimes exceeded 3-minute client timeout, despite server completing successfully
   * CLIENT TIMEOUT INCREASE: Increased client-side timeout from 3 minutes to 5 minutes (300 seconds) for complex image generation workflows

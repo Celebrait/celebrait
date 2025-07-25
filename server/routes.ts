@@ -3504,14 +3504,17 @@ If just having a conversation (no suggestions), respond with valid JSON:
         ? '8) COMPOSE FOR PORTRAIT FORMAT - ensure all elements fit within a portrait boundary'
         : '8) COMPOSE FOR SQUARE FORMAT - ensure all elements fit within a square boundary';
       
-      let fullPrompt = `${aspectDescription} Create a completely new scene featuring the ${characterText}. CRITICAL INSTRUCTIONS: 
-1) Use the people in the reference image(s) ONLY as character appearance references (facial features, general look)
-2) DO NOT copy or replicate their original positioning, poses, spatial relationships, or interactions from the reference image
-3) CREATE AN ENTIRELY NEW COMPOSITION where characters are arranged differently and naturally for this new scene: ${scenePrompt}
-4) If multiple people were together in the reference, separate them and place them in new positions that fit the scene
-5) Give each character new poses, actions, and interactions that match the described scenario, not their original photo
-6) Choose NEW CLOTHING for each person that appropriately matches the occasion and setting described in the scene
-7) Completely reimagine how the characters would naturally be positioned and interact in this new environment
+      let fullPrompt = `${aspectDescription} Create a completely new scene featuring the ${characterText}. CRITICAL INSTRUCTIONS FOR ACCURATE LIKENESS: 
+1) PRESERVE EXACT FACIAL FEATURES: Maintain precise facial structure, eye shape, eye color, nose shape, mouth shape, jawline, cheekbones, and any distinctive facial characteristics from the reference image(s)
+2) MAINTAIN PHYSICAL ACCURACY: Keep exact skin tone, hair color, hair texture, hair style, facial hair (if present), body build, and height proportions as shown in the reference
+3) PRESERVE DISTINCTIVE FEATURES: Include any unique characteristics like freckles, dimples, scars, tattoos, or other identifying marks visible in the reference
+4) FACIAL EXPRESSION CONSISTENCY: While adapting expressions to fit the new scene, maintain the person's natural facial structure and recognizable features
+5) DO NOT copy or replicate their original positioning, poses, spatial relationships, or interactions from the reference image
+6) CREATE AN ENTIRELY NEW COMPOSITION where characters are arranged differently and naturally for this new scene: ${scenePrompt}
+7) If multiple people were together in the reference, separate them and place them in new positions that fit the scene
+8) Give each character new poses, actions, and interactions that match the described scenario, not their original photo
+9) Choose NEW CLOTHING for each person that appropriately matches the occasion and setting described in the scene
+10) Completely reimagine how the characters would naturally be positioned and interact in this new environment
 ${formatInstruction}`;
       if (style && style.trim()) {
         fullPrompt = `${fullPrompt}, rendered in ${style} art style`;
