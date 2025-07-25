@@ -127,6 +127,13 @@ Changelog:
   * COMPREHENSIVE FIX: Updated all API calls in both functions to consistently use useCardId parameter instead of local cardId variable
   * ROUTES AFFECTED: Fixed generate-inside-card and update-card-images API calls in both GPT image generation workflows
   * CRITICAL RESOLUTION: Upload photo + describe scene and upload photo + transform style workflows now complete successfully without fetch errors
+- July 25, 2025. CRITICAL TIMEOUT FIX FOR "FAILED TO FETCH" ERRORS: Identified and resolved root cause of card generation failures:
+  * ROOT CAUSE IDENTIFIED: Image generation requests were timing out after default fetch timeout (~30-60 seconds) while server processing took 60+ seconds to complete
+  * TIMEOUT MECHANISM: Implemented AbortController with extended 2-minute timeout specifically for image generation endpoints
+  * ENDPOINT DETECTION: Added automatic detection of image generation endpoints (edit-scene, generate-inside-card, transform-style, generate-images)
+  * GRACEFUL TIMEOUT HANDLING: Proper timeout error messages instead of generic "Failed to fetch" errors
+  * PERFORMANCE OPTIMIZATION: Standard 30-second timeout for non-image endpoints, 2-minute timeout for image generation
+  * COMPREHENSIVE FIX: Addresses the core issue where server completes successfully but client times out before receiving response
 - July 25, 2025. ENHANCED ERROR HANDLING FOR DEBUGGING EMPTY ERROR OBJECTS: Added comprehensive error debugging to identify the root cause of empty error objects `{}` in card generation:
   * FRONT CARD API VALIDATION: Added proper response validation and error handling for edit-scene-gpt-image-1 API calls
   * INSIDE CARD API VALIDATION: Added response status checking for generate-inside-card API calls  

@@ -12,15 +12,33 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  // Set longer timeout for image generation endpoints
+  const isImageGeneration = url.includes('edit-scene') || url.includes('generate-inside-card') || url.includes('transform-style') || url.includes('generate-images');
+  
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, isImageGeneration ? 120000 : 30000); // 2 minutes for image generation, 30 seconds for others
 
-  await throwIfResNotOk(res);
-  return res;
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: data ? { "Content-Type": "application/json" } : {},
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`Request timeout: ${url} took longer than ${isImageGeneration ? '2 minutes' : '30 seconds'}`);
+    }
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
