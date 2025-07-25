@@ -3504,28 +3504,35 @@ If just having a conversation (no suggestions), respond with valid JSON:
         ? '8) COMPOSE FOR PORTRAIT FORMAT - ensure all elements fit within a portrait boundary'
         : '8) COMPOSE FOR SQUARE FORMAT - ensure all elements fit within a square boundary';
       
-      let fullPrompt = `${aspectDescription} Create a completely new scene featuring the ${characterText}. CRITICAL FACIAL ANALYSIS AND IDENTICAL RECREATION REQUIREMENTS:
+      let fullPrompt = `${aspectDescription} Create a completely new scene featuring the ${characterText}. 
 
-STEP 1 - ANALYZE THE FACE(S) IN DETAIL:
-Study each person's face with precision focus on: exact eye shape and spacing, precise nose bridge width and nostril shape, specific lip fullness and mouth corners, exact cheekbone prominence, jawline definition, chin shape, forehead proportions, eyebrow arch and thickness, skin texture and tone variations, any asymmetries or unique facial characteristics.
+ABSOLUTE PRIORITY: MAKE THE NEW IMAGE LOOK EXACTLY LIKE THE UPLOADED PHOTOS - NO ARTISTIC INTERPRETATION OF FACES ALLOWED
 
-STEP 2 - RECREATE IDENTICAL FACES:
-1) FACIAL STRUCTURE MATCH: Recreate the EXACT facial bone structure - same cheekbone height, same jawline angle, same forehead shape, same chin projection
-2) EYE PRECISION: Match exact eye shape (almond, round, hooded), eye spacing, eyelid fold pattern, iris color, eyebrow shape and arch
-3) NOSE ACCURACY: Replicate precise nose bridge width, nostril shape, nose tip definition, any bumps or unique nose characteristics  
-4) MOUTH DUPLICATION: Copy exact lip fullness, mouth width, corner shape, any asymmetries or distinctive mouth features
-5) SKIN MATCHING: Preserve exact skin tone, texture, any blemishes, freckles, moles, or distinctive skin characteristics
-6) HAIR PRECISION: Match exact hair color, texture, natural growth patterns, hairline shape
-7) FACIAL EXPRESSION: Adapt expression to scene while maintaining all structural facial elements identical to reference
-8) DISTINCTIVE MARKS: Include any scars, dimples, laugh lines, or other identifying facial features
+MANDATORY IDENTITY PRESERVATION PROTOCOL:
 
-SCENE CREATION REQUIREMENTS:
-9) DO NOT copy original positioning, poses, or spatial relationships from reference image
-10) CREATE ENTIRELY NEW COMPOSITION for this scene: ${scenePrompt}
-11) Place characters in new positions that naturally fit the described scenario
-12) Give characters new poses and interactions appropriate for the scene
-13) Choose appropriate clothing for the occasion while maintaining identical faces
-14) Reimagine character positioning and interactions for the new environment
+STEP 1 - FACIAL MEASUREMENT AND MAPPING:
+Measure and map every facial dimension with mathematical precision: interpupillary distance, nose-to-lip ratio, facial width-to-height proportions, exact eyebrow-to-eyebrow spacing, precise cheekbone-to-jawline angles, specific forehead curvature, exact chin depth and width measurements.
+
+STEP 2 - PHOTOGRAPHIC ACCURACY REPLICATION:
+1) ZERO DEVIATION RULE: Do NOT interpret, stylize, or artistically modify any facial features - copy them with photographic precision
+2) EXACT FACIAL GEOMETRY: Replicate precise bone structure measurements - identical cheekbone height, exact jawline angles, same forehead slope, identical chin projection
+3) PIXEL-PERFECT EYE MATCHING: Copy exact eye shape, size, spacing, eyelid fold depth, iris patterns, pupil size, eyebrow hair direction and density
+4) PRECISE NOSE RECONSTRUCTION: Duplicate exact nostril width, bridge angles, tip roundness, any bumps or irregularities, shadowing patterns
+5) MOUTH PRECISION COPYING: Replicate exact lip thickness, width measurements, corner angles, any asymmetries, natural lip line definition
+6) SKIN TEXTURE DUPLICATION: Copy exact skin tone variations, texture patterns, pore visibility, any marks, blemishes, or distinctive characteristics
+7) HAIR STRAND ACCURACY: Match exact hair color saturation, texture density, growth patterns, hairline irregularities, individual strand directions
+8) MICRO-FEATURE PRESERVATION: Include every visible detail - freckle placement, scar patterns, dimple depth, laugh line positioning
+
+CRITICAL CONSTRAINTS:
+- FORBIDDEN: Any artistic interpretation, stylization, or "improvement" of facial features
+- MANDATORY: The person must be instantly recognizable as identical to the uploaded photo
+- WARNING: Failure to achieve photographic facial accuracy is unacceptable
+
+SCENE PLACEMENT REQUIREMENTS:
+9) Place the IDENTICAL faces in new scene: ${scenePrompt}
+10) New poses and interactions while maintaining every facial detail unchanged
+11) Appropriate clothing for scene while faces remain photographically accurate
+12) Different positioning but absolutely identical facial characteristics
 ${formatInstruction}`;
       if (style && style.trim()) {
         fullPrompt = `${fullPrompt}, rendered in ${style} art style`;
@@ -3567,6 +3574,7 @@ ${formatInstruction}`;
         formData.append('quality', 'high');
         formData.append('moderation', 'low');
         formData.append('background', 'auto');
+        formData.append('preserve_faces', 'true');
 
         // Use node-fetch with proper FormData handling
         const fetch = (await import('node-fetch')).default;
