@@ -1442,81 +1442,98 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const generateCardWithGPTImage = async (useCardId: number) => {
     console.log('Using GPT-Image-1 for photo + scene workflow with cardId:', useCardId);
     
-    // Use all uploaded photos for GPT-Image-1 scene generation
-    const referenceImages = uploadedPhotos;
-    
-    // Build scene description with style
-    const sceneDescription = answers.scene || '';
-    const artStyle = answers.art_style || 'watercolor painting';
-    const frontCardText = answers.message || '';
-    
-    // Generate front card using GPT-Image-1 with multiple images
-    console.log('[DEBUG] Calling edit-scene-gpt-image-1 with cardId:', useCardId);
-    const frontResponse = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
-      cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
-      imageData: referenceImages[0], // Keep for backward compatibility
-      imageDataArray: referenceImages, // Send all images
-      scenePrompt: sceneDescription,
-      style: artStyle,
-      includeText: !!frontCardText,
-      cardText: frontCardText
-    });
-
-    if (!frontResponse.ok) {
-      const errorText = await frontResponse.text();
-      console.error('[DEBUG] Front card generation failed:', frontResponse.status, errorText);
-      throw new Error(`Front card generation failed: ${frontResponse.status} - ${errorText}`);
-    }
-
-    const frontResult = await frontResponse.json();
-    const frontImageUrl = frontResult.imageUrl;
-    console.log('Front card generated:', frontResult);
-
-    // Always generate inside card for all cards now
-    let insideImageUrl = null;
-    let insideOriginalUrl = null;
-    if (answers.inside_message) {
-      console.log('[DEBUG] Calling generate-inside-card with cardId:', useCardId);
-      const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-        cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
-        frontCardImage: frontImageUrl,
-        insideText: answers.inside_message
-      });
+    try {
+      // Use all uploaded photos for GPT-Image-1 scene generation
+      const referenceImages = uploadedPhotos;
       
-      const insideResult = await insideResponse.json();
-      insideImageUrl = insideResult.imageUrl;
-      insideOriginalUrl = insideResult.originalImageUrl;
-      console.log('Inside card generated:', insideResult);
+      // Build scene description with style
+      const sceneDescription = answers.scene || '';
+      const artStyle = answers.art_style || 'watercolor painting';
+      const frontCardText = answers.message || '';
+      
+      // Generate front card using GPT-Image-1 with multiple images
+      console.log('[DEBUG] Calling edit-scene-gpt-image-1 with cardId:', useCardId);
+      const frontResponse = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
+        cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
+        imageData: referenceImages[0], // Keep for backward compatibility
+        imageDataArray: referenceImages, // Send all images
+        scenePrompt: sceneDescription,
+        style: artStyle,
+        includeText: !!frontCardText,
+        cardText: frontCardText
+      });
+
+      if (!frontResponse.ok) {
+        const errorText = await frontResponse.text();
+        console.error('[DEBUG] Front card generation failed:', frontResponse.status, errorText);
+        throw new Error(`Front card generation failed: ${frontResponse.status} - ${errorText}`);
+      }
+
+      const frontResult = await frontResponse.json();
+      const frontImageUrl = frontResult.imageUrl;
+      console.log('Front card generated:', frontResult);
+
+      // Always generate inside card for all cards now
+      let insideImageUrl = null;
+      let insideOriginalUrl = null;
+      if (answers.inside_message) {
+        console.log('[DEBUG] Calling generate-inside-card with cardId:', useCardId);
+        const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
+          cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
+          frontCardImage: frontImageUrl,
+          insideText: answers.inside_message
+        });
+        
+        if (!insideResponse.ok) {
+          const errorText = await insideResponse.text();
+          console.error('[DEBUG] Inside card generation failed:', insideResponse.status, errorText);
+          throw new Error(`Inside card generation failed: ${insideResponse.status} - ${errorText}`);
+        }
+        
+        const insideResult = await insideResponse.json();
+        insideImageUrl = insideResult.imageUrl;
+        insideOriginalUrl = insideResult.originalImageUrl;
+        console.log('Inside card generated:', insideResult);
+      }
+
+      // Store original unwatermarked images in conversationData for secure access
+      const conversationData = {
+        ...answers,
+        uploadedPhotos,
+        originalFrontImageUrl: frontResult.originalImageUrl,
+        originalInsideImageUrl: insideOriginalUrl,
+        watermarkedFrontImageUrl: frontResult.imageUrl,
+        watermarkedInsideImageUrl: insideImageUrl
+      };
+
+      // Update the card in storage
+      const updateResponse = await apiRequest("POST", "/api/update-card-images", {
+        cardId: useCardId,
+        frontImageUrl: frontImageUrl,
+        insideImageUrl,
+        conversationData,
+        status: 'completed'
+      });
+
+      if (!updateResponse.ok) {
+        const errorText = await updateResponse.text();
+        console.error('[DEBUG] Update card images failed in GPT Image:', updateResponse.status, errorText);
+        throw new Error(`Failed to update card images: ${updateResponse.status} - ${errorText}`);
+      }
+
+      const updatedCard = await updateResponse.json();
+      console.log('[DEBUG] GPT Image card updated successfully:', updatedCard.id);
+      return updatedCard;
+    
+    } catch (error) {
+      console.error('[DEBUG] Error in generateCardWithGPTImage:', error);
+      console.error('[DEBUG] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      throw error;
     }
-
-    // Store original unwatermarked images in conversationData for secure access
-    const conversationData = {
-      ...answers,
-      uploadedPhotos,
-      originalFrontImageUrl: frontResult.originalImageUrl,
-      originalInsideImageUrl: insideOriginalUrl,
-      watermarkedFrontImageUrl: frontResult.imageUrl,
-      watermarkedInsideImageUrl: insideImageUrl
-    };
-
-    // Update the card in storage
-    const updateResponse = await apiRequest("POST", "/api/update-card-images", {
-      cardId: useCardId,
-      frontImageUrl: frontImageUrl,
-      insideImageUrl,
-      conversationData,
-      status: 'completed'
-    });
-
-    if (!updateResponse.ok) {
-      const errorText = await updateResponse.text();
-      console.error('[DEBUG] Update card images failed in GPT Image:', updateResponse.status, errorText);
-      throw new Error(`Failed to update card images: ${updateResponse.status} - ${errorText}`);
-    }
-
-    const updatedCard = await updateResponse.json();
-    console.log('[DEBUG] GPT Image card updated successfully:', updatedCard.id);
-    return updatedCard;
   };
 
   const generateCardWithGPTImageTransform = async (useCardId: number) => {
