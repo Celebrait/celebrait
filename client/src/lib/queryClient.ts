@@ -39,11 +39,14 @@ export async function apiRequest(
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
         ...(data ? {} : {})
       },
       body: data ? JSON.stringify(data) : undefined,
       credentials: "include",
       signal: controller.signal,
+      keepalive: true, // Helps maintain connection for long requests
     });
 
     clearTimeout(timeoutId);
@@ -54,6 +57,25 @@ export async function apiRequest(
     if (!contentType?.includes('application/json')) {
       console.error(`[DEBUG] Non-JSON response received: ${contentType}`);
       throw new Error(`Server returned non-JSON response: ${contentType}`);
+    }
+    
+    // For image generation endpoints, verify the response is complete
+    if (isImageGeneration) {
+      const contentLength = res.headers.get('content-length');
+      console.log(`[DEBUG] Image generation response - Content-Length: ${contentLength}`);
+      
+      // Clone response to check if it's readable
+      const testRes = res.clone();
+      try {
+        const testText = await testRes.text();
+        if (!testText || testText.length < 10) {
+          throw new Error(`Incomplete response received: ${testText.length} bytes`);
+        }
+        console.log(`[DEBUG] Response verification passed: ${testText.length} bytes`);
+      } catch (verifyError: any) {
+        console.error(`[DEBUG] Response verification failed:`, verifyError.message);
+        throw new Error(`Response verification failed: ${verifyError.message}`);
+      }
     }
     
     await throwIfResNotOk(res);
@@ -78,7 +100,9 @@ export async function apiRequest(
     
     // Retry logic for development environment instability
     if (isRetryableError && retryCount < effectiveMaxRetries) {
-      const delay = Math.min(1000 * Math.pow(2, retryCount), 8000); // Exponential backoff, max 8s
+      // For image generation, add longer delays to let server fully complete
+      const baseDelay = isImageGenerationEndpoint ? 2000 : 1000;
+      const delay = Math.min(baseDelay * Math.pow(2, retryCount), isImageGenerationEndpoint ? 15000 : 8000);
       console.log(`[DEBUG] Retrying API request after ${delay}ms delay... (${retryCount + 1}/${effectiveMaxRetries})`);
       
       await new Promise(resolve => setTimeout(resolve, delay));

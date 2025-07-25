@@ -3633,7 +3633,9 @@ ${formatInstruction}`;
 
         // Handle specific API errors
         if (error.message?.includes('400')) {
-          if (error.message?.includes('model') || error.message?.includes('model_not_found')) {
+          if (error.message?.includes('safety system') || error.message?.includes('safety_violations')) {
+            throw new Error('Content Safety Violation: The image or description was flagged by OpenAI\'s safety system. Please try a different image or modify your description to avoid potentially sensitive content.');
+          } else if (error.message?.includes('model') || error.message?.includes('model_not_found')) {
             throw new Error('GPT-Image-1 model is not available with your current OpenAI API access. This model may require special permissions.');
           } else if (error.message?.includes('multipart') || error.message?.includes('form-data')) {
             throw new Error('Image upload format error. Please ensure the image is valid.');
@@ -3655,7 +3657,9 @@ ${formatInstruction}`;
       console.error('GPT-Image-1 scene edit error:', error);
 
       let errorMessage = 'Scene editing failed';
-      if (error.message?.includes('moderation')) {
+      if (error.message?.includes('safety system') || error.message?.includes('safety_violations') || error.message?.includes('Content Safety Violation')) {
+        errorMessage = 'Content Safety Violation: The image or description contains content that was flagged by OpenAI\'s safety system. Please try a different image or modify your description to avoid potentially sensitive content.';
+      } else if (error.message?.includes('moderation')) {
         errorMessage = 'Content moderation detected unsafe content in the image or prompt';
       } else if (error.message?.includes('special access')) {
         errorMessage = 'GPT-Image-1 requires special access permissions from OpenAI';

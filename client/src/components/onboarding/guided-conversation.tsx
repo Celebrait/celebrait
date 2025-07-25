@@ -1429,9 +1429,25 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
     } catch (error: any) {
       console.error('Card generation error:', error);
+      
+      // Provide specific error messaging based on error type
+      let errorTitle = "Generation Failed";
+      let errorDescription = error.message;
+      
+      if (error.message?.includes('Content Safety Violation') || error.message?.includes('safety system')) {
+        errorTitle = "Content Safety Issue";
+        errorDescription = "Your image or description was flagged by OpenAI's safety system. Please try using a different image or modify your description to avoid potentially sensitive content.";
+      } else if (error.message?.includes('timeout') || error.message?.includes('AbortError')) {
+        errorTitle = "Generation Timeout"; 
+        errorDescription = "The AI took too long to process your request. Please try again with a simpler description or fewer images.";
+      } else if (error.message?.includes('Failed to fetch')) {
+        errorTitle = "Connection Issue";
+        errorDescription = "There was a connection problem. Please check your internet connection and try again.";
+      }
+      
       toast({
-        title: "Error",
-        description: `Failed to generate card: ${error.message}`,
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       });
     } finally {
@@ -1532,7 +1548,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         stack: error.stack,
         name: error.name
       });
-      throw error;
+      
+      // Handle specific error types for better user experience
+      if (error.message?.includes('Content Safety Violation') || error.message?.includes('safety system')) {
+        throw new Error('Content Safety Issue: Your image or description was flagged by OpenAI\'s safety system. Please try using a different image or modify your description to avoid potentially sensitive content.');
+      } else if (error.message?.includes('timeout') || error.message?.includes('AbortError')) {
+        throw new Error('Generation Timeout: The AI took too long to process your request. Please try again with a simpler description or fewer images.');
+      } else {
+        throw error;
+      }
     }
   };
 

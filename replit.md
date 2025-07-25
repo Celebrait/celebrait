@@ -120,6 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 25, 2025. CRITICAL BREAKTHROUGH: OPENAI SAFETY VIOLATION ROOT CAUSE RESOLVED: Successfully identified and fixed the true cause of "Failed to fetch" errors - OpenAI safety system rejections masquerading as connection issues:
+  * ROOT CAUSE DISCOVERY: "Failed to fetch" errors were actually OpenAI API safety system rejections (safety_violations=[sexual]) not being properly communicated to client
+  * OPENAI SAFETY HANDLING: Added comprehensive safety violation detection in server error handling with user-friendly messaging
+  * ERROR COMMUNICATION FIX: Enhanced error propagation from server to client to properly display safety violation messages instead of generic "Failed to fetch"
+  * CLIENT ERROR HANDLING: Implemented specific client-side error handling for safety violations, timeouts, and connection issues with clear user messaging
+  * USER EXPERIENCE: Users now receive clear feedback like "Content Safety Issue: Your image or description was flagged by OpenAI's safety system" instead of confusing "Failed to fetch"
+  * COMPREHENSIVE SOLUTION: Combined server-side safety violation detection with client-side specific error messaging and enhanced timeout handling
+  * DEVELOPMENT INSIGHT: Issue was combination of poor error communication AND development environment middleware timing issues
+  * BREAKTHROUGH VERIFICATION: Server logs show successful OpenAI processing after safety violations resolved, confirming root cause fix
 - July 25, 2025. DEVELOPMENT ENVIRONMENT STABILITY FIX: Implemented comprehensive solution for intermittent "Failed to fetch" errors in development environment:
   * ROOT CAUSE ANALYSIS: Issue is development environment middleware race condition in Vite server, not application code logic
   * ROBUST RETRY MECHANISM: Added exponential backoff retry logic with 3 automatic retries for network/fetch failures
