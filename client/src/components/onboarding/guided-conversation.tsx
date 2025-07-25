@@ -465,7 +465,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       placeholder: onboarding.selectedSceneType === 'scene-only' 
         ? 'e.g., a beautiful sunset over mountains with floating balloons, or a cozy fireplace with warm golden light and scattered rose petals...'
         : 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...',
-
+      showAIButton: true,
+      aiButtonText: "Stuck for ideas? Brainstorm with AI"
     },
     {
       id: 'art_style',
@@ -1180,17 +1181,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       // Store the notification email
       answers.notification_email = email;
       
-      // Ensure card is initialized
-      let currentCardId = cardId;
-      if (!currentCardId) {
-        currentCardId = await initializeCard();
-      }
-      
       // Generate the card normally  
       if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
-        await generateCardWithGPTImage(currentCardId);
+        await generateCardWithGPTImage();
       } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotos.length > 0) {
-        await generateCardWithGPTImageTransform(currentCardId);
+        await generateCardWithGPTImageTransform();
       } else {
         // Use existing DALL-E workflow
         const frontPrompt = buildImagePrompt();
@@ -1375,22 +1370,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
       if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
         console.log('Using GPT Image scene generation with cardId:', currentCardId);
-        try {
-          generatedCard = await generateCardWithGPTImage(currentCardId);
-          console.log('GPT Image scene generation completed successfully');
-        } catch (gptError) {
-          console.error('GPT Image scene generation failed:', gptError);
-          throw gptError;
-        }
+        generatedCard = await generateCardWithGPTImage(currentCardId);
       } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotos.length > 0) {
         console.log('Using GPT Image transform generation with cardId:', currentCardId);
-        try {
-          generatedCard = await generateCardWithGPTImageTransform(currentCardId);
-          console.log('GPT Image transform generation completed successfully');
-        } catch (gptError) {
-          console.error('GPT Image transform generation failed:', gptError);
-          throw gptError;
-        }
+        generatedCard = await generateCardWithGPTImageTransform(currentCardId);
       } else {
         console.log('Using DALLE generation');
         // For now, show test card since DALLE is not implemented
@@ -1429,25 +1412,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
     } catch (error: any) {
       console.error('Card generation error:', error);
-      
-      // Provide specific error messaging based on error type
-      let errorTitle = "Generation Failed";
-      let errorDescription = error.message;
-      
-      if (error.message?.includes('Content Safety Violation') || error.message?.includes('safety system')) {
-        errorTitle = "Content Safety Issue";
-        errorDescription = "Your image or description was flagged by OpenAI's safety system. Please try using a different image or modify your description to avoid potentially sensitive content.";
-      } else if (error.message?.includes('timeout') || error.message?.includes('AbortError')) {
-        errorTitle = "Generation Timeout"; 
-        errorDescription = "The AI took too long to process your request. Please try again with a simpler description or fewer images.";
-      } else if (error.message?.includes('Failed to fetch')) {
-        errorTitle = "Connection Issue";
-        errorDescription = "There was a connection problem. Please check your internet connection and try again.";
-      }
-      
       toast({
-        title: errorTitle,
-        description: errorDescription,
+        title: "Error",
+        description: `Failed to generate card: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -1458,106 +1425,68 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const generateCardWithGPTImage = async (useCardId: number) => {
     console.log('Using GPT-Image-1 for photo + scene workflow with cardId:', useCardId);
     
-    try {
-      // Use all uploaded photos for GPT-Image-1 scene generation
-      const referenceImages = uploadedPhotos;
-      
-      // Build scene description with style
-      const sceneDescription = answers.scene || '';
-      const artStyle = answers.art_style || 'watercolor painting';
-      const frontCardText = answers.message || '';
-      
-      // Generate front card using GPT-Image-1 with multiple images
-      console.log('[DEBUG] Calling edit-scene-gpt-image-1 with cardId:', useCardId);
-      const frontResponse = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
-        cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
-        imageData: referenceImages[0], // Keep for backward compatibility
-        imageDataArray: referenceImages, // Send all images
-        scenePrompt: sceneDescription,
-        style: artStyle,
-        includeText: !!frontCardText,
-        cardText: frontCardText
-      });
-
-      if (!frontResponse.ok) {
-        const errorText = await frontResponse.text();
-        console.error('[DEBUG] Front card generation failed:', frontResponse.status, errorText);
-        throw new Error(`Front card generation failed: ${frontResponse.status} - ${errorText}`);
-      }
-
-      const frontResult = await frontResponse.json();
-      const frontImageUrl = frontResult.imageUrl;
-      console.log('Front card generated:', frontResult);
-
-      // Always generate inside card for all cards now
-      let insideImageUrl = null;
-      let insideOriginalUrl = null;
-      if (answers.inside_message) {
-        console.log('[DEBUG] Calling generate-inside-card with cardId:', useCardId);
-        const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-          cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
-          frontCardImage: frontImageUrl,
-          insideText: answers.inside_message
-        });
-        
-        if (!insideResponse.ok) {
-          const errorText = await insideResponse.text();
-          console.error('[DEBUG] Inside card generation failed:', insideResponse.status, errorText);
-          throw new Error(`Inside card generation failed: ${insideResponse.status} - ${errorText}`);
-        }
-        
-        const insideResult = await insideResponse.json();
-        insideImageUrl = insideResult.imageUrl;
-        insideOriginalUrl = insideResult.originalImageUrl;
-        console.log('Inside card generated:', insideResult);
-      }
-
-      // Store original unwatermarked images in conversationData for secure access
-      const conversationData = {
-        ...answers,
-        uploadedPhotos,
-        originalFrontImageUrl: frontResult.originalImageUrl,
-        originalInsideImageUrl: insideOriginalUrl,
-        watermarkedFrontImageUrl: frontResult.imageUrl,
-        watermarkedInsideImageUrl: insideImageUrl
-      };
-
-      // Update the card in storage
-      const updateResponse = await apiRequest("POST", "/api/update-card-images", {
-        cardId: useCardId,
-        frontImageUrl: frontImageUrl,
-        insideImageUrl,
-        conversationData,
-        status: 'completed'
-      });
-
-      if (!updateResponse.ok) {
-        const errorText = await updateResponse.text();
-        console.error('[DEBUG] Update card images failed in GPT Image:', updateResponse.status, errorText);
-        throw new Error(`Failed to update card images: ${updateResponse.status} - ${errorText}`);
-      }
-
-      const updatedCard = await updateResponse.json();
-      console.log('[DEBUG] GPT Image card updated successfully:', updatedCard.id);
-      return updatedCard;
+    // Use all uploaded photos for GPT-Image-1 scene generation
+    const referenceImages = uploadedPhotos;
     
-    } catch (error: any) {
-      console.error('[DEBUG] Error in generateCardWithGPTImage:', error);
-      console.error('[DEBUG] Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
+    // Build scene description with style
+    const sceneDescription = answers.scene || '';
+    const artStyle = answers.art_style || 'watercolor painting';
+    const frontCardText = answers.message || '';
+    
+    // Generate front card using GPT-Image-1 with multiple images
+    console.log('[DEBUG] Calling edit-scene-gpt-image-1 with cardId:', useCardId);
+    const frontResponse = await apiRequest("POST", "/api/edit-scene-gpt-image-1", {
+      cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
+      imageData: referenceImages[0], // Keep for backward compatibility
+      imageDataArray: referenceImages, // Send all images
+      scenePrompt: sceneDescription,
+      style: artStyle,
+      includeText: !!frontCardText,
+      cardText: frontCardText
+    });
+
+    const frontResult = await frontResponse.json();
+    const frontImageUrl = frontResult.imageUrl;
+    console.log('Front card generated:', frontResult);
+
+    // Always generate inside card for all cards now
+    let insideImageUrl = null;
+    let insideOriginalUrl = null;
+    if (answers.inside_message) {
+      console.log('[DEBUG] Calling generate-inside-card with cardId:', cardId);
+      const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
+        cardId, // CRITICAL: Include cardId for PNG conversion
+        frontCardImage: frontImageUrl,
+        insideText: answers.inside_message
       });
       
-      // Handle specific error types for better user experience
-      if (error.message?.includes('Content Safety Violation') || error.message?.includes('safety system')) {
-        throw new Error('Content Safety Issue: Your image or description was flagged by OpenAI\'s safety system. Please try using a different image or modify your description to avoid potentially sensitive content.');
-      } else if (error.message?.includes('timeout') || error.message?.includes('AbortError')) {
-        throw new Error('Generation Timeout: The AI took too long to process your request. Please try again with a simpler description or fewer images.');
-      } else {
-        throw error;
-      }
+      const insideResult = await insideResponse.json();
+      insideImageUrl = insideResult.imageUrl;
+      insideOriginalUrl = insideResult.originalImageUrl;
+      console.log('Inside card generated:', insideResult);
     }
+
+    // Store original unwatermarked images in conversationData for secure access
+    const conversationData = {
+      ...answers,
+      uploadedPhotos,
+      originalFrontImageUrl: frontResult.originalImageUrl,
+      originalInsideImageUrl: insideOriginalUrl,
+      watermarkedFrontImageUrl: frontResult.imageUrl,
+      watermarkedInsideImageUrl: insideImageUrl
+    };
+
+    // Update the card in storage
+    const updateResponse = await apiRequest("POST", "/api/update-card-images", {
+      cardId,
+      frontImageUrl: frontImageUrl,
+      insideImageUrl,
+      conversationData,
+      status: 'completed'
+    });
+
+    const updatedCard = await updateResponse.json();
+    return updatedCard;
   };
 
   const generateCardWithGPTImageTransform = async (useCardId: number) => {

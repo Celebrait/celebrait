@@ -7,110 +7,20 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-// Robust API request with retry mechanism for development environment instability
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
-  retryCount = 0,
-  maxRetries = 3
 ): Promise<Response> {
-  console.log(`[DEBUG] Making API request to: ${url} (attempt ${retryCount + 1}/${maxRetries + 1})`);
-  
-  try {
-    // Create AbortController for timeout handling
-    const controller = new AbortController();
-    
-    // Determine appropriate timeout based on endpoint
-    const isImageGeneration = url.includes('edit-scene') || 
-                             url.includes('generate-inside-card') || 
-                             url.includes('transform-style') || 
-                             url.includes('generate-images');
-    
-    const timeout = isImageGeneration ? 180000 : 30000; // 3 minutes for image generation, 30s for others
-    console.log(`[DEBUG] Using ${timeout/1000}s timeout for ${isImageGeneration ? 'image generation' : 'regular'} endpoint: ${url}`);
-    const timeoutId = setTimeout(() => {
-      console.log(`[DEBUG] Request timed out after ${timeout/1000}s: ${url}`);
-      controller.abort();
-    }, timeout);
-    
-    const res = await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-        ...(data ? {} : {})
-      },
-      body: data ? JSON.stringify(data) : undefined,
-      credentials: "include",
-      signal: controller.signal,
-      keepalive: true, // Helps maintain connection for long requests
-    });
+  const res = await fetch(url, {
+    method,
+    headers: data ? { "Content-Type": "application/json" } : {},
+    body: data ? JSON.stringify(data) : undefined,
+    credentials: "include",
+  });
 
-    clearTimeout(timeoutId);
-    console.log(`[DEBUG] API response received: ${url} - Status: ${res.status}`);
-    
-    // Check if response is actually JSON
-    const contentType = res.headers.get('content-type');
-    if (!contentType?.includes('application/json')) {
-      console.error(`[DEBUG] Non-JSON response received: ${contentType}`);
-      throw new Error(`Server returned non-JSON response: ${contentType}`);
-    }
-    
-    // For image generation endpoints, verify the response is complete
-    if (isImageGeneration) {
-      const contentLength = res.headers.get('content-length');
-      console.log(`[DEBUG] Image generation response - Content-Length: ${contentLength}`);
-      
-      // Clone response to check if it's readable
-      const testRes = res.clone();
-      try {
-        const testText = await testRes.text();
-        if (!testText || testText.length < 10) {
-          throw new Error(`Incomplete response received: ${testText.length} bytes`);
-        }
-        console.log(`[DEBUG] Response verification passed: ${testText.length} bytes`);
-      } catch (verifyError: any) {
-        console.error(`[DEBUG] Response verification failed:`, verifyError.message);
-        throw new Error(`Response verification failed: ${verifyError.message}`);
-      }
-    }
-    
-    await throwIfResNotOk(res);
-    return res;
-  } catch (error: any) {
-    console.error(`[DEBUG] API request failed (attempt ${retryCount + 1}): ${url} - ${error.message}`);
-    
-    // Check if this is a retryable error
-    const isRetryableError = 
-      error.message?.includes('Failed to fetch') ||
-      error.message?.includes('NetworkError') ||
-      error.message?.includes('AbortError') ||
-      error.message?.includes('non-JSON response') ||
-      error.name === 'AbortError';
-    
-    // For image generation endpoints, be more aggressive with retries since server often completes successfully
-    const isImageGenerationEndpoint = url.includes('edit-scene') || 
-                                     url.includes('generate-inside-card') || 
-                                     url.includes('transform-style') || 
-                                     url.includes('generate-images');
-    const effectiveMaxRetries = isImageGenerationEndpoint ? 5 : maxRetries;
-    
-    // Retry logic for development environment instability
-    if (isRetryableError && retryCount < effectiveMaxRetries) {
-      // For image generation, add longer delays to let server fully complete
-      const baseDelay = isImageGenerationEndpoint ? 2000 : 1000;
-      const delay = Math.min(baseDelay * Math.pow(2, retryCount), isImageGenerationEndpoint ? 15000 : 8000);
-      console.log(`[DEBUG] Retrying API request after ${delay}ms delay... (${retryCount + 1}/${effectiveMaxRetries})`);
-      
-      await new Promise(resolve => setTimeout(resolve, delay));
-      return apiRequest(method, url, data, retryCount + 1, effectiveMaxRetries);
-    }
-    
-    throw error;
-  }
+  await throwIfResNotOk(res);
+  return res;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

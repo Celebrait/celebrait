@@ -2482,9 +2482,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
         status: 'completed'
       });
 
-      // Set explicit headers to ensure JSON response
-      res.setHeader('Content-Type', 'application/json');
-      res.status(200).json(updatedCard);
+      res.json(updatedCard);
     } catch (error: any) {
       res.status(500).json({ message: "Error generating images: " + error.message });
     }
@@ -3607,9 +3605,7 @@ ${formatInstruction}`;
           const frontImagePngUrl = await applyWatermarkToPngFile(cardId, 'front_unwatermarked', 'front');
           console.log('[PNG_ONLY] Watermarked front PNG created:', frontImagePngUrl);
           
-          // Set explicit headers to ensure JSON response
-          res.setHeader('Content-Type', 'application/json');
-          res.status(200).json({ 
+          res.json({ 
             imageUrl: frontImagePngUrl, // Return PNG file URL instead of Base64
             originalImageUrl: imageUrl, // Store original for secure access
             usage: (responseData as any).usage
@@ -3619,9 +3615,7 @@ ${formatInstruction}`;
           const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
           console.log('Watermark applied to front image (legacy fallback)');
           
-          // Set explicit headers to ensure JSON response
-          res.setHeader('Content-Type', 'application/json');
-          res.status(200).json({ 
+          res.json({ 
             imageUrl: watermarkedImageUrl,
             originalImageUrl: imageUrl,
             usage: (responseData as any).usage
@@ -3633,9 +3627,7 @@ ${formatInstruction}`;
 
         // Handle specific API errors
         if (error.message?.includes('400')) {
-          if (error.message?.includes('safety system') || error.message?.includes('safety_violations')) {
-            throw new Error('Content Safety Violation: The image or description was flagged by OpenAI\'s safety system. Please try a different image or modify your description to avoid potentially sensitive content.');
-          } else if (error.message?.includes('model') || error.message?.includes('model_not_found')) {
+          if (error.message?.includes('model') || error.message?.includes('model_not_found')) {
             throw new Error('GPT-Image-1 model is not available with your current OpenAI API access. This model may require special permissions.');
           } else if (error.message?.includes('multipart') || error.message?.includes('form-data')) {
             throw new Error('Image upload format error. Please ensure the image is valid.');
@@ -3657,9 +3649,7 @@ ${formatInstruction}`;
       console.error('GPT-Image-1 scene edit error:', error);
 
       let errorMessage = 'Scene editing failed';
-      if (error.message?.includes('safety system') || error.message?.includes('safety_violations') || error.message?.includes('Content Safety Violation')) {
-        errorMessage = 'Content Safety Violation: The image or description contains content that was flagged by OpenAI\'s safety system. Please try a different image or modify your description to avoid potentially sensitive content.';
-      } else if (error.message?.includes('moderation')) {
+      if (error.message?.includes('moderation')) {
         errorMessage = 'Content moderation detected unsafe content in the image or prompt';
       } else if (error.message?.includes('special access')) {
         errorMessage = 'GPT-Image-1 requires special access permissions from OpenAI';
@@ -3805,9 +3795,7 @@ ${formatInstruction}`;
         const insideImagePngUrl = await applyWatermarkToPngFile(cardId, 'inside_unwatermarked', 'inside');
         console.log('[PNG_ONLY] Watermarked inside PNG created:', insideImagePngUrl);
         
-        // Set explicit headers to ensure JSON response
-        res.setHeader('Content-Type', 'application/json');
-        res.status(200).json({ 
+        res.json({ 
           imageUrl: insideImagePngUrl, // Return PNG file URL instead of Base64
           originalImageUrl: imageUrl, // Store original for secure access
           usage: (responseData as any).usage
@@ -3817,9 +3805,7 @@ ${formatInstruction}`;
         const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
         console.log('Watermark applied to inside card (legacy fallback)');
         
-        // Set explicit headers to ensure JSON response
-        res.setHeader('Content-Type', 'application/json');
-        res.status(200).json({ 
+        res.json({ 
           imageUrl: watermarkedImageUrl,
           originalImageUrl: imageUrl,
           usage: (responseData as any).usage
@@ -4091,9 +4077,7 @@ ${formatInstruction}`;
           const frontImagePngUrl = await applyWatermarkToPngFile(cardId, 'front_unwatermarked', 'front');
           console.log('[PNG_ONLY] Watermarked front PNG created:', frontImagePngUrl);
           
-          // Set explicit headers to ensure JSON response
-          res.setHeader('Content-Type', 'application/json');
-          res.status(200).json({ 
+          res.json({ 
             imageUrl: frontImagePngUrl, // Return PNG file URL instead of Base64
             originalImageUrl: imageUrl // Store original for secure access
           });
@@ -4102,9 +4086,7 @@ ${formatInstruction}`;
           const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
           console.log('Watermark applied to transformed image (legacy fallback)');
           
-          // Set explicit headers to ensure JSON response
-          res.setHeader('Content-Type', 'application/json');
-          res.status(200).json({ 
+          res.json({ 
             imageUrl: watermarkedImageUrl,
             originalImageUrl: imageUrl
           });
@@ -4168,9 +4150,7 @@ ${formatInstruction}`;
       }
 
       console.log('Card updated successfully with images');
-      // Set explicit headers to ensure JSON response
-      res.setHeader('Content-Type', 'application/json');
-      res.status(200).json(updatedCard);
+      res.json(updatedCard);
     } catch (error: any) {
       console.error('Update card error:', error);
       res.status(500).json({ message: "Failed to update card: " + error.message });
@@ -5195,30 +5175,6 @@ ${formatInstruction}`;
       console.error('Error simulating payment:', error);
       res.status(500).json({ error: 'Failed to simulate payment' });
     }
-  });
-
-  // Simple connectivity test endpoint
-  app.get("/api/connectivity-test", (req, res) => {
-    console.log('[DEBUG] Connectivity test endpoint hit');
-    res.json({ 
-      status: "ok", 
-      timestamp: new Date().toISOString(),
-      message: "Server is responding normally"
-    });
-  });
-
-  // Simple POST test endpoint
-  app.post("/api/connectivity-test-post", (req, res) => {
-    console.log('[DEBUG] POST connectivity test endpoint hit with body:', req.body);
-    
-    // Set explicit headers to ensure JSON response
-    res.setHeader('Content-Type', 'application/json');
-    res.status(200).json({ 
-      status: "ok", 
-      timestamp: new Date().toISOString(),
-      message: "POST request handled successfully",
-      received: req.body
-    });
   });
 
   const httpServer = createServer(app);
