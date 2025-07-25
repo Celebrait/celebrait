@@ -2482,7 +2482,9 @@ If just having a conversation (no suggestions), respond with valid JSON:
         status: 'completed'
       });
 
-      res.json(updatedCard);
+      // Set explicit headers to ensure JSON response
+      res.setHeader('Content-Type', 'application/json');
+      res.status(200).json(updatedCard);
     } catch (error: any) {
       res.status(500).json({ message: "Error generating images: " + error.message });
     }
@@ -3605,7 +3607,9 @@ ${formatInstruction}`;
           const frontImagePngUrl = await applyWatermarkToPngFile(cardId, 'front_unwatermarked', 'front');
           console.log('[PNG_ONLY] Watermarked front PNG created:', frontImagePngUrl);
           
-          res.json({ 
+          // Set explicit headers to ensure JSON response
+          res.setHeader('Content-Type', 'application/json');
+          res.status(200).json({ 
             imageUrl: frontImagePngUrl, // Return PNG file URL instead of Base64
             originalImageUrl: imageUrl, // Store original for secure access
             usage: (responseData as any).usage
@@ -3615,7 +3619,9 @@ ${formatInstruction}`;
           const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
           console.log('Watermark applied to front image (legacy fallback)');
           
-          res.json({ 
+          // Set explicit headers to ensure JSON response
+          res.setHeader('Content-Type', 'application/json');
+          res.status(200).json({ 
             imageUrl: watermarkedImageUrl,
             originalImageUrl: imageUrl,
             usage: (responseData as any).usage
@@ -3795,7 +3801,9 @@ ${formatInstruction}`;
         const insideImagePngUrl = await applyWatermarkToPngFile(cardId, 'inside_unwatermarked', 'inside');
         console.log('[PNG_ONLY] Watermarked inside PNG created:', insideImagePngUrl);
         
-        res.json({ 
+        // Set explicit headers to ensure JSON response
+        res.setHeader('Content-Type', 'application/json');
+        res.status(200).json({ 
           imageUrl: insideImagePngUrl, // Return PNG file URL instead of Base64
           originalImageUrl: imageUrl, // Store original for secure access
           usage: (responseData as any).usage
@@ -3805,7 +3813,9 @@ ${formatInstruction}`;
         const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
         console.log('Watermark applied to inside card (legacy fallback)');
         
-        res.json({ 
+        // Set explicit headers to ensure JSON response
+        res.setHeader('Content-Type', 'application/json');
+        res.status(200).json({ 
           imageUrl: watermarkedImageUrl,
           originalImageUrl: imageUrl,
           usage: (responseData as any).usage
@@ -4077,7 +4087,9 @@ ${formatInstruction}`;
           const frontImagePngUrl = await applyWatermarkToPngFile(cardId, 'front_unwatermarked', 'front');
           console.log('[PNG_ONLY] Watermarked front PNG created:', frontImagePngUrl);
           
-          res.json({ 
+          // Set explicit headers to ensure JSON response
+          res.setHeader('Content-Type', 'application/json');
+          res.status(200).json({ 
             imageUrl: frontImagePngUrl, // Return PNG file URL instead of Base64
             originalImageUrl: imageUrl // Store original for secure access
           });
@@ -4086,7 +4098,9 @@ ${formatInstruction}`;
           const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
           console.log('Watermark applied to transformed image (legacy fallback)');
           
-          res.json({ 
+          // Set explicit headers to ensure JSON response
+          res.setHeader('Content-Type', 'application/json');
+          res.status(200).json({ 
             imageUrl: watermarkedImageUrl,
             originalImageUrl: imageUrl
           });
@@ -4150,7 +4164,9 @@ ${formatInstruction}`;
       }
 
       console.log('Card updated successfully with images');
-      res.json(updatedCard);
+      // Set explicit headers to ensure JSON response
+      res.setHeader('Content-Type', 'application/json');
+      res.status(200).json(updatedCard);
     } catch (error: any) {
       console.error('Update card error:', error);
       res.status(500).json({ message: "Failed to update card: " + error.message });

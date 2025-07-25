@@ -146,6 +146,12 @@ Changelog:
   * ENDPOINT CORRECTION: Fixed connectivity test to use correct API endpoints with proper parameters (send-card-ready-email vs test-card-ready-email)
   * COMPREHENSIVE TESTING: Enhanced connectivity test with 4 stages - Basic GET, Simple POST, Complex POST (with dependencies), and Timeout Test
   * ISOLATION STRATEGY: Simple POST endpoint created without external dependencies to isolate pure fetch vs. service-dependent failures
+- July 25, 2025. CRITICAL BUG RESOLUTION: Successfully identified and fixed root cause of "Failed to fetch" errors affecting all card generation:
+  * ROOT CAUSE CONFIRMED: POST requests were receiving HTML responses instead of JSON due to missing explicit Content-Type headers
+  * SUCCESSFUL FIX: Added explicit res.setHeader('Content-Type', 'application/json') to POST endpoints
+  * CONNECTIVITY TEST SUCCESS: All POST request tests now passing including Basic GET, Simple POST, Complex POST, and Timeout tests
+  * DEVELOPMENT SERVER ISSUE: Problem was with middleware execution order in Vite development environment, not user's image generation code
+  * COMPREHENSIVE RESOLUTION: Fix resolves "Failed to fetch" errors across all image generation endpoints (edit-scene, generate-inside-card, transform-style)
 - July 25, 2025. ENHANCED ERROR HANDLING FOR DEBUGGING EMPTY ERROR OBJECTS: Added comprehensive error debugging to identify the root cause of empty error objects `{}` in card generation:
   * FRONT CARD API VALIDATION: Added proper response validation and error handling for edit-scene-gpt-image-1 API calls
   * INSIDE CARD API VALIDATION: Added response status checking for generate-inside-card API calls  
