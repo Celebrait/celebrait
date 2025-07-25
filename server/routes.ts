@@ -542,7 +542,7 @@ Current step: ${conversationStep || 'setting'}`;
         ];
         
         // Add step-specific instructions based on current state
-        if (userInput === "Get Suggestions" || userInput === "Get More Suggestions" || userInput === "Get Ideas") {
+        if (userInput === "Get Suggestions" || userInput === "Get More Suggestions" || userInput === "Give Me More Ideas") {
           messages.push({
             role: "system", 
             content: `The user is requesting suggestions for the ${conversationStep} step. Provide exactly 3 numbered options relevant to this step. Format as: 1. First option, 2. Second option, 3. Third option. Use ${isMultiplePeople ? `plural language referring to the people in the scene (they, their)` : `singular language referring to ${recipientName} (he/she, his/her)`} consistently throughout your response. Remember: all suggestions should be about ${peopleReference}, not the user.`
