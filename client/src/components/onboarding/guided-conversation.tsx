@@ -3036,6 +3036,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                               ...prev,
                               [currentStep.id]: suggestion
                             }));
+                            // Auto-advance to next step when scene is selected from AI brainstorm
+                            if (currentStep.id === 'scene') {
+                              setTimeout(() => {
+                                handleTextSubmit();
+                              }, 500); // Small delay to show the text was selected
+                            }
                           }}
                           buttonText={currentStep.id === 'scene' ? 'Stuck for ideas? Brainstorm with AI' : 'Get AI Art Style Ideas'}
                           buttonIcon={currentStep.id === 'scene' ? <Sparkles className="w-4 h-4" /> : <Palette className="w-4 h-4" />}
