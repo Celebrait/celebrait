@@ -110,7 +110,12 @@ interface ConversationStep {
 
 export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, onStartFresh }: GuidedConversationProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [answers, setAnswers] = useState<Record<string, any>>({
+    // Default art style to "ai_painterly" (digital art)
+    art_style: 'ai_painterly',
+    // Default photo option to match streamlined flow
+    photo_option: 'upload_and_scene'
+  });
   const [selectedPersonalities, setSelectedPersonalities] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [cardId, setCardId] = useState<number | null>(null);
@@ -621,10 +626,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
       // For streamlined flow, only show relevant steps based on photo option
       if (streamlinedPhotoOption === 'upload_and_scene') {
-        const allowedSteps = ['name', 'celebration', 'photo_upload', 'scene', 'art_style', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
+        const allowedSteps = ['name', 'celebration', 'photo_upload', 'scene', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
         return allowedSteps.includes(step.id);
       } else if (streamlinedPhotoOption === 'upload_and_transform') {
-        const allowedSteps = ['name', 'celebration', 'photo_upload', 'art_style', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
+        const allowedSteps = ['name', 'celebration', 'photo_upload', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
         return allowedSteps.includes(step.id);
       }
     }

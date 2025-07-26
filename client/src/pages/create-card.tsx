@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -19,9 +19,17 @@ export default function CreateCard() {
   const [isCreatingMockCard, setIsCreatingMockCard] = useState(false);
   
   // Streamlined flow state
-  const [flowStep, setFlowStep] = useState<'delivery' | 'photo-choice' | 'conversation'>('delivery');
-  const [selectedDeliveryType, setSelectedDeliveryType] = useState<'printed' | 'digital' | null>(null);
-  const [selectedPhotoOption, setSelectedPhotoOption] = useState<'upload_and_scene' | 'upload_and_transform' | null>(null);
+  const [flowStep, setFlowStep] = useState<'delivery' | 'photo-choice' | 'conversation'>('conversation');
+  const [selectedDeliveryType, setSelectedDeliveryType] = useState<'printed' | 'digital' | null>('digital');
+  const [selectedPhotoOption, setSelectedPhotoOption] = useState<'upload_and_scene' | 'upload_and_transform' | null>('upload_and_scene');
+
+  // Set up default values when component mounts
+  useEffect(() => {
+    // Set defaults in sessionStorage
+    sessionStorage.setItem('selectedDeliveryType', 'digital');
+    sessionStorage.setItem('selectedPhotoOption', 'upload_and_scene');
+    onboarding.setSelectedDelivery('digital');
+  }, []);
 
   const handleCardGenerated = (card: any) => {
     setGeneratedCard(card);
