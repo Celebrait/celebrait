@@ -291,6 +291,27 @@ export function AIBrainstormChat({
           activity: result.activityRefinements
         }
       });
+      
+      // CRITICAL FIX: Auto-detect final scene summary and transition to final_approval
+      const finalSceneIndicators = [
+        'here\'s the complete scene',
+        'final scene description',
+        'complete scene description',
+        'here\'s your final scene',
+        'putting it all together',
+        'final scene for',
+        'complete description'
+      ];
+      
+      const hasFinalSceneIndicator = finalSceneIndicators.some(indicator => 
+        aiResponse.toLowerCase().includes(indicator)
+      );
+      
+      if (result.currentStep === 'extra_detail' && hasFinalSceneIndicator) {
+        console.log('FINAL_SCENE_DETECTED: Auto-transitioning to final_approval step');
+        result.currentStep = 'final_approval';
+      }
+      
       return result;
     });
   };
