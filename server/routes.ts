@@ -3524,7 +3524,7 @@ SCENE CREATION REQUIREMENTS:
 10) CREATE ENTIRELY NEW COMPOSITION for this scene: ${scenePrompt}
 11) Place characters in new positions that naturally fit the described scenario
 12) Give characters new poses and interactions appropriate for the scene
-13) Choose appropriate clothing for the occasion while maintaining identical faces
+13) CHANGE the clothing completely to fit the new scene - dress characters appropriately for the scenario while maintaining identical faces only. DO NOT preserve original clothing or outfits.
 14) Reimagine character positioning and interactions for the new environment
 ${formatInstruction}`;
       if (style && style.trim()) {
