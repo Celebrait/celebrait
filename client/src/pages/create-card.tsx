@@ -7,6 +7,7 @@ import GuidedConversation from "@/components/onboarding/guided-conversation";
 import CardPreview from "@/components/card-preview";
 import DeliverySelection from "@/components/onboarding/delivery-selection";
 import PhotoCreationChoice from "@/components/onboarding/photo-creation-choice";
+import ArtStyleSelection from "@/components/onboarding/art-style-selection.tsx";
 
 import { useOnboarding } from "@/hooks/use-onboarding";
 import { Button } from "@/components/ui/button";
@@ -19,15 +20,17 @@ export default function CreateCard() {
   const [isCreatingMockCard, setIsCreatingMockCard] = useState(false);
   
   // Streamlined flow state
-  const [flowStep, setFlowStep] = useState<'delivery' | 'photo-choice' | 'conversation'>('conversation');
+  const [flowStep, setFlowStep] = useState<'delivery' | 'photo-choice' | 'art-style' | 'conversation'>('conversation');
   const [selectedDeliveryType, setSelectedDeliveryType] = useState<'printed' | 'digital' | null>('digital');
   const [selectedPhotoOption, setSelectedPhotoOption] = useState<'upload_and_scene' | 'upload_and_transform' | null>('upload_and_scene');
+  const [selectedArtStyle, setSelectedArtStyle] = useState<string>('digital_art');
 
   // Set up default values when component mounts
   useEffect(() => {
     // Set defaults in sessionStorage
     sessionStorage.setItem('selectedDeliveryType', 'digital');
     sessionStorage.setItem('selectedPhotoOption', 'upload_and_scene');
+    sessionStorage.setItem('selectedArtStyle', 'digital_art');
     onboarding.setSelectedDelivery('digital');
   }, []);
 
@@ -46,6 +49,12 @@ export default function CreateCard() {
   const handlePhotoOptionSelected = (option: 'upload_and_scene' | 'upload_and_transform') => {
     setSelectedPhotoOption(option);
     sessionStorage.setItem('selectedPhotoOption', option);
+    setFlowStep('art-style');
+  };
+
+  const handleArtStyleSelected = (style: string) => {
+    setSelectedArtStyle(style);
+    sessionStorage.setItem('selectedArtStyle', style);
     setFlowStep('conversation');
   };
 
@@ -55,6 +64,14 @@ export default function CreateCard() {
 
   const handleBackToDelivery = () => {
     setFlowStep('delivery');
+  };
+
+  const handleBackToPhotoChoice = () => {
+    setFlowStep('photo-choice');
+  };
+
+  const handleBackToArtStyle = () => {
+    setFlowStep('art-style');
   };
 
   const createMockCardAndSkipToDelivery = async (cardType: 'digital' | 'printed' = 'digital') => {
@@ -99,12 +116,19 @@ export default function CreateCard() {
           onOptionSelected={handlePhotoOptionSelected} 
           onBack={handleBackToDelivery}
         />;
+      case 'art-style':
+        return <ArtStyleSelection 
+          onStyleSelected={handleArtStyleSelected} 
+          onBack={handleBackToPhotoChoice}
+          selectedStyle={selectedArtStyle}
+        />;
       case 'conversation':
         return <GuidedConversation 
           onboarding={onboarding} 
           onCardGenerated={handleCardGenerated}
           streamlinedFlow={true}
           selectedPhotoOption={selectedPhotoOption}
+          selectedArtStyle={selectedArtStyle}
           onStartFresh={() => setFlowStep('delivery')}
         />;
       default:

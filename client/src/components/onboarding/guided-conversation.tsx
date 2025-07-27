@@ -95,6 +95,7 @@ interface GuidedConversationProps {
   onCardGenerated: (card: any) => void;
   streamlinedFlow?: boolean;
   selectedPhotoOption?: 'upload_and_scene' | 'upload_and_transform' | null;
+  selectedArtStyle?: string;
   onStartFresh?: () => void;
 }
 
@@ -108,11 +109,11 @@ interface ConversationStep {
   required?: boolean;
 }
 
-export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, onStartFresh }: GuidedConversationProps) {
+export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, selectedArtStyle = 'digital_art', onStartFresh }: GuidedConversationProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({
-    // Default art style to "digital_art" (modern digital illustration)
-    art_style: 'digital_art',
+    // Use art style from props (selected in separate step)
+    art_style: selectedArtStyle,
     // Default photo option to match streamlined flow
     photo_option: 'upload_and_scene'
   });
@@ -470,120 +471,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       placeholder: onboarding.selectedSceneType === 'scene-only' 
         ? 'e.g., a beautiful sunset over mountains with floating balloons, or a cozy fireplace with warm golden light and scattered rose petals...'
         : 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...'
-    },
-    {
-      id: 'art_style',
-      question: 'What art style should we use for the card?',
-      aiMessage: onboarding.selectedSceneType === 'scene-only' 
-        ? `Perfect! Now let's choose the art style for your scene. This sets the whole mood and feel - I want to make sure it captures the perfect atmosphere for this ${answers.celebration} celebration!`
-        : `Perfect! ✨ Now let's choose the art style for ${answers.name || 'their'}'s ${answers.celebration} card.`,
-      type: 'art_style_enhanced',
-      options: [
-        { 
-          value: 'digital_art', 
-          label: 'Digital Art', 
-          description: 'Modern digital illustration with clean lines and vibrant colors',
-          inspiration: 'Digital illustration, concept art',
-          color: 'bg-blue-600',
-          emoji: '💻'
-        },
-        { 
-          value: 'ai_painterly', 
-          label: 'AI-Painterly / Oil Portrait', 
-          description: 'Classical oil painting with AI-enhanced realism',
-          inspiration: 'Classical oil painting',
-          color: 'bg-amber-600',
-          emoji: '🎨'
-        },
-        { 
-          value: 'anime', 
-          label: 'Anime', 
-          description: 'Studio Ghibli and modern anime character design',
-          inspiration: 'Studio Ghibli, anime',
-          color: 'bg-pink-500',
-          emoji: '🌸'
-        },
-        { 
-          value: 'cyberpunk', 
-          label: 'Cyberpunk', 
-          description: 'Neon, dystopian sci-fi environments',
-          inspiration: 'Blade Runner, Cyberpunk 2077',
-          color: 'bg-cyan-500',
-          emoji: '🌆'
-        },
-        { 
-          value: 'lego', 
-          label: 'LEGO', 
-          description: 'LEGO character aesthetics',
-          inspiration: 'LEGO minifigures',
-          color: 'bg-red-500',
-          emoji: '🧱'
-        },
-        { 
-          value: 'pixar', 
-          label: 'Pixar', 
-          description: 'Pixar-style facial proportions and textures',
-          inspiration: 'Pixar animation',
-          color: 'bg-blue-500',
-          emoji: '🎬'
-        },
-        { 
-          value: 'renaissance', 
-          label: 'Renaissance Painting', 
-          description: 'Old Masters, dramatic lighting, elaborate outfits',
-          inspiration: 'Classical Renaissance art',
-          color: 'bg-purple-700',
-          emoji: '🏛️'
-        },
-        { 
-          value: 'fantasy_realism', 
-          label: 'Fantasy Realism', 
-          description: 'Elven characters, fantasy worlds',
-          inspiration: 'LOTR, Zelda',
-          color: 'bg-emerald-600',
-          emoji: '🧝'
-        },
-        { 
-          value: 'pixel_art', 
-          label: 'Pixel Art', 
-          description: 'Retro video games',
-          inspiration: '8-bit gaming',
-          color: 'bg-indigo-500',
-          emoji: '🎮'
-        },
-        { 
-          value: 'barbie_glam', 
-          label: 'Barbie / Glam Doll', 
-          description: 'Hyper-feminine, glossy doll-like styles',
-          inspiration: 'Barbie aesthetics',
-          color: 'bg-pink-400',
-          emoji: '💖'
-        },
-        { 
-          value: 'grunge', 
-          label: 'Grunge Aesthetic', 
-          description: 'Y2K and 90s fashion, dark filters, and edgy tones',
-          inspiration: '90s grunge culture',
-          color: 'bg-gray-700',
-          emoji: '⚡'
-        },
-        { 
-          value: 'vaporwave', 
-          label: 'Vaporwave', 
-          description: '80s/90s digital nostalgia, chrome, pastel tones, VHS textures',
-          inspiration: '80s/90s aesthetics',
-          color: 'bg-violet-500',
-          emoji: '📼'
-        },
-        { 
-          value: 'mythical_creature', 
-          label: 'Mythical Creature / Creature Fusion', 
-          description: 'AI mashups of people with mythical beings',
-          inspiration: 'Mermaids, dragons, fantasy creatures',
-          color: 'bg-orange-600',
-          emoji: '🐉'
-        }
-      ]
     },
     {
       id: 'message',
