@@ -111,8 +111,8 @@ interface ConversationStep {
 export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, onStartFresh }: GuidedConversationProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({
-    // Default art style to "pixar" (realistic cartoon digital art)
-    art_style: 'pixar',
+    // Default art style to "digital_art" (modern digital illustration)
+    art_style: 'digital_art',
     // Default photo option to match streamlined flow
     photo_option: 'upload_and_scene'
   });
@@ -479,6 +479,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         : `Perfect! ✨ Now let's choose the art style for ${answers.name || 'their'}'s ${answers.celebration} card.`,
       type: 'art_style_enhanced',
       options: [
+        { 
+          value: 'digital_art', 
+          label: 'Digital Art', 
+          description: 'Modern digital illustration with clean lines and vibrant colors',
+          inspiration: 'Digital illustration, concept art',
+          color: 'bg-blue-600',
+          emoji: '💻'
+        },
         { 
           value: 'ai_painterly', 
           label: 'AI-Painterly / Oil Portrait', 
