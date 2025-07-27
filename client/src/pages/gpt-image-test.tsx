@@ -373,11 +373,73 @@ export default function GPTImageTest() {
               <TabsContent value="transform" className="space-y-4 mt-4">
                 <div>
                   <Label htmlFor="style-input">Transformation Style</Label>
+                  
+                  {/* Quick Style Presets */}
+                  <div className="mt-2 mb-3">
+                    <Label className="text-sm font-medium mb-2 block">Quick Presets (balanced real + cartoon):</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStyle("semi-realistic illustration style")}
+                        className="text-xs justify-start"
+                      >
+                        Semi-Realistic
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStyle("stylized semi-realism style")}
+                        className="text-xs justify-start"
+                      >
+                        Stylized Semi-Realism
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStyle("soft cartoon-realistic hybrid style")}
+                        className="text-xs justify-start"
+                      >
+                        Soft Cartoon-Real
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStyle("painterly illustration style")}
+                        className="text-xs justify-start"
+                      >
+                        Painterly
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStyle("animated movie style illustration")}
+                        className="text-xs justify-start"
+                      >
+                        Animated Movie
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStyle("digital art")}
+                        className="text-xs justify-start"
+                      >
+                        Digital Art (current)
+                      </Button>
+                    </div>
+                  </div>
+                  
                   <Textarea
                     id="style-input"
                     value={style}
                     onChange={(e) => setStyle(e.target.value)}
-                    placeholder="e.g., anime style, watercolor painting, oil painting, sketch"
+                    placeholder="e.g., semi-realistic illustration style, stylized semi-realism style, soft cartoon-realistic hybrid style"
                     className="mt-2"
                     rows={3}
                   />
@@ -463,12 +525,17 @@ export default function GPTImageTest() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="semi-realistic illustration">✨ Semi-Realistic Illustration (Recommended)</SelectItem>
+                      <SelectItem value="stylized semi-realism">✨ Stylized Semi-Realism (Recommended)</SelectItem>
+                      <SelectItem value="soft cartoon-realistic hybrid">✨ Soft Cartoon-Real Hybrid (Recommended)</SelectItem>
+                      <SelectItem value="painterly illustration">✨ Painterly Illustration (Recommended)</SelectItem>
+                      <SelectItem value="animated movie style illustration">✨ Animated Movie Style (Recommended)</SelectItem>
                       <SelectItem value="watercolor painting">Watercolor Painting</SelectItem>
                       <SelectItem value="oil painting">Oil Painting</SelectItem>
                       <SelectItem value="anime style">Anime Style</SelectItem>
-                      <SelectItem value="digital art">Digital Art</SelectItem>
+                      <SelectItem value="digital art">Digital Art (too realistic)</SelectItem>
                       <SelectItem value="sketch">Pencil Sketch</SelectItem>
-                      <SelectItem value="photorealistic">Photorealistic</SelectItem>
+                      <SelectItem value="photorealistic">Photorealistic (too realistic)</SelectItem>
                       <SelectItem value="cartoon">Cartoon</SelectItem>
                       <SelectItem value="vintage poster">Vintage Poster</SelectItem>
                     </SelectContent>

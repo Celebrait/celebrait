@@ -1482,7 +1482,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     
     // Build scene description with style
     const sceneDescription = answers.scene || '';
-    const artStyle = answers.art_style || 'watercolor painting';
+    const artStyle = answers.art_style || 'semi-realistic illustration';
     const frontCardText = answers.message || '';
     
     // Analyze photos to get detected person count
@@ -1569,7 +1569,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const referenceImages = uploadedPhotos;
     
     // Build style transformation prompt using the exact same approach as gpt-image-test page
-    const artStyle = answers.art_style || 'watercolor painting';
+    const artStyle = answers.art_style || 'semi-realistic illustration';
     const frontCardText = answers.message || '';
     
     // Create the prompt using the same structure as the test page

@@ -135,6 +135,13 @@ Changelog:
   * CLEAR PROHIBITION: Added "DO NOT copy the original expression from the reference photo" to prevent expression copying
   * NATURAL INTEGRATION: Emphasized creating "natural, contextually appropriate expression while preserving all facial structure"
   * IMPROVED CLARITY: Eliminated ambiguity about whether to prioritize original expression vs scene-appropriate expression
+- July 27, 2025. BALANCED ART STYLE IMPLEMENTATION: Updated default art style to achieve better balance between realistic and cartoon aesthetics:
+  * NEW DEFAULT STYLE: Changed from "watercolor painting" to "semi-realistic illustration" for more forgiving facial recreation
+  * BALANCED AESTHETIC: Semi-realistic illustration provides realistic proportions with simplified details and soft edges
+  * UNCANNY VALLEY AVOIDANCE: Less harsh than digital art while maintaining professional appearance and recognizability
+  * TEST PAGE ENHANCEMENTS: Added quick-select preset buttons for balanced styles (semi-realistic, stylized semi-realism, soft cartoon-real hybrid)
+  * STYLE RECOMMENDATIONS: Marked best balanced options with ✨ indicators in test interface for easy identification
+  * CONSISTENT FALLBACK: Both upload photo workflows now default to semi-realistic illustration when no style is selected
 - July 25, 2025. FACIAL ANALYSIS AND IDENTICAL RECREATION SYSTEM: Implemented advanced facial analysis and recreation system for Upload Photo + Describe Scene workflow:
   * TWO-STEP PROCESS: Added STEP 1 facial analysis requiring detailed study of eye spacing, nose bridge, lip fullness, cheekbone prominence, jawline, skin texture
   * IDENTICAL FACE RECREATION: STEP 2 requires exact replication of facial bone structure, eye precision, nose accuracy, mouth duplication, skin matching
