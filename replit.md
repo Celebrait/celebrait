@@ -120,11 +120,6 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
-- July 27, 2025. AI BRAINSTORM LOCATION REFINEMENT OPTIMIZATION: Reduced location step follow-up questions from 2 to 1 for streamlined user experience:
-  * SINGLE FOLLOW-UP: Location step now asks only 1 refinement question instead of 2 before advancing to activity step
-  * FASTER FLOW: Users get through location brainstorming more quickly while maintaining quality context gathering
-  * IMPROVED UX: Reduced conversation length in AI brainstorm chat for better user engagement
-  * MAINTAINED QUALITY: Still allows AI to gather meaningful location details with one targeted follow-up question
 - July 25, 2025. FACIAL ANALYSIS AND IDENTICAL RECREATION SYSTEM: Implemented advanced facial analysis and recreation system for Upload Photo + Describe Scene workflow:
   * TWO-STEP PROCESS: Added STEP 1 facial analysis requiring detailed study of eye spacing, nose bridge, lip fullness, cheekbone prominence, jawline, skin texture
   * IDENTICAL FACE RECREATION: STEP 2 requires exact replication of facial bone structure, eye precision, nose accuracy, mouth duplication, skin matching

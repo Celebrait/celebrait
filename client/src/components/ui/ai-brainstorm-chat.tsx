@@ -188,17 +188,9 @@ export function AIBrainstormChat({
               newState.collectedInfo.setting = userInput;
               newState.settingRefinements = prev.settingRefinements + 1;
               
-              console.log('SETTING DEBUG:', {
-                userInput,
-                prevRefinements: prev.settingRefinements,
-                newRefinements: newState.settingRefinements,
-                willAdvance: newState.settingRefinements >= 2
-              });
-              
-              // Advance to activity after 2 total responses (initial + 1 refinement)
-              if (newState.settingRefinements >= 2) {
+              // Only advance to activity after 2 refinement questions
+              if (prev.settingRefinements >= 2) {
                 newState.currentStep = 'activity';
-                console.log('ADVANCING TO ACTIVITY STEP');
               }
             }
             break;
