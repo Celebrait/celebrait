@@ -3539,7 +3539,23 @@ SCENE CREATION REQUIREMENTS:
 14) ${positioningInstruction} for the new environment
 ${formatInstruction}`;
       if (style && style.trim()) {
-        fullPrompt = `${fullPrompt}, rendered in ${style} art style`;
+        // Enhanced style specifications for consistent results
+        let enhancedStyle = style;
+        
+        // Make "animated movie style" more specific for consistency
+        if (style.toLowerCase().includes('animated movie style')) {
+          enhancedStyle = 'professional 3D animated movie style with realistic proportions and detailed facial features, similar to high-quality Pixar/DreamWorks animation - maintain realistic bone structure and facial anatomy while using clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality';
+        }
+        // Make "semi-realistic illustration" more specific
+        else if (style.toLowerCase().includes('semi-realistic illustration')) {
+          enhancedStyle = 'semi-realistic digital illustration with realistic facial proportions and anatomy, clean digital art style with simplified details but accurate bone structure, soft edges and painterly quality that balances realism with artistic stylization';
+        }
+        // Make "stylized semi-realism" more specific  
+        else if (style.toLowerCase().includes('stylized semi-realism')) {
+          enhancedStyle = 'stylized semi-realistic art with enhanced reality, vibrant colors and selective detail emphasis, realistic facial structure with artistic enhancement and refined digital painting techniques';
+        }
+        
+        fullPrompt = `${fullPrompt}, rendered in ${enhancedStyle} art style`;
       }
       if (includeText && cardText && cardText.trim()) {
         fullPrompt = `${fullPrompt}. Add EXACTLY the text "${cardText}" and NO OTHER TEXT. Use typography that matches the ${style || 'artistic'} style and complements the overall vibe of the image. The text should be prominently displayed and well-integrated into the design.`;
@@ -3953,7 +3969,23 @@ ${formatInstruction}`;
         ? 'Render as a portrait image with 2:3 aspect ratio (height is 1.5x the width). The final output must be portrait-formatted.'
         : 'Render as a perfectly square image with 1:1 aspect ratio (width equals height). The final output must be square-formatted, not portrait or landscape.';
       
-      const transformPrompt = `Transform this image into ${style} art style. CRITICAL REQUIREMENTS: 1) Keep the EXACT same person, pose, composition, background, and all visual elements from the original photo - DO NOT change anything about the content, scene, or subject matter. 2) ONLY transform the artistic style/rendering technique to ${style} while preserving every detail of the original image. 3) The person must look identical to the original photo - same facial features, expression, clothing, positioning. 4) ${aspectDescription}`;
+      // Enhanced style specifications for consistent results
+      let enhancedStyle = style;
+      
+      // Make "animated movie style" more specific for consistency
+      if (style.toLowerCase().includes('animated movie style')) {
+        enhancedStyle = 'professional 3D animated movie style with realistic proportions and detailed facial features, similar to high-quality Pixar/DreamWorks animation - maintain realistic bone structure and facial anatomy while using clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality';
+      }
+      // Make "semi-realistic illustration" more specific
+      else if (style.toLowerCase().includes('semi-realistic illustration')) {
+        enhancedStyle = 'semi-realistic digital illustration with realistic facial proportions and anatomy, clean digital art style with simplified details but accurate bone structure, soft edges and painterly quality that balances realism with artistic stylization';
+      }
+      // Make "stylized semi-realism" more specific  
+      else if (style.toLowerCase().includes('stylized semi-realism')) {
+        enhancedStyle = 'stylized semi-realistic art with enhanced reality, vibrant colors and selective detail emphasis, realistic facial structure with artistic enhancement and refined digital painting techniques';
+      }
+      
+      const transformPrompt = `Transform this image into ${enhancedStyle} art style. CRITICAL REQUIREMENTS: 1) Keep the EXACT same person, pose, composition, background, and all visual elements from the original photo - DO NOT change anything about the content, scene, or subject matter. 2) ONLY transform the artistic style/rendering technique to ${enhancedStyle} while preserving every detail of the original image. 3) The person must look identical to the original photo - same facial features, expression, clothing, positioning. 4) ${aspectDescription}`;
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
       console.log('GPT-Image-1 requested size:', size);
 
