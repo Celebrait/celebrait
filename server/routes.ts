@@ -3473,7 +3473,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
     }
 
     try {
-      const { imageData, imageDataArray, scenePrompt, style, includeText, cardText, size = '1024x1024' } = req.body;
+      const { imageData, imageDataArray, scenePrompt, style, includeText, cardText, size = '1024x1024', detectedPersonCount } = req.body;
 
       // Support both single image (legacy) and multiple images (new)
       const imagesToProcess = imageDataArray || (imageData ? [imageData] : []);
@@ -3504,7 +3504,10 @@ If just having a conversation (no suggestions), respond with valid JSON:
         ? '8) COMPOSE FOR PORTRAIT FORMAT - ensure all elements fit within a portrait boundary'
         : '8) COMPOSE FOR SQUARE FORMAT - ensure all elements fit within a square boundary';
       
-      const peopleCount = imagesToProcess.length;
+      // Use detected person count if provided, otherwise fall back to image count
+      const peopleCount = detectedPersonCount || imagesToProcess.length;
+      console.log('Person count logic:', { detectedPersonCount, imageFileCount: imagesToProcess.length, finalPeopleCount: peopleCount });
+      
       const faceAnalysisText = peopleCount > 1 ? 'ANALYZE EACH FACE IN DETAIL' : 'ANALYZE THE FACE IN DETAIL';
       const faceRecreationText = peopleCount > 1 ? 'RECREATE EACH IDENTICAL FACE' : 'RECREATE THE IDENTICAL FACE';
       const characterPositioning = peopleCount > 1 ? 'Place the characters' : 'Place the character';

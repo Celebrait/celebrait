@@ -1485,8 +1485,29 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const artStyle = answers.art_style || 'watercolor painting';
     const frontCardText = answers.message || '';
     
+    // Analyze photos to get detected person count
+    let detectedPersonCount = null;
+    try {
+      const photoContext = await analyzePhotoContent(referenceImages);
+      console.log('Photo analysis result:', JSON.stringify(photoContext));
+      
+      // Extract person count from photo context string
+      const personCountMatch = photoContext.match(/(\d+) people detected/);
+      if (personCountMatch) {
+        detectedPersonCount = parseInt(personCountMatch[1]);
+        console.log('Extracted detected person count:', detectedPersonCount);
+      } else if (photoContext.includes('single person')) {
+        detectedPersonCount = 1;
+        console.log('Detected single person from context');
+      } else {
+        console.log('Could not extract person count from context:', photoContext);
+      }
+    } catch (error) {
+      console.error('Failed to analyze photo content for person count:', error);
+    }
+    
     // Generate front card using GPT-Image-1 with multiple images with timeout and retry
-    console.log('[DEBUG] Calling edit-scene-gpt-image-1 with cardId:', useCardId);
+    console.log('[DEBUG] Calling edit-scene-gpt-image-1 with cardId:', useCardId, 'and detectedPersonCount:', detectedPersonCount);
     
     // Generate front card using robust API call
     const frontResult = await makeRobustAPICall("/api/edit-scene-gpt-image-1", {
@@ -1496,7 +1517,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       scenePrompt: sceneDescription,
       style: artStyle,
       includeText: !!frontCardText,
-      cardText: frontCardText
+      cardText: frontCardText,
+      detectedPersonCount: detectedPersonCount // CRITICAL: Pass detected person count
     }, "Front card generation");
     const frontImageUrl = frontResult.imageUrl;
     console.log('Front card generated:', frontResult);

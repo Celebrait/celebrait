@@ -182,6 +182,35 @@ export default function GPTImageTest() {
     setResultImage('');
 
     try {
+      // Analyze photo to detect person count
+      let detectedPersonCount = null;
+      try {
+        const analysisResponse = await fetch('/api/analyze-photo-content', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ photos: [imagePreview] })
+        });
+        
+        if (analysisResponse.ok) {
+          const analysis = await analysisResponse.json();
+          console.log('Photo analysis result:', JSON.stringify(analysis.photoContext));
+          
+          // Extract person count from photo context string
+          const personCountMatch = analysis.photoContext.match(/(\d+) people detected/);
+          if (personCountMatch) {
+            detectedPersonCount = parseInt(personCountMatch[1]);
+            console.log('Extracted detected person count:', detectedPersonCount);
+          } else if (analysis.photoContext.includes('single person')) {
+            detectedPersonCount = 1;
+            console.log('Detected single person from context');
+          }
+        }
+      } catch (analysisError) {
+        console.error('Photo analysis failed:', analysisError);
+      }
+
       const response = await fetch('/api/edit-scene-gpt-image-1', {
         method: 'POST',
         headers: {
@@ -193,7 +222,8 @@ export default function GPTImageTest() {
           style: sceneStyle,
           includeText: sceneIncludeText,
           cardText: frontCardText,
-          size: imageSize
+          size: imageSize,
+          detectedPersonCount: detectedPersonCount // Pass detected person count
         })
       });
 
