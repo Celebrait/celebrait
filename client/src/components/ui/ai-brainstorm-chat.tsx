@@ -188,8 +188,8 @@ export function AIBrainstormChat({
               newState.collectedInfo.setting = userInput;
               newState.settingRefinements = prev.settingRefinements + 1;
               
-              // Only advance to activity after 2 refinement questions
-              if (prev.settingRefinements >= 2) {
+              // Only advance to activity after 1 refinement question
+              if (prev.settingRefinements >= 1) {
                 newState.currentStep = 'activity';
               }
             }
