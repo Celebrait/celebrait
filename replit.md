@@ -129,6 +129,12 @@ Changelog:
   * TEST PAGE UPDATE: Updated GPT image test page to also use detected person count for consistency across all workflows
   * LOGGING ENHANCEMENT: Added comprehensive logging to track person count detection logic and verify correct values are passed
   * CRITICAL RESOLUTION: AI now generates correct number of people based on actual photo content, not number of uploaded files
+- July 27, 2025. ENHANCED FACIAL EXPRESSION ADAPTATION: Strengthened facial expression instruction for better scene-appropriate emotional responses:
+  * STRONGER INSTRUCTION: Changed vague "Adapt expression to scene" to explicit "Generate a completely NEW facial expression that perfectly matches the mood and context"
+  * CONTEXTUAL EXAMPLES: Added specific examples - "If joyful, show genuine happiness. If dramatic, show appropriate emotion. If peaceful, show serenity"
+  * CLEAR PROHIBITION: Added "DO NOT copy the original expression from the reference photo" to prevent expression copying
+  * NATURAL INTEGRATION: Emphasized creating "natural, contextually appropriate expression while preserving all facial structure"
+  * IMPROVED CLARITY: Eliminated ambiguity about whether to prioritize original expression vs scene-appropriate expression
 - July 25, 2025. FACIAL ANALYSIS AND IDENTICAL RECREATION SYSTEM: Implemented advanced facial analysis and recreation system for Upload Photo + Describe Scene workflow:
   * TWO-STEP PROCESS: Added STEP 1 facial analysis requiring detailed study of eye spacing, nose bridge, lip fullness, cheekbone prominence, jawline, skin texture
   * IDENTICAL FACE RECREATION: STEP 2 requires exact replication of facial bone structure, eye precision, nose accuracy, mouth duplication, skin matching

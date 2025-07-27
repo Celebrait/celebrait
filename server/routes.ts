@@ -3527,7 +3527,7 @@ STEP 2 - ${faceRecreationText}:
 4) MOUTH DUPLICATION: Copy exact lip fullness, mouth width, corner shape, any asymmetries or distinctive mouth features
 5) SKIN MATCHING: Preserve exact skin tone, texture, any blemishes, freckles, moles, or distinctive skin characteristics
 6) HAIR PRECISION: Match exact hair color, texture, natural growth patterns, hairline shape
-7) FACIAL EXPRESSION: Adapt expression to scene while maintaining all structural facial elements identical to reference
+7) FACIAL EXPRESSION: CRITICAL - Generate a completely NEW facial expression that perfectly matches the mood and context of the scene. If the scene is joyful, show genuine happiness. If dramatic, show appropriate emotion. If peaceful, show serenity. DO NOT copy the original expression from the reference photo - create a natural, contextually appropriate expression while preserving all facial structure
 8) DISTINCTIVE MARKS: Include any scars, dimples, laugh lines, or other identifying facial features
 
 SCENE CREATION REQUIREMENTS:
