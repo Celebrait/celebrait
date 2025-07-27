@@ -335,37 +335,17 @@ export function AIBrainstormChat({
     
     switch (state.currentStep) {
       case 'setting':
-        if (state.settingRefinements === 0) {
-          // Initial setting input
-          newState.collectedInfo.setting = userMessage;
-          newState.settingRefinements = 1;
-        } else {
-          // Follow-up refinement
-          newState.collectedInfo.setting = `${newState.collectedInfo.setting} ${userMessage}`;
-          newState.settingRefinements++;
-          
-          if (newState.settingRefinements >= 3) {
-            newState.currentStep = 'activity';
-            newState.settingRefinements = 0;
-          }
-        }
+        // SHORTENED UX: Move directly to activity after first setting response (no follow-up questions)
+        newState.collectedInfo.setting = userMessage;
+        newState.currentStep = 'activity';
+        newState.settingRefinements = 0;
         break;
         
       case 'activity':
-        if (state.activityRefinements === 0) {
-          // Initial activity input
-          newState.collectedInfo.activity = userMessage;
-          newState.activityRefinements = 1;
-        } else {
-          // Follow-up refinement
-          newState.collectedInfo.activity = `${newState.collectedInfo.activity} ${userMessage}`;
-          newState.activityRefinements++;
-          
-          if (newState.activityRefinements >= 2) {
-            newState.currentStep = 'people';
-            newState.activityRefinements = 0;
-          }
-        }
+        // SHORTENED UX: Move directly to people after first activity response (no follow-up questions)
+        newState.collectedInfo.activity = userMessage;
+        newState.currentStep = 'people';
+        newState.activityRefinements = 0;
         break;
         
       case 'people':
