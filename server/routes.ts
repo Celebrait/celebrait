@@ -3496,7 +3496,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       console.log('Requested size:', size);
 
       // Build the complete prompt with enhanced character action descriptions
-      const characterText = imagesToProcess.length > 1 ? 'characters from the reference images' : 'characters from the reference image';
+      const characterText = imagesToProcess.length > 1 ? 'characters from the reference images' : 'the character from the reference image';
       const aspectDescription = size === '1024x1536' 
         ? 'MANDATORY: Create a PORTRAIT composition with 2:3 aspect ratio (height is 1.5x the width). Full bleed portrait design with no borders, fill entire portrait frame.'
         : 'MANDATORY: Create a perfectly SQUARE composition with equal width and height - NOT portrait, NOT landscape. Full bleed square design with no borders, fill entire square frame.';
@@ -3504,12 +3504,20 @@ If just having a conversation (no suggestions), respond with valid JSON:
         ? '8) COMPOSE FOR PORTRAIT FORMAT - ensure all elements fit within a portrait boundary'
         : '8) COMPOSE FOR SQUARE FORMAT - ensure all elements fit within a square boundary';
       
-      let fullPrompt = `${aspectDescription} Create a completely new scene featuring the ${characterText}. CRITICAL FACIAL ANALYSIS AND IDENTICAL RECREATION REQUIREMENTS:
+      const peopleCount = imagesToProcess.length;
+      const faceAnalysisText = peopleCount > 1 ? 'ANALYZE EACH FACE IN DETAIL' : 'ANALYZE THE FACE IN DETAIL';
+      const faceRecreationText = peopleCount > 1 ? 'RECREATE EACH IDENTICAL FACE' : 'RECREATE THE IDENTICAL FACE';
+      const characterPositioning = peopleCount > 1 ? 'Place the characters' : 'Place the character';
+      const characterPoses = peopleCount > 1 ? 'Give the characters' : 'Give the character';
+      const clothingInstruction = peopleCount > 1 ? 'dress the characters appropriately' : 'dress the character appropriately';
+      const positioningInstruction = peopleCount > 1 ? 'Reimagine character positioning and interactions' : 'Reimagine character positioning';
 
-STEP 1 - ANALYZE THE FACE(S) IN DETAIL:
-Study each person's face with precision focus on: exact eye shape and spacing, precise nose bridge width and nostril shape, specific lip fullness and mouth corners, exact cheekbone prominence, jawline definition, chin shape, forehead proportions, eyebrow arch and thickness, skin texture and tone variations, any asymmetries or unique facial characteristics.
+      let fullPrompt = `${aspectDescription} Create a completely new scene featuring ${characterText}. CRITICAL: Generate EXACTLY ${peopleCount} ${peopleCount === 1 ? 'person' : 'people'} - NO MORE, NO LESS. FACIAL ANALYSIS AND IDENTICAL RECREATION REQUIREMENTS:
 
-STEP 2 - RECREATE IDENTICAL FACES:
+STEP 1 - ${faceAnalysisText}:
+Study ${peopleCount === 1 ? 'the person\'s' : 'each person\'s'} face with precision focus on: exact eye shape and spacing, precise nose bridge width and nostril shape, specific lip fullness and mouth corners, exact cheekbone prominence, jawline definition, chin shape, forehead proportions, eyebrow arch and thickness, skin texture and tone variations, any asymmetries or unique facial characteristics.
+
+STEP 2 - ${faceRecreationText}:
 1) FACIAL STRUCTURE MATCH: Recreate the EXACT facial bone structure - same cheekbone height, same jawline angle, same forehead shape, same chin projection
 2) EYE PRECISION: Match exact eye shape (almond, round, hooded), eye spacing, eyelid fold pattern, iris color, eyebrow shape and arch
 3) NOSE ACCURACY: Replicate precise nose bridge width, nostril shape, nose tip definition, any bumps or unique nose characteristics  
@@ -3522,10 +3530,10 @@ STEP 2 - RECREATE IDENTICAL FACES:
 SCENE CREATION REQUIREMENTS:
 9) DO NOT copy original positioning, poses, or spatial relationships from reference image
 10) CREATE ENTIRELY NEW COMPOSITION for this scene: ${scenePrompt}
-11) Place characters in new positions that naturally fit the described scenario
-12) Give characters new poses and interactions appropriate for the scene
-13) CHANGE the clothing completely to fit the new scene - dress characters appropriately for the scenario while maintaining identical faces only. DO NOT preserve original clothing or outfits.
-14) Reimagine character positioning and interactions for the new environment
+11) ${characterPositioning} in new positions that naturally fit the described scenario
+12) ${characterPoses} new poses and interactions appropriate for the scene
+13) CHANGE the clothing completely to fit the new scene - ${clothingInstruction} for the scenario while maintaining identical faces only. DO NOT preserve original clothing or outfits.
+14) ${positioningInstruction} for the new environment
 ${formatInstruction}`;
       if (style && style.trim()) {
         fullPrompt = `${fullPrompt}, rendered in ${style} art style`;
