@@ -111,8 +111,8 @@ interface ConversationStep {
 export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, onStartFresh }: GuidedConversationProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({
-    // Default art style to "ai_painterly" (digital art)
-    art_style: 'ai_painterly',
+    // Default art style to "cyberpunk" (striking digital art)
+    art_style: 'cyberpunk',
     // Default photo option to match streamlined flow
     photo_option: 'upload_and_scene'
   });
