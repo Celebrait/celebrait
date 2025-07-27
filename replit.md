@@ -143,11 +143,12 @@ Changelog:
   * STYLE RECOMMENDATIONS: Marked best balanced options with ✨ indicators in test interface for easy identification
   * CONSISTENT FALLBACK: Both upload photo workflows now default to semi-realistic illustration when no style is selected
 - July 27, 2025. ENHANCED ANIMATED MOVIE STYLE CONSISTENCY: Implemented specific prompt enhancements for consistent "animated movie style" results:
-  * SPECIFIC STYLE DEFINITIONS: Enhanced "animated movie style" to specify "professional 3D animated movie style with realistic proportions and detailed facial features, similar to high-quality Pixar/DreamWorks animation"
+  * SPECIFIC STYLE DEFINITIONS: Enhanced "animated movie style" to specify "professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation"
   * QUALITY GUIDELINES: Added explicit instructions for "maintain realistic bone structure and facial anatomy while using clean digital rendering with soft edges and polished surfaces"
   * CONSISTENCY IMPROVEMENT: Enhanced style specifications applied to both edit-scene-gpt-image-1 and transform-style-gpt-image-1 endpoints
-  * BALANCED APPROACH: Style now specifically targets Pixar/DreamWorks quality level to avoid too-cartoony results while maintaining professional animation standards
+  * BALANCED APPROACH: Style now specifically targets professional animation studio quality to avoid too-cartoony results while maintaining high-quality standards
   * FACIAL ACCURACY: Enhanced prompt emphasizes realistic bone structure and facial anatomy to ensure recognizable facial recreation within animated style
+  * LEGAL COMPLIANCE: Removed explicit brand references (Pixar/DreamWorks) and replaced with descriptive aesthetic terms to avoid trademark issues
 - July 25, 2025. FACIAL ANALYSIS AND IDENTICAL RECREATION SYSTEM: Implemented advanced facial analysis and recreation system for Upload Photo + Describe Scene workflow:
   * TWO-STEP PROCESS: Added STEP 1 facial analysis requiring detailed study of eye spacing, nose bridge, lip fullness, cheekbone prominence, jawline, skin texture
   * IDENTICAL FACE RECREATION: STEP 2 requires exact replication of facial bone structure, eye precision, nose accuracy, mouth duplication, skin matching

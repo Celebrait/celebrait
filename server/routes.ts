@@ -3544,7 +3544,7 @@ ${formatInstruction}`;
         
         // Make "animated movie style" more specific for consistency
         if (style.toLowerCase().includes('animated movie style')) {
-          enhancedStyle = 'professional 3D animated movie style with realistic proportions and detailed facial features, similar to high-quality Pixar/DreamWorks animation - maintain realistic bone structure and facial anatomy while using clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality';
+          enhancedStyle = 'professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation with realistic bone structure and facial anatomy, clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality';
         }
         // Make "semi-realistic illustration" more specific
         else if (style.toLowerCase().includes('semi-realistic illustration')) {
@@ -3974,7 +3974,7 @@ ${formatInstruction}`;
       
       // Make "animated movie style" more specific for consistency
       if (style.toLowerCase().includes('animated movie style')) {
-        enhancedStyle = 'professional 3D animated movie style with realistic proportions and detailed facial features, similar to high-quality Pixar/DreamWorks animation - maintain realistic bone structure and facial anatomy while using clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality';
+        enhancedStyle = 'professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation with realistic bone structure and facial anatomy, clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality';
       }
       // Make "semi-realistic illustration" more specific
       else if (style.toLowerCase().includes('semi-realistic illustration')) {
