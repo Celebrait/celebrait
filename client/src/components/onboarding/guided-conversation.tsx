@@ -12,6 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
 import { AIBrainstormChat } from "@/components/ui/ai-brainstorm-chat-new";
 import { ArtStyleSelector } from "@/components/ui/art-style-selector";
+import { ArtStyleImageViewer } from "@/components/ui/art-style-image-viewer";
 import { PhotoCropper } from "@/components/ui/photo-cropper";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
@@ -71,6 +72,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [copyrightConsentOpen, setCopyrightConsentOpen] = useState(false);
   const [hasCopyrightConsent, setHasCopyrightConsent] = useState(false);
   const [photoBestPracticesOpen, setPhotoBestPracticesOpen] = useState(false);
+  const [styleViewerOpen, setStyleViewerOpen] = useState(false);
+  const [selectedStyleForViewer, setSelectedStyleForViewer] = useState('');
   
   // Photo cropping state
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -419,7 +422,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
         ? `Perfect! Now let's choose the art style for your scene. This sets the whole mood and feel - I want to make sure it captures the perfect atmosphere for this ${answers.celebration} celebration!`
         : `Perfect! ✨ Now let's choose the art style for ${answers.name || 'their'}'s ${answers.celebration} card.`,
-      type: 'art_style_enhanced',
+      type: 'select',
       options: [
         { 
           value: 'animated_movie_style', 
@@ -1925,66 +1928,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                                   Choose This Style
                                 </Button>
                                 
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      className="w-full border-purple-200 text-purple-600 hover:bg-purple-50 py-2 rounded-lg"
-                                    >
-                                      <Eye className="w-4 h-4 mr-2" />
-                                      View Examples
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-                                    <DialogHeader>
-                                      <DialogTitle className="flex items-center gap-3">
-                                        <div className={`w-8 h-8 ${option.color} rounded-lg flex items-center justify-center text-lg`}>
-                                          {option.emoji}
-                                        </div>
-                                        {option.label} Examples
-                                      </DialogTitle>
-                                      <DialogDescription>
-                                        Browse example cards created in this artistic style
-                                      </DialogDescription>
-                                    </DialogHeader>
-                                    
-                                    <div className="overflow-y-auto max-h-[70vh] p-4">
-                                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                        {/* Sample art style images - these would be actual examples */}
-                                        {[1, 2, 3, 4, 5, 6].map((index) => (
-                                          <div key={index} className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl border-2 border-gray-300 flex items-center justify-center">
-                                            <div className="text-center p-4">
-                                              <div className={`text-3xl mb-2`}>{option.emoji}</div>
-                                              <div className="text-xs text-gray-500">Sample {index}</div>
-                                              <div className="text-xs text-gray-400 mt-1">{option.value === 'animated_movie_style' ? '3D Animation' : 'Storybook Art'}</div>
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                      
-                                      <div className="mt-6 bg-purple-50 rounded-lg p-4">
-                                        <h4 className="font-medium text-purple-800 mb-2">Style Features:</h4>
-                                        <ul className="text-purple-700 text-sm space-y-1">
-                                          {option.value === 'animated_movie_style' ? (
-                                            <>
-                                              <li>• Professional 3D animated movie quality</li>
-                                              <li>• Realistic proportions and detailed facial features</li>
-                                              <li>• Clean digital rendering with soft edges</li>
-                                              <li>• Modern, high-quality character design</li>
-                                            </>
-                                          ) : (
-                                            <>
-                                              <li>• Hand-painted storybook illustration style</li>
-                                              <li>• Traditional oil or gouache texture</li>
-                                              <li>• Warm color palette with soft brushwork</li>
-                                              <li>• Nostalgic, timeless quality</li>
-                                            </>
-                                          )}
-                                        </ul>
-                                      </div>
-                                    </div>
-                                  </DialogContent>
-                                </Dialog>
+                                <Button
+                                  variant="outline"
+                                  className="w-full border-purple-200 text-purple-600 hover:bg-purple-50 py-2 rounded-lg"
+                                  onClick={() => {
+                                    setSelectedStyleForViewer(option.value);
+                                    setStyleViewerOpen(true);
+                                  }}
+                                >
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  View Examples
+                                </Button>
                               </div>
                             </div>
                           ))}
@@ -3429,6 +3383,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
           existingCrops={getMultiCropImages(currentCropImageIndex)}
         />
       )}
+
+      {/* Art Style Image Viewer */}
+      <ArtStyleImageViewer
+        isOpen={styleViewerOpen}
+        onClose={() => setStyleViewerOpen(false)}
+        styleName={selectedStyleForViewer === 'animated_movie_style' ? 'High-End 3D Animated Movie' : 'Classic Illustrated Storybook'}
+        images={[]}
+      />
     </div>
   );
 }
