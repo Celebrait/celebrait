@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,8 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function GPTImageTest() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
-  const [style, setStyle] = useState('');
-  const [artStylePreset, setArtStylePreset] = useState<'3d-animated' | 'storybook'>('3d-animated');
+  const [style, setStyle] = useState('anime style');
   const [imageSize, setImageSize] = useState<'1024x1024' | '1024x1536'>('1024x1024');
   const [isLoading, setIsLoading] = useState(false);
   const [resultImage, setResultImage] = useState<string>('');
@@ -23,7 +22,7 @@ export default function GPTImageTest() {
   
   // Scene editing specific state
   const [scenePrompt, setScenePrompt] = useState('');
-  const [sceneStyle, setSceneStyle] = useState('animated movie style');
+  const [sceneStyle, setSceneStyle] = useState('watercolor painting');
   const [sceneIncludeText, setSceneIncludeText] = useState(false);
   const [activeTab, setActiveTab] = useState<'transform' | 'scene'>('transform');
   
@@ -34,45 +33,6 @@ export default function GPTImageTest() {
   const [isGeneratingInside, setIsGeneratingInside] = useState(false);
   
   const { toast } = useToast();
-
-  // Global error handler for unhandled promise rejections
-  useEffect(() => {
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.error('Unhandled promise rejection caught:', event.reason);
-      event.preventDefault(); // Prevent the default browser error handling
-      
-      toast({
-        title: "Request Error",
-        description: "A request failed unexpectedly. Please try again.",
-        variant: "destructive"
-      });
-    };
-
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-    
-    return () => {
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-    };
-  }, [toast]);
-
-  // Art style definitions
-  const artStyleDefinitions = {
-    '3d-animated': {
-      name: 'High-End 3D Animated Movie',
-      description: 'Professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation with realistic bone structure and facial anatomy, clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality',
-      shortStyle: 'animated movie style'
-    },
-    'storybook': {
-      name: 'Classic Illustrated Storybook',
-      description: 'Hand-painted storybook illustration style with traditional oil or gouache texture, warm color palette, and soft brushwork. Features charming, slightly exaggerated character design, painterly backgrounds, and a nostalgic, timeless quality reminiscent of mid-century children\'s books and vintage European art',
-      shortStyle: 'hand-painted storybook illustration style'
-    }
-  };
-
-  // Helper function to get current art style
-  const getCurrentArtStyle = () => {
-    return artStyleDefinitions[artStylePreset];
-  };
 
   const generateInsideCardAuto = async (frontImage: string) => {
     if (!insideCardText.trim()) return;
@@ -117,15 +77,12 @@ export default function GPTImageTest() {
     }
   };
 
-  const buildPromptWithText = (): string => {
-    // Use custom style if provided, otherwise use preset style
-    const currentStyle = style.trim() ? style : getCurrentArtStyle().description;
-    
+  const buildPromptWithText = (baseStyle: string): string => {
     if (!includeText || !frontCardText.trim()) {
-      return `Transform the attached image into ${currentStyle}`;
+      return `Transform the attached image into ${baseStyle}`;
     }
 
-    return `Transform the attached image into ${currentStyle}. Include the text "${frontCardText}" in the same artistic style, as if it were naturally part of a greeting card design.`;
+    return `Transform the attached image into ${baseStyle}. Include the text "${frontCardText}" in the same ${baseStyle}, as if it were naturally part of a greeting card design.`;
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,17 +112,7 @@ export default function GPTImageTest() {
     setError('');
     setResultImage('');
 
-    let timeoutId: NodeJS.Timeout | null = null;
-    
     try {
-      // Create an AbortController for timeout handling
-      const controller = new AbortController();
-      timeoutId = setTimeout(() => {
-        if (!controller.signal.aborted) {
-          controller.abort('Request timeout - operation took longer than 3 minutes');
-        }
-      }, 180000); // 3 minute timeout
-
       const response = await fetch('/api/transform-style-gpt-image-1', {
         method: 'POST',
         headers: {
@@ -173,24 +120,16 @@ export default function GPTImageTest() {
         },
         body: JSON.stringify({
           imageData: imagePreview,
-          style: buildPromptWithText(),
+          style: buildPromptWithText(style),
           size: imageSize
-        }),
-        signal: controller.signal
+        })
       });
 
-      // Clear timeout immediately after successful response
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
+      const data = await response.json();
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Server error: ${response.status} - ${errorText}`);
+        throw new Error(data.message || 'GPT-Image-1 transformation failed');
       }
-
-      const data = await response.json();
 
       setResultImage(data.imageUrl);
       setFrontCardImage(data.imageUrl);
@@ -208,27 +147,13 @@ export default function GPTImageTest() {
       }
     } catch (err: any) {
       console.error('GPT-Image-1 error:', err);
-      
-      let errorMessage = 'GPT-Image-1 transformation failed';
-      if (err.name === 'AbortError') {
-        errorMessage = 'Request timed out. The transformation is taking longer than 3 minutes. Please try again.';
-      } else if (err.message && err.message !== 'undefined' && err.message.trim() !== '') {
-        errorMessage = err.message;
-      } else if (typeof err === 'string' && err.trim() !== '') {
-        errorMessage = err;
-      }
-      
-      setError(errorMessage);
+      setError(err.message);
       toast({
         title: "GPT-Image-1 Error",
-        description: errorMessage,
+        description: err.message,
         variant: "destructive"
       });
     } finally {
-      // Ensure timeout is always cleared
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
       setIsLoading(false);
     }
   };
@@ -255,8 +180,6 @@ export default function GPTImageTest() {
     setIsLoading(true);
     setError('');
     setResultImage('');
-
-    let timeoutId: NodeJS.Timeout | null = null;
 
     try {
       // Analyze photo to detect person count
@@ -288,14 +211,6 @@ export default function GPTImageTest() {
         console.error('Photo analysis failed:', analysisError);
       }
 
-      // Create an AbortController for timeout handling
-      const controller = new AbortController();
-      timeoutId = setTimeout(() => {
-        if (!controller.signal.aborted) {
-          controller.abort('Request timeout - operation took longer than 3 minutes');
-        }
-      }, 180000); // 3 minute timeout
-
       const response = await fetch('/api/edit-scene-gpt-image-1', {
         method: 'POST',
         headers: {
@@ -304,37 +219,18 @@ export default function GPTImageTest() {
         body: JSON.stringify({
           imageData: imagePreview,
           scenePrompt: scenePrompt,
-          style: getCurrentArtStyle().description, // Use preset style description
+          style: sceneStyle,
           includeText: sceneIncludeText,
           cardText: frontCardText,
           size: imageSize,
           detectedPersonCount: detectedPersonCount // Pass detected person count
-        }),
-        signal: controller.signal
+        })
       });
 
-      // Clear timeout immediately after successful response
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
-      
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Server error: ${response.status} - ${errorText}`);
-      }
-
-      let data;
-      try {
-        data = await response.json();
-        console.log('Scene edit response data:', data);
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        throw new Error('Invalid response format from server');
-      }
-
-      if (!data || !data.imageUrl) {
-        throw new Error('No image URL received from server');
+        throw new Error(data.message || 'Scene editing failed');
       }
 
       setResultImage(data.imageUrl);
@@ -353,27 +249,13 @@ export default function GPTImageTest() {
       }
     } catch (err: any) {
       console.error('Scene edit error:', err);
-      
-      let errorMessage = 'Scene editing failed';
-      if (err.name === 'AbortError') {
-        errorMessage = 'Request timed out. The scene editing is taking longer than 3 minutes. Please try again.';
-      } else if (err.message && err.message !== 'undefined') {
-        errorMessage = err.message;
-      } else if (typeof err === 'string') {
-        errorMessage = err;
-      }
-      
-      setError(errorMessage);
+      setError(err.message);
       toast({
         title: "Scene Edit Error",
-        description: errorMessage,
+        description: err.message,
         variant: "destructive"
       });
     } finally {
-      // Ensure timeout is always cleared
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
       setIsLoading(false);
     }
   };
@@ -400,7 +282,7 @@ export default function GPTImageTest() {
         },
         body: JSON.stringify({
           imageData: imagePreview,
-          style: buildPromptWithText()
+          style: buildPromptWithText(style)
         })
       });
 
@@ -489,42 +371,78 @@ export default function GPTImageTest() {
               </TabsList>
               
               <TabsContent value="transform" className="space-y-4 mt-4">
-                {/* Art Style Selector */}
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="art-style-preset">Art Style</Label>
-                    <Select value={artStylePreset} onValueChange={(value) => setArtStylePreset(value as '3d-animated' | 'storybook')}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="3d-animated">🎬 {artStyleDefinitions['3d-animated'].name}</SelectItem>
-                        <SelectItem value="storybook">📚 {artStyleDefinitions['storybook'].name}</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div>
+                  <Label htmlFor="style-input">Transformation Style</Label>
+                  
+                  {/* Quick Style Presets */}
+                  <div className="mt-2 mb-3">
+                    <Label className="text-sm font-medium mb-2 block">Quick Presets (balanced real + cartoon):</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStyle("semi-realistic illustration style")}
+                        className="text-xs justify-start"
+                      >
+                        Semi-Realistic
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStyle("stylized semi-realism style")}
+                        className="text-xs justify-start"
+                      >
+                        Stylized Semi-Realism
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStyle("soft cartoon-realistic hybrid style")}
+                        className="text-xs justify-start"
+                      >
+                        Soft Cartoon-Real
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStyle("painterly illustration style")}
+                        className="text-xs justify-start"
+                      >
+                        Painterly
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStyle("animated movie style illustration")}
+                        className="text-xs justify-start"
+                      >
+                        Animated Movie
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStyle("digital art")}
+                        className="text-xs justify-start"
+                      >
+                        Digital Art (current)
+                      </Button>
+                    </div>
                   </div>
                   
-                  {/* Style Description */}
-                  <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
-                    <h4 className="font-semibold text-blue-900 mb-2">{getCurrentArtStyle().name}</h4>
-                    <p className="text-sm text-blue-800">{getCurrentArtStyle().description}</p>
-                  </div>
-
-                  {/* Custom Style Override (Optional) */}
-                  <div>
-                    <Label htmlFor="style-input">Custom Style Override (Optional)</Label>
-                    <Textarea
-                      id="style-input"
-                      value={style}
-                      onChange={(e) => setStyle(e.target.value)}
-                      placeholder="Leave empty to use the selected preset style, or enter custom style instructions..."
-                      className="mt-2"
-                      rows={3}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Custom styles will override the preset when filled. Leave empty to use the selected art style preset.
-                    </p>
-                  </div>
+                  <Textarea
+                    id="style-input"
+                    value={style}
+                    onChange={(e) => setStyle(e.target.value)}
+                    placeholder="e.g., semi-realistic illustration style, stylized semi-realism style, soft cartoon-realistic hybrid style"
+                    className="mt-2"
+                    rows={3}
+                  />
                 </div>
 
                 <div className="space-y-4">
@@ -554,7 +472,7 @@ export default function GPTImageTest() {
                     <Card className="p-4 bg-gray-50">
                       <div className="p-3 bg-blue-50 border border-blue-200 rounded">
                         <p className="text-sm text-blue-800">
-                          <strong>Preview prompt:</strong> {buildPromptWithText()}
+                          <strong>Preview prompt:</strong> {buildPromptWithText(style)}
                         </p>
                         {includeText && !frontCardText && (
                           <p className="text-sm text-amber-700 mt-2">
@@ -588,12 +506,6 @@ export default function GPTImageTest() {
               </TabsContent>
 
               <TabsContent value="scene" className="space-y-4 mt-4">
-                {/* Current Art Style Display */}
-                <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg">
-                  <h4 className="font-semibold text-green-900 mb-2">Using Art Style: {getCurrentArtStyle().name}</h4>
-                  <p className="text-sm text-green-800">Scene editing will use the art style selected in the Transform tab above.</p>
-                </div>
-
                 <div>
                   <Label htmlFor="scene-prompt">New Scene Description</Label>
                   <Textarea
@@ -604,6 +516,30 @@ export default function GPTImageTest() {
                     className="mt-2"
                     rows={3}
                   />
+                </div>
+
+                <div>
+                  <Label htmlFor="scene-style">Art Style</Label>
+                  <Select value={sceneStyle} onValueChange={setSceneStyle}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="semi-realistic illustration">✨ Semi-Realistic Illustration (Recommended)</SelectItem>
+                      <SelectItem value="stylized semi-realism">✨ Stylized Semi-Realism (Recommended)</SelectItem>
+                      <SelectItem value="soft cartoon-realistic hybrid">✨ Soft Cartoon-Real Hybrid (Recommended)</SelectItem>
+                      <SelectItem value="painterly illustration">✨ Painterly Illustration (Recommended)</SelectItem>
+                      <SelectItem value="animated movie style illustration">✨ Animated Movie Style (Recommended)</SelectItem>
+                      <SelectItem value="watercolor painting">Watercolor Painting</SelectItem>
+                      <SelectItem value="oil painting">Oil Painting</SelectItem>
+                      <SelectItem value="anime style">Anime Style</SelectItem>
+                      <SelectItem value="digital art">Digital Art (too realistic)</SelectItem>
+                      <SelectItem value="sketch">Pencil Sketch</SelectItem>
+                      <SelectItem value="photorealistic">Photorealistic (too realistic)</SelectItem>
+                      <SelectItem value="cartoon">Cartoon</SelectItem>
+                      <SelectItem value="vintage poster">Vintage Poster</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-4">
@@ -620,7 +556,7 @@ export default function GPTImageTest() {
                     <Card className="p-4 bg-gray-50">
                       <div className="p-3 bg-blue-50 border border-blue-200 rounded">
                         <p className="text-sm text-blue-800">
-                          <strong>Preview prompt:</strong> {scenePrompt}, with clothing to match the occasion in {getCurrentArtStyle().description}
+                          <strong>Preview prompt:</strong> {scenePrompt}, with clothing to match the occasion in {sceneStyle}
                           {sceneIncludeText && frontCardText ? `. Include the text "${frontCardText}" beautifully integrated into the composition` : ''}
                         </p>
                         {sceneIncludeText && !frontCardText && (
@@ -702,14 +638,9 @@ export default function GPTImageTest() {
             )}
 
             {isLoading && (
-              <div className="flex flex-col items-center justify-center p-8 space-y-4">
+              <div className="flex items-center justify-center p-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <div className="text-center">
-                  <p className="font-medium">Processing transformation...</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    This may take up to 3 minutes. AI image generation is processing your request.
-                  </p>
-                </div>
+                <span className="ml-3">Processing transformation...</span>
               </div>
             )}
 

@@ -40,6 +40,35 @@ interface StyleSuggestion {
   category: 'art_style' | 'visual_style_reference';
 }
 
+interface PresetStyle {
+  name: string;
+  description: string;
+  example: string;
+  popular: boolean;
+}
+
+// Three main style presets
+const PRESET_STYLES: PresetStyle[] = [
+  {
+    name: "3D Computer Animated Adventure",
+    description: "Vibrant, cheerful animation style with smooth characters and bright colors",
+    example: "Like Pixar movies or modern animated films",
+    popular: true
+  },
+  {
+    name: "Watercolor Painting Style",
+    description: "Soft, artistic look with flowing colors and gentle textures",
+    example: "Like traditional watercolor artwork",
+    popular: true
+  },
+  {
+    name: "Digital Portrait Photography",
+    description: "Realistic, polished style with professional lighting and detail",
+    example: "Like high-quality portrait photography",
+    popular: true
+  }
+];
+
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
