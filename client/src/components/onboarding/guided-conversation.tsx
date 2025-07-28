@@ -2316,6 +2316,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                                         alt={`Photo ${index + 1}`}
                                         className="w-full h-full object-cover"
                                       />
+                                      {/* Small crop button for summary */}
+                                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-200 flex items-center justify-center">
+                                        <Button
+                                          onClick={() => handleCropPhoto(index)}
+                                          size="sm"
+                                          className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white text-purple-600 hover:bg-purple-50 p-1 text-xs"
+                                        >
+                                          <Crop className="w-3 h-3" />
+                                        </Button>
+                                      </div>
                                       {/* Cropped indicator */}
                                       {croppedImages[index] && (
                                         <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
@@ -2325,15 +2335,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium text-gray-900">Photo {index + 1}</p>
-                                      <Button
-                                        onClick={() => handleCropPhoto(index)}
-                                        size="sm"
-                                        variant="outline"
-                                        className="bg-white text-purple-600 hover:bg-purple-50 border border-purple-300 px-2 py-1 text-xs mt-1"
-                                      >
-                                        <Crop className="w-3 h-3 mr-1" />
-                                        {croppedImages[index] ? 'Re-crop' : 'Crop'}
-                                      </Button>
                                     </div>
                                   </div>
                                 ))}
@@ -2989,30 +2990,29 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             'justify-center'
                           }`}>
                             {uploadedPhotos.map((photo, index) => (
-                              <div key={index} className="flex flex-col items-center space-y-2">
-                                <div className="relative w-32 h-32 rounded-xl overflow-hidden border-4 border-purple-300 flex-shrink-0">
-                                  <img 
-                                    src={getDisplayImage(index)} 
-                                    alt={`Uploaded photo ${index + 1}`} 
-                                    className="w-full h-full object-cover"
-                                  />
-                                  {/* Cropped indicator */}
-                                  {croppedImages[index] && (
-                                    <div className="absolute top-1 right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                                      ✓
-                                    </div>
-                                  )}
+                              <div key={index} className="relative w-32 h-32 rounded-xl overflow-hidden border-4 border-purple-300 flex-shrink-0 group">
+                                <img 
+                                  src={getDisplayImage(index)} 
+                                  alt={`Uploaded photo ${index + 1}`} 
+                                  className="w-full h-full object-cover"
+                                />
+                                {/* Crop button overlay */}
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
+                                  <Button
+                                    onClick={() => handleCropPhoto(index)}
+                                    size="sm"
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white text-purple-600 hover:bg-purple-50 border border-purple-300"
+                                  >
+                                    <Crop className="w-4 h-4 mr-1" />
+                                    Crop
+                                  </Button>
                                 </div>
-                                {/* Crop button underneath */}
-                                <Button
-                                  onClick={() => handleCropPhoto(index)}
-                                  size="sm"
-                                  variant="outline"
-                                  className="bg-white text-purple-600 hover:bg-purple-50 border border-purple-300 px-3 py-1 text-xs"
-                                >
-                                  <Crop className="w-3 h-3 mr-1" />
-                                  {croppedImages[index] ? 'Re-crop' : 'Crop'}
-                                </Button>
+                                {/* Cropped indicator */}
+                                {croppedImages[index] && (
+                                  <div className="absolute top-1 right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                    ✓
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>

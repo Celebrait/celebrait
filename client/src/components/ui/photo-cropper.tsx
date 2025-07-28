@@ -44,8 +44,9 @@ export function PhotoCropper({
   // Initialize crop area when image loads
   useEffect(() => {
     if (imageLoaded && imageDimensions.width > 0) {
+      // For multiple people, start with a larger crop area (90% instead of 80%)
       const minDimension = Math.min(imageDimensions.width, imageDimensions.height);
-      const cropSize = Math.min(minDimension * 0.8, 300); // 80% of smallest dimension, max 300px
+      const cropSize = Math.min(minDimension * 0.9, 400); // 90% of smallest dimension, max 400px
       
       setCropArea({
         x: (imageDimensions.width - cropSize) / 2,
@@ -222,7 +223,7 @@ export function PhotoCropper({
   const resetCrop = useCallback(() => {
     if (imageDimensions.width > 0) {
       const minDimension = Math.min(imageDimensions.width, imageDimensions.height);
-      const cropSize = Math.min(minDimension * 0.8, 300);
+      const cropSize = Math.min(minDimension * 0.9, 400);
       
       setCropArea({
         x: (imageDimensions.width - cropSize) / 2,
@@ -287,7 +288,7 @@ export function PhotoCropper({
             Crop Your Photo
           </DialogTitle>
           <DialogDescription className="text-sm">
-            Adjust the crop area to focus on the person's face and upper body for the best card results.
+            Adjust the crop area to focus on the important people in your photo. For multiple people, resize the area to include everyone you want featured.
           </DialogDescription>
         </DialogHeader>
         
