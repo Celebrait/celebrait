@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,26 @@ export default function GPTImageTest() {
   const [isGeneratingInside, setIsGeneratingInside] = useState(false);
   
   const { toast } = useToast();
+
+  // Global error handler for unhandled promise rejections
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled promise rejection caught:', event.reason);
+      event.preventDefault(); // Prevent the default browser error handling
+      
+      toast({
+        title: "Request Error",
+        description: "A request failed unexpectedly. Please try again.",
+        variant: "destructive"
+      });
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, [toast]);
 
   // Art style definitions
   const artStyleDefinitions = {
@@ -192,8 +212,10 @@ export default function GPTImageTest() {
       let errorMessage = 'GPT-Image-1 transformation failed';
       if (err.name === 'AbortError') {
         errorMessage = 'Request timed out. The transformation is taking longer than expected. Please try again.';
-      } else if (err.message) {
+      } else if (err.message && err.message !== 'undefined' && err.message.trim() !== '') {
         errorMessage = err.message;
+      } else if (typeof err === 'string' && err.trim() !== '') {
+        errorMessage = err;
       }
       
       setError(errorMessage);
@@ -302,9 +324,18 @@ export default function GPTImageTest() {
         throw new Error(`Server error: ${response.status} - ${errorText}`);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+        console.log('Scene edit response data:', data);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        throw new Error('Invalid response format from server');
+      }
 
-
+      if (!data || !data.imageUrl) {
+        throw new Error('No image URL received from server');
+      }
 
       setResultImage(data.imageUrl);
       setFrontCardImage(data.imageUrl);
@@ -326,8 +357,10 @@ export default function GPTImageTest() {
       let errorMessage = 'Scene editing failed';
       if (err.name === 'AbortError') {
         errorMessage = 'Request timed out. The scene editing is taking longer than expected. Please try again.';
-      } else if (err.message) {
+      } else if (err.message && err.message !== 'undefined') {
         errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
       }
       
       setError(errorMessage);
