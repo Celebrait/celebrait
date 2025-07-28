@@ -747,7 +747,9 @@ export function AIBrainstormChat({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
+        <Button 
+          className="gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-medium shadow-lg transform hover:scale-105 transition-all duration-200"
+        >
           {buttonIcon}
           {buttonText}
         </Button>

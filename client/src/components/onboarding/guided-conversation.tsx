@@ -5,8 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette, Edit3, Eye, Crop } from "lucide-react";
+
+import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette, Edit3, Crop } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
@@ -23,73 +23,7 @@ const EXAMPLE_PROMPTS = [
   "Painting on a canvas in a bright art studio, wearing paint-splattered clothes, surrounded by colorful artwork, with natural light streaming through large windows and creativity flowing freely"
 ];
 
-// Inspiration examples for the popup modal
-const INSPIRATION_EXAMPLES = {
-  sceneOnly: [
-    {
-      title: "Sunrise Dreams",
-      description: "Golden sunrise over rolling hills with floating balloons and scattered flower petals",
-      emoji: "🌅",
-      gradient: "from-pink-400 to-rose-600"
-    },
-    {
-      title: "Cozy Fireplace",
-      description: "Warm fireplace glow with floating hearts, soft blankets, and twinkling lights",
-      emoji: "🕯️",
-      gradient: "from-blue-400 to-indigo-600"
-    },
-    {
-      title: "Enchanted Garden",
-      description: "Magical garden with blooming flowers, butterflies, and soft morning mist",
-      emoji: "🌸",
-      gradient: "from-purple-400 to-violet-600"
-    },
-    {
-      title: "Starry Night",
-      description: "Peaceful night sky with twinkling stars, crescent moon, and gentle clouds",
-      emoji: "⭐",
-      gradient: "from-green-400 to-emerald-600"
-    },
-    {
-      title: "Celebration Burst",
-      description: "Vibrant confetti explosion with ribbons, sparkles, and joyful celebration elements",
-      emoji: "🎊",
-      gradient: "from-orange-400 to-amber-600"
-    }
-  ],
-  withPerson: [
-    {
-      title: "Adventure Scene",
-      description: "Standing on a mountain peak at sunrise, wearing hiking gear, with a triumphant expression and arms raised",
-      emoji: "🏔️",
-      gradient: "from-blue-400 to-blue-600"
-    },
-    {
-      title: "Cozy Café",
-      description: "Sitting in a warm café, reading a book, wearing a cozy sweater, with steaming coffee and rain outside",
-      emoji: "☕",
-      gradient: "from-green-400 to-green-600"
-    },
-    {
-      title: "Art Studio",
-      description: "Painting on a canvas in a bright studio, wearing an apron, surrounded by colorful artwork and brushes",
-      emoji: "🎨",
-      gradient: "from-purple-400 to-purple-600"
-    },
-    {
-      title: "Garden Party",
-      description: "Having a picnic in a beautiful flower garden, wearing summer clothes, with butterflies and sunshine",
-      emoji: "🌸",
-      gradient: "from-orange-400 to-orange-600"
-    },
-    {
-      title: "Chef's Kitchen",
-      description: "Cooking in a professional kitchen, wearing chef's whites, creating a masterpiece dish with passion",
-      emoji: "🍳",
-      gradient: "from-red-400 to-red-600"
-    }
-  ]
-};
+
 
 interface GuidedConversationProps {
   onboarding: any;
@@ -149,7 +83,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [isTypingExample, setIsTypingExample] = useState(false);
   const [userHasTyped, setUserHasTyped] = useState(false);
   const [showHowItWorksModal, setShowHowItWorksModal] = useState(false);
-  const [showInspirationModal, setShowInspirationModal] = useState(false);
+
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [showEmailPopup, setShowEmailPopup] = useState(false);
@@ -3040,32 +2974,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
                 {currentStep.type === 'textarea' && (
                   <div className="space-y-4">
-                    {currentStep.id === 'scene' && (
-                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-4 rounded-lg">
-                        <div className="flex items-start">
-                          <div className="flex-shrink-0">
-                            <svg className="w-5 h-5 text-blue-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                          <div className="ml-3 flex-1">
-                            <h3 className="text-sm font-semibold text-blue-800">💡 Pro tip:</h3>
-                            <p className="text-sm text-blue-700 mt-1 mb-3">
-                              Paint us a picture with your words! The more vivid your description, the more amazing your card will be. Our AI loves details, so feel free to get creative or keep it simple - whatever feels right. Don't worry about art style - that's coming up next!
-                            </p>
-                            <Button
-                              onClick={() => setShowInspirationModal(true)}
-                              variant="outline"
-                              size="sm"
-                              className="bg-white border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 text-xs font-medium"
-                            >
-                              <Eye className="w-3 h-3 mr-1" />
-                              View Inspiration Examples
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+
                     
 
                     
@@ -3317,56 +3226,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
 
 
-      {/* Inspiration Modal with Carousel */}
-      <Dialog open={showInspirationModal} onOpenChange={setShowInspirationModal}>
-        <DialogContent className="w-[95vw] max-w-5xl max-h-[95vh] bg-white border-2 border-gray-200 overflow-y-auto">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Scene Inspiration Examples</DialogTitle>
-          </DialogHeader>
-          
-          <div className="p-3 sm:p-4 md:p-6">
-            <Carousel className="w-full">
-              <CarouselContent className="-ml-1 sm:-ml-2 md:-ml-3">
-                {(onboarding.selectedSceneType === 'scene-only' 
-                  ? INSPIRATION_EXAMPLES.sceneOnly 
-                  : INSPIRATION_EXAMPLES.withPerson
-                ).map((example, index) => (
-                  <CarouselItem key={index} className="pl-1 sm:pl-2 md:pl-3 basis-full xs:basis-1/2 sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
-                    <div className="p-1 sm:p-2">
-                      <Card className="h-full border border-gray-200 hover:shadow-md transition-shadow">
-                        <CardContent className="p-3 sm:p-4">
-                          <div className={`bg-gradient-to-br ${example.gradient} aspect-square rounded-lg flex items-center justify-center text-white text-2xl sm:text-3xl md:text-4xl mb-3`}>
-                            {example.emoji}
-                          </div>
-                          <div className="text-center">
-                            <h3 className="font-semibold text-xs sm:text-sm md:text-base text-gray-800 mb-2">
-                              {example.title}
-                            </h3>
-                            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                              "{example.description}"
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="left-1 sm:left-2 h-8 w-8 sm:h-10 sm:w-10" />
-              <CarouselNext className="right-1 sm:right-2 h-8 w-8 sm:h-10 sm:w-10" />
-            </Carousel>
-          </div>
-          
-          <div className="flex justify-center pt-4 pb-2">
-            <Button 
-              onClick={() => setShowInspirationModal(false)} 
-              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-xl font-medium shadow-lg transform hover:scale-105 transition-all duration-200"
-            >
-              Close & Continue Creating
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+
 
       {/* Email Collection Popup Modal */}
       <Dialog open={showEmailPopup} onOpenChange={setShowEmailPopup}>
