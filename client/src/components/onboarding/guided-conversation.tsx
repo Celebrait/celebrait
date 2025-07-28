@@ -135,6 +135,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [selectedVideoOption, setSelectedVideoOption] = useState<string>('');
   const [copyrightConsentOpen, setCopyrightConsentOpen] = useState(false);
   const [hasCopyrightConsent, setHasCopyrightConsent] = useState(false);
+  const [photoBestPracticesOpen, setPhotoBestPracticesOpen] = useState(false);
   
   // Photo cropping state
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -996,7 +997,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const handleCopyrightConsent = () => {
     setHasCopyrightConsent(true);
     setCopyrightConsentOpen(false);
-    // Directly trigger file input after copyright consent
+    // Show photo best practices popup after copyright consent
+    setPhotoBestPracticesOpen(true);
+  };
+
+  const handleBestPracticesClose = () => {
+    setPhotoBestPracticesOpen(false);
+    // Trigger file input after best practices popup
     setTimeout(() => {
       document.getElementById('photo-upload')?.click();
     }, 100);
@@ -2309,16 +2316,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                                         alt={`Photo ${index + 1}`}
                                         className="w-full h-full object-cover"
                                       />
-                                      {/* Small crop button for summary */}
-                                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-200 flex items-center justify-center">
-                                        <Button
-                                          onClick={() => handleCropPhoto(index)}
-                                          size="sm"
-                                          className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white text-purple-600 hover:bg-purple-50 p-1 text-xs"
-                                        >
-                                          <Crop className="w-3 h-3" />
-                                        </Button>
-                                      </div>
                                       {/* Cropped indicator */}
                                       {croppedImages[index] && (
                                         <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
@@ -2328,6 +2325,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium text-gray-900">Photo {index + 1}</p>
+                                      <Button
+                                        onClick={() => handleCropPhoto(index)}
+                                        size="sm"
+                                        variant="outline"
+                                        className="bg-white text-purple-600 hover:bg-purple-50 border border-purple-300 px-2 py-1 text-xs mt-1"
+                                      >
+                                        <Crop className="w-3 h-3 mr-1" />
+                                        {croppedImages[index] ? 'Re-crop' : 'Crop'}
+                                      </Button>
                                     </div>
                                   </div>
                                 ))}
@@ -2983,29 +2989,30 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             'justify-center'
                           }`}>
                             {uploadedPhotos.map((photo, index) => (
-                              <div key={index} className="relative w-32 h-32 rounded-xl overflow-hidden border-4 border-purple-300 flex-shrink-0 group">
-                                <img 
-                                  src={getDisplayImage(index)} 
-                                  alt={`Uploaded photo ${index + 1}`} 
-                                  className="w-full h-full object-cover"
-                                />
-                                {/* Crop button overlay */}
-                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
-                                  <Button
-                                    onClick={() => handleCropPhoto(index)}
-                                    size="sm"
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white text-purple-600 hover:bg-purple-50 border border-purple-300"
-                                  >
-                                    <Crop className="w-4 h-4 mr-1" />
-                                    Crop
-                                  </Button>
+                              <div key={index} className="flex flex-col items-center space-y-2">
+                                <div className="relative w-32 h-32 rounded-xl overflow-hidden border-4 border-purple-300 flex-shrink-0">
+                                  <img 
+                                    src={getDisplayImage(index)} 
+                                    alt={`Uploaded photo ${index + 1}`} 
+                                    className="w-full h-full object-cover"
+                                  />
+                                  {/* Cropped indicator */}
+                                  {croppedImages[index] && (
+                                    <div className="absolute top-1 right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                      ✓
+                                    </div>
+                                  )}
                                 </div>
-                                {/* Cropped indicator */}
-                                {croppedImages[index] && (
-                                  <div className="absolute top-1 right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                                    ✓
-                                  </div>
-                                )}
+                                {/* Crop button underneath */}
+                                <Button
+                                  onClick={() => handleCropPhoto(index)}
+                                  size="sm"
+                                  variant="outline"
+                                  className="bg-white text-purple-600 hover:bg-purple-50 border border-purple-300 px-3 py-1 text-xs"
+                                >
+                                  <Crop className="w-3 h-3 mr-1" />
+                                  {croppedImages[index] ? 'Re-crop' : 'Crop'}
+                                </Button>
                               </div>
                             ))}
                           </div>
@@ -3651,6 +3658,62 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Photo Best Practices Modal */}
+      <Dialog open={photoBestPracticesOpen} onOpenChange={setPhotoBestPracticesOpen}>
+        <DialogContent className="max-w-md bg-white border-2 border-blue-200">
+          <DialogHeader className="text-center pb-4">
+            <div className="flex items-center justify-center space-x-3 mb-3">
+              <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <DialogTitle className="text-xl font-bold text-blue-600">
+                Photo Best Practices
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-sm text-gray-600">
+              For the best card results, follow these photo guidelines
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 p-2">
+            <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+              <div className="space-y-3">
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-gray-800 text-sm font-medium">
+                    <strong>Choose clear headshots</strong> that are well-lit with the person's facial features clearly visible
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-gray-800 text-sm font-medium">
+                    <strong>Avoid obstructions</strong> like hats, sunglasses, or anything covering the face
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-gray-800 text-sm font-medium">
+                    <strong>Use our cropping tool</strong> to focus on headshots if needed - just click the crop button below any uploaded photo
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex flex-col space-y-3 pt-2">
+              <Button 
+                onClick={handleBestPracticesClose}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium"
+              >
+                Got It! Upload Photos
+              </Button>
             </div>
           </div>
         </DialogContent>

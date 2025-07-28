@@ -280,54 +280,54 @@ export function PhotoCropper({
 
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="max-w-full max-h-full w-screen h-screen sm:max-w-4xl sm:max-h-[90vh] sm:w-auto sm:h-auto overflow-hidden p-2 sm:p-6">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <Crop className="w-5 h-5" />
             Crop Your Photo
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm">
             Adjust the crop area to focus on the person's face and upper body for the best card results.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2 sm:gap-4 h-full">
           {/* Controls */}
-          <div className="flex flex-wrap gap-2 justify-center">
+          <div className="flex flex-wrap gap-1 sm:gap-2 justify-center">
             <Button
               variant="outline"
               size="sm"
               onClick={handleZoomOut}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 text-xs sm:text-sm"
             >
-              <ZoomOut className="w-4 h-4" />
+              <ZoomOut className="w-3 h-3 sm:w-4 sm:h-4" />
               Zoom Out
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={handleZoomIn}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 text-xs sm:text-sm"
             >
-              <ZoomIn className="w-4 h-4" />
+              <ZoomIn className="w-3 h-3 sm:w-4 sm:h-4" />
               Zoom In
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={resetCrop}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 text-xs sm:text-sm"
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
               Reset
             </Button>
           </div>
 
           {/* Cropping Area */}
-          <div className="relative mx-auto overflow-hidden rounded-lg bg-gray-100">
+          <div className="relative mx-auto overflow-hidden rounded-lg bg-gray-100 flex-1 min-h-0">
             <div
               ref={containerRef}
-              className="relative"
+              className="relative w-full h-full"
               style={{
                 transform: `scale(${scale})`,
                 transformOrigin: 'center',
@@ -338,7 +338,7 @@ export function PhotoCropper({
                 ref={imageRef}
                 src={imageUrl}
                 alt="Crop preview"
-                className="max-w-full max-h-[50vh] object-contain"
+                className="w-full h-full object-contain max-h-[70vh] sm:max-h-[50vh]"
                 onLoad={handleImageLoad}
                 style={{ 
                   userSelect: 'none',
