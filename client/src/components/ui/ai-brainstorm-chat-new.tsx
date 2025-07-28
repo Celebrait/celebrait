@@ -14,6 +14,7 @@ interface AIBrainstormChatProps {
   celebration: string;
   currentInput: string;
   onSuggestionSelect: (suggestion: string) => void;
+  onComplete?: (finalResult: string) => void;
   buttonText?: string;
   buttonIcon?: React.ReactNode;
   photoContext?: string;
@@ -46,6 +47,7 @@ export function AIBrainstormChat({
   celebration, 
   currentInput, 
   onSuggestionSelect,
+  onComplete,
   buttonText = "Get AI Help",
   buttonIcon = <Bot className="w-4 h-4" />,
   photoContext = "",
@@ -273,8 +275,15 @@ export function AIBrainstormChat({
       if (userMessage === "Sounds great, let's go!") {
         // Extract final scene description from the most recent AI response
         const finalScene = extractFinalSceneFromConversation();
+        console.log('COMPLETION: Final scene extracted:', finalScene);
         setTimeout(() => {
-          onSuggestionSelect(finalScene);
+          if (onComplete) {
+            console.log('COMPLETION: Calling onComplete with final scene');
+            onComplete(finalScene);
+          } else {
+            console.log('COMPLETION: Fallback to onSuggestionSelect');
+            onSuggestionSelect(finalScene);
+          }
           setIsOpen(false);
         }, 1000);
         return newState;

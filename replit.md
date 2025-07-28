@@ -126,6 +126,8 @@ Changelog:
   * PROPER FLOW COMPLETION: Modified handleButtonClick to handle "Sounds great, let's go!" action by extracting final scene and closing dialog
   * DEBUG ENHANCEMENT: Added comprehensive logging showing exact message indices and button rendering decisions
   * EARLY RETURN LOGIC: Added early return in final_approval state to prevent any fallthrough to default button logic
+  * ONCOMPLETION INTEGRATION: Added onComplete callback to AIBrainstormChat interface and connected to guided-conversation flow for automatic step advancement
+  * COMPREHENSIVE FIX: All three AIBrainstormChat instances now properly handle completion flow with automatic progression to art style selection
   * CRITICAL RESOLUTION: Final approval step now shows ONLY "Sounds great, let's go!" and "I'd like to make a change" buttons, with proper scene extraction and flow progression
 - July 27, 2025. CRITICAL PERSON COUNT BUG FIX: Fixed major bug where AI generated wrong number of people by using file count instead of detected person count:
   * ROOT CAUSE IDENTIFIED: Backend was using imagesToProcess.length (number of uploaded files) instead of actual detected person count from OpenAI Vision API

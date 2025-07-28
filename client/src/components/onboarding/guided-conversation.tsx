@@ -2371,6 +2371,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             setCurrentInput(suggestion);
                             setStepInputs(prev => ({ ...prev, [currentStep.id]: suggestion }));
                           }}
+                          onComplete={(finalResult) => {
+                            setCurrentInput(finalResult);
+                            setStepInputs(prev => ({ ...prev, [currentStep.id]: finalResult }));
+                            setTimeout(() => {
+                              handleTextSubmit();
+                            }, 500);
+                          }}
                           buttonText="Get AI Art Style Ideas"
                           buttonIcon={<Bot className="w-4 h-4" />}
                           photoContext={answers.photoContext || ''}
@@ -3132,6 +3139,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                               }, 500); // Small delay to show the text was selected
                             }
                           }}
+                          onComplete={(finalResult) => {
+                            setCurrentInput(finalResult);
+                            setStepInputs(prev => ({
+                              ...prev,
+                              [currentStep.id]: finalResult
+                            }));
+                            setTimeout(() => {
+                              handleTextSubmit();
+                            }, 500);
+                          }}
                           buttonText={currentStep.id === 'scene' ? 'Stuck for ideas? Brainstorm with AI' : 'Get AI Art Style Ideas'}
                           buttonIcon={currentStep.id === 'scene' ? <Sparkles className="w-4 h-4" /> : <Palette className="w-4 h-4" />}
                           photoContext={answers.photoContext || ''}
@@ -3196,6 +3213,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           }));
                           // Auto-submit the suggestion to proceed to next step
                           handleTextSubmit();
+                        }}
+                        onComplete={(finalResult) => {
+                          setCurrentInput(finalResult);
+                          setStepInputs(prev => ({
+                            ...prev,
+                            [currentStep.id]: finalResult
+                          }));
+                          setTimeout(() => {
+                            handleTextSubmit();
+                          }, 500);
                         }}
                         buttonText="Start Creative Conversation"
                         buttonIcon={<Sparkles className="w-4 h-4" />}
