@@ -11,9 +11,7 @@ interface PhotoCropperProps {
   onCancel: () => void;
   isOpen: boolean;
   aspectRatio?: number; // width/height ratio (e.g., 1 for square, 4/3 for landscape)
-  multiCropMode?: boolean;
-  currentCropCount?: number;
-  maxCrops?: number;
+  existingCrops?: string[]; // Existing cropped images to show
 }
 
 interface CropArea {
@@ -29,9 +27,7 @@ export function PhotoCropper({
   onCancel, 
   isOpen, 
   aspectRatio = 1,
-  multiCropMode = false,
-  currentCropCount = 0,
-  maxCrops = 1
+  existingCrops = []
 }: PhotoCropperProps) {
   const [cropArea, setCropArea] = useState<CropArea>({ x: 0, y: 0, width: 200, height: 200 });
   const [isDragging, setIsDragging] = useState(false);
@@ -291,14 +287,28 @@ export function PhotoCropper({
         <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <Crop className="w-5 h-5" />
-            {multiCropMode ? `Crop ${currentCropCount + 1} of ${maxCrops}` : 'Crop Your Photo'}
+            Multi-Crop Photo
           </DialogTitle>
           <DialogDescription className="text-sm">
-            {multiCropMode 
-              ? `Position the crop area around person ${currentCropCount + 1}. Focus on getting a clear headshot for the best card results.`
-              : 'Adjust the crop area to focus on the important people in your photo. For multiple people, resize the area to include everyone you want featured.'
-            }
+            Create multiple headshot crops from this photo. Position the crop area around each person and save individual crops.
           </DialogDescription>
+          
+          {/* Existing crops display */}
+          {existingCrops.length > 0 && (
+            <div className="mt-2">
+              <p className="text-xs text-gray-600 mb-2">Existing crops ({existingCrops.length}):</p>
+              <div className="flex gap-2 flex-wrap">
+                {existingCrops.map((crop, index) => (
+                  <div key={index} className="relative w-12 h-12 rounded border overflow-hidden">
+                    <img src={crop} alt={`Crop ${index + 1}`} className="w-full h-full object-cover" />
+                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center">
+                      {index + 1}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </DialogHeader>
         
         <div className="flex flex-col gap-2 sm:gap-4 h-full">
@@ -417,7 +427,7 @@ export function PhotoCropper({
           </div>
 
           {/* Action buttons */}
-          <div className="flex gap-3 justify-center">
+          <div className="flex gap-3 justify-center flex-wrap">
             <Button
               variant="outline"
               onClick={onCancel}
@@ -428,11 +438,20 @@ export function PhotoCropper({
             </Button>
             <Button
               onClick={cropImage}
-              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
             >
               <Check className="w-4 h-4" />
-              Use Cropped Photo
+              Save This Crop
             </Button>
+            {existingCrops.length > 0 && (
+              <Button
+                onClick={onCancel}
+                className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
+                <Check className="w-4 h-4" />
+                Done Cropping
+              </Button>
+            )}
           </div>
         </div>
 
