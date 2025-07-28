@@ -878,7 +878,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const handlePhotoUploadContinue = () => {
     // Go to heritage question after photo upload
-    const heritageStepIndex = steps.findIndex(step => step.id === 'heritage_photo');
+    const heritageStepIndex = filteredSteps.findIndex(step => step.id === 'heritage_photo');
     if (heritageStepIndex !== -1) {
       setCurrentStepIndex(heritageStepIndex);
     }
@@ -2830,8 +2830,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         <Button 
                           onClick={(e) => {
                             e.preventDefault();
-                            const nextIndex = currentStepIndex + 1;
-                            setCurrentStepIndex(nextIndex);
+                            // Use proper navigation logic to go to next available step
+                            if (currentStepIndex < filteredSteps.length - 1) {
+                              setCurrentStepIndex(prev => prev + 1);
+                            } else {
+                              generateCard();
+                            }
+                            scrollToTop();
                           }}
                           className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
                         >

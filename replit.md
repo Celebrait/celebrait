@@ -127,6 +127,7 @@ Changelog:
   * PHOTOCONTEXT ELIMINATION: Replaced all photoContext parameters with empty strings across all AI components
   * SIMPLIFIED PERSON COUNT: Now uses number of uploaded images as person count instead of AI-detected count
   * NAVIGATION DELAYS REMOVED: Eliminated all setTimeout delays (200ms, 500ms) from handleAnswer, handlePersonalityNext, and handleEditStep functions
+  * PHOTO UPLOAD CONTINUE FIX: Fixed Continue button to use proper filteredSteps navigation instead of trying to navigate to filtered-out steps
   * INSTANT TRANSITIONS: All step transitions now happen immediately without artificial delays
   * PERFORMANCE OPTIMIZED: Complete conversation workflow now responds instantly without any delays
   * COMPREHENSIVE REMOVAL: Eliminated all references to photo analysis throughout frontend and backend codebase
