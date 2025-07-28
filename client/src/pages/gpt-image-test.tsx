@@ -12,7 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 export default function GPTImageTest() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
-  const [style, setStyle] = useState('anime style');
+  const [style, setStyle] = useState('');
+  const [artStylePreset, setArtStylePreset] = useState<'3d-animated' | 'storybook'>('3d-animated');
   const [imageSize, setImageSize] = useState<'1024x1024' | '1024x1536'>('1024x1024');
   const [isLoading, setIsLoading] = useState(false);
   const [resultImage, setResultImage] = useState<string>('');
@@ -22,7 +23,7 @@ export default function GPTImageTest() {
   
   // Scene editing specific state
   const [scenePrompt, setScenePrompt] = useState('');
-  const [sceneStyle, setSceneStyle] = useState('watercolor painting');
+  const [sceneStyle, setSceneStyle] = useState('animated movie style');
   const [sceneIncludeText, setSceneIncludeText] = useState(false);
   const [activeTab, setActiveTab] = useState<'transform' | 'scene'>('transform');
   
@@ -33,6 +34,25 @@ export default function GPTImageTest() {
   const [isGeneratingInside, setIsGeneratingInside] = useState(false);
   
   const { toast } = useToast();
+
+  // Art style definitions
+  const artStyleDefinitions = {
+    '3d-animated': {
+      name: 'High-End 3D Animated Movie',
+      description: 'Professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation with realistic bone structure and facial anatomy, clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality',
+      shortStyle: 'animated movie style'
+    },
+    'storybook': {
+      name: 'Classic Illustrated Storybook',
+      description: 'Hand-painted storybook illustration style with traditional oil or gouache texture, warm color palette, and soft brushwork. Features charming, slightly exaggerated character design, painterly backgrounds, and a nostalgic, timeless quality reminiscent of mid-century children\'s books and vintage European art',
+      shortStyle: 'hand-painted storybook illustration style'
+    }
+  };
+
+  // Helper function to get current art style
+  const getCurrentArtStyle = () => {
+    return artStyleDefinitions[artStylePreset];
+  };
 
   const generateInsideCardAuto = async (frontImage: string) => {
     if (!insideCardText.trim()) return;
@@ -77,12 +97,15 @@ export default function GPTImageTest() {
     }
   };
 
-  const buildPromptWithText = (baseStyle: string): string => {
+  const buildPromptWithText = (): string => {
+    // Use custom style if provided, otherwise use preset style
+    const currentStyle = style.trim() ? style : getCurrentArtStyle().description;
+    
     if (!includeText || !frontCardText.trim()) {
-      return `Transform the attached image into ${baseStyle}`;
+      return `Transform the attached image into ${currentStyle}`;
     }
 
-    return `Transform the attached image into ${baseStyle}. Include the text "${frontCardText}" in the same ${baseStyle}, as if it were naturally part of a greeting card design.`;
+    return `Transform the attached image into ${currentStyle}. Include the text "${frontCardText}" in the same artistic style, as if it were naturally part of a greeting card design.`;
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,7 +143,7 @@ export default function GPTImageTest() {
         },
         body: JSON.stringify({
           imageData: imagePreview,
-          style: buildPromptWithText(style),
+          style: buildPromptWithText(),
           size: imageSize
         })
       });
@@ -219,7 +242,7 @@ export default function GPTImageTest() {
         body: JSON.stringify({
           imageData: imagePreview,
           scenePrompt: scenePrompt,
-          style: sceneStyle,
+          style: getCurrentArtStyle().description, // Use preset style description
           includeText: sceneIncludeText,
           cardText: frontCardText,
           size: imageSize,
@@ -282,7 +305,7 @@ export default function GPTImageTest() {
         },
         body: JSON.stringify({
           imageData: imagePreview,
-          style: buildPromptWithText(style)
+          style: buildPromptWithText()
         })
       });
 
@@ -371,78 +394,42 @@ export default function GPTImageTest() {
               </TabsList>
               
               <TabsContent value="transform" className="space-y-4 mt-4">
-                <div>
-                  <Label htmlFor="style-input">Transformation Style</Label>
-                  
-                  {/* Quick Style Presets */}
-                  <div className="mt-2 mb-3">
-                    <Label className="text-sm font-medium mb-2 block">Quick Presets (balanced real + cartoon):</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setStyle("semi-realistic illustration style")}
-                        className="text-xs justify-start"
-                      >
-                        Semi-Realistic
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setStyle("stylized semi-realism style")}
-                        className="text-xs justify-start"
-                      >
-                        Stylized Semi-Realism
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setStyle("soft cartoon-realistic hybrid style")}
-                        className="text-xs justify-start"
-                      >
-                        Soft Cartoon-Real
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setStyle("painterly illustration style")}
-                        className="text-xs justify-start"
-                      >
-                        Painterly
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setStyle("animated movie style illustration")}
-                        className="text-xs justify-start"
-                      >
-                        Animated Movie
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setStyle("digital art")}
-                        className="text-xs justify-start"
-                      >
-                        Digital Art (current)
-                      </Button>
-                    </div>
+                {/* Art Style Selector */}
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="art-style-preset">Art Style</Label>
+                    <Select value={artStylePreset} onValueChange={(value) => setArtStylePreset(value as '3d-animated' | 'storybook')}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="3d-animated">🎬 {artStyleDefinitions['3d-animated'].name}</SelectItem>
+                        <SelectItem value="storybook">📚 {artStyleDefinitions['storybook'].name}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   
-                  <Textarea
-                    id="style-input"
-                    value={style}
-                    onChange={(e) => setStyle(e.target.value)}
-                    placeholder="e.g., semi-realistic illustration style, stylized semi-realism style, soft cartoon-realistic hybrid style"
-                    className="mt-2"
-                    rows={3}
-                  />
+                  {/* Style Description */}
+                  <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
+                    <h4 className="font-semibold text-blue-900 mb-2">{getCurrentArtStyle().name}</h4>
+                    <p className="text-sm text-blue-800">{getCurrentArtStyle().description}</p>
+                  </div>
+
+                  {/* Custom Style Override (Optional) */}
+                  <div>
+                    <Label htmlFor="style-input">Custom Style Override (Optional)</Label>
+                    <Textarea
+                      id="style-input"
+                      value={style}
+                      onChange={(e) => setStyle(e.target.value)}
+                      placeholder="Leave empty to use the selected preset style, or enter custom style instructions..."
+                      className="mt-2"
+                      rows={3}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Custom styles will override the preset when filled. Leave empty to use the selected art style preset.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -472,7 +459,7 @@ export default function GPTImageTest() {
                     <Card className="p-4 bg-gray-50">
                       <div className="p-3 bg-blue-50 border border-blue-200 rounded">
                         <p className="text-sm text-blue-800">
-                          <strong>Preview prompt:</strong> {buildPromptWithText(style)}
+                          <strong>Preview prompt:</strong> {buildPromptWithText()}
                         </p>
                         {includeText && !frontCardText && (
                           <p className="text-sm text-amber-700 mt-2">
@@ -506,6 +493,12 @@ export default function GPTImageTest() {
               </TabsContent>
 
               <TabsContent value="scene" className="space-y-4 mt-4">
+                {/* Current Art Style Display */}
+                <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg">
+                  <h4 className="font-semibold text-green-900 mb-2">Using Art Style: {getCurrentArtStyle().name}</h4>
+                  <p className="text-sm text-green-800">Scene editing will use the art style selected in the Transform tab above.</p>
+                </div>
+
                 <div>
                   <Label htmlFor="scene-prompt">New Scene Description</Label>
                   <Textarea
@@ -516,30 +509,6 @@ export default function GPTImageTest() {
                     className="mt-2"
                     rows={3}
                   />
-                </div>
-
-                <div>
-                  <Label htmlFor="scene-style">Art Style</Label>
-                  <Select value={sceneStyle} onValueChange={setSceneStyle}>
-                    <SelectTrigger className="mt-2">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="semi-realistic illustration">✨ Semi-Realistic Illustration (Recommended)</SelectItem>
-                      <SelectItem value="stylized semi-realism">✨ Stylized Semi-Realism (Recommended)</SelectItem>
-                      <SelectItem value="soft cartoon-realistic hybrid">✨ Soft Cartoon-Real Hybrid (Recommended)</SelectItem>
-                      <SelectItem value="painterly illustration">✨ Painterly Illustration (Recommended)</SelectItem>
-                      <SelectItem value="animated movie style illustration">✨ Animated Movie Style (Recommended)</SelectItem>
-                      <SelectItem value="watercolor painting">Watercolor Painting</SelectItem>
-                      <SelectItem value="oil painting">Oil Painting</SelectItem>
-                      <SelectItem value="anime style">Anime Style</SelectItem>
-                      <SelectItem value="digital art">Digital Art (too realistic)</SelectItem>
-                      <SelectItem value="sketch">Pencil Sketch</SelectItem>
-                      <SelectItem value="photorealistic">Photorealistic (too realistic)</SelectItem>
-                      <SelectItem value="cartoon">Cartoon</SelectItem>
-                      <SelectItem value="vintage poster">Vintage Poster</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 <div className="space-y-4">
@@ -556,7 +525,7 @@ export default function GPTImageTest() {
                     <Card className="p-4 bg-gray-50">
                       <div className="p-3 bg-blue-50 border border-blue-200 rounded">
                         <p className="text-sm text-blue-800">
-                          <strong>Preview prompt:</strong> {scenePrompt}, with clothing to match the occasion in {sceneStyle}
+                          <strong>Preview prompt:</strong> {scenePrompt}, with clothing to match the occasion in {getCurrentArtStyle().description}
                           {sceneIncludeText && frontCardText ? `. Include the text "${frontCardText}" beautifully integrated into the composition` : ''}
                         </p>
                         {sceneIncludeText && !frontCardText && (
