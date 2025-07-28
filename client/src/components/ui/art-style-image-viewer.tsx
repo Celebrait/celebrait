@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel";
 import { ChevronLeft, X } from "lucide-react";
 
 interface ArtStyleImageViewerProps {
@@ -30,23 +30,41 @@ export function ArtStyleImageViewer({
   styleName, 
   images = []
 }: ArtStyleImageViewerProps) {
+  const [api, setApi] = useState<CarouselApi>();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
   
   // Use provided images or fall back to sample images
   const displayImages = images.length > 0 ? images : getArtStyleImages(styleName);
   
-  const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % displayImages.length);
-  };
+  useEffect(() => {
+    if (!api) return;
+    
+    setCurrentImageIndex(api.selectedScrollSnap());
+    setCanScrollPrev(api.canScrollPrev());
+    setCanScrollNext(api.canScrollNext());
+    
+    api.on("select", () => {
+      setCurrentImageIndex(api.selectedScrollSnap());
+      setCanScrollPrev(api.canScrollPrev());
+      setCanScrollNext(api.canScrollNext());
+    });
+  }, [api]);
   
-  const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length);
-  };
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentImageIndex(0);
+    }
+  }, [isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[100vw] h-[100vh] max-w-none max-h-none p-0 gap-0 bg-black border-none shadow-none">
         <DialogTitle className="sr-only">{styleName} Style Examples</DialogTitle>
+        <DialogDescription className="sr-only">
+          Visual examples of the {styleName} art style for your greeting card design
+        </DialogDescription>
         
         <div className="relative w-full h-full flex flex-col">
           {/* Header */}
@@ -82,18 +100,18 @@ export function ArtStyleImageViewer({
 
           {/* Image Display */}
           <div className="flex-1 relative overflow-hidden">
-            <Carousel className="w-full h-full">
+            <Carousel className="w-full h-full" opts={{ align: "center", loop: true }} setApi={setApi}>
               <CarouselContent className="h-full">
                 {displayImages.map((image, index) => (
-                  <CarouselItem key={index} className="h-full">
-                    <div className="flex items-center justify-center h-full p-4">
+                  <CarouselItem key={index} className="h-full flex items-center justify-center">
+                    <div className="w-full h-full flex items-center justify-center p-4">
                       <img
                         src={image}
                         alt={`${styleName} example ${index + 1}`}
-                        className="max-w-full max-h-full object-contain rounded-lg"
+                        className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                         onError={(e) => {
                           // Fallback to a placeholder if image fails to load
-                          e.currentTarget.src = `https://via.placeholder.com/800x800/6366f1/white?text=${encodeURIComponent(styleName)}`;
+                          e.currentTarget.src = `https://via.placeholder.com/800x800/6366f1/white?text=${encodeURIComponent(styleName + ' Example')}`;
                         }}
                       />
                     </div>
@@ -103,8 +121,8 @@ export function ArtStyleImageViewer({
               
               {displayImages.length > 1 && (
                 <>
-                  <CarouselPrevious className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 border-white/20 text-white hover:bg-black/70" />
-                  <CarouselNext className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 border-white/20 text-white hover:bg-black/70" />
+                  <CarouselPrevious className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 border-white/20 text-white hover:bg-black/70 h-12 w-12" />
+                  <CarouselNext className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 border-white/20 text-white hover:bg-black/70 h-12 w-12" />
                 </>
               )}
             </Carousel>
@@ -116,7 +134,7 @@ export function ArtStyleImageViewer({
               {displayImages.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentImageIndex(index)}
+                  onClick={() => api?.scrollTo(index)}
                   className={`w-2 h-2 rounded-full transition-colors ${
                     index === currentImageIndex ? 'bg-white' : 'bg-white/40'
                   }`}

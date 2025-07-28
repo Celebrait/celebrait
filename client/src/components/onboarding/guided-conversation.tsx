@@ -2962,8 +2962,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         </div>
 
                         <Button 
-                          onClick={() => {
-                            setCurrentStepIndex(currentStepIndex + 1);
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const nextIndex = currentStepIndex + 1;
+                            setCurrentStepIndex(nextIndex);
                           }}
                           className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
                         >
