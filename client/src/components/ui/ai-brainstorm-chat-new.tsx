@@ -497,41 +497,50 @@ export function AIBrainstormChat({
       showSuggestions, 
       messageIndex,
       messageRole: messages[messageIndex]?.role,
-      isLoading
+      isLoading,
+      totalMessages: messages.length,
+      lastAssistantIndex: messages.map((msg, idx) => msg.role === 'assistant' ? idx : -1).filter(idx => idx !== -1).pop()
     });
     
-    // Only show buttons for the most recent assistant message, but keep them during loading
+    // CRITICAL: Only show buttons for the ABSOLUTE LAST assistant message, no exceptions
     const lastAssistantIndex = messages.map((msg, idx) => msg.role === 'assistant' ? idx : -1)
       .filter(idx => idx !== -1).pop();
     
-    // Show buttons if this is the last assistant message, unless we're loading a new response
-    if (messageIndex !== lastAssistantIndex || (isLoading && messages[messages.length - 1]?.role === 'user')) {
-      return null;
+    // CRITICAL: If we're in final approval, ONLY the last assistant message shows final approval buttons
+    if (currentStep === 'final_approval') {
+      // Show final approval buttons ONLY for the last assistant message
+      if (messageIndex === lastAssistantIndex && !isLoading) {
+        console.log('FINAL_APPROVAL_LAST_MESSAGE: Showing final approval buttons for message', messageIndex);
+        return (
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleButtonClick("Sounds great, let's go!")}
+              className="text-sm bg-gradient-celebrait hover:opacity-90 text-white px-4 py-2 rounded-md border-0 font-medium shadow-sm transition-all duration-200"
+            >
+              Sounds great, let's go!
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleButtonClick("I'd like to make a change")}
+              className="text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 px-4 py-2 rounded-md border border-orange-200 font-medium transition-all duration-200"
+            >
+              I'd like to make a change
+            </Button>
+          </div>
+        );
+      } else {
+        // For ALL other messages in final approval, show NO buttons at all
+        console.log('FINAL_APPROVAL_OTHER_MESSAGE: Hiding buttons for message', messageIndex, 'lastAssistant:', lastAssistantIndex);
+        return null;
+      }
     }
     
-    // CRITICAL EARLY RETURN: If we're in final approval, ONLY show final approval buttons - no other logic should execute
-    if (currentStep === 'final_approval') {
-      console.log('FINAL_APPROVAL_EARLY_RETURN: Preventing any other button logic from executing');
-      return (
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleButtonClick("Sounds great, let's go!")}
-            className="text-sm bg-gradient-celebrait hover:opacity-90 text-white px-4 py-2 rounded-md border-0 font-medium shadow-sm transition-all duration-200"
-          >
-            Sounds great, let's go!
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleButtonClick("I'd like to make a change")}
-            className="text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 px-4 py-2 rounded-md border border-orange-200 font-medium transition-all duration-200"
-          >
-            I'd like to make a change
-          </Button>
-        </div>
-      );
+    // Show buttons ONLY if this is the EXACT last assistant message AND we're not loading
+    if (messageIndex !== lastAssistantIndex || isLoading) {
+      return null;
     }
 
     
