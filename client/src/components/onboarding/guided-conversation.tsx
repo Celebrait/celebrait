@@ -879,7 +879,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const handlePhotoUploadClick = () => {
     if (!hasCopyrightConsent) {
-      setCopyrightConsentOpen(true);
+      setPhotoBestPracticesOpen(true);
     } else {
       document.getElementById('photo-upload')?.click();
     }
@@ -932,16 +932,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const handleCopyrightConsent = () => {
     setHasCopyrightConsent(true);
     setCopyrightConsentOpen(false);
-    // Show photo best practices popup after copyright consent
-    setPhotoBestPracticesOpen(true);
+    // Trigger file input after copyright consent
+    setTimeout(() => {
+      document.getElementById('photo-upload')?.click();
+    }, 100);
   };
 
   const handleBestPracticesClose = () => {
     setPhotoBestPracticesOpen(false);
-    // Trigger file input after best practices popup
-    setTimeout(() => {
-      document.getElementById('photo-upload')?.click();
-    }, 100);
+    // Show copyright consent after best practices
+    setCopyrightConsentOpen(true);
   };
 
   const handlePhotoUploadContinue = () => {
@@ -2962,7 +2962,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         </div>
 
                         <Button 
-                          onClick={() => setCurrentStepIndex(prev => prev + 1)}
+                          onClick={() => {
+                            setCurrentStepIndex(currentStepIndex + 1);
+                          }}
                           className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
                         >
                             Continue

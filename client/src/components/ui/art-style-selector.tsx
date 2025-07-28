@@ -14,11 +14,13 @@ import {
   ExternalLink,
   ChevronRight,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Eye
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { TypingAnimation } from "@/components/ui/typing-animation";
+import { ArtStyleImageViewer } from "@/components/ui/art-style-image-viewer";
 
 interface ArtStyleSelectorProps {
   sceneDescription: string;
@@ -67,6 +69,8 @@ export function ArtStyleSelector({
   const [allPreviousSuggestions, setAllPreviousSuggestions] = useState<StyleSuggestion[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState<StyleSuggestion | null>(null);
   const [copiedStyle, setCopiedStyle] = useState<string | null>(null);
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [currentViewerStyle, setCurrentViewerStyle] = useState<string>("");
   const { toast } = useToast();
 
   // Initialize conversation when opened
@@ -279,17 +283,16 @@ export function ArtStyleSelector({
             </Button>
             
             <Button
-              onClick={() => handleCopyStyle(suggestion.name)}
+              onClick={() => {
+                setCurrentViewerStyle(suggestion.name);
+                setImageViewerOpen(true);
+              }}
               variant="outline"
               size="sm"
               className="border-gray-300"
             >
-              {copiedStyle === suggestion.name ? (
-                <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-              ) : (
-                <ExternalLink className="w-4 h-4 mr-2" />
-              )}
-              {copiedStyle === suggestion.name ? "Opened!" : "Research Examples"}
+              <Eye className="w-4 h-4 mr-2" />
+              View Examples
             </Button>
             
             <Button
@@ -470,6 +473,14 @@ export function ArtStyleSelector({
           </div>
         </div>
       </DialogContent>
+      
+      {/* Art Style Image Viewer */}
+      <ArtStyleImageViewer
+        isOpen={imageViewerOpen}
+        onClose={() => setImageViewerOpen(false)}
+        styleName={currentViewerStyle}
+        images={[]}
+      />
     </Dialog>
   );
 }
