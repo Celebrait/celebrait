@@ -136,6 +136,10 @@ export default function GPTImageTest() {
     setResultImage('');
 
     try {
+      // Create an AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+
       const response = await fetch('/api/transform-style-gpt-image-1', {
         method: 'POST',
         headers: {
@@ -145,14 +149,18 @@ export default function GPTImageTest() {
           imageData: imagePreview,
           style: buildPromptWithText(),
           size: imageSize
-        })
+        }),
+        signal: controller.signal
       });
 
-      const data = await response.json();
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(data.message || 'GPT-Image-1 transformation failed');
+        const errorText = await response.text();
+        throw new Error(`Server error: ${response.status} - ${errorText}`);
       }
+
+      const data = await response.json();
 
       setResultImage(data.imageUrl);
       setFrontCardImage(data.imageUrl);
@@ -170,10 +178,18 @@ export default function GPTImageTest() {
       }
     } catch (err: any) {
       console.error('GPT-Image-1 error:', err);
-      setError(err.message);
+      
+      let errorMessage = 'GPT-Image-1 transformation failed';
+      if (err.name === 'AbortError') {
+        errorMessage = 'Request timed out. The transformation is taking longer than expected. Please try again.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
       toast({
         title: "GPT-Image-1 Error",
-        description: err.message,
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -234,6 +250,10 @@ export default function GPTImageTest() {
         console.error('Photo analysis failed:', analysisError);
       }
 
+      // Create an AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+
       const response = await fetch('/api/edit-scene-gpt-image-1', {
         method: 'POST',
         headers: {
@@ -247,14 +267,20 @@ export default function GPTImageTest() {
           cardText: frontCardText,
           size: imageSize,
           detectedPersonCount: detectedPersonCount // Pass detected person count
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server error: ${response.status} - ${errorText}`);
+      }
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Scene editing failed');
-      }
+
 
       setResultImage(data.imageUrl);
       setFrontCardImage(data.imageUrl);
@@ -272,10 +298,18 @@ export default function GPTImageTest() {
       }
     } catch (err: any) {
       console.error('Scene edit error:', err);
-      setError(err.message);
+      
+      let errorMessage = 'Scene editing failed';
+      if (err.name === 'AbortError') {
+        errorMessage = 'Request timed out. The scene editing is taking longer than expected. Please try again.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
       toast({
         title: "Scene Edit Error",
-        description: err.message,
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -607,9 +641,14 @@ export default function GPTImageTest() {
             )}
 
             {isLoading && (
-              <div className="flex items-center justify-center p-8">
+              <div className="flex flex-col items-center justify-center p-8 space-y-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <span className="ml-3">Processing transformation...</span>
+                <div className="text-center">
+                  <p className="font-medium">Processing transformation...</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    This may take up to 2 minutes. AI image generation is processing your request.
+                  </p>
+                </div>
               </div>
             )}
 
