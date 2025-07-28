@@ -493,8 +493,15 @@ export function AIBrainstormChat({
       console.log('Final scene extracted:', finalScene);
       
       // Close the dialog and pass the scene to the parent component
-      onComplete(finalScene);
+      if (onComplete) {
+        onComplete(finalScene);
+      }
       setIsOpen(false);
+      
+      // Scroll to top of page for better UX when advancing to art style step
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
       return;
     }
     

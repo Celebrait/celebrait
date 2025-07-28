@@ -120,6 +120,14 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 28, 2025. AI BRAINSTORM SCENE APPROVAL UX ENHANCEMENT: Complete scene description workflow integration with proper scroll positioning and summary page functionality:
+  * SCROLL TO TOP FIX: Scene approval now automatically scrolls to top of art style step for optimal UX positioning
+  * SCENE CAPTURE ENHANCEMENT: Final scene description properly captured from AI brainstorm conversation and stored in answers state
+  * SUMMARY PAGE INTEGRATION: Scene description now appears in final summary page with full editing capability for upload_and_scene workflow
+  * PROPER CONDITION LOGIC: Fixed scene display condition from upload_and_describe to upload_and_scene for correct workflow integration
+  * EDIT FUNCTIONALITY: Scene edit button properly navigates back to scene step with scroll-to-top and existing input population
+  * ENHANCED LAYOUT: Scene description shows with improved spacing and multi-line text support in summary
+  * COMPLETE WORKFLOW: AI brainstorm → scene approval → scroll to art style → final summary with editing integration
 - July 28, 2025. COMPLETE PHOTO ANALYSIS REMOVAL AND NAVIGATION DELAYS ELIMINATED: Fixed all continue button delays and removed unnecessary timeouts:
   * INSTANT CONTINUE BUTTON: Removed 3+ second photo analysis API call that was causing delays on photo upload screen
   * BACKEND ENDPOINT REMOVED: Completely removed /api/analyze-photo-content endpoint from server/routes.ts

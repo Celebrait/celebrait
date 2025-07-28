@@ -2172,15 +2172,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
 
 
-                      {/* Scene - Only show when user selected upload photo + describe scene */}
-                      {answers.photo_option === 'upload_and_describe' && (
+                      {/* Scene - Show when user selected upload photo + describe scene */}
+                      {(answers.photo_option === 'upload_and_scene' || answers.scene) && (
                         <div className="bg-white rounded-xl p-4 border border-purple-200">
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <h4 className="font-semibold text-purple-700">Scene Description</h4>
-                              <p className="text-gray-700">{answers.scene || 'Not specified'}</p>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1 pr-4">
+                              <h4 className="font-semibold text-purple-700 mb-2">Scene Description</h4>
+                              <p className="text-gray-700 leading-relaxed">
+                                {answers.scene || 'Not specified'}
+                              </p>
                             </div>
-                            <Button onClick={() => handleEditStep('scene')} variant="outline" size="sm">
+                            <Button 
+                              onClick={() => handleEditStep('scene')} 
+                              variant="outline" 
+                              size="sm"
+                            >
                               Edit
                             </Button>
                           </div>
@@ -2874,10 +2880,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             }
                           }}
                           onComplete={(finalResult) => {
+                            console.log('Scene completion - Final result received:', finalResult);
                             setCurrentInput(finalResult);
                             setStepInputs(prev => ({
                               ...prev,
                               [currentStep.id]: finalResult
+                            }));
+                            // Store the scene in answers for summary page
+                            setAnswers(prev => ({
+                              ...prev,
+                              scene: finalResult
                             }));
                             handleTextSubmit();
                           }}
