@@ -7,6 +7,9 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
+// Increase server timeout for complex AI processing
+app.timeout = 600000; // 10 minute timeout
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -39,6 +42,11 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+  
+  // Set server timeout for long-running AI processing
+  server.timeout = 600000; // 10 minute timeout
+  server.keepAliveTimeout = 65000; // Keep alive timeout
+  server.headersTimeout = 66000; // Headers timeout
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

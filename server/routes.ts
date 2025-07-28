@@ -3739,6 +3739,10 @@ ${formatInstruction}`;
 
   // Generate inside card with style analysis from front card
   app.post("/api/generate-inside-card", async (req, res) => {
+    // Set longer timeout for this specific request
+    req.setTimeout(600000); // 10 minute timeout
+    res.setTimeout(600000); // 10 minute timeout
+    
     if (!openai) {
       return res.status(500).json({ message: "OpenAI API key not configured" });
     }
@@ -3871,11 +3875,22 @@ ${formatInstruction}`;
         const insideImagePngUrl = await applyWatermarkToPngFile(cardId, 'inside_unwatermarked', 'inside');
         console.log('[PNG_ONLY] Watermarked inside PNG created:', insideImagePngUrl);
         
-        res.json({ 
-          imageUrl: insideImagePngUrl, // Return PNG file URL instead of Base64
-          originalImageUrl: imageUrl, // Store original for secure access
-          usage: (responseData as any).usage
-        });
+        // Ensure response is sent immediately after PNG creation
+        console.log('[PNG_ONLY] Sending response with PNG file URL:', insideImagePngUrl);
+        
+        // Check if response is still writable before sending
+        if (!res.headersSent) {
+          const responsePayload = { 
+            imageUrl: insideImagePngUrl, // Return PNG file URL instead of Base64
+            originalImageUrl: imageUrl, // Store original for secure access
+            usage: (responseData as any).usage
+          };
+          
+          res.json(responsePayload);
+          console.log('[PNG_ONLY] Response sent successfully');
+        } else {
+          console.log('[PNG_ONLY] Headers already sent, response may have timed out');
+        }
       } else {
         // Fallback for requests without cardId (legacy support)
         const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
