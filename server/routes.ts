@@ -3739,6 +3739,9 @@ ${formatInstruction}`;
 
   // Generate inside card with style analysis from front card
   app.post("/api/generate-inside-card", async (req, res) => {
+    const requestStartTime = Date.now();
+    console.log('[TIMING] Inside card generation request started');
+    
     // Set longer timeout for this specific request
     req.setTimeout(600000); // 10 minute timeout
     res.setTimeout(600000); // 10 minute timeout
@@ -3820,6 +3823,9 @@ ${formatInstruction}`;
       formData.append('background', 'auto');
 
       const fetch = (await import('node-fetch')).default;
+      const apiStartTime = Date.now();
+      console.log('[TIMING] Starting OpenAI API call...');
+      
       const response = await fetch('https://api.openai.com/v1/images/edits', {
         method: 'POST',
         headers: {
@@ -3828,6 +3834,9 @@ ${formatInstruction}`;
         },
         body: formData
       });
+      
+      const apiDuration = Date.now() - apiStartTime;
+      console.log(`[TIMING] OpenAI API call completed in ${apiDuration}ms`);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -3865,15 +3874,23 @@ ${formatInstruction}`;
       const { cardId } = req.body;
       
       if (cardId) {
-        console.log('[PNG_ONLY] Converting inside image to PNG and creating watermarked/unwatermarked versions...');
+        const pngStartTime = Date.now();
+        console.log('[PNG_TIMING] Starting PNG conversion process...');
         
         // Step 1: Convert base64 to PNG file immediately (unwatermarked original)
+        const step1Start = Date.now();
         const unwatermarkedInsidePngUrl = await convertBase64ToPngFile(imageUrl, cardId, 'inside_unwatermarked');
-        console.log('[PNG_ONLY] Unwatermarked inside PNG created:', unwatermarkedInsidePngUrl);
+        const step1Duration = Date.now() - step1Start;
+        console.log(`[PNG_TIMING] Step 1 - Unwatermarked PNG created in ${step1Duration}ms:`, unwatermarkedInsidePngUrl);
         
         // Step 2: Apply watermark to PNG file and create watermarked PNG file
+        const step2Start = Date.now();
         const insideImagePngUrl = await applyWatermarkToPngFile(cardId, 'inside_unwatermarked', 'inside');
-        console.log('[PNG_ONLY] Watermarked inside PNG created:', insideImagePngUrl);
+        const step2Duration = Date.now() - step2Start;
+        console.log(`[PNG_TIMING] Step 2 - Watermarked PNG created in ${step2Duration}ms:`, insideImagePngUrl);
+        
+        const totalPngDuration = Date.now() - pngStartTime;
+        console.log(`[PNG_TIMING] Total PNG processing completed in ${totalPngDuration}ms`);
         
         // Ensure response is sent immediately after PNG creation
         console.log('[PNG_ONLY] Sending response with PNG file URL:', insideImagePngUrl);
@@ -3887,9 +3904,12 @@ ${formatInstruction}`;
           };
           
           res.json(responsePayload);
+          const totalRequestDuration = Date.now() - requestStartTime;
+          console.log(`[TIMING] Complete inside card generation finished in ${totalRequestDuration}ms`);
           console.log('[PNG_ONLY] Response sent successfully');
         } else {
-          console.log('[PNG_ONLY] Headers already sent, response may have timed out');
+          const totalRequestDuration = Date.now() - requestStartTime;
+          console.log(`[TIMING] Headers already sent after ${totalRequestDuration}ms - connection may have timed out`);
         }
       } else {
         // Fallback for requests without cardId (legacy support)
