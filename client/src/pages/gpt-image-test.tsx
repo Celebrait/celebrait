@@ -162,9 +162,9 @@ export default function GPTImageTest() {
       const controller = new AbortController();
       timeoutId = setTimeout(() => {
         if (!controller.signal.aborted) {
-          controller.abort('Request timeout - operation took longer than 2 minutes');
+          controller.abort('Request timeout - operation took longer than 3 minutes');
         }
-      }, 120000); // 2 minute timeout
+      }, 180000); // 3 minute timeout
 
       const response = await fetch('/api/transform-style-gpt-image-1', {
         method: 'POST',
@@ -211,7 +211,7 @@ export default function GPTImageTest() {
       
       let errorMessage = 'GPT-Image-1 transformation failed';
       if (err.name === 'AbortError') {
-        errorMessage = 'Request timed out. The transformation is taking longer than expected. Please try again.';
+        errorMessage = 'Request timed out. The transformation is taking longer than 3 minutes. Please try again.';
       } else if (err.message && err.message !== 'undefined' && err.message.trim() !== '') {
         errorMessage = err.message;
       } else if (typeof err === 'string' && err.trim() !== '') {
@@ -292,9 +292,9 @@ export default function GPTImageTest() {
       const controller = new AbortController();
       timeoutId = setTimeout(() => {
         if (!controller.signal.aborted) {
-          controller.abort('Request timeout - operation took longer than 2 minutes');
+          controller.abort('Request timeout - operation took longer than 3 minutes');
         }
-      }, 120000); // 2 minute timeout
+      }, 180000); // 3 minute timeout
 
       const response = await fetch('/api/edit-scene-gpt-image-1', {
         method: 'POST',
@@ -356,7 +356,7 @@ export default function GPTImageTest() {
       
       let errorMessage = 'Scene editing failed';
       if (err.name === 'AbortError') {
-        errorMessage = 'Request timed out. The scene editing is taking longer than expected. Please try again.';
+        errorMessage = 'Request timed out. The scene editing is taking longer than 3 minutes. Please try again.';
       } else if (err.message && err.message !== 'undefined') {
         errorMessage = err.message;
       } else if (typeof err === 'string') {
@@ -707,7 +707,7 @@ export default function GPTImageTest() {
                 <div className="text-center">
                   <p className="font-medium">Processing transformation...</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    This may take up to 2 minutes. AI image generation is processing your request.
+                    This may take up to 3 minutes. AI image generation is processing your request.
                   </p>
                 </div>
               </div>
