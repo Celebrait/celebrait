@@ -841,42 +841,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
 
 
-  const analyzePhotoContent = async (photoDataArray: string[]): Promise<string> => {
-    try {
-      const response = await fetch('/api/analyze-photo-content', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ photos: photoDataArray })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to analyze photo content');
-      }
-      
-      const analysis = await response.json();
-      return analysis.photoContext;
-    } catch (error) {
-      console.error('Photo content analysis failed:', error);
-      // Fallback to basic photo count detection
-      return detectPhotoContextBasic(photoDataArray);
-    }
-  };
 
-  const detectPhotoContextBasic = (photoDataArray: string[]): string => {
-    const photoCount = photoDataArray.length;
-    
-    if (photoCount === 1) {
-      return "Single photo uploaded - single person focus";
-    } else if (photoCount === 2) {
-      return "Two photos uploaded - multiple people or different angles";
-    } else if (photoCount >= 3) {
-      return "Multiple photos uploaded - multiple people or various shots";
-    }
-    
-    return "Photo context unclear";
-  };
 
   const handlePhotoUploadClick = () => {
     if (!hasCopyrightConsent) {
@@ -908,17 +873,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
             setUploadedPhotos(photoDataArray);
             setAnswers(prev => ({ ...prev, photo_upload: photoDataArray[0] })); // Store first photo for backward compatibility
             
-            // Analyze photo content to detect people count
-            analyzePhotoContent(photoDataArray).then(photoContext => {
-              console.log(`Photo analysis result: "${photoContext}"`);
-              setAnswers(prev => ({ ...prev, photoContext }));
-            }).catch(error => {
-              console.error('Photo analysis failed, using fallback:', error);
-              const fallbackContext = detectPhotoContextBasic(photoDataArray);
-              setAnswers(prev => ({ ...prev, photoContext: fallbackContext }));
-            });
-            
-            // Skip analysis for all photo uploads - show success message immediately
+            // Show success message immediately
             const successMessage = isTransformStyle 
               ? 'Photo uploaded successfully for style transformation'
               : `Photo${photoDataArray.length > 1 ? 's' : ''} uploaded successfully`;
@@ -1416,29 +1371,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const artStyle = answers.art_style || 'semi-realistic illustration';
     const frontCardText = answers.message || '';
     
-    // Analyze photos to get detected person count
-    let detectedPersonCount = null;
-    try {
-      const photoContext = await analyzePhotoContent(referenceImages);
-      console.log('Photo analysis result:', JSON.stringify(photoContext));
-      
-      // Extract person count from photo context string
-      const personCountMatch = photoContext.match(/(\d+) people detected/);
-      if (personCountMatch) {
-        detectedPersonCount = parseInt(personCountMatch[1]);
-        console.log('Extracted detected person count:', detectedPersonCount);
-      } else if (photoContext.includes('single person')) {
-        detectedPersonCount = 1;
-        console.log('Detected single person from context');
-      } else {
-        console.log('Could not extract person count from context:', photoContext);
-      }
-    } catch (error) {
-      console.error('Failed to analyze photo content for person count:', error);
-    }
+    // Use number of uploaded images as person count (simpler approach)
+    const detectedPersonCount = referenceImages.length;
+    console.log('[DEBUG] Using image count as person count:', detectedPersonCount);
     
-    // Generate front card using GPT-Image-1 with multiple images with timeout and retry
-    console.log('[DEBUG] Calling edit-scene-gpt-image-1 with cardId:', useCardId, 'and detectedPersonCount:', detectedPersonCount);
+    // Generate front card using GPT-Image-1 with multiple images with timeout and retry  
+    console.log('[DEBUG] Calling edit-scene-gpt-image-1 with cardId:', useCardId);
     
     // Generate front card using robust API call
     const frontResult = await makeRobustAPICall("/api/edit-scene-gpt-image-1", {
@@ -2377,7 +2315,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           }}
                           buttonText="Get AI Art Style Ideas"
                           buttonIcon={<Bot className="w-4 h-4" />}
-                          photoContext={answers.photoContext || ''}
+                          photoContext=""
                           userName={onboarding.userName}
                         />
                       </div>
@@ -2423,7 +2361,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             setStepInputs(prev => ({ ...prev, [currentStep.id]: style }));
                           }}
                           buttonText="Get AI Art Style Suggestions"
-                          photoContext={answers.photoContext || ''}
+                          photoContext=""
                           userName={onboarding.userName}
                         />
                       </div>
@@ -2962,7 +2900,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           }}
                           buttonText={currentStep.id === 'scene' ? 'Stuck for ideas? Brainstorm with AI' : 'Get AI Art Style Ideas'}
                           buttonIcon={currentStep.id === 'scene' ? <Sparkles className="w-4 h-4" /> : <Palette className="w-4 h-4" />}
-                          photoContext={answers.photoContext || ''}
+                          photoContext=""
                           userName={onboarding.userName}
                         />
                       </div>
@@ -3035,7 +2973,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         }}
                         buttonText="Start Creative Conversation"
                         buttonIcon={<Sparkles className="w-4 h-4" />}
-                        photoContext={answers.photoContext || ''}
+                        photoContext=""
                         userName={onboarding.userName}
                       />
                     </div>
