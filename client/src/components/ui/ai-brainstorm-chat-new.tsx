@@ -509,9 +509,9 @@ export function AIBrainstormChat({
       return null;
     }
     
-    // Final approval step - CRITICAL FIX: ALWAYS show these buttons in final approval, completely ignore showSuggestions
+    // CRITICAL EARLY RETURN: If we're in final approval, ONLY show final approval buttons - no other logic should execute
     if (currentStep === 'final_approval') {
-      console.log('FINAL_APPROVAL_BUTTONS: Showing final approval buttons');
+      console.log('FINAL_APPROVAL_EARLY_RETURN: Preventing any other button logic from executing');
       return (
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button
@@ -533,6 +533,7 @@ export function AIBrainstormChat({
         </div>
       );
     }
+
     
     // Show suggestions if available (for all steps except final approval)
     if (showSuggestions && suggestions.length > 0 && currentStep !== 'final_approval') {
