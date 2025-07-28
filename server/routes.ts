@@ -3543,8 +3543,12 @@ ${formatInstruction}`;
         let enhancedStyle = style;
         
         // Make "animated movie style" more specific for consistency
-        if (style.toLowerCase().includes('animated movie style')) {
+        if (style.toLowerCase().includes('animated_movie_style') || style.toLowerCase().includes('animated movie style')) {
           enhancedStyle = 'professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation with realistic bone structure and facial anatomy, clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality';
+        }
+        // Make "classic storybook" more specific
+        else if (style.toLowerCase().includes('classic_storybook') || style.toLowerCase().includes('classic storybook')) {
+          enhancedStyle = 'hand-painted storybook illustration style with traditional oil or gouache texture, warm color palette, and soft brushwork. Features charming, slightly exaggerated character design, painterly backgrounds, and a nostalgic, timeless quality reminiscent of mid-century children\'s books and vintage European art. Stylistic influences: Classic Little Golden Books 1950s/60s European children\'s illustration (Italian/French) Artists like Mary Blair, Miroslav Šašek, or early Richard Scarry';
         }
         // Make "semi-realistic illustration" more specific
         else if (style.toLowerCase().includes('semi-realistic illustration')) {
@@ -3973,8 +3977,12 @@ ${formatInstruction}`;
       let enhancedStyle = style;
       
       // Make "animated movie style" more specific for consistency
-      if (style.toLowerCase().includes('animated movie style')) {
+      if (style.toLowerCase().includes('animated_movie_style') || style.toLowerCase().includes('animated movie style')) {
         enhancedStyle = 'professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation with realistic bone structure and facial anatomy, clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality';
+      }
+      // Make "classic storybook" more specific
+      else if (style.toLowerCase().includes('classic_storybook') || style.toLowerCase().includes('classic storybook')) {
+        enhancedStyle = 'hand-painted storybook illustration style with traditional oil or gouache texture, warm color palette, and soft brushwork. Features charming, slightly exaggerated character design, painterly backgrounds, and a nostalgic, timeless quality reminiscent of mid-century children\'s books and vintage European art. Stylistic influences: Classic Little Golden Books 1950s/60s European children\'s illustration (Italian/French) Artists like Mary Blair, Miroslav Šašek, or early Richard Scarry';
       }
       // Make "semi-realistic illustration" more specific
       else if (style.toLowerCase().includes('semi-realistic illustration')) {

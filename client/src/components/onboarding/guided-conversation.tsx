@@ -477,111 +477,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
         ? `Perfect! Now let's choose the art style for your scene. This sets the whole mood and feel - I want to make sure it captures the perfect atmosphere for this ${answers.celebration} celebration!`
         : `Perfect! ✨ Now let's choose the art style for ${answers.name || 'their'}'s ${answers.celebration} card.`,
-      type: 'art_style_enhanced',
+      type: 'select',
       options: [
         { 
-          value: 'digital_art', 
-          label: 'Digital Art', 
-          description: 'Modern digital illustration with clean lines and vibrant colors',
-          inspiration: 'Digital illustration, concept art',
+          value: 'animated_movie_style', 
+          label: 'High-End 3D Animated Movie', 
+          description: 'Professional 3D animated movie style with realistic proportions and detailed facial features. Clean digital rendering with soft edges and polished surfaces - perfect for modern, high-quality character design.',
           color: 'bg-blue-600',
-          emoji: '💻'
-        },
-        { 
-          value: 'ai_painterly', 
-          label: 'AI-Painterly / Oil Portrait', 
-          description: 'Classical oil painting with AI-enhanced realism',
-          inspiration: 'Classical oil painting',
-          color: 'bg-amber-600',
-          emoji: '🎨'
-        },
-        { 
-          value: 'anime', 
-          label: 'Anime', 
-          description: 'Studio Ghibli and modern anime character design',
-          inspiration: 'Studio Ghibli, anime',
-          color: 'bg-pink-500',
-          emoji: '🌸'
-        },
-        { 
-          value: 'cyberpunk', 
-          label: 'Cyberpunk', 
-          description: 'Neon, dystopian sci-fi environments',
-          inspiration: 'Blade Runner, Cyberpunk 2077',
-          color: 'bg-cyan-500',
-          emoji: '🌆'
-        },
-        { 
-          value: 'lego', 
-          label: 'LEGO', 
-          description: 'LEGO character aesthetics',
-          inspiration: 'LEGO minifigures',
-          color: 'bg-red-500',
-          emoji: '🧱'
-        },
-        { 
-          value: 'pixar', 
-          label: 'Pixar', 
-          description: 'Pixar-style facial proportions and textures',
-          inspiration: 'Pixar animation',
-          color: 'bg-blue-500',
           emoji: '🎬'
         },
         { 
-          value: 'renaissance', 
-          label: 'Renaissance Painting', 
-          description: 'Old Masters, dramatic lighting, elaborate outfits',
-          inspiration: 'Classical Renaissance art',
-          color: 'bg-purple-700',
-          emoji: '🏛️'
-        },
-        { 
-          value: 'fantasy_realism', 
-          label: 'Fantasy Realism', 
-          description: 'Elven characters, fantasy worlds',
-          inspiration: 'LOTR, Zelda',
-          color: 'bg-emerald-600',
-          emoji: '🧝'
-        },
-        { 
-          value: 'pixel_art', 
-          label: 'Pixel Art', 
-          description: 'Retro video games',
-          inspiration: '8-bit gaming',
-          color: 'bg-indigo-500',
-          emoji: '🎮'
-        },
-        { 
-          value: 'barbie_glam', 
-          label: 'Barbie / Glam Doll', 
-          description: 'Hyper-feminine, glossy doll-like styles',
-          inspiration: 'Barbie aesthetics',
-          color: 'bg-pink-400',
-          emoji: '💖'
-        },
-        { 
-          value: 'grunge', 
-          label: 'Grunge Aesthetic', 
-          description: 'Y2K and 90s fashion, dark filters, and edgy tones',
-          inspiration: '90s grunge culture',
-          color: 'bg-gray-700',
-          emoji: '⚡'
-        },
-        { 
-          value: 'vaporwave', 
-          label: 'Vaporwave', 
-          description: '80s/90s digital nostalgia, chrome, pastel tones, VHS textures',
-          inspiration: '80s/90s aesthetics',
-          color: 'bg-violet-500',
-          emoji: '📼'
-        },
-        { 
-          value: 'mythical_creature', 
-          label: 'Mythical Creature / Creature Fusion', 
-          description: 'AI mashups of people with mythical beings',
-          inspiration: 'Mermaids, dragons, fantasy creatures',
-          color: 'bg-orange-600',
-          emoji: '🐉'
+          value: 'classic_storybook', 
+          label: 'Classic Illustrated Storybook', 
+          description: 'Hand-painted storybook illustration style with traditional oil or gouache texture, warm color palette, and soft brushwork. Features charming, slightly exaggerated character design with nostalgic, timeless quality.',
+          color: 'bg-amber-600',
+          emoji: '📚'
         }
       ]
     },
@@ -634,7 +544,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
       // For streamlined flow, only show relevant steps based on photo option
       if (streamlinedPhotoOption === 'upload_and_scene') {
-        const allowedSteps = ['name', 'celebration', 'photo_upload', 'scene', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
+        const allowedSteps = ['name', 'celebration', 'photo_upload', 'scene', 'art_style', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
         return allowedSteps.includes(step.id);
       } else if (streamlinedPhotoOption === 'upload_and_transform') {
         const allowedSteps = ['name', 'celebration', 'photo_upload', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
@@ -1956,19 +1866,116 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
               className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-white/20 animate-fade-in overflow-visible transition-all duration-500"
             >
                 {currentStep.type === 'select' && currentStep.options && (
-                  <div className="space-y-4 sm:space-y-6">
-                    {/* Compact Options Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                      {(showAllOptions[currentStep.id] ? currentStep.options : currentStep.options.slice(0, 4)).map((option) => (
-                        <Button
-                          key={option.value}
-                          onClick={() => handleAnswer(option.value)}
-                          variant="outline"
-                          className="h-auto p-3 sm:p-4 text-center transition-all hover:scale-105 hover:shadow-lg bg-white/80 border-2 border-purple-200 hover:border-ethereal-purple text-gray-800 hover:bg-purple-50 rounded-xl text-xs sm:text-sm font-medium"
-                        >
-                          <div className="flex items-center justify-center space-x-2">
-                            {option.icon && (
-                              <svg className="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <>
+                    {/* Enhanced Art Style Selection */}
+                    {currentStep.id === 'art_style' ? (
+                      <div className="space-y-6">
+                        <div className="text-center mb-6">
+                          <h3 className="text-xl font-bold text-gray-800 mb-2">Choose Your Art Style</h3>
+                          <p className="text-gray-600">
+                            Select from our two carefully crafted styles, each designed to create stunning, professional greeting cards.
+                          </p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          {currentStep.options.map((option) => (
+                            <div key={option.value} className="bg-white rounded-2xl p-6 border-2 border-gray-200 hover:border-purple-300 transition-all duration-300 shadow-lg hover:shadow-xl">
+                              <div className="text-center mb-4">
+                                <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${option.color} text-white text-2xl mb-3`}>
+                                  {option.emoji}
+                                </div>
+                                <h4 className="text-lg font-bold text-gray-800 mb-2">{option.label}</h4>
+                                <p className="text-sm text-gray-600 leading-relaxed">{option.description}</p>
+                              </div>
+                              
+                              <div className="space-y-3">
+                                <Button
+                                  onClick={() => handleAnswer(option.value)}
+                                  className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-medium py-3 rounded-lg transition-all duration-300"
+                                >
+                                  Choose This Style
+                                </Button>
+                                
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      className="w-full border-purple-200 text-purple-600 hover:bg-purple-50 py-2 rounded-lg"
+                                    >
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      View Examples
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+                                    <DialogHeader>
+                                      <DialogTitle className="flex items-center gap-3">
+                                        <div className={`w-8 h-8 ${option.color} rounded-lg flex items-center justify-center text-lg`}>
+                                          {option.emoji}
+                                        </div>
+                                        {option.label} Examples
+                                      </DialogTitle>
+                                      <DialogDescription>
+                                        Browse example cards created in this artistic style
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    
+                                    <div className="overflow-y-auto max-h-[70vh] p-4">
+                                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        {/* Sample art style images - these would be actual examples */}
+                                        {[1, 2, 3, 4, 5, 6].map((index) => (
+                                          <div key={index} className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl border-2 border-gray-300 flex items-center justify-center">
+                                            <div className="text-center p-4">
+                                              <div className={`text-3xl mb-2`}>{option.emoji}</div>
+                                              <div className="text-xs text-gray-500">Sample {index}</div>
+                                              <div className="text-xs text-gray-400 mt-1">{option.value === 'animated_movie_style' ? '3D Animation' : 'Storybook Art'}</div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      
+                                      <div className="mt-6 bg-purple-50 rounded-lg p-4">
+                                        <h4 className="font-medium text-purple-800 mb-2">Style Features:</h4>
+                                        <ul className="text-purple-700 text-sm space-y-1">
+                                          {option.value === 'animated_movie_style' ? (
+                                            <>
+                                              <li>• Professional 3D animated movie quality</li>
+                                              <li>• Realistic proportions and detailed facial features</li>
+                                              <li>• Clean digital rendering with soft edges</li>
+                                              <li>• Modern, high-quality character design</li>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <li>• Hand-painted storybook illustration style</li>
+                                              <li>• Traditional oil or gouache texture</li>
+                                              <li>• Warm color palette with soft brushwork</li>
+                                              <li>• Nostalgic, timeless quality</li>
+                                            </>
+                                          )}
+                                        </ul>
+                                      </div>
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      /* Regular Select Options */
+                      <div className="space-y-4 sm:space-y-6">
+                        {/* Compact Options Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                          {(showAllOptions[currentStep.id] ? currentStep.options : currentStep.options.slice(0, 4)).map((option) => (
+                            <Button
+                              key={option.value}
+                              onClick={() => handleAnswer(option.value)}
+                              variant="outline"
+                              className="h-auto p-3 sm:p-4 text-center transition-all hover:scale-105 hover:shadow-lg bg-white/80 border-2 border-purple-200 hover:border-ethereal-purple text-gray-800 hover:bg-purple-50 rounded-xl text-xs sm:text-sm font-medium"
+                            >
+                              <div className="flex items-center justify-center space-x-2">
+                                {option.icon && (
+                                  <svg className="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 {option.icon === 'cake' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8zm1-13h-2v3H8v2h3v3h2v-3h3v-2h-3V7z"/>}
                                 {option.icon === 'heart' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>}
                                 {option.icon === 'graduation-cap' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 2L22 7l-10 5L2 7l10-5zM2 17l10 5 10-5M6 13.5l6 3 6-3"/>}
@@ -2049,7 +2056,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         </Button>
                       </div>
                     </div>
-                  </div>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {currentStep.type === 'multiselect' && currentStep.options && (

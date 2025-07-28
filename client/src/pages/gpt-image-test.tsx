@@ -376,7 +376,29 @@ export default function GPTImageTest() {
                   
                   {/* Quick Style Presets */}
                   <div className="mt-2 mb-3">
-                    <Label className="text-sm font-medium mb-2 block">Quick Presets (balanced real + cartoon):</Label>
+                    <Label className="text-sm font-medium mb-2 block">✨ Main Art Styles:</Label>
+                    <div className="grid grid-cols-1 gap-3 mb-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStyle("animated_movie_style")}
+                        className="text-sm justify-start bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                      >
+                        🎬 High-End 3D Animated Movie
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStyle("classic_storybook")}
+                        className="text-sm justify-start bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+                      >
+                        📚 Classic Illustrated Storybook
+                      </Button>
+                    </div>
+                    
+                    <Label className="text-sm font-medium mb-2 block">Balanced styles (real + cartoon):</Label>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         type="button"
@@ -385,7 +407,7 @@ export default function GPTImageTest() {
                         onClick={() => setStyle("semi-realistic illustration style")}
                         className="text-xs justify-start"
                       >
-                        Semi-Realistic
+                        ✨ Semi-Realistic
                       </Button>
                       <Button
                         type="button"
@@ -394,7 +416,7 @@ export default function GPTImageTest() {
                         onClick={() => setStyle("stylized semi-realism style")}
                         className="text-xs justify-start"
                       >
-                        Stylized Semi-Realism
+                        ✨ Stylized Semi-Realism
                       </Button>
                       <Button
                         type="button"
@@ -403,7 +425,7 @@ export default function GPTImageTest() {
                         onClick={() => setStyle("soft cartoon-realistic hybrid style")}
                         className="text-xs justify-start"
                       >
-                        Soft Cartoon-Real
+                        ✨ Soft Cartoon-Real
                       </Button>
                       <Button
                         type="button"
@@ -525,6 +547,8 @@ export default function GPTImageTest() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="animated_movie_style">🎬 High-End 3D Animated Movie</SelectItem>
+                      <SelectItem value="classic_storybook">📚 Classic Illustrated Storybook</SelectItem>
                       <SelectItem value="semi-realistic illustration">✨ Semi-Realistic Illustration (Recommended)</SelectItem>
                       <SelectItem value="stylized semi-realism">✨ Stylized Semi-Realism (Recommended)</SelectItem>
                       <SelectItem value="soft cartoon-realistic hybrid">✨ Soft Cartoon-Real Hybrid (Recommended)</SelectItem>
