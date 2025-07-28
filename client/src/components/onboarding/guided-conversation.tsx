@@ -419,7 +419,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
         ? `Perfect! Now let's choose the art style for your scene. This sets the whole mood and feel - I want to make sure it captures the perfect atmosphere for this ${answers.celebration} celebration!`
         : `Perfect! ✨ Now let's choose the art style for ${answers.name || 'their'}'s ${answers.celebration} card.`,
-      type: 'select',
+      type: 'art_style_enhanced',
       options: [
         { 
           value: 'animated_movie_style', 
@@ -775,18 +775,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       }
     }
     
-    // Move to next step after a brief delay for better UX
+    // Move to next step immediately for responsive UX
+    if (currentStepIndex < filteredSteps.length - 1) {
+      setCurrentStepIndex(prev => prev + 1);
+    } else {
+      generateCard();
+    }
+    // Scroll to top after state update
     setTimeout(() => {
-      if (currentStepIndex < filteredSteps.length - 1) {
-        setCurrentStepIndex(prev => prev + 1);
-      } else {
-        generateCard();
-      }
-      // Scroll to top after state update
-      setTimeout(() => {
-        scrollToTop();
-      }, 100);
-    }, 200);
+      scrollToTop();
+    }, 100);
   };
 
   const handleEditStep = (stepId: string) => {
