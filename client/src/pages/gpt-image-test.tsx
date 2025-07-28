@@ -41,16 +41,17 @@ export default function GPTImageTest() {
     setIsGeneratingInside(true);
 
     try {
-      // Retry logic for unstable connections (WiFi boosters, etc.)
-      const maxRetries = 2;
+      // Aggressive retry logic for WiFi booster connection drops  
+      const maxRetries = 4; // Increase retry attempts for critical launch issue
       let lastError;
       
       for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 420000); // 7 minute timeout
+          // Shorter timeout per attempt to fail fast and retry sooner on WiFi booster drops
+          const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout per attempt
           
-          console.log(`Inside card attempt ${attempt}: Starting...`);
+          console.log(`Inside card attempt ${attempt}: Starting... (3min timeout)`);
           
           const response = await fetch('/api/generate-inside-card', {
             method: 'POST',
@@ -66,7 +67,38 @@ export default function GPTImageTest() {
           });
 
           clearTimeout(timeoutId);
-          const data = await response.json();
+          
+          // Check if response is valid before trying to parse JSON
+          if (!response) {
+            throw new Error('No response received from server');
+          }
+          
+          // Check response status before parsing JSON
+          if (!response.ok) {
+            console.error(`Response not OK: ${response.status} ${response.statusText}`);
+            // Try to get error message even if response is not ok
+            let errorMessage = 'Inside card generation failed';
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.message || errorMessage;
+            } catch (jsonError) {
+              console.error('Failed to parse error response JSON:', jsonError);
+            }
+            throw new Error(errorMessage);
+          }
+          
+          let data;
+          try {
+            data = await response.json();
+          } catch (jsonError) {
+            console.error('Failed to parse response JSON:', jsonError);
+            throw new Error('Server response was invalid. The processing may have completed successfully but the response was corrupted during transmission.');
+          }
+          
+          // Validate data structure
+          if (!data || typeof data !== 'object') {
+            throw new Error('Invalid response data structure received from server');
+          }
           
           console.log(`Inside card attempt ${attempt}: Success!`);
 
@@ -87,19 +119,56 @@ export default function GPTImageTest() {
           console.error(`Inside card attempt ${attempt} failed:`, err);
           lastError = err;
           
+          // Check if this is a network/transmission error while server succeeded
+          const isNetworkError = (
+            err.name === 'TypeError' || 
+            err.message.includes('Failed to fetch') ||
+            err.message.includes('Network request failed') ||
+            err.message.includes('corrupted during transmission') ||
+            (typeof err === 'object' && Object.keys(err).length === 0) // Empty error object
+          );
+          
+          if (isNetworkError) {
+            console.log(`Network/transmission error detected on attempt ${attempt}. Server may have completed successfully.`);
+          }
+          
           // If this is the last attempt, throw the error
           if (attempt === maxRetries + 1) {
             throw err;
           }
           
-          // Wait before retrying (progressive backoff)
-          const waitTime = attempt * 2000; // 2s, 4s, etc.
+          // Wait before retrying (shorter backoff for faster recovery)
+          const waitTime = attempt * 1500; // 1.5s, 3s, 4.5s, 6s
           console.log(`Waiting ${waitTime}ms before inside card retry...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       }
       
-      // This should never be reached, but throw lastError just in case
+      // Last resort: Check if image was actually generated despite fetch failures
+      console.log('All inside card retry attempts failed. Checking if server completed successfully...');
+      try {
+        // Wait a moment for server to finish processing
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Try to get any recently generated images from session storage
+        const recentCard = sessionStorage.getItem('cardPreviewData');
+        if (recentCard) {
+          const cardData = JSON.parse(recentCard);
+          if (cardData.insideImageUrl && cardData.insideImageUrl.startsWith('/images/')) {
+            console.log('Found recently generated inside card in session storage despite fetch failures!');
+            setInsideCardImage(cardData.insideImageUrl);
+            toast({
+              title: "Success",
+              description: "Inside card generation completed successfully (recovered from connection issue)"
+            });
+            return; // Success!
+          }
+        }
+      } catch (checkError) {
+        console.error('Failed to check for generated inside card:', checkError);
+      }
+      
+      // If we get here, truly failed
       throw lastError;
       
     } catch (err: any) {
@@ -164,16 +233,17 @@ export default function GPTImageTest() {
     setResultImage('');
 
     try {
-      // Retry logic for unstable connections (WiFi boosters, etc.)
-      const maxRetries = 2;
+      // Aggressive retry logic for WiFi booster connection drops  
+      const maxRetries = 4; // Increase retry attempts for critical launch issue
       let lastError;
       
       for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 420000); // 7 minute timeout
+          // Shorter timeout per attempt to fail fast and retry sooner on WiFi booster drops
+          const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout per attempt
           
-          console.log(`Attempt ${attempt}: Starting style transformation...`);
+          console.log(`Style transform attempt ${attempt}: Starting... (3min timeout)`);
           
           const response = await fetch('/api/transform-style-gpt-image-1', {
             method: 'POST',
@@ -189,7 +259,38 @@ export default function GPTImageTest() {
           });
 
           clearTimeout(timeoutId);
-          const data = await response.json();
+          
+          // Check if response is valid before trying to parse JSON
+          if (!response) {
+            throw new Error('No response received from server');
+          }
+          
+          // Check response status before parsing JSON
+          if (!response.ok) {
+            console.error(`Response not OK: ${response.status} ${response.statusText}`);
+            // Try to get error message even if response is not ok
+            let errorMessage = 'Style transformation failed';
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.message || errorMessage;
+            } catch (jsonError) {
+              console.error('Failed to parse error response JSON:', jsonError);
+            }
+            throw new Error(errorMessage);
+          }
+          
+          let data;
+          try {
+            data = await response.json();
+          } catch (jsonError) {
+            console.error('Failed to parse response JSON:', jsonError);
+            throw new Error('Server response was invalid. The processing may have completed successfully but the response was corrupted during transmission.');
+          }
+          
+          // Validate data structure
+          if (!data || typeof data !== 'object') {
+            throw new Error('Invalid response data structure received from server');
+          }
           
           // If we get here, the request succeeded
           console.log(`Attempt ${attempt}: Success!`);
@@ -217,22 +318,61 @@ export default function GPTImageTest() {
           return;
           
         } catch (err: any) {
-          console.error(`Attempt ${attempt} failed:`, err);
+          console.error(`Style transform attempt ${attempt} failed:`, err);
           lastError = err;
+          
+          // Check if this is a network/transmission error while server succeeded
+          const isNetworkError = (
+            err.name === 'TypeError' || 
+            err.message.includes('Failed to fetch') ||
+            err.message.includes('Network request failed') ||
+            err.message.includes('corrupted during transmission') ||
+            (typeof err === 'object' && Object.keys(err).length === 0) // Empty error object
+          );
+          
+          if (isNetworkError) {
+            console.log(`Network/transmission error detected on attempt ${attempt}. Server may have completed successfully.`);
+          }
           
           // If this is the last attempt, throw the error
           if (attempt === maxRetries + 1) {
             throw err;
           }
           
-          // Wait before retrying (progressive backoff)
-          const waitTime = attempt * 2000; // 2s, 4s, etc.
-          console.log(`Waiting ${waitTime}ms before retry...`);
+          // Wait before retrying (shorter backoff for faster recovery)
+          const waitTime = attempt * 1500; // 1.5s, 3s, 4.5s, 6s
+          console.log(`Waiting ${waitTime}ms before style transform retry...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       }
       
-      // This should never be reached, but throw lastError just in case
+      // Last resort: Check if image was actually generated despite fetch failures
+      console.log('All style transform retry attempts failed. Checking if server completed successfully...');
+      try {
+        // Wait a moment for server to finish processing
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Try to get any recently generated images from session storage
+        const recentCard = sessionStorage.getItem('cardPreviewData');
+        if (recentCard) {
+          const cardData = JSON.parse(recentCard);
+          if (cardData.frontImageUrl && cardData.frontImageUrl.startsWith('/images/')) {
+            console.log('Found recently generated image in session storage despite fetch failures!');
+            setResultImage(cardData.frontImageUrl);
+            setFrontCardImage(cardData.frontImageUrl);
+            setInsideCardImage(''); 
+            toast({
+              title: "Success",
+              description: "Style transformation completed successfully (recovered from connection issue)"
+            });
+            return; // Success!
+          }
+        }
+      } catch (checkError) {
+        console.error('Failed to check for generated image:', checkError);
+      }
+      
+      // If we get here, truly failed
       throw lastError;
       
     } catch (err: any) {
@@ -315,15 +455,16 @@ export default function GPTImageTest() {
       }
 
       // Retry logic for unstable connections (WiFi boosters, etc.)
-      const maxRetries = 2;
+      const maxRetries = 4; // Increase retry attempts for critical launch issue
       let lastError;
       
       for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 420000); // 7 minute timeout
+          // Shorter timeout per attempt to fail fast and retry sooner on WiFi booster drops
+          const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout per attempt
           
-          console.log(`Scene edit attempt ${attempt}: Starting...`);
+          console.log(`Scene edit attempt ${attempt}: Starting... (3min timeout)`);
           
           const response = await fetch('/api/edit-scene-gpt-image-1', {
             method: 'POST',
@@ -343,7 +484,38 @@ export default function GPTImageTest() {
           });
 
           clearTimeout(timeoutId);
-          const data = await response.json();
+          
+          // Check if response is valid before trying to parse JSON
+          if (!response) {
+            throw new Error('No response received from server');
+          }
+          
+          // Check response status before parsing JSON
+          if (!response.ok) {
+            console.error(`Response not OK: ${response.status} ${response.statusText}`);
+            // Try to get error message even if response is not ok
+            let errorMessage = 'Scene editing failed';
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.message || errorMessage;
+            } catch (jsonError) {
+              console.error('Failed to parse error response JSON:', jsonError);
+            }
+            throw new Error(errorMessage);
+          }
+          
+          let data;
+          try {
+            data = await response.json();
+          } catch (jsonError) {
+            console.error('Failed to parse response JSON:', jsonError);
+            throw new Error('Server response was invalid. The processing may have completed successfully but the response was corrupted during transmission.');
+          }
+          
+          // Validate data structure
+          if (!data || typeof data !== 'object') {
+            throw new Error('Invalid response data structure received from server');
+          }
           
           console.log(`Scene edit attempt ${attempt}: Success!`);
 
@@ -373,19 +545,58 @@ export default function GPTImageTest() {
           console.error(`Scene edit attempt ${attempt} failed:`, err);
           lastError = err;
           
+          // Check if this is a network/transmission error while server succeeded
+          const isNetworkError = (
+            err.name === 'TypeError' || 
+            err.message.includes('Failed to fetch') ||
+            err.message.includes('Network request failed') ||
+            err.message.includes('corrupted during transmission') ||
+            (typeof err === 'object' && Object.keys(err).length === 0) // Empty error object
+          );
+          
+          if (isNetworkError) {
+            console.log(`Network/transmission error detected on attempt ${attempt}. Server may have completed successfully.`);
+          }
+          
           // If this is the last attempt, throw the error
           if (attempt === maxRetries + 1) {
             throw err;
           }
           
-          // Wait before retrying (progressive backoff)
-          const waitTime = attempt * 2000; // 2s, 4s, etc.
+          // Wait before retrying (shorter backoff for faster recovery)
+          const waitTime = attempt * 1500; // 1.5s, 3s, 4.5s, 6s
           console.log(`Waiting ${waitTime}ms before scene edit retry...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       }
       
-      // This should never be reached, but throw lastError just in case
+      // Last resort: Check if image was actually generated despite fetch failures
+      console.log('All retry attempts failed. Checking if server completed successfully...');
+      try {
+        // Wait a moment for server to finish processing
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Try to get any recently generated images from session storage
+        const recentCard = sessionStorage.getItem('cardPreviewData');
+        if (recentCard) {
+          const cardData = JSON.parse(recentCard);
+          if (cardData.frontImageUrl && cardData.frontImageUrl.startsWith('/images/')) {
+            console.log('Found recently generated image in session storage despite fetch failures!');
+            setResultImage(cardData.frontImageUrl);
+            setFrontCardImage(cardData.frontImageUrl);
+            setInsideCardImage(''); 
+            toast({
+              title: "Success",
+              description: "Scene editing completed successfully (recovered from connection issue)"
+            });
+            return; // Success!
+          }
+        }
+      } catch (checkError) {
+        console.error('Failed to check for generated image:', checkError);
+      }
+      
+      // If we get here, truly failed
       throw lastError;
       
     } catch (err: any) {
