@@ -41,35 +41,86 @@ export default function GPTImageTest() {
     setIsGeneratingInside(true);
 
     try {
-      const response = await fetch('/api/generate-inside-card', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          frontCardImage: frontImage,
-          insideText: insideCardText,
-          size: imageSize
-        })
-      });
+      // Retry logic for unstable connections (WiFi boosters, etc.)
+      const maxRetries = 2;
+      let lastError;
+      
+      for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 420000); // 7 minute timeout
+          
+          console.log(`Inside card attempt ${attempt}: Starting...`);
+          
+          const response = await fetch('/api/generate-inside-card', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              frontCardImage: frontImage,
+              insideText: insideCardText,
+              size: imageSize
+            }),
+            signal: controller.signal
+          });
 
-      const data = await response.json();
+          clearTimeout(timeoutId);
+          const data = await response.json();
+          
+          console.log(`Inside card attempt ${attempt}: Success!`);
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Inside card generation failed');
+          if (!response.ok) {
+            throw new Error(data.message || 'Inside card generation failed');
+          }
+
+          setInsideCardImage(data.imageUrl);
+          toast({
+            title: "Success",
+            description: `Inside card generated automatically${attempt > 1 ? ` (attempt ${attempt})` : ''}`
+          });
+          
+          // Success - break out of retry loop
+          return;
+          
+        } catch (err: any) {
+          console.error(`Inside card attempt ${attempt} failed:`, err);
+          lastError = err;
+          
+          // If this is the last attempt, throw the error
+          if (attempt === maxRetries + 1) {
+            throw err;
+          }
+          
+          // Wait before retrying (progressive backoff)
+          const waitTime = attempt * 2000; // 2s, 4s, etc.
+          console.log(`Waiting ${waitTime}ms before inside card retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
       }
-
-      setInsideCardImage(data.imageUrl);
-      toast({
-        title: "Success",
-        description: "Inside card generated automatically"
-      });
+      
+      // This should never be reached, but throw lastError just in case
+      throw lastError;
+      
     } catch (err: any) {
       console.error('Inside card generation error:', err);
-      setError(err.message);
+      
+      // Handle different types of errors
+      let errorMessage = 'Inside card generation failed';
+      if (err.name === 'AbortError') {
+        errorMessage = 'Request timed out after 7 minutes. Complex AI processing may take longer.';
+      } else if (err.message && err.message !== '{}' && err.message.trim() !== '') {
+        errorMessage = err.message;
+      } else if (err.toString && err.toString() !== '[object Object]') {
+        errorMessage = err.toString();
+      } else {
+        errorMessage = 'Network connection error during inside card generation. Please check your internet connection and try again.';
+      }
+      
+      setError(errorMessage);
       toast({
         title: "Inside Card Error",
-        description: err.message,
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -263,48 +314,99 @@ export default function GPTImageTest() {
         console.error('Photo analysis failed:', analysisError);
       }
 
-      const response = await fetch('/api/edit-scene-gpt-image-1', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          imageData: imagePreview,
-          scenePrompt: scenePrompt,
-          style: sceneStyle,
-          includeText: sceneIncludeText,
-          cardText: frontCardText,
-          size: imageSize,
-          detectedPersonCount: detectedPersonCount // Pass detected person count
-        })
-      });
+      // Retry logic for unstable connections (WiFi boosters, etc.)
+      const maxRetries = 2;
+      let lastError;
+      
+      for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 420000); // 7 minute timeout
+          
+          console.log(`Scene edit attempt ${attempt}: Starting...`);
+          
+          const response = await fetch('/api/edit-scene-gpt-image-1', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              imageData: imagePreview,
+              scenePrompt: scenePrompt,
+              style: sceneStyle,
+              includeText: sceneIncludeText,
+              cardText: frontCardText,
+              size: imageSize,
+              detectedPersonCount: detectedPersonCount // Pass detected person count
+            }),
+            signal: controller.signal
+          });
 
-      const data = await response.json();
+          clearTimeout(timeoutId);
+          const data = await response.json();
+          
+          console.log(`Scene edit attempt ${attempt}: Success!`);
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Scene editing failed');
+          if (!response.ok) {
+            throw new Error(data.message || 'Scene editing failed');
+          }
+
+          setResultImage(data.imageUrl);
+          setFrontCardImage(data.imageUrl);
+          setInsideCardImage(''); // Reset inside card when new front is generated
+          toast({
+            title: "Success",
+            description: `Scene editing completed successfully${attempt > 1 ? ` (attempt ${attempt})` : ''}`
+          });
+
+          // Automatically generate inside card if inside text is provided
+          if (insideCardText.trim()) {
+            setTimeout(() => {
+              generateInsideCardAuto(data.imageUrl);
+            }, 1000);
+          }
+          
+          // Success - break out of retry loop
+          return;
+          
+        } catch (err: any) {
+          console.error(`Scene edit attempt ${attempt} failed:`, err);
+          lastError = err;
+          
+          // If this is the last attempt, throw the error
+          if (attempt === maxRetries + 1) {
+            throw err;
+          }
+          
+          // Wait before retrying (progressive backoff)
+          const waitTime = attempt * 2000; // 2s, 4s, etc.
+          console.log(`Waiting ${waitTime}ms before scene edit retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
       }
-
-      setResultImage(data.imageUrl);
-      setFrontCardImage(data.imageUrl);
-      setInsideCardImage(''); // Reset inside card when new front is generated
-      toast({
-        title: "Success",
-        description: "Scene editing completed successfully"
-      });
-
-      // Automatically generate inside card if inside text is provided
-      if (insideCardText.trim()) {
-        setTimeout(() => {
-          generateInsideCardAuto(data.imageUrl);
-        }, 1000);
-      }
+      
+      // This should never be reached, but throw lastError just in case
+      throw lastError;
+      
     } catch (err: any) {
       console.error('Scene edit error:', err);
-      setError(err.message);
+      
+      // Handle different types of errors
+      let errorMessage = 'Scene editing failed';
+      if (err.name === 'AbortError') {
+        errorMessage = 'Request timed out after 7 minutes. Complex AI processing may take longer.';
+      } else if (err.message && err.message !== '{}' && err.message.trim() !== '') {
+        errorMessage = err.message;
+      } else if (err.toString && err.toString() !== '[object Object]') {
+        errorMessage = err.toString();
+      } else {
+        errorMessage = 'Network connection error during scene editing. Please check your internet connection and try again.';
+      }
+      
+      setError(errorMessage);
       toast({
         title: "Scene Edit Error",
-        description: err.message,
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
