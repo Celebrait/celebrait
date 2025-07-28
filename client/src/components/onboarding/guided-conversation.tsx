@@ -1480,23 +1480,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     // Use all uploaded photos for GPT-Image-1 scene generation
     const referenceImages = uploadedPhotos;
     
-    // Build scene description with enhanced style specifications
+    // Build scene description with style
     const sceneDescription = answers.scene || '';
-    let artStyle = answers.art_style || 'semi-realistic illustration';
+    const artStyle = answers.art_style || 'semi-realistic illustration';
     const frontCardText = answers.message || '';
-    
-    // Enhanced style specifications for consistent results
-    if (artStyle.toLowerCase().includes('animated movie style')) {
-      artStyle = 'professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation with realistic bone structure and facial anatomy, clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality';
-    }
-    // Make "semi-realistic illustration" more specific
-    else if (artStyle.toLowerCase().includes('semi-realistic illustration')) {
-      artStyle = 'semi-realistic digital illustration with realistic facial proportions and anatomy, clean digital art style with simplified details but accurate bone structure, soft edges and painterly quality that balances realism with artistic stylization';
-    }
-    // Make "stylized semi-realism" more specific  
-    else if (artStyle.toLowerCase().includes('stylized semi-realism')) {
-      artStyle = 'stylized semi-realistic art with enhanced reality, vibrant colors and selective detail emphasis, realistic facial structure with artistic enhancement and refined digital painting techniques';
-    }
     
     // Analyze photos to get detected person count
     let detectedPersonCount = null;
@@ -1581,24 +1568,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     // Use all uploaded photos for GPT-Image-1 style transformation
     const referenceImages = uploadedPhotos;
     
-    // Build style transformation prompt with enhanced specifications
-    let artStyle = answers.art_style || 'semi-realistic illustration';
+    // Build style transformation prompt using the exact same approach as gpt-image-test page
+    const artStyle = answers.art_style || 'semi-realistic illustration';
     const frontCardText = answers.message || '';
     
-    // Enhanced style specifications for consistent results
-    if (artStyle.toLowerCase().includes('animated movie style')) {
-      artStyle = 'professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation with realistic bone structure and facial anatomy, clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality';
-    }
-    // Make "semi-realistic illustration" more specific
-    else if (artStyle.toLowerCase().includes('semi-realistic illustration')) {
-      artStyle = 'semi-realistic digital illustration with realistic facial proportions and anatomy, clean digital art style with simplified details but accurate bone structure, soft edges and painterly quality that balances realism with artistic stylization';
-    }
-    // Make "stylized semi-realism" more specific  
-    else if (artStyle.toLowerCase().includes('stylized semi-realism')) {
-      artStyle = 'stylized semi-realistic art with enhanced reality, vibrant colors and selective detail emphasis, realistic facial structure with artistic enhancement and refined digital painting techniques';
-    }
-    
-    // Create the prompt using the enhanced style
+    // Create the prompt using the same structure as the test page
     let transformPrompt = `Transform this into ${artStyle}`;
     if (frontCardText.trim()) {
       transformPrompt += `. Include the text "${frontCardText}" in the same ${artStyle}, beautifully integrated into the composition.`;
@@ -1700,24 +1674,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       parts.push(defaultScene);
     }
     
-    // Add art style with enhanced specifications
+    // Add art style
     if (answers.art_style) {
-      let artStyleText = answers.art_style.replace('_', ' ');
-      
-      // Enhanced style specifications for consistent results
-      if (artStyleText.toLowerCase().includes('animated movie style')) {
-        artStyleText = 'professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation with realistic bone structure and facial anatomy, clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality';
-      }
-      // Make "semi-realistic illustration" more specific
-      else if (artStyleText.toLowerCase().includes('semi-realistic illustration')) {
-        artStyleText = 'semi-realistic digital illustration with realistic facial proportions and anatomy, clean digital art style with simplified details but accurate bone structure, soft edges and painterly quality that balances realism with artistic stylization';
-      }
-      // Make "stylized semi-realism" more specific  
-      else if (artStyleText.toLowerCase().includes('stylized semi-realism')) {
-        artStyleText = 'stylized semi-realistic art with enhanced reality, vibrant colors and selective detail emphasis, realistic facial structure with artistic enhancement and refined digital painting techniques';
-      }
-      
-      parts.push(`${artStyleText} style`);
+      parts.push(`${answers.art_style.replace('_', ' ')} style`);
     }
     
     // Add front text
@@ -1744,24 +1703,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     // Message prominently displayed as main focus
     parts.push(`"${insideMessage}" prominently displayed as the main focus with elegant typography`);
     
-    // Art style consistency with front card - use enhanced specifications
+    // Art style consistency with front card
     if (answers.art_style) {
-      let artStyleText = answers.art_style.replace('_', ' ');
-      
-      // Enhanced style specifications for consistent results
-      if (artStyleText.toLowerCase().includes('animated movie style')) {
-        artStyleText = 'professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation with realistic bone structure and facial anatomy, clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality';
-      }
-      // Make "semi-realistic illustration" more specific
-      else if (artStyleText.toLowerCase().includes('semi-realistic illustration')) {
-        artStyleText = 'semi-realistic digital illustration with realistic facial proportions and anatomy, clean digital art style with simplified details but accurate bone structure, soft edges and painterly quality that balances realism with artistic stylization';
-      }
-      // Make "stylized semi-realism" more specific  
-      else if (artStyleText.toLowerCase().includes('stylized semi-realism')) {
-        artStyleText = 'stylized semi-realistic art with enhanced reality, vibrant colors and selective detail emphasis, realistic facial structure with artistic enhancement and refined digital painting techniques';
-      }
-      
-      parts.push(`${artStyleText} art style with same visual treatment as front card`);
+      parts.push(`${answers.art_style} art style with same visual treatment as front card`);
     }
     
     // Subtle visual reference points to overall scene but text is focus
