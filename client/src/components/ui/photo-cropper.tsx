@@ -11,6 +11,9 @@ interface PhotoCropperProps {
   onCancel: () => void;
   isOpen: boolean;
   aspectRatio?: number; // width/height ratio (e.g., 1 for square, 4/3 for landscape)
+  multiCropMode?: boolean;
+  currentCropCount?: number;
+  maxCrops?: number;
 }
 
 interface CropArea {
@@ -25,7 +28,10 @@ export function PhotoCropper({
   onCropComplete, 
   onCancel, 
   isOpen, 
-  aspectRatio = 1 
+  aspectRatio = 1,
+  multiCropMode = false,
+  currentCropCount = 0,
+  maxCrops = 1
 }: PhotoCropperProps) {
   const [cropArea, setCropArea] = useState<CropArea>({ x: 0, y: 0, width: 200, height: 200 });
   const [isDragging, setIsDragging] = useState(false);
@@ -285,10 +291,13 @@ export function PhotoCropper({
         <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <Crop className="w-5 h-5" />
-            Crop Your Photo
+            {multiCropMode ? `Crop ${currentCropCount + 1} of ${maxCrops}` : 'Crop Your Photo'}
           </DialogTitle>
           <DialogDescription className="text-sm">
-            Adjust the crop area to focus on the important people in your photo. For multiple people, resize the area to include everyone you want featured.
+            {multiCropMode 
+              ? `Position the crop area around person ${currentCropCount + 1}. Focus on getting a clear headshot for the best card results.`
+              : 'Adjust the crop area to focus on the important people in your photo. For multiple people, resize the area to include everyone you want featured.'
+            }
           </DialogDescription>
         </DialogHeader>
         

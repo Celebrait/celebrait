@@ -141,6 +141,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [cropperOpen, setCropperOpen] = useState(false);
   const [currentCropImageIndex, setCurrentCropImageIndex] = useState(0);
   const [croppedImages, setCroppedImages] = useState<Record<number, string>>({});
+  const [multiCropMode, setMultiCropMode] = useState(false);
+  const [currentCropCount, setCurrentCropCount] = useState(0);
+  const [maxCropsForImage, setMaxCropsForImage] = useState(1);
+  const [allCroppedImages, setAllCroppedImages] = useState<string[]>([]);
 
 
 
@@ -1020,20 +1024,58 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   // Photo cropping handlers
   const handleCropPhoto = (imageIndex: number) => {
     setCurrentCropImageIndex(imageIndex);
+    setMultiCropMode(false);
+    setCurrentCropCount(0);
+    setMaxCropsForImage(1);
+    setCropperOpen(true);
+  };
+
+  const handleMultiCropPhoto = (imageIndex: number, maxCrops: number) => {
+    setCurrentCropImageIndex(imageIndex);
+    setMultiCropMode(true);
+    setCurrentCropCount(0);
+    setMaxCropsForImage(maxCrops);
+    setAllCroppedImages([]);
     setCropperOpen(true);
   };
 
   const handleCropComplete = (croppedImageUrl: string) => {
-    setCroppedImages(prev => ({
-      ...prev,
-      [currentCropImageIndex]: croppedImageUrl
-    }));
-    setCropperOpen(false);
-    
-    toast({
-      title: "Photo Cropped Successfully",
-      description: "Your cropped photo is ready to use for the card generation."
-    });
+    if (multiCropMode) {
+      const newCroppedImages = [...allCroppedImages, croppedImageUrl];
+      setAllCroppedImages(newCroppedImages);
+      setCurrentCropCount(prev => prev + 1);
+      
+      if (currentCropCount + 1 >= maxCropsForImage) {
+        // All crops completed
+        setCroppedImages(prev => ({
+          ...prev,
+          [currentCropImageIndex]: newCroppedImages.join('|') // Store multiple crops separated by |
+        }));
+        setCropperOpen(false);
+        toast({
+          title: "All Crops Completed",
+          description: `Successfully created ${maxCropsForImage} headshots from your photo.`
+        });
+      } else {
+        // Continue cropping
+        toast({
+          title: `Crop ${currentCropCount + 1} Saved`,
+          description: `${maxCropsForImage - currentCropCount - 1} more crops to go. Position the crop area for the next person.`
+        });
+      }
+    } else {
+      // Single crop mode
+      setCroppedImages(prev => ({
+        ...prev,
+        [currentCropImageIndex]: croppedImageUrl
+      }));
+      setCropperOpen(false);
+      
+      toast({
+        title: "Photo Cropped Successfully",
+        description: "Your cropped photo is ready to use for the card generation."
+      });
+    }
   };
 
   const handleCropCancel = () => {
@@ -1045,7 +1087,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   };
 
   const getDisplayImage = (index: number) => {
-    return croppedImages[index] || uploadedPhotos[index];
+    // For multi-crop images, show the first cropped image
+    if (croppedImages[index]) {
+      const crops = croppedImages[index].split('|');
+      return crops[0]; // Show first crop as preview
+    }
+    return uploadedPhotos[index];
+  };
+
+  const getMultiCropImages = (index: number): string[] => {
+    if (croppedImages[index]) {
+      return croppedImages[index].split('|');
+    }
+    return [];
   };
 
   const handlePrevious = () => {
@@ -2990,29 +3044,68 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             'justify-center'
                           }`}>
                             {uploadedPhotos.map((photo, index) => (
-                              <div key={index} className="relative w-32 h-32 rounded-xl overflow-hidden border-4 border-purple-300 flex-shrink-0 group">
-                                <img 
-                                  src={getDisplayImage(index)} 
-                                  alt={`Uploaded photo ${index + 1}`} 
-                                  className="w-full h-full object-cover"
-                                />
-                                {/* Crop button overlay */}
-                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
-                                  <Button
-                                    onClick={() => handleCropPhoto(index)}
-                                    size="sm"
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white text-purple-600 hover:bg-purple-50 border border-purple-300"
-                                  >
-                                    <Crop className="w-4 h-4 mr-1" />
-                                    Crop
-                                  </Button>
+                              <div key={index} className="flex flex-col items-center space-y-2">
+                                <div className="relative w-32 h-32 rounded-xl overflow-hidden border-4 border-purple-300 flex-shrink-0">
+                                  <img 
+                                    src={getDisplayImage(index)} 
+                                    alt={`Uploaded photo ${index + 1}`} 
+                                    className="w-full h-full object-cover"
+                                  />
+                                  {/* Cropped indicator */}
+                                  {croppedImages[index] && (
+                                    <div className="absolute top-1 right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                      ✓
+                                    </div>
+                                  )}
                                 </div>
-                                {/* Cropped indicator */}
-                                {croppedImages[index] && (
-                                  <div className="absolute top-1 right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                                    ✓
+                                {/* Multi-crop buttons underneath */}
+                                <div className="flex flex-col gap-1">
+                                  <div className="flex gap-1">
+                                    <Button
+                                      onClick={() => handleMultiCropPhoto(index, 1)}
+                                      size="sm"
+                                      variant="outline"
+                                      className="bg-white text-purple-600 hover:bg-purple-50 border border-purple-300 px-2 py-1 text-xs"
+                                    >
+                                      <Crop className="w-3 h-3 mr-1" />
+                                      1 Person
+                                    </Button>
+                                    <Button
+                                      onClick={() => handleMultiCropPhoto(index, 2)}
+                                      size="sm"
+                                      variant="outline"
+                                      className="bg-white text-blue-600 hover:bg-blue-50 border border-blue-300 px-2 py-1 text-xs"
+                                    >
+                                      <Crop className="w-3 h-3 mr-1" />
+                                      2 People
+                                    </Button>
                                   </div>
-                                )}
+                                  <div className="flex gap-1">
+                                    <Button
+                                      onClick={() => handleMultiCropPhoto(index, 3)}
+                                      size="sm"
+                                      variant="outline"
+                                      className="bg-white text-green-600 hover:bg-green-50 border border-green-300 px-2 py-1 text-xs"
+                                    >
+                                      <Crop className="w-3 h-3 mr-1" />
+                                      3 People
+                                    </Button>
+                                    <Button
+                                      onClick={() => handleMultiCropPhoto(index, 4)}
+                                      size="sm"
+                                      variant="outline"
+                                      className="bg-white text-orange-600 hover:bg-orange-50 border border-orange-300 px-2 py-1 text-xs"
+                                    >
+                                      <Crop className="w-3 h-3 mr-1" />
+                                      4 People
+                                    </Button>
+                                  </div>
+                                  {getMultiCropImages(index).length > 0 && (
+                                    <p className="text-xs text-green-600 text-center">
+                                      {getMultiCropImages(index).length} headshots created
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -3726,6 +3819,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
           isOpen={cropperOpen}
           onCropComplete={handleCropComplete}
           onCancel={handleCropCancel}
+          multiCropMode={multiCropMode}
+          currentCropCount={currentCropCount}
+          maxCrops={maxCropsForImage}
         />
       )}
     </div>
