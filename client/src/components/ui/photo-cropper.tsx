@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Crop, RotateCcw, Check, X, Move, ZoomIn, ZoomOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -286,6 +286,9 @@ export function PhotoCropper({
             <Crop className="w-5 h-5" />
             Crop Your Photo
           </DialogTitle>
+          <DialogDescription>
+            Adjust the crop area to focus on the person's face and upper body for the best card results.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="flex flex-col gap-4">

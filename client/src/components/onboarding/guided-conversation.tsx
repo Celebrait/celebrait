@@ -3661,7 +3661,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         <PhotoCropper
           imageUrl={getCurrentImageForCropping()}
           isOpen={cropperOpen}
-          onComplete={handleCropComplete}
+          onCropComplete={handleCropComplete}
           onCancel={handleCropCancel}
         />
       )}
