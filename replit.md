@@ -120,6 +120,13 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 28, 2025. CRITICAL AI BRAINSTORM FINAL BUTTONS FIX: Completely resolved the persistent issue where wrong buttons appeared in final approval step:
+  * ROOT CAUSE IDENTIFIED: Multiple assistant message components were rendering buttons simultaneously, with previous messages showing outdated buttons
+  * MESSAGE-SPECIFIC LOGIC: Implemented explicit button hiding for all previous messages when in final_approval state
+  * PROPER FLOW COMPLETION: Modified handleButtonClick to handle "Sounds great, let's go!" action by extracting final scene and closing dialog
+  * DEBUG ENHANCEMENT: Added comprehensive logging showing exact message indices and button rendering decisions
+  * EARLY RETURN LOGIC: Added early return in final_approval state to prevent any fallthrough to default button logic
+  * CRITICAL RESOLUTION: Final approval step now shows ONLY "Sounds great, let's go!" and "I'd like to make a change" buttons, with proper scene extraction and flow progression
 - July 27, 2025. CRITICAL PERSON COUNT BUG FIX: Fixed major bug where AI generated wrong number of people by using file count instead of detected person count:
   * ROOT CAUSE IDENTIFIED: Backend was using imagesToProcess.length (number of uploaded files) instead of actual detected person count from OpenAI Vision API
   * EXAMPLE ISSUE: Single uploaded photo with 2 people detected resulted in AI generating only 1 person because imagesToProcess.length = 1

@@ -477,7 +477,19 @@ export function AIBrainstormChat({
   };
 
   const handleButtonClick = (action: string) => {
-    // Add a small delay to prevent immediate button disappearance
+    // Handle final approval action specially
+    if (action === "Sounds great, let's go!") {
+      // Extract the final scene description from the conversation
+      const finalScene = extractFinalSceneFromConversation();
+      console.log('Final scene extracted:', finalScene);
+      
+      // Close the dialog and pass the scene to the parent component
+      onComplete(finalScene);
+      setIsOpen(false);
+      return;
+    }
+    
+    // For all other actions, send to AI with delay
     setTimeout(() => {
       handleSendMessage(action);
     }, 100);
