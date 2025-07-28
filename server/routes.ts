@@ -3981,6 +3981,13 @@ ${formatInstruction}`;
 
   // GPT-Image-1 style transformation using OpenAI SDK as per documentation
   app.post("/api/transform-style-gpt-image-1", async (req, res) => {
+    const requestStartTime = Date.now();
+    console.log('[TIMING] Style transformation request started');
+    
+    // Set longer timeout for this specific request
+    req.setTimeout(600000); // 10 minute timeout
+    res.setTimeout(600000); // 10 minute timeout
+    
     try {
       if (!hasOpenAI || !openai) {
         return res.status(503).json({ message: "OpenAI API is not configured" });
@@ -4209,10 +4216,21 @@ ${formatInstruction}`;
             const frontImagePngUrl = await applyWatermarkToPngFile(cardId, 'front_unwatermarked', 'front');
             console.log('[PNG_ONLY] Watermarked front PNG created:', frontImagePngUrl);
             
-            res.json({ 
-              imageUrl: frontImagePngUrl, // Return PNG file URL instead of Base64
-              originalImageUrl: imageUrl // Store original for secure access
-            });
+            // Check if response is still writable before sending
+            if (!res.headersSent) {
+              const responsePayload = { 
+                imageUrl: frontImagePngUrl, // Return PNG file URL instead of Base64
+                originalImageUrl: imageUrl // Store original for secure access
+              };
+              
+              res.json(responsePayload);
+              const totalRequestDuration = Date.now() - requestStartTime;
+              console.log(`[TIMING] Complete style transformation finished in ${totalRequestDuration}ms`);
+              console.log('[PNG_ONLY] Transform response sent successfully');
+            } else {
+              const totalRequestDuration = Date.now() - requestStartTime;
+              console.log(`[TIMING] Headers already sent after ${totalRequestDuration}ms - connection may have timed out`);
+            }
           } catch (pngError: any) {
             console.error('[PNG_ONLY] Error during PNG processing:', pngError);
             // Fallback to original response if PNG processing fails

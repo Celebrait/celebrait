@@ -113,6 +113,9 @@ export default function GPTImageTest() {
     setResultImage('');
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 420000); // 7 minute timeout
+      
       const response = await fetch('/api/transform-style-gpt-image-1', {
         method: 'POST',
         headers: {
@@ -122,9 +125,11 @@ export default function GPTImageTest() {
           imageData: imagePreview,
           style: buildPromptWithText(style),
           size: imageSize
-        })
+        }),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
       const data = await response.json();
 
       if (!response.ok) {
@@ -147,10 +152,23 @@ export default function GPTImageTest() {
       }
     } catch (err: any) {
       console.error('GPT-Image-1 error:', err);
-      setError(err.message);
+      
+      // Handle different types of errors
+      let errorMessage = 'GPT-Image-1 transformation failed';
+      if (err.name === 'AbortError') {
+        errorMessage = 'Request timed out after 7 minutes. Complex AI processing may take longer.';
+      } else if (err.message && err.message !== '{}' && err.message.trim() !== '') {
+        errorMessage = err.message;
+      } else if (err.toString && err.toString() !== '[object Object]') {
+        errorMessage = err.toString();
+      } else {
+        errorMessage = 'Network connection error. Please check your connection and try again.';
+      }
+      
+      setError(errorMessage);
       toast({
         title: "GPT-Image-1 Error",
-        description: err.message,
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
