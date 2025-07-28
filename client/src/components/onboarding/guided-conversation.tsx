@@ -730,13 +730,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       setReturnToSummary(false);
       const summaryStepIndex = filteredSteps.findIndex(step => step.id === 'final_summary');
       if (summaryStepIndex !== -1) {
-        setTimeout(() => {
-          setCurrentStepIndex(summaryStepIndex);
-          // Scroll to top after state update
-          setTimeout(() => {
-            scrollToTop();
-          }, 100);
-        }, 200);
+        setCurrentStepIndex(summaryStepIndex);
+        scrollToTop();
       }
       return;
     }
@@ -751,13 +746,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       // After selecting heritage, go to character costume
       const costumeIndex = filteredSteps.findIndex(step => step.id === 'character_costume');
       if (costumeIndex !== -1) {
-        setTimeout(() => {
-          setCurrentStepIndex(costumeIndex);
-          // Scroll to top after state update
-          setTimeout(() => {
-            scrollToTop();
-          }, 100);
-        }, 200);
+        setCurrentStepIndex(costumeIndex);
+        scrollToTop();
         return;
       }
     }
@@ -767,13 +757,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       // After selecting costume, go to scene
       const sceneIndex = filteredSteps.findIndex(step => step.id === 'scene');
       if (sceneIndex !== -1) {
-        setTimeout(() => {
-          setCurrentStepIndex(sceneIndex);
-          // Scroll to top after state update
-          setTimeout(() => {
-            scrollToTop();
-          }, 100);
-        }, 200);
+        setCurrentStepIndex(sceneIndex);
+        scrollToTop();
         return;
       }
     }
@@ -784,10 +769,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     } else {
       generateCard();
     }
-    // Scroll to top after state update
-    setTimeout(() => {
-      scrollToTop();
-    }, 100);
+    // Scroll to top immediately
+    scrollToTop();
   };
 
   const handleEditStep = (stepId: string) => {
@@ -796,10 +779,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       setEditingStep(stepId);
       setReturnToSummary(true);
       setCurrentStepIndex(stepIndex);
-      // Scroll to top
-      setTimeout(() => {
-        scrollToTop();
-      }, 100);
+      scrollToTop();
     }
   };
 
@@ -825,11 +805,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const handlePersonalityNext = () => {
     if (selectedPersonalities.length > 0) {
-      setTimeout(() => {
-        if (currentStepIndex < steps.length - 1) {
-          setCurrentStepIndex(prev => prev + 1);
-        }
-      }, 500);
+      if (currentStepIndex < steps.length - 1) {
+        setCurrentStepIndex(prev => prev + 1);
+      }
     }
   };
 
