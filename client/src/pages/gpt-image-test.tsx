@@ -135,10 +135,16 @@ export default function GPTImageTest() {
     setError('');
     setResultImage('');
 
+    let timeoutId: NodeJS.Timeout | null = null;
+    
     try {
       // Create an AbortController for timeout handling
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+      timeoutId = setTimeout(() => {
+        if (!controller.signal.aborted) {
+          controller.abort('Request timeout - operation took longer than 2 minutes');
+        }
+      }, 120000); // 2 minute timeout
 
       const response = await fetch('/api/transform-style-gpt-image-1', {
         method: 'POST',
@@ -153,7 +159,11 @@ export default function GPTImageTest() {
         signal: controller.signal
       });
 
-      clearTimeout(timeoutId);
+      // Clear timeout immediately after successful response
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -193,6 +203,10 @@ export default function GPTImageTest() {
         variant: "destructive"
       });
     } finally {
+      // Ensure timeout is always cleared
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       setIsLoading(false);
     }
   };
@@ -219,6 +233,8 @@ export default function GPTImageTest() {
     setIsLoading(true);
     setError('');
     setResultImage('');
+
+    let timeoutId: NodeJS.Timeout | null = null;
 
     try {
       // Analyze photo to detect person count
@@ -252,7 +268,11 @@ export default function GPTImageTest() {
 
       // Create an AbortController for timeout handling
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+      timeoutId = setTimeout(() => {
+        if (!controller.signal.aborted) {
+          controller.abort('Request timeout - operation took longer than 2 minutes');
+        }
+      }, 120000); // 2 minute timeout
 
       const response = await fetch('/api/edit-scene-gpt-image-1', {
         method: 'POST',
@@ -271,7 +291,11 @@ export default function GPTImageTest() {
         signal: controller.signal
       });
 
-      clearTimeout(timeoutId);
+      // Clear timeout immediately after successful response
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -313,6 +337,10 @@ export default function GPTImageTest() {
         variant: "destructive"
       });
     } finally {
+      // Ensure timeout is always cleared
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       setIsLoading(false);
     }
   };
