@@ -1858,19 +1858,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
               </div>
             </div>
             
-            <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20">
-              {isTyping ? (
-                <div className="flex justify-center space-x-2">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                </div>
-              ) : (
-                <div className="text-lg sm:text-xl lg:text-2xl text-gray-800 leading-relaxed font-medium">
-                  <span>{currentStep.aiMessage}</span>
-                </div>
-              )}
-            </div>
+            {isTyping ? (
+              <div className="flex justify-center space-x-2">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              </div>
+            ) : (
+              <div className="text-lg sm:text-xl lg:text-2xl text-gray-800 leading-relaxed font-medium">
+                <span>{currentStep.aiMessage}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
