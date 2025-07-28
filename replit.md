@@ -120,6 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 28, 2025. WIFI BOOSTER CONNECTION RESILIENCE FIX: Implemented comprehensive retry logic and connection handling for unstable WiFi connections:
+  * RETRY MECHANISM: Added intelligent retry logic with 3 attempts for style transformation and scene editing
+  * CONNECTION DROP HANDLING: Specific handling for WiFi booster setups that cause intermittent connection drops during large PNG transmission
+  * PROGRESSIVE BACKOFF: 2-second, 4-second progressive wait times between retry attempts for connection recovery
+  * ROOT CAUSE RESOLUTION: Server processing completes successfully (~2 seconds PNG processing) but response transmission fails due to unstable WiFi
+  * ENHANCED ERROR DETECTION: Improved detection of empty error objects {} and network connection failures vs API failures
+  * SUCCESS NOTIFICATION: Shows attempt number when retry succeeds (e.g. "completed successfully (attempt 2)")
+  * ABORT CONTROLLER: Maintains 7-minute timeout with proper abort handling for each retry attempt
+  * NETWORK STABILITY: Specifically addresses WiFi booster environments that cause connection drops during 2+ MB PNG file transmission
 - July 28, 2025. CRITICAL TIMEOUT FIX FOR CARD GENERATION: Resolved timeout errors during complex AI image processing:
   * TIMEOUT INCREASE: Extended client-side timeout from 5 minutes to 7 minutes (420 seconds) for complex AI processing workflows
   * SERVER TIMEOUT FIX: Increased server-side OpenAI API timeout from 2 minutes to 4 minutes (240 seconds) to handle PNG processing overhead

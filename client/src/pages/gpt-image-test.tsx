@@ -113,43 +113,77 @@ export default function GPTImageTest() {
     setResultImage('');
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 420000); // 7 minute timeout
+      // Retry logic for unstable connections (WiFi boosters, etc.)
+      const maxRetries = 2;
+      let lastError;
       
-      const response = await fetch('/api/transform-style-gpt-image-1', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          imageData: imagePreview,
-          style: buildPromptWithText(style),
-          size: imageSize
-        }),
-        signal: controller.signal
-      });
+      for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 420000); // 7 minute timeout
+          
+          console.log(`Attempt ${attempt}: Starting style transformation...`);
+          
+          const response = await fetch('/api/transform-style-gpt-image-1', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              imageData: imagePreview,
+              style: buildPromptWithText(style),
+              size: imageSize
+            }),
+            signal: controller.signal
+          });
 
-      clearTimeout(timeoutId);
-      const data = await response.json();
+          clearTimeout(timeoutId);
+          const data = await response.json();
+          
+          // If we get here, the request succeeded
+          console.log(`Attempt ${attempt}: Success!`);
 
-      if (!response.ok) {
-        throw new Error(data.message || 'GPT-Image-1 transformation failed');
+          if (!response.ok) {
+            throw new Error(data.message || 'GPT-Image-1 transformation failed');
+          }
+
+          setResultImage(data.imageUrl);
+          setFrontCardImage(data.imageUrl);
+          setInsideCardImage(''); // Reset inside card when new front is generated
+          toast({
+            title: "Success",
+            description: `GPT-Image-1 transformation completed successfully${attempt > 1 ? ` (attempt ${attempt})` : ''}`
+          });
+
+          // Automatically generate inside card if inside text is provided
+          if (insideCardText.trim()) {
+            setTimeout(() => {
+              generateInsideCardAuto(data.imageUrl);
+            }, 1000);
+          }
+          
+          // Success - break out of retry loop
+          return;
+          
+        } catch (err: any) {
+          console.error(`Attempt ${attempt} failed:`, err);
+          lastError = err;
+          
+          // If this is the last attempt, throw the error
+          if (attempt === maxRetries + 1) {
+            throw err;
+          }
+          
+          // Wait before retrying (progressive backoff)
+          const waitTime = attempt * 2000; // 2s, 4s, etc.
+          console.log(`Waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
       }
-
-      setResultImage(data.imageUrl);
-      setFrontCardImage(data.imageUrl);
-      setInsideCardImage(''); // Reset inside card when new front is generated
-      toast({
-        title: "Success",
-        description: "GPT-Image-1 transformation completed successfully"
-      });
-
-      // Automatically generate inside card if inside text is provided
-      if (insideCardText.trim()) {
-        setTimeout(() => {
-          generateInsideCardAuto(data.imageUrl);
-        }, 1000);
-      }
+      
+      // This should never be reached, but throw lastError just in case
+      throw lastError;
+      
     } catch (err: any) {
       console.error('GPT-Image-1 error:', err);
       
@@ -162,7 +196,7 @@ export default function GPTImageTest() {
       } else if (err.toString && err.toString() !== '[object Object]') {
         errorMessage = err.toString();
       } else {
-        errorMessage = 'Network connection error. Please check your connection and try again.';
+        errorMessage = 'Network connection error during front card generation. Please check your internet connection and try again.';
       }
       
       setError(errorMessage);
