@@ -6,12 +6,13 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette, Edit3, Eye } from "lucide-react";
+import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette, Edit3, Eye, Crop } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
 import { AIBrainstormChat } from "@/components/ui/ai-brainstorm-chat-new";
 import { ArtStyleSelector } from "@/components/ui/art-style-selector";
+import { PhotoCropper } from "@/components/ui/photo-cropper";
 
 // Example prompts for the scene description
 const EXAMPLE_PROMPTS = [
@@ -134,6 +135,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [selectedVideoOption, setSelectedVideoOption] = useState<string>('');
   const [copyrightConsentOpen, setCopyrightConsentOpen] = useState(false);
   const [hasCopyrightConsent, setHasCopyrightConsent] = useState(false);
+  
+  // Photo cropping state
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [currentCropImageIndex, setCurrentCropImageIndex] = useState(0);
+  const [croppedImages, setCroppedImages] = useState<Record<number, string>>({});
 
 
 
@@ -255,7 +261,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       aiMessage: answers.photo_option === 'upload_and_transform'
         ? `Cool! ✨ Now please upload ONE clear photo that you'd like me to transform into a new artistic style for the front of ${answers.name || 'NAME'}'s card`
         : streamlinedFlow 
-          ? `Great! ✨ Please upload your photo(s) featuring ${answers.name || 'them'} + anyone else you'd like in the scene on the front of your card`
+          ? `Great! ✨ Please upload headshot photo(s) of ${answers.name || 'them'} and anyone else you'd like in the scene on the front of the card.`
           : `Perfect! Please upload one clear photo of ${answers.name || 'them'} + anyone else you'd like in the scene.`,
       type: 'photo_upload',
       required: true
@@ -1004,6 +1010,37 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   };
 
+  // Photo cropping handlers
+  const handleCropPhoto = (imageIndex: number) => {
+    setCurrentCropImageIndex(imageIndex);
+    setCropperOpen(true);
+  };
+
+  const handleCropComplete = (croppedImageUrl: string) => {
+    setCroppedImages(prev => ({
+      ...prev,
+      [currentCropImageIndex]: croppedImageUrl
+    }));
+    setCropperOpen(false);
+    
+    toast({
+      title: "Photo Cropped Successfully",
+      description: "Your cropped photo is ready to use for the card generation."
+    });
+  };
+
+  const handleCropCancel = () => {
+    setCropperOpen(false);
+  };
+
+  const getCurrentImageForCropping = () => {
+    return uploadedPhotos[currentCropImageIndex] || '';
+  };
+
+  const getDisplayImage = (index: number) => {
+    return croppedImages[index] || uploadedPhotos[index];
+  };
+
   const handlePrevious = () => {
     if (currentStepIndex > 0) {
       // Save current input for this step before navigating back
@@ -1408,8 +1445,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const generateCardWithGPTImage = async (useCardId: number) => {
     console.log('Using GPT-Image-1 for photo + scene workflow with cardId:', useCardId);
     
-    // Use all uploaded photos for GPT-Image-1 scene generation
-    const referenceImages = uploadedPhotos;
+    // Use cropped images if available, otherwise use original uploaded photos
+    const referenceImages = uploadedPhotos.map((photo, index) => {
+      return croppedImages[index] || photo;
+    });
+    console.log('Using images for generation:', { 
+      originalCount: uploadedPhotos.length, 
+      croppedCount: Object.keys(croppedImages).length,
+      referenceImages: referenceImages.map((img, i) => `Image ${i + 1}: ${croppedImages[i] ? 'cropped' : 'original'}`)
+    });
     
     // Build scene description with style
     const sceneDescription = answers.scene || '';
@@ -1474,6 +1518,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const conversationData = {
       ...answers,
       uploadedPhotos,
+      croppedImages,
       originalFrontImageUrl: frontResult.originalImageUrl,
       originalInsideImageUrl: insideOriginalUrl,
       watermarkedFrontImageUrl: frontResult.imageUrl,
@@ -1496,8 +1541,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const generateCardWithGPTImageTransform = async (useCardId: number) => {
     console.log('Using GPT-Image-1 for photo + transform style workflow with cardId:', useCardId);
     
-    // Use all uploaded photos for GPT-Image-1 style transformation
-    const referenceImages = uploadedPhotos;
+    // Use cropped images if available, otherwise use original uploaded photos
+    const referenceImages = uploadedPhotos.map((photo, index) => {
+      return croppedImages[index] || photo;
+    });
+    console.log('Using images for style transformation:', { 
+      originalCount: uploadedPhotos.length, 
+      croppedCount: Object.keys(croppedImages).length,
+      referenceImages: referenceImages.map((img, i) => `Image ${i + 1}: ${croppedImages[i] ? 'cropped' : 'original'}`)
+    });
     
     // Build style transformation prompt using the exact same approach as gpt-image-test page
     const artStyle = answers.art_style || 'semi-realistic illustration';
@@ -1539,6 +1591,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const conversationData = {
       ...answers,
       uploadedPhotos,
+      croppedImages,
       originalFrontImageUrl: frontResult.originalImageUrl,
       originalInsideImageUrl: insideOriginalUrl,
       watermarkedFrontImageUrl: frontResult.imageUrl,
@@ -2249,13 +2302,29 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                               <h4 className="font-semibold text-purple-700 mb-4">Uploaded Photos</h4>
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {uploadedPhotos.map((photo, index) => (
-                                  <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                                    <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-purple-300 flex-shrink-0">
+                                  <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg group">
+                                    <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-purple-300 flex-shrink-0">
                                       <img 
-                                        src={photo} 
+                                        src={getDisplayImage(index)} 
                                         alt={`Photo ${index + 1}`}
                                         className="w-full h-full object-cover"
                                       />
+                                      {/* Small crop button for summary */}
+                                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-200 flex items-center justify-center">
+                                        <Button
+                                          onClick={() => handleCropPhoto(index)}
+                                          size="sm"
+                                          className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white text-purple-600 hover:bg-purple-50 p-1 text-xs"
+                                        >
+                                          <Crop className="w-3 h-3" />
+                                        </Button>
+                                      </div>
+                                      {/* Cropped indicator */}
+                                      {croppedImages[index] && (
+                                        <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                                          ✓
+                                        </div>
+                                      )}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium text-gray-900">Photo {index + 1}</p>
@@ -2858,7 +2927,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                                 <p className="text-gray-600 mt-2">
                                   {answers.photo_option === 'upload_and_transform' 
                                     ? 'Click here to select one photo that you\'d like to transform into a different artistic style.'
-                                    : 'Click here to select one or more clear photos. The AI will create artistic representations while maintaining their likeness.'
+                                    : 'Click here to select one or more clear headshot photos. The AI will create artistic representations while maintaining their likeness.'
                                   }
                                 </p>
                                 
@@ -2914,12 +2983,29 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             'justify-center'
                           }`}>
                             {uploadedPhotos.map((photo, index) => (
-                              <div key={index} className="w-32 h-32 rounded-xl overflow-hidden border-4 border-purple-300 flex-shrink-0">
+                              <div key={index} className="relative w-32 h-32 rounded-xl overflow-hidden border-4 border-purple-300 flex-shrink-0 group">
                                 <img 
-                                  src={photo} 
+                                  src={getDisplayImage(index)} 
                                   alt={`Uploaded photo ${index + 1}`} 
                                   className="w-full h-full object-cover"
                                 />
+                                {/* Crop button overlay */}
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
+                                  <Button
+                                    onClick={() => handleCropPhoto(index)}
+                                    size="sm"
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white text-purple-600 hover:bg-purple-50 border border-purple-300"
+                                  >
+                                    <Crop className="w-4 h-4 mr-1" />
+                                    Crop
+                                  </Button>
+                                </div>
+                                {/* Cropped indicator */}
+                                {croppedImages[index] && (
+                                  <div className="absolute top-1 right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                    ✓
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -3569,6 +3655,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Photo Cropper Component */}
+      {cropperOpen && (
+        <PhotoCropper
+          imageUrl={getCurrentImageForCropping()}
+          isOpen={cropperOpen}
+          onComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+        />
+      )}
     </div>
   );
 }
