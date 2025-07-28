@@ -1960,6 +1960,51 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             </div>
                           ))}
                         </div>
+                        
+                        {/* Custom Art Style Input */}
+                        <div className="mt-6 pt-6 border-t border-gray-200">
+                          <div className="text-center mb-4">
+                            <h4 className="text-lg font-semibold text-gray-800 mb-2">Or Describe Your Own Style</h4>
+                            <p className="text-sm text-gray-600">
+                              Have a specific artistic vision? Type your own style description below.
+                            </p>
+                          </div>
+                          
+                          <div className="flex space-x-3">
+                            <Input
+                              value={currentInput}
+                              onChange={(e) => {
+                                setCurrentInput(e.target.value);
+                                setStepInputs(prev => ({ ...prev, [currentStep.id]: e.target.value }));
+                              }}
+                              placeholder="e.g., watercolor painting, vintage poster, anime style, oil painting..."
+                              className="text-lg p-4 rounded-xl border-2 border-purple-200 focus:border-purple-400 bg-white shadow-sm"
+                              onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
+                            />
+                            <Button 
+                              onClick={handleTextSubmit}
+                              disabled={!currentInput.trim()}
+                              className="px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 shadow-lg"
+                            >
+                              <ArrowRight className="w-5 h-5" />
+                            </Button>
+                          </div>
+                          
+                          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex items-start">
+                              <div className="flex-shrink-0">
+                                <Sparkles className="w-5 h-5 text-blue-500 mt-0.5" />
+                              </div>
+                              <div className="ml-3">
+                                <h4 className="text-sm font-semibold text-blue-800">Style Examples:</h4>
+                                <p className="text-sm text-blue-700 mt-1">
+                                  "watercolor with soft pastels", "vintage travel poster", "anime manga style", "realistic oil painting", 
+                                  "minimalist line art", "cyberpunk neon", "impressionist brushstrokes"
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       /* Regular Select Options */
