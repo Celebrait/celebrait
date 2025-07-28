@@ -1098,6 +1098,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   // Helper function for robust API calls with timeout and error handling
   const makeRobustAPICall = async (url: string, body: any, errorPrefix: string = "API call") => {
     try {
+      console.log(`[DEBUG] Starting ${errorPrefix} to ${url}`);
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 420000); // 7 minute timeout for complex AI processing
       
@@ -1110,14 +1111,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       });
       
       clearTimeout(timeoutId);
+      console.log(`[DEBUG] ${errorPrefix} response status:`, response.status, response.statusText);
       
       if (!response.ok) {
         const errorText = await response.text();
+        console.error(`[DEBUG] ${errorPrefix} error response:`, errorText);
         throw new Error(`${errorPrefix} Error ${response.status}: ${errorText}`);
       }
       
-      return await response.json();
+      const responseData = await response.json();
+      console.log(`[DEBUG] ${errorPrefix} completed successfully`);
+      return responseData;
     } catch (error: any) {
+      console.error(`[DEBUG] ${errorPrefix} error caught:`, error);
       if (error.name === 'AbortError') {
         throw new Error(`${errorPrefix} timed out after 7 minutes. Complex AI image processing is taking longer than expected. Please try again in a moment.`);
       } else if (error.message?.includes('Failed to fetch')) {
