@@ -3610,9 +3610,9 @@ ${formatInstruction}`;
           body: formData
         });
 
-        // Add timeout handling for GPT-Image-1 requests
+        // Add timeout handling for GPT-Image-1 requests - increased for complex processing
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('GPT-Image-1 scene edit request timed out - this model may require special OpenAI API access')), 120000);
+          setTimeout(() => reject(new Error('GPT-Image-1 scene edit request timed out after 4 minutes - complex processing may take time')), 240000);
         });
 
         const responsePromise = (async () => {

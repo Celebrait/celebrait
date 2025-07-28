@@ -1099,7 +1099,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const makeRobustAPICall = async (url: string, body: any, errorPrefix: string = "API call") => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout for complete server processing
+      const timeoutId = setTimeout(() => controller.abort(), 420000); // 7 minute timeout for complex AI processing
       
       const response = await fetch(url, {
         method: "POST",
@@ -1119,7 +1119,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       return await response.json();
     } catch (error: any) {
       if (error.name === 'AbortError') {
-        throw new Error(`${errorPrefix} timed out after 5 minutes. The server may be processing a complex request. Please try again in a moment.`);
+        throw new Error(`${errorPrefix} timed out after 7 minutes. Complex AI image processing is taking longer than expected. Please try again in a moment.`);
       } else if (error.message?.includes('Failed to fetch')) {
         throw new Error(`Network connection error during ${errorPrefix.toLowerCase()}. Please check your internet connection and try again.`);
       } else {
@@ -1373,10 +1373,25 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
     } catch (error: any) {
       console.error('Card generation error:', error);
-      const errorMessage = error?.message || error?.toString() || 'Unknown error occurred during card generation';
+      
+      // Handle empty error objects and provide meaningful feedback
+      let errorMessage = 'Unknown error occurred during card generation';
+      
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.toString && error.toString() !== '[object Object]') {
+        errorMessage = error.toString();
+      } else if (error?.name === 'AbortError') {
+        errorMessage = 'Request timed out after 7 minutes. Complex AI image processing is taking longer than expected.';
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && Object.keys(error).length === 0) {
+        errorMessage = 'Network timeout during AI image generation. This can happen with complex processing. Please try again.';
+      }
+      
       toast({
-        title: "Error",
-        description: `Failed to generate card: ${errorMessage}`,
+        title: "Card Generation Failed",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

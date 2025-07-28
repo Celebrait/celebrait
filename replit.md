@@ -120,6 +120,14 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 28, 2025. CRITICAL TIMEOUT FIX FOR CARD GENERATION: Resolved timeout errors during complex AI image processing:
+  * TIMEOUT INCREASE: Extended client-side timeout from 5 minutes to 7 minutes (420 seconds) for complex AI processing workflows
+  * SERVER TIMEOUT FIX: Increased server-side OpenAI API timeout from 2 minutes to 4 minutes (240 seconds) to handle PNG processing overhead
+  * ENHANCED ERROR HANDLING: Improved error message handling for empty error objects that were causing confusing "{}" error displays
+  * PERFORMANCE INSIGHT: Server logs showed PNG conversion taking 2-4 seconds additional processing time after OpenAI API completion
+  * TIMEOUT MESSAGES: Updated timeout error messages to be more informative about the 7-minute processing window
+  * NETWORK ERROR HANDLING: Added specific handling for network timeouts vs API errors vs empty error objects
+  * ROOT CAUSE RESOLUTION: Complex AI image generation with PNG conversion was exceeding previous timeout limits
 - July 28, 2025. CRITICAL AI BRAINSTORM FINAL BUTTONS FIX: Completely resolved the persistent issue where wrong buttons appeared in final approval step:
   * ROOT CAUSE IDENTIFIED: Multiple assistant message components were rendering buttons simultaneously, with previous messages showing outdated buttons
   * MESSAGE-SPECIFIC LOGIC: Implemented explicit button hiding for all previous messages when in final_approval state
