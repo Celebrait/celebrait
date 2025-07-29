@@ -3483,6 +3483,7 @@ ${formatInstruction}`;
         // Make "modern flat illustration" more specific and consistent
         else if (style.toLowerCase().includes('modern_flat_illustration') || style.toLowerCase().includes('modern flat illustration')) {
           enhancedStyle = 'contemporary editorial illustration style with bold graphic shapes and subtle dimensional shading, vibrant saturated color palette with rich tones, clean stylized character design with artistic flair and confident brushwork. Features modern magazine illustration aesthetic with selective detail emphasis, sophisticated color blocking, and professional concept art quality. Art style influences: New Yorker magazine covers, modern book illustration, editorial art direction, contemporary graphic novel aesthetics, and high-end advertising illustration with polished artistic execution';
+          console.log('Applied enhanced modern flat illustration style');
         }
         // Make "semi-realistic illustration" more specific
         else if (style.toLowerCase().includes('semi-realistic illustration')) {
@@ -3959,6 +3960,7 @@ ${formatInstruction}`;
       // Make "modern flat illustration" more specific and consistent
       else if (style.toLowerCase().includes('modern_flat_illustration') || style.toLowerCase().includes('modern flat illustration')) {
         enhancedStyle = 'contemporary editorial illustration style with bold graphic shapes and subtle dimensional shading, vibrant saturated color palette with rich tones, clean stylized character design with artistic flair and confident brushwork. Features modern magazine illustration aesthetic with selective detail emphasis, sophisticated color blocking, and professional concept art quality. Art style influences: New Yorker magazine covers, modern book illustration, editorial art direction, contemporary graphic novel aesthetics, and high-end advertising illustration with polished artistic execution';
+        console.log('Applied enhanced modern flat illustration style (transform endpoint)');
       }
       // Make "semi-realistic illustration" more specific
       else if (style.toLowerCase().includes('semi-realistic illustration')) {
