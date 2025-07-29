@@ -432,11 +432,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
           emoji: '🎬'
         },
         { 
-          value: 'classic_storybook', 
-          label: 'Classic Illustrated Storybook', 
-          description: 'Hand-painted storybook illustration style with traditional oil or gouache texture, warm color palette, and soft brushwork. Features charming, slightly exaggerated character design with nostalgic, timeless quality.',
-          color: 'bg-amber-600',
-          emoji: '📚'
+          value: 'modern_flat_illustration', 
+          label: 'Modern Flat Illustration', 
+          description: 'Bold modern flat illustration style with clean vector-art aesthetic, vibrant saturated colors with high contrast, geometric shapes and crisp clean lines. Features contemporary graphic design principles with stylized character design.',
+          color: 'bg-purple-600',
+          emoji: '🎨'
         }
       ]
     },

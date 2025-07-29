@@ -3480,9 +3480,9 @@ ${formatInstruction}`;
         if (style.toLowerCase().includes('animated_movie_style') || style.toLowerCase().includes('animated movie style')) {
           enhancedStyle = 'professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation with realistic bone structure and facial anatomy, clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality';
         }
-        // Make "classic storybook" more specific
-        else if (style.toLowerCase().includes('classic_storybook') || style.toLowerCase().includes('classic storybook')) {
-          enhancedStyle = 'hand-painted storybook illustration style with traditional oil or gouache texture, warm color palette, and soft brushwork. Features charming, slightly exaggerated character design, painterly backgrounds, and a nostalgic, timeless quality reminiscent of mid-century children\'s books and vintage European art. Stylistic influences: Classic Little Golden Books 1950s/60s European children\'s illustration (Italian/French) Artists like Mary Blair, Miroslav Šašek, or early Richard Scarry';
+        // Make "modern flat illustration" more specific and consistent
+        else if (style.toLowerCase().includes('modern_flat_illustration') || style.toLowerCase().includes('modern flat illustration')) {
+          enhancedStyle = 'bold modern flat illustration style with clean vector-art aesthetic, vibrant saturated colors with high contrast, geometric shapes and crisp clean lines with no soft brushwork or texture. Features contemporary graphic design principles, minimal dimensional shading, flat color fills, sharp well-defined edges, and stylized character design. Art style influences: modern editorial illustration, contemporary advertising art, Oliver Jeffers style simplicity, Jon Klassen geometric approach, and bold graphic design poster aesthetics with professional vector illustration quality';
         }
         // Make "semi-realistic illustration" more specific
         else if (style.toLowerCase().includes('semi-realistic illustration')) {
@@ -3956,9 +3956,9 @@ ${formatInstruction}`;
       if (style.toLowerCase().includes('animated_movie_style') || style.toLowerCase().includes('animated movie style')) {
         enhancedStyle = 'professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation with realistic bone structure and facial anatomy, clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality';
       }
-      // Make "classic storybook" more specific
-      else if (style.toLowerCase().includes('classic_storybook') || style.toLowerCase().includes('classic storybook')) {
-        enhancedStyle = 'hand-painted storybook illustration style with traditional oil or gouache texture, warm color palette, and soft brushwork. Features charming, slightly exaggerated character design, painterly backgrounds, and a nostalgic, timeless quality reminiscent of mid-century children\'s books and vintage European art. Stylistic influences: Classic Little Golden Books 1950s/60s European children\'s illustration (Italian/French) Artists like Mary Blair, Miroslav Šašek, or early Richard Scarry';
+      // Make "modern flat illustration" more specific and consistent
+      else if (style.toLowerCase().includes('modern_flat_illustration') || style.toLowerCase().includes('modern flat illustration')) {
+        enhancedStyle = 'bold modern flat illustration style with clean vector-art aesthetic, vibrant saturated colors with high contrast, geometric shapes and crisp clean lines with no soft brushwork or texture. Features contemporary graphic design principles, minimal dimensional shading, flat color fills, sharp well-defined edges, and stylized character design. Art style influences: modern editorial illustration, contemporary advertising art, Oliver Jeffers style simplicity, Jon Klassen geometric approach, and bold graphic design poster aesthetics with professional vector illustration quality';
       }
       // Make "semi-realistic illustration" more specific
       else if (style.toLowerCase().includes('semi-realistic illustration')) {
