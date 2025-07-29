@@ -3485,7 +3485,7 @@ ${formatInstruction}`;
         // Make "animated movie style" more specific for consistency with facial accuracy priority
         if (style.toLowerCase().includes('animated_movie_style') || style.toLowerCase().includes('animated movie style')) {
           // Generate contextual typography for 3D animation style
-          const sceneForTypography = photoAnalysis || '3D animated adventure scene';
+          const sceneForTypography = scenePrompt || '3D animated adventure scene';
           const typographyInstructions = generateTypographyInstructions('3D animation', sceneForTypography);
           
           enhancedStyle = `professional 3D animated movie style with EXACT FACIAL ACCURACY as absolute priority, maintain photographic facial likeness while applying high-quality computer animation aesthetic. CRITICAL: Preserve precise facial bone structure and anatomy during animation style conversion. Apply clean digital rendering with soft edges and polished surfaces only AFTER establishing perfect facial recreation. Professional animation studio quality with realistic proportions but NEVER compromise facial recognition for stylistic choices. ${typographyInstructions}`;
@@ -3493,7 +3493,7 @@ ${formatInstruction}`;
         // Make "modern flat illustration" more specific and consistent with facial accuracy priority
         else if (style.toLowerCase().includes('modern_flat_illustration') || style.toLowerCase().includes('modern flat illustration')) {
           // Generate contextual typography for the style
-          const sceneForTypography = photoAnalysis || 'contemporary editorial illustration scene';
+          const sceneForTypography = scenePrompt || 'contemporary editorial illustration scene';
           const typographyInstructions = generateTypographyInstructions('modern flat illustration', sceneForTypography);
           
           enhancedStyle = `contemporary editorial illustration style with precise facial accuracy as TOP PRIORITY, then apply artistic style with subtle dimensional shading, vibrant saturated color palette with rich tones, sophisticated graphic design elements with confident brushwork. CRITICAL: Maintain exact facial likeness and bone structure while applying editorial illustration aesthetic. Features modern magazine illustration style with selective artistic detail but NEVER sacrifice facial recognition. Art style influences: high-end editorial portraiture, contemporary character illustration, and professional concept art with photographic facial accuracy. ${typographyInstructions}`;
