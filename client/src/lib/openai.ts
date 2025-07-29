@@ -24,8 +24,7 @@ export interface GeneratedCard {
   price: number;
 }
 
-// Import typography utilities
-import { generateTypographyInstructions } from '../../../shared/typography';
+// Typography library removed - AI handles text integration directly
 
 // Helper functions for prompt construction
 export function buildCharacterPrompt(characterData: any): string {
@@ -42,10 +41,10 @@ export function buildCharacterPrompt(characterData: any): string {
     frontText
   } = characterData;
 
-  // Generate contextual typography instructions
-  const typographyInstructions = generateTypographyInstructions(artStyle, sceneDescription);
+  // Simple typography integration instruction
+  const typographyInstructions = `TYPOGRAPHY INTEGRATION: Naturally integrate the text "${frontText}" into the scene as part of the artistic composition. The text should appear as if it belongs in this specific environment - carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements. Ensure the text is clearly legible while feeling like an organic part of the scene rather than overlaid text.`;
 
-  return `Full-bleed square greeting card design, no borders, no background, no card mockup. ${artStyle} style featuring ${recipientIdentity} (${skinToneDescription}, ${ageConfirmation}, ${hairDescription}, ${distinctFeatures}, wearing ${clothingStyle}), in a scene: ${sceneDescription}. Mood: ${personalityDescription}. Text overlay: "${frontText}". ${typographyInstructions}. Print-ready artwork filling entire frame.`;
+  return `Full-bleed square greeting card design, no borders, no background, no card mockup. ${artStyle} style featuring ${recipientIdentity} (${skinToneDescription}, ${ageConfirmation}, ${hairDescription}, ${distinctFeatures}, wearing ${clothingStyle}), in a scene: ${sceneDescription}. Mood: ${personalityDescription}. ${typographyInstructions}. Print-ready artwork filling entire frame.`;
 }
 
 export function buildSceneOnlyPrompt(sceneData: any): string {
@@ -56,19 +55,17 @@ export function buildSceneOnlyPrompt(sceneData: any): string {
     frontText
   } = sceneData;
 
-  // Generate contextual typography instructions
-  const typographyInstructions = generateTypographyInstructions(artStyle, visualSceneDescription);
+  // Simple typography integration instruction
+  const typographyInstructions = `TYPOGRAPHY INTEGRATION: Naturally integrate the text "${frontText}" into the scene as part of the artistic composition. The text should appear as if it belongs in this specific environment - carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements. Ensure the text is clearly legible while feeling like an organic part of the scene rather than overlaid text.`;
 
-  return `Full-bleed square greeting card design, no borders, no background, no card mockup. ${artStyle} style. The scene is: ${visualSceneDescription}. Mood: ${cardVibe}. Text overlay: "${frontText}". ${typographyInstructions}. Print-ready artwork filling entire frame.`;
+  return `Full-bleed square greeting card design, no borders, no background, no card mockup. ${artStyle} style. The scene is: ${visualSceneDescription}. Mood: ${cardVibe}. ${typographyInstructions}. Print-ready artwork filling entire frame.`;
 }
 
 export function buildInsidePrompt(insideText: string, artStyle: string, frontPrompt?: string, sceneDescription?: string): string {
   const styleReference = frontPrompt ? `matching the exact style, colors, and mood from: ${frontPrompt}` : `in ${artStyle} style`;
   
-  // Generate contextual typography instructions for inside card
-  // Use scene description if provided, otherwise extract from front prompt or use generic
-  const contextForTypography = sceneDescription || frontPrompt || 'greeting card interior';
-  const typographyInstructions = generateTypographyInstructions(artStyle, contextForTypography);
+  // Simple typography integration instruction for inside card
+  const typographyInstructions = `TYPOGRAPHY: Integrate the text "${insideText}" naturally into the design as an organic part of the composition. The text should feel like it belongs in this artistic environment - whether displayed on surfaces, formed by design elements, or integrated into the scene. Maintain clear legibility while ensuring the typography enhances rather than competes with the artistic style.`;
   
-  return `Full-bleed square greeting card interior, no borders, no background, no card mockup. ${styleReference}. Centered text: "${insideText}". ${typographyInstructions}. Print-ready artwork filling entire frame with consistent visual theme.`;
+  return `Full-bleed square greeting card interior, no borders, no background, no card mockup. ${styleReference}. ${typographyInstructions}. Print-ready artwork filling entire frame with consistent visual theme.`;
 }

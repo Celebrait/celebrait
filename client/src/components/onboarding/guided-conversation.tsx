@@ -10,7 +10,7 @@ import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
-import { generateTypographyInstructions } from "@shared/typography";
+// Typography library removed - AI handles text integration directly
 import { AIBrainstormChat } from "@/components/ui/ai-brainstorm-chat-new";
 import { ArtStyleSelector } from "@/components/ui/art-style-selector";
 import { ArtStyleImageViewer } from "@/components/ui/art-style-image-viewer";
@@ -1591,14 +1591,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       parts.push(`${answers.art_style} art style with same visual treatment as front card`);
     }
     
-    // Generate contextual typography instructions
-    if (answers.art_style && answers.scene) {
-      const typographyInstructions = generateTypographyInstructions(answers.art_style, answers.scene);
-      parts.push(typographyInstructions);
-    } else {
-      // Fallback to basic typography instructions
-      parts.push('typography style matching front card exactly - same font family, weight, and text treatment');
-    }
+    // Simple typography integration instruction
+    parts.push('TYPOGRAPHY: Integrate the text naturally into the design as an organic part of the composition. The text should feel like it belongs in this artistic environment - whether displayed on surfaces, formed by design elements, or integrated into the scene. Maintain clear legibility while ensuring the typography enhances rather than competes with the artistic style.');
     
     // Colours matching front card exactly
     parts.push('color palette matching front card exactly - same primary and accent colors');

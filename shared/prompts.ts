@@ -1,7 +1,7 @@
 // Shared prompts used across the application
 // Changes here will be reflected in both main journey and test page
 
-import { generateTypographyInstructions } from './typography';
+// Typography library removed - AI handles integration directly
 
 
 
@@ -46,10 +46,9 @@ export const buildImagePrompt = (answers: any, photoAnalyses?: Array<{personInde
     parts.push(`with "Happy ${celebrationText} ${answers.name}" text prominently displayed`);
   }
   
-  // Generate contextual typography instructions
+  // Simple typography integration instruction
   if (answers.art_style && answers.scene) {
-    const typographyInstructions = generateTypographyInstructions(answers.art_style, answers.scene);
-    parts.push(typographyInstructions);
+    parts.push(`TYPOGRAPHY INTEGRATION: If text is included, naturally integrate it into the scene as part of the artistic composition. The text should appear as if it belongs in this specific environment - carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements. Ensure the text is clearly legible while feeling like an organic part of the scene rather than overlaid text.`);
   }
   
   // Quality requirements
@@ -75,14 +74,8 @@ export const buildInsidePrompt = (insideText: string, artStyle: string, frontPro
     parts.push(`${artStyle} art style with same visual treatment as front`);
   }
   
-  // Generate contextual typography instructions for inside card
-  const contextForTypography = sceneDescription || frontPrompt || 'greeting card interior';
-  if (artStyle && contextForTypography) {
-    const typographyInstructions = generateTypographyInstructions(artStyle, contextForTypography);
-    parts.push(`Typography: ${typographyInstructions}`);
-  } else {
-    parts.push('professional typography using same font style and treatment as front design');
-  }
+  // Simple typography instruction for inside card
+  parts.push('TYPOGRAPHY: Integrate the text naturally into the design as an organic part of the composition. The text should feel like it belongs in this artistic environment - whether displayed on surfaces, formed by design elements, or integrated into the scene. Maintain clear legibility while ensuring the typography enhances rather than competes with the artistic style.');
   
   parts.push('text prominently displayed and clearly readable');
   parts.push('minimal decorative elements that complement without overwhelming the message');

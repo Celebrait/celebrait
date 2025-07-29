@@ -7,7 +7,7 @@ import fs, { promises as fsPromises } from "fs";
 import path from "path";
 import { storage } from "./storage";
 import { insertUserSchema, insertCardSchema, insertLovedOneSchema, insertOrderSchema } from "@shared/schema";
-import { generateTypographyInstructions, generateTypographyWithDebug } from "@shared/typography";
+// Typography library removed - AI handles text integration directly
 
 import OpenAI from "openai";
 import Stripe from "stripe";
