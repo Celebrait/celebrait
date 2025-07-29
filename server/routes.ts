@@ -3449,28 +3449,25 @@ If just having a conversation (no suggestions), respond with valid JSON:
       const clothingInstruction = peopleCount > 1 ? 'dress the characters appropriately' : 'dress the character appropriately';
       const positioningInstruction = peopleCount > 1 ? 'Reimagine character positioning and interactions' : 'Reimagine character positioning';
 
-      let fullPrompt = `${aspectDescription} Create a completely new scene featuring ${characterText}. CRITICAL: Generate EXACTLY ${peopleCount} ${peopleCount === 1 ? 'person' : 'people'} - NO MORE, NO LESS. FACIAL ANALYSIS AND IDENTICAL RECREATION REQUIREMENTS:
+      let fullPrompt = `${aspectDescription} ABSOLUTE PRIORITY: FACIAL ACCURACY FIRST - Before applying any artistic style, the EXACT facial likeness must be preserved with photographic precision. 
 
-STEP 1 - ${faceAnalysisText}:
-Study ${peopleCount === 1 ? 'the person\'s' : 'each person\'s'} face with precision focus on: exact eye shape and spacing, precise nose bridge width and nostril shape, specific lip fullness and mouth corners, exact cheekbone prominence, jawline definition, chin shape, forehead proportions, eyebrow arch and thickness, skin texture and tone variations, any asymmetries or unique facial characteristics.
-
-STEP 2 - ${faceRecreationText}:
+MANDATORY FACIAL RECREATION REQUIREMENTS (COMPLETE BEFORE ANY STYLING):
 1) FACIAL STRUCTURE MATCH: Recreate the EXACT facial bone structure - same cheekbone height, same jawline angle, same forehead shape, same chin projection
 2) EYE PRECISION: Match exact eye shape (almond, round, hooded), eye spacing, eyelid fold pattern, iris color, eyebrow shape and arch
 3) NOSE ACCURACY: Replicate precise nose bridge width, nostril shape, nose tip definition, any bumps or unique nose characteristics  
 4) MOUTH DUPLICATION: Copy exact lip fullness, mouth width, corner shape, any asymmetries or distinctive mouth features
 5) SKIN MATCHING: Preserve exact skin tone, texture, any blemishes, freckles, moles, or distinctive skin characteristics
 6) HAIR PRECISION: Match exact hair color, texture, natural growth patterns, hairline shape
-7) FACIAL EXPRESSION: CRITICAL - Generate a completely NEW facial expression that perfectly matches the mood and context of the scene. If the scene is joyful, show genuine happiness. If dramatic, show appropriate emotion. If peaceful, show serenity. DO NOT copy the original expression from the reference photo - create a natural, contextually appropriate expression while preserving all facial structure
-8) DISTINCTIVE MARKS: Include any scars, dimples, laugh lines, or other identifying facial features
+7) DISTINCTIVE MARKS: Include any scars, dimples, laugh lines, or other identifying facial features
 
-SCENE CREATION REQUIREMENTS:
-9) DO NOT copy original positioning, poses, or spatial relationships from reference image
-10) CREATE ENTIRELY NEW COMPOSITION for this scene: ${scenePrompt}
-11) ${characterPositioning} in new positions that naturally fit the described scenario
-12) ${characterPoses} new poses and interactions appropriate for the scene
-13) CHANGE the clothing completely to fit the new scene - ${clothingInstruction} for the scenario while maintaining identical faces only. DO NOT preserve original clothing or outfits.
-14) ${positioningInstruction} for the new environment
+AFTER ESTABLISHING PERFECT LIKENESS - SCENE CREATION:
+Create a completely new scene featuring ${characterText}. CRITICAL: Generate EXACTLY ${peopleCount} ${peopleCount === 1 ? 'person' : 'people'} - NO MORE, NO LESS.
+8) FACIAL EXPRESSION: Generate a completely NEW facial expression that perfectly matches the mood and context while preserving all facial structure
+9) CREATE ENTIRELY NEW COMPOSITION for this scene: ${scenePrompt}
+10) ${characterPositioning} in new positions that naturally fit the described scenario
+11) ${characterPoses} new poses and interactions appropriate for the scene
+12) CHANGE the clothing completely to fit the new scene - ${clothingInstruction} for the scenario while maintaining identical faces only
+13) ${positioningInstruction} for the new environment
 ${formatInstruction}`;
       if (style && style.trim()) {
         // Enhanced style specifications for consistent results
@@ -3480,10 +3477,10 @@ ${formatInstruction}`;
         if (style.toLowerCase().includes('animated_movie_style') || style.toLowerCase().includes('animated movie style')) {
           enhancedStyle = 'professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation with realistic bone structure and facial anatomy, clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality';
         }
-        // Make "modern flat illustration" more specific and consistent
+        // Make "modern flat illustration" more specific and consistent with facial accuracy priority
         else if (style.toLowerCase().includes('modern_flat_illustration') || style.toLowerCase().includes('modern flat illustration')) {
-          enhancedStyle = 'contemporary editorial illustration style with bold graphic shapes and subtle dimensional shading, vibrant saturated color palette with rich tones, clean stylized character design with artistic flair and confident brushwork. Features modern magazine illustration aesthetic with selective detail emphasis, sophisticated color blocking, and professional concept art quality. Art style influences: New Yorker magazine covers, modern book illustration, editorial art direction, contemporary graphic novel aesthetics, and high-end advertising illustration with polished artistic execution';
-          console.log('Applied enhanced modern flat illustration style');
+          enhancedStyle = 'contemporary editorial illustration style with precise facial accuracy as TOP PRIORITY, then apply artistic style with subtle dimensional shading, vibrant saturated color palette with rich tones, sophisticated graphic design elements with confident brushwork. CRITICAL: Maintain exact facial likeness and bone structure while applying editorial illustration aesthetic. Features modern magazine illustration style with selective artistic detail but NEVER sacrifice facial recognition. Art style influences: high-end editorial portraiture, contemporary character illustration, and professional concept art with photographic facial accuracy';
+          console.log('Applied enhanced modern flat illustration style with facial accuracy priority');
         }
         // Make "semi-realistic illustration" more specific
         else if (style.toLowerCase().includes('semi-realistic illustration')) {
@@ -3494,7 +3491,7 @@ ${formatInstruction}`;
           enhancedStyle = 'stylized semi-realistic art with enhanced reality, vibrant colors and selective detail emphasis, realistic facial structure with artistic enhancement and refined digital painting techniques';
         }
         
-        fullPrompt = `${fullPrompt}, rendered in ${enhancedStyle} art style`;
+        fullPrompt = `${fullPrompt}. FINAL STEP - ARTISTIC STYLING: Once the exact facial likeness is established, THEN apply the following artistic style while maintaining all facial accuracy: ${enhancedStyle} art style`;
       }
       if (includeText && cardText && cardText.trim()) {
         fullPrompt = `${fullPrompt}. Add EXACTLY the text "${cardText}" and NO OTHER TEXT. Use typography that matches the ${style || 'artistic'} style and complements the overall vibe of the image. The text should be prominently displayed and well-integrated into the design.`;

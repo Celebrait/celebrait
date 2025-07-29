@@ -120,6 +120,16 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 29, 2025. CRITICAL CHARACTER LIKENESS CONSISTENCY FIX: Resolved facial accuracy issues caused by artistic style override in scene editing:
+  * ROOT CAUSE IDENTIFIED: "Contemporary editorial illustration" style with "bold graphic shapes" was overriding detailed facial analysis instructions
+  * PROMPT RESTRUCTURE: Reordered prompt to establish "ABSOLUTE PRIORITY: FACIAL ACCURACY FIRST" before any artistic styling considerations
+  * MANDATORY FACIAL RECREATION: Created 7-step mandatory facial recreation requirements that must be completed before any styling
+  * STYLE DESCRIPTION ENHANCEMENT: Updated modern_flat_illustration style to explicitly prioritize "precise facial accuracy as TOP PRIORITY" with "NEVER sacrifice facial recognition"
+  * SEQUENTIAL WORKFLOW: Implemented clear "AFTER ESTABLISHING PERFECT LIKENESS" section followed by "FINAL STEP - ARTISTIC STYLING" instruction
+  * FACE-FIRST METHODOLOGY: Changed from competing style vs accuracy instructions to sequential face-first then style-second approach
+  * PORTRAIT FORMAT SUPPORT: Added portrait (1024x1536) size option to scene editing section of test interface for better digital card impact
+  * ENHANCED EDITORIAL STYLE: Modified contemporary editorial illustration to maintain "photographic facial accuracy" while applying editorial aesthetic
+  * CRITICAL RESOLUTION: Scene editing now prioritizes exact facial likeness establishment before applying any artistic style elements
 - July 28, 2025. AI BRAINSTORM SCENE APPROVAL UX ENHANCEMENT: Complete scene description workflow integration with proper scroll positioning and summary page functionality:
   * SCROLL TO TOP FIX: Scene approval now automatically scrolls to top of art style step for optimal UX positioning
   * SCENE CAPTURE ENHANCEMENT: Final scene description properly captured from AI brainstorm conversation and stored in answers state
