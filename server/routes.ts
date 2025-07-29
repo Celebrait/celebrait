@@ -3463,12 +3463,19 @@ MANDATORY FACIAL RECREATION REQUIREMENTS (COMPLETE BEFORE ANY STYLING):
 
 AFTER ESTABLISHING PERFECT LIKENESS - SCENE CREATION:
 Create a completely new scene featuring ${characterText}. CRITICAL: Generate EXACTLY ${peopleCount} ${peopleCount === 1 ? 'person' : 'people'} - NO MORE, NO LESS.
+
+COMPOSITION RULES - DO NOT COPY REFERENCE PHOTO:
+- If reference photo is a headshot/upper body, create a FULL BODY or WIDE scene shot
+- If reference photo is close-up, create a MID-SHOT or ENVIRONMENTAL shot  
+- Show the character actively participating in the scene, not just posing
+- Include relevant background elements that tell the story of the scene
 9) SCENE-APPROPRIATE EXPRESSION: The character must display a brand NEW facial expression that perfectly captures the energy and mood of this specific scene: "${scenePrompt}". If it's a party scene, show excitement and joy. If it's relaxing, show contentment. If it's adventurous, show confidence and thrill. NEVER use the original photo's expression
-10) CREATE ENTIRELY NEW COMPOSITION for this scene: ${scenePrompt}
-11) ${characterPositioning} in new positions that naturally fit the described scenario
-12) ${characterPoses} new poses and interactions appropriate for the scene
-13) CHANGE the clothing completely to fit the new scene - ${clothingInstruction} for the scenario while maintaining identical faces only
-14) ${positioningInstruction} for the new environment
+10) COMPLETELY IGNORE ORIGINAL PHOTO COMPOSITION: Do NOT copy the positioning, framing, or body placement from the reference photo. The reference is ONLY for facial features.
+11) CREATE ENTIRELY NEW SCENE COMPOSITION for: ${scenePrompt}
+12) CREATIVE POSITIONING REQUIRED: ${characterPositioning} in completely different positions that showcase the full scene context. If it's a yacht scene, show the character on deck with ocean background. If it's a party, show them dancing or celebrating. Use full-body or three-quarter shots that tell the story of the scene.
+13) DYNAMIC POSES AND INTERACTIONS: ${characterPoses} completely new poses that are appropriate for the scene activity and energy level
+14) SCENE-APPROPRIATE CLOTHING: CHANGE the clothing completely to fit the new scene - ${clothingInstruction} for the scenario while maintaining identical faces only
+15) ENVIRONMENTAL INTEGRATION: ${positioningInstruction} for the new environment to create an immersive scene composition
 ${formatInstruction}`;
       if (style && style.trim()) {
         // Enhanced style specifications for consistent results
