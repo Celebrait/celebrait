@@ -38,10 +38,10 @@ const THEME_PATTERNS = {
 // Typography styles for 3D Animation art style
 const TYPOGRAPHY_3D_ANIMATION = {
   fairytale: {
-    description: "Whimsical 3D typography with magical movie aesthetic, reminiscent of Disney/Pixar fantasy films",
-    fontCharacteristics: "Curved, flowing letterforms with subtle dimensional depth and fairy tale charm",
-    treatment: "Soft glowing effects, magical sparkle overlays, and enchanted color gradients",
-    examples: "Disney movie titles, Pixar fantasy films, magical adventure game logos"
+    description: "Magical typography that integrates naturally into enchanted environments",
+    fontCharacteristics: "Curved, flowing letterforms that could be formed by magical elements, vines, or fairy dust",
+    treatment: "Text that appears carved into ancient trees, spelled out in flower petals, or glowing with magical energy as part of the scene",
+    examples: "Text carved in tree bark, letters formed by magical sparkles, words written in starlight"
   },
   adventure: {
     description: "Bold 3D typography with adventure movie aesthetic, dynamic and energetic",
@@ -84,10 +84,10 @@ const TYPOGRAPHY_3D_ANIMATION = {
 // Typography styles for Flat Illustration art style
 const TYPOGRAPHY_FLAT_ILLUSTRATION = {
   fairytale: {
-    description: "Hand-lettered flat typography with storybook illustration aesthetic",
-    fontCharacteristics: "Whimsical, hand-drawn letterforms with fairy tale charm and organic variations",
-    treatment: "Flat colors with storybook-inspired styling and magical decorative elements",
-    examples: "Children's book titles, fairy tale illustrations, storybook graphics"
+    description: "Typography that appears magically created within the enchanted scene",
+    fontCharacteristics: "Whimsical letterforms that could be formed by fairy dust, magical vines, or storybook elements",
+    treatment: "Text that appears carved into ancient stone, spelled out in flower petals, or glowing as magical runes on trees",
+    examples: "Words carved in castle stones, letters formed by magical sparkles, text written in fairy dust"
   },
   vintage: {
     description: "Retro flat typography with vintage poster aesthetic, classic and nostalgic",
@@ -96,16 +96,16 @@ const TYPOGRAPHY_FLAT_ILLUSTRATION = {
     examples: "Vintage advertising posters, retro magazine covers, classic brand identity"
   },
   modern: {
-    description: "Contemporary flat typography with modern design aesthetic, clean and minimal",
-    fontCharacteristics: "Sans-serif letterforms with geometric precision and contemporary proportions",
-    treatment: "Bold color blocking, minimal styling, and modern design principles",
-    examples: "Modern magazine layouts, contemporary brand identity, minimalist posters"
+    description: "Typography that seamlessly integrates into contemporary urban environments",
+    fontCharacteristics: "Clean, geometric letterforms that could appear on digital displays, neon signs, or architectural elements",
+    treatment: "Text that appears on billboards, digital screens, building facades, or as part of modern urban infrastructure",
+    examples: "Text on neon signs, digital billboard displays, architectural lettering, modern storefronts"
   },
   nature: {
-    description: "Organic flat typography with botanical illustration aesthetic",
-    fontCharacteristics: "Natural, flowing letterforms inspired by plant forms and organic shapes",
-    treatment: "Earth-tone color palettes, botanical decorative elements, and organic styling",
-    examples: "Nature magazine covers, botanical illustration books, eco-brand identity"
+    description: "Typography that grows organically from the natural environment",
+    fontCharacteristics: "Letterforms that could be formed by branches, leaves, or natural elements",
+    treatment: "Text that appears written in sand, formed by flower petals, carved in tree trunks, or shaped by natural formations",
+    examples: "Words spelled out in fallen leaves, text written in beach sand, letters formed by tree branches"
   },
   playful: {
     description: "Fun flat typography with contemporary illustration aesthetic, bright and energetic",
@@ -195,14 +195,8 @@ export function generateTypographyInstructions(artStyle: string, sceneDescriptio
     };
   }
   
-  // Build comprehensive typography instruction
-  const instruction = [
-    `Typography: ${typographyStyle.description}`,
-    `Font characteristics: ${typographyStyle.fontCharacteristics}`,
-    `Visual treatment: ${typographyStyle.treatment}`,
-    `Text must be clearly readable and prominent within the design`,
-    `Typography should enhance rather than compete with the artistic elements`
-  ].join('. ');
+  // Build scene-integrated typography instruction focused on artistic composition
+  const instruction = `TYPOGRAPHY INTEGRATION: Analyze the scene "${sceneDescription}" and design typography that becomes an organic part of the artistic composition. ${typographyStyle.description}. The text should appear as if it naturally belongs in this specific scene - for example, if it's a fairytale forest, the text could appear carved into tree bark or formed by magical sparkles; if it's a beach scene, text could be written in sand or formed by waves; if it's a modern city, text could appear on billboards or neon signs. ${typographyStyle.fontCharacteristics}. ${typographyStyle.treatment}. CRITICAL: Make the typography feel like an integral environmental element of the scene rather than overlaid text - it should tell part of the story and enhance the narrative composition.`;
   
   return instruction;
 }
@@ -249,13 +243,7 @@ export function generateTypographyWithDebug(artStyle: string, sceneDescription: 
     };
   }
   
-  const instruction = [
-    `Typography: ${typographyStyle.description}`,
-    `Font characteristics: ${typographyStyle.fontCharacteristics}`,
-    `Visual treatment: ${typographyStyle.treatment}`,
-    `Text must be clearly readable and prominent within the design`,
-    `Typography should enhance rather than compete with the artistic elements`
-  ].join('. ');
+  const instruction = `TYPOGRAPHY INTEGRATION: Analyze the scene "${sceneDescription}" and design typography that becomes an organic part of the artistic composition. ${typographyStyle.description}. The text should appear as if it naturally belongs in this specific scene - for example, if it's a fairytale forest, the text could appear carved into tree bark or formed by magical sparkles; if it's a beach scene, text could be written in sand or formed by waves; if it's a modern city, text could appear on billboards or neon signs. ${typographyStyle.fontCharacteristics}. ${typographyStyle.treatment}. CRITICAL: Make the typography feel like an integral environmental element of the scene rather than overlaid text - it should tell part of the story and enhance the narrative composition.`;
   
   return {
     instruction,
