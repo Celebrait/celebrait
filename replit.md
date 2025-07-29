@@ -120,6 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 29, 2025. COMPREHENSIVE MULTI-PHOTO ANALYSIS FIX: Enhanced photo analysis to handle multiple individual photos and group photos correctly:
+  * ALL PHOTOS ANALYZED: Updated /api/analyze-photo-content to analyze ALL uploaded photos instead of just the first one
+  * ACCURATE PERSON COUNT: System now correctly counts people across multiple individual photos (3 separate photos = 3 people) and group photos (1 photo with 3 people = 3 people)
+  * DETAILED ANALYSIS: Enhanced response includes totalPeopleCount, individual photoAnalyses array, and summary information
+  * FRONTEND INTEGRATION: Updated guided-conversation.tsx and gpt-image-test.tsx to send all photos and use totalPeopleCount
+  * COMPREHENSIVE SCENARIOS: Now handles single group photo (1 photo, 3 people), multiple individual photos (3 photos, 3 people), and mixed scenarios properly
+  * ROBUST FALLBACK: Individual photo analysis failures fall back to 1 person per photo assumption
+  * DETAILED LOGGING: Enhanced logging shows individual photo analysis results and total people count across all images
+  * CRITICAL FIX: Resolves issue where multiple individual photos only counted first person, now correctly sums all people across all photos
 - July 29, 2025. TYPOGRAPHY LIBRARY REMOVAL - SIMPLIFIED AI INTEGRATION: Completely removed complex typography library system in favor of direct AI text integration:
   * LIBRARY REMOVAL: Removed entire shared/typography.ts system with complex theme detection and style matching
   * SIMPLIFIED PROMPTS: Replaced with direct AI instructions: "TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition"

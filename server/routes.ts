@@ -654,45 +654,95 @@ Remember: You're helping them discover their perfect artistic vision through gui
         return res.status(400).json({ error: "No photos provided" });
       }
 
-      // Analyze first photo to detect people count
-      const firstPhoto = photos[0];
+      console.log(`[PHOTO ANALYSIS] Analyzing ${photos.length} photos for people count`);
       
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "user",
-            content: [
+      // Analyze ALL photos to detect people count
+      let totalPeopleCount = 0;
+      const photoAnalyses = [];
+      
+      for (let i = 0; i < photos.length; i++) {
+        const photo = photos[i];
+        console.log(`[PHOTO ANALYSIS] Analyzing photo ${i + 1}/${photos.length}`);
+        
+        try {
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
               {
-                type: "text",
-                text: "Count the number of people in this photo. Respond with ONLY a number (1, 2, 3, etc.) followed by the word 'people'. For example: '2 people' or '1 person'. If no people are visible, respond with '0 people'."
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: firstPhoto
-                }
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: "Count the number of people in this photo. Respond with ONLY a number (1, 2, 3, etc.) followed by the word 'people'. For example: '2 people' or '1 person'. If no people are visible, respond with '0 people'."
+                  },
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: photo
+                    }
+                  }
+                ]
               }
-            ]
-          }
-        ],
-        max_tokens: 50,
-        temperature: 0.1
-      });
+            ],
+            max_tokens: 50,
+            temperature: 0.1
+          });
 
-      const analysisText = response.choices[0].message.content?.trim() || "1 person";
-      console.log('Photo analysis result:', analysisText);
-      console.log('PHOTO ANALYSIS DEBUG: Raw response:', response.choices[0].message.content);
+          const analysisText = response.choices[0].message.content?.trim() || "0 people";
+          console.log(`[PHOTO ANALYSIS] Photo ${i + 1} result: ${analysisText}`);
+          
+          // Extract number from response
+          const numberMatch = analysisText.match(/(\d+)/);
+          const peopleInThisPhoto = numberMatch ? parseInt(numberMatch[1]) : 0;
+          totalPeopleCount += peopleInThisPhoto;
+          
+          photoAnalyses.push({
+            photoIndex: i + 1,
+            analysis: analysisText,
+            peopleCount: peopleInThisPhoto
+          });
+          
+        } catch (photoError) {
+          console.error(`[PHOTO ANALYSIS] Error analyzing photo ${i + 1}:`, photoError);
+          // Assume 1 person per photo on error (conservative fallback)
+          totalPeopleCount += 1;
+          photoAnalyses.push({
+            photoIndex: i + 1,
+            analysis: "1 person (analysis failed)",
+            peopleCount: 1
+          });
+        }
+      }
 
-      // Create photo context description
-      const photoContext = `Single photo uploaded - ${analysisText} detected in image`;
+      console.log(`[PHOTO ANALYSIS] Total people detected across all photos: ${totalPeopleCount}`);
+      console.log(`[PHOTO ANALYSIS] Individual photo results:`, photoAnalyses);
+
+      // Create photo context description based on results
+      let photoContext;
+      if (photos.length === 1) {
+        photoContext = `Single photo uploaded - ${totalPeopleCount} ${totalPeopleCount === 1 ? 'person' : 'people'} detected`;
+      } else {
+        photoContext = `${photos.length} photos uploaded - ${totalPeopleCount} ${totalPeopleCount === 1 ? 'person' : 'people'} detected across all images`;
+      }
       
-      res.json({ photoContext });
+      res.json({ 
+        photoContext,
+        totalPeopleCount,
+        photoAnalyses,
+        summary: `${photos.length} photo(s) analyzed, ${totalPeopleCount} people total`
+      });
+      
     } catch (error) {
       console.error('Photo analysis error:', error);
-      // Fallback to basic count
-      const photoContext = `Single photo uploaded - 1 person detected (analysis failed)`;
-      res.json({ photoContext });
+      // Fallback to basic count based on number of photos
+      const fallbackCount = photos.length;
+      const photoContext = `${photos.length} photo(s) uploaded - ${fallbackCount} ${fallbackCount === 1 ? 'person' : 'people'} detected (analysis failed)`;
+      res.json({ 
+        photoContext,
+        totalPeopleCount: fallbackCount,
+        photoAnalyses: [],
+        summary: `Analysis failed, assuming ${fallbackCount} people`
+      });
     }
   });
 

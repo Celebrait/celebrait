@@ -439,16 +439,15 @@ export default function GPTImageTest() {
         
         if (analysisResponse.ok) {
           const analysis = await analysisResponse.json();
-          console.log('Photo analysis result:', JSON.stringify(analysis.photoContext));
+          console.log('Photo analysis result:', analysis);
           
-          // Extract person count from photo context string
-          const personCountMatch = analysis.photoContext.match(/(\d+) people detected/);
-          if (personCountMatch) {
-            detectedPersonCount = parseInt(personCountMatch[1]);
-            console.log('Extracted detected person count:', detectedPersonCount);
-          } else if (analysis.photoContext.includes('single person')) {
-            detectedPersonCount = 1;
-            console.log('Detected single person from context');
+          // Use the totalPeopleCount from the enhanced analysis
+          detectedPersonCount = analysis.totalPeopleCount;
+          console.log('Detected person count from enhanced analysis:', detectedPersonCount);
+          
+          // Log detailed analysis for debugging
+          if (analysis.photoAnalyses && analysis.photoAnalyses.length > 0) {
+            console.log('Individual photo analyses:', analysis.photoAnalyses);
           }
         }
       } catch (analysisError) {

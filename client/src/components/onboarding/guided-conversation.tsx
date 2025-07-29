@@ -1350,7 +1350,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const artStyle = answers.art_style || 'semi-realistic illustration';
     const frontCardText = answers.message || '';
     
-    // Analyze photo to detect actual people count
+    // Analyze ALL photos to detect actual people count
     let detectedPersonCount = referenceImages.length; // fallback
     try {
       const analysisResponse = await fetch('/api/analyze-photo-content', {
@@ -1358,21 +1358,23 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ photos: [referenceImages[0]] })
+        body: JSON.stringify({ photos: referenceImages }) // Send ALL photos
       });
       
       if (analysisResponse.ok) {
         const analysis = await analysisResponse.json();
-        console.log('Photo analysis result:', analysis.photoContext);
+        console.log('Enhanced photo analysis result:', analysis);
         
-        // Extract person count from photo context string
-        const personCountMatch = analysis.photoContext.match(/(\d+) people?/);
-        if (personCountMatch) {
-          detectedPersonCount = parseInt(personCountMatch[1]);
-          console.log('[DEBUG] Extracted detected person count:', detectedPersonCount);
-        } else if (analysis.photoContext.includes('single person')) {
-          detectedPersonCount = 1;
-          console.log('[DEBUG] Detected single person from context');
+        // Use the totalPeopleCount from enhanced analysis
+        detectedPersonCount = analysis.totalPeopleCount;
+        console.log('[DEBUG] Total people detected across all photos:', detectedPersonCount);
+        
+        // Log detailed analysis for debugging
+        if (analysis.photoAnalyses && analysis.photoAnalyses.length > 0) {
+          console.log('[DEBUG] Individual photo analyses:', analysis.photoAnalyses);
+          analysis.photoAnalyses.forEach((photoAnalysis, index) => {
+            console.log(`[DEBUG] Photo ${photoAnalysis.photoIndex}: ${photoAnalysis.peopleCount} people - ${photoAnalysis.analysis}`);
+          });
         }
       }
     } catch (analysisError) {
