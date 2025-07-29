@@ -3459,15 +3459,16 @@ MANDATORY FACIAL RECREATION REQUIREMENTS (COMPLETE BEFORE ANY STYLING):
 5) SKIN MATCHING: Preserve exact skin tone, texture, any blemishes, freckles, moles, or distinctive skin characteristics
 6) HAIR PRECISION: Match exact hair color, texture, natural growth patterns, hairline shape
 7) DISTINCTIVE MARKS: Include any scars, dimples, laugh lines, or other identifying facial features
+8) CRITICAL EXPRESSION CHANGE: DO NOT copy the original facial expression from the reference photo. You must create a COMPLETELY NEW facial expression that matches the mood and energy of the new scene
 
 AFTER ESTABLISHING PERFECT LIKENESS - SCENE CREATION:
 Create a completely new scene featuring ${characterText}. CRITICAL: Generate EXACTLY ${peopleCount} ${peopleCount === 1 ? 'person' : 'people'} - NO MORE, NO LESS.
-8) FACIAL EXPRESSION: Generate a completely NEW facial expression that perfectly matches the mood and context while preserving all facial structure
-9) CREATE ENTIRELY NEW COMPOSITION for this scene: ${scenePrompt}
-10) ${characterPositioning} in new positions that naturally fit the described scenario
-11) ${characterPoses} new poses and interactions appropriate for the scene
-12) CHANGE the clothing completely to fit the new scene - ${clothingInstruction} for the scenario while maintaining identical faces only
-13) ${positioningInstruction} for the new environment
+9) SCENE-APPROPRIATE EXPRESSION: The character must display a brand NEW facial expression that perfectly captures the energy and mood of this specific scene: "${scenePrompt}". If it's a party scene, show excitement and joy. If it's relaxing, show contentment. If it's adventurous, show confidence and thrill. NEVER use the original photo's expression
+10) CREATE ENTIRELY NEW COMPOSITION for this scene: ${scenePrompt}
+11) ${characterPositioning} in new positions that naturally fit the described scenario
+12) ${characterPoses} new poses and interactions appropriate for the scene
+13) CHANGE the clothing completely to fit the new scene - ${clothingInstruction} for the scenario while maintaining identical faces only
+14) ${positioningInstruction} for the new environment
 ${formatInstruction}`;
       if (style && style.trim()) {
         // Enhanced style specifications for consistent results
