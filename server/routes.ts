@@ -3400,49 +3400,6 @@ If just having a conversation (no suggestions), respond with valid JSON:
     }
   });
 
-  // Helper function to generate scene-appropriate typography
-  function getSceneAppropriateTypography(scenePrompt: string, artStyle: string): string {
-    const scene = scenePrompt.toLowerCase();
-    
-    // Scene-based typography mapping
-    if (scene.includes('yacht') || scene.includes('luxury') || scene.includes('elegant') || scene.includes('fine dining')) {
-      return 'Use elegant, sophisticated typography with serif or refined sans-serif fonts. Consider gold, white, or navy blue text colors. Style should convey luxury and refinement, like high-end yacht club or luxury brand typography.';
-    }
-    else if (scene.includes('party') || scene.includes('celebration') || scene.includes('birthday') || scene.includes('dancing')) {
-      return 'Use fun, energetic typography with bold, playful fonts. Consider bright, vibrant colors that match the party atmosphere. Style should be festive and celebratory, like party invitation or event poster typography.';
-    }
-    else if (scene.includes('beach') || scene.includes('ocean') || scene.includes('surf') || scene.includes('tropical')) {
-      return 'Use relaxed, beach-inspired typography with casual, flowing fonts. Consider ocean blues, sunset oranges, or sandy beige colors. Style should feel breezy and coastal, like surf brand or beach resort typography.';
-    }
-    else if (scene.includes('adventure') || scene.includes('hiking') || scene.includes('mountain') || scene.includes('outdoor')) {
-      return 'Use bold, adventurous typography with strong, rugged fonts. Consider earth tones, forest greens, or mountain grays. Style should convey adventure and exploration, like outdoor gear or adventure tour typography.';
-    }
-    else if (scene.includes('cozy') || scene.includes('home') || scene.includes('reading') || scene.includes('relaxing')) {
-      return 'Use warm, comfortable typography with soft, friendly fonts. Consider warm browns, cozy oranges, or soft creams. Style should feel inviting and homey, like coffee shop or bookstore typography.';
-    }
-    else if (scene.includes('business') || scene.includes('office') || scene.includes('professional') || scene.includes('meeting')) {
-      return 'Use clean, professional typography with modern, corporate fonts. Consider classic navy, charcoal gray, or business blue colors. Style should convey competence and professionalism, like corporate branding typography.';
-    }
-    else if (scene.includes('vintage') || scene.includes('retro') || scene.includes('classic') || scene.includes('old')) {
-      return 'Use vintage-inspired typography with retro, classic fonts. Consider aged colors like sepia, vintage gold, or faded pastels. Style should evoke nostalgia and classic charm, like vintage poster or retro advertisement typography.';
-    }
-    else if (scene.includes('sport') || scene.includes('game') || scene.includes('competition') || scene.includes('athletic')) {
-      return 'Use dynamic, athletic typography with bold, energetic fonts. Consider team colors, bright contrasts, or sports-inspired palettes. Style should convey energy and competition, like sports jersey or athletic brand typography.';
-    }
-    else {
-      // Default fallback based on art style
-      if (artStyle && artStyle.includes('animated_movie_style')) {
-        return 'Use bold, cinematic typography with clean, modern fonts suitable for animated movie titles. Consider bright, engaging colors that complement the 3D animation aesthetic.';
-      }
-      else if (artStyle && artStyle.includes('modern_flat_illustration')) {
-        return 'Use sophisticated, editorial typography with clean, contemporary fonts suitable for magazine layouts. Consider colors that complement the editorial illustration style.';
-      }
-      else {
-        return 'Use typography that complements the scene\'s mood and energy, with font style and colors that naturally integrate with the overall composition.';
-      }
-    }
-  }
-
   // Scene editing using GPT-Image-1 edits API
   app.post("/api/edit-scene-gpt-image-1", async (req, res) => {
     if (!openai) {
@@ -3545,9 +3502,7 @@ ${formatInstruction}`;
         fullPrompt = `${fullPrompt}. FINAL STEP - ARTISTIC STYLING: Once the exact facial likeness is established, THEN apply the following artistic style while maintaining all facial accuracy: ${enhancedStyle} art style`;
       }
       if (includeText && cardText && cardText.trim()) {
-        // Create scene-appropriate typography instructions
-        const typographyStyle = getSceneAppropriateTypography(scenePrompt, style);
-        fullPrompt = `${fullPrompt}. Add EXACTLY the text "${cardText}" and NO OTHER TEXT. ${typographyStyle} The text should be prominently displayed and naturally integrated into the scene composition.`;
+        fullPrompt = `${fullPrompt}. Add EXACTLY the text "${cardText}" and NO OTHER TEXT. Use typography that matches the ${style || 'artistic'} style and complements the overall vibe of the image. The text should be prominently displayed and well-integrated into the design.`;
       }
       fullPrompt = `${fullPrompt}. High-quality artistic rendering, professional artwork.`;
 
