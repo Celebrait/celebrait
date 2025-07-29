@@ -23,6 +23,7 @@ export default function GPTImageTest() {
   // Scene editing specific state
   const [scenePrompt, setScenePrompt] = useState('');
   const [sceneStyle, setSceneStyle] = useState('watercolor painting');
+  const [sceneSize, setSceneSize] = useState<'1024x1024' | '1024x1536'>('1024x1024');
   const [sceneIncludeText, setSceneIncludeText] = useState(false);
   const [activeTab, setActiveTab] = useState<'transform' | 'scene'>('transform');
   
@@ -477,7 +478,7 @@ export default function GPTImageTest() {
               style: sceneStyle,
               includeText: sceneIncludeText,
               cardText: frontCardText,
-              size: imageSize,
+              size: sceneSize,
               detectedPersonCount: detectedPersonCount // Pass detected person count
             }),
             signal: controller.signal
@@ -927,6 +928,19 @@ export default function GPTImageTest() {
                       <SelectItem value="photorealistic">Photorealistic (too realistic)</SelectItem>
                       <SelectItem value="cartoon">Cartoon</SelectItem>
                       <SelectItem value="vintage poster">Vintage Poster</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="scene-size">Output Image Size</Label>
+                  <Select value={sceneSize} onValueChange={(value) => setSceneSize(value as '1024x1024' | '1024x1536')}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1024x1024">1024x1024 (Square)</SelectItem>
+                      <SelectItem value="1024x1536">1024x1536 (Portrait)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
