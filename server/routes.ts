@@ -645,6 +645,57 @@ Remember: You're helping them discover their perfect artistic vision through gui
   });
 
   // Art Style Suggestions endpoint
+  // Photo content analysis endpoint - detect people count in uploaded photos
+  app.post("/api/analyze-photo-content", async (req, res) => {
+    try {
+      const { photos } = req.body;
+      
+      if (!photos || !Array.isArray(photos) || photos.length === 0) {
+        return res.status(400).json({ error: "No photos provided" });
+      }
+
+      // Analyze first photo to detect people count
+      const firstPhoto = photos[0];
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Count the number of people in this photo. Respond with ONLY a number (1, 2, 3, etc.) followed by the word 'people'. For example: '2 people' or '1 person'. If no people are visible, respond with '0 people'."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: firstPhoto
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 50,
+        temperature: 0.1
+      });
+
+      const analysisText = response.choices[0].message.content?.trim() || "1 person";
+      console.log('Photo analysis result:', analysisText);
+      console.log('PHOTO ANALYSIS DEBUG: Raw response:', response.choices[0].message.content);
+
+      // Create photo context description
+      const photoContext = `Single photo uploaded - ${analysisText} detected in image`;
+      
+      res.json({ photoContext });
+    } catch (error) {
+      console.error('Photo analysis error:', error);
+      // Fallback to basic count
+      const photoContext = `Single photo uploaded - 1 person detected (analysis failed)`;
+      res.json({ photoContext });
+    }
+  });
+
   app.post("/api/art-style-suggestions", async (req, res) => {
     if (!hasOpenAI || !openai) {
       return res.status(503).json({ error: "OpenAI API not configured" });

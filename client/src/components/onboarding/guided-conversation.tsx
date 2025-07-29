@@ -1350,9 +1350,35 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const artStyle = answers.art_style || 'semi-realistic illustration';
     const frontCardText = answers.message || '';
     
-    // Use number of uploaded images as person count (simpler approach)
-    const detectedPersonCount = referenceImages.length;
-    console.log('[DEBUG] Using image count as person count:', detectedPersonCount);
+    // Analyze photo to detect actual people count
+    let detectedPersonCount = referenceImages.length; // fallback
+    try {
+      const analysisResponse = await fetch('/api/analyze-photo-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ photos: [referenceImages[0]] })
+      });
+      
+      if (analysisResponse.ok) {
+        const analysis = await analysisResponse.json();
+        console.log('Photo analysis result:', analysis.photoContext);
+        
+        // Extract person count from photo context string
+        const personCountMatch = analysis.photoContext.match(/(\d+) people?/);
+        if (personCountMatch) {
+          detectedPersonCount = parseInt(personCountMatch[1]);
+          console.log('[DEBUG] Extracted detected person count:', detectedPersonCount);
+        } else if (analysis.photoContext.includes('single person')) {
+          detectedPersonCount = 1;
+          console.log('[DEBUG] Detected single person from context');
+        }
+      }
+    } catch (analysisError) {
+      console.error('Photo analysis failed:', analysisError);
+      console.log('[DEBUG] Using image count as fallback:', detectedPersonCount);
+    }
     
     // Generate front card using GPT-Image-1 with multiple images with timeout and retry  
     console.log('[DEBUG] Calling edit-scene-gpt-image-1 with cardId:', useCardId);
