@@ -3482,7 +3482,7 @@ ${formatInstruction}`;
         }
         // Make "modern flat illustration" more specific and consistent
         else if (style.toLowerCase().includes('modern_flat_illustration') || style.toLowerCase().includes('modern flat illustration')) {
-          enhancedStyle = 'bold modern flat illustration style with clean vector-art aesthetic, vibrant saturated colors with high contrast, geometric shapes and crisp clean lines with no soft brushwork or texture. Features contemporary graphic design principles, minimal dimensional shading, flat color fills, sharp well-defined edges, and stylized character design. Art style influences: modern editorial illustration, contemporary advertising art, Oliver Jeffers style simplicity, Jon Klassen geometric approach, and bold graphic design poster aesthetics with professional vector illustration quality';
+          enhancedStyle = 'contemporary editorial illustration style with bold graphic shapes and subtle dimensional shading, vibrant saturated color palette with rich tones, clean stylized character design with artistic flair and confident brushwork. Features modern magazine illustration aesthetic with selective detail emphasis, sophisticated color blocking, and professional concept art quality. Art style influences: New Yorker magazine covers, modern book illustration, editorial art direction, contemporary graphic novel aesthetics, and high-end advertising illustration with polished artistic execution';
         }
         // Make "semi-realistic illustration" more specific
         else if (style.toLowerCase().includes('semi-realistic illustration')) {
@@ -3958,7 +3958,7 @@ ${formatInstruction}`;
       }
       // Make "modern flat illustration" more specific and consistent
       else if (style.toLowerCase().includes('modern_flat_illustration') || style.toLowerCase().includes('modern flat illustration')) {
-        enhancedStyle = 'bold modern flat illustration style with clean vector-art aesthetic, vibrant saturated colors with high contrast, geometric shapes and crisp clean lines with no soft brushwork or texture. Features contemporary graphic design principles, minimal dimensional shading, flat color fills, sharp well-defined edges, and stylized character design. Art style influences: modern editorial illustration, contemporary advertising art, Oliver Jeffers style simplicity, Jon Klassen geometric approach, and bold graphic design poster aesthetics with professional vector illustration quality';
+        enhancedStyle = 'contemporary editorial illustration style with bold graphic shapes and subtle dimensional shading, vibrant saturated color palette with rich tones, clean stylized character design with artistic flair and confident brushwork. Features modern magazine illustration aesthetic with selective detail emphasis, sophisticated color blocking, and professional concept art quality. Art style influences: New Yorker magazine covers, modern book illustration, editorial art direction, contemporary graphic novel aesthetics, and high-end advertising illustration with polished artistic execution';
       }
       // Make "semi-realistic illustration" more specific
       else if (style.toLowerCase().includes('semi-realistic illustration')) {
