@@ -10,6 +10,7 @@ import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
+import { generateTypographyInstructions } from "@shared/typography";
 import { AIBrainstormChat } from "@/components/ui/ai-brainstorm-chat-new";
 import { ArtStyleSelector } from "@/components/ui/art-style-selector";
 import { ArtStyleImageViewer } from "@/components/ui/art-style-image-viewer";
@@ -1557,18 +1558,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     parts.push("DO NOT include any people, characters, or figures from the front card");
     
     // Message prominently displayed as main focus
-    parts.push(`"${insideMessage}" prominently displayed as the main focus with elegant typography`);
+    parts.push(`"${insideMessage}" prominently displayed as the main focus`);
     
     // Art style consistency with front card
     if (answers.art_style) {
       parts.push(`${answers.art_style} art style with same visual treatment as front card`);
     }
     
-    // Subtle visual reference points to overall scene but text is focus
-    parts.push('subtle visual reference points to overall scene atmosphere from front card, but nothing too imposing as text is the primary focus');
-    
-    // Typography STYLE matching front card exactly
-    parts.push('typography style matching front card exactly - same font family, weight, and text treatment');
+    // Generate contextual typography instructions
+    if (answers.art_style && answers.scene) {
+      const typographyInstructions = generateTypographyInstructions(answers.art_style, answers.scene);
+      parts.push(typographyInstructions);
+    } else {
+      // Fallback to basic typography instructions
+      parts.push('typography style matching front card exactly - same font family, weight, and text treatment');
+    }
     
     // Colours matching front card exactly
     parts.push('color palette matching front card exactly - same primary and accent colors');

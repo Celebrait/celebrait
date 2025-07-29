@@ -24,6 +24,9 @@ export interface GeneratedCard {
   price: number;
 }
 
+// Import typography utilities
+import { generateTypographyInstructions } from '../../../shared/typography';
+
 // Helper functions for prompt construction
 export function buildCharacterPrompt(characterData: any): string {
   const {
@@ -39,7 +42,10 @@ export function buildCharacterPrompt(characterData: any): string {
     frontText
   } = characterData;
 
-  return `Full-bleed square greeting card design, no borders, no background, no card mockup. ${artStyle} style featuring ${recipientIdentity} (${skinToneDescription}, ${ageConfirmation}, ${hairDescription}, ${distinctFeatures}, wearing ${clothingStyle}), in a scene: ${sceneDescription}. Mood: ${personalityDescription}. Text overlay: "${frontText}". Print-ready artwork filling entire frame.`;
+  // Generate contextual typography instructions
+  const typographyInstructions = generateTypographyInstructions(artStyle, sceneDescription);
+
+  return `Full-bleed square greeting card design, no borders, no background, no card mockup. ${artStyle} style featuring ${recipientIdentity} (${skinToneDescription}, ${ageConfirmation}, ${hairDescription}, ${distinctFeatures}, wearing ${clothingStyle}), in a scene: ${sceneDescription}. Mood: ${personalityDescription}. Text overlay: "${frontText}". ${typographyInstructions}. Print-ready artwork filling entire frame.`;
 }
 
 export function buildSceneOnlyPrompt(sceneData: any): string {
@@ -50,10 +56,19 @@ export function buildSceneOnlyPrompt(sceneData: any): string {
     frontText
   } = sceneData;
 
-  return `Full-bleed square greeting card design, no borders, no background, no card mockup. ${artStyle} style. The scene is: ${visualSceneDescription}. Mood: ${cardVibe}. Text overlay: "${frontText}". Print-ready artwork filling entire frame.`;
+  // Generate contextual typography instructions
+  const typographyInstructions = generateTypographyInstructions(artStyle, visualSceneDescription);
+
+  return `Full-bleed square greeting card design, no borders, no background, no card mockup. ${artStyle} style. The scene is: ${visualSceneDescription}. Mood: ${cardVibe}. Text overlay: "${frontText}". ${typographyInstructions}. Print-ready artwork filling entire frame.`;
 }
 
-export function buildInsidePrompt(insideText: string, artStyle: string, frontPrompt?: string): string {
+export function buildInsidePrompt(insideText: string, artStyle: string, frontPrompt?: string, sceneDescription?: string): string {
   const styleReference = frontPrompt ? `matching the exact style, colors, and mood from: ${frontPrompt}` : `in ${artStyle} style`;
-  return `Full-bleed square greeting card interior, no borders, no background, no card mockup. ${styleReference}. Clean typography layout with centered text: "${insideText}". Print-ready artwork filling entire frame with consistent visual theme.`;
+  
+  // Generate contextual typography instructions for inside card
+  // Use scene description if provided, otherwise extract from front prompt or use generic
+  const contextForTypography = sceneDescription || frontPrompt || 'greeting card interior';
+  const typographyInstructions = generateTypographyInstructions(artStyle, contextForTypography);
+  
+  return `Full-bleed square greeting card interior, no borders, no background, no card mockup. ${styleReference}. Centered text: "${insideText}". ${typographyInstructions}. Print-ready artwork filling entire frame with consistent visual theme.`;
 }

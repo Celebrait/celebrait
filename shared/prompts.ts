@@ -1,6 +1,8 @@
 // Shared prompts used across the application
 // Changes here will be reflected in both main journey and test page
 
+import { generateTypographyInstructions } from './typography';
+
 
 
 export const buildImagePrompt = (answers: any, photoAnalyses?: Array<{personIndex: number, analysis: string}>) => {
@@ -44,13 +46,19 @@ export const buildImagePrompt = (answers: any, photoAnalyses?: Array<{personInde
     parts.push(`with "Happy ${celebrationText} ${answers.name}" text prominently displayed`);
   }
   
+  // Generate contextual typography instructions
+  if (answers.art_style && answers.scene) {
+    const typographyInstructions = generateTypographyInstructions(answers.art_style, answers.scene);
+    parts.push(typographyInstructions);
+  }
+  
   // Quality requirements
   parts.push('professional artwork quality, print-ready');
   
   return parts.join(', ');
 };
 
-export const buildInsidePrompt = (insideText: string, artStyle: string, frontPrompt?: string) => {
+export const buildInsidePrompt = (insideText: string, artStyle: string, frontPrompt?: string, sceneDescription?: string) => {
   const parts = [];
   
   // Base requirements for inside card
@@ -67,8 +75,15 @@ export const buildInsidePrompt = (insideText: string, artStyle: string, frontPro
     parts.push(`${artStyle} art style with same visual treatment as front`);
   }
   
-  // Typography and layout requirements
-  parts.push('professional typography using same font style and treatment as front design');
+  // Generate contextual typography instructions for inside card
+  const contextForTypography = sceneDescription || frontPrompt || 'greeting card interior';
+  if (artStyle && contextForTypography) {
+    const typographyInstructions = generateTypographyInstructions(artStyle, contextForTypography);
+    parts.push(`Typography: ${typographyInstructions}`);
+  } else {
+    parts.push('professional typography using same font style and treatment as front design');
+  }
+  
   parts.push('text prominently displayed and clearly readable');
   parts.push('minimal decorative elements that complement without overwhelming the message');
   parts.push('print-ready artwork, no mockup visible');

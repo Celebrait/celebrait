@@ -7,6 +7,7 @@ import fs, { promises as fsPromises } from "fs";
 import path from "path";
 import { storage } from "./storage";
 import { insertUserSchema, insertCardSchema, insertLovedOneSchema, insertOrderSchema } from "@shared/schema";
+import { generateTypographyInstructions, generateTypographyWithDebug } from "@shared/typography";
 
 import OpenAI from "openai";
 import Stripe from "stripe";
@@ -3483,12 +3484,20 @@ ${formatInstruction}`;
         
         // Make "animated movie style" more specific for consistency with facial accuracy priority
         if (style.toLowerCase().includes('animated_movie_style') || style.toLowerCase().includes('animated movie style')) {
-          enhancedStyle = 'professional 3D animated movie style with EXACT FACIAL ACCURACY as absolute priority, maintain photographic facial likeness while applying high-quality computer animation aesthetic. CRITICAL: Preserve precise facial bone structure and anatomy during animation style conversion. Apply clean digital rendering with soft edges and polished surfaces only AFTER establishing perfect facial recreation. Professional animation studio quality with realistic proportions but NEVER compromise facial recognition for stylistic choices';
+          // Generate contextual typography for 3D animation style
+          const sceneForTypography = photoAnalysis || '3D animated adventure scene';
+          const typographyInstructions = generateTypographyInstructions('3D animation', sceneForTypography);
+          
+          enhancedStyle = `professional 3D animated movie style with EXACT FACIAL ACCURACY as absolute priority, maintain photographic facial likeness while applying high-quality computer animation aesthetic. CRITICAL: Preserve precise facial bone structure and anatomy during animation style conversion. Apply clean digital rendering with soft edges and polished surfaces only AFTER establishing perfect facial recreation. Professional animation studio quality with realistic proportions but NEVER compromise facial recognition for stylistic choices. ${typographyInstructions}`;
         }
         // Make "modern flat illustration" more specific and consistent with facial accuracy priority
         else if (style.toLowerCase().includes('modern_flat_illustration') || style.toLowerCase().includes('modern flat illustration')) {
-          enhancedStyle = 'contemporary editorial illustration style with precise facial accuracy as TOP PRIORITY, then apply artistic style with subtle dimensional shading, vibrant saturated color palette with rich tones, sophisticated graphic design elements with confident brushwork. CRITICAL: Maintain exact facial likeness and bone structure while applying editorial illustration aesthetic. Features modern magazine illustration style with selective artistic detail but NEVER sacrifice facial recognition. Art style influences: high-end editorial portraiture, contemporary character illustration, and professional concept art with photographic facial accuracy';
-          console.log('Applied enhanced modern flat illustration style with facial accuracy priority');
+          // Generate contextual typography for the style
+          const sceneForTypography = photoAnalysis || 'contemporary editorial illustration scene';
+          const typographyInstructions = generateTypographyInstructions('modern flat illustration', sceneForTypography);
+          
+          enhancedStyle = `contemporary editorial illustration style with precise facial accuracy as TOP PRIORITY, then apply artistic style with subtle dimensional shading, vibrant saturated color palette with rich tones, sophisticated graphic design elements with confident brushwork. CRITICAL: Maintain exact facial likeness and bone structure while applying editorial illustration aesthetic. Features modern magazine illustration style with selective artistic detail but NEVER sacrifice facial recognition. Art style influences: high-end editorial portraiture, contemporary character illustration, and professional concept art with photographic facial accuracy. ${typographyInstructions}`;
+          console.log('Applied enhanced modern flat illustration style with facial accuracy priority and contextual typography');
         }
         // Make "semi-realistic illustration" more specific with facial accuracy priority
         else if (style.toLowerCase().includes('semi-realistic illustration')) {
@@ -3960,12 +3969,20 @@ ${formatInstruction}`;
       
       // Make "animated movie style" more specific for consistency
       if (style.toLowerCase().includes('animated_movie_style') || style.toLowerCase().includes('animated movie style')) {
-        enhancedStyle = 'professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation with realistic bone structure and facial anatomy, clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality';
+        // Generate contextual typography for 3D animation style transformation
+        const sceneForTypography = '3D animated adventure scene';
+        const typographyInstructions = generateTypographyInstructions('3D animation', sceneForTypography);
+        
+        enhancedStyle = `professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation with realistic bone structure and facial anatomy, clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality. ${typographyInstructions}`;
       }
       // Make "modern flat illustration" more specific and consistent
       else if (style.toLowerCase().includes('modern_flat_illustration') || style.toLowerCase().includes('modern flat illustration')) {
-        enhancedStyle = 'contemporary editorial illustration style with bold graphic shapes and subtle dimensional shading, vibrant saturated color palette with rich tones, clean stylized character design with artistic flair and confident brushwork. Features modern magazine illustration aesthetic with selective detail emphasis, sophisticated color blocking, and professional concept art quality. Art style influences: New Yorker magazine covers, modern book illustration, editorial art direction, contemporary graphic novel aesthetics, and high-end advertising illustration with polished artistic execution';
-        console.log('Applied enhanced modern flat illustration style (transform endpoint)');
+        // Generate contextual typography for the style transformation
+        const sceneForTypography = 'contemporary editorial illustration scene';
+        const typographyInstructions = generateTypographyInstructions('modern flat illustration', sceneForTypography);
+        
+        enhancedStyle = `contemporary editorial illustration style with bold graphic shapes and subtle dimensional shading, vibrant saturated color palette with rich tones, clean stylized character design with artistic flair and confident brushwork. Features modern magazine illustration aesthetic with selective detail emphasis, sophisticated color blocking, and professional concept art quality. Art style influences: New Yorker magazine covers, modern book illustration, editorial art direction, contemporary graphic novel aesthetics, and high-end advertising illustration with polished artistic execution. ${typographyInstructions}`;
+        console.log('Applied enhanced modern flat illustration style with contextual typography (transform endpoint)');
       }
       // Make "semi-realistic illustration" more specific
       else if (style.toLowerCase().includes('semi-realistic illustration')) {
