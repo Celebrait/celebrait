@@ -63,6 +63,7 @@
     "express-session": "^1.18.1",
     "form-data": "^4.0.3",
     "framer-motion": "^11.13.1",
+    "gpt-tokenizer": "^3.0.1",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.453.0",
     "memoizee": "^0.4.17",
