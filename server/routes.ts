@@ -5412,24 +5412,22 @@ ${formatInstruction}`;
           input: {
             prompt: prompt,
             image_url: imageUrl,
-            seed: Math.floor(Math.random() * 1000000),
-            guidance_scale: 2.5,
-            num_inference_steps: 28,
-            safety_tolerance: 2
+            guidance_scale: 3.5, // Default guidance scale for Flux Kontext
+            num_inference_steps: 28, // Default steps
+            seed: Math.floor(Math.random() * 1000000)
           }
         });
       } else {
-        // Text-to-image generation with Flux Pro
+        // Text-to-image generation with Flux Pro (fallback)
         console.log('📝 Using text-to-image mode with Flux Pro');
         result = await fal.subscribe("fal-ai/flux-pro", {
           input: {
             prompt: prompt,
-            image_size: "square",
+            image_size: "square_hd", // 1024x1024
             num_inference_steps: 28,
             guidance_scale: 3.5,
             num_images: 1,
-            seed: Math.floor(Math.random() * 1000000),
-            safety_tolerance: 2
+            seed: Math.floor(Math.random() * 1000000)
           }
         });
       }
