@@ -1095,6 +1095,49 @@ export default function GPTImageTest() {
                     </Card>
                   )}
 
+                  {/* Flux Parameter Controls for Scene Tab */}
+                  <Card className="p-4 bg-purple-50 border-purple-200">
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-purple-700">🎛️ Flux Kontext Parameters</h4>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="scene-flux-guidance">Guidance Scale: {fluxGuidanceScale}</Label>
+                          <input
+                            id="scene-flux-guidance"
+                            type="range"
+                            min="1"
+                            max="15"
+                            step="0.5"
+                            value={fluxGuidanceScale}
+                            onChange={(e) => setFluxGuidanceScale(parseFloat(e.target.value))}
+                            className="w-full mt-1"
+                          />
+                          <div className="text-xs text-gray-600 mt-1">
+                            Lower: More original photo | Higher: More transformation
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="scene-flux-steps">Inference Steps: {fluxInferenceSteps}</Label>
+                          <input
+                            id="scene-flux-steps"
+                            type="range"
+                            min="15"
+                            max="50"
+                            step="1"
+                            value={fluxInferenceSteps}
+                            onChange={(e) => setFluxInferenceSteps(parseInt(e.target.value))}
+                            className="w-full mt-1"
+                          />
+                          <div className="text-xs text-gray-600 mt-1">
+                            Lower: Faster | Higher: Better quality
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+
                   <Button 
                     onClick={testSceneEdit}
                     disabled={isLoading || !imageFile || !scenePrompt.trim()}
