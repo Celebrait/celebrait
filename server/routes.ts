@@ -339,70 +339,6 @@ async function compressImageForDigital(imageBuffer: Buffer): Promise<Buffer> {
   }
 }
 
-// Helper function to build detailed Flux prompt matching OpenAI structure
-function buildFluxDetailedPrompt(scenePrompt: string, scene: string = '', artStyle: string = ''): string {
-  const aspectDescription = 'MANDATORY: Create a perfectly SQUARE composition with equal width and height - NOT portrait, NOT landscape. Full bleed square design with no borders, fill entire square frame.';
-  
-  const fullScenePrompt = scene ? `${scenePrompt} ${scene}` : scenePrompt;
-  
-  let fullPrompt = `${aspectDescription} ABSOLUTE PRIORITY: FACIAL ACCURACY FIRST - Before applying any artistic style, the EXACT facial likeness must be preserved with photographic precision. 
-
-MANDATORY FACIAL RECREATION REQUIREMENTS (COMPLETE BEFORE ANY STYLING):
-1) FACIAL STRUCTURE MATCH: Recreate the EXACT facial bone structure - same cheekbone height, same jawline angle, same forehead shape, same chin projection
-2) EYE PRECISION: Match exact eye shape (almond, round, hooded), eye spacing, eyelid fold pattern, iris color, eyebrow shape and arch
-3) NOSE ACCURACY: Replicate precise nose bridge width, nostril shape, nose tip definition, any bumps or unique nose characteristics  
-4) MOUTH DUPLICATION: Copy exact lip fullness, mouth width, corner shape, any asymmetries or distinctive mouth features
-5) SKIN MATCHING: Preserve exact skin tone, texture, any blemishes, freckles, moles, or distinctive skin characteristics
-6) HAIR PRECISION: Match exact hair color, texture, natural growth patterns, hairline shape
-7) DISTINCTIVE MARKS: Include any scars, dimples, laugh lines, or other identifying facial features
-8) CRITICAL EXPRESSION CHANGE: DO NOT copy the original facial expression from the reference photo. You must create a COMPLETELY NEW facial expression that matches the mood and energy of the new scene
-
-AFTER ESTABLISHING PERFECT LIKENESS - SCENE CREATION:
-Create a completely new scene featuring the character from the reference image. CRITICAL: Generate EXACTLY 1 person - NO MORE, NO LESS.
-
-COMPOSITION RULES - DO NOT COPY REFERENCE PHOTO:
-- If reference photo is a headshot/upper body, create a FULL BODY or WIDE scene shot
-- If reference photo is close-up, create a MID-SHOT or ENVIRONMENTAL shot
-- Show the character actively participating in the scene, not just posing
-- Include relevant background elements that tell the story of the scene
-9) SCENE-APPROPRIATE EXPRESSION: The character must display a brand NEW facial expression that perfectly captures the energy and mood of this specific scene: "${fullScenePrompt}". If it's a party scene, show excitement and joy. If it's relaxing, show contentment. If it's adventurous, show confidence and thrill. NEVER use the original photo's expression
-10) COMPLETELY IGNORE ORIGINAL PHOTO COMPOSITION: Do NOT copy the positioning, framing, or body placement from the reference photo. The reference is ONLY for facial features.
-11) CREATE ENTIRELY NEW SCENE COMPOSITION for: ${fullScenePrompt}
-12) CREATIVE POSITIONING REQUIRED: Place the character in completely different positions that showcase the full scene context. If it's a yacht scene, show the character on deck with ocean background. If it's a party, show them dancing or celebrating. Use full-body or three-quarter shots that tell the story of the scene.
-13) DYNAMIC POSES AND INTERACTIONS: Give the character completely new poses that are appropriate for the scene activity and energy level
-14) SCENE-APPROPRIATE CLOTHING: CHANGE the clothing completely to fit the new scene - dress the character appropriately for the scenario while maintaining identical faces only
-15) ENVIRONMENTAL INTEGRATION: Reimagine character positioning for the new environment to create an immersive scene composition
-8) COMPOSE FOR SQUARE FORMAT - ensure all elements fit within a square boundary`;
-
-  if (artStyle && artStyle.trim()) {
-    // Enhanced style specifications for consistent results
-    let enhancedStyle = artStyle;
-    
-    // Make "animated movie style" more specific for consistency with facial accuracy priority
-    if (artStyle.toLowerCase().includes('animated_movie_style') || artStyle.toLowerCase().includes('animated movie style')) {
-      enhancedStyle = `professional 3D animated movie style with EXACT FACIAL ACCURACY as absolute priority, maintain photographic facial likeness while applying high-quality computer animation aesthetic. CRITICAL: Preserve precise facial bone structure and anatomy during animation style conversion. Apply clean digital rendering with soft edges and polished surfaces only AFTER establishing perfect facial recreation. Professional animation studio quality with realistic proportions but NEVER compromise facial recognition for stylistic choices.`;
-    }
-    // Make "modern flat illustration" more specific and consistent with facial accuracy priority
-    else if (artStyle.toLowerCase().includes('modern_flat_illustration') || artStyle.toLowerCase().includes('modern flat illustration')) {
-      enhancedStyle = `contemporary editorial illustration style with precise facial accuracy as TOP PRIORITY, then apply artistic style with subtle dimensional shading, vibrant saturated color palette with rich tones, sophisticated graphic design elements with confident brushwork. CRITICAL: Maintain exact facial likeness and bone structure while applying editorial illustration aesthetic. Features modern magazine illustration style with selective artistic detail but NEVER sacrifice facial recognition.`;
-    }
-    // Make "semi-realistic illustration" more specific with facial accuracy priority
-    else if (artStyle.toLowerCase().includes('semi-realistic illustration')) {
-      enhancedStyle = 'semi-realistic digital illustration with FACIAL ACCURACY as top priority, maintain exact facial proportions and bone structure while applying clean digital art style with simplified background details. CRITICAL: Perfect facial likeness first, then apply soft edges and painterly quality for artistic balance';
-    }
-    // Make "stylized semi-realism" more specific with facial accuracy priority
-    else if (artStyle.toLowerCase().includes('stylized semi-realism')) {
-      enhancedStyle = 'stylized semi-realistic art with EXACT FACIAL RECREATION as absolute priority, preserve photographic facial likeness while applying enhanced reality and vibrant colors. Apply selective detail emphasis and refined digital painting techniques only AFTER establishing perfect facial accuracy';
-    }
-    
-    fullPrompt = `${fullPrompt}. FINAL STEP - ARTISTIC STYLING: Once the exact facial likeness is established, THEN apply the following artistic style while maintaining all facial accuracy: ${enhancedStyle} art style`;
-  }
-
-  fullPrompt = `${fullPrompt}. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text. High-quality artistic rendering, professional artwork.`;
-
-  return fullPrompt;
-}
-
 // Helper function to process Replicate flux binary output
 
 async function processFluxBinaryOutput(output: any): Promise<string> {
@@ -3359,8 +3295,8 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
       console.log('Character transformation with flux-kontext-max:', { cardId, prompt, scene, artStyle });
 
-      // Build comprehensive transformation prompt matching OpenAI structure
-      const transformPrompt = buildFluxDetailedPrompt(prompt, scene, artStyle);
+      // Build transformation prompt for character in new scene
+      const transformPrompt = `Square 1:1 aspect ratio, full bleed design. Make this a ${artStyle} style image. ${prompt} ${scene}`.trim();
 
       console.log('Flux character transformation prompt:', transformPrompt);
       console.log('Original image data length:', originalImage.length);
@@ -3498,8 +3434,8 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
       console.log('Style transformation with flux-kontext-max:', { cardId, prompt, artStyle });
 
-      // Build comprehensive transformation prompt matching OpenAI structure
-      const transformPrompt = buildFluxDetailedPrompt(prompt, '', artStyle);
+      // Build transformation prompt for style change with stronger reference emphasis
+      const transformPrompt = `SQUARE 1:1 ASPECT RATIO, EXACTLY 1024x1024 PIXELS. Using the provided reference image as the primary visual guide, recreate this exact person with their specific facial features, hair, and physical characteristics. ${prompt}, ${artStyle} art style. The person in the output must match the reference image exactly - same face, same hair, same physical appearance. MAINTAIN PERFECT SQUARE FORMAT 1:1 RATIO. High-quality artistic rendering, professional artwork.`;
 
       console.log('Flux style transformation prompt:', transformPrompt);
       console.log('Original image data length:', originalImage.length);
@@ -5466,21 +5402,51 @@ ${formatInstruction}`;
         return res.status(400).json({ message: "FAL_API_KEY not configured. Please set this secret to test Flux Kontext." });
       }
 
-      // Test with both simple and detailed prompts to diagnose Flux limitations
-      let fullPrompt;
+      // Build full prompt using same style processing as OpenAI
+      let fullPrompt = prompt;
       
-      // For testing: try simple prompt first to see if Flux responds at all
-      const simplePrompt = `Transform this person: ${prompt}. Change their pose, clothing, and background completely. Use ${artStyle || 'modern illustration'} style. Make dramatic changes to the composition.`;
+      if (artStyle) {
+        // Apply detailed style descriptions for consistent results with OpenAI
+        const styleInstructions = getFluxStyleInstructions(artStyle);
+        fullPrompt = `${prompt}. ${styleInstructions}`;
+        console.log('🎨 Style instructions added:', styleInstructions.substring(0, 100) + '...');
+      }
       
-      // Use detailed prompt for full comparison
-      const detailedPrompt = buildFluxDetailedPrompt(prompt, '', artStyle);
-      
-      // Toggle between simple and detailed for testing
-      fullPrompt = req.body.useSimplePrompt ? simplePrompt : detailedPrompt;
-      
-      console.log('🎨 Using prompt type:', req.body.useSimplePrompt ? 'SIMPLE' : 'DETAILED');
-      console.log('🎨 Prompt preview:', fullPrompt.substring(0, 200) + '...');
-
+      // Helper function to convert art style names to detailed descriptions for Flux
+      function getFluxStyleInstructions(style: string): string {
+        const lowerStyle = style.toLowerCase();
+        
+        if (lowerStyle === 'watercolor painting') {
+          return 'Create in beautiful watercolor painting style with soft, flowing colors, natural brushstrokes, and transparent layering effects. Use gentle color bleeding and organic textures typical of professional watercolor artwork.';
+        }
+        
+        if (lowerStyle === 'oil painting') {
+          return 'Transform into rich oil painting style with thick brushstrokes, vibrant colors, and textured canvas appearance. Use classical oil painting techniques with layered paint application and artistic brush textures.';
+        }
+        
+        if (lowerStyle === 'animated_movie_style') {
+          return 'Create in professional 3D animated movie style with clean digital rendering, realistic proportions, detailed facial features, polished surfaces, and high-quality computer animation aesthetic similar to modern animated films.';
+        }
+        
+        if (lowerStyle === 'modern_flat_illustration') {
+          return 'Transform into contemporary flat illustration style with clean vector-like appearance, bold shapes, modern color palette, geometric forms, and simplified details while maintaining precise facial accuracy as TOP PRIORITY.';
+        }
+        
+        if (lowerStyle === 'cartoon style') {
+          return 'Create in cartoon style with exaggerated features, bright colors, clean lines, and playful character design while preserving facial recognition and likeness.';
+        }
+        
+        if (lowerStyle === 'digital art') {
+          return 'Transform into polished digital art style with crisp details, modern digital painting techniques, sophisticated color gradients, and contemporary digital artwork aesthetic.';
+        }
+        
+        if (lowerStyle === 'sketch style') {
+          return 'Create in artistic sketch style with pencil-like lines, crosshatching, artistic shading, and hand-drawn appearance while maintaining clear facial features.';
+        }
+        
+        // Default fallback for any other styles
+        return `Transform into ${style} artistic style with professional quality, maintaining clear facial features and appropriate artistic techniques for this style.`;
+      }
 
       const startTime = Date.now();
       
