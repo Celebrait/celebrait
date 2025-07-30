@@ -37,6 +37,8 @@ export default function GPTImageTest() {
   const [isTestingFlux, setIsTestingFlux] = useState(false);
   const [fluxResult, setFluxResult] = useState<string>('');
   const [fluxMetadata, setFluxMetadata] = useState<any>(null);
+  const [fluxGuidanceScale, setFluxGuidanceScale] = useState(3.5);
+  const [fluxInferenceSteps, setFluxInferenceSteps] = useState(28);
   
   const { toast } = useToast();
 
@@ -662,7 +664,9 @@ export default function GPTImageTest() {
           prompt: detailedPrompt,
           artStyle: selectedStyle,
           imageUrl: imagePreview,
-          cardId: Date.now() // Use timestamp as test card ID
+          cardId: Date.now(), // Use timestamp as test card ID
+          guidanceScale: fluxGuidanceScale,
+          inferenceSteps: fluxInferenceSteps
         })
       });
 
@@ -938,6 +942,49 @@ export default function GPTImageTest() {
                       </div>
                     </Card>
                   )}
+
+                  {/* Flux Parameter Controls */}
+                  <Card className="p-4 bg-purple-50 border-purple-200">
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-purple-700">🎛️ Flux Kontext Parameters</h4>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="flux-guidance">Guidance Scale: {fluxGuidanceScale}</Label>
+                          <input
+                            id="flux-guidance"
+                            type="range"
+                            min="1"
+                            max="15"
+                            step="0.5"
+                            value={fluxGuidanceScale}
+                            onChange={(e) => setFluxGuidanceScale(parseFloat(e.target.value))}
+                            className="w-full mt-1"
+                          />
+                          <div className="text-xs text-gray-600 mt-1">
+                            Lower: More original photo | Higher: More transformation
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="flux-steps">Inference Steps: {fluxInferenceSteps}</Label>
+                          <input
+                            id="flux-steps"
+                            type="range"
+                            min="15"
+                            max="50"
+                            step="1"
+                            value={fluxInferenceSteps}
+                            onChange={(e) => setFluxInferenceSteps(parseInt(e.target.value))}
+                            className="w-full mt-1"
+                          />
+                          <div className="text-xs text-gray-600 mt-1">
+                            Lower: Faster | Higher: Better quality
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
 
                   <div className="space-y-3">
                     <Button 

@@ -5385,7 +5385,7 @@ ${formatInstruction}`;
   // FLUX KONTEXT TEST ENDPOINT - Runs alongside OpenAI for comparison
   app.post("/api/test-flux-kontext", async (req, res) => {
     try {
-      const { prompt, artStyle, imageUrl, cardId } = req.body;
+      const { prompt, artStyle, imageUrl, cardId, guidanceScale = 3.5, inferenceSteps = 28 } = req.body;
       
       if (!prompt) {
         return res.status(400).json({ message: "Prompt is required" });
@@ -5394,6 +5394,7 @@ ${formatInstruction}`;
       console.log('🧪 FLUX KONTEXT TEST - Starting generation...');
       console.log('📝 Prompt:', prompt.substring(0, 100) + '...');
       console.log('🎨 Art Style:', artStyle);
+      console.log('🎛️ Parameters:', { guidanceScale, inferenceSteps });
       
       // Configure fal.ai client if API key is available
       if (process.env.FAL_API_KEY) {
@@ -5413,10 +5414,6 @@ ${formatInstruction}`;
       }
       
       // Add typography integration instructions for text rendering
-      if (fullPrompt.includes('Include text:')) {
-        fullPrompt += '. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition. Text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements. Ensure clear legibility while making text feel like an organic part of the scene rather than overlaid text.';
-        console.log('📝 Typography integration instructions added for text rendering');
-      }
       if (fullPrompt.includes('Include text:')) {
         fullPrompt += '. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition. Text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements. Ensure clear legibility while making text feel like an organic part of the scene rather than overlaid text.';
         console.log('📝 Typography integration instructions added for text rendering');
@@ -5469,8 +5466,8 @@ ${formatInstruction}`;
           input: {
             prompt: fullPrompt,
             image_url: imageUrl,
-            guidance_scale: 3.5, // Default guidance scale for Flux Kontext
-            num_inference_steps: 28, // Default steps
+            guidance_scale: guidanceScale, // User-configurable guidance scale
+            num_inference_steps: inferenceSteps, // User-configurable steps
             seed: Math.floor(Math.random() * 1000000)
           }
         });
