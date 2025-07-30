@@ -5412,6 +5412,16 @@ ${formatInstruction}`;
         console.log('🎨 Style instructions added:', styleInstructions.substring(0, 100) + '...');
       }
       
+      // Add typography integration instructions for text rendering
+      if (fullPrompt.includes('Include text:')) {
+        fullPrompt += '. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition. Text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements. Ensure clear legibility while making text feel like an organic part of the scene rather than overlaid text.';
+        console.log('📝 Typography integration instructions added for text rendering');
+      }
+      if (fullPrompt.includes('Include text:')) {
+        fullPrompt += '. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition. Text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements. Ensure clear legibility while making text feel like an organic part of the scene rather than overlaid text.';
+        console.log('📝 Typography integration instructions added for text rendering');
+      }
+      
       // Helper function to convert art style names to detailed descriptions for Flux
       function getFluxStyleInstructions(style: string): string {
         const lowerStyle = style.toLowerCase();
