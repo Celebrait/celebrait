@@ -1125,24 +1125,55 @@ export default function GPTImageTest() {
               </div>
             )}
 
-            {resultImage && (
-              <div className="space-y-4">
-                <div>
-                  <Label>Front Card</Label>
-                  <div className="mt-2 w-full flex justify-center">
-                    <img 
-                      src={resultImage} 
-                      alt="Front card result" 
-                      style={{ 
-                        display: 'block',
-                        maxWidth: '100%',
-                        maxHeight: '1028px',
-                        width: 'auto',
-                        height: 'auto'
-                      }}
-                    />
+            {(resultImage || fluxResult) && (
+              <div className="space-y-6">
+                {resultImage && (
+                  <div>
+                    <Label>OpenAI GPT-Image-1 Result</Label>
+                    <div className="mt-2 w-full flex justify-center">
+                      <img 
+                        src={resultImage} 
+                        alt="OpenAI result" 
+                        style={{ 
+                          display: 'block',
+                          maxWidth: '100%',
+                          maxHeight: '1028px',
+                          width: 'auto',
+                          height: 'auto'
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
+                
+                {fluxResult && (
+                  <div>
+                    <Label className="text-purple-700">Flux Kontext Result</Label>
+                    <div className="mt-2 w-full flex justify-center border-2 border-purple-200 rounded-lg p-2">
+                      <img 
+                        src={fluxResult} 
+                        alt="Flux result" 
+                        style={{ 
+                          display: 'block',
+                          maxWidth: '100%',
+                          maxHeight: '1028px',
+                          width: 'auto',
+                          height: 'auto'
+                        }}
+                      />
+                    </div>
+                    {fluxMetadata && (
+                      <div className="mt-2 p-3 bg-purple-50 border border-purple-200 rounded text-sm">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div><strong>Processing Time:</strong> {fluxMetadata.processingTimeSeconds}s</div>
+                          <div><strong>Cost:</strong> $0.04</div>
+                          <div><strong>Model:</strong> Flux Kontext Pro</div>
+                          <div><strong>vs OpenAI:</strong> 68% cheaper</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Auto-generating Inside Card Status */}
                 {isGeneratingInside && (
@@ -1174,18 +1205,34 @@ export default function GPTImageTest() {
                 )}
 
                 <div className="flex gap-3">
-                  <Button 
-                    onClick={() => {
-                      const link = document.createElement('a');
-                      link.download = `front-card-${Date.now()}.png`;
-                      link.href = resultImage;
-                      link.click();
-                    }}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    Download Front
-                  </Button>
+                  {resultImage && (
+                    <Button 
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.download = `openai-front-card-${Date.now()}.png`;
+                        link.href = resultImage;
+                        link.click();
+                      }}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      Download OpenAI
+                    </Button>
+                  )}
+                  {fluxResult && (
+                    <Button 
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.download = `flux-front-card-${Date.now()}.png`;
+                        link.href = fluxResult;
+                        link.click();
+                      }}
+                      variant="outline"
+                      className="flex-1 border-purple-200 text-purple-700 hover:bg-purple-50"
+                    >
+                      Download Flux
+                    </Button>
+                  )}
                   {insideCardImage && (
                     <Button 
                       onClick={() => {
