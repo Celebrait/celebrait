@@ -5466,9 +5466,20 @@ ${formatInstruction}`;
         return res.status(400).json({ message: "FAL_API_KEY not configured. Please set this secret to test Flux Kontext." });
       }
 
-      // Build full prompt using same detailed structure as OpenAI
-      const fullPrompt = buildFluxDetailedPrompt(prompt, '', artStyle);
-      console.log('🎨 Full detailed prompt generated:', fullPrompt.substring(0, 200) + '...');
+      // Test with both simple and detailed prompts to diagnose Flux limitations
+      let fullPrompt;
+      
+      // For testing: try simple prompt first to see if Flux responds at all
+      const simplePrompt = `Transform this person: ${prompt}. Change their pose, clothing, and background completely. Use ${artStyle || 'modern illustration'} style. Make dramatic changes to the composition.`;
+      
+      // Use detailed prompt for full comparison
+      const detailedPrompt = buildFluxDetailedPrompt(prompt, '', artStyle);
+      
+      // Toggle between simple and detailed for testing
+      fullPrompt = req.body.useSimplePrompt ? simplePrompt : detailedPrompt;
+      
+      console.log('🎨 Using prompt type:', req.body.useSimplePrompt ? 'SIMPLE' : 'DETAILED');
+      console.log('🎨 Prompt preview:', fullPrompt.substring(0, 200) + '...');
 
 
       const startTime = Date.now();

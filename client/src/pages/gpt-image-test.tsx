@@ -37,6 +37,7 @@ export default function GPTImageTest() {
   const [isTestingFlux, setIsTestingFlux] = useState(false);
   const [fluxResult, setFluxResult] = useState<string>('');
   const [fluxMetadata, setFluxMetadata] = useState<any>(null);
+  const [useSimpleFluxPrompt, setUseSimpleFluxPrompt] = useState(false);
   
   const { toast } = useToast();
 
@@ -662,7 +663,8 @@ export default function GPTImageTest() {
           prompt: detailedPrompt,
           artStyle: selectedStyle,
           imageUrl: imagePreview,
-          cardId: Date.now() // Use timestamp as test card ID
+          cardId: Date.now(), // Use timestamp as test card ID
+          useSimplePrompt: useSimpleFluxPrompt
         })
       });
 
@@ -949,13 +951,24 @@ export default function GPTImageTest() {
                       {isLoading ? 'Processing...' : 'Transform Style (OpenAI GPT-Image-1)'}
                     </Button>
                     
+                    <div className="flex items-center space-x-2 px-3 py-2 bg-purple-50 rounded border border-purple-200">
+                      <Switch
+                        id="simple-flux-prompt"
+                        checked={useSimpleFluxPrompt}
+                        onCheckedChange={setUseSimpleFluxPrompt}
+                      />
+                      <Label htmlFor="simple-flux-prompt" className="text-sm text-purple-700">
+                        Use Simple Prompt (test if Flux responds to basic instructions)
+                      </Label>
+                    </div>
+
                     <Button 
                       onClick={testFluxKontext}
                       disabled={isTestingFlux || !imageFile}
                       variant="outline"
                       className="w-full border-purple-200 text-purple-700 hover:bg-purple-50"
                     >
-                      {isTestingFlux ? 'Testing Flux...' : '🧪 Test Flux Kontext ($0.04 vs $0.125)'}
+                      {isTestingFlux ? 'Testing Flux...' : `🧪 Test Flux ${useSimpleFluxPrompt ? '(Simple)' : '(Detailed)'} ($0.04 vs $0.125)`}
                     </Button>
 
                     <Button 
