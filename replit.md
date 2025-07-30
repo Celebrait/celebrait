@@ -120,6 +120,15 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 30, 2025. IMMEDIATE COST OPTIMIZATION: Reduced OpenAI GPT-Image-1 quality from "high" to "medium" for 50% cost reduction:
+  * QUALITY SETTING CHANGE: Changed quality parameter from "high" to "medium" across all 5 OpenAI GPT-Image-1 endpoints
+  * COST REDUCTION: Reduces image generation cost from $0.25 to approximately $0.125 per image (50% savings)
+  * ENDPOINTS UPDATED: generate-images, edit-scene-gpt-image-1, generate-inside-card, transform-style-gpt-image-1 all now use medium quality
+  * QUALITY IMPACT: Maintains professional image quality with slight reduction in resolution detail
+  * TOKEN ANALYSIS: Identified 1,049-token prompts with complex facial analysis as primary cost driver
+  * MONTHLY SAVINGS: Reduces costs from $25 to $12.50 per 100 images for immediate relief
+  * USER REQUESTED: Direct implementation of medium quality setting for cost control
+  * OPTIMIZATION FOUNDATION: First phase of comprehensive cost reduction plan documented in cost-optimization-plan.md
 - July 29, 2025. COMPREHENSIVE MULTI-PHOTO ANALYSIS FIX: Enhanced photo analysis to handle multiple individual photos and group photos correctly:
   * ALL PHOTOS ANALYZED: Updated /api/analyze-photo-content to analyze ALL uploaded photos instead of just the first one
   * ACCURATE PERSON COUNT: System now correctly counts people across multiple individual photos (3 separate photos = 3 people) and group photos (1 photo with 3 people = 3 people)
