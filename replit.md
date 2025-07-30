@@ -120,6 +120,16 @@ Celebrait is a full-stack web application that creates personalized greeting car
 ## Changelog
 ```
 Changelog:
+- July 30, 2025. CRITICAL FLUX LIMITATION DISCOVERED: Extensive testing reveals Flux Kontext Pro cannot perform scene transformations, only style transfers:
+  * SCENE TRANSFORMATION FAILURE: Despite receiving identical 1,100+ token detailed prompts as OpenAI, Flux only applies stylistic changes while preserving original photo composition
+  * POSE PRESERVATION: Flux maintains original pose, clothing, and background from uploaded photo instead of creating new scenes as instructed
+  * STYLE-ONLY CAPABILITY: Flux successfully applies artistic styles (animation effects, illustration styles) but ignores scene change instructions
+  * COMPOSITION LIMITATION: Instructions like "COMPLETELY IGNORE ORIGINAL PHOTO COMPOSITION" and "Change their pose, clothing, and background completely" are ignored
+  * FUNDAMENTAL CONSTRAINT: Flux Kontext Pro appears designed for style transfer rather than comprehensive scene transformation
+  * COST ADVANTAGE NEGATED: 3x speed advantage (7-18s vs 27s) and 68% cost savings ($0.04 vs $0.125) cannot overcome inability to create new scenes
+  * OPENAI ADVANTAGE CONFIRMED: Only OpenAI GPT-Image-1 can generate completely new scenes while preserving facial likeness from reference photos
+  * USER REQUIREMENT UNMET: Celebrait requires scene transformation (coffee shop, beach, fantasy scenes) not just style application
+  * STRATEGIC DECISION: Flux integration cannot replace OpenAI for core scene transformation functionality despite cost benefits
 - July 30, 2025. FLUX PROMPT PARITY ACHIEVED: Enhanced Flux integration to use identical detailed prompt structure as OpenAI for fair comparison testing:
   * COMPREHENSIVE PROMPT MATCHING: Created buildFluxDetailedPrompt() function that applies same 1,100+ token detailed prompts to Flux models
   * FACIAL ANALYSIS INTEGRATION: Flux now receives identical facial recreation requirements (8 mandatory steps) as OpenAI
