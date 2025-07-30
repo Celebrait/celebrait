@@ -33,6 +33,11 @@ export default function GPTImageTest() {
   const [insideCardImage, setInsideCardImage] = useState<string>('');
   const [isGeneratingInside, setIsGeneratingInside] = useState(false);
   
+  // Flux Kontext test state
+  const [isTestingFlux, setIsTestingFlux] = useState(false);
+  const [fluxResult, setFluxResult] = useState<string>('');
+  const [fluxMetadata, setFluxMetadata] = useState<any>(null);
+  
   const { toast } = useToast();
 
   const generateInsideCardAuto = async (frontImage: string) => {
@@ -625,6 +630,62 @@ export default function GPTImageTest() {
     }
   };
 
+  const testFluxKontext = async () => {
+    if (!imageFile && !imagePreview) {
+      setError('Please upload an image first');
+      return;
+    }
+
+    setIsTestingFlux(true);
+    setFluxResult('');
+    setError('');
+
+    try {
+      // Build similar prompt to OpenAI for comparison
+      const prompt = activeTab === 'scene' 
+        ? `${scenePrompt}. Art style: ${sceneStyle}.${sceneIncludeText && frontCardText ? ` Include text: "${frontCardText}"` : ''}`
+        : `Transform this image to ${style} art style.${includeText && frontCardText ? ` Include text: "${frontCardText}"` : ''}`;
+
+      const response = await fetch('/api/test-flux-kontext', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt: prompt,
+          imageUrl: imagePreview,
+          cardId: Date.now() // Use timestamp as test card ID
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Flux test failed');
+      }
+
+      const data = await response.json();
+      
+      setFluxResult(data.imageUrl);
+      setFluxMetadata(data.metadata);
+      
+      toast({
+        title: "Flux Test Complete",
+        description: `Generated in ${data.metadata.processingTimeSeconds}s using ${data.model} (Cost: $${data.cost})`
+      });
+
+    } catch (err: any) {
+      console.error('Flux test error:', err);
+      setError(err.message);
+      toast({
+        title: "Flux Test Failed",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsTestingFlux(false);
+    }
+  };
+
   const testDALLE3 = async () => {
     if (!imageFile || !imagePreview) {
       toast({
@@ -877,7 +938,16 @@ export default function GPTImageTest() {
                       className="w-full"
                       variant="default"
                     >
-                      {isLoading ? 'Processing...' : 'Transform Style (GPT-Image-1)'}
+                      {isLoading ? 'Processing...' : 'Transform Style (OpenAI GPT-Image-1)'}
+                    </Button>
+                    
+                    <Button 
+                      onClick={testFluxKontext}
+                      disabled={isTestingFlux || !imageFile}
+                      variant="outline"
+                      className="w-full border-purple-200 text-purple-700 hover:bg-purple-50"
+                    >
+                      {isTestingFlux ? 'Testing Flux...' : '🧪 Test Flux Kontext ($0.04 vs $0.125)'}
                     </Button>
 
                     <Button 
@@ -976,7 +1046,16 @@ export default function GPTImageTest() {
                     className="w-full"
                     variant="default"
                   >
-                    {isLoading ? 'Processing...' : 'Edit Scene (GPT-Image-1)'}
+                    {isLoading ? 'Processing...' : 'Edit Scene (OpenAI GPT-Image-1)'}
+                  </Button>
+                  
+                  <Button 
+                    onClick={testFluxKontext}
+                    disabled={isTestingFlux || !imageFile || !scenePrompt.trim()}
+                    variant="outline"
+                    className="w-full border-purple-200 text-purple-700 hover:bg-purple-50"
+                  >
+                    {isTestingFlux ? 'Testing Flux...' : '🧪 Test Flux Kontext Scene ($0.04 vs $0.125)'}
                   </Button>
                 </div>
               </TabsContent>

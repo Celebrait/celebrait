@@ -13,6 +13,7 @@ import OpenAI from "openai";
 import Stripe from "stripe";
 import Replicate from "replicate";
 import FormData from "form-data";
+import { fal } from "@fal-ai/client";
 import { createCanvas, loadImage } from "canvas";
 import sharp from "sharp";
 import { sendEmail, generateOrderConfirmationEmail, generateDigitalCardEmail, generateCardReadyNotificationEmail, generateShippingNotificationEmail } from './email-service';
@@ -5378,6 +5379,112 @@ ${formatInstruction}`;
     } catch (error) {
       console.error('Error simulating payment:', error);
       res.status(500).json({ error: 'Failed to simulate payment' });
+    }
+  });
+
+  // FLUX KONTEXT TEST ENDPOINT - Runs alongside OpenAI for comparison
+  app.post("/api/test-flux-kontext", async (req, res) => {
+    try {
+      const { prompt, imageUrl, cardId } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ message: "Prompt is required" });
+      }
+
+      console.log('🧪 FLUX KONTEXT TEST - Starting generation...');
+      console.log('📝 Prompt:', prompt.substring(0, 200) + '...');
+      
+      // Configure fal.ai client if API key is available
+      if (process.env.FAL_API_KEY) {
+        fal.config({ credentials: process.env.FAL_API_KEY });
+      } else {
+        return res.status(400).json({ message: "FAL_API_KEY not configured. Please set this secret to test Flux Kontext." });
+      }
+
+      const startTime = Date.now();
+      
+      let result;
+      
+      if (imageUrl) {
+        // Image-to-image editing with Flux Kontext Pro
+        console.log('🖼️ Using image-to-image mode with Flux Kontext Pro');
+        result = await fal.subscribe("fal-ai/flux-pro/kontext", {
+          input: {
+            prompt: prompt,
+            image_url: imageUrl,
+            seed: Math.floor(Math.random() * 1000000),
+            guidance_scale: 2.5,
+            num_inference_steps: 28,
+            safety_tolerance: 2
+          }
+        });
+      } else {
+        // Text-to-image generation with Flux Pro
+        console.log('📝 Using text-to-image mode with Flux Pro');
+        result = await fal.subscribe("fal-ai/flux-pro", {
+          input: {
+            prompt: prompt,
+            image_size: "square",
+            num_inference_steps: 28,
+            guidance_scale: 3.5,
+            num_images: 1,
+            seed: Math.floor(Math.random() * 1000000),
+            safety_tolerance: 2
+          }
+        });
+      }
+
+      const processingTime = Date.now() - startTime;
+      console.log(`⚡ FLUX completed in ${processingTime}ms (${(processingTime/1000).toFixed(1)}s)`);
+      
+      if (result && result.data && result.data.images && result.data.images.length > 0) {
+        const fluxImageUrl = result.data.images[0].url;
+        console.log('✅ FLUX generation successful');
+        
+        // Apply watermark for preview (optional - for testing comparison)
+        let finalImageUrl = fluxImageUrl;
+        
+        if (cardId) {
+          try {
+            // Download and convert to base64 for watermarking
+            const fetch = (await import('node-fetch')).default;
+            const imageResponse = await fetch(fluxImageUrl);
+            const imageBuffer = await imageResponse.buffer();
+            const base64Image = `data:image/png;base64,${imageBuffer.toString('base64')}`;
+            
+            // Apply watermark
+            const watermarkedImageUrl = await applyWatermark(base64Image, 0.25);
+            finalImageUrl = watermarkedImageUrl;
+            console.log('🏷️ Watermark applied to Flux image');
+          } catch (watermarkError) {
+            console.warn('⚠️ Watermark failed, using original Flux image:', watermarkError);
+          }
+        }
+        
+        res.json({
+          success: true,
+          imageUrl: finalImageUrl,
+          originalImageUrl: fluxImageUrl,
+          processingTime: processingTime,
+          model: imageUrl ? "flux-kontext-pro" : "flux-pro",
+          cost: imageUrl ? 0.04 : 0.03, // Estimated cost in USD
+          metadata: {
+            processingTimeSeconds: (processingTime/1000).toFixed(1),
+            promptLength: prompt.length,
+            mode: imageUrl ? "image-to-image" : "text-to-image"
+          }
+        });
+        
+      } else {
+        throw new Error('No image data received from Flux API');
+      }
+      
+    } catch (error: any) {
+      console.error('❌ FLUX KONTEXT TEST ERROR:', error);
+      res.status(500).json({ 
+        message: "Flux Kontext test failed: " + error.message,
+        error: error.toString()
+      });
     }
   });
 
