@@ -641,10 +641,17 @@ export default function GPTImageTest() {
     setError('');
 
     try {
-      // Build similar prompt to OpenAI for comparison
-      const prompt = activeTab === 'scene' 
-        ? `${scenePrompt}. Art style: ${sceneStyle}.${sceneIncludeText && frontCardText ? ` Include text: "${frontCardText}"` : ''}`
-        : `Transform this image to ${style} art style.${includeText && frontCardText ? ` Include text: "${frontCardText}"` : ''}`;
+      // Use same detailed prompt system as OpenAI for accurate comparison
+      let detailedPrompt;
+      let selectedStyle;
+      
+      if (activeTab === 'scene') {
+        selectedStyle = sceneStyle;
+        detailedPrompt = `${scenePrompt}${sceneIncludeText && frontCardText ? `. Include text: "${frontCardText}"` : ''}`;
+      } else {
+        selectedStyle = style;
+        detailedPrompt = `Transform this image to match the new style${includeText && frontCardText ? `. Include text: "${frontCardText}"` : ''}`;
+      }
 
       const response = await fetch('/api/test-flux-kontext', {
         method: 'POST',
@@ -652,7 +659,8 @@ export default function GPTImageTest() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          prompt: prompt,
+          prompt: detailedPrompt,
+          artStyle: selectedStyle,
           imageUrl: imagePreview,
           cardId: Date.now() // Use timestamp as test card ID
         })

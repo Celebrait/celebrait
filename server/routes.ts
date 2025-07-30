@@ -5385,20 +5385,67 @@ ${formatInstruction}`;
   // FLUX KONTEXT TEST ENDPOINT - Runs alongside OpenAI for comparison
   app.post("/api/test-flux-kontext", async (req, res) => {
     try {
-      const { prompt, imageUrl, cardId } = req.body;
+      const { prompt, artStyle, imageUrl, cardId } = req.body;
       
       if (!prompt) {
         return res.status(400).json({ message: "Prompt is required" });
       }
 
       console.log('🧪 FLUX KONTEXT TEST - Starting generation...');
-      console.log('📝 Prompt:', prompt.substring(0, 200) + '...');
+      console.log('📝 Prompt:', prompt.substring(0, 100) + '...');
+      console.log('🎨 Art Style:', artStyle);
       
       // Configure fal.ai client if API key is available
       if (process.env.FAL_API_KEY) {
         fal.config({ credentials: process.env.FAL_API_KEY });
       } else {
         return res.status(400).json({ message: "FAL_API_KEY not configured. Please set this secret to test Flux Kontext." });
+      }
+
+      // Build full prompt using same style processing as OpenAI
+      let fullPrompt = prompt;
+      
+      if (artStyle) {
+        // Apply detailed style descriptions for consistent results with OpenAI
+        const styleInstructions = getFluxStyleInstructions(artStyle);
+        fullPrompt = `${prompt}. ${styleInstructions}`;
+        console.log('🎨 Style instructions added:', styleInstructions.substring(0, 100) + '...');
+      }
+      
+      // Helper function to convert art style names to detailed descriptions for Flux
+      function getFluxStyleInstructions(style: string): string {
+        const lowerStyle = style.toLowerCase();
+        
+        if (lowerStyle === 'watercolor painting') {
+          return 'Create in beautiful watercolor painting style with soft, flowing colors, natural brushstrokes, and transparent layering effects. Use gentle color bleeding and organic textures typical of professional watercolor artwork.';
+        }
+        
+        if (lowerStyle === 'oil painting') {
+          return 'Transform into rich oil painting style with thick brushstrokes, vibrant colors, and textured canvas appearance. Use classical oil painting techniques with layered paint application and artistic brush textures.';
+        }
+        
+        if (lowerStyle === 'animated_movie_style') {
+          return 'Create in professional 3D animated movie style with clean digital rendering, realistic proportions, detailed facial features, polished surfaces, and high-quality computer animation aesthetic similar to modern animated films.';
+        }
+        
+        if (lowerStyle === 'modern_flat_illustration') {
+          return 'Transform into contemporary flat illustration style with clean vector-like appearance, bold shapes, modern color palette, geometric forms, and simplified details while maintaining precise facial accuracy as TOP PRIORITY.';
+        }
+        
+        if (lowerStyle === 'cartoon style') {
+          return 'Create in cartoon style with exaggerated features, bright colors, clean lines, and playful character design while preserving facial recognition and likeness.';
+        }
+        
+        if (lowerStyle === 'digital art') {
+          return 'Transform into polished digital art style with crisp details, modern digital painting techniques, sophisticated color gradients, and contemporary digital artwork aesthetic.';
+        }
+        
+        if (lowerStyle === 'sketch style') {
+          return 'Create in artistic sketch style with pencil-like lines, crosshatching, artistic shading, and hand-drawn appearance while maintaining clear facial features.';
+        }
+        
+        // Default fallback for any other styles
+        return `Transform into ${style} artistic style with professional quality, maintaining clear facial features and appropriate artistic techniques for this style.`;
       }
 
       const startTime = Date.now();
@@ -5410,7 +5457,7 @@ ${formatInstruction}`;
         console.log('🖼️ Using image-to-image mode with Flux Kontext Pro');
         result = await fal.subscribe("fal-ai/flux-pro/kontext", {
           input: {
-            prompt: prompt,
+            prompt: fullPrompt,
             image_url: imageUrl,
             guidance_scale: 3.5, // Default guidance scale for Flux Kontext
             num_inference_steps: 28, // Default steps
