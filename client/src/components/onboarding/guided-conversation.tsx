@@ -76,6 +76,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [styleViewerOpen, setStyleViewerOpen] = useState(false);
   const [selectedStyleForViewer, setSelectedStyleForViewer] = useState('');
   
+  // Random style generation state
+  const [isGeneratingRandom, setIsGeneratingRandom] = useState(false);
+  
   // Photo cropping state
   const [cropperOpen, setCropperOpen] = useState(false);
   const [currentCropImageIndex, setCurrentCropImageIndex] = useState(0);
@@ -816,6 +819,59 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     if (currentInput.trim()) {
       handleAnswer(currentInput.trim());
     }
+  };
+
+  // Curated collection of awesome art styles
+  const AWESOME_ART_STYLES = [
+    'Art Nouveau elegance',
+    'Vintage travel poster',
+    'Japanese woodblock print',
+    'Art Deco glamour',
+    'Pop art boldness',
+    'Impressionist painting',
+    'Synthwave aesthetic',
+    'Gothic cathedral',
+    'Mid-century modern',
+    'Bauhaus minimalism',
+    'Victorian steampunk',
+    'Celtic illuminated manuscript',
+    'Mexican folk art',
+    'Scandinavian hygge',
+    'Byzantine mosaic',
+    'Art Brut expression',
+    'Rococo ornate',
+    'Minimalist zen'
+  ];
+
+  const handleGenerateRandomStyle = () => {
+    setIsGeneratingRandom(true);
+    
+    // Generate two random styles from the collection
+    const availableStyles = [...AWESOME_ART_STYLES];
+    const randomStyles = [];
+    
+    for (let i = 0; i < 2; i++) {
+      const randomIndex = Math.floor(Math.random() * availableStyles.length);
+      randomStyles.push(availableStyles.splice(randomIndex, 1)[0]);
+    }
+    
+    // Update the current step with random style options
+    setTimeout(() => {
+      const currentStep = steps[currentStepIndex];
+      if (currentStep.id === 'art_style') {
+        currentStep.options = randomStyles.map((style, index) => ({
+          value: style.toLowerCase().replace(/\s+/g, '_'),
+          label: style,
+          description: `Unique ${style.toLowerCase()} aesthetic with distinctive artistic characteristics and visual flair.`,
+          color: index === 0 ? 'bg-emerald-600' : 'bg-orange-600',
+          emoji: index === 0 ? '🎭' : '🎪'
+        }));
+        
+        // Force re-render by updating state
+        setCurrentStepIndex(currentStepIndex);
+      }
+      setIsGeneratingRandom(false);
+    }, 1500); // Add delay for UX
   };
 
 
@@ -1882,6 +1938,24 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                               </div>
                             </div>
                           ))}
+                        </div>
+                        
+                        {/* Generate Random Style Button */}
+                        <div className="text-center mt-8">
+                          <div className="mb-4">
+                            <p className="text-sm text-gray-600">
+                              Or explore unique artistic styles from our curated collection
+                            </p>
+                          </div>
+                          <Button
+                            onClick={handleGenerateRandomStyle}
+                            disabled={isGeneratingRandom}
+                            variant="outline"
+                            className="bg-white/80 border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400 px-8 py-3 rounded-xl font-medium transition-all duration-300 hover:shadow-lg"
+                          >
+                            <Sparkles className="w-5 h-5 mr-2" />
+                            {isGeneratingRandom ? 'Generating...' : 'Generate Random Style'}
+                          </Button>
                         </div>
 
                       </div>

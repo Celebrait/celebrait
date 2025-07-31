@@ -487,7 +487,7 @@ export function ArtStyleSelector({
           {/* Action buttons */}
           {!isExpertMode && messages.length > 0 && suggestions.length === 0 && (
             <div className="px-4 pb-2">
-              <div className="max-w-4xl mx-auto flex gap-3">
+              <div className="max-w-4xl mx-auto">
                 <Button
                   onClick={handleGetSuggestions}
                   disabled={isLoading}
@@ -497,55 +497,6 @@ export function ArtStyleSelector({
                   <Sparkles className="w-4 h-4 mr-2" />
                   Get Style Suggestions
                 </Button>
-                
-                <Button
-                  onClick={handleGenerateRandomStyles}
-                  disabled={isGeneratingRandom || isLoading}
-                  variant="outline"
-                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
-                  size="sm"
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  {isGeneratingRandom ? 'Generating...' : 'Generate Random'}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Initial welcome and random generation */}
-          {messages.length === 0 && (
-            <div className="px-4 py-8">
-              <div className="max-w-4xl mx-auto text-center space-y-6">
-                <div className="space-y-3">
-                  <h3 className="text-xl font-semibold text-gray-800">Choose Your Approach</h3>
-                  <p className="text-gray-600">Get personalized suggestions or explore unique styles</p>
-                </div>
-                
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button
-                    onClick={handleGetSuggestions}
-                    disabled={isLoading}
-                    className="bg-gradient-celebrait hover:opacity-90 text-white min-w-[200px]"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Get AI Suggestions
-                  </Button>
-                  
-                  <Button
-                    onClick={handleGenerateRandomStyles}
-                    disabled={isGeneratingRandom || isLoading}
-                    variant="outline"
-                    className="border-purple-300 text-purple-700 hover:bg-purple-50 min-w-[200px]"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    {isGeneratingRandom ? 'Generating...' : 'Generate Random'}
-                  </Button>
-                </div>
-                
-                <div className="text-sm text-gray-500 space-y-1">
-                  <p><strong>AI Suggestions:</strong> Personalized based on your scene and celebration</p>
-                  <p><strong>Random Styles:</strong> Discover unique art styles from our curated collection</p>
-                </div>
               </div>
             </div>
           )}
