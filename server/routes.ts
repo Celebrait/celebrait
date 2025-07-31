@@ -3532,18 +3532,18 @@ If just having a conversation (no suggestions), respond with valid JSON:
       console.log('Card text:', cardText);
       console.log('Requested size:', size);
 
-      // Build the complete prompt with enhanced character action descriptions
-      const characterText = imagesToProcess.length > 1 ? 'characters from the reference images' : 'the character from the reference image';
+      // Use detected person count if provided, otherwise fall back to image count
+      const peopleCount = detectedPersonCount || imagesToProcess.length;
+      console.log('Person count logic:', { detectedPersonCount, imageFileCount: imagesToProcess.length, finalPeopleCount: peopleCount });
+      
+      // Build the complete prompt with enhanced character action descriptions - use peopleCount not imageCount
+      const characterText = peopleCount > 1 ? 'characters from the reference images' : 'the character from the reference image';
       const aspectDescription = size === '1024x1536' 
         ? 'MANDATORY: Create a PORTRAIT composition with 2:3 aspect ratio (height is 1.5x the width). Full bleed portrait design with no borders, fill entire portrait frame.'
         : 'MANDATORY: Create a perfectly SQUARE composition with equal width and height - NOT portrait, NOT landscape. Full bleed square design with no borders, fill entire square frame.';
       const formatInstruction = size === '1024x1536' 
         ? '8) COMPOSE FOR PORTRAIT FORMAT - ensure all elements fit within a portrait boundary'
         : '8) COMPOSE FOR SQUARE FORMAT - ensure all elements fit within a square boundary';
-      
-      // Use detected person count if provided, otherwise fall back to image count
-      const peopleCount = detectedPersonCount || imagesToProcess.length;
-      console.log('Person count logic:', { detectedPersonCount, imageFileCount: imagesToProcess.length, finalPeopleCount: peopleCount });
       
       const faceAnalysisText = peopleCount > 1 ? 'ANALYZE EACH FACE IN DETAIL' : 'ANALYZE THE FACE IN DETAIL';
       const faceRecreationText = peopleCount > 1 ? 'RECREATE EACH IDENTICAL FACE' : 'RECREATE THE IDENTICAL FACE';
