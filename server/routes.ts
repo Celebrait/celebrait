@@ -3701,16 +3701,26 @@ ${formatInstruction}`;
         const { cardId } = req.body;
         
         if (cardId) {
-          console.log('[PNG_ONLY] Converting scene image to PNG and creating watermarked/unwatermarked versions...');
+          console.log('[PNG_ONLY] Converting scene image to PNG with OPTIMIZED parallel processing...');
           
           try {
-            // Step 1: Convert base64 to PNG file immediately (unwatermarked original)
-            const unwatermarkedFrontPngUrl = await convertBase64ToPngFile(imageUrl, cardId, 'front_unwatermarked');
-            console.log('[PNG_ONLY] Unwatermarked front PNG created:', unwatermarkedFrontPngUrl);
+            const pngStartTime = Date.now();
             
-            // Step 2: Apply watermark to PNG file and create watermarked PNG file
-            const frontImagePngUrl = await applyWatermarkToPngFile(cardId, 'front_unwatermarked', 'front');
-            console.log('[PNG_ONLY] Watermarked front PNG created:', frontImagePngUrl);
+            // PERFORMANCE OPTIMIZATION: Run PNG operations in parallel
+            const [unwatermarkedFrontPngUrl, frontImagePngUrl] = await Promise.all([
+              // Step 1: Convert base64 to PNG file immediately (unwatermarked original)
+              convertBase64ToPngFile(imageUrl, cardId, 'front_unwatermarked'),
+              // Step 2: Apply watermark directly to base64 and save as PNG (parallel processing)
+              (async () => {
+                const watermarkedBase64 = await applyWatermark(imageUrl, 0.25);
+                return await convertBase64ToPngFile(watermarkedBase64, cardId, 'front');
+              })()
+            ]);
+            
+            const totalPngDuration = Date.now() - pngStartTime;
+            console.log(`[PNG_ONLY] OPTIMIZED front PNG processing completed in ${totalPngDuration}ms (parallel processing)`);
+            console.log('[PNG_ONLY] Created unwatermarked front:', unwatermarkedFrontPngUrl);
+            console.log('[PNG_ONLY] Created watermarked front:', frontImagePngUrl);
           
             res.json({ 
               imageUrl: frontImagePngUrl, // Return PNG file URL instead of Base64
@@ -3918,22 +3928,24 @@ ${formatInstruction}`;
       
       if (cardId) {
         const pngStartTime = Date.now();
-        console.log('[PNG_TIMING] Starting PNG conversion process...');
+        console.log('[PNG_TIMING] Starting OPTIMIZED PNG conversion process...');
         
-        // Step 1: Convert base64 to PNG file immediately (unwatermarked original)
-        const step1Start = Date.now();
-        const unwatermarkedInsidePngUrl = await convertBase64ToPngFile(imageUrl, cardId, 'inside_unwatermarked');
-        const step1Duration = Date.now() - step1Start;
-        console.log(`[PNG_TIMING] Step 1 - Unwatermarked PNG created in ${step1Duration}ms:`, unwatermarkedInsidePngUrl);
-        
-        // Step 2: Apply watermark to PNG file and create watermarked PNG file
-        const step2Start = Date.now();
-        const insideImagePngUrl = await applyWatermarkToPngFile(cardId, 'inside_unwatermarked', 'inside');
-        const step2Duration = Date.now() - step2Start;
-        console.log(`[PNG_TIMING] Step 2 - Watermarked PNG created in ${step2Duration}ms:`, insideImagePngUrl);
-        
-        const totalPngDuration = Date.now() - pngStartTime;
-        console.log(`[PNG_TIMING] Total PNG processing completed in ${totalPngDuration}ms`);
+        try {
+          // PERFORMANCE OPTIMIZATION: Run PNG operations in parallel
+          const [unwatermarkedInsidePngUrl, insideImagePngUrl] = await Promise.all([
+            // Step 1: Convert base64 to PNG file immediately (unwatermarked original)
+            convertBase64ToPngFile(imageUrl, cardId, 'inside_unwatermarked'),
+            // Step 2: Apply watermark directly to base64 and save as PNG (parallel processing)
+            (async () => {
+              const watermarkedBase64 = await applyWatermark(imageUrl, 0.25);
+              return await convertBase64ToPngFile(watermarkedBase64, cardId, 'inside');
+            })()
+          ]);
+          
+          const totalPngDuration = Date.now() - pngStartTime;
+          console.log(`[PNG_TIMING] OPTIMIZED PNG processing completed in ${totalPngDuration}ms (parallel processing)`);
+          console.log(`[PNG_TIMING] Created unwatermarked: ${unwatermarkedInsidePngUrl}`);
+          console.log(`[PNG_TIMING] Created watermarked: ${insideImagePngUrl}`);
         
         // Ensure response is sent immediately after PNG creation
         console.log('[PNG_ONLY] Sending response with PNG file URL:', insideImagePngUrl);
