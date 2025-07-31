@@ -71,30 +71,7 @@ export function ArtStyleSelector({
   const [copiedStyle, setCopiedStyle] = useState<string | null>(null);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [currentViewerStyle, setCurrentViewerStyle] = useState<string>("");
-  const [isGeneratingRandom, setIsGeneratingRandom] = useState(false);
   const { toast } = useToast();
-
-  // Curated awesome styles for random generation
-  const awesomeStyles = [
-    { name: "Vintage Travel Poster", searchTerm: "vintage travel poster art style" },
-    { name: "Art Nouveau Illustration", searchTerm: "art nouveau illustration style" },
-    { name: "Retro Synthwave", searchTerm: "synthwave retro art style" },
-    { name: "Minimalist Line Art", searchTerm: "minimalist line art style" },
-    { name: "Watercolor Botanical", searchTerm: "watercolor botanical illustration" },
-    { name: "Pop Art Portrait", searchTerm: "pop art portrait style" },
-    { name: "Japanese Woodblock", searchTerm: "japanese woodblock print style" },
-    { name: "Art Deco Glamour", searchTerm: "art deco glamour poster style" },
-    { name: "Impressionist Painting", searchTerm: "impressionist painting style" },
-    { name: "Gothic Stained Glass", searchTerm: "gothic stained glass art style" },
-    { name: "Cubist Portrait", searchTerm: "cubist portrait art style" },
-    { name: "Victorian Engraving", searchTerm: "victorian engraving illustration" },
-    { name: "Mid-Century Modern", searchTerm: "mid century modern illustration" },
-    { name: "Surrealist Dream", searchTerm: "surrealist dream art style" },
-    { name: "Comic Book Hero", searchTerm: "comic book hero art style" },
-    { name: "Tribal Pattern Art", searchTerm: "tribal pattern art illustration" },
-    { name: "Steampunk Victorian", searchTerm: "steampunk victorian art style" },
-    { name: "Psychedelic 60s", searchTerm: "psychedelic 60s poster art" }
-  ];
 
   // Initialize conversation when opened
   useEffect(() => {
@@ -269,39 +246,6 @@ export function ArtStyleSelector({
       e.preventDefault();
       handleSendMessage();
     }
-  };
-
-  const handleGenerateRandomStyles = async () => {
-    setIsGeneratingRandom(true);
-    
-    // Generate 2 random styles from our curated list
-    const shuffled = [...awesomeStyles].sort(() => Math.random() - 0.5);
-    const randomStyles = shuffled.slice(0, 2);
-    
-    const randomSuggestions: StyleSuggestion[] = randomStyles.map(style => ({
-      name: style.name,
-      description: `Unique ${style.name.toLowerCase()} aesthetic with distinctive visual characteristics`,
-      whyItWorks: `Perfect for creating memorable and distinctive greeting cards with artistic flair`,
-      famousExample: `Search Google Images for "${style.searchTerm}" to see examples`,
-      mood: "Creative & Unique",
-      category: 'art_style' as const
-    }));
-
-    // Add assistant message with random suggestions
-    setMessages(prev => [...prev, {
-      role: 'assistant',
-      content: `Here are 2 awesome random art styles to explore! Each one offers a unique aesthetic that could make your ${celebration} card truly distinctive.`,
-      timestamp: new Date(),
-      suggestions: randomSuggestions
-    }]);
-
-    setSuggestions(randomSuggestions);
-    setIsGeneratingRandom(false);
-
-    toast({
-      title: "Random styles generated!",
-      description: "2 unique art styles ready to explore",
-    });
   };
 
   const renderStyleSuggestion = (suggestion: StyleSuggestion, index: number) => (
