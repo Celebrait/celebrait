@@ -78,6 +78,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   
   // Random style generation state
   const [isGeneratingRandom, setIsGeneratingRandom] = useState(false);
+  const [randomStyleOptions, setRandomStyleOptions] = useState<Array<{ value: string; label: string; description: string; color: string; emoji: string }> | null>(null);
   
   // Photo cropping state
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -844,6 +845,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   ];
 
   const handleGenerateRandomStyle = () => {
+    console.log('Generate Random Style clicked'); // Debug log
     setIsGeneratingRandom(true);
     
     // Generate two random styles from the collection
@@ -855,21 +857,18 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       randomStyles.push(availableStyles.splice(randomIndex, 1)[0]);
     }
     
-    // Update the current step with random style options
+    // Create new random style options
+    const newRandomOptions = randomStyles.map((style, index) => ({
+      value: style.toLowerCase().replace(/\s+/g, '_'),
+      label: style,
+      description: `Unique ${style.toLowerCase()} aesthetic with distinctive artistic characteristics and visual flair.`,
+      color: index === 0 ? 'bg-emerald-600' : 'bg-orange-600',
+      emoji: index === 0 ? '🎭' : '🎪'
+    }));
+    
+    // Update state to show random options
     setTimeout(() => {
-      const currentStep = steps[currentStepIndex];
-      if (currentStep.id === 'art_style') {
-        currentStep.options = randomStyles.map((style, index) => ({
-          value: style.toLowerCase().replace(/\s+/g, '_'),
-          label: style,
-          description: `Unique ${style.toLowerCase()} aesthetic with distinctive artistic characteristics and visual flair.`,
-          color: index === 0 ? 'bg-emerald-600' : 'bg-orange-600',
-          emoji: index === 0 ? '🎭' : '🎪'
-        }));
-        
-        // Force re-render by updating state
-        setCurrentStepIndex(currentStepIndex);
-      }
+      setRandomStyleOptions(newRandomOptions);
       setIsGeneratingRandom(false);
     }, 1500); // Add delay for UX
   };
@@ -1901,12 +1900,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         <div className="text-center mb-6">
                           <h3 className="text-xl font-bold text-gray-800 mb-2">Choose Your Art Style</h3>
                           <p className="text-gray-600">
-                            Select from our two carefully crafted styles, each designed to create stunning, professional greeting cards.
+                            {randomStyleOptions 
+                              ? "Here are two unique artistic styles from our curated collection." 
+                              : "Select from our two carefully crafted styles, each designed to create stunning, professional greeting cards."
+                            }
                           </p>
                         </div>
                         
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                          {currentStep.options.map((option) => (
+                          {(randomStyleOptions || currentStep.options).map((option) => (
                             <div key={option.value} className="bg-white rounded-2xl p-6 border-2 border-gray-200 hover:border-purple-300 transition-all duration-300 shadow-lg hover:shadow-xl">
                               <div className="text-center mb-4">
                                 <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${option.color} text-white text-2xl mb-3`}>
@@ -1940,23 +1942,49 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           ))}
                         </div>
                         
-                        {/* Generate Random Style Button */}
-                        <div className="text-center mt-8">
-                          <div className="mb-4">
-                            <p className="text-sm text-gray-600">
-                              Or explore unique artistic styles from our curated collection
-                            </p>
+                        {/* Random Style Generation Buttons */}
+                        {!randomStyleOptions ? (
+                          <div className="text-center mt-8">
+                            <div className="mb-4">
+                              <p className="text-sm text-gray-600">
+                                Or explore unique artistic styles from our curated collection
+                              </p>
+                            </div>
+                            <Button
+                              onClick={handleGenerateRandomStyle}
+                              disabled={isGeneratingRandom}
+                              variant="outline"
+                              className="bg-white/80 border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400 px-8 py-3 rounded-xl font-medium transition-all duration-300 hover:shadow-lg"
+                            >
+                              <Sparkles className="w-5 h-5 mr-2" />
+                              {isGeneratingRandom ? 'Generating...' : 'Generate Random Style'}
+                            </Button>
                           </div>
-                          <Button
-                            onClick={handleGenerateRandomStyle}
-                            disabled={isGeneratingRandom}
-                            variant="outline"
-                            className="bg-white/80 border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400 px-8 py-3 rounded-xl font-medium transition-all duration-300 hover:shadow-lg"
-                          >
-                            <Sparkles className="w-5 h-5 mr-2" />
-                            {isGeneratingRandom ? 'Generating...' : 'Generate Random Style'}
-                          </Button>
-                        </div>
+                        ) : (
+                          <div className="text-center mt-8 space-y-3">
+                            <Button
+                              onClick={() => setRandomStyleOptions(null)}
+                              variant="outline"
+                              className="bg-white/80 border-2 border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 px-6 py-2 rounded-lg font-medium transition-all duration-300"
+                            >
+                              <ArrowLeft className="w-4 h-4 mr-2" />
+                              Back to Original Styles
+                            </Button>
+                            <div className="text-xs text-gray-500">
+                              Or generate another random pair
+                            </div>
+                            <Button
+                              onClick={handleGenerateRandomStyle}
+                              disabled={isGeneratingRandom}
+                              variant="outline"
+                              size="sm"
+                              className="bg-white/80 border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400 px-6 py-2 rounded-lg font-medium transition-all duration-300"
+                            >
+                              <Sparkles className="w-4 h-4 mr-2" />
+                              {isGeneratingRandom ? 'Generating...' : 'Generate Another Random Pair'}
+                            </Button>
+                          </div>
+                        )}
 
                       </div>
                     ) : (
