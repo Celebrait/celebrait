@@ -71,7 +71,30 @@ export function ArtStyleSelector({
   const [copiedStyle, setCopiedStyle] = useState<string | null>(null);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [currentViewerStyle, setCurrentViewerStyle] = useState<string>("");
+  const [isGeneratingRandom, setIsGeneratingRandom] = useState(false);
   const { toast } = useToast();
+
+  // Curated awesome styles for random generation
+  const awesomeStyles = [
+    { name: "Vintage Travel Poster", searchTerm: "vintage travel poster art style" },
+    { name: "Art Nouveau Illustration", searchTerm: "art nouveau illustration style" },
+    { name: "Retro Synthwave", searchTerm: "synthwave retro art style" },
+    { name: "Minimalist Line Art", searchTerm: "minimalist line art style" },
+    { name: "Watercolor Botanical", searchTerm: "watercolor botanical illustration" },
+    { name: "Pop Art Portrait", searchTerm: "pop art portrait style" },
+    { name: "Japanese Woodblock", searchTerm: "japanese woodblock print style" },
+    { name: "Art Deco Glamour", searchTerm: "art deco glamour poster style" },
+    { name: "Impressionist Painting", searchTerm: "impressionist painting style" },
+    { name: "Gothic Stained Glass", searchTerm: "gothic stained glass art style" },
+    { name: "Cubist Portrait", searchTerm: "cubist portrait art style" },
+    { name: "Victorian Engraving", searchTerm: "victorian engraving illustration" },
+    { name: "Mid-Century Modern", searchTerm: "mid century modern illustration" },
+    { name: "Surrealist Dream", searchTerm: "surrealist dream art style" },
+    { name: "Comic Book Hero", searchTerm: "comic book hero art style" },
+    { name: "Tribal Pattern Art", searchTerm: "tribal pattern art illustration" },
+    { name: "Steampunk Victorian", searchTerm: "steampunk victorian art style" },
+    { name: "Psychedelic 60s", searchTerm: "psychedelic 60s poster art" }
+  ];
 
   // Initialize conversation when opened
   useEffect(() => {
@@ -246,6 +269,39 @@ export function ArtStyleSelector({
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleGenerateRandomStyles = async () => {
+    setIsGeneratingRandom(true);
+    
+    // Generate 2 random styles from our curated list
+    const shuffled = [...awesomeStyles].sort(() => Math.random() - 0.5);
+    const randomStyles = shuffled.slice(0, 2);
+    
+    const randomSuggestions: StyleSuggestion[] = randomStyles.map(style => ({
+      name: style.name,
+      description: `Unique ${style.name.toLowerCase()} aesthetic with distinctive visual characteristics`,
+      whyItWorks: `Perfect for creating memorable and distinctive greeting cards with artistic flair`,
+      famousExample: `Search Google Images for "${style.searchTerm}" to see examples`,
+      mood: "Creative & Unique",
+      category: 'art_style' as const
+    }));
+
+    // Add assistant message with random suggestions
+    setMessages(prev => [...prev, {
+      role: 'assistant',
+      content: `Here are 2 awesome random art styles to explore! Each one offers a unique aesthetic that could make your ${celebration} card truly distinctive.`,
+      timestamp: new Date(),
+      suggestions: randomSuggestions
+    }]);
+
+    setSuggestions(randomSuggestions);
+    setIsGeneratingRandom(false);
+
+    toast({
+      title: "Random styles generated!",
+      description: "2 unique art styles ready to explore",
+    });
   };
 
   const renderStyleSuggestion = (suggestion: StyleSuggestion, index: number) => (
@@ -431,7 +487,7 @@ export function ArtStyleSelector({
           {/* Action buttons */}
           {!isExpertMode && messages.length > 0 && suggestions.length === 0 && (
             <div className="px-4 pb-2">
-              <div className="max-w-4xl mx-auto">
+              <div className="max-w-4xl mx-auto flex gap-3">
                 <Button
                   onClick={handleGetSuggestions}
                   disabled={isLoading}
@@ -441,6 +497,55 @@ export function ArtStyleSelector({
                   <Sparkles className="w-4 h-4 mr-2" />
                   Get Style Suggestions
                 </Button>
+                
+                <Button
+                  onClick={handleGenerateRandomStyles}
+                  disabled={isGeneratingRandom || isLoading}
+                  variant="outline"
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                  size="sm"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {isGeneratingRandom ? 'Generating...' : 'Generate Random'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Initial welcome and random generation */}
+          {messages.length === 0 && (
+            <div className="px-4 py-8">
+              <div className="max-w-4xl mx-auto text-center space-y-6">
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold text-gray-800">Choose Your Approach</h3>
+                  <p className="text-gray-600">Get personalized suggestions or explore unique styles</p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button
+                    onClick={handleGetSuggestions}
+                    disabled={isLoading}
+                    className="bg-gradient-celebrait hover:opacity-90 text-white min-w-[200px]"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Get AI Suggestions
+                  </Button>
+                  
+                  <Button
+                    onClick={handleGenerateRandomStyles}
+                    disabled={isGeneratingRandom || isLoading}
+                    variant="outline"
+                    className="border-purple-300 text-purple-700 hover:bg-purple-50 min-w-[200px]"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    {isGeneratingRandom ? 'Generating...' : 'Generate Random'}
+                  </Button>
+                </div>
+                
+                <div className="text-sm text-gray-500 space-y-1">
+                  <p><strong>AI Suggestions:</strong> Personalized based on your scene and celebration</p>
+                  <p><strong>Random Styles:</strong> Discover unique art styles from our curated collection</p>
+                </div>
               </div>
             </div>
           )}
