@@ -777,6 +777,9 @@ export default function GPTImageTest() {
     setIsGeneratingInside(true);
     setError('');
 
+    console.log('DEBUG: Flux Kontext inside card - insideCardText:', insideCardText);
+    console.log('DEBUG: Flux Kontext inside card - frontCardImage:', frontCardImage);
+
     try {
       const response = await fetch('/api/flux-kontext-inside-card', {
         method: 'POST',
@@ -784,7 +787,7 @@ export default function GPTImageTest() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          frontCardImage: frontCardImage,
+          frontCardImage: frontCardImage || fluxResult,
           insideText: insideCardText,
           size: imageSize,
           guidanceScale: fluxGuidanceScale,
