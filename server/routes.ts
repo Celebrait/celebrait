@@ -3595,17 +3595,21 @@ ${formatInstruction}`;
         }
         // Make "semi-realistic illustration" more specific with facial accuracy priority
         else if (style.toLowerCase().includes('semi-realistic illustration')) {
-          enhancedStyle = 'semi-realistic digital illustration with FACIAL ACCURACY as top priority, maintain exact facial proportions and bone structure while applying clean digital art style with simplified background details. CRITICAL: Perfect facial likeness first, then apply soft edges and painterly quality for artistic balance';
+          enhancedStyle = 'semi-realistic digital illustration with FACIAL ACCURACY as top priority, maintain exact facial proportions and bone structure while applying clean digital art style with simplified background details. CRITICAL: Perfect facial likeness first, then apply soft edges and painterly quality for artistic balance. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.';
         }
         // Make "stylized semi-realism" more specific with facial accuracy priority
         else if (style.toLowerCase().includes('stylized semi-realism')) {
-          enhancedStyle = 'stylized semi-realistic art with EXACT FACIAL RECREATION as absolute priority, preserve photographic facial likeness while applying enhanced reality and vibrant colors. Apply selective detail emphasis and refined digital painting techniques only AFTER establishing perfect facial accuracy';
+          enhancedStyle = 'stylized semi-realistic art with EXACT FACIAL RECREATION as absolute priority, preserve photographic facial likeness while applying enhanced reality and vibrant colors. Apply selective detail emphasis and refined digital painting techniques only AFTER establishing perfect facial accuracy. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.';
+        }
+        // Default fallback for other styles - ensure they also get typography integration
+        else {
+          enhancedStyle = `${style} with FACIAL ACCURACY as absolute priority, maintain exact facial proportions and bone structure while applying the artistic style. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.`;
         }
         
         fullPrompt = `${fullPrompt}. FINAL STEP - ARTISTIC STYLING: Once the exact facial likeness is established, THEN apply the following artistic style while maintaining all facial accuracy: ${enhancedStyle} art style`;
       }
       if (includeText && cardText && cardText.trim()) {
-        fullPrompt = `${fullPrompt}. Add EXACTLY the text "${cardText}" and NO OTHER TEXT. Use typography that matches the ${style || 'artistic'} style and complements the overall vibe of the image. The text should be prominently displayed and well-integrated into the design.`;
+        fullPrompt = `${fullPrompt}. ORGANIC TEXT INTEGRATION: Add EXACTLY the text "${cardText}" and NO OTHER TEXT. CRITICAL: Do NOT overlay text on top of the image. Instead, naturally integrate the text into the scene as part of the artistic composition. The text should appear as if it belongs in this specific environment - carved into surfaces, written in natural elements, displayed on signs, formed by scene elements, or integrated into the background architecture. Examples: text carved into tree bark for forest scenes, written in sand for beach scenes, displayed on billboards for city scenes, formed by clouds for sky scenes, etched into stone for mountain scenes. Ensure the text is clearly legible while feeling like an organic part of the scene rather than overlaid text. Typography should match the ${style || 'artistic'} style and complement the scene's natural elements.`;
       }
       fullPrompt = `${fullPrompt}. High-quality artistic rendering, professional artwork.`;
 
