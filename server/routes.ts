@@ -3947,24 +3947,36 @@ ${formatInstruction}`;
           console.log(`[PNG_TIMING] Created unwatermarked: ${unwatermarkedInsidePngUrl}`);
           console.log(`[PNG_TIMING] Created watermarked: ${insideImagePngUrl}`);
         
-        // Ensure response is sent immediately after PNG creation
-        console.log('[PNG_ONLY] Sending response with PNG file URL:', insideImagePngUrl);
-        
-        // Check if response is still writable before sending
-        if (!res.headersSent) {
-          const responsePayload = { 
-            imageUrl: insideImagePngUrl, // Return PNG file URL instead of Base64
-            originalImageUrl: imageUrl, // Store original for secure access
-            usage: (responseData as any).usage
-          };
+          // Ensure response is sent immediately after PNG creation
+          console.log('[PNG_ONLY] Sending response with PNG file URL:', insideImagePngUrl);
           
-          res.json(responsePayload);
-          const totalRequestDuration = Date.now() - requestStartTime;
-          console.log(`[TIMING] Complete inside card generation finished in ${totalRequestDuration}ms`);
-          console.log('[PNG_ONLY] Response sent successfully');
-        } else {
-          const totalRequestDuration = Date.now() - requestStartTime;
-          console.log(`[TIMING] Headers already sent after ${totalRequestDuration}ms - connection may have timed out`);
+          // Check if response is still writable before sending
+          if (!res.headersSent) {
+            const responsePayload = { 
+              imageUrl: insideImagePngUrl, // Return PNG file URL instead of Base64
+              originalImageUrl: imageUrl, // Store original for secure access
+              usage: (responseData as any).usage
+            };
+            
+            res.json(responsePayload);
+            const totalRequestDuration = Date.now() - requestStartTime;
+            console.log(`[TIMING] Complete inside card generation finished in ${totalRequestDuration}ms`);
+            console.log('[PNG_ONLY] Response sent successfully');
+          } else {
+            const totalRequestDuration = Date.now() - requestStartTime;
+            console.log(`[TIMING] Headers already sent after ${totalRequestDuration}ms - connection may have timed out`);
+          }
+        } catch (pngError) {
+          console.error('PNG processing error:', pngError);
+          // Fallback to original response without PNG conversion
+          const watermarkedImageUrl = await applyWatermark(imageUrl, 0.25);
+          console.log('Watermark applied to inside card (PNG fallback)');
+          
+          res.json({ 
+            imageUrl: watermarkedImageUrl,
+            originalImageUrl: imageUrl,
+            usage: (responseData as any).usage
+          });
         }
       } else {
         // Fallback for requests without cardId (legacy support)
