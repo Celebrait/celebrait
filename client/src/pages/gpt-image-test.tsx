@@ -1247,7 +1247,7 @@ export default function GPTImageTest() {
                 </p>
                 
                 {/* Manual Inside Card Generation Buttons */}
-                {frontCardImage && insideCardText.trim() && (
+                {(frontCardImage || fluxResult) && insideCardText.trim() && (
                   <div className="flex gap-2 mt-4">
                     <Button 
                       onClick={generateInsideCard}
@@ -1265,6 +1265,13 @@ export default function GPTImageTest() {
                     >
                       {isGeneratingInside ? 'Generating...' : '🧪 Test Flux Kontext Inside'}
                     </Button>
+                  </div>
+                )}
+                
+                {/* Debug info - remove later */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="text-xs text-gray-500 mt-2">
+                    Debug: frontCardImage={!!frontCardImage}, fluxResult={!!fluxResult}, insideText={!!insideCardText.trim()}
                   </div>
                 )}
               </div>
