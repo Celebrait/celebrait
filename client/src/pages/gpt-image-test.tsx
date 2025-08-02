@@ -680,6 +680,9 @@ export default function GPTImageTest() {
       setFluxResult(data.imageUrl);
       setFluxMetadata(data.metadata);
       
+      // Set front card image so inside card buttons appear
+      setFrontCardImage(data.imageUrl);
+      
       toast({
         title: "Flux Test Complete",
         description: `Generated in ${data.metadata.processingTimeSeconds}s using ${data.model} (Cost: $${data.cost})`
