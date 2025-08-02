@@ -761,6 +761,61 @@ export default function GPTImageTest() {
     await generateInsideCardAuto(frontCardImage);
   };
 
+  const generateInsideCardFluxKontext = async () => {
+    if (!frontCardImage || !insideCardText.trim()) {
+      toast({
+        title: "Error",
+        description: "Please generate a front card first and enter inside text",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGeneratingInside(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/flux-kontext-inside-card', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          frontCardImage: frontCardImage,
+          insideText: insideCardText,
+          size: imageSize,
+          guidanceScale: fluxGuidanceScale,
+          inferenceSteps: fluxInferenceSteps
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Flux Kontext inside card generation failed');
+      }
+
+      const data = await response.json();
+      
+      setInsideCardImage(data.imageUrl);
+      
+      toast({
+        title: "Success",
+        description: `Flux Kontext inside card generated in ${data.metadata.processingTimeSeconds}s (Cost: $${data.metadata.cost})`
+      });
+
+    } catch (err: any) {
+      console.error('Flux Kontext inside card error:', err);
+      setError(err.message);
+      toast({
+        title: "Flux Kontext Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingInside(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-6xl">
       <div className="mb-8">
@@ -1187,6 +1242,28 @@ export default function GPTImageTest() {
                 <p className="text-sm text-purple-700">
                   The inside card will be automatically generated using your front card's style after the front is created.
                 </p>
+                
+                {/* Manual Inside Card Generation Buttons */}
+                {frontCardImage && insideCardText.trim() && (
+                  <div className="flex gap-2 mt-4">
+                    <Button 
+                      onClick={generateInsideCard}
+                      disabled={isGeneratingInside}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      {isGeneratingInside ? 'Generating...' : 'Generate Inside (GPT-Image-1)'}
+                    </Button>
+                    <Button 
+                      onClick={generateInsideCardFluxKontext}
+                      disabled={isGeneratingInside}
+                      variant="outline"
+                      className="flex-1 border-purple-200 text-purple-700 hover:bg-purple-50"
+                    >
+                      {isGeneratingInside ? 'Generating...' : '🧪 Test Flux Kontext Inside'}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

@@ -1491,7 +1491,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
         } catch (error) {
           console.log(`[FAST-FRONT] PNG file not found: ${filePath}, falling back to base64`);
           // FALLBACK: Try to get base64 from conversationData if PNG file doesn't exist
-          const conversationData = card.conversationData || {};
+          const conversationData = (card.conversationData as any) || {};
           
           // Check multiple possible sources for base64 data
           let fallbackBase64 = null;
@@ -1608,7 +1608,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
         } catch (error) {
           console.log(`[FAST-INSIDE] PNG file not found: ${filePath}, falling back to base64`);
           // FALLBACK: Try to get base64 from conversationData if PNG file doesn't exist
-          const conversationData = card.conversationData || {};
+          const conversationData = (card.conversationData as any) || {};
           
           // Check multiple possible sources for base64 data
           let fallbackBase64 = null;
@@ -5560,6 +5560,91 @@ ${formatInstruction}`;
       res.status(500).json({ 
         message: "Flux Kontext test failed: " + error.message,
         error: error.toString()
+      });
+    }
+  });
+
+  // Flux Kontext inside card generation using front card as style reference
+  app.post("/api/flux-kontext-inside-card", async (req, res) => {
+    try {
+      const { 
+        frontCardImage, 
+        insideText, 
+        size = '1024x1024',
+        guidanceScale = 3.5,
+        inferenceSteps = 28
+      } = req.body;
+
+      if (!frontCardImage || !insideText) {
+        return res.status(400).json({ message: "Front card image and inside text are required" });
+      }
+
+      // Validate size parameter
+      if (!['1024x1024', '1024x1536'].includes(size)) {
+        return res.status(400).json({ message: "Size must be either 1024x1024 or 1024x1536" });
+      }
+
+      // Configure fal.ai client if API key is available
+      if (process.env.FAL_API_KEY) {
+        fal.config({ credentials: process.env.FAL_API_KEY });
+      } else {
+        return res.status(400).json({ message: "FAL_API_KEY not configured. Please set this secret to use Flux Kontext." });
+      }
+
+      console.log('🧪 FLUX KONTEXT INSIDE CARD - Starting generation...');
+      console.log('📝 Inside text:', insideText.substring(0, 50) + '...');
+      console.log('🎛️ Parameters:', { guidanceScale, inferenceSteps, size });
+
+      // Create prompt following the same format as GPT-Image-1 inside card generation
+      const formatDescription = size === '1024x1536' 
+        ? 'Portrait 2:3 aspect ratio design (height is 1.5x the width)'
+        : 'Square 1:1 aspect ratio design';
+      const formatInstruction = size === '1024x1536' 
+        ? 'as a portrait format design'
+        : 'as a square format design';
+      
+      const insideCardPrompt = `${formatDescription}, full bleed with no borders or card edges visible, fill entire frame. DO NOT include any people, characters, or figures from the front card. "${insideText}" prominently displayed as the main focus with elegant typography. Reference this front card image for style consistency: same art style, same typography style exactly (font family, weight, text treatment), same color palette exactly (primary and accent colors). Include subtle visual reference points to overall scene atmosphere from front card, but nothing too imposing as text is the primary focus. New image must feel like it is part of the same design family with cohesive design language and visual consistency. Print-ready artwork, no card mockup visible, ${formatInstruction}.`;
+
+      console.log('🖼️ Using image-to-image mode with Flux Kontext Pro for inside card');
+      console.log('📝 Full prompt:', insideCardPrompt.substring(0, 100) + '...');
+
+      const startTime = Date.now();
+      
+      const result = await fal.subscribe("fal-ai/flux-pro/kontext", {
+        input: {
+          prompt: insideCardPrompt,
+          image_url: frontCardImage,
+          guidance_scale: guidanceScale,
+          num_inference_steps: inferenceSteps,
+          seed: Math.floor(Math.random() * 1000000)
+        }
+      });
+
+      const processingTime = Date.now() - startTime;
+      console.log(`⚡ FLUX inside card completed in ${processingTime}ms (${(processingTime/1000).toFixed(1)}s)`);
+      
+      if (result && result.data && result.data.images && result.data.images.length > 0) {
+        const fluxImageUrl = result.data.images[0].url;
+        console.log('✅ FLUX inside card generation successful');
+        
+        res.json({
+          success: true,
+          imageUrl: fluxImageUrl,
+          metadata: {
+            model: "fal-ai/flux-pro/kontext",
+            processingTimeSeconds: (processingTime / 1000).toFixed(1),
+            cost: "0.055"
+          }
+        });
+      } else {
+        throw new Error('No image generated from Flux Kontext');
+      }
+
+    } catch (error: any) {
+      console.error('🚨 FLUX KONTEXT INSIDE CARD ERROR:', error);
+      res.status(500).json({ 
+        message: error.message || "Flux Kontext inside card generation failed", 
+        details: error.details || "Check server logs for more information" 
       });
     }
   });
