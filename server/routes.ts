@@ -4676,14 +4676,22 @@ ${formatInstruction}`;
       try {
         const requestHost = req.get('host') || '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev';
         const emailParams = generateCardReadyNotificationEmail(orderData, requestHost);
-        await sendEmail(emailParams);
-        console.log('Card ready notification email sent successfully to:', customerEmail);
-
-        res.json({
-          success: true,
-          message: 'Card ready notification sent successfully',
-          reference
-        });
+        const emailSent = await sendEmail(emailParams);
+        
+        if (emailSent) {
+          console.log('Card ready notification email sent successfully to:', customerEmail);
+          res.json({
+            success: true,
+            message: 'Card ready notification sent successfully',
+            reference
+          });
+        } else {
+          console.error('Failed to send card ready notification email - SendGrid error');
+          res.status(500).json({ 
+            message: "Failed to send card ready notification - email service error",
+            error: "SendGrid may have exceeded its credit limit or configuration issue"
+          });
+        }
       } catch (emailError) {
         console.error('Failed to send card ready notification email:', emailError);
         res.status(500).json({ message: "Failed to send card ready notification" });
