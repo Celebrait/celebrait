@@ -1372,7 +1372,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         // Log detailed analysis for debugging
         if (analysis.photoAnalyses && analysis.photoAnalyses.length > 0) {
           console.log('[DEBUG] Individual photo analyses:', analysis.photoAnalyses);
-          analysis.photoAnalyses.forEach((photoAnalysis, index) => {
+          analysis.photoAnalyses.forEach((photoAnalysis: any, index: number) => {
             console.log(`[DEBUG] Photo ${photoAnalysis.photoIndex}: ${photoAnalysis.peopleCount} people - ${photoAnalysis.analysis}`);
           });
         }
