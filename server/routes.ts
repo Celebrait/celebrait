@@ -3808,7 +3808,7 @@ ${formatInstruction}`;
     }
 
     try {
-      const { frontCardImage, insideText, size = '1024x1024' } = req.body;
+      const { frontCardImage, insideText, artStyle, size = '1024x1024' } = req.body;
 
       if (!frontCardImage || !insideText) {
         return res.status(400).json({ message: "Front card image and inside text are required" });
@@ -3851,15 +3851,9 @@ ${formatInstruction}`;
 
       console.log('Front card image buffer size:', imageBuffer.length, 'bytes, MIME type:', mimeType);
 
-      // Create prompt following the specified format and size
-      const formatDescription = size === '1024x1536' 
-        ? 'Portrait 2:3 aspect ratio design (height is 1.5x the width)'
-        : 'Square 1:1 aspect ratio design';
-      const formatInstruction = size === '1024x1536' 
-        ? 'as a portrait format design'
-        : 'as a square format design';
-      
-      const insideCardPrompt = `${formatDescription}, full bleed with no borders or card edges visible, fill entire frame. DO NOT include any people, characters, or figures from the front card. "${insideText}" prominently displayed as the main focus with elegant typography. Reference this front card image for style consistency: same art style, same typography style exactly (font family, weight, text treatment), same color palette exactly (primary and accent colors). Include subtle visual reference points to overall scene atmosphere from front card, but nothing too imposing as text is the primary focus. New image must feel like it is part of the same design family with cohesive design language and visual consistency. Print-ready artwork, no card mockup visible, ${formatInstruction}.`;
+      // Use the enhanced buildInsidePrompt function for proper style matching
+      const { buildInsidePrompt } = await import('../../shared/prompts');
+      const insideCardPrompt = buildInsidePrompt(insideText, artStyle || 'artistic');
 
       console.log('Inside card prompt:', insideCardPrompt);
 

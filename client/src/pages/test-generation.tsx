@@ -606,8 +606,9 @@ export default function TestGeneration() {
         let insideImageUrl = null;
         if (cardType === 'front-and-inside') {
           const insideResponse = await apiRequest("POST", "/api/generate-inside-card", {
-            frontImageUrl: frontResult.imageUrl,
-            insideText: preset?.insideMessage || "Wishing you a wonderful year ahead!"
+            frontCardImage: frontResult.imageUrl,
+            insideText: preset?.insideMessage || "Wishing you a wonderful year ahead!",
+            artStyle: artStyle // Pass art style for matching
           });
 
           const insideResult = await insideResponse.json();

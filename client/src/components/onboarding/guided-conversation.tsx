@@ -1407,7 +1407,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       const insideResult = await makeRobustAPICall("/api/generate-inside-card", {
         cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
         frontCardImage: frontImageUrl,
-        insideText: answers.inside_message
+        insideText: answers.inside_message,
+        artStyle: artStyle // CRITICAL: Pass art style for proper matching
       }, "Inside card generation");
       
       insideImageUrl = insideResult.imageUrl;
@@ -1481,7 +1482,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       const insideResult = await makeRobustAPICall("/api/generate-inside-card", {
         cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
         frontCardImage: frontImageUrl,
-        insideText: answers.inside_message
+        insideText: answers.inside_message,
+        artStyle: artStyle // CRITICAL: Pass art style for proper matching
       }, "Inside card generation (transform)");
       insideImageUrl = insideResult.imageUrl;
       insideOriginalUrl = insideResult.originalImageUrl;
