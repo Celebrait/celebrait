@@ -578,74 +578,26 @@ export function AIBrainstormChat({
       return null;
     }
     
-    // Setting step - initial question has no buttons
-    if (currentStep === 'setting' && settingRefinements === 0) {
+    // Initial scene step - no buttons (text input only)
+    if (currentStep === 'initial_scene') {
       return null;
     }
     
-    // Step-specific action buttons
+    // Step-specific action buttons for new simplified flow
     const buttons = [];
     
-    // Get Suggestions button for appropriate steps
-    if (currentStep === 'setting' && settingRefinements > 0) {
+    // Steps that get "Give Me Ideas" and "Skip This Question" buttons
+    if (['scene_specifics', 'activity', 'clothing'].includes(currentStep)) {
       buttons.push(
         <Button
-          key="get-suggestions"
+          key="give-ideas"
           variant="ghost"
           size="sm"
-          onClick={() => handleButtonClick("Give Me More Ideas")}
+          onClick={() => handleButtonClick("Give Me Ideas")}
           className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-md border border-blue-200 font-medium transition-all duration-200"
         >
-          Give Me More Ideas
-        </Button>
-      );
-    }
-    
-    if (currentStep === 'activity') {
-      buttons.push(
-        <Button
-          key="get-suggestions"
-          variant="ghost"
-          size="sm"
-          onClick={() => handleButtonClick("Give Me More Ideas")}
-          className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-md border border-blue-200 font-medium transition-all duration-200"
-        >
-          Give Me More Ideas
-        </Button>
-      );
-    }
-    
-    if (currentStep === 'people') {
-      buttons.push(
-        <Button
-          key="get-suggestions"
-          variant="ghost"
-          size="sm"
-          onClick={() => handleButtonClick("Give Me More Ideas")}
-          className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-md border border-blue-200 font-medium transition-all duration-200"
-        >
-          Give Me More Ideas
-        </Button>
-      );
-    }
-    
-    if (currentStep === 'extra_detail') {
-      buttons.push(
-        <Button
-          key="get-suggestions"
-          variant="ghost"
-          size="sm"
-          onClick={() => handleButtonClick("Give Me More Ideas")}
-          className="text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-md border border-blue-200 font-medium transition-all duration-200"
-        >
-          Give Me More Ideas
-        </Button>
-      );
-    }
-    
-    // Skip button for appropriate steps
-    if (currentStep === 'setting' && settingRefinements > 0) {
-      buttons.push(
+          Give Me Ideas
+        </Button>,
         <Button
           key="skip"
           variant="ghost"
@@ -658,44 +610,26 @@ export function AIBrainstormChat({
       );
     }
     
-    if (currentStep === 'activity') {
+    // Summary step gets final approval buttons
+    if (currentStep === 'summary') {
       buttons.push(
         <Button
-          key="skip"
+          key="sounds-great"
           variant="ghost"
           size="sm"
-          onClick={() => handleButtonClick("Skip This Question")}
-          className="text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 px-3 py-2 rounded-md border border-orange-200 font-medium transition-all duration-200"
+          onClick={() => handleButtonClick("Sounds great, let's go!")}
+          className="text-sm bg-gradient-celebrait hover:opacity-90 text-white px-4 py-2 rounded-md border-0 font-medium shadow-sm transition-all duration-200"
         >
-          Skip This Question
-        </Button>
-      );
-    }
-    
-    if (currentStep === 'people') {
-      buttons.push(
+          Sounds great, let's go!
+        </Button>,
         <Button
-          key="skip"
+          key="make-change"
           variant="ghost"
           size="sm"
-          onClick={() => handleButtonClick("Skip This Question")}
-          className="text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 px-3 py-2 rounded-md border border-orange-200 font-medium transition-all duration-200"
+          onClick={() => handleButtonClick("I'd like to make a change")}
+          className="text-sm bg-gray-50 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-md border border-gray-200 font-medium transition-all duration-200"
         >
-          Skip This Question
-        </Button>
-      );
-    }
-    
-    if (currentStep === 'extra_detail') {
-      buttons.push(
-        <Button
-          key="skip"
-          variant="ghost"
-          size="sm"
-          onClick={() => handleButtonClick("Skip This Question")}
-          className="text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 px-3 py-2 rounded-md border border-orange-200 font-medium transition-all duration-200"
-        >
-          Skip This Question
+          I'd like to make a change
         </Button>
       );
     }
