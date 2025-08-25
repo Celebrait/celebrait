@@ -462,7 +462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(503).json({ message: "OpenAI API is not configured" });
       }
 
-      const { type, context, userInput, recipientName, celebration, conversationHistory, conversationStep, settingRefinements, activityRefinements, photoContext, userName, collectedInfo } = req.body;
+      const { type, context, userInput, recipientName, celebration, conversationHistory, conversationStep, photoContext, userName, collectedInfo } = req.body;
 
       // Determine if we're dealing with single person or multiple people first
       const isMultiplePeople = photoContext && (
@@ -497,36 +497,35 @@ CRITICAL RULES:
 7. Keep opening messages simple and ask only one clear question
 
 CONVERSATION FLOW:
-1. SETTING (initial + 2 follow-ups) - WHERE the scene takes place
-2. ACTIVITY (initial + 1 follow-up) - WHAT ${peopleReference} should be doing  
-3. PEOPLE (single interaction) - clothing, appearance, style
-4. EXTRA DETAIL (single interaction) - special objects, atmosphere, symbols
-5. FINAL APPROVAL - complete scene summary
+1. INITIAL SCENE - User provides initial scene description (text input required)
+2. SCENE SPECIFICS - Ask for more details (Give Me Ideas/Skip buttons)
+3. ACTIVITY - What ${peopleReference} should be doing (Give Me Ideas/Skip buttons)
+4. CLOTHING - Clothing and appearance (Give Me Ideas/Skip buttons)
+5. SUMMARY - Complete scene summary (Sounds great let's go/I'd like to make a change buttons)
 
 STEP-SPECIFIC INSTRUCTIONS:
 
-SETTING STEP:
-- Initial: Ask simple question about WHERE scene takes place (NEVER provide suggestions)
-- Follow-up 1: Ask for MORE SPECIFIC location details based on their answer
-- Follow-up 2: Ask for EVEN MORE SPECIFIC location details  
-- Only show 3 suggestions when user clicks "Give Me More Ideas" button
+INITIAL SCENE STEP:
+- Ask simple question about WHERE scene takes place (NEVER provide suggestions)
+- User MUST provide text input, no buttons available
+
+SCENE SPECIFICS STEP:
+- Ask for MORE SPECIFIC location details based on their answer
+- Provide "Give Me Ideas" and "Skip This Question" buttons
+- Only show 3 suggestions when user clicks "Give Me Ideas" button
 
 ACTIVITY STEP:
-- Initial: Ask simple question about what ${peopleReference} should be doing (NEVER provide suggestions)
-- Follow-up: Ask for MORE SPECIFIC activity details based on their answer
-- Only show 3 suggestions when user clicks "Give Me More Ideas" button
+- Ask simple question about what ${peopleReference} should be doing
+- Provide "Give Me Ideas" and "Skip This Question" buttons
+- Only show 3 suggestions when user clicks "Give Me Ideas" button
 
-PEOPLE STEP:
-- Ask simple question about clothing and appearance of ${peopleReference} (NEVER provide suggestions)
+CLOTHING STEP:
+- Ask simple question about clothing and appearance of ${peopleReference}
+- Provide "Give Me Ideas" and "Skip This Question" buttons
+- Only show 3 suggestions when user clicks "Give Me Ideas" button
 - ALWAYS remind that they can skip to let AI choose appropriate clothing
-- Only show 3 suggestions when user clicks "Give Me More Ideas" button
 
-EXTRA DETAIL STEP:
-- Ask simple question about special details to make scene meaningful (NEVER provide suggestions)
-- Only show 3 suggestions when user clicks "Give Me More Ideas" button
-- CRITICAL: If user skips this step, automatically transition to FINAL APPROVAL
-
-FINAL APPROVAL STEP:
+SUMMARY STEP:
 - Summarize complete scene description featuring ${peopleReference}
 - Tell user they can add more details if they like
 - End with: "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection."
@@ -535,21 +534,21 @@ FINAL APPROVAL STEP:
 CHANGE REQUEST:
 - Ask specifically what they want to change
 - Help modify that element
-- Present updated summary
+- Present updated summary with same buttons
 
-Current step: ${conversationStep || 'setting'}`;
+Current step: ${conversationStep || 'initial_scene'}`;
         
 
         // Build context message based on current step and user input
-        let contextMessage = `I'm creating a ${celebration} greeting card for ${recipientName}. Current step: ${conversationStep || 'setting'}. User input: "${userInput || ''}"`;
+        let contextMessage = `I'm creating a ${celebration} greeting card for ${recipientName}. Current step: ${conversationStep || 'initial_scene'}. User input: "${userInput || ''}"`;
         
         // Add collected information context
         if (collectedInfo) {
           const context = [];
-          if (collectedInfo.setting) context.push(`Setting: ${collectedInfo.setting}`);
+          if (collectedInfo.initialScene) context.push(`Initial Scene: ${collectedInfo.initialScene}`);
+          if (collectedInfo.sceneSpecifics) context.push(`Scene Specifics: ${collectedInfo.sceneSpecifics}`);
           if (collectedInfo.activity) context.push(`Activity: ${collectedInfo.activity}`);
-          if (collectedInfo.people) context.push(`People: ${collectedInfo.people}`);
-          if (collectedInfo.extraDetail) context.push(`Extra Detail: ${collectedInfo.extraDetail}`);
+          if (collectedInfo.clothing) context.push(`Clothing: ${collectedInfo.clothing}`);
           
           if (context.length > 0) {
             contextMessage += ` Previously collected: ${context.join(', ')}`;
@@ -562,7 +561,7 @@ Current step: ${conversationStep || 'setting'}`;
         ];
         
         // Add step-specific instructions based on current state
-        if (userInput === "Get Suggestions" || userInput === "Get More Suggestions" || userInput === "Give Me More Ideas") {
+        if (userInput === "Give Me Ideas") {
           messages.push({
             role: "system", 
             content: `The user is requesting suggestions for the ${conversationStep} step. Provide exactly 3 numbered options relevant to this step. Format as: 1. First option, 2. Second option, 3. Third option. Use ${isMultiplePeople ? `plural language referring to the people in the scene (they, their)` : `singular language referring to ${recipientName} (he/she, his/her)`} consistently throughout your response. Remember: all suggestions should be about ${peopleReference}, not the user.`
@@ -575,10 +574,10 @@ Current step: ${conversationStep || 'setting'}`;
           });
         }
         
-        if (conversationStep === 'final_approval') {
+        if (conversationStep === 'summary') {
           messages.push({
             role: "system", 
-            content: `Generate a complete scene summary using all collected information. Present the final scene description in a professional manner. CRITICAL: Do NOT include any numbered suggestions, options, or lists in your response. This is a final summary, not a suggestion step. End with instructions to click the appropriate button to proceed or make changes. IMPORTANT: You are in the FINAL APPROVAL step - this means the frontend will show "Sounds great, let's go!" and "I'd like to make a change" buttons.`
+            content: `Generate a complete scene summary using all collected information. Present the final scene description in a professional manner. CRITICAL: Do NOT include any numbered suggestions, options, or lists in your response. This is a final summary, not a suggestion step. End with instructions to click the appropriate button to proceed or make changes. IMPORTANT: You are in the SUMMARY step - this means the frontend will show "Sounds great, let's go!" and "I'd like to make a change" buttons.`
           });
         }
         

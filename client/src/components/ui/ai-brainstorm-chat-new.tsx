@@ -22,15 +22,13 @@ interface AIBrainstormChatProps {
 }
 
 interface ConversationState {
-  currentStep: 'setting' | 'activity' | 'people' | 'extra_detail' | 'final_approval' | 'change_request';
-  settingRefinements: number;
-  activityRefinements: number;
+  currentStep: 'initial_scene' | 'scene_specifics' | 'activity' | 'clothing' | 'summary' | 'change_request';
   showSuggestions: boolean;
   collectedInfo: {
-    setting?: string;
+    initialScene?: string;
+    sceneSpecifics?: string;
     activity?: string;
-    people?: string;
-    extraDetail?: string;
+    clothing?: string;
   };
 }
 
@@ -58,9 +56,7 @@ export function AIBrainstormChat({
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [conversationState, setConversationState] = useState<ConversationState>({
-    currentStep: 'setting',
-    settingRefinements: 0,
-    activityRefinements: 0,
+    currentStep: 'initial_scene',
     showSuggestions: false,
     collectedInfo: {}
   });
@@ -119,8 +115,6 @@ export function AIBrainstormChat({
         recipientName,
         celebration,
         conversationStep: conversationState.currentStep,
-        settingRefinements: conversationState.settingRefinements,
-        activityRefinements: conversationState.activityRefinements,
         conversationHistory: [], // Empty for initial message
         photoContext,
         userName,
@@ -174,8 +168,6 @@ export function AIBrainstormChat({
         recipientName,
         celebration,
         conversationStep: conversationState.currentStep,
-        settingRefinements: conversationState.settingRefinements,
-        activityRefinements: conversationState.activityRefinements,
         conversationHistory: newMessages.map(msg => ({
           role: msg.role,
           content: msg.content
@@ -226,9 +218,7 @@ export function AIBrainstormChat({
           userMessage.toLowerCase().includes('restart')) {
         console.log('RESTART_DETECTED: Resetting conversation state to beginning');
         return {
-          currentStep: 'setting',
-          settingRefinements: 0,
-          activityRefinements: 0,
+          currentStep: 'initial_scene',
           showSuggestions: false,
           collectedInfo: {}
         };
@@ -243,16 +233,13 @@ export function AIBrainstormChat({
         return newState;
       }
       
-      if (userMessage === "Get More Suggestions" || userMessage === "Give Me More Ideas") {
-        // CRITICAL FIX: In final approval step, "Give Me More Ideas" should NOT show suggestions
-        // Instead, it should keep the final approval buttons visible
-        if (prev.currentStep === 'final_approval') {
-          console.log('FINAL_APPROVAL_FIX: Ignoring Give Me More Ideas in final approval step');
-          return newState; // Keep final approval buttons, don't show suggestions
+      if (userMessage === "Give Me Ideas") {
+        // Show suggestions for scene_specifics, activity, and clothing steps
+        if (['scene_specifics', 'activity', 'clothing'].includes(prev.currentStep)) {
+          const extractedSuggestions = extractSuggestionsFromResponse(aiResponse);
+          setSuggestions(extractedSuggestions);
+          newState.showSuggestions = true;
         }
-        const extractedSuggestions = extractSuggestionsFromResponse(aiResponse);
-        setSuggestions(extractedSuggestions);
-        newState.showSuggestions = true;
         return newState;
       }
       
@@ -295,13 +282,10 @@ export function AIBrainstormChat({
         previousStep: prev.currentStep, 
         newStep: result.currentStep, 
         userMessage,
-        refinements: {
-          setting: result.settingRefinements,
-          activity: result.activityRefinements
-        }
+        collectedInfo: result.collectedInfo
       });
       
-      // CRITICAL FIX: Auto-detect final scene summary and transition to final_approval
+      // Auto-detect final scene summary and transition to summary step
       const finalSceneIndicators = [
         'here\'s the complete scene',
         'final scene description',
@@ -316,9 +300,9 @@ export function AIBrainstormChat({
         aiResponse.toLowerCase().includes(indicator)
       );
       
-      if (result.currentStep === 'extra_detail' && hasFinalSceneIndicator) {
-        console.log('FINAL_SCENE_DETECTED: Auto-transitioning to final_approval step');
-        result.currentStep = 'final_approval';
+      if (result.currentStep === 'clothing' && hasFinalSceneIndicator) {
+        console.log('FINAL_SCENE_DETECTED: Auto-transitioning to summary step');
+        result.currentStep = 'summary';
       }
       
       return result;
@@ -343,53 +327,33 @@ export function AIBrainstormChat({
     const newState = { ...state };
     
     switch (state.currentStep) {
-      case 'setting':
-        if (state.settingRefinements === 0) {
-          // Initial setting input
-          newState.collectedInfo.setting = userMessage;
-          newState.settingRefinements = 1;
-        } else {
-          // Follow-up refinement
-          newState.collectedInfo.setting = `${newState.collectedInfo.setting} ${userMessage}`;
-          newState.settingRefinements++;
-          
-          if (newState.settingRefinements >= 3) {
-            newState.currentStep = 'activity';
-            newState.settingRefinements = 0;
-          }
-        }
+      case 'initial_scene':
+        // User provides initial scene description
+        newState.collectedInfo.initialScene = userMessage;
+        newState.currentStep = 'scene_specifics';
+        break;
+        
+      case 'scene_specifics':
+        // User provides more scene details
+        newState.collectedInfo.sceneSpecifics = userMessage;
+        newState.currentStep = 'activity';
         break;
         
       case 'activity':
-        if (state.activityRefinements === 0) {
-          // Initial activity input
-          newState.collectedInfo.activity = userMessage;
-          newState.activityRefinements = 1;
-        } else {
-          // Follow-up refinement
-          newState.collectedInfo.activity = `${newState.collectedInfo.activity} ${userMessage}`;
-          newState.activityRefinements++;
-          
-          if (newState.activityRefinements >= 2) {
-            newState.currentStep = 'people';
-            newState.activityRefinements = 0;
-          }
-        }
+        // User provides activity details
+        newState.collectedInfo.activity = userMessage;
+        newState.currentStep = 'clothing';
         break;
         
-      case 'people':
-        newState.collectedInfo.people = userMessage;
-        newState.currentStep = 'extra_detail';
-        break;
-        
-      case 'extra_detail':
-        newState.collectedInfo.extraDetail = userMessage;
-        newState.currentStep = 'final_approval';
+      case 'clothing':
+        // User provides clothing details
+        newState.collectedInfo.clothing = userMessage;
+        newState.currentStep = 'summary';
         break;
         
       case 'change_request':
-        // User specified what they want to change
-        newState.currentStep = 'final_approval';
+        // User specified what they want to change, go back to summary
+        newState.currentStep = 'summary';
         break;
     }
     
@@ -400,27 +364,23 @@ export function AIBrainstormChat({
     const newState = { ...state };
     
     switch (state.currentStep) {
-      case 'setting':
+      case 'scene_specifics':
         newState.currentStep = 'activity';
-        newState.settingRefinements = 0;
         break;
       case 'activity':
-        newState.currentStep = 'people';
-        newState.activityRefinements = 0;
+        newState.currentStep = 'clothing';
         break;
-      case 'people':
-        newState.currentStep = 'extra_detail';
+      case 'clothing':
+        newState.currentStep = 'summary';
         break;
-      case 'extra_detail':
-        newState.currentStep = 'final_approval';
-        break;
+      // initial_scene cannot be skipped, summary is final
     }
     
     return newState;
   };
 
   const generateFinalScene = (info: ConversationState['collectedInfo']) => {
-    return `${info.setting || ''} ${info.activity || ''} ${info.people || ''} ${info.extraDetail || ''}`.trim();
+    return `${info.initialScene || ''} ${info.sceneSpecifics || ''} ${info.activity || ''} ${info.clothing || ''}`.trim();
   }
 
   const extractFinalSceneFromConversation = () => {
