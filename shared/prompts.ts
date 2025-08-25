@@ -74,7 +74,7 @@ ARTISTIC STYLE APPLICATION:`;
   }
 
   if (cardText) {
-    fullPrompt = `${fullPrompt}. ORGANIC TEXT INTEGRATION: Add EXACTLY the text "${cardText}" and NO OTHER TEXT. CRITICAL: Do NOT overlay text on top of the image. Instead, naturally integrate the text into the scene as part of the artistic composition. The text should appear as if it belongs in this specific environment - carved into surfaces, written in natural elements, displayed on signs, formed by scene elements, or integrated into the background architecture. Ensure the text is clearly legible while feeling like an organic part of the scene rather than overlaid text. Typography should match the ${answers.art_style || 'artistic'} style and complement the scene's natural elements.`;
+    fullPrompt = `${fullPrompt}. STRICT TEXT RESTRICTION: Add EXACTLY and ONLY the text "${cardText}" - ABSOLUTELY NO OTHER TEXT, WORDS, LETTERS, NUMBERS, SIGNS, LABELS, OR WRITING of any kind should appear anywhere in the image. CRITICAL: Do NOT overlay text on top of the image. Instead, naturally integrate ONLY this specific text into the scene as part of the artistic composition. The text should appear as if it belongs in this specific environment - carved into surfaces, written in natural elements, displayed on signs, formed by scene elements, or integrated into the background architecture. FORBIDDEN: Do not add any background text, signage, labels, captions, watermarks, logos, brand names, location names, or any other written content. Typography should match the ${answers.art_style || 'artistic'} style and complement the scene's natural elements.`;
   }
   
   fullPrompt = `${fullPrompt}. High-quality artistic rendering, professional artwork.`;
@@ -99,8 +99,8 @@ export const buildInsidePrompt = (insideText: string, artStyle: string, frontPro
     parts.push(`${artStyle} art style with same visual treatment as front`);
   }
   
-  // Simple typography instruction for inside card
-  parts.push('TYPOGRAPHY: Integrate the text naturally into the design as an organic part of the composition. The text should feel like it belongs in this artistic environment - whether displayed on surfaces, formed by design elements, or integrated into the scene. Maintain clear legibility while ensuring the typography enhances rather than competes with the artistic style.');
+  // Strict text restriction for inside card
+  parts.push(`STRICT TEXT RESTRICTION: Include EXACTLY and ONLY the text "${insideText}" - ABSOLUTELY NO OTHER TEXT, WORDS, LETTERS, NUMBERS, SIGNS, LABELS, OR WRITING of any kind should appear anywhere in the image. FORBIDDEN: Do not add any background text, signage, labels, captions, watermarks, logos, brand names, decorative text, or any other written content. TYPOGRAPHY: Integrate ONLY the specified text naturally into the design as an organic part of the composition.`);
   
   parts.push('text prominently displayed and clearly readable');
   parts.push('minimal decorative elements that complement without overwhelming the message');
