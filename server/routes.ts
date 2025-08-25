@@ -3851,7 +3851,7 @@ ${formatInstruction}`;
       console.log('Front card image buffer size:', imageBuffer.length, 'bytes, MIME type:', mimeType);
 
       // Use the enhanced buildInsidePrompt function for proper style matching
-      const { buildInsidePrompt } = await import('../../shared/prompts');
+      const { buildInsidePrompt } = await import('../shared/prompts');
       const insideCardPrompt = buildInsidePrompt(insideText, artStyle || 'artistic');
 
       console.log('Inside card prompt:', insideCardPrompt);

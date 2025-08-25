@@ -266,12 +266,11 @@ export function AIBrainstormChat({
         if (onComplete) {
           console.log('COMPLETION: Calling onComplete with final scene');
           onComplete(finalScene);
-          setIsOpen(false);
         } else {
           console.log('COMPLETION: Fallback to onSuggestionSelect');
           onSuggestionSelect(finalScene);
-          setIsOpen(false);
         }
+        setIsOpen(false);
         return newState;
       }
       
@@ -468,14 +467,19 @@ export function AIBrainstormChat({
       const finalScene = extractFinalSceneFromConversation();
       console.log('Final scene extracted:', finalScene);
       
-      // Close the dialog and pass the scene to the parent component
-      if (onComplete) {
-        onComplete(finalScene);
-      }
+      // Close the dialog FIRST, then call completion callback
       setIsOpen(false);
       
-      // Scroll to top of page for better UX when advancing to art style step
+      // Call completion callback to advance to next step
       setTimeout(() => {
+        if (onComplete) {
+          console.log('Calling onComplete to advance to next step');
+          onComplete(finalScene);
+        } else {
+          console.log('Fallback to onSuggestionSelect');
+          onSuggestionSelect(finalScene);
+        }
+        // Scroll to top for better UX when advancing to art style step
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 100);
       return;
