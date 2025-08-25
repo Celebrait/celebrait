@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Copy, RotateCcw, Camera, Upload, User, Palette, Wand2 } from 'lucide-react';
-import { buildImagePrompt } from '@shared/prompts';
 
 const TEST_PROMPTS = [
   {

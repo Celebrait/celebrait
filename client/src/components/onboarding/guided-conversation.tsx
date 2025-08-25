@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette, Edit3, Crop, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { buildImagePrompt as sharedBuildImagePrompt } from "@shared/prompts";
+import { buildTextOnlyImagePrompt } from "@shared/prompts";
 // Typography library removed - AI handles text integration directly
 import { AIBrainstormChat } from "@/components/ui/ai-brainstorm-chat-new";
 import { ArtStyleSelector } from "@/components/ui/art-style-selector";
@@ -1081,9 +1081,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotos.length > 0) {
         await generateCardWithGPTImageTransform(currentCardId);
       } else {
-        // Use existing DALL-E workflow
-        const frontPrompt = buildImagePrompt();
-        console.log('Built front prompt:', frontPrompt);
+        // Use text-only workflow with detailed prompt structure
+        const frontPrompt = buildTextOnlyImagePrompt(answers);
+        console.log('Built front prompt with detailed structure:', frontPrompt);
         
         const insidePrompt = buildInsidePrompt();
 
@@ -1151,7 +1151,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   // Background generation helper functions
   const generateCardWithDALLEInBackground = async () => {
-    const frontPrompt = buildImagePrompt();
+    const frontPrompt = buildTextOnlyImagePrompt(answers);
     const insidePrompt = buildInsidePrompt();
 
     // Use the working DALL-E endpoint that exists
@@ -1512,68 +1512,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     return updatedCard;
   };
 
-  const buildImagePrompt = () => {
-    const parts = [];
-    
-    // Base requirements (matching test page structure)
-    parts.push("Square 1:1 aspect ratio design, full bleed with no borders or card edges visible");
-    
-    // When photos are uploaded, use direct image-to-image processing instead of analysis
-    if (uploadedPhotos.length > 0) {
-      // Store photo data for direct image-to-image generation
-      parts.push("Use uploaded photo as direct reference for image-to-image transformation");
-    } else if (answers.name) {
-      // Fallback for manual descriptions
-      let characterDesc = `${answers.name}`;
-      
-      if (answers.gender) characterDesc += `, ${answers.gender}`;
-      if (answers.age) characterDesc += `, ${answers.age.replace('_', ' ')}`;
-      if (answers.heritage) characterDesc += `, ${answers.heritage} heritage`;
-      if (answers.hair_color && answers.hair_style) {
-        characterDesc += `, ${answers.hair_color.replace('_', ' ')} ${answers.hair_style.replace('_', ' ')} hair`;
-      }
-      if (answers.build) characterDesc += `, ${answers.build} build`;
-      if (answers.features && answers.features !== 'skip') {
-        characterDesc += `, ${answers.features}`;
-      }
-      
-      parts.push(`featuring ${characterDesc}`);
-    }
-    
-    // Add scene description
-    if (answers.scene) {
-      parts.push(answers.scene);
-    } else if (answers.celebration) {
-      // Default scene based on celebration
-      const celebrationScenes: Record<string, string> = {
-        'birthday': 'celebrating at a birthday party with balloons and confetti',
-        'anniversary': 'celebrating in a romantic setting with warm lighting',
-        'graduation': 'celebrating achievement with academic elements',
-        'wedding': 'celebrating in an elegant wedding setting',
-        'christmas': 'celebrating Christmas with festive decorations',
-        'mothers_day': 'celebrating in a beautiful garden setting',
-        'fathers_day': 'celebrating in a warm family setting'
-      };
-      
-      const defaultScene = celebrationScenes[answers.celebration] || 'celebrating in a joyful setting';
-      parts.push(defaultScene);
-    }
-    
-    // Add art style
-    if (answers.art_style) {
-      parts.push(`${answers.art_style.replace('_', ' ')} style`);
-    }
-    
-    // Add front text
-    if (answers.message) {
-      parts.push(`with "${answers.message}" text prominently displayed`);
-    }
-    
-    // Final requirements
-    parts.push('professional greeting card quality, print-ready artwork');
-    
-    return parts.join(', ');
-  };
 
   const buildInsidePrompt = () => {
     const insideMessage = answers.inside_message || "Hope your special day brings you joy and happiness!";
