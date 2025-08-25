@@ -393,9 +393,12 @@ export function AIBrainstormChat({
     const lastAssistantMessage = assistantMessages[assistantMessages.length - 1];
     const content = lastAssistantMessage.content;
 
-    // Enhanced pattern matching for various AI response formats
+    // Enhanced pattern matching for various AI response formats - extract ONLY the scene description
     const patterns = [
-      // Pattern 1: "Here's the complete/updated scene description:"
+      // Pattern 1: Scene Summary section - extract content between Scene Summary: and ---
+      /\*\*Scene Summary:\*\*\s*([\s\S]+?)(?=---|\n\n---|\*\*|If you'd like|When you're ready|$)/,
+      
+      // Pattern 2: "Here's the complete/updated scene description:"
       /Here's the (?:complete|updated) scene description[^:]*:\s*([\s\S]+?)(?=\n\n|When you're ready|Perfect!|$)/,
       
       // Pattern 2: "updated scene description:" 
@@ -420,13 +423,27 @@ export function AIBrainstormChat({
     for (const pattern of patterns) {
       const match = content.match(pattern);
       if (match && match[1]) {
-        const extracted = match[1].trim();
+        let extracted = match[1].trim();
+        
+        // Clean up the extracted text
+        extracted = extracted
+          // Remove any remaining markdown formatting
+          .replace(/\*\*/g, '')
+          .replace(/---/g, '')
+          // Remove trailing instructions
+          .replace(/If you'd like.*$/s, '')
+          .replace(/When you're ready.*$/s, '')
+          .replace(/Perfect!.*$/s, '')
+          // Clean up extra whitespace
+          .trim();
+        
         // Validate it's actually a scene description (not just conversation)
         if (extracted.length > 30 && 
             !extracted.toLowerCase().includes('what would you like') &&
             !extracted.toLowerCase().includes('which element') &&
+            !extracted.toLowerCase().includes('let me know') &&
             (extracted.includes('.') || extracted.length > 50)) {
-          console.log('Successfully extracted scene:', extracted);
+          console.log('Successfully extracted and cleaned scene:', extracted);
           return extracted;
         }
       }
