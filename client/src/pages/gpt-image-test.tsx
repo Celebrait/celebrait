@@ -69,6 +69,7 @@ export default function GPTImageTest() {
             body: JSON.stringify({
               frontCardImage: frontImage,
               insideText: insideCardText,
+              artStyle: sceneStyle || 'artistic', // Pass art style for proper text restrictions
               size: imageSize
             }),
             signal: controller.signal
