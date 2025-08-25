@@ -263,16 +263,15 @@ export function AIBrainstormChat({
         // Extract final scene description from the most recent AI response
         const finalScene = extractFinalSceneFromConversation();
         console.log('COMPLETION: Final scene extracted:', finalScene);
-        setTimeout(() => {
-          if (onComplete) {
-            console.log('COMPLETION: Calling onComplete with final scene');
-            onComplete(finalScene);
-          } else {
-            console.log('COMPLETION: Fallback to onSuggestionSelect');
-            onSuggestionSelect(finalScene);
-          }
+        if (onComplete) {
+          console.log('COMPLETION: Calling onComplete with final scene');
+          onComplete(finalScene);
           setIsOpen(false);
-        }, 1000);
+        } else {
+          console.log('COMPLETION: Fallback to onSuggestionSelect');
+          onSuggestionSelect(finalScene);
+          setIsOpen(false);
+        }
         return newState;
       }
       
