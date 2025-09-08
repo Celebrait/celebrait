@@ -5125,6 +5125,13 @@ ${formatInstruction}`;
 
       // Use provided amount or calculate based on card type
       const orderAmount = amount || (isDigital ? 500 : 12900); // Custom amount or R5.00/R129.00 in cents
+      
+      console.log('Amount calculation debug:', {
+        providedAmount: amount,
+        isDigital,
+        calculatedAmount: orderAmount,
+        fallback: isDigital ? 500 : 12900
+      });
 
       // Create order record
       const orderData = {
@@ -5172,7 +5179,7 @@ ${formatInstruction}`;
       console.log('Payfast payment created:', {
         orderId: order.id,
         paymentReference: order.paymentReference,
-        amount: amount,
+        amount: orderAmount,
         customerEmail: customerInfo.email
       });
 
