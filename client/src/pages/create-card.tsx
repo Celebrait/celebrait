@@ -5,7 +5,6 @@ import Footer from "@/components/footer";
 
 import GuidedConversation from "@/components/onboarding/guided-conversation";
 import CardPreview from "@/components/card-preview";
-import PhotoCreationChoice from "@/components/onboarding/photo-creation-choice";
 
 import { useOnboarding } from "@/hooks/use-onboarding";
 import { Button } from "@/components/ui/button";
@@ -17,9 +16,8 @@ export default function CreateCard() {
   const [generatedCard, setGeneratedCard] = useState(null);
   const [isCreatingMockCard, setIsCreatingMockCard] = useState(false);
   
-  // Streamlined flow state - always printed cards
-  const [flowStep, setFlowStep] = useState<'photo-choice' | 'conversation'>('conversation');
-  const [selectedPhotoOption, setSelectedPhotoOption] = useState<'upload_and_scene' | 'upload_and_transform' | null>('upload_and_scene');
+  // Streamlined flow state - always printed cards, always upload_and_scene
+  const [selectedPhotoOption] = useState<'upload_and_scene'>('upload_and_scene');
 
   // Set up default values when component mounts - always printed cards
   useEffect(() => {
@@ -33,13 +31,7 @@ export default function CreateCard() {
     setGeneratedCard(card);
   };
 
-  // Flow handlers
-
-  const handlePhotoOptionSelected = (option: 'upload_and_scene' | 'upload_and_transform') => {
-    setSelectedPhotoOption(option);
-    sessionStorage.setItem('selectedPhotoOption', option);
-    setFlowStep('conversation');
-  };
+  // Flow handlers - no photo option selection needed
 
   const handleBackToHome = () => {
     setLocation('/');
@@ -78,30 +70,15 @@ export default function CreateCard() {
     }
   };
 
+  // Direct to conversation - no photo choice step needed
   const renderFlow = () => {
-    switch (flowStep) {
-      case 'photo-choice':
-        return <PhotoCreationChoice 
-          onOptionSelected={handlePhotoOptionSelected} 
-          onBack={handleBackToHome}
-        />;
-      case 'conversation':
-        return <GuidedConversation 
-          onboarding={onboarding} 
-          onCardGenerated={handleCardGenerated}
-          streamlinedFlow={true}
-          selectedPhotoOption={selectedPhotoOption}
-          onStartFresh={() => setFlowStep('photo-choice')}
-        />;
-      default:
-        return <GuidedConversation 
-          onboarding={onboarding} 
-          onCardGenerated={handleCardGenerated}
-          streamlinedFlow={true}
-          selectedPhotoOption={selectedPhotoOption}
-          onStartFresh={() => setFlowStep('photo-choice')}
-        />;
-    }
+    return <GuidedConversation 
+      onboarding={onboarding} 
+      onCardGenerated={handleCardGenerated}
+      streamlinedFlow={true}
+      selectedPhotoOption={selectedPhotoOption}
+      onStartFresh={handleBackToHome}
+    />;
   };
 
   return (
