@@ -99,7 +99,7 @@ export function AIBrainstormChat({
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
         }, 300);
-      }, Math.max(typingMessage.content.length * 20, 1200)); // Slower, more natural timing
+      }, Math.max(typingMessage.content.length * 8, 400)); // Much faster typing animation
 
       return () => clearTimeout(timer);
     }
@@ -123,14 +123,14 @@ export function AIBrainstormChat({
 
       const result = await response.json();
 
-      const typingMessage: ChatMessage = {
+      const initialMessage: ChatMessage = {
         role: "assistant",
         content: result.response,
         timestamp: new Date(),
-        isTyping: true
+        isTyping: false // Initial message appears immediately
       };
 
-      setMessages([typingMessage]);
+      setMessages([initialMessage]);
       
     } catch (error) {
       console.error('Initial AI message error:', error);
@@ -139,7 +139,7 @@ export function AIBrainstormChat({
         role: "assistant",
         content: `Hello ${userName}! I'm here to help you create a detailed scene description for your ${celebration} card. Let's start with the setting - where should this scene take place?`,
         timestamp: new Date(),
-        isTyping: true
+        isTyping: false // Fallback message also appears immediately
       }]);
     } finally {
       setIsLoading(false);

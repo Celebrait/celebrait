@@ -6,7 +6,7 @@ interface TypingAnimationProps {
   onComplete?: () => void;
 }
 
-export function TypingAnimation({ text, speed = 30, onComplete }: TypingAnimationProps) {
+export function TypingAnimation({ text, speed = 12, onComplete }: TypingAnimationProps) {
   const [displayedText, setDisplayedText] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
 
