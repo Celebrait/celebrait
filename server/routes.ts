@@ -572,7 +572,7 @@ Current step: ${conversationStep || 'initial_scene'}`;
           // This is an opening message - add extra emphasis to NOT provide suggestions
           messages.push({
             role: "system",
-            content: `This is an opening message. Use this EXACT text as your response: "Greetings ✨ Let's create a mind blowing scene for the front of ${recipientName ? recipientName.toUpperCase() : 'NAME'}'S ${celebration ? celebration.toUpperCase() : 'CELEBRATION'} card.\n\nI'll need your creative input for this first question, but after this you can ask me for ideas throughout, or type your own out.\n\nTo get us started, where would you like the scene to take place?"`
+            content: `This is an opening message. Use this EXACT text as your response: "Greetings ✨ Let's create a mind blowing scene for the front of ${recipientName || 'NAME'}'s ${celebration || 'CELEBRATION'} card.\n\nI'll need your creative input for this first question, but after this you can ask me for ideas throughout, or type your own out.\n\nTo get us started, where would you like the scene to take place?"`
           });
         }
         
