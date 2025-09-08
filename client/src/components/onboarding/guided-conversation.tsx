@@ -2163,7 +2163,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           }}
                           buttonText="Get AI Art Style Ideas"
                           buttonIcon={<Bot className="w-4 h-4" />}
-                          photoContext=""
+                          photoContext={buildPhotoContext()}
                           userName={onboarding.userName}
                         />
                       </div>
@@ -2209,7 +2209,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             setStepInputs(prev => ({ ...prev, [currentStep.id]: style }));
                           }}
                           buttonText="Get AI Art Style Suggestions"
-                          photoContext=""
+                          photoContext={buildPhotoContext()}
                           userName={onboarding.userName}
                         />
                       </div>
@@ -2727,7 +2727,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           }}
                           buttonText={currentStep.id === 'scene' ? 'Stuck for ideas? Brainstorm with AI' : 'Get AI Art Style Ideas'}
                           buttonIcon={currentStep.id === 'scene' ? <Sparkles className="w-4 h-4" /> : <Palette className="w-4 h-4" />}
-                          photoContext=""
+                          photoContext={buildPhotoContext()}
                           userName={onboarding.userName}
                         />
                       </div>
