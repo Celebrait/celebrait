@@ -832,6 +832,35 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
             setUploadedPhotos(photoDataArray);
             setAnswers(prev => ({ ...prev, photo_upload: photoDataArray[0] })); // Store first photo for backward compatibility
             
+            // Analyze photos immediately after upload to detect person count
+            const analyzePhotos = async () => {
+              try {
+                const response = await fetch('/api/analyze-photo-content', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    images: photoDataArray
+                  }),
+                });
+
+                if (response.ok) {
+                  const analysis = await response.json();
+                  const actualPersonCount = analysis.totalPeopleCount || photoDataArray.length;
+                  setDetectedPersonCount(actualPersonCount);
+                  console.log('[DEBUG] Detected person count after upload:', actualPersonCount);
+                }
+              } catch (error) {
+                console.error('Photo analysis failed during upload:', error);
+                // Fallback to image count
+                setDetectedPersonCount(photoDataArray.length);
+              }
+            };
+
+            // Run photo analysis
+            analyzePhotos();
+            
             // Show success message immediately
             const successMessage = isTransformStyle 
               ? 'Photo uploaded successfully for style transformation'
