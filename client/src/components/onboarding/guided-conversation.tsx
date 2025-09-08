@@ -1806,7 +1806,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         </Button>
                       </div>
                     </div>
-                    )}
+                      </div>
                   </>
                 )}
 
