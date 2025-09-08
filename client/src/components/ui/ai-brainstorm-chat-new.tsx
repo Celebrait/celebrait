@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Bot, User, Sparkles, Loader2, MessageCircle, X, Send, ArrowUp } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { TypingAnimation } from "@/components/ui/typing-animation";
+// Removed TypingAnimation import - using simple typing indicator instead
 
 interface AIBrainstormChatProps {
   type: "scene" | "art_style";
@@ -36,7 +36,6 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
-  isTyping?: boolean;
 }
 
 export function AIBrainstormChat({ 
@@ -71,16 +70,7 @@ export function AIBrainstormChat({
     }, 100);
   }, [messages, isLoading]);
 
-  // Smooth auto-scroll during typing animation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (messages.some(msg => msg.isTyping)) {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-      }
-    }, 200); // Less frequent, smoother scrolling
-
-    return () => clearInterval(interval);
-  }, [messages]);
+  // Simplified auto-scroll - no need for typing animation scroll
 
   // Initialize conversation when dialog opens
   useEffect(() => {
@@ -89,21 +79,7 @@ export function AIBrainstormChat({
     }
   }, [isOpen]);
 
-  // Handle typing animation completion with better timing
-  useEffect(() => {
-    const typingMessage = messages.find(msg => msg.isTyping);
-    if (typingMessage) {
-      const timer = setTimeout(() => {
-        setMessages(prev => prev.map(msg => ({ ...msg, isTyping: false })));
-        // Gentle scroll to bottom after typing completes
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-        }, 300);
-      }, Math.max(typingMessage.content.length * 8, 400)); // Much faster typing animation
-
-      return () => clearTimeout(timer);
-    }
-  }, [messages]);
+  // Removed typing animation timing logic - messages appear instantly now
 
   const handleInitialMessage = async () => {
     setIsLoading(true);
@@ -126,8 +102,8 @@ export function AIBrainstormChat({
       const initialMessage: ChatMessage = {
         role: "assistant",
         content: result.response,
-        timestamp: new Date(),
-        isTyping: false // Initial message appears immediately
+        timestamp: new Date()
+        // Removed isTyping - messages appear instantly
       };
 
       setMessages([initialMessage]);
@@ -138,8 +114,8 @@ export function AIBrainstormChat({
       setMessages([{
         role: "assistant",
         content: `Hello ${userName}! I'm here to help you create a detailed scene description for your ${celebration} card. Let's start with the setting - where should this scene take place?`,
-        timestamp: new Date(),
-        isTyping: false // Fallback message also appears immediately
+        timestamp: new Date()
+        // Removed isTyping - fallback message also appears instantly
       }]);
     } finally {
       setIsLoading(false);
@@ -179,14 +155,14 @@ export function AIBrainstormChat({
 
       const result = await response.json();
 
-      const typingMessage: ChatMessage = {
+      const assistantMessage: ChatMessage = {
         role: "assistant",
         content: result.response,
-        timestamp: new Date(),
-        isTyping: true
+        timestamp: new Date()
+        // Removed isTyping - messages appear instantly
       };
 
-      setMessages(prev => [...prev, typingMessage]);
+      setMessages(prev => [...prev, assistantMessage]);
       
       // Update conversation state
       updateConversationState(message, result.response);
@@ -714,18 +690,14 @@ export function AIBrainstormChat({
                           : 'bg-white border border-gray-200 text-gray-800 shadow-sm'
                       }`}
                     >
-                    {message.isTyping ? (
-                      <TypingAnimation text={message.content} speed={25} />
-                    ) : (
                       <p className="text-base leading-relaxed whitespace-pre-wrap">
                         {message.content}
                       </p>
-                    )}
                   </div>
                 </div>
                 
                 {/* Render buttons inline after each assistant message */}
-                {message.role === 'assistant' && !message.isTyping && (
+                {message.role === 'assistant' && (
                   <div className="mt-3 space-y-3">
                     {renderInlineButtons(index)}
                   </div>
