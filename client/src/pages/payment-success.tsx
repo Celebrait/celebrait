@@ -194,7 +194,7 @@ export default function PaymentSuccess() {
           </Card>
 
           {/* PDF Downloads for Physical Cards */}
-          {isSuccessful && paymentStatus.amount === 12900 && paymentStatus.cardId && (
+          {isSuccessful && (paymentStatus.amount === 12900 || paymentStatus.amount === 500) && paymentStatus.cardId && (
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -239,6 +239,11 @@ export default function PaymentSuccess() {
                   <p className="text-sm text-blue-800">
                     <strong>For Testing:</strong> These are high-quality 300 DPI PDF files generated from unwatermarked images. 
                     Front and inside cards are separate files for professional printing.
+                    {paymentStatus.amount === 500 && (
+                      <span className="block mt-1">
+                        📝 <strong>Testing/Friends & Family Rate:</strong> R5.00 payment
+                      </span>
+                    )}
                   </p>
                 </div>
               </CardContent>

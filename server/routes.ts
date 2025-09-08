@@ -5103,7 +5103,7 @@ ${formatInstruction}`;
   app.post("/api/payfast/create-payment", async (req, res) => {
     try {
       console.log('Payfast payment request body:', req.body);
-      const { cardId, customerInfo, deliveryInfo, isDigital, recipientInfo } = req.body;
+      const { cardId, customerInfo, deliveryInfo, isDigital, recipientInfo, amount } = req.body;
 
       if (!cardId) {
         return res.status(400).json({ message: "Card ID is required" });
@@ -5123,8 +5123,8 @@ ${formatInstruction}`;
         return res.status(404).json({ message: "Card not found" });
       }
 
-      // Calculate amount based on card type
-      const amount = isDigital ? 500 : 12900; // R5.00 for digital, R129.00 for printed cards
+      // Use provided amount or calculate based on card type
+      const orderAmount = amount || (isDigital ? 500 : 12900); // Custom amount or R5.00/R129.00 in cents
 
       // Create order record
       const orderData = {
@@ -5132,7 +5132,7 @@ ${formatInstruction}`;
         customerEmail: customerInfo.email,
         customerName: customerInfo.name,
         customerPhone: customerInfo.phone || '',
-        amount: amount,
+        amount: orderAmount,
         currency: 'ZAR',
         paymentReference: `payfast_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         orderStatus: 'pending',
@@ -5161,7 +5161,7 @@ ${formatInstruction}`;
         orderId: order.paymentReference,
         customerName: customerInfo.name,
         customerEmail: customerInfo.email,
-        amount: amount,
+        amount: orderAmount,
         itemName: `Celebrait ${isDigital ? 'Digital' : 'Printed'} Greeting Card`,
         itemDescription: `Personalized greeting card for ${card.conversationData?.name || 'recipient'}`,
         returnUrl: `${baseUrl}/payment-success/${order.paymentReference}`,
@@ -5280,8 +5280,8 @@ ${formatInstruction}`;
           console.error('Failed to send confirmation/digital emails:', emailError);
         }
 
-        // For printed cards, generate PDFs and start fulfillment process
-        if (order.cardId && order.amount === 12900) { // R129.00 = 12900 cents
+        // For printed cards, generate PDFs and start fulfillment process  
+        if (order.cardId && (order.amount === 12900 || order.amount === 500)) { // R129.00 or R5.00 (testing) = 12900 or 500 cents
           const card = await storage.getCard(order.cardId);
           if (card) {
             console.log('Generating PDFs for printed card:', card.id);

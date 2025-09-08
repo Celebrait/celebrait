@@ -87,6 +87,9 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
 
   const [customerEmailConfirm, setCustomerEmailConfirm] = useState('');
 
+  // Pricing option state
+  const [selectedPrice, setSelectedPrice] = useState<'testing' | 'full'>('full');
+
   // Address data for physical delivery
   const [address, setAddress] = useState({
     line1: '',
@@ -238,7 +241,8 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
           cardId: card.id,
           customerInfo,
           deliveryInfo,
-          isDigital: false
+          isDigital: false,
+          amount: selectedPrice === 'full' ? 12900 : 500 // R129.00 or R5.00 in cents
         })
       });
 
@@ -331,28 +335,92 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
         <div className="flex flex-col lg:grid lg:grid-cols-2 lg:gap-8">
           {/* Order Form - Shows first on mobile/tablet, left on desktop */}
           <div className="space-y-6 order-1 lg:order-1">
-            {/* Order Summary - First */}
+            {/* Pricing Options - First */}
             <Card className="bg-white/80 backdrop-blur-sm border-white/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-green-500" />
-                  Order Summary
+                  <CreditCard className="w-5 h-5 text-purple-500" />
+                  Choose Your Price
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Physical Card (Printed & Delivered)</span>
-                    <span className="font-semibold">R129.00</span>
+                <div className="space-y-4">
+                  {/* Pricing Options */}
+                  <div className="space-y-3">
+                    <div 
+                      className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                        selectedPrice === 'full' 
+                          ? 'border-purple-500 bg-purple-50' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => setSelectedPrice('full')}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-4 h-4 rounded-full border-2 ${
+                            selectedPrice === 'full' 
+                              ? 'border-purple-500 bg-purple-500' 
+                              : 'border-gray-300'
+                          }`}>
+                            {selectedPrice === 'full' && (
+                              <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="font-medium">Full Price</h4>
+                            <p className="text-sm text-gray-600">Physical card with delivery</p>
+                          </div>
+                        </div>
+                        <span className="text-xl font-bold text-purple-600">R129.00</span>
+                      </div>
+                    </div>
+
+                    <div 
+                      className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                        selectedPrice === 'testing' 
+                          ? 'border-purple-500 bg-purple-50' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => setSelectedPrice('testing')}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-4 h-4 rounded-full border-2 ${
+                            selectedPrice === 'testing' 
+                              ? 'border-purple-500 bg-purple-500' 
+                              : 'border-gray-300'
+                          }`}>
+                            {selectedPrice === 'testing' && (
+                              <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="font-medium">Testing Price</h4>
+                            <p className="text-sm text-gray-600">Friends & family rate</p>
+                          </div>
+                        </div>
+                        <span className="text-xl font-bold text-green-600">R5.00</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Shipping</span>
-                    <span className="font-semibold text-green-600">Included</span>
-                  </div>
-                  <div className="border-t pt-3">
+
+                  {/* Order Summary */}
+                  <div className="border-t pt-4 space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-lg font-semibold">Total</span>
-                      <span className="text-lg font-bold text-purple-600">R129.00</span>
+                      <span className="text-gray-600">Physical Card (Printed & Delivered)</span>
+                      <span className="font-semibold">{selectedPrice === 'full' ? 'R129.00' : 'R5.00'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Shipping</span>
+                      <span className="font-semibold text-green-600">Included</span>
+                    </div>
+                    <div className="border-t pt-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-lg font-semibold">Total</span>
+                        <span className={`text-lg font-bold ${selectedPrice === 'full' ? 'text-purple-600' : 'text-green-600'}`}>
+                          {selectedPrice === 'full' ? 'R129.00' : 'R5.00'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -484,7 +552,7 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
               disabled={!isFormValid() || submitting}
               className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-4 rounded-lg font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105"
             >
-              {submitting ? 'Processing...' : `Complete Order - R129.00`}
+              {submitting ? 'Processing...' : `Complete Order - ${selectedPrice === 'full' ? 'R129.00' : 'R5.00'}`}
             </Button>
           </div>
 
