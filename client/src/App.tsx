@@ -27,7 +27,6 @@ import TestDashboard from "@/pages/test-dashboard";
 // Typography test page removed - simplified to direct AI integration
 import NotFound from "@/pages/not-found";
 import PaymentWithTips from "@/pages/payment-with-tips";
-import DeliveryDetails from "@/pages/delivery-details";
 import CardPreviewPage from "@/pages/card-preview-page";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import TermsOfService from "@/pages/terms-of-service";
@@ -60,7 +59,6 @@ function Router() {
         <Route path="/test-card-preview" component={TestCardPreview} />
         <Route path="/test-dashboard" component={TestDashboard} />
         {/* Typography test page removed - simplified to direct AI integration */}
-        <Route path="/delivery-details/:reference" component={DeliveryDetails} />
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms-of-service" component={TermsOfService} />
 
