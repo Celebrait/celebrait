@@ -5,7 +5,6 @@ import Footer from "@/components/footer";
 
 import GuidedConversation from "@/components/onboarding/guided-conversation";
 import CardPreview from "@/components/card-preview";
-import DeliverySelection from "@/components/onboarding/delivery-selection";
 import PhotoCreationChoice from "@/components/onboarding/photo-creation-choice";
 
 import { useOnboarding } from "@/hooks/use-onboarding";
@@ -18,17 +17,16 @@ export default function CreateCard() {
   const [generatedCard, setGeneratedCard] = useState(null);
   const [isCreatingMockCard, setIsCreatingMockCard] = useState(false);
   
-  // Streamlined flow state
-  const [flowStep, setFlowStep] = useState<'delivery' | 'photo-choice' | 'conversation'>('conversation');
-  const [selectedDeliveryType, setSelectedDeliveryType] = useState<'printed' | 'digital' | null>('digital');
+  // Streamlined flow state - always printed cards
+  const [flowStep, setFlowStep] = useState<'photo-choice' | 'conversation'>('conversation');
   const [selectedPhotoOption, setSelectedPhotoOption] = useState<'upload_and_scene' | 'upload_and_transform' | null>('upload_and_scene');
 
-  // Set up default values when component mounts
+  // Set up default values when component mounts - always printed cards
   useEffect(() => {
     // Set defaults in sessionStorage
-    sessionStorage.setItem('selectedDeliveryType', 'digital');
+    sessionStorage.setItem('selectedDeliveryType', 'printed');
     sessionStorage.setItem('selectedPhotoOption', 'upload_and_scene');
-    onboarding.setSelectedDelivery('digital');
+    onboarding.setSelectedDelivery('printed');
   }, []);
 
   const handleCardGenerated = (card: any) => {
@@ -36,12 +34,6 @@ export default function CreateCard() {
   };
 
   // Flow handlers
-  const handleDeliverySelected = (delivery: 'printed' | 'digital') => {
-    setSelectedDeliveryType(delivery);
-    sessionStorage.setItem('selectedDeliveryType', delivery);
-    onboarding.setSelectedDelivery(delivery);
-    setFlowStep('photo-choice');
-  };
 
   const handlePhotoOptionSelected = (option: 'upload_and_scene' | 'upload_and_transform') => {
     setSelectedPhotoOption(option);
@@ -53,11 +45,7 @@ export default function CreateCard() {
     setLocation('/');
   };
 
-  const handleBackToDelivery = () => {
-    setFlowStep('delivery');
-  };
-
-  const createMockCardAndSkipToDelivery = async (cardType: 'digital' | 'printed' = 'digital') => {
+  const createMockCardAndSkipToOrder = async () => {
     setIsCreatingMockCard(true);
     try {
       const response = await fetch("/api/cards", {
@@ -67,10 +55,10 @@ export default function CreateCard() {
         },
         body: JSON.stringify({
           userId: 1,
-          cardType,
+          cardType: 'printed',
           printOption: 'front-and-inside',
           conversationData: {},
-          price: cardType === 'digital' ? 2900 : 12900,
+          price: 12900,
         }),
       });
 
@@ -78,10 +66,10 @@ export default function CreateCard() {
       
       // Store test data
       sessionStorage.setItem('testCard', JSON.stringify(card));
-      sessionStorage.setItem('selectedDeliveryType', cardType);
+      sessionStorage.setItem('selectedDeliveryType', 'printed');
       
-      // Navigate to delivery choice
-      setLocation(`/delivery-choice/${card.reference}`);
+      // Navigate directly to complete order
+      setLocation(`/complete-order/${card.reference}`);
       
     } catch (error) {
       console.error("Error creating mock card:", error);
@@ -92,12 +80,10 @@ export default function CreateCard() {
 
   const renderFlow = () => {
     switch (flowStep) {
-      case 'delivery':
-        return <DeliverySelection onDeliverySelected={handleDeliverySelected} onBack={handleBackToHome} />;
       case 'photo-choice':
         return <PhotoCreationChoice 
           onOptionSelected={handlePhotoOptionSelected} 
-          onBack={handleBackToDelivery}
+          onBack={handleBackToHome}
         />;
       case 'conversation':
         return <GuidedConversation 
@@ -105,10 +91,16 @@ export default function CreateCard() {
           onCardGenerated={handleCardGenerated}
           streamlinedFlow={true}
           selectedPhotoOption={selectedPhotoOption}
-          onStartFresh={() => setFlowStep('delivery')}
+          onStartFresh={() => setFlowStep('photo-choice')}
         />;
       default:
-        return <DeliverySelection onDeliverySelected={handleDeliverySelected} onBack={handleBackToHome} />;
+        return <GuidedConversation 
+          onboarding={onboarding} 
+          onCardGenerated={handleCardGenerated}
+          streamlinedFlow={true}
+          selectedPhotoOption={selectedPhotoOption}
+          onStartFresh={() => setFlowStep('photo-choice')}
+        />;
     }
   };
 
@@ -135,18 +127,11 @@ export default function CreateCard() {
             Streamlined Flow Testing
           </div>
           <Button
-            onClick={(e) => { e.preventDefault(); createMockCardAndSkipToDelivery('digital'); }}
-            disabled={isCreatingMockCard}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg"
-          >
-            {isCreatingMockCard ? "Creating..." : "Test Digital Flow"}
-          </Button>
-          <Button
-            onClick={(e) => { e.preventDefault(); createMockCardAndSkipToDelivery('printed'); }}
+            onClick={(e) => { e.preventDefault(); createMockCardAndSkipToOrder(); }}
             disabled={isCreatingMockCard}
             className="w-full bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg shadow-lg"
           >
-            {isCreatingMockCard ? "Creating..." : "Test Printed Flow"}
+            {isCreatingMockCard ? "Creating..." : "Test Printed Card Flow"}
           </Button>
         </div>
       )}
