@@ -205,7 +205,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       aiMessage: answers.photo_option === 'upload_and_transform'
         ? `Cool! ✨ Now please upload ONE clear photo that you'd like me to transform into a new artistic style for the front of ${answers.name || 'NAME'}'s card`
         : streamlinedFlow 
-          ? `Great! ✨ Please upload headshot photo(s) of ${answers.name || 'them'} and anyone else you'd like in the scene on the front of the card.`
+          ? `Great! ✨ Please upload your photo(s) of ${answers.name || 'them'} + anyone else you'd like in the scene on the front of the card.`
           : `Perfect! Please upload one clear photo of ${answers.name || 'them'} + anyone else you'd like in the scene.`,
       type: 'photo_upload',
       required: true
@@ -2490,7 +2490,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                                 <p className="text-gray-600 mt-2">
                                   {answers.photo_option === 'upload_and_transform' 
                                     ? 'Click here to select one photo that you\'d like to transform into a different artistic style.'
-                                    : 'Click here to select one or more clear headshot photos. The AI will create artistic representations while maintaining their likeness.'
+                                    : 'Click here to select one or more clear photos.'
                                   }
                                 </p>
                                 
@@ -2615,7 +2615,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                                   </span>
                                 </>
                               ) : (
-                                <span>Our AI can recognise <strong>multiple people in a single photo</strong>, so feel free to upload a group shot if you'd like all characters included. You can also <strong>upload several individual photos</strong> of different people to include in the scene.</span>
+                                <span>Our AI can recognise <strong>multiple people in a single photo</strong>, so feel free to upload a group shot if you'd like ALL characters included in the scene. You can also <strong>upload several individual photos</strong> of different people to include in the scene.</span>
                               )}
                             </p>
                           </div>
@@ -3029,12 +3029,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
                   <p className="text-gray-800 text-sm font-medium">
                     <strong>Avoid obstructions</strong> like hats, sunglasses, or anything covering the face
-                  </p>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <p className="text-gray-800 text-sm font-medium">
-                    <strong>Use our cropping tool</strong> to focus on headshots if needed - just click the crop button below any uploaded photo
                   </p>
                 </div>
               </div>
