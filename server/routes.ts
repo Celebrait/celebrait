@@ -5754,6 +5754,64 @@ ${formatInstruction}`;
     }
   });
 
+  // TESTING ENDPOINT: Generate PDFs for any existing card
+  app.post("/api/generate-test-pdfs/:cardId", async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.cardId);
+      
+      if (isNaN(cardId)) {
+        return res.status(400).json({ message: "Invalid cardId" });
+      }
+
+      // Check if card exists
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      console.log(`[TEST] Generating PDFs for card ${cardId}`);
+
+      try {
+        // Generate high-quality PDFs for testing
+        const pdfs = await generateSeparatePDFs({
+          cardId: cardId,
+          format: '5x5',
+          dpi: 300
+        });
+        
+        // Generate print specs
+        await generatePrintSpecs(cardId);
+        
+        console.log(`[TEST] PDFs generated successfully for card ${cardId}:`, pdfs);
+        
+        // Return download URLs
+        const downloadUrls = {
+          frontPdf: `/api/download-pdf/${cardId}/front/5x5/300`,
+          insidePdf: `/api/download-pdf/${cardId}/inside/5x5/300`,
+          specs: `/api/download-pdf/${cardId}/specs`
+        };
+        
+        res.json({
+          success: true,
+          message: `PDFs generated for card ${cardId}`,
+          downloadUrls,
+          pdfs
+        });
+        
+      } catch (pdfError) {
+        console.error(`[TEST] Failed to generate PDFs for card ${cardId}:`, pdfError);
+        res.status(500).json({ 
+          message: "PDF generation failed", 
+          error: pdfError instanceof Error ? pdfError.message : "Unknown error"
+        });
+      }
+      
+    } catch (error: any) {
+      console.error('Test PDF generation error:', error);
+      res.status(500).json({ message: "Error generating test PDFs: " + error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
