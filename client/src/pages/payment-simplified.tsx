@@ -13,8 +13,7 @@ import Header from '@/components/header';
 
 interface PaymentFormData {
   email: string;
-  firstName: string;
-  lastName: string;
+  emailConfirm: string;
   phone: string;
   address: {
     line1: string;
@@ -37,8 +36,7 @@ export default function PaymentSimplified() {
   const [currentView, setCurrentView] = useState<'front' | 'inside'>('front');
   const [formData, setFormData] = useState<PaymentFormData>({
     email: '',
-    firstName: '',
-    lastName: '',
+    emailConfirm: '',
     phone: '',
     address: {
       line1: '',
@@ -130,8 +128,6 @@ export default function PaymentSimplified() {
       // Use existing Paystack payment endpoint
       const customerInfo = {
         email: formData.email,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
         phone: formData.phone,
         address: formData.address
       };
@@ -176,10 +172,19 @@ export default function PaymentSimplified() {
   };
 
   const validateForm = () => {
-    if (!formData.email || !formData.firstName || !formData.lastName || !formData.phone) {
+    if (!formData.email || !formData.emailConfirm || !formData.phone) {
       toast({
         title: 'Missing Information',
         description: 'Please fill in all required fields.',
+        variant: 'destructive'
+      });
+      return false;
+    }
+
+    if (formData.email !== formData.emailConfirm) {
+      toast({
+        title: 'Email Mismatch',
+        description: 'Email addresses do not match. Please check and try again.',
         variant: 'destructive'
       });
       return false;
@@ -241,8 +246,8 @@ export default function PaymentSimplified() {
             <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-float">
               <User className="text-white w-10 h-10" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Your Information</h1>
-            <p className="text-lg text-slate-gray">Enter your details and shipping address</p>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Physical Card Delivery</h1>
+            <p className="text-lg text-slate-gray">Enter your email and South African shipping address</p>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8">
@@ -258,32 +263,11 @@ export default function PaymentSimplified() {
               <Card className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center text-gray-800">
-                    <User className="w-5 h-5 mr-2" />
-                    Personal Details
+                    <Mail className="w-5 h-5 mr-2" />
+                    Contact Information
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="firstName">First Name *</Label>
-                      <Input
-                        id="firstName"
-                        value={formData.firstName}
-                        onChange={(e) => handleInputChange('firstName', e.target.value)}
-                        placeholder="Enter first name"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="lastName">Last Name *</Label>
-                      <Input
-                        id="lastName"
-                        value={formData.lastName}
-                        onChange={(e) => handleInputChange('lastName', e.target.value)}
-                        placeholder="Enter last name"
-                      />
-                    </div>
-                  </div>
-                  
                   <div>
                     <Label htmlFor="email">Email Address *</Label>
                     <Input
@@ -292,6 +276,17 @@ export default function PaymentSimplified() {
                       value={formData.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
                       placeholder="Enter email address"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="emailConfirm">Confirm Email Address *</Label>
+                    <Input
+                      id="emailConfirm"
+                      type="email"
+                      value={formData.emailConfirm}
+                      onChange={(e) => handleInputChange('emailConfirm', e.target.value)}
+                      placeholder="Re-enter email address"
                     />
                   </div>
                   

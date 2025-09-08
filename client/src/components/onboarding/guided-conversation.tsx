@@ -97,13 +97,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   // Build photo context for AI brainstorm chat
   const buildPhotoContext = () => {
-    console.log('[DEBUG] buildPhotoContext called with detectedPersonCount:', detectedPersonCount);
     if (detectedPersonCount > 1) {
-      const context = `multiple people detected: ${detectedPersonCount} people in photos`;
-      console.log('[DEBUG] Returning photo context:', context);
-      return context;
+      return `multiple people detected: ${detectedPersonCount} people in photos`;
     }
-    console.log('[DEBUG] Returning empty photo context');
     return '';
   };
 
@@ -838,7 +834,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
             
             // Analyze photos immediately after upload to detect person count
             const analyzePhotos = async () => {
-              console.log('[DEBUG] Starting photo analysis for uploaded photos, count:', photoDataArray.length);
               try {
                 const response = await fetch('/api/analyze-photo-content', {
                   method: 'POST',
@@ -850,22 +845,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   }),
                 });
 
-                console.log('[DEBUG] Photo analysis response status:', response.status);
                 if (response.ok) {
                   const analysis = await response.json();
-                  console.log('[DEBUG] Photo analysis result:', analysis);
                   const actualPersonCount = analysis.totalPeopleCount || photoDataArray.length;
                   setDetectedPersonCount(actualPersonCount);
-                  console.log('[DEBUG] Setting detectedPersonCount to:', actualPersonCount);
                 } else {
-                  console.error('[DEBUG] Photo analysis response not ok:', response.status, response.statusText);
                   setDetectedPersonCount(photoDataArray.length);
                 }
               } catch (error) {
                 console.error('Photo analysis failed during upload:', error);
                 // Fallback to image count
                 setDetectedPersonCount(photoDataArray.length);
-                console.log('[DEBUG] Using fallback detectedPersonCount:', photoDataArray.length);
               }
             };
 
