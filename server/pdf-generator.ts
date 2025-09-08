@@ -1,8 +1,9 @@
-import { createCanvas, loadImage } from 'canvas';
+import PDFDocument from 'pdfkit';
 import { promises as fs } from 'fs';
 import path from 'path';
 
 const PRINT_DIR = path.join(process.cwd(), 'print_files');
+const IMAGES_DIR = path.join(process.cwd(), 'stored_images');
 
 // Ensure print directory exists
 async function ensurePrintDirectory() {
@@ -18,117 +19,117 @@ ensurePrintDirectory();
 export interface PrintOptions {
   cardId: number;
   format: '5x5' | 'A4' | 'Letter';
-  layout: 'single' | 'double' | 'booklet';
-  includeInside: boolean;
   dpi: 150 | 300 | 600;
 }
 
 /**
- * Generate high-quality print-ready files for professional printing
+ * Generate separate high-quality PDFs for front and inside of the card
  */
-export async function generatePrintReadyPDF(options: PrintOptions): Promise<string> {
-  const { cardId, format, layout, includeInside, dpi } = options;
+export async function generateSeparatePDFs(options: PrintOptions): Promise<{ frontPdf: string; insidePdf: string | null }> {
+  const { cardId, format, dpi } = options;
   
   try {
-    // Load images from file storage
-    const frontImagePath = path.join(process.cwd(), 'stored_images', `card_${cardId}_front.png`);
-    const insideImagePath = path.join(process.cwd(), 'stored_images', `card_${cardId}_inside.png`);
+    // Generate front PDF
+    const frontPdf = await generateSingleCardPDF(cardId, 'front', format, dpi);
     
-    const frontImage = await loadImage(frontImagePath);
-    let insideImage = null;
-    
-    if (includeInside) {
-      try {
-        insideImage = await loadImage(insideImagePath);
-      } catch (error) {
-        console.log('Inside image not found, using front only');
-      }
+    // Try to generate inside PDF
+    let insidePdf = null;
+    try {
+      insidePdf = await generateSingleCardPDF(cardId, 'inside', format, dpi);
+    } catch (error) {
+      console.log('Inside image not found, generating front PDF only');
     }
     
-    // Calculate dimensions based on format and DPI
-    const dimensions = getFormatDimensions(format, dpi);
-    const canvas = createCanvas(dimensions.width, dimensions.height);
-    const ctx = canvas.getContext('2d');
+    console.log(`[PDF] Generated separate PDFs for card ${cardId}: front=${frontPdf}, inside=${insidePdf}`);
     
-    // Fill with white background
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, dimensions.width, dimensions.height);
-    
-    // Draw images based on layout
-    switch (layout) {
-      case 'single':
-        // Single card centered
-        const cardSize = Math.min(dimensions.width, dimensions.height) * 0.8;
-        const x = (dimensions.width - cardSize) / 2;
-        const y = (dimensions.height - cardSize) / 2;
-        ctx.drawImage(frontImage, x, y, cardSize, cardSize);
-        break;
-        
-      case 'double':
-        // Front and inside side by side
-        const halfWidth = dimensions.width / 2;
-        ctx.drawImage(frontImage, 0, 0, halfWidth, dimensions.height);
-        if (insideImage) {
-          ctx.drawImage(insideImage, halfWidth, 0, halfWidth, dimensions.height);
-        }
-        break;
-        
-      case 'booklet':
-        // Booklet format with fold line
-        const bookletWidth = dimensions.width / 2;
-        // Draw inside on left (will be on right when folded)
-        if (insideImage) {
-          ctx.drawImage(insideImage, 0, 0, bookletWidth, dimensions.height);
-        }
-        // Draw front on right (will be on front when folded)
-        ctx.drawImage(frontImage, bookletWidth, 0, bookletWidth, dimensions.height);
-        
-        // Add fold line guide (very light)
-        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-        ctx.setLineDash([5, 5]);
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(bookletWidth, 0);
-        ctx.lineTo(bookletWidth, dimensions.height);
-        ctx.stroke();
-        break;
-    }
-    
-    // Generate filename and save
-    const filename = `card_${cardId}_print_${format}_${layout}_${dpi}dpi.png`;
-    const filepath = path.join(PRINT_DIR, filename);
-    
-    // Convert to high-quality PNG buffer
-    const buffer = canvas.toBuffer('image/png');
-    
-    await fs.writeFile(filepath, buffer);
-    
-    console.log(`[PRINT] Generated print file: ${filename} (${buffer.length} bytes, ${dimensions.width}x${dimensions.height} at ${dpi}DPI)`);
-    
-    return filepath;
+    return { frontPdf, insidePdf };
     
   } catch (error) {
-    console.error('Failed to generate print-ready PDF:', error);
+    console.error('Failed to generate separate PDFs:', error);
     throw error;
   }
 }
 
 /**
- * Get dimensions for different print formats
+ * Generate a single PDF for either front or inside of the card
  */
-function getFormatDimensions(format: string, dpi: number): { width: number; height: number } {
+async function generateSingleCardPDF(
+  cardId: number, 
+  side: 'front' | 'inside', 
+  format: string, 
+  dpi: number
+): Promise<string> {
+  // Load unwatermarked image
+  const imagePath = path.join(IMAGES_DIR, `card_${cardId}_${side}_unwatermarked.png`);
+  
+  // Check if image exists
+  try {
+    await fs.access(imagePath);
+  } catch (error) {
+    throw new Error(`Unwatermarked ${side} image not found for card ${cardId}`);
+  }
+  
+  // Get format dimensions in points (72 DPI)
+  const dimensions = getFormatDimensions(format);
+  
+  // Create PDF document
+  const doc = new PDFDocument({
+    size: [dimensions.width, dimensions.height],
+    margin: 0,
+    compress: false // Maintain maximum quality
+  });
+  
+  // Generate filename
+  const filename = `card_${cardId}_${side}_${format}_${dpi}dpi.pdf`;
+  const filepath = path.join(PRINT_DIR, filename);
+  
+  // Create write stream
+  const stream = doc.pipe(await fs.open(filepath, 'w').then(handle => handle.createWriteStream()));
+  
+  // Add the image to PDF
+  // Calculate image size to fit the page while maintaining aspect ratio
+  const imageBuffer = await fs.readFile(imagePath);
+  
+  // For greeting cards, we want to fill the entire page
+  doc.image(imageBuffer, 0, 0, {
+    width: dimensions.width,
+    height: dimensions.height,
+    fit: [dimensions.width, dimensions.height],
+    align: 'center',
+    valign: 'center'
+  });
+  
+  // Finalize the PDF
+  doc.end();
+  
+  // Wait for the stream to finish
+  await new Promise((resolve, reject) => {
+    stream.on('finish', resolve);
+    stream.on('error', reject);
+  });
+  
+  const stats = await fs.stat(filepath);
+  console.log(`[PDF] Generated ${side} PDF for card ${cardId}: ${filename} (${stats.size} bytes, ${dimensions.width}x${dimensions.height}pt)`);
+  
+  return filepath;
+}
+
+/**
+ * Get dimensions for different print formats in points (72 DPI)
+ */
+function getFormatDimensions(format: string): { width: number; height: number } {
   switch (format) {
     case '5x5':
-      // 5x5 inches
-      return { width: 5 * dpi, height: 5 * dpi };
+      // 5x5 inches = 360x360 points
+      return { width: 360, height: 360 };
     case 'A4':
-      // A4: 8.27 × 11.69 inches
-      return { width: Math.round(8.27 * dpi), height: Math.round(11.69 * dpi) };
+      // A4: 8.27 × 11.69 inches = 595x842 points
+      return { width: 595, height: 842 };
     case 'Letter':
-      // US Letter: 8.5 × 11 inches
-      return { width: Math.round(8.5 * dpi), height: 11 * dpi };
+      // US Letter: 8.5 × 11 inches = 612x792 points
+      return { width: 612, height: 792 };
     default:
-      return { width: 5 * dpi, height: 5 * dpi };
+      return { width: 360, height: 360 };
   }
 }
 
@@ -141,7 +142,7 @@ export async function generatePrintSpecs(cardId: number): Promise<string> {
     timestamp: new Date().toISOString(),
     specifications: {
       paperType: "Premium 350gsm cardstock",
-      finish: "Matte or Glossy available",
+      finish: "Matte or Glossy available", 
       dimensions: "5\" x 5\" (127mm x 127mm)",
       resolution: "300 DPI minimum",
       colorSpace: "CMYK (converted from RGB)",
@@ -150,10 +151,10 @@ export async function generatePrintSpecs(cardId: number): Promise<string> {
     },
     printInstructions: [
       "Print at 300 DPI or higher for best quality",
-      "Use premium cardstock (300-400gsm recommended)",
+      "Use premium cardstock (300-400gsm recommended)", 
       "Ensure color calibration for accurate colors",
       "Add 0.125\" bleed if required by printer",
-      "Score and fold along center line for booklet format"
+      "Print front and inside on separate sheets, then fold/bind as needed"
     ]
   };
   
@@ -163,4 +164,17 @@ export async function generatePrintSpecs(cardId: number): Promise<string> {
   await fs.writeFile(filepath, JSON.stringify(specs, null, 2));
   
   return filepath;
+}
+
+/**
+ * Get download URLs for generated PDFs
+ */
+export function getPDFDownloadUrls(cardId: number, format: string = '5x5', dpi: number = 300) {
+  const baseUrl = '/api/download-pdf';
+  
+  return {
+    front: `${baseUrl}/${cardId}/front/${format}/${dpi}`,
+    inside: `${baseUrl}/${cardId}/inside/${format}/${dpi}`,
+    specs: `${baseUrl}/${cardId}/specs`
+  };
 }

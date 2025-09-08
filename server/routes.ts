@@ -30,6 +30,7 @@ import {
   getUnwatermarkedImageUrl,
   type CleanupConfig
 } from "./image-storage";
+import { generateSeparatePDFs, generatePrintSpecs, getPDFDownloadUrls } from "./pdf-generator";
 import { migrateCardImages, cardNeedsMigration } from "./image-migration";
 import { removeWatermarksFromCard } from "./watermark-removal";
 import { setupGoogleAuth } from "./google-auth";
@@ -5279,12 +5280,32 @@ ${formatInstruction}`;
           console.error('Failed to send confirmation/digital emails:', emailError);
         }
 
-        // For printed cards, start fulfillment process
-        if (order.cardId) {
+        // For printed cards, generate PDFs and start fulfillment process
+        if (order.cardId && order.amount === 12900) { // R129.00 = 12900 cents
           const card = await storage.getCard(order.cardId);
-          if (card && card.cardType === 'printed') {
-            console.log('Starting fulfillment process for printed card:', card.id);
-            // Here you could trigger printing/fulfillment workflow
+          if (card) {
+            console.log('Generating PDFs for printed card:', card.id);
+            try {
+              // Generate high-quality PDFs for printing
+              const pdfs = await generateSeparatePDFs({
+                cardId: card.id,
+                format: '5x5',
+                dpi: 300
+              });
+              
+              // Generate print specs
+              await generatePrintSpecs(card.id);
+              
+              console.log('PDFs generated successfully for card:', card.id, pdfs);
+              
+              // Update order status to indicate PDFs are ready
+              await storage.updateOrder(order.id, {
+                orderStatus: 'processing' // PDFs ready for printing
+              });
+              
+            } catch (pdfError) {
+              console.error('Failed to generate PDFs for card:', card.id, pdfError);
+            }
           }
         }
 
@@ -5652,6 +5673,83 @@ ${formatInstruction}`;
         message: error.message || "Flux Kontext inside card generation failed", 
         details: error.details || "Check server logs for more information" 
       });
+    }
+  });
+
+  // PDF Download endpoints for testing print-ready files
+  app.get("/api/download-pdf/:cardId/:side/:format/:dpi", async (req, res) => {
+    try {
+      const { cardId, side, format, dpi } = req.params;
+      
+      if (!['front', 'inside'].includes(side)) {
+        return res.status(400).json({ message: "Invalid side. Must be 'front' or 'inside'" });
+      }
+      
+      if (!['5x5', 'A4', 'Letter'].includes(format)) {
+        return res.status(400).json({ message: "Invalid format. Must be '5x5', 'A4', or 'Letter'" });
+      }
+      
+      if (!['150', '300', '600'].includes(dpi)) {
+        return res.status(400).json({ message: "Invalid DPI. Must be 150, 300, or 600" });
+      }
+      
+      const filename = `card_${cardId}_${side}_${format}_${dpi}dpi.pdf`;
+      const filepath = path.join(process.cwd(), 'print_files', filename);
+      
+      // Check if PDF exists
+      try {
+        await fsPromises.access(filepath);
+      } catch (error) {
+        return res.status(404).json({ message: "PDF not found. Generate PDFs first by completing payment." });
+      }
+      
+      // Get file stats for Content-Length
+      const stats = await fsPromises.stat(filepath);
+      
+      // Set headers for PDF download
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Length': stats.size.toString(),
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'private, no-cache'
+      });
+      
+      // Stream the PDF file
+      const readStream = fs.createReadStream(filepath);
+      readStream.pipe(res);
+      
+      console.log(`[PDF-DOWNLOAD] Served ${filename} (${stats.size} bytes)`);
+      
+    } catch (error: any) {
+      console.error('PDF download error:', error);
+      res.status(500).json({ message: "Error downloading PDF: " + error.message });
+    }
+  });
+  
+  // Download print specifications
+  app.get("/api/download-pdf/:cardId/specs", async (req, res) => {
+    try {
+      const { cardId } = req.params;
+      
+      const filename = `card_${cardId}_print_specs.json`;
+      const filepath = path.join(process.cwd(), 'print_files', filename);
+      
+      // Check if specs file exists
+      try {
+        await fsPromises.access(filepath);
+      } catch (error) {
+        return res.status(404).json({ message: "Print specs not found" });
+      }
+      
+      // Read and return the specs
+      const specsData = await fsPromises.readFile(filepath, 'utf8');
+      const specs = JSON.parse(specsData);
+      
+      res.json(specs);
+      
+    } catch (error: any) {
+      console.error('Print specs download error:', error);
+      res.status(500).json({ message: "Error downloading print specs: " + error.message });
     }
   });
 
