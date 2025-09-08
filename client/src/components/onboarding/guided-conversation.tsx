@@ -39,7 +39,7 @@ interface ConversationStep {
   id: string;
   question: string;
   aiMessage: string | JSX.Element;
-  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload' | 'photo_creation_choice' | 'people_details' | 'email_collection' | 'generation_confirmation' | 'art_style_grid' | 'art_style_enhanced' | 'ai_chat';
+  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload' | 'photo_creation_choice' | 'people_details' | 'email_collection' | 'generation_confirmation' | 'ai_chat';
   options?: Array<{ value: string; label: string; description?: string; color?: string; icon?: string; details?: string; disabled?: boolean; inspiration?: string; emoji?: string }>;
   placeholder?: string;
   required?: boolean;
@@ -48,8 +48,8 @@ interface ConversationStep {
 export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, onStartFresh }: GuidedConversationProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({
-    // Default art style to "digital_art" (modern digital illustration)
-    art_style: 'digital_art',
+    // Default art style to "animated_movie_style" (High-End 3D Animated Movie)
+    art_style: 'animated_movie_style',
     // Default photo option to match streamlined flow
     photo_option: 'upload_and_scene'
   });
@@ -422,30 +422,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         : 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...'
     },
     {
-      id: 'art_style',
-      question: 'What art style should we use for the card?',
-      aiMessage: onboarding.selectedSceneType === 'scene-only' 
-        ? `Perfect! Now let's choose the art style for your scene. This sets the whole mood and feel - I want to make sure it captures the perfect atmosphere for this ${answers.celebration} celebration!`
-        : `Perfect! ✨ Now let's choose the art style for ${answers.name || 'their'}'s ${answers.celebration} card.`,
-      type: 'select',
-      options: [
-        { 
-          value: 'animated_movie_style', 
-          label: 'High-End 3D Animated Movie', 
-          description: 'Professional 3D animated movie style with realistic proportions and detailed facial features. Clean digital rendering with soft edges and polished surfaces - perfect for modern, high-quality character design.',
-          color: 'bg-blue-600',
-          emoji: '🎬'
-        },
-        { 
-          value: 'modern_flat_illustration', 
-          label: 'Modern Flat Illustration', 
-          description: 'Bold modern flat illustration style with clean vector-art aesthetic, vibrant saturated colors with high contrast, geometric shapes and crisp clean lines. Features contemporary graphic design principles with stylized character design.',
-          color: 'bg-purple-600',
-          emoji: '🎨'
-        }
-      ]
-    },
-    {
       id: 'message',
       question: 'What message should appear on the front of the card?',
       aiMessage: `Now this is your opportunity to get really personal ✨ What heartfelt message should appear on the front of ${answers.name || 'their'}'s ${answers.celebration} card?`,
@@ -494,7 +470,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
       // For streamlined flow, only show relevant steps based on photo option
       if (streamlinedPhotoOption === 'upload_and_scene') {
-        const allowedSteps = ['name', 'celebration', 'photo_upload', 'scene', 'art_style', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
+        const allowedSteps = ['name', 'celebration', 'photo_upload', 'scene', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
         return allowedSteps.includes(step.id);
       } else if (streamlinedPhotoOption === 'upload_and_transform') {
         const allowedSteps = ['name', 'celebration', 'photo_upload', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
@@ -1736,54 +1712,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
             >
                 {currentStep.type === 'select' && currentStep.options && (
                   <>
-                    {/* Enhanced Art Style Selection */}
-                    {currentStep.id === 'art_style' ? (
-                      <div className="space-y-6">
-                        <div className="text-center mb-6">
-                          <h3 className="text-xl font-bold text-gray-800 mb-2">Choose Your Art Style</h3>
-                          <p className="text-gray-600">
-                            Select from our two carefully crafted styles, each designed to create stunning, professional greeting cards.
-                          </p>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                          {currentStep.options.map((option) => (
-                            <div key={option.value} className="bg-white rounded-2xl p-6 border-2 border-gray-200 hover:border-purple-300 transition-all duration-300 shadow-lg hover:shadow-xl">
-                              <div className="text-center mb-4">
-                                <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${option.color} text-white text-2xl mb-3`}>
-                                  {option.emoji}
-                                </div>
-                                <h4 className="text-lg font-bold text-gray-800 mb-2">{option.label}</h4>
-                                <p className="text-sm text-gray-600 leading-relaxed">{option.description}</p>
-                              </div>
-                              
-                              <div className="space-y-3">
-                                <Button
-                                  onClick={() => handleAnswer(option.value)}
-                                  className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-medium py-3 rounded-lg transition-all duration-300"
-                                >
-                                  Choose This Style
-                                </Button>
-                                
-                                <Button
-                                  variant="outline"
-                                  className="w-full border-purple-200 text-purple-600 hover:bg-purple-50 py-2 rounded-lg"
-                                  onClick={() => {
-                                    setSelectedStyleForViewer(option.value);
-                                    setStyleViewerOpen(true);
-                                  }}
-                                >
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  View Examples
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                      </div>
-                    ) : (
-                      /* Regular Select Options */
+                    {/* Standard Select Options */}
                       <div className="space-y-4 sm:space-y-6">
                         {/* Compact Options Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -1877,7 +1806,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         </Button>
                       </div>
                     </div>
-                      </div>
                     )}
                   </>
                 )}
@@ -2056,16 +1984,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         </div>
                       )}
 
-                      {/* Art Style */}
+                      {/* Art Style - Fixed to High-End 3D Animated Movie */}
                       <div className="bg-white rounded-xl p-4 border border-purple-200">
                         <div className="flex justify-between items-center">
                           <div>
                             <h4 className="font-semibold text-purple-700">Art Style</h4>
-                            <p className="text-gray-700">{answers.art_style?.replace('_', ' ') || 'Not specified'}</p>
+                            <p className="text-gray-700">High-End 3D Animated Movie</p>
                           </div>
-                          <Button onClick={() => handleEditStep('art_style')} variant="outline" size="sm">
-                            Edit
-                          </Button>
+                          <div className="text-sm text-gray-500 italic">
+                            Default style
+                          </div>
                         </div>
                       </div>
 
@@ -2691,11 +2619,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     
 
                     
-                    {/* AI Brainstorming Button - Only for scene and art_style steps */}
-                    {(currentStep.id === 'scene' || currentStep.id === 'art_style') && (
+                    {/* AI Brainstorming Button - Only for scene step */}
+                    {currentStep.id === 'scene' && (
                       <div className="flex justify-center mb-4">
                         <AIBrainstormChat
-                          type={currentStep.id === 'scene' ? 'scene' : 'art_style'}
+                          type="scene"
                           recipientName={answers.name || 'the recipient'}
                           celebration={answers.celebration || 'celebration'}
                           currentInput={currentInput}
@@ -2725,8 +2653,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             }));
                             handleTextSubmit();
                           }}
-                          buttonText={currentStep.id === 'scene' ? 'Stuck for ideas? Brainstorm with AI' : 'Get AI Art Style Ideas'}
-                          buttonIcon={currentStep.id === 'scene' ? <Sparkles className="w-4 h-4" /> : <Palette className="w-4 h-4" />}
+                          buttonText="Stuck for ideas? Brainstorm with AI"
+                          buttonIcon={<Sparkles className="w-4 h-4" />}
                           photoContext={buildPhotoContext()}
                           userName={onboarding.userName}
                         />
