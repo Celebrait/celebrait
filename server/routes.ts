@@ -483,14 +483,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (type === "scene") {
         // CRITICAL FIX: Never address the user by name in scene descriptions
         // Scene descriptions should only reference the recipient, not the user creating the card
-        const peopleReference = recipientName;
+        // When multiple people are detected, use more generic language
+        const peopleReference = isMultiplePeople ? "the people in your photos" : recipientName;
         
         systemPrompt = `You are a professional creative assistant helping someone create detailed scene descriptions for greeting cards. 
 
 CRITICAL RULES:
 1. NEVER address the user by name in your responses - use neutral language like "you" or avoid direct address
 2. When referring to people in the scene, ONLY use "${peopleReference}" - NEVER reference the user themselves
-3. This card is FOR ${recipientName}, so all scene descriptions should feature ${peopleReference}, not the user
+3. ${isMultiplePeople ? "This card features the people from the uploaded photos, so all scene descriptions should include them naturally" : `This card is FOR ${recipientName}, so all scene descriptions should feature ${peopleReference}, not the user`}
 4. NEVER provide suggestions in opening statements or unless explicitly requested
 5. Only provide exactly 3 numbered options when user inputs "Get Suggestions" or "Get More Suggestions"
 6. Follow-up questions must seek MORE SPECIFIC details about previous answers
@@ -540,7 +541,7 @@ Current step: ${conversationStep || 'initial_scene'}`;
         
 
         // Build context message based on current step and user input
-        let contextMessage = `I'm creating a ${celebration} greeting card for ${recipientName}. Current step: ${conversationStep || 'initial_scene'}. User input: "${userInput || ''}"`;
+        let contextMessage = `I'm creating a ${celebration} greeting card ${isMultiplePeople ? "featuring the people from uploaded photos" : `for ${recipientName}`}. Current step: ${conversationStep || 'initial_scene'}. User input: "${userInput || ''}"`;
         
         // Add collected information context
         if (collectedInfo) {
@@ -570,7 +571,7 @@ Current step: ${conversationStep || 'initial_scene'}`;
           // This is an opening message - add extra emphasis to NOT provide suggestions
           messages.push({
             role: "system",
-            content: `This is an opening message. Use this EXACT text as your response: "Greetings, earthling ✨ Let's paint a picture with words!\n\nI'll need your creative input for this first question, but after this you can ask me for suggestions throughout.\n\nTo get us started, where would you like the scene to take place for ${recipientName}'s ${celebration} greeting card?"`
+            content: `This is an opening message. Use this EXACT text as your response: "Greetings, earthling ✨ Let's paint a picture with words!\n\nI'll need your creative input for this first question, but after this you can ask me for suggestions throughout.\n\nTo get us started, where would you like the scene to take place for ${isMultiplePeople ? `this ${celebration} greeting card featuring the people from your photos` : `${recipientName}'s ${celebration} greeting card`}?"`
           });
         }
         
