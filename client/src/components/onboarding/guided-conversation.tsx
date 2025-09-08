@@ -2091,7 +2091,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           }}
                           buttonText="Get AI Art Style Ideas"
                           buttonIcon={<Bot className="w-4 h-4" />}
-                          photoContext={buildPhotoContext()}
                           userName={onboarding.userName}
                         />
                       </div>
@@ -2655,7 +2654,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           }}
                           buttonText="Stuck for ideas? Brainstorm with AI"
                           buttonIcon={<Sparkles className="w-4 h-4" />}
-                          photoContext={buildPhotoContext()}
                           userName={onboarding.userName}
                         />
                       </div>
@@ -2729,7 +2727,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         }}
                         buttonText="Start Creative Conversation"
                         buttonIcon={<Sparkles className="w-4 h-4" />}
-                        photoContext=""
                         userName={onboarding.userName}
                       />
                     </div>
