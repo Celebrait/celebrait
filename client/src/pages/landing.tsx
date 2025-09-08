@@ -371,8 +371,8 @@ export default function Landing() {
 
       <main className={`py-8 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
         <HeroSection />
-        <WatchVideoSection />
-        <SeeHowItLooksSection />
+        {/* <WatchVideoSection /> */}
+        {/* <SeeHowItLooksSection /> */}
         <CallToActionSection />
       </main>
 
