@@ -80,6 +80,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [cropperOpen, setCropperOpen] = useState(false);
   const [currentCropImageIndex, setCurrentCropImageIndex] = useState(0);
   const [croppedImages, setCroppedImages] = useState<Record<number, string>>({});
+  const [detectedPersonCount, setDetectedPersonCount] = useState<number>(1);
 
 
 
@@ -98,6 +99,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [popupLastName, setPopupLastName] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Build photo context for AI brainstorm chat
+  const buildPhotoContext = () => {
+    if (detectedPersonCount > 1) {
+      return `multiple people detected: ${detectedPersonCount} people in photos`;
+    }
+    return '';
+  };
 
   // AI design quotes for loading screen
   const aiQuotes = [
@@ -1366,7 +1375,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         console.log('Enhanced photo analysis result:', analysis);
         
         // Use the totalPeopleCount from enhanced analysis
-        detectedPersonCount = analysis.totalPeopleCount;
+        const actualPersonCount = analysis.totalPeopleCount;
+        setDetectedPersonCount(actualPersonCount);
+        detectedPersonCount = actualPersonCount;
         console.log('[DEBUG] Total people detected across all photos:', detectedPersonCount);
         
         // Log detailed analysis for debugging
@@ -1379,6 +1390,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       }
     } catch (analysisError) {
       console.error('Photo analysis failed:', analysisError);
+      const fallbackCount = referenceImages.length;
+      setDetectedPersonCount(fallbackCount);
+      detectedPersonCount = fallbackCount;
       console.log('[DEBUG] Using image count as fallback:', detectedPersonCount);
     }
     
@@ -2208,6 +2222,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           recipientName={onboarding.userName}
                           celebration={answers.celebration || "celebration"}
                           currentInput={currentInput}
+                          photoContext={buildPhotoContext()}
                           onSuggestionSelect={(suggestion) => {
                             setCurrentInput(suggestion);
                             setStepInputs(prev => ({ ...prev, [currentStep.id]: suggestion }));
@@ -2790,6 +2805,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           recipientName={answers.name || 'the recipient'}
                           celebration={answers.celebration || 'celebration'}
                           currentInput={currentInput}
+                          photoContext={buildPhotoContext()}
                           onSuggestionSelect={(suggestion) => {
                             setCurrentInput(suggestion);
                             setStepInputs(prev => ({
@@ -2871,6 +2887,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         recipientName={answers.name || 'the recipient'}
                         celebration={answers.celebration || 'celebration'}
                         currentInput={currentInput}
+                        photoContext={buildPhotoContext()}
                         onSuggestionSelect={(suggestion) => {
                           setCurrentInput(suggestion);
                           setStepInputs(prev => ({
