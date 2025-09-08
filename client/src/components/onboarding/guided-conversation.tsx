@@ -415,7 +415,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       question: onboarding.selectedSceneType === 'scene-only' ? 'What scene or visual should the card show?' : `Where should ${answers.name || 'they'} be and what should they be doing?`,
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
         ? `Now for the creative part! Since you want a scene-only card, describe the beautiful visual or scene you'd like me to create. Think about the mood, setting, and atmosphere that would be perfect for this ${answers.celebration} celebration.`
-        : `Perfect! I can see you've uploaded a wonderful photo. Now let's create something magical together! Describe the perfect scene for ${answers.name || 'the recipient'}'s ${answers.celebration || 'celebration'} card. Think about the setting, activity, and atmosphere that would make them feel truly special.`,
+        : `Perfect! ✨ Now for the scene on the front of ${answers.name || 'the recipient'}'s ${answers.celebration || 'celebration'} card. Describe the location, activity, and any extra details you'd like.`,
       type: 'textarea',
       placeholder: onboarding.selectedSceneType === 'scene-only' 
         ? 'e.g., a beautiful sunset over mountains with floating balloons, or a cozy fireplace with warm golden light and scattered rose petals...'
@@ -424,14 +424,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     {
       id: 'message',
       question: 'What message should appear on the front of the card?',
-      aiMessage: `Now this is your opportunity to get really personal ✨ What heartfelt message should appear on the front of ${answers.name || 'their'}'s ${answers.celebration} card?`,
+      aiMessage: `Now for the text ✨ What message should appear on the front of ${answers.name || 'their'}'s ${answers.celebration} card?`,
       type: 'text',
       placeholder: 'e.g., Happy Birthday, Celebrating You, or leave blank for no message'
     },
     {
       id: 'inside_message',
       question: `What heartfelt message would you like inside the card?`,
-      aiMessage: `Now let's create a beautiful message for the inside! ✨ This will be displayed with styling and typography that matches the front design.`,
+      aiMessage: `Love it! ✨ Now what message would you like inside the card?`,
       type: 'textarea',
       placeholder: 'e.g., "Wishing you all the happiness in the world on your special day. You deserve all the joy and love life has to offer!"',
       required: true
@@ -444,7 +444,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       question: 'Perfect! Let\'s review everything before creating your card.',
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
         ? `Wonderful! I have everything I need to create an amazing scene card for this ${answers.celebration} celebration. Please review all the details below and make any changes you'd like. When you're happy with everything, we'll generate your beautiful card!`
-        : `Wonderful! ✨ I have everything I need to create an amazing ${answers.celebration} card for ${answers.name || 'them'}. Please review all the details below and make any changes you'd like. When you're happy with everything, we'll generate your personalised card!`,
+        : `Wonderful! ✨ Now let's create a mind blowing ${answers.celebration} card for ${answers.name || 'them'}. Please review all the details below and let me know when you're ready!`,
       type: 'final_summary',
       placeholder: ''
     }
