@@ -5338,7 +5338,8 @@ ${formatInstruction}`;
         amount: order.amount,
         currency: order.currency,
         customerEmail: order.customerEmail,
-        customerName: order.customerName
+        customerName: order.customerName,
+        cardId: order.cardId
       });
 
     } catch (error: any) {

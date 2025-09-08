@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRoute } from 'wouter';
-import { CheckCircle, Package, Mail, Clock } from 'lucide-react';
+import { CheckCircle, Package, Mail, Clock, Download, FileText, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -14,6 +14,7 @@ interface PaymentStatus {
   currency: string;
   customerEmail: string;
   customerName: string;
+  cardId?: number;
 }
 
 export default function PaymentSuccess() {
@@ -192,6 +193,58 @@ export default function PaymentSuccess() {
             </CardContent>
           </Card>
 
+          {/* PDF Downloads for Physical Cards */}
+          {isSuccessful && paymentStatus.amount === 12900 && paymentStatus.cardId && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Printer className="h-5 w-5" />
+                  Print-Ready Files (For Testing)
+                </CardTitle>
+                <CardDescription>
+                  Download high-quality PDF files for professional printing
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <Button
+                    variant="outline"
+                    className="h-20 flex flex-col items-center justify-center gap-2"
+                    onClick={() => window.open(`/api/download-pdf/${paymentStatus.cardId}/front/5x5/300`, '_blank')}
+                  >
+                    <Download className="h-5 w-5" />
+                    <span className="text-sm">Front Card PDF</span>
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="h-20 flex flex-col items-center justify-center gap-2"
+                    onClick={() => window.open(`/api/download-pdf/${paymentStatus.cardId}/inside/5x5/300`, '_blank')}
+                  >
+                    <Download className="h-5 w-5" />
+                    <span className="text-sm">Inside Card PDF</span>
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="h-20 flex flex-col items-center justify-center gap-2"
+                    onClick={() => window.open(`/api/download-pdf/${paymentStatus.cardId}/specs`, '_blank')}
+                  >
+                    <FileText className="h-5 w-5" />
+                    <span className="text-sm">Print Specifications</span>
+                  </Button>
+                </div>
+                
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>For Testing:</strong> These are high-quality 300 DPI PDF files generated from unwatermarked images. 
+                    Front and inside cards are separate files for professional printing.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Next Steps */}
           <Card>
             <CardHeader>
@@ -221,7 +274,7 @@ export default function PaymentSuccess() {
                   <div>
                     <h4 className="font-medium">Card Production</h4>
                     <p className="text-sm text-gray-600">
-                      Your personalized greeting card will be professionally printed
+                      Your personalized greeting card will be professionally printed using the high-quality PDF files
                     </p>
                   </div>
                 </div>
