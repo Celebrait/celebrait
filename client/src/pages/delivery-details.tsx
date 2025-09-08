@@ -12,31 +12,23 @@ export default function DeliveryDetails() {
   const [, setLocation] = useLocation();
   const [cardData, setCardData] = useState<any>(null);
   const [loading, setLoading] = useState(false); // Start with false for instant display
-  const [selectedDeliveryType, setSelectedDeliveryType] = useState<'digital' | 'printed' | null>(null);
+  const [selectedDeliveryType, setSelectedDeliveryType] = useState<'printed'>('printed');
   const [showRecipientChoice, setShowRecipientChoice] = useState(false);
   const isMobile = useIsMobile();
   
-  // Get delivery type from URL parameters (for email links) or session storage
-  const urlParams = new URLSearchParams(window.location.search);
-  const urlDeliveryType = urlParams.get('type');
-  const sessionDeliveryType = sessionStorage.getItem('selectedDeliveryType');
-  const preselectedDeliveryType = urlDeliveryType || sessionDeliveryType || 'printed';
+  // Always use printed cards - simplified for printed-only focus
+  const preselectedDeliveryType = 'printed';
   
-  // Set initial delivery type selection based on pre-selected value
+  // Set initial state for printed cards only
   useEffect(() => {
-    if (preselectedDeliveryType) {
-      setSelectedDeliveryType(preselectedDeliveryType as 'digital' | 'printed');
-      // For digital-only launch, automatically skip to recipient selection
-      if (preselectedDeliveryType === 'digital') {
-        setShowRecipientChoice(true);
-      }
-    }
-  }, [preselectedDeliveryType]);
+    setSelectedDeliveryType('printed');
+    sessionStorage.setItem('selectedDeliveryType', 'printed');
+    // For printed cards, show recipient choice immediately
+    setShowRecipientChoice(true);
+  }, []);
   
-  // Store delivery type in session storage for consistency
-  if (urlDeliveryType && urlDeliveryType !== sessionDeliveryType) {
-    sessionStorage.setItem('selectedDeliveryType', urlDeliveryType);
-  }
+  // Always store printed as delivery type
+  sessionStorage.setItem('selectedDeliveryType', 'printed');
   
   // Get recipient name from card data for dynamic text (with immediate initialization)
   const [recipientName, setRecipientName] = useState(() => {
