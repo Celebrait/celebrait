@@ -2036,7 +2036,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   </div>
                 )}
 
-                {currentStep.type === 'art_style_grid' && currentStep.options && (
+                {currentStep.type === 'text' && currentStep.id === 'art_style_grid' && (
                   <div className="space-y-6">
                     {/* Primary text input section */}
                     <div className="space-y-4">
@@ -2113,7 +2113,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   </div>
                 )}
 
-                {currentStep.type === 'art_style_enhanced' && (
+                {currentStep.type === 'text' && currentStep.id === 'art_style_enhanced' && (
                   <div className="space-y-6">
                     {/* Enhanced Art Style Selection */}
                     <div className="space-y-4">
