@@ -3,11 +3,11 @@ import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/header';
-import { Heart, ArrowLeft, Mail, User, CreditCard } from 'lucide-react';
+import { Heart, ArrowLeft, MapPin, User, CreditCard, Mail } from 'lucide-react';
 
 interface CompleteOrderProps {
   params: {
@@ -85,34 +85,28 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
     return '';
   });
 
-  // Recipient data
-  const [sendToRecipient, setSendToRecipient] = useState(false);
-  const [recipientName, setRecipientName] = useState(() => {
-    // Try to get recipient name from cache immediately
-    const cachedKeys = ['cardPreviewData', `card_${cardId}`, `ready_${cardId}`];
-    for (const key of cachedKeys) {
-      try {
-        const cachedData = sessionStorage.getItem(key);
-        if (cachedData) {
-          const cardData = JSON.parse(cachedData);
-          const card = cardData.card || cardData;
-          if (card?.conversationData) {
-            const name = card.conversationData.name || 
-                        card.conversationData.recipient_name ||
-                        card.conversationData.recipientName;
-            if (name && name !== 'the recipient') {
-              console.log('[INSTANT] Recipient name loaded from cache:', name);
-              return name;
-            }
-          }
-        }
-      } catch (e) {
-        // Continue to next cache key
-      }
-    }
-    return '';
+  const [customerEmailConfirm, setCustomerEmailConfirm] = useState('');
+
+  // Address data for physical delivery
+  const [address, setAddress] = useState({
+    line1: '',
+    line2: '',
+    city: '',
+    province: '',
+    postalCode: ''
   });
-  const [recipientEmail, setRecipientEmail] = useState('');
+
+  const provinces = [
+    { value: 'EC', label: 'Eastern Cape' },
+    { value: 'FS', label: 'Free State' },
+    { value: 'GP', label: 'Gauteng' },
+    { value: 'KZN', label: 'KwaZulu-Natal' },
+    { value: 'LP', label: 'Limpopo' },
+    { value: 'MP', label: 'Mpumalanga' },
+    { value: 'NC', label: 'Northern Cape' },
+    { value: 'NW', label: 'North West' },
+    { value: 'WC', label: 'Western Cape' }
+  ];
 
   // Current view for card display
   const [currentView, setCurrentView] = useState<'front' | 'inside'>('front');
@@ -198,8 +192,9 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
   };
 
   const isFormValid = () => {
-    if (!customerName.trim() || !customerEmail.trim()) return false;
-    if (sendToRecipient && (!recipientName.trim() || !recipientEmail.trim())) return false;
+    if (!customerName.trim() || !customerEmail.trim() || !customerEmailConfirm.trim()) return false;
+    if (customerEmail !== customerEmailConfirm) return false;
+    if (!address.line1.trim() || !address.city.trim() || !address.province || !address.postalCode.trim()) return false;
     return true;
   };
 
@@ -225,11 +220,12 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
 
       const deliveryInfo = {
         address: {
-          line1: 'Digital Delivery',
-          line2: '',
-          city: 'Digital',
-          province: 'Digital',
-          postalCode: '0000'
+          line1: address.line1,
+          line2: address.line2,
+          city: address.city,
+          province: address.province,
+          postalCode: address.postalCode,
+          country: 'ZA'
         }
       };
 
@@ -242,11 +238,7 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
           cardId: card.id,
           customerInfo,
           deliveryInfo,
-          isDigital: true,
-          recipientInfo: sendToRecipient ? {
-            name: recipientName,
-            email: recipientEmail
-          } : null
+          isDigital: false
         })
       });
 
@@ -350,17 +342,17 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Digital Card</span>
-                    <span className="font-semibold">R5.00</span>
+                    <span className="text-gray-600">Physical Card (Printed & Delivered)</span>
+                    <span className="font-semibold">R129.00</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Delivery</span>
-                    <span className="font-semibold text-green-600">Free</span>
+                    <span className="text-gray-600">Shipping</span>
+                    <span className="font-semibold text-green-600">Included</span>
                   </div>
                   <div className="border-t pt-3">
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-semibold">Total</span>
-                      <span className="text-lg font-bold text-green-600">R5.00</span>
+                      <span className="text-lg font-bold text-purple-600">R129.00</span>
                     </div>
                   </div>
                 </div>
@@ -396,63 +388,94 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
                     required
                   />
                 </div>
+                <div>
+                  <Label htmlFor="customerEmailConfirm">Confirm Email</Label>
+                  <Input
+                    id="customerEmailConfirm"
+                    type="email"
+                    value={customerEmailConfirm}
+                    onChange={(e) => setCustomerEmailConfirm(e.target.value)}
+                    placeholder="Re-enter your email address"
+                    required
+                  />
+                </div>
               </CardContent>
             </Card>
 
             <Card className="bg-white/80 backdrop-blur-sm border-white/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Mail className="w-5 h-5 text-purple-500" />
-                  Delivery Options
+                  <MapPin className="w-5 h-5 text-purple-500" />
+                  Delivery Address
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="sendToRecipient"
-                    checked={sendToRecipient}
-                    onCheckedChange={(checked) => setSendToRecipient(checked as boolean)}
+                <div>
+                  <Label htmlFor="line1">Street Address *</Label>
+                  <Input
+                    id="line1"
+                    value={address.line1}
+                    onChange={(e) => setAddress(prev => ({ ...prev, line1: e.target.value }))}
+                    placeholder="Enter street address"
+                    required
                   />
-                  <Label htmlFor="sendToRecipient" className="text-sm font-medium">
-                    Also send this card to {recipientName || 'the recipient'}
-                  </Label>
                 </div>
                 
-                {sendToRecipient && (
-                  <div className="space-y-3 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                    <div>
-                      <Label htmlFor="recipientName">Recipient's Name</Label>
-                      <Input
-                        id="recipientName"
-                        value={recipientName}
-                        onChange={(e) => setRecipientName(e.target.value)}
-                        placeholder="Enter recipient's name"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="recipientEmail">Recipient's Email</Label>
-                      <Input
-                        id="recipientEmail"
-                        type="email"
-                        value={recipientEmail}
-                        onChange={(e) => setRecipientEmail(e.target.value)}
-                        placeholder="Enter recipient's email"
-                        required
-                      />
-                    </div>
-                    <p className="text-sm text-purple-700 bg-purple-100 p-2 rounded">
-                      The recipient will receive a personalized email with their digital card. 
-                      You'll also receive a copy for your records.
-                    </p>
-                  </div>
-                )}
+                <div>
+                  <Label htmlFor="line2">Apartment/Unit (Optional)</Label>
+                  <Input
+                    id="line2"
+                    value={address.line2}
+                    onChange={(e) => setAddress(prev => ({ ...prev, line2: e.target.value }))}
+                    placeholder="Apartment, suite, unit, etc."
+                  />
+                </div>
                 
-                {!sendToRecipient && (
-                  <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                    You'll receive the digital card via email and can share it with anyone you'd like.
-                  </p>
-                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="city">City *</Label>
+                    <Input
+                      id="city"
+                      value={address.city}
+                      onChange={(e) => setAddress(prev => ({ ...prev, city: e.target.value }))}
+                      placeholder="Enter city"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="postalCode">Postal Code *</Label>
+                    <Input
+                      id="postalCode"
+                      value={address.postalCode}
+                      onChange={(e) => setAddress(prev => ({ ...prev, postalCode: e.target.value }))}
+                      placeholder="Enter postal code"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="province">Province *</Label>
+                  <Select 
+                    value={address.province} 
+                    onValueChange={(value) => setAddress(prev => ({ ...prev, province: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select province" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {provinces.map((province) => (
+                        <SelectItem key={province.value} value={province.value}>
+                          {province.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                  Your physical card will be printed and delivered to this address within 3-5 business days.
+                </p>
               </CardContent>
             </Card>
 
@@ -461,7 +484,7 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
               disabled={!isFormValid() || submitting}
               className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-4 rounded-lg font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105"
             >
-              {submitting ? 'Processing...' : `Complete Order - R5.00`}
+              {submitting ? 'Processing...' : `Complete Order - R129.00`}
             </Button>
           </div>
 
