@@ -24,7 +24,7 @@ Preferred communication style: Simple, everyday language.
 - **AI Integration**: Custom prompt engineering for OpenAI GPT-4 (conversational UI) and Replicate (image generation). AI models are leveraged for photo analysis, dynamic prompt construction, and style application.
 - **Payment Processing**: Integrates Stripe for international payments and Paystack for the South African market, including a custom tipping system.
 - **Image Pipeline**: Involves AI-powered photo analysis, dynamic prompt building, application of various art styles, and efficient handling of AI-generated image outputs (PNG-only workflow with server-side watermarking and removal).
-- **Email System**: SendGrid integration for automated order confirmations, digital card delivery, and shipping notifications, using branded HTML templates.
+- **Email System**: Brevo integration for automated order confirmations, digital card delivery, and shipping notifications, using branded HTML templates. Provides 9,000 free emails per month.
 - **Configuration**: Manages environment variables for API keys and database connections, with strict TypeScript configuration.
 
 ### Feature Specifications
@@ -53,4 +53,4 @@ Preferred communication style: Simple, everyday language.
     - TanStack Query
     - Wouter
 - **Email Service**:
-    - SendGrid
+    - Brevo (9,000 free emails/month)
