@@ -484,15 +484,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (type === "scene") {
         // CRITICAL FIX: Never address the user by name in scene descriptions
         // Scene descriptions should only reference the recipient, not the user creating the card
-        // When multiple people are detected, use more generic language
-        const peopleReference = isMultiplePeople ? "the people in your photos" : recipientName;
+        // When multiple people are detected, use more inclusive language
+        const peopleReference = isMultiplePeople ? "everyone in your photos" : recipientName;
         
         systemPrompt = `You are a professional creative assistant helping someone create detailed scene descriptions for greeting cards. 
 
 CRITICAL RULES:
 1. NEVER address the user by name in your responses - use neutral language like "you" or avoid direct address
 2. When referring to people in the scene, ONLY use "${peopleReference}" - NEVER reference the user themselves
-3. ${isMultiplePeople ? "This card features the people from the uploaded photos, so all scene descriptions should include them naturally" : `This card is FOR ${recipientName}, so all scene descriptions should feature ${peopleReference}, not the user`}
+3. ${isMultiplePeople ? "This card features multiple people from the uploaded photos, so all scene descriptions should include everyone naturally. Use plural language (they, them, their) when describing the scene." : `This card is FOR ${recipientName}, so all scene descriptions should feature ${peopleReference}, not the user`}
 4. NEVER provide suggestions in opening statements or unless explicitly requested
 5. Only provide exactly 3 numbered options when user inputs "Get Suggestions" or "Get More Suggestions"
 6. Follow-up questions must seek MORE SPECIFIC details about previous answers
@@ -542,7 +542,7 @@ Current step: ${conversationStep || 'initial_scene'}`;
         
 
         // Build context message based on current step and user input
-        let contextMessage = `I'm creating a ${celebration} greeting card ${isMultiplePeople ? "featuring the people from uploaded photos" : `for ${recipientName}`}. Current step: ${conversationStep || 'initial_scene'}. User input: "${userInput || ''}"`;
+        let contextMessage = `I'm creating a ${celebration} greeting card ${isMultiplePeople ? "featuring everyone from the uploaded photos" : `for ${recipientName}`}. Current step: ${conversationStep || 'initial_scene'}. User input: "${userInput || ''}"`;
         
         // Add collected information context
         if (collectedInfo) {
@@ -572,7 +572,7 @@ Current step: ${conversationStep || 'initial_scene'}`;
           // This is an opening message - add extra emphasis to NOT provide suggestions
           messages.push({
             role: "system",
-            content: `This is an opening message. Use this EXACT text as your response: "Greetings ✨ Let's create a mind blowing scene for the front of ${recipientName || 'NAME'}'s ${celebration || 'CELEBRATION'} card.\n\nI'll need your creative input for this first question, but after this you can ask me for ideas throughout, or type your own out.\n\nTo get us started, where would you like the scene to take place?"`
+            content: `This is an opening message. Use this EXACT text as your response: "Greetings ✨ Let's create a mind blowing scene for the front of ${isMultiplePeople ? 'your' : `${recipientName || 'NAME'}'s`} ${celebration || 'CELEBRATION'} card.\n\nI'll need your creative input for this first question, but after this you can ask me for ideas throughout, or type your own out.\n\nTo get us started, where would you like the scene to take place?"`
           });
         }
         
@@ -610,7 +610,7 @@ Remember: You're helping them discover their perfect artistic vision through gui
         
         messages = [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `I'm creating a ${celebration} greeting card for ${recipientName}. I need help choosing an art style. ${userInput || "I need help with the art style selection."}` }
+          { role: "user", content: `I'm creating a ${celebration} greeting card ${isMultiplePeople ? "featuring everyone from my uploaded photos" : `for ${recipientName}`}. I need help choosing an art style. ${userInput || "I need help with the art style selection."}` }
         ];
       }
 
@@ -898,12 +898,12 @@ You must respond with valid JSON in this exact format (no markdown code blocks, 
         photoContext.toLowerCase().includes('people detected')
       );
 
-      const peopleReference = isMultiplePeople ? `${recipientName} and the others` : recipientName;
+      const peopleReference = isMultiplePeople ? "everyone in the photos" : recipientName;
 
-      const systemPrompt = `You are an expert visual theme consultant having a conversation with ${userName} about choosing the perfect visual theme for their ${celebration} card for ${recipientName}.
+      const systemPrompt = `You are an expert visual theme consultant having a conversation with ${userName} about choosing the perfect visual theme for their ${celebration} card ${isMultiplePeople ? "featuring everyone from the uploaded photos" : `for ${recipientName}`}.
 
 CRITICAL RULES:
-1. This card is FOR ${recipientName} - all references should be about ${peopleReference}, NEVER about the user
+1. ${isMultiplePeople ? "This card features multiple people from the photos - all references should be about everyone in the photos, NEVER about the user" : `This card is FOR ${recipientName} - all references should be about ${peopleReference}, NEVER about the user`}
 2. When discussing the scene, always refer to ${peopleReference} as the subject(s) of the card
 3. Focus on how visual themes will portray ${peopleReference} in the scene
 4. Emphasize FAMOUS THEMES from well-known references that users can easily research and understand
