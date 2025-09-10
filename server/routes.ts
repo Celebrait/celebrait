@@ -487,8 +487,8 @@ CRITICAL RULES:
 CONVERSATION FLOW:
 1. INITIAL SCENE - User provides initial scene description (text input required)
 2. SCENE SPECIFICS - Ask for more details (Give Me Ideas/Skip buttons)
-3. ACTIVITY - What ${peopleReference} should be doing (Give Me Ideas/Skip buttons)
-4. CLOTHING - Clothing and appearance (Give Me Ideas/Skip buttons)
+3. ACTIVITY - What activities would work well in this scene (Give Me Ideas/Skip buttons)
+4. CLOTHING - Clothing and appearance style (Give Me Ideas/Skip buttons)
 5. SUMMARY - Complete scene summary (Sounds great let's go/I'd like to make a change buttons)
 
 STEP-SPECIFIC INSTRUCTIONS:
@@ -503,18 +503,18 @@ SCENE SPECIFICS STEP:
 - Only show 3 suggestions when user clicks "Give Me Ideas" button
 
 ACTIVITY STEP:
-- Ask simple question about what ${peopleReference} should be doing
+- Ask simple question about what activities would work well in this scene
 - Provide "Give Me Ideas" and "Skip This Question" buttons
 - Only show 3 suggestions when user clicks "Give Me Ideas" button
 
 CLOTHING STEP:
-- Ask simple question about clothing and appearance of ${peopleReference}
+- Ask simple question about clothing and appearance style for this scene
 - Provide "Give Me Ideas" and "Skip This Question" buttons
 - Only show 3 suggestions when user clicks "Give Me Ideas" button
 - ALWAYS remind that they can skip to let AI choose appropriate clothing
 
 SUMMARY STEP:
-- Summarize complete scene description featuring ${peopleReference}
+- Summarize complete scene description for this ${celebration} celebration
 - Tell user they can add more details if they like
 - End with: "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection."
 - CRITICAL: Only show "Sounds great, let's go!" and "I'd like to make a change" buttons in this step
@@ -767,8 +767,8 @@ Remember: You're helping them discover their perfect artistic vision through gui
       const systemPrompt = `You are an expert visual theme consultant specializing in greeting card design. Your job is to provide exactly 2 options: one traditional art style and one visual style reference.
 
 CRITICAL RULES:
-1. This card is FOR ${recipientName} - all references should be about ${peopleReference}, NEVER about the user
-2. When discussing the scene, always refer to ${peopleReference} as the subject(s) of the card
+1. This card is FOR ${recipientName} - use naturally inclusive language that works for any number of people
+2. When discussing the scene, focus on scene elements rather than counting people
 3. Provide exactly 2 suggestions: one "art_style" and one "visual_style_reference"
 4. Keep descriptions brief and concise (1-2 sentences max)
 5. Consider the emotional impact and how relatable each option is for users
@@ -800,7 +800,7 @@ You must respond with valid JSON in this exact format (no markdown code blocks, 
     {
       "name": "Traditional Art Style Name",
       "description": "Brief 1-2 sentence description",
-      "whyItWorks": "Concise reason why this suits ${peopleReference}",
+      "whyItWorks": "Concise reason why this suits this ${celebration} scene",
       "famousExample": "Brief recognizable reference",
       "mood": "One word mood",
       "category": "art_style"
@@ -808,7 +808,7 @@ You must respond with valid JSON in this exact format (no markdown code blocks, 
     {
       "name": "Visual Style Reference Name (e.g., 3D Computer Animated Adventure, Impressionist Garden Painting, 1920s Art Deco Elegance)",
       "description": "Brief 1-2 sentence description of the visual style aesthetic",
-      "whyItWorks": "Concise reason why this suits ${peopleReference}",
+      "whyItWorks": "Concise reason why this suits this ${celebration} scene",
       "famousExample": "Descriptive aesthetic term that users can Google for consistent visual examples", 
       "mood": "One word mood",
       "category": "visual_style_reference"
