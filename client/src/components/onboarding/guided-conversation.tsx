@@ -415,7 +415,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       question: onboarding.selectedSceneType === 'scene-only' ? 'What scene or visual should the card show?' : `Where should ${answers.name || 'they'} be and what should they be doing?`,
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
         ? `Now for the creative part! Since you want a scene-only card, describe the beautiful visual or scene you'd like me to create. Think about the mood, setting, and atmosphere that would be perfect for this ${answers.celebration} celebration.`
-        : `Perfect! ✨ Now for the scene on the front of ${answers.name || 'the recipient'}'s ${answers.celebration || 'celebration'} card. Describe the location, activity, and any extra details you'd like.`,
+        : `Perfect! ✨ Now for the scene on the front of ${answers.name || 'the recipient'}'s ${answers.celebration || 'celebration'} card. Describe exactly what you want and I'll make it happen!`,
       type: 'textarea',
       placeholder: onboarding.selectedSceneType === 'scene-only' 
         ? 'e.g., a beautiful sunset over mountains with floating balloons, or a cozy fireplace with warm golden light and scattered rose petals...'

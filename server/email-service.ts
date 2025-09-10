@@ -1,19 +1,21 @@
-import sgMail from '@sendgrid/mail';
+import * as brevo from '@getbrevo/brevo';
 import { storage } from './storage';
 
-const sendgridApiKey = process.env.SENDGRID_API_KEY;
+const brevoApiKey = process.env.BREVO_API_KEY;
 
-if (!sendgridApiKey) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
+if (!brevoApiKey) {
+  throw new Error("BREVO_API_KEY environment variable must be set");
 }
 
-console.log('SendGrid API Key configured:', sendgridApiKey ? 'Present' : 'Missing');
-console.log('SendGrid API Key length:', sendgridApiKey?.length || 0);
+console.log('Brevo API Key configured:', brevoApiKey ? 'Present' : 'Missing');
+console.log('Brevo API Key length:', brevoApiKey?.length || 0);
 
-sgMail.setApiKey(sendgridApiKey);
+// Initialize Brevo API client
+const apiInstance = new brevo.TransactionalEmailsApi();
+apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, brevoApiKey);
 
-function hasValidSendGridConfig(): boolean {
-  return !!(sendgridApiKey && sendgridApiKey.length > 0);
+function hasValidBrevoConfig(): boolean {
+  return !!(brevoApiKey && brevoApiKey.length > 0);
 }
 
 interface EmailParams {
@@ -30,39 +32,27 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     console.log(`From: ${params.from}`);
     console.log(`Subject: ${params.subject}`);
 
-    const result = await sgMail.send({
-      to: params.to,
-      from: params.from,
-      subject: params.subject,
-      text: params.text || 'Email content is available in HTML format.',
-      ...(params.html && { html: params.html }),
-    });
-
-    console.log('SendGrid response status:', result[0]?.statusCode);
-    console.log('SendGrid response headers:', result[0]?.headers);
-
-    // Check for X-Message-Id header which tracks the message
-    if (result[0]?.headers && result[0].headers['x-message-id']) {
-      console.log('SendGrid Message ID:', result[0].headers['x-message-id']);
+    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    sendSmtpEmail.to = [{ email: params.to }];
+    sendSmtpEmail.sender = { email: params.from, name: 'Celebrait' };
+    sendSmtpEmail.subject = params.subject;
+    sendSmtpEmail.textContent = params.text || 'Email content is available in HTML format.';
+    if (params.html) {
+      sendSmtpEmail.htmlContent = params.html;
     }
+
+    const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
+
+    console.log('Brevo response:', result.response?.statusCode);
+    console.log('Brevo message ID:', result.body?.messageId);
     console.log(`Email sent successfully to ${params.to}`);
     return true;
   } catch (error: any) {
-    console.error('SendGrid email error:', error);
+    console.error('Brevo email error:', error);
 
     // Log specific error details for troubleshooting
     if (error.response && error.response.body) {
-      console.error('SendGrid error details:', JSON.stringify(error.response.body, null, 2));
-
-      // Check for specific error types
-      if (error.response.body.errors) {
-        error.response.body.errors.forEach((err: any) => {
-          console.error('SendGrid error:', err.message);
-          if (err.field) {
-            console.error('Field:', err.field);
-          }
-        });
-      }
+      console.error('Brevo error details:', JSON.stringify(error.response.body, null, 2));
     }
 
     return false;
@@ -459,8 +449,8 @@ Questions? Contact us at support@celebrait.com
 export async function sendCardReadyEmail(email: string, cardId: number) {
   console.log('Attempting to send card ready email to:', email, 'for card:', cardId);
 
-  if (!hasValidSendGridConfig()) {
-    console.log('SendGrid not configured, skipping email send');
+  if (!hasValidBrevoConfig()) {
+    console.log('Brevo not configured, skipping email send');
     return false;
   }
 
@@ -484,44 +474,43 @@ export async function sendCardReadyEmail(email: string, cardId: number) {
       insideImageUrl: card.insideImageUrl ? 'present' : 'missing'
     });
 
-    const msg = {
-      to: email,
-      from: {
-        email: process.env.SENDGRID_FROM_EMAIL || 'noreply@celebrait.co.za',
-        name: 'Celebrait'
-      },
-      subject: '🎉 Your Celebrait card is ready!',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
-          <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            <h1 style="color: #4F46E5; text-align: center; margin-bottom: 30px;">Your card is ready! 🎉</h1>
-            <p style="font-size: 16px; color: #333; line-height: 1.6;">
-              Great news! Your personalized greeting card has been generated and is ready for you to view and complete your order.
-            </p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.CLIENT_URL || 'http://localhost:5000'}/complete-order?cardId=${cardId}" 
-                 style="background-color: #4F46E5; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
-                View Your Card & Complete Order
-              </a>
-            </div>
-            <p style="font-size: 14px; color: #666; text-align: center;">
-              This link will take you to preview your card and choose your delivery method.
-            </p>
-            <p style="font-size: 12px; color: #999; text-align: center; margin-top: 20px;">
-              Card ID: ${cardId} | Generated: ${new Date().toLocaleString()}
-            </p>
-          </div>
-        </div>
-      `
+    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    sendSmtpEmail.to = [{ email: email }];
+    sendSmtpEmail.sender = { 
+      email: process.env.BREVO_FROM_EMAIL || 'noreply@celebrait.co.za',
+      name: 'Celebrait'
     };
+    sendSmtpEmail.subject = '🎉 Your Celebrait card is ready!';
+    sendSmtpEmail.htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+        <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <h1 style="color: #4F46E5; text-align: center; margin-bottom: 30px;">Your card is ready! 🎉</h1>
+          <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            Great news! Your personalized greeting card has been generated and is ready for you to view and complete your order.
+          </p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.CLIENT_URL || 'http://localhost:5000'}/complete-order?cardId=${cardId}" 
+               style="background-color: #4F46E5; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+              View Your Card & Complete Order
+            </a>
+          </div>
+          <p style="font-size: 14px; color: #666; text-align: center;">
+            This link will take you to preview your card and choose your delivery method.
+          </p>
+          <p style="font-size: 12px; color: #999; text-align: center; margin-top: 20px;">
+            Card ID: ${cardId} | Generated: ${new Date().toLocaleString()}
+          </p>
+        </div>
+      </div>
+    `;
 
-    const response = await sgMail.send(msg);
-    console.log('Card ready email sent successfully to:', email, 'Response status:', response[0].statusCode);
+    const response = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log('Card ready email sent successfully to:', email, 'Response status:', response.response?.statusCode);
     return true;
   } catch (error: any) {
     console.error('Failed to send card ready email:', error);
     if (error.response) {
-      console.error('SendGrid error response:', error.response.body);
+      console.error('Brevo error response:', error.response.body);
     }
     return false;
   }
