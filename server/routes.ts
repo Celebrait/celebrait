@@ -5819,6 +5819,128 @@ ${formatInstruction}`;
     }
   });
 
+  // RECOVERY SYSTEM FOR ABANDONED CARDS
+  
+  // Track card abandonment
+  app.post("/api/track-abandonment", async (req, res) => {
+    try {
+      const { cardId, userEmail, userName, stepData, stage } = req.body;
+      
+      console.log(`Tracking abandonment for card ${cardId}, stage: ${stage}`);
+      
+      // Update card with abandonment tracking data
+      const card = await storage.getCard(cardId);
+      if (card) {
+        await storage.updateCard(cardId, {
+          abandonmentData: JSON.stringify({
+            userEmail,
+            userName,
+            stepData,
+            stage,
+            lastActivity: Date.now()
+          })
+        });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error tracking abandonment:', error);
+      res.status(500).json({ error: 'Failed to track abandonment' });
+    }
+  });
+  
+  // Recovery endpoint - resumes card creation flow
+  app.get("/api/recover/:recoveryToken", async (req, res) => {
+    try {
+      const { recoveryToken } = req.params;
+      
+      // Decode recovery token (format: cardId_timestamp_hash)
+      const parts = recoveryToken.split('_');
+      if (parts.length < 2) {
+        return res.status(400).json({ error: 'Invalid recovery token' });
+      }
+      
+      const cardId = parseInt(parts[0]);
+      const card = await storage.getCard(cardId);
+      
+      if (!card) {
+        return res.status(404).json({ error: 'Card not found or expired' });
+      }
+      
+      // Check if card is still recoverable (within 7 days)
+      const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+      if (new Date(card.createdAt).getTime() < sevenDaysAgo) {
+        return res.status(410).json({ error: 'Recovery period expired' });
+      }
+      
+      // Redirect to appropriate page based on card status
+      let redirectUrl = '/create-card';
+      
+      if (card.status === 'completed' && card.frontImageUrl) {
+        redirectUrl = `/complete-order?cardId=${cardId}&recovery=true`;
+      } else if (card.conversationData) {
+        redirectUrl = `/create-card?cardId=${cardId}&recovery=true`;
+      }
+      
+      // Redirect to frontend with recovery data
+      res.redirect(redirectUrl);
+      
+    } catch (error) {
+      console.error('Error processing recovery:', error);
+      res.status(500).json({ error: 'Recovery failed' });
+    }
+  });
+  
+  // Send abandonment recovery email
+  app.post("/api/send-abandonment-email", async (req, res) => {
+    try {
+      const { cardId, userEmail, userName } = req.body;
+      
+      if (!userEmail || !cardId) {
+        return res.status(400).json({ error: 'Card ID and email are required' });
+      }
+      
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ error: 'Card not found' });
+      }
+      
+      // Generate recovery token
+      const recoveryToken = `${cardId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const recoveryUrl = `${req.protocol}://${req.get('host')}/api/recover/${recoveryToken}`;
+      
+      // Send abandonment recovery email
+      const emailParams = generateAbandonmentRecoveryEmail(
+        card,
+        userEmail,
+        userName || 'Friend',
+        recoveryUrl
+      );
+      
+      const emailSent = await sendEmail(emailParams);
+      
+      if (emailSent) {
+        // Update card with recovery info
+        await storage.updateCard(cardId, {
+          recoveryEmailSent: new Date().toISOString(),
+          recoveryToken
+        });
+        
+        res.json({ 
+          success: true, 
+          message: 'Recovery email sent successfully',
+          recoveryUrl 
+        });
+      } else {
+        res.status(500).json({ error: 'Failed to send recovery email' });
+      }
+      
+    } catch (error) {
+      console.error('Error sending abandonment email:', error);
+      res.status(500).json({ error: 'Failed to send abandonment email' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
