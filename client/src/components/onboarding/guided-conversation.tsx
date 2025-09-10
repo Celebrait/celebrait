@@ -2803,7 +2803,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                       className="text-lg p-4 min-h-[200px] rounded-xl border-purple-200 focus:border-purple-400 resize-y"
                       autoFocus={currentStep.id !== 'scene'}
                     />
-                    <div className="flex justify-center">
+                    <div className="flex flex-col items-center space-y-3">
                       <Button 
                         onClick={handleTextSubmit}
                         disabled={currentStep.required && !currentInput.trim()}
@@ -2812,6 +2812,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         Continue
                         <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
+                      <p className="text-sm text-gray-500 text-center max-w-md">
+                        💡 Feel free to edit the text above to add or remove any details before continuing
+                      </p>
                     </div>
                   </div>
                 )}
