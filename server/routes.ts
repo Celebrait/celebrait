@@ -2027,19 +2027,21 @@ If just having a conversation (no suggestions), respond with valid JSON:
       let frontResponse;
       try {
         frontResponse = await openai.images.generate({
-          model: "gpt-image-1",
+          model: "dall-e-3",
           prompt: frontPrompt,
           size: "1024x1024",
+          quality: "standard",
           n: 1
         });
-        console.log("Successfully used gpt-image-1 for front card generation");
+        console.log("Successfully used dall-e-3 for front card generation");
       } catch (gptError: any) {
-        console.log("gpt-image-1 not available, falling back to dall-e-3:", gptError.message);
+        console.log("dall-e-3 not available, falling back to dall-e-3:", gptError.message);
 
         frontResponse = await openai.images.generate({
           model: "dall-e-3",
           prompt: frontPrompt,
           size: "1024x1024",
+          quality: "standard",
           n: 1
         });
       }
@@ -2060,19 +2062,21 @@ If just having a conversation (no suggestions), respond with valid JSON:
         let insideResponse;
         try {
           insideResponse = await openai.images.generate({
-            model: "gpt-image-1",
+            model: "dall-e-3",
             prompt: insidePrompt,
             size: "1024x1024",
+            quality: "standard",
             n: 1
           });
-          console.log("Successfully used gpt-image-1 for inside card generation");
+          console.log("Successfully used dall-e-3 for inside card generation");
         } catch (gptError: any) {
-          console.log("gpt-image-1 not available for inside card, falling back to dall-e-3:", gptError.message);
+          console.log("dall-e-3 not available for inside card, falling back to dall-e-3:", gptError.message);
 
           insideResponse = await openai.images.generate({
             model: "dall-e-3",
             prompt: insidePrompt,
             size: "1024x1024",
+            quality: "standard",
             n: 1
           });
         }
@@ -2116,7 +2120,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       }
 
       console.log('Found card:', card.id);
-      console.log('Using model: gpt-image-1 for style transformation');
+      console.log('Using model: dall-e-3 for style transformation');
 
       // Generate front image with style transformation
       let enhancedFrontPrompt = frontPrompt;
@@ -2126,10 +2130,11 @@ If just having a conversation (no suggestions), respond with valid JSON:
       }
 
       const frontImageGeneration = await openai.images.generate({
-        model: "gpt-image-1",
+        model: "dall-e-3",
         prompt: enhancedFrontPrompt,
         n: 1,
-        size: "1024x1024"
+        size: "1024x1024",
+        quality: "standard"
       });
 
       // Extract front image data first
@@ -2152,16 +2157,17 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
       // Generate inside image if provided, using front card as visual reference
       if (insidePrompt && frontImageUrl) {
-        console.log('Using model: gpt-image-1 for inside image with front card visual reference');
+        console.log('Using model: dall-e-3 for inside image with front card visual reference');
 
         const imageToImagePrompt = `Using the attached front greeting card image as a visual style reference, create the interior of this greeting card. Match the exact artistic style, color palette, lighting, and visual mood from the reference image. Use identical typography treatment and display this message prominently: "${insidePrompt.match(/"([^"]+)"/)?.[1] || 'Message'}". Create a subtle, complementary background that references visual elements from the front card. The inside should look like it was designed by the same artist using the same design system.`;
 
         try {
           const insideImageGeneration = await openai.images.generate({
-            model: "gpt-image-1",
+            model: "dall-e-3",
             prompt: imageToImagePrompt,
             n: 1,
-            size: "1024x1024"
+            size: "1024x1024",
+            quality: "standard"
           });
 
           const insideResponse = insideImageGeneration as any;
@@ -2183,10 +2189,11 @@ If just having a conversation (no suggestions), respond with valid JSON:
           const enhancedInsidePrompt = `${insidePrompt}. STYLE MATCHING: Use exactly the same artistic style, color palette, and visual treatment as the front card. Create a cohesive design where the inside feels like the same artist created both cards with consistent visual language.`;
 
           const fallbackGeneration = await openai.images.generate({
-            model: "gpt-image-1", 
+            model: "dall-e-3", 
             prompt: enhancedInsidePrompt,
             n: 1,
-            size: "1024x1024"
+            size: "1024x1024",
+            quality: "standard"
           });
 
           const fallbackResponse = fallbackGeneration as any;
@@ -2273,7 +2280,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       console.log('Found card:', card.id);
 
       // Generate front image using GPT-Image-1 model
-      console.log('Using model: gpt-image-1 for front image');
+      console.log('Using model: dall-e-3 for front image');
 
       let frontImageGeneration;
 
@@ -2285,7 +2292,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
         console.log('Using detailed character prompt from frontend:', frontPrompt);
 
         frontImageGeneration = await openai.images.generate({
-          model: "gpt-image-1",
+          model: "dall-e-3",
           prompt: frontPrompt,
           n: 1,
           size: "1024x1024"
@@ -2322,10 +2329,10 @@ If just having a conversation (no suggestions), respond with valid JSON:
           });
 
           formData.append('prompt', frontPrompt);
-          formData.append('model', 'gpt-image-1');
+          formData.append('model', 'dall-e-3');
           formData.append('n', '1');
           formData.append('size', '1024x1024');
-          formData.append('quality', 'high');
+          formData.append('quality', 'standard');
           formData.append('moderation', 'low');
 
           const fetch = (await import('node-fetch')).default;
@@ -2362,7 +2369,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
           // Fallback to standard text-only generation
           frontImageGeneration = await openai.images.generate({
-            model: "gpt-image-1",
+            model: "dall-e-3",
             prompt: frontPrompt,
             n: 1,
             size: "1024x1024"
@@ -2371,7 +2378,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       } else {
         // Standard text-only generation
         frontImageGeneration = await openai.images.generate({
-          model: "gpt-image-1",
+          model: "dall-e-3",
           prompt: frontPrompt,
           n: 1,
           size: "1024x1024"
@@ -2393,7 +2400,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       let insideImageUrl = null;
       let frontImageUrl = null;
 
-      // Extract image data FIRST (gpt-image-1 returns base64 data in 'data' array)
+      // Extract image data FIRST (dall-e-3 returns base64 data in 'data' array)
       const frontResponse = frontImageGeneration as any;
       console.log('Checking frontResponse.data:', !!frontResponse.data);
       console.log('frontResponse.data type:', typeof frontResponse.data);
@@ -2449,10 +2456,10 @@ If just having a conversation (no suggestions), respond with valid JSON:
             contentType: `image/${mimeType}`
           });
           formData.append('prompt', insideCardPrompt);
-          formData.append('model', 'gpt-image-1');
+          formData.append('model', 'dall-e-3');
           formData.append('n', '1');
           formData.append('size', '1024x1024');
-          formData.append('quality', 'high');
+          formData.append('quality', 'standard');
           formData.append('moderation', 'low');
 
           const fetch = (await import('node-fetch')).default;
@@ -3505,7 +3512,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
   });
 
   // Scene editing using GPT-Image-1 edits API
-  app.post("/api/edit-scene-gpt-image-1", async (req, res) => {
+  app.post("/api/edit-scene-dall-e-3", async (req, res) => {
     if (!openai) {
       return res.status(500).json({ message: "OpenAI API key not configured" });
     }
@@ -3640,10 +3647,10 @@ ${formatInstruction}`;
         });
 
         formData.append('prompt', fullPrompt);
-        formData.append('model', 'gpt-image-1');
+        formData.append('model', 'dall-e-3');
         formData.append('n', '1');
         formData.append('size', size);
-        formData.append('quality', 'high');
+        formData.append('quality', 'standard');
         formData.append('moderation', 'low');
         formData.append('background', 'auto');
 
@@ -3867,7 +3874,7 @@ ${formatInstruction}`;
         contentType: `image/${mimeType}`
       });
       formData.append('prompt', insideCardPrompt);
-      formData.append('model', 'gpt-image-1');
+      formData.append('model', 'dall-e-3');
       formData.append('n', '1');
       formData.append('size', size);
       formData.append('quality', 'high');
@@ -4046,7 +4053,7 @@ ${formatInstruction}`;
   });
 
   // GPT-Image-1 style transformation using OpenAI SDK as per documentation
-  app.post("/api/transform-style-gpt-image-1", async (req, res) => {
+  app.post("/api/transform-style-dall-e-3", async (req, res) => {
     const requestStartTime = Date.now();
     console.log('[TIMING] Style transformation request started');
     
@@ -4131,14 +4138,14 @@ ${formatInstruction}`;
         });
 
         formData.append('prompt', transformPrompt);
-        formData.append('model', 'gpt-image-1');
+        formData.append('model', 'dall-e-3');
         formData.append('n', '1');
         formData.append('size', size);
-        formData.append('quality', 'high');
+        formData.append('quality', 'standard');
         formData.append('moderation', 'low');
 
         console.log('📋 Form data parameters being sent:');
-        console.log('- model:', 'gpt-image-1');
+        console.log('- model:', 'dall-e-3');
         console.log('- size:', size);
         console.log('- quality:', 'medium');
         console.log('- prompt length:', transformPrompt.length);
