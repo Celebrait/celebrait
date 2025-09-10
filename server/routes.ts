@@ -465,38 +465,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { type, context, userInput, recipientName, celebration, conversationHistory, conversationStep, photoContext, userName, collectedInfo } = req.body;
 
-      // Determine if we're dealing with single person or multiple people first
-      const isMultiplePeople = photoContext && (
-        photoContext.toLowerCase().includes('multiple photos') ||
-        photoContext.toLowerCase().includes('two photos') ||
-        photoContext.toLowerCase().includes('multiple people') ||
-        photoContext.toLowerCase().includes('different people') ||
-        photoContext.toLowerCase().includes('various shots') ||
-        photoContext.toLowerCase().includes('several') ||
-        photoContext.toLowerCase().includes('different angles') ||
-        photoContext.toLowerCase().includes('group shot') ||
-        photoContext.toLowerCase().includes('people detected')
-      );
-
       let systemPrompt = "";
       let messages = [];
 
       if (type === "scene") {
-        // CRITICAL FIX: Never address the user by name in scene descriptions
-        // Scene descriptions should only reference the recipient, not the user creating the card
-        // When multiple people are detected, use more inclusive language
-        const peopleReference = isMultiplePeople ? "everyone in your photos" : recipientName;
+        // Use naturally inclusive language that works for both single and multiple people
+        // Focus on scene elements (location, activity, clothing) rather than specific people
         
-        systemPrompt = `You are a professional creative assistant helping someone create detailed scene descriptions for greeting cards. 
+        systemPrompt = `You are a professional creative assistant helping someone create detailed scene descriptions for greeting cards for ${recipientName}'s ${celebration}. 
 
 CRITICAL RULES:
 1. NEVER address the user by name in your responses - use neutral language like "you" or avoid direct address
-2. When referring to people in the scene, ONLY use "${peopleReference}" - NEVER reference the user themselves
-3. ${isMultiplePeople ? "This card features multiple people from the uploaded photos, so all scene descriptions should include everyone naturally. Use plural language (they, them, their) when describing the scene." : `This card is FOR ${recipientName}, so all scene descriptions should feature ${peopleReference}, not the user`}
-4. NEVER provide suggestions in opening statements or unless explicitly requested
-5. Only provide exactly 3 numbered options when user inputs "Get Suggestions" or "Get More Suggestions"
-6. Follow-up questions must seek MORE SPECIFIC details about previous answers
-7. Keep opening messages simple and ask only one clear question
+2. Use naturally inclusive language that works for both single and multiple people - focus on scene elements (location, activities, clothing, mood) rather than counting people
+3. Ask about general scene elements: "What kind of activities would work well in this scene?" instead of "What would [name] be doing?"
+4. Use inclusive terms: "What style of clothing would fit this setting?" instead of referring to specific people
+5. NEVER provide suggestions in opening statements or unless explicitly requested
+6. Only provide exactly 3 numbered options when user inputs "Get Suggestions" or "Get More Suggestions"  
+7. Follow-up questions must seek MORE SPECIFIC details about previous answers
+8. Keep opening messages simple and ask only one clear question
 
 CONVERSATION FLOW:
 1. INITIAL SCENE - User provides initial scene description (text input required)
@@ -542,7 +528,7 @@ Current step: ${conversationStep || 'initial_scene'}`;
         
 
         // Build context message based on current step and user input
-        let contextMessage = `I'm creating a ${celebration} greeting card ${isMultiplePeople ? "featuring everyone from the uploaded photos" : `for ${recipientName}`}. Current step: ${conversationStep || 'initial_scene'}. User input: "${userInput || ''}"`;
+        let contextMessage = `I'm creating a ${celebration} greeting card for ${recipientName}. Current step: ${conversationStep || 'initial_scene'}. User input: "${userInput || ''}"`;
         
         // Add collected information context
         if (collectedInfo) {
@@ -566,7 +552,7 @@ Current step: ${conversationStep || 'initial_scene'}`;
         if (userInput === "Give Me Ideas") {
           messages.push({
             role: "system", 
-            content: `The user is requesting suggestions for the ${conversationStep} step. Provide exactly 3 numbered options relevant to this step. Format as: 1. First option, 2. Second option, 3. Third option. Use ${isMultiplePeople ? `plural language referring to the people in the scene (they, their)` : `singular language referring to ${recipientName} (he/she, his/her)`} consistently throughout your response. Remember: all suggestions should be about ${peopleReference}, not the user.`
+            content: `The user is requesting suggestions for the ${conversationStep} step. Provide exactly 3 numbered options relevant to this step. Format as: 1. First option, 2. Second option, 3. Third option. Focus on scene elements (activities, clothing, mood, setting details) using naturally inclusive language that works for any number of people.`
           });
         } else if (!conversationHistory || conversationHistory.length === 0) {
           // This is an opening message - add extra emphasis to NOT provide suggestions
@@ -610,7 +596,7 @@ Remember: You're helping them discover their perfect artistic vision through gui
         
         messages = [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `I'm creating a ${celebration} greeting card ${isMultiplePeople ? "featuring everyone from my uploaded photos" : `for ${recipientName}`}. I need help choosing an art style. ${userInput || "I need help with the art style selection."}` }
+          { role: "user", content: `I'm creating a ${celebration} greeting card for ${recipientName}. I need help choosing an art style. ${userInput || "I need help with the art style selection."}` }
         ];
       }
 
@@ -885,27 +871,12 @@ You must respond with valid JSON in this exact format (no markdown code blocks, 
       
       console.log('Art Style Chat request:', { userMessage, sceneDescription, celebration, recipientName, isExpertMode });
       
-      // Determine if multiple people are involved
-      const isMultiplePeople = photoContext && (
-        photoContext.toLowerCase().includes('multiple photos') ||
-        photoContext.toLowerCase().includes('two photos') ||
-        photoContext.toLowerCase().includes('multiple people') ||
-        photoContext.toLowerCase().includes('different people') ||
-        photoContext.toLowerCase().includes('various shots') ||
-        photoContext.toLowerCase().includes('several') ||
-        photoContext.toLowerCase().includes('different angles') ||
-        photoContext.toLowerCase().includes('group shot') ||
-        photoContext.toLowerCase().includes('people detected')
-      );
-
-      const peopleReference = isMultiplePeople ? "everyone in the photos" : recipientName;
-
-      const systemPrompt = `You are an expert visual theme consultant having a conversation with ${userName} about choosing the perfect visual theme for their ${celebration} card ${isMultiplePeople ? "featuring everyone from the uploaded photos" : `for ${recipientName}`}.
+      const systemPrompt = `You are an expert visual theme consultant having a conversation with ${userName} about choosing the perfect visual theme for their ${celebration} card for ${recipientName}.
 
 CRITICAL RULES:
-1. ${isMultiplePeople ? "This card features multiple people from the photos - all references should be about everyone in the photos, NEVER about the user" : `This card is FOR ${recipientName} - all references should be about ${peopleReference}, NEVER about the user`}
-2. When discussing the scene, always refer to ${peopleReference} as the subject(s) of the card
-3. Focus on how visual themes will portray ${peopleReference} in the scene
+1. This card is FOR ${recipientName} - use naturally inclusive language that works for scenes with any number of people
+2. When discussing the scene, focus on scene elements (activities, clothing, mood, setting) rather than counting people
+3. Focus on how visual themes will enhance the overall scene and celebration
 4. Emphasize FAMOUS THEMES from well-known references that users can easily research and understand
 
 Scene context: "${sceneDescription}"
@@ -925,19 +896,19 @@ Your role:
 2. Answer questions about visual style references with descriptive aesthetic terms
 3. When users ask for specific themes (Disney, soccer, vintage, etc.), ALWAYS provide exactly 2 structured suggestions in JSON format
 4. Provide suggestions when asked (focus on searchable aesthetic terms without copyright issues)
-5. Help users understand why certain visual styles work better for portraying ${peopleReference}
+5. Help users understand why certain visual styles work better for this ${celebration} celebration
 6. If user seems unsure, offer to provide structured suggestions
 
 CRITICAL: Always provide EXACTLY 2 suggestions when the user asks for style ideas - one art_style and one visual_style_reference.
 
 If providing suggestions, respond with valid JSON in this exact format (no markdown code blocks, just plain JSON):
 {
-  "message": "Your conversational response about ${peopleReference}",
+  "message": "Your conversational response about the scene and celebration",
   "suggestions": [
     {
       "name": "Traditional Art Style Name",
       "description": "Clear description of the art technique",
-      "whyItWorks": "Why it suits this scene featuring ${peopleReference}",
+      "whyItWorks": "Why it suits this ${celebration} scene",
       "famousExample": "Brief recognizable reference",
       "mood": "One word mood",
       "category": "art_style"
@@ -945,7 +916,7 @@ If providing suggestions, respond with valid JSON in this exact format (no markd
     {
       "name": "Visual Style Reference Name (e.g., 3D Computer Animated Adventure, Impressionist Garden Painting)",
       "description": "Clear description of the visual style aesthetic",
-      "whyItWorks": "Why it suits this scene featuring ${peopleReference}",
+      "whyItWorks": "Why it suits this ${celebration} scene",
       "famousExample": "Descriptive aesthetic term that users can Google for consistent visual examples",
       "mood": "One word mood",
       "category": "visual_style_reference"
@@ -955,7 +926,7 @@ If providing suggestions, respond with valid JSON in this exact format (no markd
 
 If just having a conversation (no suggestions), respond with valid JSON:
 {
-  "message": "Your conversational response about ${peopleReference}"
+  "message": "Your conversational response about the scene and celebration"
 }`;
 
       const messages = [
