@@ -5877,7 +5877,7 @@ ${formatInstruction}`;
       let redirectUrl = '/create-card';
       
       if (card.status === 'completed' && card.frontImageUrl) {
-        redirectUrl = `/complete-order?cardId=${cardId}&recovery=true`;
+        redirectUrl = `/complete-order/${cardId}?recovery=true`;
       } else if (card.conversationData) {
         redirectUrl = `/create-card?cardId=${cardId}&recovery=true`;
       }
