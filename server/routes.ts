@@ -479,10 +479,12 @@ CRITICAL RULES:
 2. Use naturally inclusive language that works for both single and multiple people - focus on scene elements (location, activities, clothing, mood) rather than counting people
 3. Ask about general scene elements: "What kind of activities would work well in this scene?" instead of "What would [name] be doing?"
 4. Use inclusive terms: "What style of clothing would fit this setting?" instead of referring to specific people
-5. NEVER provide suggestions in opening statements or unless explicitly requested
-6. Only provide exactly 3 numbered options when user inputs "Get Suggestions" or "Get More Suggestions"  
-7. Follow-up questions must seek MORE SPECIFIC details about previous answers
-8. Keep opening messages simple and ask only one clear question
+5. NEVER make assumptions about relationships - even for anniversaries, birthday parties, or couple celebrations, avoid words like "couple", "pair", "duo", "romantic partners"
+6. Focus on activities and scenes that could work for any number of people: "people enjoying", "someone relaxing", "activities in this setting"
+7. NEVER provide suggestions in opening statements or unless explicitly requested
+8. Only provide exactly 3 numbered options when user inputs "Get Suggestions" or "Get More Suggestions"  
+9. Follow-up questions must seek MORE SPECIFIC details about previous answers
+10. Keep opening messages simple and ask only one clear question
 
 CONVERSATION FLOW:
 1. INITIAL SCENE - User provides initial scene description (text input required)
@@ -552,13 +554,13 @@ Current step: ${conversationStep || 'initial_scene'}`;
         if (userInput === "Give Me Ideas") {
           messages.push({
             role: "system", 
-            content: `The user is requesting suggestions for the ${conversationStep} step. Provide exactly 3 numbered options relevant to this step. Format as: 1. First option, 2. Second option, 3. Third option. Focus on scene elements (activities, clothing, mood, setting details) using naturally inclusive language that works for any number of people.`
+            content: `The user is requesting suggestions for the ${conversationStep} step. Provide exactly 3 numbered options relevant to this step. Format as: 1. First option, 2. Second option, 3. Third option. Focus on scene elements (activities, clothing, mood, setting details) using naturally inclusive language that works for any number of people. CRITICAL: Never use words like "couple", "pair", "duo", or "romantic partners" - use inclusive terms like "people", "someone", or focus on activities rather than relationships.`
           });
         } else if (!conversationHistory || conversationHistory.length === 0) {
           // This is an opening message - add extra emphasis to NOT provide suggestions
           messages.push({
             role: "system",
-            content: `This is an opening message. Use this EXACT text as your response: "Greetings ✨ Let's create a mind blowing scene for the front of ${isMultiplePeople ? 'your' : `${recipientName || 'NAME'}'s`} ${celebration || 'CELEBRATION'} card.\n\nI'll need your creative input for this first question, but after this you can ask me for ideas throughout, or type your own out.\n\nTo get us started, where would you like the scene to take place?"`
+            content: `This is an opening message. Use this EXACT text as your response: "Greetings ✨ Let's create a mind blowing scene for the front of ${recipientName || 'NAME'}'s ${celebration || 'CELEBRATION'} card.\n\nI'll need your creative input for this first question, but after this you can ask me for ideas throughout, or type your own out.\n\nTo get us started, where would you like the scene to take place?"`
           });
         }
         
