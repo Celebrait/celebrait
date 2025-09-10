@@ -1,5 +1,6 @@
-import { Brain } from "lucide-react";
+import { Brain, Edit3, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 
 interface Step4Props {
@@ -10,6 +11,7 @@ export default function Step4AILoading({ onboarding }: Step4Props) {
   const [progress, setProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [typedText, setTypedText] = useState("");
+  const [showEditTipModal, setShowEditTipModal] = useState(false);
   
   const fullMessage = `Hey ${onboarding.userName || 'there'}! I'm so excited to help you create a magical AI greetings card that your loved one or friend will never forget! I'm ready, are you?`;
 
@@ -47,7 +49,12 @@ export default function Step4AILoading({ onboarding }: Step4Props) {
   }, [fullMessage]);
 
   const handleContinue = () => {
-    // Immediate step change for seamless transition
+    // Show edit tip modal instead of immediately proceeding
+    setShowEditTipModal(true);
+  };
+
+  const handleModalContinue = () => {
+    setShowEditTipModal(false);
     onboarding.nextStep();
   };
 
@@ -99,6 +106,35 @@ export default function Step4AILoading({ onboarding }: Step4Props) {
           />
         </Button>
       </div>
+      
+      {/* Edit Tip Modal */}
+      <Dialog open={showEditTipModal} onOpenChange={setShowEditTipModal}>
+        <DialogContent className="max-w-md bg-white border-2 border-purple-200 rounded-2xl">
+          <DialogHeader className="text-center pb-4">
+            <div className="flex items-center justify-center space-x-3 mb-3">
+              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                <Edit3 className="w-6 h-6 text-white" />
+              </div>
+              <DialogTitle className="text-xl font-bold text-gray-800">
+                Quick Tip!
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-gray-600 text-base leading-relaxed">
+              On the next page, you'll describe the scene for your card. Feel free to be creative and add as much detail as you want - you can always edit or refine your description to make it perfect!
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex justify-center pt-4">
+            <Button 
+              onClick={handleModalContinue}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white font-medium shadow-lg transition-all duration-200"
+            >
+              Got it, let's continue!
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
