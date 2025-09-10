@@ -153,8 +153,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   // Build photo context for AI brainstorm chat
   const buildPhotoContext = () => {
-    if (detectedPersonCount > 1) {
-      return `multiple people detected: ${detectedPersonCount} people in photos`;
+    // Use persisted count from answers if available, fallback to state
+    const persistedCount = answers.detectedPersonCount || detectedPersonCount;
+    if (persistedCount > 1) {
+      return `multiple people detected: ${persistedCount} people in photos`;
     }
     return '';
   };
@@ -915,8 +917,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   const analysis = await response.json();
                   const actualPersonCount = analysis.totalPeopleCount || photoDataArray.length;
                   setDetectedPersonCount(actualPersonCount);
+                  // CRITICAL: Persist the count in answers so it survives state resets
+                  setAnswers(prev => ({ ...prev, detectedPersonCount: actualPersonCount }));
                 } else {
-                  setDetectedPersonCount(photoDataArray.length);
+                  const fallbackCount = photoDataArray.length;
+                  setDetectedPersonCount(fallbackCount);
+                  // CRITICAL: Persist the count in answers so it survives state resets
+                  setAnswers(prev => ({ ...prev, detectedPersonCount: fallbackCount }));
                 }
               } catch (error) {
                 console.error('Photo analysis failed during upload:', error);
@@ -1398,6 +1405,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         const actualPersonCount = analysis.totalPeopleCount;
         setDetectedPersonCount(actualPersonCount);
         detectedPersonCount = actualPersonCount;
+        // CRITICAL: Persist the count in answers so it survives state resets
+        setAnswers(prev => ({ ...prev, detectedPersonCount: actualPersonCount }));
         console.log('[DEBUG] Total people detected across all photos:', detectedPersonCount);
         
         // Log detailed analysis for debugging
@@ -1413,6 +1422,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       const fallbackCount = referenceImages.length;
       setDetectedPersonCount(fallbackCount);
       detectedPersonCount = fallbackCount;
+      // CRITICAL: Persist the count in answers so it survives state resets
+      setAnswers(prev => ({ ...prev, detectedPersonCount: fallbackCount }));
       console.log('[DEBUG] Using image count as fallback:', detectedPersonCount);
     }
     
