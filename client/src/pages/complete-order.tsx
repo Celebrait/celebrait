@@ -16,7 +16,6 @@ interface CompleteOrderProps {
 }
 
 export default function CompleteOrder({ params }: CompleteOrderProps) {
-  const { cardId } = params;
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -24,6 +23,9 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
   const urlParams = new URLSearchParams(window.location.search);
   const deliveryType = urlParams.get('type') || 'digital';
   const isRecovery = urlParams.get('recovery') === 'true';
+  
+  // Get cardId from either path params (normal flow) or query params (recovery flow)
+  const cardId = params?.cardId || urlParams.get('cardId');
 
   // Card data
   const [card, setCard] = useState<any>(null);
