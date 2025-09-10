@@ -155,9 +155,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const buildPhotoContext = () => {
     // Use persisted count from answers if available, fallback to state
     const persistedCount = answers.detectedPersonCount || detectedPersonCount;
-    if (persistedCount > 1) {
-      return `multiple people detected: ${persistedCount} people in photos`;
+    
+    // Also check if we have uploaded photos with multiple people by analyzing the photos array
+    const hasMultiplePhotos = uploadedPhotos.length > 1;
+    const effectiveCount = Math.max(persistedCount, uploadedPhotos.length);
+    
+    console.log('[PHOTO_CONTEXT_DEBUG] persistedCount:', persistedCount, 'uploadedPhotos.length:', uploadedPhotos.length, 'effectiveCount:', effectiveCount);
+    
+    if (effectiveCount > 1) {
+      const context = `multiple people detected: ${effectiveCount} people in photos`;
+      console.log('[PHOTO_CONTEXT_DEBUG] returning context:', context);
+      return context;
     }
+    console.log('[PHOTO_CONTEXT_DEBUG] returning empty string (count <= 1)');
     return '';
   };
 
