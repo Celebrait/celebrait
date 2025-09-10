@@ -373,6 +373,99 @@ Thank you for choosing Celebrait!
   };
 }
 
+export function generateAbandonmentRecoveryEmail(cardData: any, userEmail: string, userName: string, recoveryUrl: string): EmailParams {
+  return {
+    to: userEmail,
+    from: 'greetings@celebrait.co.za',
+    subject: '😢 Don\'t lose your personalized card!',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .card-preview { text-align: center; margin: 20px 0; }
+          .card-preview img { max-width: 200px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+          .recovery-button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; margin: 20px 0; text-transform: uppercase; letter-spacing: 1px; }
+          .recovery-button:hover { background: #5a67d8; color: white; }
+          .urgency { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 20px 0; color: #856404; }
+          .footer { text-align: center; margin-top: 30px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>😢 Your card is waiting for you!</h1>
+            <p>Complete your personalized Celebrait card</p>
+          </div>
+          <div class="content">
+            <h2>Hi ${userName}!</h2>
+            <p>We noticed you started creating a beautiful personalized card but didn't get to complete your order. Your unique creation is still waiting for you!</p>
+            
+            ${cardData.frontImageUrl ? `
+              <div class="card-preview">
+                <img src="${cardData.frontImageUrl}" alt="Your Card Preview" />
+                <p style="margin-top: 10px; color: #666; font-style: italic;">Here's a preview of your amazing card!</p>
+              </div>
+            ` : ''}
+            
+            <div class="urgency">
+              <h3>⏰ Don't lose your personalized creation!</h3>
+              <p>We'll keep your card safe for <strong>7 days</strong>, but after that it will be permanently deleted to make room for new creations.</p>
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="${recoveryUrl}" class="recovery-button">
+                Complete My Card Now
+              </a>
+            </div>
+            
+            <h3>Why finish your Celebrait card?</h3>
+            <ul>
+              <li>✨ <strong>Unique AI creation</strong> - This exact design can never be recreated</li>
+              <li>🎯 <strong>Perfect personalization</strong> - Tailored specifically for your recipient</li>
+              <li>💝 <strong>Professional quality</strong> - High-resolution printing or digital delivery</li>
+              <li>⚡ <strong>Quick delivery</strong> - Digital cards instantly, printed cards in 3-5 days</li>
+            </ul>
+            
+            <p style="margin-top: 30px;">If you have any questions or need help completing your order, just reply to this email. We're here to help!</p>
+          </div>
+          <div class="footer">
+            <p>Questions? Contact us at support@celebrait.com</p>
+            <p>© 2025 Celebrait. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+Your Celebrait Card is Waiting!
+
+Hi ${userName}!
+
+We noticed you started creating a personalized card but didn't complete your order. Your unique creation is still waiting for you!
+
+⏰ Don't lose your personalized creation!
+We'll keep your card safe for 7 days, but after that it will be permanently deleted.
+
+Complete your card: ${recoveryUrl}
+
+Why finish your Celebrait card?
+- Unique AI creation that can never be recreated
+- Perfect personalization for your recipient  
+- Professional quality printing or digital delivery
+- Quick delivery (digital instantly, printed in 3-5 days)
+
+If you have questions, just reply to this email!
+
+© 2025 Celebrait. All rights reserved.
+    `
+  };
+}
+
 export function generateShippingNotificationEmail(orderData: any, trackingNumber: string): EmailParams {
   const { customerEmail, customerName, paymentReference } = orderData;
 
