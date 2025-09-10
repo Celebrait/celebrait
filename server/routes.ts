@@ -560,7 +560,7 @@ Current step: ${conversationStep || 'initial_scene'}`;
           // This is an opening message - add extra emphasis to NOT provide suggestions
           messages.push({
             role: "system",
-            content: `This is an opening message. Use this EXACT text as your response: "Greetings ✨ Let's create a mind blowing scene for the front of ${recipientName || 'NAME'}'s ${celebration || 'CELEBRATION'} card.\n\nI'll need your creative input for this first question, but after this you can ask me for ideas throughout, or type your own out.\n\nTo get us started, where would you like the scene to take place?"`
+            content: `This is an opening message. Use this EXACT text as your response: "Greetings! ✨ I'm here to help you create an amazing scene for the front of ${recipientName || 'NAME'}'s ${celebration || 'CELEBRATION'} card.\n\nFor this first question, I'll need you to type your own creative input, but throughout the rest of our conversation you can either type your ideas or ask me for suggestions anytime.\n\nTo get us started, where would you like the scene to take place?"`
           });
         }
         
@@ -746,20 +746,9 @@ Remember: You're helping them discover their perfect artistic vision through gui
       
       console.log('Art Style Suggestions request:', { sceneDescription, celebration, recipientName, photoContext, userName });
       
-      // Determine if multiple people are involved
-      const isMultiplePeople = photoContext && (
-        photoContext.toLowerCase().includes('multiple photos') ||
-        photoContext.toLowerCase().includes('two photos') ||
-        photoContext.toLowerCase().includes('multiple people') ||
-        photoContext.toLowerCase().includes('different people') ||
-        photoContext.toLowerCase().includes('various shots') ||
-        photoContext.toLowerCase().includes('several') ||
-        photoContext.toLowerCase().includes('different angles') ||
-        photoContext.toLowerCase().includes('group shot') ||
-        photoContext.toLowerCase().includes('people detected')
-      );
-
-      const peopleReference = isMultiplePeople ? `${recipientName} and the others` : recipientName;
+      // Since we're using naturally inclusive language, we don't need to detect multiple people
+      // All prompts now work for any number of people
+      const peopleReference = recipientName;
 
       // Build list of previously suggested items to avoid duplicates
       const avoidList = previousSuggestions && previousSuggestions.length > 0 
