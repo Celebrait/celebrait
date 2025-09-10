@@ -2767,7 +2767,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                               ...prev,
                               scene: finalResult
                             }));
-                            handleTextSubmit();
+                            // DON'T auto-submit - let user review the populated text first
+                            // They can click "Continue" when ready
                           }}
                           buttonText="Stuck for ideas? Brainstorm with AI"
                           buttonIcon={<Sparkles className="w-4 h-4" />}
