@@ -45,13 +45,65 @@ interface ConversationStep {
   required?: boolean;
 }
 
+// Recovery system for abandoned cards
+const RECOVERY_STORAGE_KEY = 'celebrait_card_recovery';
+const RECOVERY_EXPIRY_DAYS = 7;
+
+// Save progress to localStorage
+const saveRecoveryProgress = (data: any) => {
+  try {
+    const recoveryData = {
+      ...data,
+      timestamp: Date.now(),
+      expiresAt: Date.now() + (RECOVERY_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
+    };
+    localStorage.setItem(RECOVERY_STORAGE_KEY, JSON.stringify(recoveryData));
+  } catch (error) {
+    console.error('Failed to save recovery progress:', error);
+  }
+};
+
+// Load progress from localStorage
+const loadRecoveryProgress = () => {
+  try {
+    const saved = localStorage.getItem(RECOVERY_STORAGE_KEY);
+    if (!saved) return null;
+    
+    const data = JSON.parse(saved);
+    if (Date.now() > data.expiresAt) {
+      localStorage.removeItem(RECOVERY_STORAGE_KEY);
+      return null;
+    }
+    return data;
+  } catch (error) {
+    console.error('Failed to load recovery progress:', error);
+    return null;
+  }
+};
+
+// Clear recovery progress
+const clearRecoveryProgress = () => {
+  try {
+    localStorage.removeItem(RECOVERY_STORAGE_KEY);
+  } catch (error) {
+    console.error('Failed to clear recovery progress:', error);
+  }
+};
+
 export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, onStartFresh }: GuidedConversationProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, any>>({
-    // Default art style to "animated_movie_style" (High-End 3D Animated Movie)
-    art_style: 'animated_movie_style',
-    // Default photo option to match streamlined flow
-    photo_option: 'upload_and_scene'
+  const [answers, setAnswers] = useState<Record<string, any>>(() => {
+    // Try to load saved progress first
+    const recovered = loadRecoveryProgress();
+    if (recovered && recovered.answers) {
+      return recovered.answers;
+    }
+    return {
+      // Default art style to "animated_movie_style" (High-End 3D Animated Movie)
+      art_style: 'animated_movie_style',
+      // Default photo option to match streamlined flow
+      photo_option: 'upload_and_scene'
+    };
   });
   const [selectedPersonalities, setSelectedPersonalities] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -690,13 +742,23 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   };
 
   const handleAnswer = (value: string) => {
-    setAnswers(prev => ({ ...prev, [currentStep.id]: value }));
+    const newAnswers = { ...answers, [currentStep.id]: value };
+    setAnswers(newAnswers);
     
     // Save this input to stepInputs for future navigation
     setStepInputs(prev => ({
       ...prev,
       [currentStep.id]: value
     }));
+    
+    // Save progress for recovery
+    saveRecoveryProgress({
+      answers: newAnswers,
+      currentStepIndex,
+      cardId,
+      userEmail: newAnswers.email_address || answers.email_address,
+      userName: newAnswers.recipient_name || answers.recipient_name || 'Friend'
+    });
     
     setCurrentInput('');
     
