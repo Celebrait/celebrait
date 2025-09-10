@@ -373,25 +373,28 @@ export function AIBrainstormChat({
       // Pattern 1: Scene Summary section - extract content between Scene Summary: and ---
       /\*\*Scene Summary:\*\*\s*([\s\S]+?)(?=---|\n\n---|\*\*|If you'd like|When you're ready|$)/,
       
-      // Pattern 2: "Here's the complete/updated scene description:"
+      // Pattern 2: "Here's a summary of the scene we've crafted:" - NEW PATTERN for this specific issue
+      /Here's a summary of the scene we've crafted[^:]*:\s*\n\n([\s\S]+?)(?=\n\n|When you're ready|Perfect!|Please let me know|$)/,
+      
+      // Pattern 3: "Here's the complete/updated scene description:"
       /Here's the (?:complete|updated) scene description[^:]*:\s*([\s\S]+?)(?=\n\n|When you're ready|Perfect!|$)/,
       
-      // Pattern 2: "updated scene description:" 
+      // Pattern 4: "updated scene description:" 
       /updated scene description[^:]*:\s*([\s\S]+?)(?=\n\n|Please|$)/,
       
-      // Pattern 3: After "Got it!" or "Understood!" with scene content
+      // Pattern 5: After "Got it!" or "Understood!" with scene content
       /(?:Got it!|Understood!)[^:]*:\s*([\s\S]+?)(?=\n\n|When you're ready|Perfect!|$)/,
       
-      // Pattern 4: Multi-line scene description after colon
+      // Pattern 6: Multi-line scene description after colon
       /Let's update the scene[^:]*:\s*([\s\S]+?)(?=\n\n|When you're ready|Perfect!|$)/,
       
-      // Pattern 5: Scene content between quotes or after "scene:"
+      // Pattern 7: Scene content between quotes or after "scene:"
       /scene[^:]*:\s*([\s\S]+?)(?=\n\n|When you're ready|Perfect!|$)/,
       
-      // Pattern 6: Complete paragraph that looks like a scene description
+      // Pattern 8: Complete paragraph that looks like a scene description
       /^([A-Z][^.!?]*(?:[.!?][^.!?]*){2,})(?=\n\n|When you're ready|Perfect!|$)/,
       
-      // Pattern 7: Content after "Here's" that spans multiple sentences
+      // Pattern 9: Content after "Here's" that spans multiple sentences
       /Here's[^:]*:\s*([\s\S]+?)(?=\n\n|When you're ready|Perfect!|$)/
     ];
 
@@ -405,11 +408,19 @@ export function AIBrainstormChat({
           // Remove any remaining markdown formatting
           .replace(/\*\*/g, '')
           .replace(/---/g, '')
+          // Remove conversational AI responses at the beginning
+          .replace(/^No problem![^.]*\./g, '')
+          .replace(/^The AI will ensure[^.]*\./g, '')
+          .replace(/^Great choice![^.]*\./g, '')
+          .replace(/^Perfect![^.]*\./g, '')
+          .replace(/^Understood![^.]*\./g, '')
           // Remove trailing instructions
           .replace(/If you'd like.*$/s, '')
           .replace(/When you're ready.*$/s, '')
           .replace(/Perfect!.*$/s, '')
-          // Clean up extra whitespace
+          .replace(/Please let me know.*$/s, '')
+          // Clean up extra whitespace and newlines
+          .replace(/^\s*\n+/g, '')
           .trim();
         
         // Validate it's actually a scene description (not just conversation)
@@ -417,6 +428,9 @@ export function AIBrainstormChat({
             !extracted.toLowerCase().includes('what would you like') &&
             !extracted.toLowerCase().includes('which element') &&
             !extracted.toLowerCase().includes('let me know') &&
+            !extracted.toLowerCase().includes('no problem') &&
+            !extracted.toLowerCase().includes('the ai will ensure') &&
+            !extracted.toLowerCase().includes('great choice') &&
             (extracted.includes('.') || extracted.length > 50)) {
           console.log('Successfully extracted and cleaned scene:', extracted);
           return extracted;
