@@ -18,9 +18,22 @@ export default function CreateCard() {
   
   // Streamlined flow state - always printed cards, always upload_and_scene
   const [selectedPhotoOption] = useState<'upload_and_scene'>('upload_and_scene');
+  
+  // Recovery parameters from URL
+  const [recoveryParams, setRecoveryParams] = useState<{
+    isRecovery: boolean;
+    cardId: string | null;
+  }>({ isRecovery: false, cardId: null });
 
   // Set up default values when component mounts - always printed cards
   useEffect(() => {
+    // Parse URL parameters for recovery flow
+    const urlParams = new URLSearchParams(window.location.search);
+    const isRecovery = urlParams.get('recovery') === 'true';
+    const cardId = urlParams.get('cardId');
+    
+    setRecoveryParams({ isRecovery, cardId });
+    
     // Set defaults in sessionStorage
     sessionStorage.setItem('selectedDeliveryType', 'printed');
     sessionStorage.setItem('selectedPhotoOption', 'upload_and_scene');
@@ -78,6 +91,7 @@ export default function CreateCard() {
       streamlinedFlow={true}
       selectedPhotoOption={selectedPhotoOption}
       onStartFresh={handleBackToHome}
+      recoveryParams={recoveryParams}
     />;
   };
 

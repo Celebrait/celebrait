@@ -33,6 +33,10 @@ interface GuidedConversationProps {
   streamlinedFlow?: boolean;
   selectedPhotoOption?: 'upload_and_scene' | 'upload_and_transform' | null;
   onStartFresh?: () => void;
+  recoveryParams?: {
+    isRecovery: boolean;
+    cardId: string | null;
+  };
 }
 
 interface ConversationStep {
@@ -90,7 +94,7 @@ const clearRecoveryProgress = () => {
   }
 };
 
-export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, onStartFresh }: GuidedConversationProps) {
+export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, onStartFresh, recoveryParams }: GuidedConversationProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>(() => {
     // Try to load saved progress first
@@ -1729,6 +1733,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-blue-50 overflow-visible">
+      {/* Recovery Welcome Banner */}
+      {recoveryParams?.isRecovery && (
+        <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-3 text-center">
+          <div className="max-w-4xl mx-auto flex items-center justify-center space-x-3">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="font-medium">
+              🎉 Welcome back! Your progress was saved - let's continue where you left off!
+            </span>
+          </div>
+        </div>
+      )}
+      
       {/* Header - Robot and Question */}
       <div className={`bg-gradient-to-br from-purple-50 to-blue-50 border-b border-white/20 transition-all duration-500 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
         <div className="max-w-4xl mx-auto p-4 sm:p-6">
