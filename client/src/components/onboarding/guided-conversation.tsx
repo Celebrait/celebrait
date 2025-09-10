@@ -3064,7 +3064,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     // Start actual card generation
                     actuallyGenerateCard();
                   }}
-                  disabled={!popupFirstName || !popupLastName || !popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
+                  disabled={!popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
                   className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   GENERATE MY CARD
