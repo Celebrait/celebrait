@@ -24,6 +24,7 @@ import StyleTest from "@/pages/style-test";
 import GPTImageTest from "@/pages/gpt-image-test";
 import TestCardPreview from "@/pages/test-card-preview";
 import TestDashboard from "@/pages/test-dashboard";
+import LoadingPreview from "@/pages/loading-preview";
 // Typography test page removed - simplified to direct AI integration
 import NotFound from "@/pages/not-found";
 import PaymentWithTips from "@/pages/payment-with-tips";
@@ -58,6 +59,7 @@ function Router() {
         <Route path="/gpt-image-test" component={GPTImageTest} />
         <Route path="/test-card-preview" component={TestCardPreview} />
         <Route path="/test-dashboard" component={TestDashboard} />
+        <Route path="/loading-preview" component={LoadingPreview} />
         {/* Typography test page removed - simplified to direct AI integration */}
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms-of-service" component={TermsOfService} />
