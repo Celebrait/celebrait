@@ -536,8 +536,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         clearTimeout(timeoutId);
         
         // Skip saving on photo upload step on mobile to prevent blocking
-        if (isMobile && currentStep?.id === 'photo_upload') {
-          console.log('[RECOVERY] Skipping save on mobile photo upload step');
+        // Note: We check the step ID from the data instead of currentStep to avoid dependency issues
+        if (data.currentStepIndex !== undefined && data.filteredSteps && data.filteredSteps[data.currentStepIndex]?.id === 'photo_upload') {
+          console.log('[RECOVERY] Skipping save on photo upload step to prevent mobile blocking');
           return;
         }
         
@@ -549,7 +550,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         }, 100); // 100ms debounce
       };
     })()
-  , [currentStep?.id]);
+  , []);
 
   // Memoized filter steps based on streamlined flow, scene type and card options
   const filteredSteps = useMemo(() => steps.filter(step => {
