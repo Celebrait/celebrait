@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 
 import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette, Edit3, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { apiRequest } from "@/lib/queryClient";
 import { buildTextOnlyImagePrompt } from "@shared/prompts";
 // Typography library removed - AI handles text integration directly
@@ -707,8 +708,29 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   }, [currentStep?.id, stepInputs, answers]);
 
+  const isMobile = useIsMobile();
+  
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (isMobile) {
+      // On mobile, force instant scroll to avoid delays
+      // Override any global CSS smooth behavior temporarily
+      const root = document.documentElement;
+      const prevBehavior = root.style.scrollBehavior;
+      root.style.scrollBehavior = 'auto';
+      
+      try {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      } catch (error) {
+        // Fallback for older browsers
+        window.scrollTo(0, 0);
+      }
+      
+      // Restore previous behavior
+      root.style.scrollBehavior = prevBehavior;
+    } else {
+      // Desktop keeps smooth scrolling
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   useEffect(() => {
