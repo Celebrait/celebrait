@@ -610,23 +610,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
           // Clear existing text
           setPlaceholderText('');
           
-          // Mobile optimization: Skip character-by-character typing on mobile
-          if (isMobile) {
-            // Instant display on mobile for better performance
-            setPlaceholderText(currentPrompt);
-          } else {
-            // Desktop: Type out the text character by character  
-            for (let i = 0; i <= currentPrompt.length && isActive; i++) {
-              setPlaceholderText(currentPrompt.slice(0, i));
-              await new Promise(resolve => setTimeout(resolve, 30));
-            }
+          // Type out the text character by character for all devices
+          for (let i = 0; i <= currentPrompt.length && isActive; i++) {
+            setPlaceholderText(currentPrompt.slice(0, i));
+            await new Promise(resolve => setTimeout(resolve, 30));
           }
           
           setIsTypingExample(false);
           
-          // Mobile optimization: Shorter wait time on mobile
-          const waitTime = isMobile ? 1500 : 3000; // 1.5s on mobile vs 3s on desktop
-          await new Promise(resolve => setTimeout(resolve, waitTime));
+          // Wait 3 seconds before moving to next example
+          await new Promise(resolve => setTimeout(resolve, 3000));
           
           if (isActive) {
             exampleIndex = (exampleIndex + 1) % EXAMPLE_PROMPTS.length;
@@ -634,8 +627,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         }
       };
       
-      // Mobile optimization: No initial delay on mobile
-      const initialDelay = isMobile ? 0 : 500;
+      // Reduce delay on mobile for faster perceived performance
+      const initialDelay = isMobile ? 100 : 500;
       const timer = setTimeout(runTypingCycle, initialDelay);
       
       return () => {
