@@ -2702,20 +2702,35 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         <Button 
                           onClick={(e) => {
                             e.preventDefault();
-                            // Show immediate visual feedback
-                            setIsNavigating(true);
                             
-                            // Performance measurement
-                            performance.mark('navigation-start');
-                            
-                            // Use React's concurrent features to prevent blocking
-                            startTransition(() => {
-                              if (currentStepIndex < filteredSteps.length - 1) {
-                                setCurrentStepIndex(prev => prev + 1);
-                              } else {
-                                generateCard();
-                              }
-                            });
+                            // Mobile webview optimization: Immediate UI feedback
+                            if (isMobile) {
+                              // For mobile webview, defer heavy operations to prevent UI blocking
+                              setIsNavigating(true);
+                              
+                              // Use requestAnimationFrame to ensure UI update happens first
+                              requestAnimationFrame(() => {
+                                performance.mark('navigation-start');
+                                startTransition(() => {
+                                  if (currentStepIndex < filteredSteps.length - 1) {
+                                    setCurrentStepIndex(prev => prev + 1);
+                                  } else {
+                                    generateCard();
+                                  }
+                                });
+                              });
+                            } else {
+                              // Desktop: Original flow
+                              setIsNavigating(true);
+                              performance.mark('navigation-start');
+                              startTransition(() => {
+                                if (currentStepIndex < filteredSteps.length - 1) {
+                                  setCurrentStepIndex(prev => prev + 1);
+                                } else {
+                                  generateCard();
+                                }
+                              });
+                            }
                           }}
                           disabled={isNavigating}
                           className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 disabled:opacity-75 transition-opacity"
