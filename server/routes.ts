@@ -1992,7 +1992,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       }
 
       const frontImageGeneration = await openai.images.generate({
-        model: "dall-e-3",
+        model: "gpt-image-1",
         prompt: enhancedFrontPrompt,
         n: 1,
         size: "1024x1024",
@@ -3735,7 +3735,7 @@ ${formatInstruction}`;
         contentType: `image/${mimeType}`
       });
       formData.append('prompt', insideCardPrompt);
-      formData.append('model', 'dall-e-3');
+      formData.append('model', 'gpt-image-1');
       formData.append('n', '1');
       formData.append('size', size);
       formData.append('quality', 'high');
