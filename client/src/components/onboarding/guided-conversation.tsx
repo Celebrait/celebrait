@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { apiRequest } from "@/lib/queryClient";
 import { buildTextOnlyImagePrompt } from "@shared/prompts";
+import { ImageStore } from "@/utils/image-store";
 // Typography library removed - AI handles text integration directly
 import { AIBrainstormChat } from "@/components/ui/ai-brainstorm-chat-new";
 import { ArtStyleSelector } from "@/components/ui/art-style-selector";
@@ -58,14 +59,14 @@ const RECOVERY_EXPIRY_DAYS = 7;
 const saveRecoveryProgress = (data: any) => {
   try {
     // Mobile optimization: Exclude heavy photo data that can block webview main thread
-    const { uploadedPhotos, photoData, photo_upload, ...lightData } = data.answers || {};
+    const { uploadedPhotoIds, photoData, photo_upload, ...lightData } = data.answers || {};
     
     const recoveryData = {
       ...data,
       answers: {
         ...lightData,
         // Keep only metadata for photos, not the actual Base64 data
-        ...(uploadedPhotos?.length && { hasUploadedPhotos: true, photoCount: uploadedPhotos.length })
+        ...(uploadedPhotoIds?.length && { hasUploadedPhotos: true, photoCount: uploadedPhotoIds.length })
       },
       timestamp: Date.now(),
       expiresAt: Date.now() + (RECOVERY_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
@@ -131,7 +132,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [showCustomInput, setShowCustomInput] = useState<Record<string, boolean>>({});
   const [editingStep, setEditingStep] = useState<string | null>(null);
   const [returnToSummary, setReturnToSummary] = useState(false);
-  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+  const [uploadedPhotoIds, setUploadedPhotoIds] = useState<string[]>([]);
   const [typedText, setTypedText] = useState('');
   const [isMounted, setIsMounted] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
@@ -968,29 +969,35 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       // Limit to one file for transform style option
       const filesToProcess = isTransformStyle ? [files[0]] : Array.from(files);
       
-      const photoDataArray: string[] = [];
-      let filesProcessed = 0;
+      try {
+        // Store files in ImageStore and get lightweight IDs - NO BASE64 CONVERSION!
+        const photoIds = filesToProcess.map(file => ImageStore.addPhoto(file));
+        
+        // Update state with lightweight IDs instead of heavy Base64 strings
+        setUploadedPhotoIds(photoIds);
+        
+        // For backward compatibility, store first photo's object URL (not Base64)
+        const firstPhotoUrl = ImageStore.getPhotoUrl(photoIds[0]);
+        if (firstPhotoUrl) {
+          setAnswers(prev => ({ ...prev, photo_upload: firstPhotoUrl }));
+        }
+        
+        // Show success message immediately - no async operations to block the UI!
+        const successMessage = isTransformStyle 
+          ? 'Photo uploaded successfully for style transformation'
+          : `Photo${photoIds.length > 1 ? 's' : ''} uploaded successfully`;
+        setAnswers(prev => ({ ...prev, character_description: successMessage }));
+        
+      } catch (error) {
+        toast({
+          title: "Upload Error",
+          description: "Failed to process uploaded photo. Please try again.",
+          variant: "destructive"
+        });
+      }
       
-      filesToProcess.forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const photoData = e.target?.result as string;
-          photoDataArray.push(photoData);
-          filesProcessed++;
-          
-          if (filesProcessed === filesToProcess.length) {
-            setUploadedPhotos(photoDataArray);
-            setAnswers(prev => ({ ...prev, photo_upload: photoDataArray[0] })); // Store first photo for backward compatibility
-            
-            // Show success message immediately
-            const successMessage = isTransformStyle 
-              ? 'Photo uploaded successfully for style transformation'
-              : `Photo${photoDataArray.length > 1 ? 's' : ''} uploaded successfully`;
-            setAnswers(prev => ({ ...prev, character_description: successMessage }));
-          }
-        };
-        reader.readAsDataURL(file);
-      });
+      // Clear the input so the same file can be uploaded again if needed
+      event.target.value = '';
     }
   };
 
@@ -1162,9 +1169,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       }
       
       // Generate the card normally  
-      if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
+      if (answers.photo_option === 'upload_and_scene' && uploadedPhotoIds.length > 0) {
         await generateCardWithGPTImage(currentCardId);
-      } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotos.length > 0) {
+      } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotoIds.length > 0) {
         await generateCardWithGPTImageTransform(currentCardId);
       } else {
         // Use text-only workflow with detailed prompt structure
@@ -1330,7 +1337,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     try {
       console.log('Starting card generation with options:', {
         photo_option: answers.photo_option,
-        has_photos: uploadedPhotos.length > 0,
+        has_photos: uploadedPhotoIds.length > 0,
         cardId: cardId,
         notification_email: popupEmail
       });
@@ -1348,10 +1355,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       // Generate the card using existing logic
       let generatedCard;
       
-      if (answers.photo_option === 'upload_and_scene' && uploadedPhotos.length > 0) {
+      if (answers.photo_option === 'upload_and_scene' && uploadedPhotoIds.length > 0) {
         console.log('Using GPT Image scene generation with cardId:', currentCardId);
         generatedCard = await generateCardWithGPTImage(currentCardId);
-      } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotos.length > 0) {
+      } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotoIds.length > 0) {
         console.log('Using GPT Image transform generation with cardId:', currentCardId);
         generatedCard = await generateCardWithGPTImageTransform(currentCardId);
       } else {
@@ -1422,10 +1429,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     console.log('Using GPT-Image-1 for photo + scene workflow with cardId:', useCardId);
     
     // Use original uploaded photos directly
-    const referenceImages = uploadedPhotos;
+    const referenceImages = uploadedPhotoIds.map(id => ImageStore.getPhotoFile(id)).filter(Boolean);
     console.log('Using images for generation:', { 
-      originalCount: uploadedPhotos.length,
-      referenceImages: referenceImages.map((img, i) => `Image ${i + 1}: original`)
+      originalCount: uploadedPhotoIds.length,
+      referenceImages: referenceImages.map((img: File, i: number) => `Image ${i + 1}: ${img.name}`)
     });
     
     // Build scene description with style
@@ -1470,7 +1477,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     // Store original unwatermarked images in conversationData for secure access
     const conversationData = {
       ...answers,
-      uploadedPhotos,
+      uploadedPhotoIds,
       originalFrontImageUrl: frontResult.originalImageUrl,
       originalInsideImageUrl: insideOriginalUrl,
       watermarkedFrontImageUrl: frontResult.imageUrl,
@@ -1494,10 +1501,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     console.log('Using GPT-Image-1 for photo + transform style workflow with cardId:', useCardId);
     
     // Use original uploaded photos directly
-    const referenceImages = uploadedPhotos;
+    const referenceImages = uploadedPhotoIds.map(id => ImageStore.getPhotoFile(id)).filter(Boolean);
     console.log('Using images for style transformation:', { 
-      originalCount: uploadedPhotos.length,
-      referenceImages: referenceImages.map((img, i) => `Image ${i + 1}: original`)
+      originalCount: uploadedPhotoIds.length,
+      referenceImages: referenceImages.map((img: File, i: number) => `Image ${i + 1}: ${img.name}`)
     });
     
     // Build style transformation prompt using the exact same approach as gpt-image-test page
@@ -1540,7 +1547,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     // Store original unwatermarked images in conversationData for secure access
     const conversationData = {
       ...answers,
-      uploadedPhotos,
+      uploadedPhotoIds,
       originalFrontImageUrl: frontResult.originalImageUrl,
       originalInsideImageUrl: insideOriginalUrl,
       watermarkedFrontImageUrl: frontResult.imageUrl,
@@ -2052,17 +2059,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     <div className="grid gap-4">
                       
                       {/* Uploaded Photos */}
-                      {uploadedPhotos.length > 0 && (
+                      {uploadedPhotoIds.length > 0 && (
                         <div className="bg-white rounded-xl p-4 border border-purple-200">
                           <div className="flex justify-between items-start">
                             <div>
                               <h4 className="font-semibold text-purple-700 mb-4">Uploaded Photos</h4>
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {uploadedPhotos.map((photo, index) => (
+                                {uploadedPhotoIds.map((photoId, index) => (
                                   <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg group">
                                     <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-purple-300 flex-shrink-0">
                                       <img 
-                                        src={uploadedPhotos[index]} 
+                                        src={ImageStore.getPhotoUrl(photoId) || ''} 
                                         alt={`Photo ${index + 1}`}
                                         className="w-full h-full object-cover"
                                       />
@@ -2565,7 +2572,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
                 {currentStep.type === 'photo_upload' && (answers.photo_option === 'upload_and_scene' || answers.photo_option === 'upload_and_transform') && (
                   <div className="space-y-6">
-                    {uploadedPhotos.length === 0 ? (
+                    {uploadedPhotoIds.length === 0 ? (
                       <div className="space-y-6">
                         <div className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center bg-purple-50 hover:bg-purple-100 transition-colors">
                           <input
@@ -2639,19 +2646,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
                         <div className="text-center">
                           <div className={`flex justify-center items-center gap-4 flex-wrap ${
-                            uploadedPhotos.length === 1 ? 'justify-center' :
-                            uploadedPhotos.length === 2 ? 'justify-center' :
-                            uploadedPhotos.length === 3 ? 'justify-center' :
-                            uploadedPhotos.length === 4 ? 'justify-center' :
+                            uploadedPhotoIds.length === 1 ? 'justify-center' :
+                            uploadedPhotoIds.length === 2 ? 'justify-center' :
+                            uploadedPhotoIds.length === 3 ? 'justify-center' :
+                            uploadedPhotoIds.length === 4 ? 'justify-center' :
                             'justify-center'
                           }`}>
-                            {uploadedPhotos.map((photo, index) => (
+                            {uploadedPhotoIds.map((photoId, index) => (
                               <div key={index} className="flex flex-col items-center space-y-2">
                                 <div className="flex flex-col items-center space-y-2">
                                   {/* Original photo */}
                                   <div className="relative w-32 h-32 rounded-xl overflow-hidden border-4 border-purple-300 flex-shrink-0">
                                     <img 
-                                      src={uploadedPhotos[index]} 
+                                      src={ImageStore.getPhotoUrl(photoId) || ''} 
                                       alt={`Original photo ${index + 1}`} 
                                       className="w-full h-full object-cover"
                                     />
@@ -2666,7 +2673,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             ))}
                           </div>
                           <p className="text-green-600 font-medium mt-2">
-                            {uploadedPhotos.length === 1 ? 'Photo uploaded successfully!' : `${uploadedPhotos.length} photos uploaded successfully!`}
+                            {uploadedPhotoIds.length === 1 ? 'Photo uploaded successfully!' : `${uploadedPhotoIds.length} photos uploaded successfully!`}
                           </p>
                           
                           <div className="flex gap-2 mt-4 justify-center">
