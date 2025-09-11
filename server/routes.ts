@@ -3508,7 +3508,7 @@ ${formatInstruction}`;
         });
 
         formData.append('prompt', fullPrompt);
-        formData.append('model', 'dall-e-3');
+        formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
         formData.append('size', size);
         formData.append('quality', 'standard');
