@@ -3374,7 +3374,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
   });
 
   // Scene editing using GPT-Image-1 edits API
-  app.post("/api/edit-scene-dall-e-3", async (req, res) => {
+  app.post("/api/edit-scene-gpt-image-1", async (req, res) => {
     if (!openai) {
       return res.status(500).json({ message: "OpenAI API key not configured" });
     }

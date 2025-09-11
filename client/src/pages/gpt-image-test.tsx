@@ -448,7 +448,7 @@ export default function GPTImageTest() {
           
           console.log(`Scene edit attempt ${attempt}: Starting... (3min timeout)`);
           
-          const response = await fetch('/api/edit-scene-dall-e-3', {
+          const response = await fetch('/api/edit-scene-gpt-image-1', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'

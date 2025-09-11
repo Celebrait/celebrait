@@ -1742,7 +1742,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     console.log('[DEBUG] Calling edit-scene-gpt-image-1 with cardId:', useCardId);
     
     // Generate front card using robust API call
-    const frontResult = await makeRobustAPICall("/api/edit-scene-dall-e-3", {
+    const frontResult = await makeRobustAPICall("/api/edit-scene-gpt-image-1", {
       cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
       imageData: referenceImages[0], // Keep for backward compatibility
       imageDataArray: referenceImages, // Send all images
