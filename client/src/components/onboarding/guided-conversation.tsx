@@ -2121,18 +2121,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         </div>
                       )}
 
-                      {/* Art Style - Fixed to High-End 3D Animated Movie */}
-                      <div className="bg-white rounded-xl p-4 border border-purple-200">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <h4 className="font-semibold text-purple-700">Art Style</h4>
-                            <p className="text-gray-700">High-End 3D Animated Movie</p>
-                          </div>
-                          <div className="text-sm text-gray-500 italic">
-                            Default style
-                          </div>
-                        </div>
-                      </div>
 
                       {/* Message */}
                       <div className="bg-white rounded-xl p-4 border border-purple-200">
@@ -2189,7 +2177,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           value={currentInput}
                           onChange={(e) => setCurrentInput(e.target.value)}
                           placeholder="e.g., watercolor painting, vintage poster, anime style, oil painting..."
-                          className="text-lg p-4 rounded-xl border-2 border-purple-200 focus:border-purple-400 bg-white shadow-sm"
+                          className="text-sm md:text-lg p-4 rounded-xl border-2 border-purple-200 focus:border-purple-400 bg-white shadow-sm"
                           onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                         />
                         <Button 
@@ -2289,7 +2277,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             value={currentInput}
                             onChange={(e) => setCurrentInput(e.target.value)}
                             placeholder="e.g., watercolor painting, vintage poster, anime style, oil painting..."
-                            className="text-lg p-4 rounded-xl border-2 border-purple-200 focus:border-purple-400 bg-white shadow-sm"
+                            className="text-sm md:text-lg p-4 rounded-xl border-2 border-purple-200 focus:border-purple-400 bg-white shadow-sm"
                             onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                           />
                           <Button 
@@ -2341,7 +2329,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           }
                         }}
                         placeholder={currentStep.placeholder}
-                        className="text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
+                        className="text-sm md:text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
                         onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                       />
                       <Button 
@@ -2850,7 +2838,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         }
                       }}
                       placeholder={currentStep.id === 'scene' && !userHasTyped && placeholderText ? placeholderText : currentStep.placeholder}
-                      className="text-lg p-4 min-h-[200px] rounded-xl border-purple-200 focus:border-purple-400 resize-y"
+                      className="text-sm md:text-lg p-4 min-h-[200px] rounded-xl border-purple-200 focus:border-purple-400 resize-y"
                       autoFocus={currentStep.id !== 'scene'}
                     />
                     <div className="flex justify-center">
