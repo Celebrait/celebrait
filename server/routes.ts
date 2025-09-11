@@ -128,9 +128,9 @@ async function convertBase64ToPngFile(base64Data: string, cardId: number, imageT
     // Return the file path/URL for database storage instead of Base64
     return `/images/${filename}`;
     
-  } catch (error) {
+  } catch (error: any) {
     console.error(`[PNG_CONVERSION] Error converting ${imageType} image for card ${cardId}:`, error);
-    throw new Error(`Failed to convert ${imageType} image to PNG file: ${error.message}`);
+    throw new Error(`Failed to convert ${imageType} image to PNG file: ${error?.message || 'Unknown error'}`);
   } finally {
     // Clean up processing queue
     pngProcessingQueue.delete(cardId);
@@ -466,7 +466,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { type, context, userInput, recipientName, celebration, conversationHistory, conversationStep, photoContext, userName, collectedInfo } = req.body;
 
       let systemPrompt = "";
-      let messages = [];
+      let messages: any[] = [];
 
       if (type === "scene") {
         // Use naturally inclusive language that works for both single and multiple people
@@ -652,7 +652,7 @@ Remember: You're helping them discover their perfect artistic vision through gui
 
       // Build list of previously suggested items to avoid duplicates
       const avoidList = previousSuggestions && previousSuggestions.length > 0 
-        ? previousSuggestions.map(s => s.name).join(', ')
+        ? previousSuggestions.map((s: any) => s.name).join(', ')
         : '';
 
       const systemPrompt = `You are an expert visual theme consultant specializing in greeting card design. Your job is to provide exactly 2 options: one traditional art style and one visual style reference.
@@ -722,10 +722,10 @@ You must respond with valid JSON in this exact format (no markdown code blocks, 
       
       try {
         // Clean up the response by removing markdown code blocks if present
-        let cleanResponse = response;
-        if (response.includes('```json')) {
+        let cleanResponse = response || '';
+        if (response && response.includes('```json')) {
           cleanResponse = response.replace(/```json\s*/, '').replace(/```\s*$/, '');
-        } else if (response.includes('```')) {
+        } else if (response && response.includes('```')) {
           cleanResponse = response.replace(/```\s*/, '').replace(/```\s*$/, '');
         }
         
@@ -822,7 +822,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
       const messages = [
         { role: "system", content: systemPrompt },
-        ...conversationHistory.map(msg => ({
+        ...conversationHistory.map((msg: any) => ({
           role: msg.role,
           content: msg.content
         })),
@@ -842,10 +842,10 @@ If just having a conversation (no suggestions), respond with valid JSON:
       
       try {
         // Clean up the response by removing markdown code blocks if present
-        let cleanResponse = response;
-        if (response.includes('```json')) {
+        let cleanResponse = response || '';
+        if (response && response.includes('```json')) {
           cleanResponse = response.replace(/```json\s*/, '').replace(/```\s*$/, '');
-        } else if (response.includes('```')) {
+        } else if (response && response.includes('```')) {
           cleanResponse = response.replace(/```\s*/, '').replace(/```\s*$/, '');
         }
         
@@ -855,7 +855,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
         console.error('Failed to parse AI response as JSON:', parseError);
         console.error('Raw response:', response);
         // If not JSON, treat as plain text response
-        res.json({ message: response });
+        res.json({ message: response || 'Unable to generate response' });
       }
     } catch (error) {
       console.error('Art style chat error:', error);
@@ -1554,7 +1554,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       
       // Get the original unwatermarked image from conversationData (if available)
       let imageBuffer;
-      const conversationData = card.conversationData || {};
+      const conversationData = card.conversationData as any || {};
       
       if (conversationData.originalFrontImageUrl) {
         // Use the original unwatermarked image from conversationData
@@ -1620,7 +1620,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       // Try to get original unwatermarked image first
       const card = await storage.getCard(cardId);
       if (card?.conversationData) {
-        const originalImageUrl = card.conversationData.originalFrontImageUrl;
+        const originalImageUrl = (card.conversationData as any).originalFrontImageUrl;
         if (originalImageUrl) {
           console.log(`[DOWNLOAD] Using original unwatermarked front image for card ${cardId}`);
           imageBuffer = Buffer.from(originalImageUrl.replace('data:image/png;base64,', ''), 'base64');
@@ -1677,7 +1677,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       // Try to get original unwatermarked image first
       const card = await storage.getCard(cardId);
       if (card?.conversationData) {
-        const originalImageUrl = card.conversationData.originalInsideImageUrl;
+        const originalImageUrl = (card.conversationData as any).originalInsideImageUrl;
         if (originalImageUrl) {
           console.log(`[DOWNLOAD] Using original unwatermarked inside image for card ${cardId}`);
           imageBuffer = Buffer.from(originalImageUrl.replace('data:image/png;base64,', ''), 'base64');
@@ -1744,7 +1744,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       
       // Get the original unwatermarked image from conversationData (if available)
       let imageBuffer;
-      const conversationData = card.conversationData || {};
+      const conversationData = card.conversationData as any || {};
       
       if (conversationData.originalInsideImageUrl) {
         // Use the original unwatermarked image from conversationData
@@ -4704,7 +4704,7 @@ ${formatInstruction}`;
         // Store the reference for testing email links
         emailLinkCache.set(testReference, {
           card,
-          insideImage: !!card.insideImageUrl,
+          insideImage: card.insideImageUrl ? true : false,
           timestamp: Date.now()
         });
 
