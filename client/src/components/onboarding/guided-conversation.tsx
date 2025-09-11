@@ -1725,11 +1725,26 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const generateCardWithGPTImage = async (useCardId: number) => {
     console.log('Using GPT-Image-1 for photo + scene workflow with cardId:', useCardId);
     
-    // Use original uploaded photos directly
-    const referenceImages = uploadedPhotoIds.map(id => ImageStore.getPhotoFile(id)).filter(Boolean);
-    console.log('Using images for generation:', { 
+    // Use original uploaded photos and convert to base64
+    const referenceFiles = uploadedPhotoIds.map(id => ImageStore.getPhotoFile(id)).filter(Boolean);
+    console.log('Converting images to base64 for API:', { 
       originalCount: uploadedPhotoIds.length,
-      referenceImages: referenceImages.map((img, i) => img ? `Image ${i + 1}: ${img.name}` : `Image ${i + 1}: missing`)
+      referenceFiles: referenceFiles.map((img, i) => img ? `Image ${i + 1}: ${img.name}` : `Image ${i + 1}: missing`)
+    });
+    
+    // Convert File objects to base64 data URLs
+    const referenceImages = await Promise.all(
+      referenceFiles.map(file => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      }))
+    );
+    
+    console.log('Base64 conversion complete:', {
+      count: referenceImages.length,
+      sizes: referenceImages.map(img => `${Math.round(img.length / 1024)}KB`)
     });
     
     // Build scene description with style
@@ -1745,7 +1760,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const frontResult = await makeRobustAPICall("/api/edit-scene-gpt-image-1", {
       cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
       imageData: referenceImages[0], // Keep for backward compatibility
-      imageDataArray: referenceImages, // Send all images
+      imageDataArray: referenceImages, // Send all images as base64
       scenePrompt: sceneDescription,
       style: artStyle,
       includeText: !!frontCardText,
@@ -1797,12 +1812,22 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const generateCardWithGPTImageTransform = async (useCardId: number) => {
     console.log('Using GPT-Image-1 for photo + transform style workflow with cardId:', useCardId);
     
-    // Use original uploaded photos directly
-    const referenceImages = uploadedPhotoIds.map(id => ImageStore.getPhotoFile(id)).filter(Boolean);
-    console.log('Using images for style transformation:', { 
+    // Use original uploaded photos and convert to base64
+    const referenceFiles = uploadedPhotoIds.map(id => ImageStore.getPhotoFile(id)).filter(Boolean);
+    console.log('Converting images to base64 for transform:', { 
       originalCount: uploadedPhotoIds.length,
-      referenceImages: referenceImages.map((img, i) => img ? `Image ${i + 1}: ${img.name}` : `Image ${i + 1}: missing`)
+      referenceFiles: referenceFiles.map((img, i) => img ? `Image ${i + 1}: ${img.name}` : `Image ${i + 1}: missing`)
     });
+    
+    // Convert File objects to base64 data URLs
+    const referenceImages = await Promise.all(
+      referenceFiles.map(file => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      }))
+    );
     
     // Build style transformation prompt using the exact same approach as gpt-image-test page
     const artStyle = answers.art_style || 'semi-realistic illustration';
