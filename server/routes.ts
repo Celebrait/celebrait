@@ -635,106 +635,6 @@ Remember: You're helping them discover their perfect artistic vision through gui
   });
 
   // Art Style Suggestions endpoint
-  // Photo content analysis endpoint - detect people count in uploaded photos
-  app.post("/api/analyze-photo-content", async (req, res) => {
-    try {
-      const { photos } = req.body;
-      
-      if (!photos || !Array.isArray(photos) || photos.length === 0) {
-        return res.status(400).json({ error: "No photos provided" });
-      }
-
-      console.log(`[PHOTO ANALYSIS] Analyzing ${photos.length} photos for people count`);
-      
-      // Analyze ALL photos to detect people count
-      let totalPeopleCount = 0;
-      const photoAnalyses = [];
-      
-      for (let i = 0; i < photos.length; i++) {
-        const photo = photos[i];
-        console.log(`[PHOTO ANALYSIS] Analyzing photo ${i + 1}/${photos.length}`);
-        
-        try {
-          const response = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "text",
-                    text: "Count the number of people in this photo. Respond with ONLY a number (1, 2, 3, etc.) followed by the word 'people'. For example: '2 people' or '1 person'. If no people are visible, respond with '0 people'."
-                  },
-                  {
-                    type: "image_url",
-                    image_url: {
-                      url: photo
-                    }
-                  }
-                ]
-              }
-            ],
-            max_tokens: 50,
-            temperature: 0.1
-          });
-
-          const analysisText = response.choices[0].message.content?.trim() || "0 people";
-          console.log(`[PHOTO ANALYSIS] Photo ${i + 1} result: ${analysisText}`);
-          
-          // Extract number from response
-          const numberMatch = analysisText.match(/(\d+)/);
-          const peopleInThisPhoto = numberMatch ? parseInt(numberMatch[1]) : 0;
-          totalPeopleCount += peopleInThisPhoto;
-          
-          photoAnalyses.push({
-            photoIndex: i + 1,
-            analysis: analysisText,
-            peopleCount: peopleInThisPhoto
-          });
-          
-        } catch (photoError) {
-          console.error(`[PHOTO ANALYSIS] Error analyzing photo ${i + 1}:`, photoError);
-          // Assume 1 person per photo on error (conservative fallback)
-          totalPeopleCount += 1;
-          photoAnalyses.push({
-            photoIndex: i + 1,
-            analysis: "1 person (analysis failed)",
-            peopleCount: 1
-          });
-        }
-      }
-
-      console.log(`[PHOTO ANALYSIS] Total people detected across all photos: ${totalPeopleCount}`);
-      console.log(`[PHOTO ANALYSIS] Individual photo results:`, photoAnalyses);
-
-      // Create photo context description based on results
-      let photoContext;
-      if (photos.length === 1) {
-        photoContext = `Single photo uploaded - ${totalPeopleCount} ${totalPeopleCount === 1 ? 'person' : 'people'} detected`;
-      } else {
-        photoContext = `${photos.length} photos uploaded - ${totalPeopleCount} ${totalPeopleCount === 1 ? 'person' : 'people'} detected across all images`;
-      }
-      
-      res.json({ 
-        photoContext,
-        totalPeopleCount,
-        photoAnalyses,
-        summary: `${photos.length} photo(s) analyzed, ${totalPeopleCount} people total`
-      });
-      
-    } catch (error) {
-      console.error('Photo analysis error:', error);
-      // Fallback to basic count based on number of photos
-      const fallbackCount = photos.length;
-      const photoContext = `${photos.length} photo(s) uploaded - ${fallbackCount} ${fallbackCount === 1 ? 'person' : 'people'} detected (analysis failed)`;
-      res.json({ 
-        photoContext,
-        totalPeopleCount: fallbackCount,
-        photoAnalyses: [],
-        summary: `Analysis failed, assuming ${fallbackCount} people`
-      });
-    }
-  });
 
   app.post("/api/art-style-suggestions", async (req, res) => {
     if (!hasOpenAI || !openai) {
@@ -3480,7 +3380,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
     }
 
     try {
-      const { imageData, imageDataArray, scenePrompt, style, includeText, cardText, size = '1024x1024', detectedPersonCount } = req.body;
+      const { imageData, imageDataArray, scenePrompt, style, includeText, cardText, size = '1024x1024' } = req.body;
 
       // Support both single image (legacy) and multiple images (new)
       const imagesToProcess = imageDataArray || (imageData ? [imageData] : []);
@@ -3503,11 +3403,10 @@ If just having a conversation (no suggestions), respond with valid JSON:
       console.log('Requested size:', size);
 
       // Use detected person count if provided, otherwise fall back to image count
-      const peopleCount = detectedPersonCount || imagesToProcess.length;
-      console.log('Person count logic:', { detectedPersonCount, imageFileCount: imagesToProcess.length, finalPeopleCount: peopleCount });
+      // No longer need to detect people count since we use naturally inclusive language
       
-      // Build the complete prompt with enhanced character action descriptions - use peopleCount not imageCount
-      const characterText = peopleCount > 1 ? 'characters from the reference images' : 'the character from the reference image';
+      // Build the complete prompt using naturally inclusive language
+      const characterText = 'characters from the reference images';
       const aspectDescription = size === '1024x1536' 
         ? 'MANDATORY: Create a PORTRAIT composition with 2:3 aspect ratio (height is 1.5x the width). Full bleed portrait design with no borders, fill entire portrait frame.'
         : 'MANDATORY: Create a perfectly SQUARE composition with equal width and height - NOT portrait, NOT landscape. Full bleed square design with no borders, fill entire square frame.';
@@ -3515,12 +3414,12 @@ If just having a conversation (no suggestions), respond with valid JSON:
         ? '8) COMPOSE FOR PORTRAIT FORMAT - ensure all elements fit within a portrait boundary'
         : '8) COMPOSE FOR SQUARE FORMAT - ensure all elements fit within a square boundary';
       
-      const faceAnalysisText = peopleCount > 1 ? 'ANALYZE EACH FACE IN DETAIL' : 'ANALYZE THE FACE IN DETAIL';
-      const faceRecreationText = peopleCount > 1 ? 'RECREATE EACH IDENTICAL FACE' : 'RECREATE THE IDENTICAL FACE';
-      const characterPositioning = peopleCount > 1 ? 'Place the characters' : 'Place the character';
-      const characterPoses = peopleCount > 1 ? 'Give the characters' : 'Give the character';
-      const clothingInstruction = peopleCount > 1 ? 'dress the characters appropriately' : 'dress the character appropriately';
-      const positioningInstruction = peopleCount > 1 ? 'Reimagine character positioning and interactions' : 'Reimagine character positioning';
+      const faceAnalysisText = 'ANALYZE EACH FACE IN DETAIL';
+      const faceRecreationText = 'RECREATE EACH IDENTICAL FACE';
+      const characterPositioning = 'Place the characters';
+      const characterPoses = 'Give the characters';
+      const clothingInstruction = 'dress the characters appropriately';
+      const positioningInstruction = 'Reimagine character positioning and interactions';
 
       let fullPrompt = `${aspectDescription} ABSOLUTE PRIORITY: FACIAL ACCURACY FIRST - Before applying any artistic style, the EXACT facial likeness must be preserved with photographic precision. 
 
@@ -3535,7 +3434,7 @@ MANDATORY FACIAL RECREATION REQUIREMENTS (COMPLETE BEFORE ANY STYLING):
 8) CRITICAL EXPRESSION CHANGE: DO NOT copy the original facial expression from the reference photo. You must create a COMPLETELY NEW facial expression that matches the mood and energy of the new scene
 
 AFTER ESTABLISHING PERFECT LIKENESS - SCENE CREATION:
-Create a completely new scene featuring ${characterText}. CRITICAL: Generate EXACTLY ${peopleCount} ${peopleCount === 1 ? 'person' : 'people'} - NO MORE, NO LESS.
+Create a completely new scene featuring ${characterText}.
 
 COMPOSITION RULES - DO NOT COPY REFERENCE PHOTO:
 - If reference photo is a headshot/upper body, create a FULL BODY or WIDE scene shot

@@ -434,33 +434,7 @@ export default function GPTImageTest() {
     setResultImage('');
 
     try {
-      // Analyze photo to detect person count
-      let detectedPersonCount = null;
-      try {
-        const analysisResponse = await fetch('/api/analyze-photo-content', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ photos: [imagePreview] })
-        });
-        
-        if (analysisResponse.ok) {
-          const analysis = await analysisResponse.json();
-          console.log('Photo analysis result:', analysis);
-          
-          // Use the totalPeopleCount from the enhanced analysis
-          detectedPersonCount = analysis.totalPeopleCount;
-          console.log('Detected person count from enhanced analysis:', detectedPersonCount);
-          
-          // Log detailed analysis for debugging
-          if (analysis.photoAnalyses && analysis.photoAnalyses.length > 0) {
-            console.log('Individual photo analyses:', analysis.photoAnalyses);
-          }
-        }
-      } catch (analysisError) {
-        console.error('Photo analysis failed:', analysisError);
-      }
+      // Photo analysis removed for performance optimization
 
       // Retry logic for unstable connections (WiFi boosters, etc.)
       const maxRetries = 4; // Increase retry attempts for critical launch issue
@@ -486,7 +460,7 @@ export default function GPTImageTest() {
               includeText: sceneIncludeText,
               cardText: frontCardText,
               size: sceneSize,
-              detectedPersonCount: detectedPersonCount // Pass detected person count
+              // detectedPersonCount removed for performance optimization
             }),
             signal: controller.signal
           });

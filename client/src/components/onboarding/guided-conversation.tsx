@@ -131,7 +131,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [styleViewerOpen, setStyleViewerOpen] = useState(false);
   const [selectedStyleForViewer, setSelectedStyleForViewer] = useState('');
   
-  const [detectedPersonCount, setDetectedPersonCount] = useState<number>(1);
 
 
 
@@ -896,41 +895,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
             setUploadedPhotos(photoDataArray);
             setAnswers(prev => ({ ...prev, photo_upload: photoDataArray[0] })); // Store first photo for backward compatibility
             
-            // Analyze photos immediately after upload to detect person count
-            const analyzePhotos = async () => {
-              try {
-                const response = await fetch('/api/analyze-photo-content', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    images: photoDataArray
-                  }),
-                });
-
-                if (response.ok) {
-                  const analysis = await response.json();
-                  const actualPersonCount = analysis.totalPeopleCount || photoDataArray.length;
-                  setDetectedPersonCount(actualPersonCount);
-                  // CRITICAL: Persist the count in answers so it survives state resets
-                  setAnswers(prev => ({ ...prev, detectedPersonCount: actualPersonCount }));
-                } else {
-                  const fallbackCount = photoDataArray.length;
-                  setDetectedPersonCount(fallbackCount);
-                  // CRITICAL: Persist the count in answers so it survives state resets
-                  setAnswers(prev => ({ ...prev, detectedPersonCount: fallbackCount }));
-                }
-              } catch (error) {
-                console.error('Photo analysis failed during upload:', error);
-                // Fallback to image count
-                setDetectedPersonCount(photoDataArray.length);
-              }
-            };
-
-            // Run photo analysis
-            analyzePhotos();
-            
             // Show success message immediately
             const successMessage = isTransformStyle 
               ? 'Photo uploaded successfully for style transformation'
@@ -1382,46 +1346,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const artStyle = answers.art_style || 'semi-realistic illustration';
     const frontCardText = answers.message || '';
     
-    // Analyze ALL photos to detect actual people count
-    let detectedPersonCount = referenceImages.length; // fallback
-    try {
-      const analysisResponse = await fetch('/api/analyze-photo-content', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ photos: referenceImages }) // Send ALL photos
-      });
-      
-      if (analysisResponse.ok) {
-        const analysis = await analysisResponse.json();
-        console.log('Enhanced photo analysis result:', analysis);
-        
-        // Use the totalPeopleCount from enhanced analysis
-        const actualPersonCount = analysis.totalPeopleCount;
-        setDetectedPersonCount(actualPersonCount);
-        detectedPersonCount = actualPersonCount;
-        // CRITICAL: Persist the count in answers so it survives state resets
-        setAnswers(prev => ({ ...prev, detectedPersonCount: actualPersonCount }));
-        console.log('[DEBUG] Total people detected across all photos:', detectedPersonCount);
-        
-        // Log detailed analysis for debugging
-        if (analysis.photoAnalyses && analysis.photoAnalyses.length > 0) {
-          console.log('[DEBUG] Individual photo analyses:', analysis.photoAnalyses);
-          analysis.photoAnalyses.forEach((photoAnalysis: any, index: number) => {
-            console.log(`[DEBUG] Photo ${photoAnalysis.photoIndex}: ${photoAnalysis.peopleCount} people - ${photoAnalysis.analysis}`);
-          });
-        }
-      }
-    } catch (analysisError) {
-      console.error('Photo analysis failed:', analysisError);
-      const fallbackCount = referenceImages.length;
-      setDetectedPersonCount(fallbackCount);
-      detectedPersonCount = fallbackCount;
-      // CRITICAL: Persist the count in answers so it survives state resets
-      setAnswers(prev => ({ ...prev, detectedPersonCount: fallbackCount }));
-      console.log('[DEBUG] Using image count as fallback:', detectedPersonCount);
-    }
     
     // Generate front card using GPT-Image-1 with multiple images with timeout and retry  
     console.log('[DEBUG] Calling edit-scene-gpt-image-1 with cardId:', useCardId);
@@ -1435,7 +1359,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       style: artStyle,
       includeText: !!frontCardText,
       cardText: frontCardText,
-      detectedPersonCount: detectedPersonCount // CRITICAL: Pass detected person count
     }, "Front card generation");
     const frontImageUrl = frontResult.imageUrl;
     console.log('Front card generated:', frontResult);
