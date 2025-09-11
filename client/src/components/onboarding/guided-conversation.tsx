@@ -57,12 +57,23 @@ const RECOVERY_EXPIRY_DAYS = 7;
 // Save progress to localStorage
 const saveRecoveryProgress = (data: any) => {
   try {
+    // Mobile optimization: Exclude heavy photo data that can block webview main thread
+    const { uploadedPhotos, photoData, photo_upload, ...lightData } = data.answers || {};
+    
     const recoveryData = {
       ...data,
+      answers: {
+        ...lightData,
+        // Keep only metadata for photos, not the actual Base64 data
+        ...(uploadedPhotos?.length && { hasUploadedPhotos: true, photoCount: uploadedPhotos.length })
+      },
       timestamp: Date.now(),
       expiresAt: Date.now() + (RECOVERY_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
     };
-    localStorage.setItem(RECOVERY_STORAGE_KEY, JSON.stringify(recoveryData));
+    
+    const dataString = JSON.stringify(recoveryData);
+    console.log(`[RECOVERY] Saving ${Math.round(dataString.length / 1024)}KB to localStorage`);
+    localStorage.setItem(RECOVERY_STORAGE_KEY, dataString);
   } catch (error) {
     console.error('Failed to save recovery progress:', error);
   }
@@ -523,12 +534,22 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       let timeoutId: NodeJS.Timeout;
       return (data: any) => {
         clearTimeout(timeoutId);
+        
+        // Skip saving on photo upload step on mobile to prevent blocking
+        if (isMobile && currentStep?.id === 'photo_upload') {
+          console.log('[RECOVERY] Skipping save on mobile photo upload step');
+          return;
+        }
+        
         timeoutId = setTimeout(() => {
+          const startTime = performance.now();
           saveRecoveryProgress(data);
+          const elapsed = performance.now() - startTime;
+          console.log(`[RECOVERY] Save took ${elapsed.toFixed(2)}ms`);
         }, 100); // 100ms debounce
       };
     })()
-  , []);
+  , [isMobile, currentStep?.id]);
 
   // Memoized filter steps based on streamlined flow, scene type and card options
   const filteredSteps = useMemo(() => steps.filter(step => {
