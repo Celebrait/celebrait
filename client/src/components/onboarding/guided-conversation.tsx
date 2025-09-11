@@ -581,6 +581,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     return true;
   }), [streamlinedFlow, selectedPhotoOption, answers.photo_option, onboarding.selectedSceneType, answers.name, answers.celebration, answers.recipient_name, onboarding.selectedDelivery]);
 
+  // Pre-calculate step indices to avoid expensive findIndex operations on Continue click
+  const stepIndices = useMemo(() => {
+    const indices: Record<string, number> = {};
+    filteredSteps.forEach((step, index) => {
+      indices[step.id] = index;
+    });
+    return indices;
+  }, [filteredSteps]);
+
   const currentStep = filteredSteps[currentStepIndex];
   const progress = ((currentStepIndex + 1) / filteredSteps.length) * 100;
 
@@ -826,8 +835,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     if (editingStep && returnToSummary) {
       setEditingStep(null);
       setReturnToSummary(false);
-      const summaryStepIndex = filteredSteps.findIndex(step => step.id === 'final_summary');
-      if (summaryStepIndex !== -1) {
+      const summaryStepIndex = stepIndices['final_summary'];
+      if (summaryStepIndex !== undefined) {
         setCurrentStepIndex(summaryStepIndex);
         scrollToTop();
       }
@@ -842,8 +851,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     // Handle heritage after photo upload - go to costume selection
     if (currentStep.id === 'heritage_photo') {
       // After selecting heritage, go to character costume
-      const costumeIndex = filteredSteps.findIndex(step => step.id === 'character_costume');
-      if (costumeIndex !== -1) {
+      const costumeIndex = stepIndices['character_costume'];
+      if (costumeIndex !== undefined) {
         setCurrentStepIndex(costumeIndex);
         scrollToTop();
         return;
@@ -853,8 +862,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     // Handle character/costume choice - go to scene after selection
     if (currentStep.id === 'character_costume') {
       // After selecting costume, go to scene
-      const sceneIndex = filteredSteps.findIndex(step => step.id === 'scene');
-      if (sceneIndex !== -1) {
+      const sceneIndex = stepIndices['scene'];
+      if (sceneIndex !== undefined) {
         setCurrentStepIndex(sceneIndex);
         scrollToTop();
         return;
@@ -872,8 +881,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   };
 
   const handleEditStep = (stepId: string) => {
-    const stepIndex = filteredSteps.findIndex(step => step.id === stepId);
-    if (stepIndex !== -1) {
+    const stepIndex = stepIndices[stepId];
+    if (stepIndex !== undefined) {
       setEditingStep(stepId);
       setReturnToSummary(true);
       setCurrentStepIndex(stepIndex);
@@ -976,8 +985,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const handlePhotoUploadContinue = () => {
     // Go to heritage question after photo upload
-    const heritageStepIndex = filteredSteps.findIndex(step => step.id === 'heritage_photo');
-    if (heritageStepIndex !== -1) {
+    const heritageStepIndex = stepIndices['heritage_photo'];
+    if (heritageStepIndex !== undefined) {
       setCurrentStepIndex(heritageStepIndex);
     }
   };
@@ -2043,8 +2052,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             </div>
                             <Button 
                               onClick={() => {
-                                // Reset to photo upload step
-                                setCurrentStepIndex(filteredSteps.findIndex(step => step.id === 'photo_upload'));
+                                // Reset to photo upload step  
+                                const photoUploadIndex = stepIndices['photo_upload'];
+                                if (photoUploadIndex !== undefined) {
+                                  setCurrentStepIndex(photoUploadIndex);
+                                }
                               }} 
                               variant="outline" 
                               size="sm"
