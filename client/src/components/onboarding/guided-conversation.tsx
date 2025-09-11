@@ -6,7 +6,11 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 
-import { ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette, Edit3, Eye } from "lucide-react";
+import { 
+  ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette, Edit3, Eye,
+  Scan, Map, Layout, PenTool, Pencil, Layers, Mountain, Users, Focus, Sun, Settings,
+  Type, AlignCenter, Search, RefreshCw, RotateCcw, Package, CheckCircle, Clock
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { apiRequest } from "@/lib/queryClient";
@@ -105,6 +109,299 @@ const clearRecoveryProgress = () => {
   } catch (error) {
     console.error('Failed to clear recovery progress:', error);
   }
+};
+
+// 12-Phase Creative Journey Component
+interface CreativeJourneyLoadingProps {
+  answers: Record<string, any>;
+}
+
+const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
+  const [currentPhase, setCurrentPhase] = useState(0);
+  const [phaseProgress, setPhaseProgress] = useState(0);
+
+  // 12-Phase Creative Journey Definition
+  const creativePhases = [
+    // FRONT CARD CREATION (8 phases)
+    { 
+      id: 'photo_analysis', 
+      title: 'Analyzing Your Photo', 
+      description: `Studying the lighting, composition, and unique features that make ${answers.name || 'them'} special`,
+      icon: Scan, 
+      color: 'from-purple-500 to-pink-500',
+      section: 'Front Card Creation' 
+    },
+    { 
+      id: 'scene_planning', 
+      title: 'Planning the Scene', 
+      description: `Designing the perfect ${answers.celebration || 'celebration'} environment and setting`,
+      icon: Map, 
+      color: 'from-pink-500 to-rose-500',
+      section: 'Front Card Creation' 
+    },
+    { 
+      id: 'initial_sketching', 
+      title: 'Initial Sketching', 
+      description: 'Creating the foundational composition and artistic layout',
+      icon: PenTool, 
+      color: 'from-rose-500 to-orange-500',
+      section: 'Front Card Creation' 
+    },
+    { 
+      id: 'base_scene', 
+      title: 'Building Base Scene', 
+      description: 'Constructing the background world and atmospheric elements',
+      icon: Layers, 
+      color: 'from-orange-500 to-amber-500',
+      section: 'Front Card Creation' 
+    },
+    { 
+      id: 'face_perfection', 
+      title: 'Perfecting Faces', 
+      description: `Capturing ${answers.name || 'their'} authentic likeness and joyful expression`,
+      icon: Focus, 
+      color: 'from-amber-500 to-yellow-500',
+      section: 'Front Card Creation' 
+    },
+    { 
+      id: 'color_lighting', 
+      title: 'Color & Lighting', 
+      description: 'Applying the perfect palette and atmospheric lighting effects',
+      icon: Sun, 
+      color: 'from-yellow-500 to-lime-500',
+      section: 'Front Card Creation' 
+    },
+    { 
+      id: 'fine_details', 
+      title: 'Adding Fine Details', 
+      description: 'Enhancing textures, shadows, and intricate artistic elements',
+      icon: Settings, 
+      color: 'from-lime-500 to-green-500',
+      section: 'Front Card Creation' 
+    },
+    { 
+      id: 'typography_front', 
+      title: 'Typography Integration', 
+      description: 'Weaving your message naturally into the artistic composition',
+      icon: Type, 
+      color: 'from-green-500 to-emerald-500',
+      section: 'Front Card Creation' 
+    },
+    
+    // INSIDE CARD CREATION (4 phases)
+    { 
+      id: 'front_analysis', 
+      title: 'Studying Front Design', 
+      description: 'Analyzing the front card to ensure perfect visual harmony',
+      icon: Search, 
+      color: 'from-emerald-500 to-teal-500',
+      section: 'Inside Card Creation' 
+    },
+    { 
+      id: 'color_matching', 
+      title: 'Color Matching', 
+      description: 'Ensuring seamless color consistency between front and inside',
+      icon: RefreshCw, 
+      color: 'from-teal-500 to-cyan-500',
+      section: 'Inside Card Creation' 
+    },
+    { 
+      id: 'typography_harmony', 
+      title: 'Typography Harmony', 
+      description: 'Matching text styles for a cohesive design language',
+      icon: AlignCenter, 
+      color: 'from-cyan-500 to-blue-500',
+      section: 'Inside Card Creation' 
+    },
+    { 
+      id: 'final_assembly', 
+      title: 'Final Assembly', 
+      description: 'Polishing and packaging your one-of-a-kind masterpiece',
+      icon: Package, 
+      color: 'from-blue-500 to-purple-500',
+      section: 'Inside Card Creation' 
+    },
+  ];
+
+  // Phase timing (15 seconds per phase = 3 minutes total)
+  useEffect(() => {
+    // Don't start interval if we've completed all phases
+    if (currentPhase >= creativePhases.length - 1 && phaseProgress >= 100) {
+      return;
+    }
+
+    const phaseInterval = setInterval(() => {
+      setPhaseProgress(prev => {
+        if (prev >= 100) {
+          setCurrentPhase(current => {
+            if (current < creativePhases.length - 1) {
+              return current + 1;
+            }
+            return current; // Stay at last phase
+          });
+          return currentPhase < creativePhases.length - 1 ? 0 : 100; // Keep at 100% for final phase
+        }
+        return prev + (100 / 15); // 15 seconds per phase
+      });
+    }, 1000); // Update every second
+
+    return () => clearInterval(phaseInterval);
+  }, [currentPhase, phaseProgress]);
+
+  const currentPhaseData = creativePhases[currentPhase];
+  const overallProgress = Math.min(100, ((currentPhase * 100 + phaseProgress) / creativePhases.length));
+  const frontCardComplete = currentPhase >= 8;
+  const isComplete = currentPhase >= creativePhases.length - 1 && phaseProgress >= 100;
+
+  return (
+    <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-6 md:p-8 shadow-xl border border-white/20 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <div className="relative mb-6">
+          {/* Main Icon with Animated Ring */}
+          <div className="relative w-24 h-24 mx-auto">
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse"></div>
+            <div className="absolute inset-2 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <currentPhaseData.icon className="text-white w-10 h-10" />
+            </div>
+            {/* Progress Ring */}
+            <svg className="absolute inset-0 w-24 h-24 transform -rotate-90">
+              <circle
+                cx="48"
+                cy="48"
+                r="44"
+                stroke="white/30"
+                strokeWidth="2"
+                fill="none"
+              />
+              <circle
+                cx="48"
+                cy="48"
+                r="44"
+                stroke="url(#progressGradient)"
+                strokeWidth="3"
+                fill="none"
+                strokeDasharray={`${2 * Math.PI * 44}`}
+                strokeDashoffset={`${2 * Math.PI * 44 * (1 - overallProgress / 100)}`}
+                className="transition-all duration-1000 ease-out"
+              />
+              <defs>
+                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#8b5cf6" />
+                  <stop offset="100%" stopColor="#ec4899" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
+
+        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">
+          Creating {answers.name ? `${answers.name}'s` : 'Your'} {answers.celebration ? answers.celebration.charAt(0).toUpperCase() + answers.celebration.slice(1) : 'Special'} Card
+        </h2>
+        
+        <p className="text-sm md:text-base text-gray-600 opacity-75">
+          {isComplete ? (
+            <span className="text-green-600 font-medium flex items-center justify-center">
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Masterpiece Complete!
+            </span>
+          ) : (
+            `${currentPhaseData.section} • Phase ${currentPhase + 1} of ${creativePhases.length}`
+          )}
+        </p>
+      </div>
+
+      {/* Current Phase Display */}
+      <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 border border-white/20 mb-6">
+        <div className="flex items-center space-x-4 mb-4">
+          <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${currentPhaseData.color} flex items-center justify-center`}>
+            <currentPhaseData.icon className="text-white w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-1">
+              {isComplete ? 'Journey Complete!' : currentPhaseData.title}
+            </h3>
+            <p className="text-sm md:text-base text-gray-600">
+              {isComplete 
+                ? `Your personalized ${answers.celebration || 'greeting'} card for ${answers.name || 'them'} is ready! Each detail has been crafted with care to create something truly special.`
+                : currentPhaseData.description
+              }
+            </p>
+          </div>
+        </div>
+
+        {/* Phase Progress Bar */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>Current Phase</span>
+            <span>{Math.round(phaseProgress)}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className={`h-2 rounded-full bg-gradient-to-r ${currentPhaseData.color} transition-all duration-1000 ease-out`}
+              style={{ width: `${phaseProgress}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Overall Progress */}
+      <div className="bg-white/50 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+        <div className="flex justify-between text-sm text-gray-600 mb-2">
+          <span>Overall Progress</span>
+          <span>{Math.round(overallProgress)}% Complete</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
+          <div 
+            className="h-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-1000 ease-out"
+            style={{ width: `${overallProgress}%` }}
+          ></div>
+        </div>
+
+        {/* Phase Sections */}
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div className={`p-3 rounded-lg border-2 transition-all duration-500 ${
+            !frontCardComplete 
+              ? 'border-purple-300 bg-purple-50 text-purple-700' 
+              : 'border-green-300 bg-green-50 text-green-700'
+          }`}>
+            <div className="text-xs font-medium mb-1">Front Card</div>
+            <div className="text-lg font-bold">
+              {frontCardComplete ? (
+                <span className="flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Complete
+                </span>
+              ) : (
+                `${currentPhase + 1}/8`
+              )}
+            </div>
+          </div>
+          <div className={`p-3 rounded-lg border-2 transition-all duration-500 ${
+            currentPhase < 8 
+              ? 'border-gray-200 bg-gray-50 text-gray-500' 
+              : (currentPhase === creativePhases.length - 1 && phaseProgress >= 100)
+                ? 'border-green-300 bg-green-50 text-green-700'
+                : 'border-blue-300 bg-blue-50 text-blue-700'
+          }`}>
+            <div className="text-xs font-medium mb-1">Inside Card</div>
+            <div className="text-lg font-bold">
+              {currentPhase < 8 ? (
+                'Pending'
+              ) : (currentPhase === creativePhases.length - 1 && phaseProgress >= 100) ? (
+                <span className="flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Complete
+                </span>
+              ) : (
+                `${currentPhase - 7}/4`
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default function GuidedConversation({ onboarding, onCardGenerated, streamlinedFlow = false, selectedPhotoOption = null, onStartFresh, recoveryParams }: GuidedConversationProps) {
@@ -1603,56 +1900,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   if (isLoading) {
     console.log('Loading screen displayed - email notification option is available');
-    return (
-      <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20 max-w-4xl mx-auto text-center">
-        <div className="mb-8">
-          <div className="w-24 h-24 bg-gradient-celebrait rounded-full mx-auto mb-6 flex items-center justify-center animate-pulse-soft">
-            <Bot className="text-white w-12 h-12" />
-          </div>
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-800 mb-4">
-            🎨 AI is Creating {answers.name ? `${answers.name}'s` : 'Your'} {answers.celebration ? answers.celebration.charAt(0).toUpperCase() + answers.celebration.slice(1) : ''} Card
-          </h2>
-          <p className="text-lg text-slate-gray max-w-2xl mx-auto px-4 min-h-[72px] flex items-center justify-center relative">
-            <span className="relative">
-              {`I'm creating an absolutely magical ${answers.celebration || 'greeting'} card for ${answers.name || 'them'}! Every detail is being carefully crafted to make this card truly special and unforgettable. This is going to be amazing!`.split('').map((char, index) => (
-                <span
-                  key={index}
-                  className={`transition-all duration-700 ease-out ${
-                    index < typedText.length 
-                      ? 'opacity-100 filter-none' 
-                      : 'opacity-0 blur-sm'
-                  }`}
-                  style={{
-                    transitionDelay: `${index * 10}ms`,
-                  }}
-                >
-                  {char}
-                </span>
-              ))}
-              {typedText.length < `I'm creating an absolutely magical ${answers.celebration || 'greeting'} card for ${answers.name || 'them'}! Every detail is being carefully crafted to make this card truly special and unforgettable. This is going to be amazing!`.length && (
-                <span className="absolute -right-2 top-0 w-0.5 h-6 bg-purple-400 animate-pulse opacity-60"></span>
-              )}
-            </span>
-          </p>
-        </div>
-
-        <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-          <p className="text-gray-700 font-medium mb-4">
-            ⏳ This usually takes 2-3 minutes while our AI works its magic.
-          </p>
-          
-          {/* Progress bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-            <div className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full animate-pulse" style={{ width: '75%' }}></div>
-          </div>
-          
-          <div className="flex items-center justify-center space-x-2 text-gray-600">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500"></div>
-            <span className="text-sm">Generating your unique card design...</span>
-          </div>
-        </div>
-      </div>
-    );
+    return <CreativeJourneyLoading answers={answers} />;
   }
 
   // Email confirmation screen
