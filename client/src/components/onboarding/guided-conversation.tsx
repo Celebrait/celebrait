@@ -747,7 +747,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   };
 
-  // Measure navigation performance and clear loading state after commit
+  // Handle step changes and scrolling
+  useLayoutEffect(() => {
+    scrollToTop();
+  }, [currentStepIndex]);
+
+  // Measure navigation performance and clear loading state after step change
   useLayoutEffect(() => {
     if (isNavigating) {
       performance.mark('navigation-end');
@@ -762,8 +767,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       }
       setIsNavigating(false);
     }
-    scrollToTop();
-  }, [currentStepIndex, isNavigating]);
+  }, [isNavigating]);
 
   const initializeCard = async (): Promise<number> => {
     try {
