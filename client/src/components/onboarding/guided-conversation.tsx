@@ -549,7 +549,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         }, 100); // 100ms debounce
       };
     })()
-  , [isMobile, currentStep?.id]);
+  , [currentStep?.id]);
 
   // Memoized filter steps based on streamlined flow, scene type and card options
   const filteredSteps = useMemo(() => steps.filter(step => {
