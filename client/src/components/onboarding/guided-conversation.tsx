@@ -1432,7 +1432,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const referenceImages = uploadedPhotoIds.map(id => ImageStore.getPhotoFile(id)).filter(Boolean);
     console.log('Using images for generation:', { 
       originalCount: uploadedPhotoIds.length,
-      referenceImages: referenceImages.map((img: File, i: number) => `Image ${i + 1}: ${img.name}`)
+      referenceImages: referenceImages.map((img, i) => img ? `Image ${i + 1}: ${img.name}` : `Image ${i + 1}: missing`)
     });
     
     // Build scene description with style
@@ -1504,7 +1504,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const referenceImages = uploadedPhotoIds.map(id => ImageStore.getPhotoFile(id)).filter(Boolean);
     console.log('Using images for style transformation:', { 
       originalCount: uploadedPhotoIds.length,
-      referenceImages: referenceImages.map((img: File, i: number) => `Image ${i + 1}: ${img.name}`)
+      referenceImages: referenceImages.map((img, i) => img ? `Image ${i + 1}: ${img.name}` : `Image ${i + 1}: missing`)
     });
     
     // Build style transformation prompt using the exact same approach as gpt-image-test page
