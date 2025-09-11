@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect, startTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -123,6 +123,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const [typedText, setTypedText] = useState('');
   const [isMounted, setIsMounted] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedVideoOption, setSelectedVideoOption] = useState<string>('');
@@ -516,8 +517,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     return () => clearTimeout(timer);
   }, [currentStepIndex]);
 
-  // Filter steps based on streamlined flow, scene type and card options
-  const filteredSteps = steps.filter(step => {
+  // Debounced localStorage save to avoid blocking UI
+  const debouncedSaveRecovery = useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (data: any) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          saveRecoveryProgress(data);
+        }, 100); // 100ms debounce
+      };
+    })()
+  , []);
+
+  // Memoized filter steps based on streamlined flow, scene type and card options
+  const filteredSteps = useMemo(() => steps.filter(step => {
     // For streamlined flow, include recipient name and celebration before photo upload
     if (streamlinedFlow) {
       const streamlinedPhotoOption = selectedPhotoOption || answers.photo_option;
@@ -565,7 +579,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
     
     return true;
-  });
+  }), [streamlinedFlow, selectedPhotoOption, answers.photo_option, onboarding.selectedSceneType, answers.name, answers.celebration, answers.recipient_name, onboarding.selectedDelivery]);
 
   const currentStep = filteredSteps[currentStepIndex];
   const progress = ((currentStepIndex + 1) / filteredSteps.length) * 100;
@@ -733,9 +747,23 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   };
 
-  useEffect(() => {
+  // Measure navigation performance and clear loading state after commit
+  useLayoutEffect(() => {
+    if (isNavigating) {
+      performance.mark('navigation-end');
+      try {
+        performance.measure('navigation-duration', 'navigation-start', 'navigation-end');
+        const measure = performance.getEntriesByName('navigation-duration')[0];
+        if (measure) {
+          console.log(`[PERF] Navigation took ${measure.duration.toFixed(2)}ms`);
+        }
+      } catch (error) {
+        console.log('[PERF] Performance measurement failed:', error);
+      }
+      setIsNavigating(false);
+    }
     scrollToTop();
-  }, [currentStepIndex]);
+  }, [currentStepIndex, isNavigating]);
 
   const initializeCard = async (): Promise<number> => {
     try {
@@ -774,8 +802,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       [currentStep.id]: value
     }));
     
-    // Save progress for recovery
-    saveRecoveryProgress({
+    // Save progress for recovery (debounced)
+    debouncedSaveRecovery({
       answers: newAnswers,
       currentStepIndex,
       cardId,
@@ -2656,18 +2684,33 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         <Button 
                           onClick={(e) => {
                             e.preventDefault();
-                            // Use proper navigation logic to go to next available step
-                            if (currentStepIndex < filteredSteps.length - 1) {
-                              setCurrentStepIndex(prev => prev + 1);
-                            } else {
-                              generateCard();
-                            }
-                            scrollToTop();
+                            // Show immediate visual feedback
+                            setIsNavigating(true);
+                            
+                            // Performance measurement
+                            performance.mark('navigation-start');
+                            
+                            // Use React's concurrent features to prevent blocking
+                            startTransition(() => {
+                              if (currentStepIndex < filteredSteps.length - 1) {
+                                setCurrentStepIndex(prev => prev + 1);
+                              } else {
+                                generateCard();
+                              }
+                            });
                           }}
-                          className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
+                          disabled={isNavigating}
+                          className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 disabled:opacity-75 transition-opacity"
                         >
-                            Continue
-                            <ArrowRight className="w-4 h-4 ml-2" />
+                            {isNavigating ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Processing...
+                              </>
+                            ) : (
+                              "Continue"
+                            )}
+                            <ArrowRight className={`w-4 h-4 ml-2 transition-transform ${isNavigating ? 'animate-pulse' : ''}`} />
                           </Button>
                       </div>
                     )}
