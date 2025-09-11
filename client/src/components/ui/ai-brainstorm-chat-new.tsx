@@ -674,10 +674,7 @@ export function AIBrainstormChat({
           {/* Header */}
           <div className="p-4 border-b border-gray-200 bg-white">
             <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-800">AI Brainstorm Assistant</h2>
-                <p className="text-sm text-gray-600">Let's brainstorm creative ideas for your card together!</p>
-              </div>
+              <Bot className="w-8 h-8 text-purple-500" />
               <Button
                 variant="ghost"
                 size="sm"
