@@ -567,7 +567,7 @@ Current step: ${conversationStep || 'initial_scene'}`;
         if (conversationStep === 'summary') {
           messages.push({
             role: "system", 
-            content: `Generate a complete scene summary using all collected information. Present the final scene description in a professional manner. CRITICAL: Do NOT include any numbered suggestions, options, or lists in your response. This is a final summary, not a suggestion step. End with instructions to click the appropriate button to proceed or make changes. IMPORTANT: You are in the SUMMARY step - this means the frontend will show "Sounds great, let's go!" and "I'd like to make a change" buttons.`
+            content: `Generate a complete scene summary using all collected information. Present the final scene description in a professional manner. CRITICAL: Do NOT include any numbered suggestions, options, or lists in your response. This is a final summary, not a suggestion step. End with: "When you're ready to proceed, click 'Sounds great, let's go!' to continue to choosing text for the front of the card." IMPORTANT: You are in the SUMMARY step - this means the frontend will show "Sounds great, let's go!" and "I'd like to make a change" buttons.`
           });
         }
         
