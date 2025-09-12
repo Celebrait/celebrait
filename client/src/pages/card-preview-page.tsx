@@ -89,7 +89,21 @@ export default function CardPreviewPage() {
 
   const loadCardData = async () => {
     try {
-      // Check cache first for instant loading
+      // PARALLEL OPTIMIZATION: Start API call immediately alongside cache check
+      let apiPromise: Promise<Response> | null = null;
+      let abortController: AbortController | null = null;
+      let cacheHit = false;
+      
+      // Start API call immediately (don't wait for cache check)
+      if (reference?.startsWith('celebrait_ready_')) {
+        abortController = new AbortController();
+        apiPromise = fetch(`/api/cards/ready/${reference}`, { signal: abortController.signal });
+      } else if (reference) {
+        abortController = new AbortController();
+        apiPromise = fetch(`/api/cards/${reference}/fast-metadata`, { signal: abortController.signal });
+      }
+      
+      // PARALLEL: Check cache while API call is in flight
       const cacheKeys = [
         `ready_${reference}`,
         `card_${reference}`,
@@ -105,16 +119,31 @@ export default function CardPreviewPage() {
             if (card && (card.id || card.conversationData)) {
               setCardData(card);
               setLoading(false);
-              console.log(`[INSTANT] Card preview loaded from cache: ${key}`);
+              cacheHit = true;
+              // Cancel in-flight API call to save bandwidth
+              if (abortController) {
+                abortController.abort();
+              }
+              console.log(`[INSTANT] Card preview loaded from cache: ${key} - cancelled API call`);
               
-              // Preload images for instant display
+              // PARALLEL: Start image preloading immediately
               if (card.id) {
-                const frontImg = new Image();
-                const insideImg = new Image();
-                frontImg.src = `/api/cards/${card.id}/fast-front-image`;
-                if (card.insideImageUrl) {
-                  insideImg.src = `/api/cards/${card.id}/fast-inside-image`;
-                }
+                Promise.all([
+                  new Promise<void>((resolve) => {
+                    const frontImg = new Image();
+                    frontImg.onload = () => resolve();
+                    frontImg.onerror = () => resolve();
+                    frontImg.src = `/api/cards/${card.id}/fast-front-image`;
+                  }),
+                  card.insideImageUrl ? new Promise<void>((resolve) => {
+                    const insideImg = new Image();
+                    insideImg.onload = () => resolve();
+                    insideImg.onerror = () => resolve();
+                    insideImg.src = `/api/cards/${card.id}/fast-inside-image`;
+                  }) : Promise.resolve()
+                ]).then(() => {
+                  console.log('[PARALLEL] Images preloaded');
+                });
               }
               
               return;
@@ -125,61 +154,77 @@ export default function CardPreviewPage() {
         }
       }
       
-      // If no cached data found, show loading state
-      setLoading(true);
-      
-      // Fallback to API if no cache available
-      let response;
-      
-      // Check if this is a card ready reference (starts with celebrait_ready_)
-      if (reference?.startsWith('celebrait_ready_')) {
-        response = await fetch(`/api/cards/ready/${reference}`);
-      } else {
-        // Regular card ID - use ultra-fast metadata endpoint
-        response = await fetch(`/api/cards/${reference}/fast-metadata`);
-      }
-      
-      if (response.ok) {
-        const data = await response.json();
-        const card = data.card || data; // Handle both response formats
-        setCardData(card);
+      // If cache miss, wait for API call and show loading
+      if (!cacheHit && apiPromise) {
+        setLoading(true);
         
-        // Preload images for instant display
-        if (card.id) {
-          const frontImg = new Image();
-          const insideImg = new Image();
-          frontImg.src = `/api/cards/${card.id}/fast-front-image`;
-          if (card.insideImageUrl) {
-            insideImg.src = `/api/cards/${card.id}/fast-inside-image`;
-          }
-        }
+        const response = await apiPromise;
         
-        // Aggressive preloading for instant delivery details page
-        try {
-          sessionStorage.setItem('cardPreviewData', JSON.stringify(card));
-          sessionStorage.setItem(`ready_${reference}`, JSON.stringify(data));
-          sessionStorage.setItem(`card_${reference}`, JSON.stringify(card));
+        if (response.ok) {
+          const data = await response.json();
+          const card = data.card || data; // Handle both response formats
+          setCardData(card);
           
-          // Additional cache entries for different reference formats
-          if (reference?.startsWith('celebrait_ready_')) {
-            const cardId = reference.split('_')[2];
-            sessionStorage.setItem(`card_${cardId}`, JSON.stringify(card));
+          // PARALLEL: Start image preloading immediately with metadata loading
+          const imagePreloadPromises: Promise<void>[] = [];
+          
+          if (card.id) {
+            // Front image preload
+            imagePreloadPromises.push(
+              new Promise<void>((resolve) => {
+                const frontImg = new Image();
+                frontImg.onload = () => resolve();
+                frontImg.onerror = () => resolve();
+                frontImg.src = `/api/cards/${card.id}/fast-front-image`;
+              })
+            );
+            
+            // Inside image preload (if exists)
+            if (card.insideImageUrl) {
+              imagePreloadPromises.push(
+                new Promise<void>((resolve) => {
+                  const insideImg = new Image();
+                  insideImg.onload = () => resolve();
+                  insideImg.onerror = () => resolve();
+                  insideImg.src = `/api/cards/${card.id}/fast-inside-image`;
+                })
+              );
+            }
           }
           
-          console.log('[INSTANT] Aggressively preloaded data for zero-loading delivery page');
-        } catch (storageError) {
-          console.warn('Failed to preload delivery choice data:', storageError);
+          // PARALLEL: Cache operations alongside image preloading
+          const cachePromise = Promise.resolve().then(async () => {
+            try {
+              sessionStorage.setItem('cardPreviewData', JSON.stringify(card));
+              sessionStorage.setItem(`ready_${reference}`, JSON.stringify(data));
+              sessionStorage.setItem(`card_${reference}`, JSON.stringify(card));
+              
+              // Additional cache entries for different reference formats
+              if (reference?.startsWith('celebrait_ready_')) {
+                const cardId = reference.split('_')[2];
+                sessionStorage.setItem(`card_${cardId}`, JSON.stringify(card));
+              }
+              
+              console.log('[PARALLEL] Cache operations completed');
+            } catch (storageError) {
+              console.warn('Failed to preload delivery choice data:', storageError);
+            }
+          });
+          
+          // Wait for all parallel operations (non-blocking for UI)
+          Promise.all([...imagePreloadPromises, cachePromise]).then(() => {
+            console.log('[PARALLEL] All optimization operations completed');
+          });
+          
+          setLoading(false);
+        } else {
+          console.error('Failed to fetch card data:', response.status, response.statusText);
+          toast({
+            title: 'Error',
+            description: 'Unable to load card data',
+            variant: 'destructive'
+          });
         }
-        
-        setLoading(false);
-      } else {
-        console.error('Failed to fetch card data:', response.status, response.statusText);
-        setLoading(false);
-        toast({
-          title: 'Error',
-          description: 'Unable to load card data',
-          variant: 'destructive'
-        });
       }
     } catch (error) {
       console.error('Error loading card data:', error);
