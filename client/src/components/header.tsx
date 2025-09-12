@@ -10,7 +10,7 @@ export default function Header() {
             <img 
               src={logoSrc} 
               alt="Celebrait Logo" 
-              className="h-10 sm:h-16 object-contain"
+              className="h-12 sm:h-16 object-contain"
             />
           </div>
           

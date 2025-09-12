@@ -93,7 +93,7 @@ function HeroSection() {
               Launching AI Studio...
             </>
           ) : (
-            'Create a Masterpiece'
+            'Get Started'
           )}
         </Button>
         
