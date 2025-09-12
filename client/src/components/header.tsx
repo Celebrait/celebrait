@@ -10,14 +10,14 @@ export default function Header() {
             <img 
               src={logoSrc} 
               alt="Celebrait Logo" 
-              className="h-16 object-contain"
+              className="h-10 sm:h-16 object-contain"
             />
           </div>
           
 
           
           <div className="flex items-center space-x-4">
-            <span className="bg-gradient-celebrait text-white px-6 py-2 rounded-xl shadow-lg">
+            <span className="bg-gradient-celebrait text-white px-3 py-1 sm:px-6 sm:py-2 rounded-xl shadow-lg text-sm sm:text-base">
               BETA Version
             </span>
           </div>
