@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { SafetyGuideModal } from "@/components/safety-guide-modal";
 
 import { 
   ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette, Edit3, Eye,
@@ -512,6 +513,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [stepInputs, setStepInputs] = useState<Record<string, string>>({});
   const [showAllOptions, setShowAllOptions] = useState<Record<string, boolean>>({});
   const [showCustomInput, setShowCustomInput] = useState<Record<string, boolean>>({});
+  const [showSafetyModal, setShowSafetyModal] = useState(false);
   const [editingStep, setEditingStep] = useState<string | null>(null);
   const [returnToSummary, setReturnToSummary] = useState(false);
   const [uploadedPhotoIds, setUploadedPhotoIds] = useState<string[]>([]);
@@ -1781,6 +1783,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
     } catch (error: any) {
       console.error('Card generation error:', error);
+      
+      // Check if this is a safety error from our backend
+      if (error?.isSafetyError || error?.errorType === 'safety_filter' || 
+          (error?.message && error.message.includes('moderation'))) {
+        console.log('Safety error detected, showing safety modal');
+        setShowSafetyModal(true);
+        return; // Don't show the toast, show the modal instead
+      }
       
       // Handle empty error objects and provide meaningful feedback
       let errorMessage = 'Unknown error occurred during card generation';
@@ -3537,6 +3547,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         onClose={() => setStyleViewerOpen(false)}
         styleName={selectedStyleForViewer === 'animated_movie_style' ? 'High-End 3D Animated Movie' : 'Classic Illustrated Storybook'}
         images={[]}
+      />
+
+      {/* Safety Guide Modal */}
+      <SafetyGuideModal
+        isOpen={showSafetyModal}
+        onClose={() => setShowSafetyModal(false)}
+        onRetry={() => {
+          setShowSafetyModal(false);
+          actuallyGenerateCard();
+        }}
       />
     </div>
   );

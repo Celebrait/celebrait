@@ -3654,15 +3654,22 @@ ${formatInstruction}`;
       console.error('GPT-Image-1 scene edit error:', error);
 
       let errorMessage = 'Scene editing failed';
+      let isSafetyError = false;
+      
       if (error.message?.includes('moderation')) {
         errorMessage = 'Content moderation detected unsafe content in the image or prompt';
+        isSafetyError = true;
       } else if (error.message?.includes('special access')) {
         errorMessage = 'GPT-Image-1 requires special access permissions from OpenAI';
       } else if (error.message) {
         errorMessage = error.message;
       }
 
-      res.status(500).json({ message: errorMessage });
+      res.status(500).json({ 
+        message: errorMessage, 
+        isSafetyError,
+        errorType: isSafetyError ? 'safety_filter' : 'general_error'
+      });
     }
   });
 
@@ -3864,15 +3871,22 @@ ${formatInstruction}`;
       console.error('Inside card generation error:', error);
 
       let errorMessage = 'Inside card generation failed';
+      let isSafetyError = false;
+      
       if (error.message?.includes('moderation')) {
         errorMessage = 'Content moderation detected unsafe content in the text or image';
+        isSafetyError = true;
       } else if (error.message?.includes('special access')) {
         errorMessage = 'GPT-Image-1 requires special access permissions from OpenAI';
       } else if (error.message) {
         errorMessage = error.message;
       }
 
-      res.status(500).json({ message: errorMessage });
+      res.status(500).json({ 
+        message: errorMessage, 
+        isSafetyError,
+        errorType: isSafetyError ? 'safety_filter' : 'general_error'
+      });
     }
   });
 
