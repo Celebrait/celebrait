@@ -21,6 +21,7 @@ import DigitalCardViewer from './pages/digital-card-viewer';
 import TestPayment from "@/pages/test-payment";
 import TestGeneration from "@/pages/test-generation";
 import StyleTest from "@/pages/style-test";
+import TestSafetyModal from "@/pages/test-safety-modal";
 import GPTImageTest from "@/pages/gpt-image-test";
 import TestCardPreview from "@/pages/test-card-preview";
 import TestDashboard from "@/pages/test-dashboard";
@@ -56,6 +57,7 @@ function Router() {
         <Route path="/test-payment" component={TestPayment} />
         <Route path="/test-generation" component={TestGeneration} />
         <Route path="/style-test" component={StyleTest} />
+        <Route path="/test-safety-modal" component={TestSafetyModal} />
         <Route path="/gpt-image-test" component={GPTImageTest} />
         <Route path="/test-card-preview" component={TestCardPreview} />
         <Route path="/test-dashboard" component={TestDashboard} />

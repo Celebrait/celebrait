@@ -2120,6 +2120,16 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
   // Generate card images
   app.post("/api/generate-images", async (req, res) => {
+    // Test hook for triggering safety errors (development only)
+    if (process.env.NODE_ENV === 'development' && req.headers['x-test-trigger'] === 'safety_violation') {
+      console.log('[TEST] Triggering safety error for testing');
+      return res.status(400).json({
+        error: 'Content moderation detected inappropriate content',
+        isSafetyError: true,
+        errorType: req.headers['x-test-error-type'] || 'children_photos'
+      });
+    }
+
     try {
       const { cardId, frontPrompt, insidePrompt, photoData, photoAnalysis } = req.body;
 
