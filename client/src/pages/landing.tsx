@@ -78,7 +78,7 @@ function HeroSection() {
       </h1>
 
       <p className="text-gray-600 text-lg max-w-xl mx-auto">
-        Celebrait good times with a personalised greeting card that's impossible to forget ✨ Sent in the post or through a digital link.
+        Describe any scene imaginable featuring your loved one or friend ✨ Printed and delivered anywhere in South Africa.
       </p>
 
       <div className="pt-4 space-y-3">

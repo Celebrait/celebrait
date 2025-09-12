@@ -1,4 +1,3 @@
-import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logoSrc from "../assets/Logo2.png";
 
@@ -18,12 +17,9 @@ export default function Header() {
 
           
           <div className="flex items-center space-x-4">
-            <Button className="bg-gradient-celebrait hover:opacity-90 text-white px-6 py-2 rounded-xl shadow-lg transition-all duration-300">
-              Sign In
-            </Button>
-            <Button variant="ghost" size="sm" className="md:hidden">
-              <Menu className="w-5 h-5" />
-            </Button>
+            <span className="bg-gradient-celebrait text-white px-6 py-2 rounded-xl shadow-lg">
+              BETA Version
+            </span>
           </div>
         </div>
       </div>
