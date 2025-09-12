@@ -773,7 +773,7 @@ export function AIBrainstormChat({
                   variant="ghost"
                   size="sm"
                   onClick={handleStartOver}
-                  className="text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-3 py-1 rounded-md font-medium"
+                  className="bg-gradient-celebrait text-white px-3 py-1 sm:px-6 sm:py-2 rounded-xl shadow-lg text-sm sm:text-base hover:opacity-90 transition-opacity duration-200"
                   data-testid="button-start-over-header"
                 >
                   Start Over
