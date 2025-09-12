@@ -13,7 +13,7 @@ export default function Footer() {
               <img 
                 src={logoSrc} 
                 alt="Celebrait Logo" 
-                className="h-10 object-contain"
+                className="h-14 object-contain"
               />
             </div>
             <p className="text-slate-gray text-sm">Creating magical moments through AI-powered greeting cards, one celebration at a time.</p>
