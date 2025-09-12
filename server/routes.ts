@@ -518,7 +518,7 @@ CLOTHING STEP:
 SUMMARY STEP:
 - Summarize complete scene description for this ${celebration} celebration
 - Tell user they can add more details if they like
-- End with: "When you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection."
+- End with: "When you're ready to proceed, click 'Sounds great, let's go!' to continue to choosing text for the front of the card."
 - CRITICAL: Only show "Sounds great, let's go!" and "I'd like to make a change" buttons in this step
 
 CHANGE REQUEST:
@@ -574,7 +574,7 @@ Current step: ${conversationStep || 'initial_scene'}`;
         if (conversationStep === 'change_request') {
           messages.push({
             role: "system", 
-            content: `The user wants to make a change to the scene. Process their change request and provide a complete updated scene description. Format your response as: "Got it! Let's update the scene with that detail:\n\n[COMPLETE UPDATED SCENE DESCRIPTION]\n\nWhen you're ready to proceed, click 'Sounds great, let's go!' to continue to art style selection." Make sure the scene description is complete and includes all previous elements plus the new changes.`
+            content: `The user wants to make a change to the scene. Process their change request and provide a complete updated scene description. Format your response as: "Got it! Let's update the scene with that detail:\n\n[COMPLETE UPDATED SCENE DESCRIPTION]\n\nWhen you're ready to proceed, click 'Sounds great, let's go!' to continue to choosing text for the front of the card." Make sure the scene description is complete and includes all previous elements plus the new changes.`
           });
         }
       } else if (type === "art_style") {

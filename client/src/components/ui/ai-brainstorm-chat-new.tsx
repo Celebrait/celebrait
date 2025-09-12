@@ -556,7 +556,7 @@ export function AIBrainstormChat({
           console.log('Fallback to onSuggestionSelect');
           onSuggestionSelect(finalScene);
         }
-        // Scroll to top for better UX when advancing to art style step
+        // Scroll to top for better UX when advancing to text selection step
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 100);
       return;
@@ -767,12 +767,24 @@ export function AIBrainstormChat({
           {/* Header */}
           <div className="p-4 border-b border-gray-200 bg-white">
             <div className="flex items-center justify-between">
-              <Bot className="w-8 h-8 text-purple-500" />
+              <div className="flex items-center gap-3">
+                <Bot className="w-8 h-8 text-purple-500" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleStartOver}
+                  className="text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-3 py-1 rounded-md font-medium"
+                  data-testid="button-start-over-header"
+                >
+                  Start Over
+                </Button>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsOpen(false)}
                 className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
+                data-testid="button-close-chat"
               >
                 <X className="w-5 h-5" />
               </Button>
