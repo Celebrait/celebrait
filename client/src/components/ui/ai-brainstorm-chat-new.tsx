@@ -37,6 +37,7 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  isTyping?: boolean;
 }
 
 export function AIBrainstormChat({ 
@@ -129,24 +130,80 @@ export function AIBrainstormChat({
     await addTypingAnimation(restartMessage, 1200);
   };
 
-  const addTypingAnimation = async (content: string, delay: number = 1500) => {
-    // Start typing animation
+  const addTypingAnimation = async (content: string, initialDelay: number = 500) => {
+    // Set typing state
     setConversationState(prev => ({ ...prev, isTyping: true }));
     setIsLoading(true);
     
-    // Wait for typing duration
-    await new Promise(resolve => setTimeout(resolve, delay));
+    // Wait for initial delay (thinking time)
+    await new Promise(resolve => setTimeout(resolve, initialDelay));
     
-    // Add the actual message
-    const assistantMessage: ChatMessage = {
+    // Add empty message bubble that will be progressively filled
+    const typingMessage: ChatMessage = {
       role: "assistant",
-      content,
-      timestamp: new Date()
+      content: "",
+      timestamp: new Date(),
+      isTyping: true
     };
     
-    setMessages(prev => [...prev, assistantMessage]);
-    setConversationState(prev => ({ ...prev, isTyping: false }));
+    setMessages(prev => [...prev, typingMessage]);
     setIsLoading(false);
+    
+    // Progressive typing animation
+    const typingSpeed = 30; // milliseconds per character
+    let currentIndex = 0;
+    
+    const typeNextCharacter = () => {
+      if (currentIndex < content.length) {
+        const currentChar = content[currentIndex];
+        const partialContent = content.substring(0, currentIndex + 1);
+        
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const lastMessageIndex = newMessages.length - 1;
+          if (newMessages[lastMessageIndex] && newMessages[lastMessageIndex].role === 'assistant') {
+            newMessages[lastMessageIndex] = {
+              ...newMessages[lastMessageIndex],
+              content: partialContent
+            };
+          }
+          return newMessages;
+        });
+        
+        currentIndex++;
+        
+        // Vary typing speed for more natural feel
+        let nextDelay = typingSpeed;
+        if (currentChar === '.' || currentChar === '!' || currentChar === '?') {
+          nextDelay = typingSpeed * 8; // Longer pause after sentences
+        } else if (currentChar === ',' || currentChar === ';') {
+          nextDelay = typingSpeed * 4; // Medium pause after commas
+        } else if (currentChar === ' ') {
+          nextDelay = typingSpeed * 1.5; // Slightly longer pause after spaces
+        }
+        
+        setTimeout(typeNextCharacter, nextDelay);
+      } else {
+        // Typing complete
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const lastMessageIndex = newMessages.length - 1;
+          if (newMessages[lastMessageIndex] && newMessages[lastMessageIndex].role === 'assistant') {
+            newMessages[lastMessageIndex] = {
+              ...newMessages[lastMessageIndex],
+              content: content,
+              isTyping: false
+            };
+          }
+          return newMessages;
+        });
+        
+        setConversationState(prev => ({ ...prev, isTyping: false }));
+      }
+    };
+    
+    // Start typing
+    typeNextCharacter();
   };
 
   const handleSendMessage = async (message: string = userInput) => {
@@ -730,6 +787,9 @@ export function AIBrainstormChat({
                     >
                       <p className="text-base leading-relaxed whitespace-pre-wrap">
                         {message.content}
+                        {message.isTyping && (
+                          <span className="inline-block w-2 h-5 bg-gray-400 ml-1 animate-pulse"></span>
+                        )}
                       </p>
                   </div>
                 </div>
