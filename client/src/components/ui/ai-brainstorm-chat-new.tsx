@@ -58,7 +58,8 @@ export function AIBrainstormChat({
   const [conversationState, setConversationState] = useState<ConversationState>({
     currentStep: 'initial_scene',
     showSuggestions: false,
-    collectedInfo: {}
+    collectedInfo: {},
+    isTyping: false
   });
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -83,8 +84,6 @@ export function AIBrainstormChat({
   // Removed typing animation timing logic - messages appear instantly now
 
   const handleInitialMessage = async () => {
-    setIsLoading(true);
-    
     try {
       const response = await apiRequest("POST", "/api/ai-brainstorm", {
         type,
@@ -99,28 +98,55 @@ export function AIBrainstormChat({
       });
 
       const result = await response.json();
-
-      const initialMessage: ChatMessage = {
-        role: "assistant",
-        content: result.response,
-        timestamp: new Date()
-        // Removed isTyping - messages appear instantly
-      };
-
-      setMessages([initialMessage]);
+      
+      // Add typing animation for initial message
+      await addTypingAnimation(result.response, 1000);
       
     } catch (error) {
       console.error('Initial AI message error:', error);
       // Fallback to simple message if API fails
-      setMessages([{
-        role: "assistant",
-        content: `Hello ${userName}! I'm here to help you create a detailed scene description for your ${celebration} card. Let's start with the setting - where should this scene take place?`,
-        timestamp: new Date()
-        // Removed isTyping - fallback message also appears instantly
-      }]);
-    } finally {
-      setIsLoading(false);
+      const fallbackMessage = `Hello ${userName}! I'm here to help you create a detailed scene description for your ${celebration} card. Let's start with the setting - where should this scene take place?`;
+      await addTypingAnimation(fallbackMessage, 1000);
     }
+  };
+  
+  const handleStartOver = async () => {
+    // Reset conversation state
+    setConversationState({
+      currentStep: 'initial_scene',
+      showSuggestions: false,
+      collectedInfo: {},
+      isTyping: false
+    });
+    
+    // Clear messages
+    setMessages([]);
+    setSuggestions([]);
+    setUserInput("");
+    
+    // Show fresh acknowledgment message with typing animation
+    const restartMessage = `No problem! Let's start fresh. I'm here to help you create the perfect scene description for ${recipientName}'s ${celebration} card. \n\nLet's begin again - where would you like this scene to take place?`;
+    await addTypingAnimation(restartMessage, 1200);
+  };
+
+  const addTypingAnimation = async (content: string, delay: number = 1500) => {
+    // Start typing animation
+    setConversationState(prev => ({ ...prev, isTyping: true }));
+    setIsLoading(true);
+    
+    // Wait for typing duration
+    await new Promise(resolve => setTimeout(resolve, delay));
+    
+    // Add the actual message
+    const assistantMessage: ChatMessage = {
+      role: "assistant",
+      content,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, assistantMessage]);
+    setConversationState(prev => ({ ...prev, isTyping: false }));
+    setIsLoading(false);
   };
 
   const handleSendMessage = async (message: string = userInput) => {
@@ -155,15 +181,9 @@ export function AIBrainstormChat({
       });
 
       const result = await response.json();
-
-      const assistantMessage: ChatMessage = {
-        role: "assistant",
-        content: result.response,
-        timestamp: new Date()
-        // Removed isTyping - messages appear instantly
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
+      
+      // Add typing animation before showing response
+      await addTypingAnimation(result.response, 1500);
       
       // Update conversation state
       updateConversationState(message, result.response);
@@ -175,8 +195,8 @@ export function AIBrainstormChat({
         description: "Failed to get AI suggestions. Please try again.",
         variant: "destructive"
       });
-    } finally {
       setIsLoading(false);
+      setConversationState(prev => ({ ...prev, isTyping: false }));
     }
   };
 
@@ -476,6 +496,12 @@ export function AIBrainstormChat({
       return;
     }
     
+    // Handle start over action
+    if (action === "Start over") {
+      handleStartOver();
+      return;
+    }
+    
     // For all other actions, send to AI with delay
     setTimeout(() => {
       handleSendMessage(action);
@@ -523,10 +549,10 @@ export function AIBrainstormChat({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleButtonClick("I'd like to make a change")}
-              className="text-sm bg-orange-50 hover:bg-orange-100 text-orange-700 px-4 py-2 rounded-md border border-orange-200 font-medium transition-all duration-200"
+              onClick={() => handleButtonClick("Start over")}
+              className="text-sm bg-gray-50 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-md border border-gray-200 font-medium transition-all duration-200"
             >
-              I'd like to make a change
+              Start over
             </Button>
           </div>
         );
@@ -584,8 +610,8 @@ export function AIBrainstormChat({
       );
     }
     
-    // Change request step - no buttons, just input
-    if (currentStep === 'change_request') {
+    // No buttons during typing animation
+    if (conversationState.isTyping) {
       return null;
     }
     
@@ -717,7 +743,7 @@ export function AIBrainstormChat({
               </div>
             ))}
             
-            {isLoading && (
+            {(isLoading || conversationState.isTyping) && (
               <div className="flex justify-start">
                 <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-2xl p-4 max-w-[85%]">
                   <div className="flex space-x-1">
