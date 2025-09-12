@@ -137,6 +137,11 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
 
   return (
     <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20 fade-transition-content">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-bold text-gray-800 mb-4">
+          {onboarding.answers?.name ? `${onboarding.answers.name}'s` : 'Your'} {onboarding.answers?.celebration || 'celebration'} card is ready ✨
+        </h2>
+      </div>
 
       {/* Card Display with Toggle Options */}
       <div className="mb-8">
