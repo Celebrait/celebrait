@@ -85,6 +85,10 @@ export function AIBrainstormChat({
   // Removed typing animation timing logic - messages appear instantly now
 
   const handleInitialMessage = async () => {
+    // Show thinking animation
+    setConversationState(prev => ({ ...prev, isTyping: true }));
+    setIsLoading(true);
+    
     try {
       const response = await apiRequest("POST", "/api/ai-brainstorm", {
         type,
@@ -100,14 +104,34 @@ export function AIBrainstormChat({
 
       const result = await response.json();
       
-      // Add typing animation for initial message
-      await addTypingAnimation(result.response, 1000);
+      // Wait a moment for thinking, then show message instantly (no typing for first message)
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const initialMessage: ChatMessage = {
+        role: "assistant",
+        content: result.response,
+        timestamp: new Date()
+      };
+      
+      setMessages([initialMessage]);
       
     } catch (error) {
       console.error('Initial AI message error:', error);
       // Fallback to simple message if API fails
       const fallbackMessage = `Hello ${userName}! I'm here to help you create a detailed scene description for your ${celebration} card. Let's start with the setting - where should this scene take place?`;
-      await addTypingAnimation(fallbackMessage, 1000);
+      
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const fallbackMessageObj: ChatMessage = {
+        role: "assistant",
+        content: fallbackMessage,
+        timestamp: new Date()
+      };
+      
+      setMessages([fallbackMessageObj]);
+    } finally {
+      setConversationState(prev => ({ ...prev, isTyping: false }));
+      setIsLoading(false);
     }
   };
   
@@ -149,8 +173,8 @@ export function AIBrainstormChat({
     setMessages(prev => [...prev, typingMessage]);
     setIsLoading(false);
     
-    // Progressive typing animation
-    const typingSpeed = 30; // milliseconds per character
+    // Progressive typing animation - ChatGPT speed
+    const typingSpeed = 15; // milliseconds per character (faster like ChatGPT)
     let currentIndex = 0;
     
     const typeNextCharacter = () => {
@@ -172,14 +196,14 @@ export function AIBrainstormChat({
         
         currentIndex++;
         
-        // Vary typing speed for more natural feel
+        // Vary typing speed for more natural feel (reduced pauses for ChatGPT speed)
         let nextDelay = typingSpeed;
         if (currentChar === '.' || currentChar === '!' || currentChar === '?') {
-          nextDelay = typingSpeed * 8; // Longer pause after sentences
+          nextDelay = typingSpeed * 3; // Shorter pause after sentences
         } else if (currentChar === ',' || currentChar === ';') {
-          nextDelay = typingSpeed * 4; // Medium pause after commas
+          nextDelay = typingSpeed * 2; // Shorter pause after commas
         } else if (currentChar === ' ') {
-          nextDelay = typingSpeed * 1.5; // Slightly longer pause after spaces
+          nextDelay = typingSpeed; // No extra pause for spaces
         }
         
         setTimeout(typeNextCharacter, nextDelay);
@@ -787,9 +811,6 @@ export function AIBrainstormChat({
                     >
                       <p className="text-base leading-relaxed whitespace-pre-wrap">
                         {message.content}
-                        {message.isTyping && (
-                          <span className="inline-block w-2 h-5 bg-gray-400 ml-1 animate-pulse"></span>
-                        )}
                       </p>
                   </div>
                 </div>
