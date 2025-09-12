@@ -1376,10 +1376,10 @@ If just having a conversation (no suggestions), respond with valid JSON:
         throw new Error('Invalid front image URL format');
       }
       
-      // Use high-quality JPEG with optimal settings for fast loading
+      // Use maximum quality JPEG with optimal settings for fast loading
       const optimizedBuffer = await sharp(imageBuffer)
         .jpeg({ 
-          quality: 95, 
+          quality: 98, 
           progressive: true,
           mozjpeg: true,
           optimiseScans: true
@@ -1493,10 +1493,10 @@ If just having a conversation (no suggestions), respond with valid JSON:
         throw new Error('Invalid inside image URL format');
       }
       
-      // Use high-quality JPEG with optimal settings for fast loading
+      // Use maximum quality JPEG with optimal settings for fast loading
       const optimizedBuffer = await sharp(imageBuffer)
         .jpeg({ 
-          quality: 95, 
+          quality: 98, 
           progressive: true,
           mozjpeg: true,
           optimiseScans: true
