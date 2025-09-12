@@ -265,19 +265,19 @@ const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
   const frontCardComplete = currentPhase >= 8;
   const isComplete = currentPhase >= creativePhases.length - 1 && phaseProgress >= 100;
 
-  // Packaging and Finalizing Component with fresh design
+  // Packaging and Finalising Component with seamless purple-pink design
   if (showPackaging) {
     return (
-      <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 rounded-3xl p-6 md:p-8 shadow-2xl border-2 border-emerald-200/50 max-w-4xl mx-auto">
+      <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-6 md:p-8 shadow-2xl border border-white/20 max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <div className="relative mb-6">
-            {/* Gift Box Icon with Sparkling Animation */}
+            {/* Gift Box Icon with Sparkling Animation matching main theme */}
             <div className="relative w-32 h-32 mx-auto">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 animate-pulse shadow-xl transform rotate-3"></div>
-              <div className="absolute inset-2 rounded-xl bg-gradient-to-br from-white/90 to-emerald-50/90 backdrop-blur-sm flex items-center justify-center shadow-inner">
-                <Package className="text-emerald-600 w-14 h-14" />
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse shadow-xl transform rotate-3"></div>
+              <div className="absolute inset-2 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-inner">
+                <Package className="text-white w-14 h-14" />
               </div>
-              {/* Sparkles around the box */}
+              {/* Sparkles around the box matching theme colours */}
               <div className="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"></div>
               <div className="absolute -bottom-2 -left-2 w-3 h-3 bg-pink-400 rounded-full animate-pulse animation-delay-500"></div>
               <div className="absolute top-4 -left-4 w-2 h-2 bg-blue-400 rounded-full animate-pulse animation-delay-1000"></div>
@@ -285,8 +285,8 @@ const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
             </div>
           </div>
 
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-emerald-700 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-4">
-            Packaging & Finalizing
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+            Packaging & Finalising
           </h2>
           
           <p className="text-lg text-gray-700 mb-2">
@@ -299,10 +299,10 @@ const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
           </p>
         </div>
 
-        {/* Animated Progress Bar */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-emerald-200/30 mb-6">
+        {/* Animated Progress Bar matching main theme */}
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-white/30 mb-6">
           <div className="flex items-center space-x-4 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
               <CheckCircle className="text-white w-6 h-6" />
             </div>
             <div className="flex-1">
@@ -310,28 +310,28 @@ const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
                 Wrapping up your creation
               </h3>
               <p className="text-gray-600">
-                Quality checking, optimizing images, and preparing for delivery...
+                Quality checking, optimising images, and preparing for delivery...
               </p>
             </div>
           </div>
 
-          {/* Animated finishing progress */}
+          {/* Animated finishing progress matching theme */}
           <div className="space-y-3">
             <div className="flex justify-between text-sm text-gray-600">
               <span>Final touches</span>
-              <span className="text-emerald-600 font-medium">Complete</span>
+              <span className="text-purple-600 font-medium">Complete</span>
             </div>
-            <div className="w-full bg-emerald-100 rounded-full h-3">
-              <div className="h-3 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 animate-pulse shadow-sm" style={{ width: '100%' }}></div>
+            <div className="w-full bg-purple-100 rounded-full h-3">
+              <div className="h-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse shadow-sm" style={{ width: '100%' }}></div>
             </div>
           </div>
         </div>
 
-        {/* Fresh completion message */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-emerald-200/30 text-center">
-          <div className="flex items-center justify-center text-emerald-700 font-medium">
+        {/* Fresh completion message matching theme */}
+        <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-white/30 text-centre">
+          <div className="flex items-center justify-center text-purple-700 font-medium">
             <CheckCircle className="w-5 h-5 mr-2" />
-            Your personalized card is beautifully wrapped and ready!
+            Your personalised card is beautifully wrapped and ready!
           </div>
         </div>
       </div>
