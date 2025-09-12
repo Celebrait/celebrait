@@ -129,7 +129,7 @@ export function AIBrainstormChat({
     await addTypingAnimation(restartMessage, 1200);
   };
 
-  const addTypingAnimation = async (content: string, delay: number = 1500, userMessage?: string) => {
+  const addTypingAnimation = async (content: string, delay: number = 1500) => {
     // Start typing animation
     setConversationState(prev => ({ ...prev, isTyping: true }));
     setIsLoading(true);
@@ -145,14 +145,7 @@ export function AIBrainstormChat({
     };
     
     setMessages(prev => [...prev, assistantMessage]);
-    
-    // Update conversation state if userMessage provided
-    if (userMessage) {
-      updateConversationState(userMessage, content);
-    } else {
-      setConversationState(prev => ({ ...prev, isTyping: false }));
-    }
-    
+    setConversationState(prev => ({ ...prev, isTyping: false }));
     setIsLoading(false);
   };
 
@@ -189,8 +182,11 @@ export function AIBrainstormChat({
 
       const result = await response.json();
       
-      // Add typing animation before showing response and update state
-      await addTypingAnimation(result.response, 1500, message);
+      // Add typing animation before showing response
+      await addTypingAnimation(result.response, 1500);
+      
+      // Update conversation state
+      updateConversationState(message, result.response);
 
     } catch (error) {
       console.error('AI brainstorm error:', error);
@@ -221,8 +217,7 @@ export function AIBrainstormChat({
         return {
           currentStep: 'initial_scene',
           showSuggestions: false,
-          collectedInfo: {},
-          isTyping: false
+          collectedInfo: {}
         };
       }
       
@@ -521,7 +516,16 @@ export function AIBrainstormChat({
   const renderInlineButtons = (messageIndex: number) => {
     const { currentStep, showSuggestions } = conversationState;
     
-    // Only show buttons for assistant messages
+    // DEBUG: Log current step for troubleshooting
+    console.log('RENDER_BUTTONS_DEBUG:', { 
+      currentStep, 
+      showSuggestions, 
+      messageIndex,
+      messageRole: messages[messageIndex]?.role,
+      isLoading,
+      totalMessages: messages.length,
+      lastAssistantIndex: messages.map((msg, idx) => msg.role === 'assistant' ? idx : -1).filter(idx => idx !== -1).pop()
+    });
     
     // CRITICAL: Only show buttons for the ABSOLUTE LAST assistant message, no exceptions
     const lastAssistantIndex = messages.map((msg, idx) => msg.role === 'assistant' ? idx : -1)
