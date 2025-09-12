@@ -21,18 +21,24 @@ export default function TestSafetyModal() {
     setIsTestingRealAPI(true);
     try {
       // Call a backend endpoint with test headers to trigger safety error
-      const response = await apiRequest('/api/generate-images', {
+      const response = await fetch('/api/generate-images', {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'X-Test-Trigger': 'safety_violation',
           'X-Test-Error-Type': errorType
         },
-        body: {
+        body: JSON.stringify({
           cardId: 999,
           frontPrompt: 'test prompt',
           insidePrompt: 'test inside prompt'
-        }
+        })
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw errorData;
+      }
       
       // This should not succeed if the test hook works
       toast({
@@ -62,7 +68,7 @@ export default function TestSafetyModal() {
     }
   };
 
-  const handleTryAgain = () => {
+  const handleRetry = () => {
     console.log('Try Again clicked - would restart generation process');
     setShowModal(false);
   };
@@ -159,8 +165,7 @@ export default function TestSafetyModal() {
       <SafetyGuideModal
         isOpen={showModal}
         onClose={handleClose}
-        onTryAgain={handleTryAgain}
-        errorType={errorType}
+        onRetry={handleRetry}
       />
     </div>
   );
