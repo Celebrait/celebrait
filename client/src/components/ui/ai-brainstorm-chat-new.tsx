@@ -691,8 +691,8 @@ export function AIBrainstormChat({
       );
     }
     
-    // No buttons during typing animation
-    if (conversationState.isTyping) {
+    // No buttons during typing animation or if any message is still typing
+    if (conversationState.isTyping || messages.some(msg => msg.isTyping)) {
       return null;
     }
     
@@ -815,8 +815,8 @@ export function AIBrainstormChat({
                   </div>
                 </div>
                 
-                {/* Render buttons inline after each assistant message */}
-                {message.role === 'assistant' && (
+                {/* Render buttons inline after each assistant message (only if not typing) */}
+                {message.role === 'assistant' && !message.isTyping && !conversationState.isTyping && (
                   <div className="mt-3 space-y-3">
                     {renderInlineButtons(index)}
                   </div>
