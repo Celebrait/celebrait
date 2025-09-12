@@ -119,6 +119,12 @@ interface CreativeJourneyLoadingProps {
 const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
   const [currentPhase, setCurrentPhase] = useState(0);
   const [phaseProgress, setPhaseProgress] = useState(0);
+  const [showPackaging, setShowPackaging] = useState(false);
+
+  // Scroll to top when component mounts (mobile optimization)
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   // 12-Phase Creative Journey Definition
   const creativePhases = [
@@ -223,7 +229,7 @@ const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
     },
   ];
 
-  // Phase timing (15 seconds per phase = 3 minutes total)
+  // Phase timing (10 seconds per phase = 2 minutes total)
   useEffect(() => {
     // Don't start interval if we've completed all phases
     if (currentPhase >= creativePhases.length - 1 && phaseProgress >= 100) {
@@ -241,7 +247,7 @@ const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
           });
           return currentPhase < creativePhases.length - 1 ? 0 : 100; // Keep at 100% for final phase
         }
-        return prev + (100 / 15); // 15 seconds per phase
+        return prev + (100 / 10); // 10 seconds per phase
       });
     }, 1000); // Update every second
 
