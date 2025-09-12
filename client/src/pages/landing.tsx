@@ -14,7 +14,7 @@ function HeroSection() {
   const [isVisible, setIsVisible] = useState(false);
   
   const typingPhrases = [
-    'Greetings, earthling',
+    'Greetings, reimagned',
     'the end of boring',
     'mind. blown.'
   ];
