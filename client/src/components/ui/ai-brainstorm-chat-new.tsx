@@ -464,83 +464,68 @@ export function AIBrainstormChat({
     const assistantMessages = messages.filter(m => m.role === 'assistant');
     if (assistantMessages.length === 0) {
       // Fallback to collected info if no assistant messages
+      console.log('No assistant messages found, using collected info fallback');
       return generateFinalScene(conversationState.collectedInfo);
     }
 
     const lastAssistantMessage = assistantMessages[assistantMessages.length - 1];
     const content = lastAssistantMessage.content;
+    
+    console.log('Extracting from content:', content.substring(0, 200) + '...');
 
-    // Enhanced pattern matching for various AI response formats - extract ONLY the scene description
+    // More robust pattern matching - capture everything that looks like scene content
     const patterns = [
-      // Pattern 1: Scene Summary section - extract content between Scene Summary: and ---
-      /\*\*Scene Summary:\*\*\s*([\s\S]+?)(?=---|\n\n---|\*\*|If you'd like|When you're ready|$)/,
+      // Pattern 1: Look for complete scene descriptions that span multiple lines and sections
+      /(?:Here's|This is|Perfect!).*?(?:scene|description)[^:]*:?\s*([\s\S]*?)(?=\n\n(?:When you're ready|If you'd like|Would you like|Let me know|Feel free)|$)/i,
       
-      // Pattern 2: "Here's a summary of the scene we've crafted:" - NEW PATTERN for this specific issue
-      /Here's a summary of the scene we've crafted[^:]*:\s*\n\n([\s\S]+?)(?=\n\n|When you're ready|Perfect!|Please let me know|$)/,
+      // Pattern 2: Multi-section scene with Location, Activity, etc.
+      /(Location:[\s\S]*?)(?=\n\n(?:When you're ready|If you'd like|Would you like|Let me know|Feel free)|$)/i,
       
-      // Pattern 3: "Here's the complete/updated scene description:"
-      /Here's the (?:complete|updated) scene description[^:]*:\s*([\s\S]+?)(?=\n\n|When you're ready|Perfect!|$)/,
+      // Pattern 3: Structured scene with clear sections
+      /\*\*?(?:Scene Summary|Final Scene|Complete Scene)[^:]*:?\*\*?\s*([\s\S]*?)(?=\n\n(?:When you're ready|If you'd like|Would you like|Let me know|Feel free)|$)/i,
       
-      // Pattern 4: "updated scene description:" 
-      /updated scene description[^:]*:\s*([\s\S]+?)(?=\n\n|Please|$)/,
+      // Pattern 4: Any content that starts with scene details and continues
+      /([A-Z][^\n]*(?:Location|Setting|Scene)[^\n]*[\s\S]*?)(?=\n\n(?:When you're ready|If you'd like|Would you like|Let me know|Feel free)|$)/i,
       
-      // Pattern 5: After "Got it!" or "Understood!" with scene content
-      /(?:Got it!|Understood!)[^:]*:\s*([\s\S]+?)(?=\n\n|When you're ready|Perfect!|$)/,
-      
-      // Pattern 6: Multi-line scene description after colon
-      /Let's update the scene[^:]*:\s*([\s\S]+?)(?=\n\n|When you're ready|Perfect!|$)/,
-      
-      // Pattern 7: Scene content between quotes or after "scene:"
-      /scene[^:]*:\s*([\s\S]+?)(?=\n\n|When you're ready|Perfect!|$)/,
-      
-      // Pattern 8: Complete paragraph that looks like a scene description
-      /^([A-Z][^.!?]*(?:[.!?][^.!?]*){2,})(?=\n\n|When you're ready|Perfect!|$)/,
-      
-      // Pattern 9: Content after "Here's" that spans multiple sentences
-      /Here's[^:]*:\s*([\s\S]+?)(?=\n\n|When you're ready|Perfect!|$)/
+      // Pattern 5: Fallback - get large chunks of descriptive content
+      /([A-Z][^.!?]*(?:[.!?][\s\S]*?){3,})(?=\n\n(?:When you're ready|If you'd like|Would you like|Let me know|Feel free)|$)/i
     ];
 
-    for (const pattern of patterns) {
+    for (let i = 0; i < patterns.length; i++) {
+      const pattern = patterns[i];
       const match = content.match(pattern);
       if (match && match[1]) {
         let extracted = match[1].trim();
         
+        console.log(`Pattern ${i + 1} matched:`, extracted.substring(0, 100) + '...');
+        
         // Clean up the extracted text
         extracted = extracted
-          // Remove any remaining markdown formatting
+          // Remove markdown formatting
           .replace(/\*\*/g, '')
-          .replace(/---/g, '')
-          // Remove conversational AI responses at the beginning
-          .replace(/^No problem![^.]*\./g, '')
-          .replace(/^The AI will ensure[^.]*\./g, '')
-          .replace(/^Great choice![^.]*\./g, '')
-          .replace(/^Perfect![^.]*\./g, '')
-          .replace(/^Understood![^.]*\./g, '')
-          // Remove trailing instructions
-          .replace(/If you'd like.*$/g, '')
-          .replace(/When you're ready.*$/g, '')
-          .replace(/Perfect!.*$/g, '')
-          .replace(/Please let me know.*$/g, '')
-          // Clean up extra whitespace and newlines
-          .replace(/^\s*\n+/g, '')
+          .replace(/#+\s*/g, '')
+          // Remove trailing conversational elements but keep the scene
+          .replace(/\n\n(?:When you're ready|If you'd like|Would you like|Let me know|Feel free).*$/s, '')
+          .replace(/(?:When you're ready|If you'd like|Would you like|Let me know|Feel free).*$/s, '')
+          // Clean up extra whitespace
+          .replace(/\n{3,}/g, '\n\n')
+          .replace(/^\s+|\s+$/g, '')
           .trim();
         
-        // Validate it's actually a scene description (not just conversation)
-        if (extracted.length > 30 && 
-            !extracted.toLowerCase().includes('what would you like') &&
-            !extracted.toLowerCase().includes('which element') &&
-            !extracted.toLowerCase().includes('let me know') &&
-            !extracted.toLowerCase().includes('no problem') &&
-            !extracted.toLowerCase().includes('the ai will ensure') &&
-            !extracted.toLowerCase().includes('great choice') &&
-            (extracted.includes('.') || extracted.length > 50)) {
-          console.log('Successfully extracted and cleaned scene:', extracted);
+        // Validate it's a meaningful scene description
+        if (extracted.length > 50 && 
+            !extracted.toLowerCase().includes('what would you like to') &&
+            !extracted.toLowerCase().includes('which option') &&
+            !extracted.toLowerCase().includes('please choose') &&
+            (extracted.includes('Location:') || extracted.includes('.') || extracted.length > 100)) {
+          console.log('Successfully extracted scene:', extracted);
           return extracted;
         }
       }
     }
 
-    console.log('Pattern matching failed, using collected info fallback');
+    console.log('All patterns failed, using collected info fallback');
+    console.log('Full content was:', content);
     // Fallback to collected info if pattern matching fails
     return generateFinalScene(conversationState.collectedInfo);
   };
