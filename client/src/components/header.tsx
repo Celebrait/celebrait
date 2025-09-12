@@ -1,6 +1,6 @@
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logoSrc from "../assets/logo.png";
+import logoSrc from "../assets/Logo2.png";
 
 export default function Header() {
   return (

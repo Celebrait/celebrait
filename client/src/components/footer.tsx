@@ -1,7 +1,7 @@
 import { Instagram, Facebook } from "lucide-react";
 import { FaTiktok } from "react-icons/fa";
 import { Link } from "wouter";
-import logoSrc from "../assets/logo.png";
+import logoSrc from "../assets/Logo2.png";
 
 export default function Footer() {
   return (
