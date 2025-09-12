@@ -1710,16 +1710,27 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   };
 
   const generateCard = async () => {
+    console.log('[DEBUG] generateCard called');
+    
+    // Bypass email popup for testing or streamlined flow
+    if (import.meta.env.VITE_SKIP_EMAIL_COLLECTION === 'true' || streamlinedFlow) {
+      console.log('[DEBUG] Skipping email collection, proceeding directly to generation');
+      actuallyGenerateCard();
+      return;
+    }
+    
     // Show email popup instead of directly generating
+    console.log('[DEBUG] Showing email popup');
     setShowEmailPopup(true);
   };
 
   const actuallyGenerateCard = async () => {
+    console.log('[DEBUG] actuallyGenerateCard called');
     setIsLoading(true);
     setShowEmailPopup(false);
     
     try {
-      console.log('Starting card generation with options:', {
+      console.log('[DEBUG] Starting card generation with options:', {
         photo_option: answers.photo_option,
         has_photos: uploadedPhotoIds.length > 0,
         cardId: cardId,
