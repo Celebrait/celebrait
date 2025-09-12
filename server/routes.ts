@@ -2157,7 +2157,8 @@ If just having a conversation (no suggestions), respond with valid JSON:
           model: "gpt-image-1",
           prompt: frontPrompt,
           n: 1,
-          size: "1024x1024"
+          size: "1024x1024",
+          quality: "high"
         });
       } else if (photoData) {
         // Direct GPT-Image-1 transformation with multiple photo references (no GPT Vision analysis needed)
@@ -2234,7 +2235,8 @@ If just having a conversation (no suggestions), respond with valid JSON:
             model: "gpt-image-1",
             prompt: frontPrompt,
             n: 1,
-            size: "1024x1024"
+            size: "1024x1024",
+            quality: "high"
           });
         }
       } else {
@@ -2243,7 +2245,8 @@ If just having a conversation (no suggestions), respond with valid JSON:
           model: "gpt-image-1",
           prompt: frontPrompt,
           n: 1,
-          size: "1024x1024"
+          size: "1024x1024",
+          quality: "high"
         });
       }
 
