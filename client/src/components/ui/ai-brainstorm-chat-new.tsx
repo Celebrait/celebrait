@@ -22,7 +22,7 @@ interface AIBrainstormChatProps {
 }
 
 interface ConversationState {
-  currentStep: 'initial_scene' | 'scene_specifics' | 'activity' | 'clothing' | 'summary' | 'change_request';
+  currentStep: 'initial_scene' | 'scene_specifics' | 'activity' | 'clothing' | 'summary' | 'final_approval';
   showSuggestions: boolean;
   collectedInfo: {
     initialScene?: string;
@@ -30,6 +30,7 @@ interface ConversationState {
     activity?: string;
     clothing?: string;
   };
+  isTyping?: boolean;
 }
 
 interface ChatMessage {
@@ -415,10 +416,10 @@ export function AIBrainstormChat({
           .replace(/^Perfect![^.]*\./g, '')
           .replace(/^Understood![^.]*\./g, '')
           // Remove trailing instructions
-          .replace(/If you'd like.*$/s, '')
-          .replace(/When you're ready.*$/s, '')
-          .replace(/Perfect!.*$/s, '')
-          .replace(/Please let me know.*$/s, '')
+          .replace(/If you'd like.*$/g, '')
+          .replace(/When you're ready.*$/g, '')
+          .replace(/Perfect!.*$/g, '')
+          .replace(/Please let me know.*$/g, '')
           // Clean up extra whitespace and newlines
           .replace(/^\s*\n+/g, '')
           .trim();
@@ -487,7 +488,7 @@ export function AIBrainstormChat({
   };
 
   const renderInlineButtons = (messageIndex: number) => {
-    const { currentStep, showSuggestions, settingRefinements, activityRefinements } = conversationState;
+    const { currentStep, showSuggestions } = conversationState;
     
     // DEBUG: Log current step for troubleshooting
     console.log('RENDER_BUTTONS_DEBUG:', { 
@@ -633,13 +634,13 @@ export function AIBrainstormChat({
           Sounds great, let's go!
         </Button>,
         <Button
-          key="make-change"
+          key="start-over"
           variant="ghost"
           size="sm"
-          onClick={() => handleButtonClick("I'd like to make a change")}
+          onClick={() => handleButtonClick("Start over")}
           className="text-sm bg-gray-50 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-md border border-gray-200 font-medium transition-all duration-200"
         >
-          I'd like to make a change
+          Start over
         </Button>
       );
     }

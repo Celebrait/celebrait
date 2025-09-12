@@ -14,7 +14,7 @@ function HeroSection() {
   const [isVisible, setIsVisible] = useState(false);
   
   const typingPhrases = [
-    'Greetings, reimagned',
+    'Greetings, reimagined',
     'the end of boring',
     'mind. blown.'
   ];
@@ -339,7 +339,7 @@ function CallToActionSection() {
       <div className="space-y-3">
         <Link to="/create-card">
           <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-3 rounded-xl font-semibold text-lg">
-            Create a Masterpiece
+            Get Started
           </Button>
         </Link>
         
