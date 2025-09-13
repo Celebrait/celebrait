@@ -543,6 +543,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [showEmailPopup, setShowEmailPopup] = useState(false);
   const [popupEmail, setPopupEmail] = useState('');
   const [popupEmailConfirm, setPopupEmailConfirm] = useState('');
+  const [popupName, setPopupName] = useState('');
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [popupFirstName, setPopupFirstName] = useState('');
   const [popupLastName, setPopupLastName] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -3435,6 +3437,18 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
             {/* User Details Form */}
             <div className="space-y-4">
               <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Your Name</label>
+                <Input
+                  type="text"
+                  value={popupName}
+                  onChange={(e) => setPopupName(e.target.value)}
+                  placeholder="Enter your first name"
+                  className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                  data-testid="input-user-name"
+                />
+              </div>
+              
+              <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Email Address</label>
                 <Input
                   type="email"
@@ -3442,6 +3456,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   onChange={(e) => setPopupEmail(e.target.value)}
                   placeholder="Enter your email address"
                   className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                  data-testid="input-user-email"
                 />
               </div>
               
@@ -3453,6 +3468,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   onChange={(e) => setPopupEmailConfirm(e.target.value)}
                   placeholder="Confirm your email address"
                   className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                  data-testid="input-user-email-confirm"
                 />
               </div>
 
@@ -3461,11 +3477,38 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   <p className="text-red-700 text-sm">Email addresses don't match</p>
                 </div>
               )}
+              
+              {/* Marketing Consent */}
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    id="marketing-consent"
+                    checked={marketingConsent}
+                    onChange={(e) => setMarketingConsent(e.target.checked)}
+                    className="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                    data-testid="checkbox-marketing-consent"
+                  />
+                  <label htmlFor="marketing-consent" className="text-sm text-gray-700 leading-relaxed">
+                    <span className="font-medium text-purple-700">Join our creative community!</span> 
+                    <br />
+                    Get exclusive card templates, celebration inspiration, and special offers. You can unsubscribe anytime.
+                  </label>
+                </div>
+              </div>
 
               {/* Generate Button - Matching Your Screenshot */}
               <div className="flex justify-center pt-4">
                 <Button 
-                  onClick={() => {
+                  onClick={async () => {
+                    if (!popupName.trim()) {
+                      toast({
+                        title: "Name Required",
+                        description: "Please enter your name.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
                     if (!popupEmail || !popupEmailConfirm) {
                       toast({
                         title: "Email Required",
@@ -3483,13 +3526,39 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                       return;
                     }
                     
-                    // Store user email in answers
+                    // Store user information in answers
                     answers.user_email = popupEmail;
+                    answers.user_name = popupName.trim();
+                    answers.marketing_consent = marketingConsent;
+                    
+                    // Sign up user for marketing (if they consented)
+                    try {
+                      const signupResponse = await apiRequest("POST", "/api/signup-user", {
+                        email: popupEmail,
+                        name: popupName.trim(),
+                        marketingConsent: marketingConsent
+                      });
+                      
+                      const signupResult = await signupResponse.json();
+                      console.log('User signup result:', signupResult);
+                      
+                      // Show success message for new users who opted in
+                      if (!signupResult.isExistingUser && marketingConsent) {
+                        toast({
+                          title: "Welcome to Celebrait! 🎉",
+                          description: "You'll receive exclusive templates and celebration inspiration.",
+                          variant: "default"
+                        });
+                      }
+                    } catch (signupError) {
+                      console.error('User signup error:', signupError);
+                      // Don't block card generation if signup fails
+                    }
                     
                     // Start actual card generation
                     actuallyGenerateCard();
                   }}
-                  disabled={!popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
+                  disabled={!popupName.trim() || !popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
                   className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   GENERATE MY CARD

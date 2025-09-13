@@ -1961,6 +1961,51 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
 
 
+  // User signup for marketing
+  app.post("/api/signup-user", async (req, res) => {
+    try {
+      const { email, name, marketingConsent } = req.body;
+
+      if (!email || !name) {
+        return res.status(400).json({ message: "Email and name are required" });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      
+      if (existingUser) {
+        // Update existing user's marketing consent
+        const updatedUser = await storage.updateUserMarketingConsent(email, marketingConsent);
+        return res.json({ 
+          message: "User updated", 
+          user: updatedUser,
+          isExistingUser: true 
+        });
+      } else {
+        // Create new user
+        const newUser = await storage.createUser({
+          username: email, // Use email as username for now
+          email,
+          name,
+          marketingConsent
+        });
+        
+        return res.json({ 
+          message: "User created", 
+          user: newUser,
+          isExistingUser: false 
+        });
+      }
+
+    } catch (error: any) {
+      console.error('User signup error:', error);
+      return res.status(500).json({ 
+        message: "Error creating/updating user", 
+        error: error.message 
+      });
+    }
+  });
+
   // Generate style-transformed images
   app.post("/api/generate-style-transform", async (req, res) => {
     try {

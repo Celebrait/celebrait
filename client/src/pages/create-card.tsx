@@ -88,7 +88,7 @@ export default function CreateCard() {
     return <GuidedConversation 
       onboarding={onboarding} 
       onCardGenerated={handleCardGenerated}
-      streamlinedFlow={true}
+      streamlinedFlow={false}
       selectedPhotoOption={selectedPhotoOption}
       onStartFresh={handleBackToHome}
       recoveryParams={recoveryParams}

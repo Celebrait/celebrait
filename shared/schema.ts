@@ -6,6 +6,8 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull(),
   email: text("email").notNull().unique(),
+  name: text("name"),
+  marketingConsent: boolean("marketing_consent").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -58,6 +60,8 @@ export const orders = pgTable("orders", {
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   email: true,
+  name: true,
+  marketingConsent: true,
 });
 
 export const insertCardSchema = createInsertSchema(cards).pick({

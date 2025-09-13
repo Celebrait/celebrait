@@ -11,6 +11,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserMarketingConsent(email: string, marketingConsent: boolean): Promise<User>;
 
   createCard(card: InsertCard & { userId: number }): Promise<Card>;
   getCard(id: number): Promise<Card | undefined>;
@@ -63,10 +64,22 @@ export class MemStorage implements IStorage {
     const user: User = { 
       ...insertUser, 
       id,
+      name: insertUser.name || null,
+      marketingConsent: insertUser.marketingConsent || false,
       createdAt: new Date()
     };
     this.users.set(id, user);
     return user;
+  }
+
+  async updateUserMarketingConsent(email: string, marketingConsent: boolean): Promise<User> {
+    const user = await this.getUserByEmail(email);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    const updatedUser = { ...user, marketingConsent };
+    this.users.set(user.id, updatedUser);
+    return updatedUser;
   }
 
   async createCard(cardData: InsertCard & { userId: number }): Promise<Card> {
@@ -195,6 +208,20 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  async updateUserMarketingConsent(email: string, marketingConsent: boolean): Promise<User> {
+    const result = await db
+      .update(users)
+      .set({ marketingConsent })
+      .where(eq(users.email, email))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('User not found');
+    }
+    
     return result[0];
   }
 
