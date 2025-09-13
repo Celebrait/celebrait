@@ -638,10 +638,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       type: 'photo_upload',
       required: true
     },
-    },
-    },
-    },
-
     {
       id: 'scene',
       question: onboarding.selectedSceneType === 'scene-only' ? 'What scene or visual should the card show?' : `Where should ${answers.name || 'they'} be and what should they be doing?`,
