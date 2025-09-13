@@ -543,8 +543,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [showEmailPopup, setShowEmailPopup] = useState(false);
   const [popupEmail, setPopupEmail] = useState('');
   const [popupEmailConfirm, setPopupEmailConfirm] = useState('');
-  const [popupName, setPopupName] = useState('');
-  const [marketingConsent, setMarketingConsent] = useState(false);
   const [popupFirstName, setPopupFirstName] = useState('');
   const [popupLastName, setPopupLastName] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -602,6 +600,31 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       ]
     },
     {
+      id: 'recipient',
+      question: 'Who is this card for?',
+      aiMessage: `Perfect! ✨ Now, who is this special ${answers.celebration} card for?`,
+      type: 'select',
+      options: [
+        { value: 'partner', label: 'My Partner', description: 'Spouse, boyfriend, girlfriend', color: 'bg-red-500' },
+        { value: 'mother', label: 'My Mother', description: 'Mom, mother-in-law, stepmom', color: 'bg-pink-500' },
+        { value: 'father', label: 'My Father', description: 'Dad, father-in-law, stepdad', color: 'bg-blue-500' },
+        { value: 'friend', label: 'My Friend', description: 'Close friend or best friend', color: 'bg-green-500' },
+        { value: 'sibling', label: 'My Sibling', description: 'Brother, sister, step-sibling', color: 'bg-purple-500' },
+        { value: 'child', label: 'My Child', description: 'Son, daughter, stepchild', color: 'bg-yellow-500' },
+        { value: 'grandmother', label: 'My Grandmother', description: 'Grandmom, nana, granny', color: 'bg-orange-500' },
+        { value: 'grandfather', label: 'My Grandfather', description: 'Grandpa, granddad, papa', color: 'bg-orange-600' },
+        { value: 'grandchild', label: 'My Grandchild', description: 'Grandson, granddaughter', color: 'bg-teal-500' },
+        { value: 'cousin', label: 'My Cousin', description: 'Male or female cousin', color: 'bg-indigo-500' },
+        { value: 'aunt', label: 'My Aunt', description: 'Aunt, great-aunt', color: 'bg-rose-500' },
+        { value: 'uncle', label: 'My Uncle', description: 'Uncle, great-uncle', color: 'bg-rose-600' },
+        { value: 'niece', label: 'My Niece', description: 'Niece, grand-niece', color: 'bg-cyan-500' },
+        { value: 'nephew', label: 'My Nephew', description: 'Nephew, grand-nephew', color: 'bg-cyan-600' },
+        { value: 'colleague', label: 'My Colleague', description: 'Coworker, boss, employee', color: 'bg-gray-500' },
+        { value: 'teacher', label: 'My Teacher', description: 'Teacher, professor, mentor', color: 'bg-emerald-500' },
+        { value: 'neighbor', label: 'My Neighbor', description: 'Next door, community friend', color: 'bg-lime-500' }
+      ]
+    },
+    {
       id: 'photo_option',
       question: `How would you like me to create ${answers.name || 'their'} image?`,
       aiMessage: `Nice! ✨ Now how do you want to create ${answers.name || 'their'}'s ${answers.celebration || 'celebration'} card?`,
@@ -639,6 +662,206 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       required: true
     },
     {
+      id: 'people_details',
+      question: `Please provide details for each person`,
+      aiMessage: `Great photos! I've analysed each person. But I need you confirm their gender and cultural background as our AI doesn't always get this right!`,
+      type: 'people_details',
+      required: true
+    },
+    {
+      id: 'character_costume',
+      question: `What should ${answers.name || 'they'} be wearing or dressed as?`,
+      aiMessage: `Great! Now let's decide what ${answers.name || 'they'} should be wearing in the card. I'll keep their face and appearance from the photo but change their outfit and character.`,
+      type: 'select',
+      options: [
+        { value: 'keep_original', label: 'Keep Original Outfit', description: 'Use the clothes from the photo', color: 'bg-gray-500', icon: 'user' },
+        { value: 'superhero', label: 'Superhero', description: 'Cape, mask, heroic costume', color: 'bg-red-500', icon: 'zap' },
+        { value: 'princess_prince', label: 'Princess/Prince', description: 'Royal gown or regal attire', color: 'bg-purple-500', icon: 'crown' },
+        { value: 'pirate', label: 'Pirate', description: 'Hat, eyepatch, swashbuckling outfit', color: 'bg-amber-600', icon: 'anchor' },
+        { value: 'astronaut', label: 'Astronaut', description: 'Space suit and helmet', color: 'bg-blue-600', icon: 'rocket' },
+        { value: 'wizard_witch', label: 'Wizard/Witch', description: 'Robes, hat, magical attire', color: 'bg-indigo-600', icon: 'wand' },
+        { value: 'chef', label: 'Chef', description: 'Chef hat, apron, cooking attire', color: 'bg-orange-500', icon: 'chef-hat' },
+        { value: 'detective', label: 'Detective', description: 'Trench coat, hat, magnifying glass', color: 'bg-slate-600', icon: 'search' },
+        { value: 'athlete', label: 'Athlete', description: 'Sports uniform or workout gear', color: 'bg-green-500', icon: 'trophy' },
+        { value: 'musician', label: 'Musician', description: 'Performance outfit with instrument', color: 'bg-pink-500', icon: 'music' },
+        { value: 'custom', label: 'Custom Outfit', description: 'Describe a specific costume', color: 'bg-teal-500', icon: 'edit' }
+      ]
+    },
+    {
+      id: 'gender',
+      question: `To help represent ${answers.name || 'them'}, are they male or female?`,
+      aiMessage: `Perfect! ${answers.name || 'They'} sound wonderful. To help me create an authentic representation, are they male or female?`,
+      type: 'select',
+      options: [
+        { value: 'female', label: 'Female', color: 'bg-pink-500', icon: 'user-female' },
+        { value: 'male', label: 'Male', color: 'bg-blue-500', icon: 'user-male' }
+      ]
+    },
+    {
+      id: 'age',
+      question: `What age range is ${answers.name || 'they'} in?`,
+      aiMessage: `Got it! Now, what age range is ${answers.name || 'they'} in? This helps me capture their essence perfectly.`,
+      type: 'select',
+      options: [
+        { value: 'child', label: 'Child (0-12)', color: 'bg-yellow-500' },
+        { value: 'teen', label: 'Teen (13-19)', color: 'bg-orange-500' },
+        { value: 'young_adult', label: 'Young Adult (20-35)', color: 'bg-green-500' },
+        { value: 'adult', label: 'Adult (36-55)', color: 'bg-blue-500' },
+        { value: 'senior', label: 'Senior (56+)', color: 'bg-purple-500' }
+      ]
+    },
+    {
+      id: 'heritage',
+      question: `To create an authentic representation, what's ${answers.name || 'their'} cultural background?`,
+      aiMessage: `South Africa's beautiful diversity is something we celebrate! To create an authentic and respectful representation of ${answers.name || 'them'}, what's ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} cultural background? This helps me capture ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} unique heritage accurately.`,
+      type: 'select',
+      options: [
+        { value: 'afrikaner', label: 'Afrikaner', description: 'Dutch-descended South African', color: 'bg-orange-500' },
+        { value: 'english_sa', label: 'English South African', description: 'British-descended South African', color: 'bg-red-500' },
+        { value: 'xhosa', label: 'Xhosa', description: 'South African Bantu ethnic group', color: 'bg-green-500' },
+        { value: 'zulu', label: 'Zulu', description: 'South African Bantu ethnic group', color: 'bg-blue-500' },
+        { value: 'sotho', label: 'Sotho', description: 'Southern Sotho heritage', color: 'bg-purple-500' },
+        { value: 'tswana', label: 'Tswana', description: 'Tswana heritage', color: 'bg-yellow-500' },
+        { value: 'pedi', label: 'Pedi', description: 'Northern Sotho heritage', color: 'bg-pink-500' },
+        { value: 'venda', label: 'Venda', description: 'Venda heritage', color: 'bg-indigo-500' },
+        { value: 'tsonga', label: 'Tsonga', description: 'Tsonga heritage', color: 'bg-teal-500' },
+        { value: 'ndebele', label: 'Ndebele', description: 'Ndebele heritage', color: 'bg-rose-500' },
+        { value: 'swazi', label: 'Swazi', description: 'Swazi heritage', color: 'bg-cyan-500' },
+        { value: 'coloured', label: 'Cape Coloured', description: 'South African mixed heritage', color: 'bg-amber-500' },
+        { value: 'indian', label: 'Indian', description: 'South African Indian community', color: 'bg-emerald-500' },
+        { value: 'chinese', label: 'Chinese', description: 'Chinese South African', color: 'bg-lime-500' },
+        { value: 'other_african', label: 'Other African', description: 'Other African heritage', color: 'bg-gray-500' },
+        { value: 'other', label: 'Other Heritage', description: 'Different cultural background', color: 'bg-violet-500' }
+      ]
+    },
+    {
+      id: 'hair_color',
+      question: `What color is ${answers.name || 'their'} hair?`,
+      aiMessage: `Excellent! Now let's capture ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} look. What color is ${answers.name || 'their'} hair?`,
+      type: 'select',
+      options: [
+        { value: 'jet_black', label: 'Jet Black', color: 'bg-gray-900' },
+        { value: 'black', label: 'Black', color: 'bg-gray-800' },
+        { value: 'dark_brown', label: 'Dark Brown', color: 'bg-amber-800' },
+        { value: 'chocolate_brown', label: 'Chocolate Brown', color: 'bg-amber-700' },
+        { value: 'brown', label: 'Brown', color: 'bg-amber-600' },
+        { value: 'light_brown', label: 'Light Brown', color: 'bg-amber-500' },
+        { value: 'golden_brown', label: 'Golden Brown', color: 'bg-yellow-700' },
+        { value: 'honey_blonde', label: 'Honey Blonde', color: 'bg-yellow-600' },
+        { value: 'blonde', label: 'Blonde', color: 'bg-yellow-500' },
+        { value: 'platinum_blonde', label: 'Platinum Blonde', color: 'bg-yellow-300' },
+        { value: 'dirty_blonde', label: 'Dirty Blonde', color: 'bg-yellow-600' },
+        { value: 'strawberry_blonde', label: 'Strawberry Blonde', color: 'bg-orange-400' },
+        { value: 'ginger', label: 'Ginger', color: 'bg-orange-500' },
+        { value: 'red', label: 'Red', color: 'bg-red-500' },
+        { value: 'auburn', label: 'Auburn', color: 'bg-red-700' },
+        { value: 'burgundy', label: 'Burgundy', color: 'bg-red-800' },
+        { value: 'gray', label: 'Gray', color: 'bg-gray-500' },
+        { value: 'silver', label: 'Silver', color: 'bg-gray-400' },
+        { value: 'white', label: 'White', color: 'bg-gray-300' },
+        { value: 'salt_pepper', label: 'Salt & Pepper', color: 'bg-gray-400' }
+      ]
+    },
+    {
+      id: 'hair_style',
+      question: `How does ${answers.name || 'they'} style their hair?`,
+      aiMessage: `Great choice! How does ${answers.gender === 'male' ? 'he' : answers.gender === 'female' ? 'she' : 'they'} style ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} hair?`,
+      type: 'select',
+      options: answers.gender === 'female' ? [
+        { value: 'long_straight', label: 'Long & Straight', color: 'bg-purple-500' },
+        { value: 'long_wavy', label: 'Long & Wavy', color: 'bg-pink-500' },
+        { value: 'long_curly', label: 'Long & Curly', color: 'bg-green-500' },
+        { value: 'shoulder_length', label: 'Shoulder Length', color: 'bg-blue-500' },
+        { value: 'bob_cut', label: 'Bob Cut', color: 'bg-indigo-500' },
+        { value: 'pixie_cut', label: 'Pixie Cut', color: 'bg-teal-500' },
+        { value: 'short_straight', label: 'Short & Straight', color: 'bg-cyan-500' },
+        { value: 'short_curly', label: 'Short & Curly', color: 'bg-emerald-500' },
+        { value: 'braids', label: 'Braids', color: 'bg-orange-500' },
+        { value: 'dreadlocks', label: 'Dreadlocks', color: 'bg-amber-500' },
+        { value: 'ponytail', label: 'Ponytail', color: 'bg-red-500' },
+        { value: 'bun', label: 'Bun', color: 'bg-rose-500' },
+        { value: 'bangs', label: 'With Bangs', color: 'bg-violet-500' },
+        { value: 'afro', label: 'Afro', color: 'bg-lime-500' },
+        { value: 'cornrows', label: 'Cornrows', color: 'bg-yellow-500' },
+        { value: 'updo', label: 'Updo', color: 'bg-fuchsia-500' }
+      ] : [
+        { value: 'short_neat', label: 'Short & Neat', color: 'bg-blue-500' },
+        { value: 'buzz_cut', label: 'Buzz Cut', color: 'bg-gray-600' },
+        { value: 'crew_cut', label: 'Crew Cut', color: 'bg-slate-500' },
+        { value: 'fade', label: 'Fade', color: 'bg-zinc-500' },
+        { value: 'undercut', label: 'Undercut', color: 'bg-stone-500' },
+        { value: 'pompadour', label: 'Pompadour', color: 'bg-purple-500' },
+        { value: 'slicked_back', label: 'Slicked Back', color: 'bg-indigo-500' },
+        { value: 'messy', label: 'Messy/Tousled', color: 'bg-green-500' },
+        { value: 'curly_short', label: 'Short & Curly', color: 'bg-emerald-500' },
+        { value: 'medium_length', label: 'Medium Length', color: 'bg-teal-500' },
+        { value: 'long_hair', label: 'Long Hair', color: 'bg-orange-500' },
+        { value: 'man_bun', label: 'Man Bun', color: 'bg-red-500' },
+        { value: 'dreadlocks', label: 'Dreadlocks', color: 'bg-amber-500' },
+        { value: 'afro', label: 'Afro', color: 'bg-lime-500' },
+        { value: 'cornrows', label: 'Cornrows', color: 'bg-yellow-500' },
+        { value: 'bald', label: 'Bald/Shaved', color: 'bg-gray-400' }
+      ]
+    },
+    {
+      id: 'build',
+      question: `What's ${answers.name || 'their'} body type?`,
+      aiMessage: `Perfect! Now let's capture ${answers.name || 'their'} body type. This helps me create the most accurate representation of ${answers.gender === 'male' ? 'him' : answers.gender === 'female' ? 'her' : 'them'}. I want to make sure I get this just right!`,
+      type: 'select',
+      options: [
+        { value: 'slim', label: 'Slim', description: 'Lean and slender build', color: 'bg-green-500' },
+        { value: 'average', label: 'Average', description: 'Medium, balanced build', color: 'bg-blue-500' },
+        { value: 'athletic', label: 'Athletic', description: 'Toned and muscular', color: 'bg-red-500' },
+        { value: 'curvy', label: 'Curvy', description: 'Fuller, shapely figure', color: 'bg-pink-500' },
+        { value: 'stocky', label: 'Stocky', description: 'Broader, solid build', color: 'bg-purple-500' },
+        { value: 'petite', label: 'Petite', description: 'Small, delicate frame', color: 'bg-yellow-500' },
+        { value: 'tall', label: 'Tall', description: 'Tall and lanky build', color: 'bg-indigo-500' },
+        { value: 'plus_size', label: 'Plus Size', description: 'Fuller, larger frame', color: 'bg-orange-500' },
+        { value: 'muscular', label: 'Muscular', description: 'Well-built and strong', color: 'bg-emerald-500' },
+        { value: 'lean', label: 'Lean', description: 'Thin with little body fat', color: 'bg-teal-500' }
+      ]
+    },
+    {
+      id: 'features',
+      question: `What distinctive facial features make ${answers.name || 'them'} uniquely recognizable?`,
+      aiMessage: `Now let's capture what makes ${answers.name || 'them'} truly unique! I'm thinking about ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} distinctive facial features. ${answers.gender === 'female' 
+        ? 'Does she have glasses, freckles, dimples, beauty marks, distinctive eyebrows, long eyelashes, or a unique smile that lights up the room?' 
+        : answers.gender === 'male' 
+        ? 'Does he have glasses, a beard, mustache, goatee, sideburns, distinctive eyebrows, a cleft chin, or a characteristic smile?'
+        : 'Do they have glasses, facial hair, freckles, dimples, distinctive eyebrows, or other unique facial characteristics?'} These details help me create something truly personal and authentic!`,
+      type: 'text',
+      placeholder: answers.gender === 'female' 
+        ? 'e.g., round glasses, freckles across nose, dimpled smile'
+        : 'e.g., full beard, wire-rim glasses, bushy eyebrows'
+    },
+    {
+      id: 'personality',
+      question: `What's ${answers.name || 'their'} main personality trait?`,
+      aiMessage: `Amazing! Now I want to capture ${answers.name || 'their'} essence - the heart of who ${answers.gender === 'male' ? 'he is' : answers.gender === 'female' ? 'she is' : 'they are'}. What's ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} main personality trait that everyone would recognize? This will help me represent ${answers.gender === 'male' ? 'his' : answers.gender === 'female' ? 'her' : 'their'} true spirit in the card.`,
+      type: 'select',
+      options: [
+        { value: 'outgoing', label: 'Outgoing', description: 'Life of the party', color: 'bg-orange-500' },
+        { value: 'calm', label: 'Calm', description: 'Peaceful and relaxed', color: 'bg-blue-500' },
+        { value: 'funny', label: 'Funny', description: 'Always making jokes', color: 'bg-yellow-500' },
+        { value: 'caring', label: 'Caring', description: 'Thoughtful and kind', color: 'bg-pink-500' },
+        { value: 'adventurous', label: 'Adventurous', description: 'Loves new experiences', color: 'bg-green-500' },
+        { value: 'creative', label: 'Creative', description: 'Artistic and imaginative', color: 'bg-purple-500' },
+        { value: 'energetic', label: 'Energetic', description: 'High energy and enthusiastic', color: 'bg-red-500' },
+        { value: 'intellectual', label: 'Intellectual', description: 'Thoughtful and analytical', color: 'bg-indigo-500' },
+        { value: 'spontaneous', label: 'Spontaneous', description: 'Loves surprises and adventure', color: 'bg-teal-500' },
+        { value: 'gentle', label: 'Gentle', description: 'Soft-spoken and tender', color: 'bg-rose-500' },
+        { value: 'ambitious', label: 'Ambitious', description: 'Goal-oriented and driven', color: 'bg-emerald-500' },
+        { value: 'playful', label: 'Playful', description: 'Fun-loving and mischievous', color: 'bg-lime-500' },
+        { value: 'wise', label: 'Wise', description: 'Thoughtful and experienced', color: 'bg-amber-500' },
+        { value: 'quirky', label: 'Quirky', description: 'Unique and eccentric', color: 'bg-violet-500' },
+        { value: 'loyal', label: 'Loyal', description: 'Faithful and dependable', color: 'bg-cyan-500' },
+        { value: 'optimistic', label: 'Optimistic', description: 'Always sees the bright side', color: 'bg-yellow-400' },
+        { value: 'mysterious', label: 'Mysterious', description: 'Intriguing and enigmatic', color: 'bg-gray-700' },
+        { value: 'confident', label: 'Confident', description: 'Self-assured and bold', color: 'bg-orange-600' }
+      ]
+    },
+
+    {
       id: 'scene',
       question: onboarding.selectedSceneType === 'scene-only' ? 'What scene or visual should the card show?' : `Where should ${answers.name || 'they'} be and what should they be doing?`,
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
@@ -664,20 +887,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       placeholder: 'e.g., "Wishing you all the happiness in the world on your special day. You deserve all the joy and love life has to offer!"',
       required: true
     },
-    {
-      id: 'email_collection',
-      question: 'We\'ll email you the card preview and a download link. What\'s your email?',
-      aiMessage: `Perfect! ✨ We\'re almost ready to create ${answers.name || 'the recipient'}\'s ${answers.celebration} card. I\'ll send you the preview and download link via email.`,
-      type: 'email_collection',
-      required: true
-    },
-    {
-      id: 'generation_confirmation',
-      question: 'Ready to generate your card?',
-      aiMessage: `Amazing! ✨ I have everything I need to create an absolutely stunning ${answers.celebration} card for ${answers.name || 'them'}. Let's make something magical!`,
-      type: 'generation_confirmation',
-      required: true
-    },
+
+
+
     {
       id: 'final_summary',
       question: 'Perfect! Let\'s review everything before creating your card.',
@@ -3223,18 +3435,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
             {/* User Details Form */}
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Your Name</label>
-                <Input
-                  type="text"
-                  value={popupName}
-                  onChange={(e) => setPopupName(e.target.value)}
-                  placeholder="Enter your first name"
-                  className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
-                  data-testid="input-user-name"
-                />
-              </div>
-              
-              <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Email Address</label>
                 <Input
                   type="email"
@@ -3242,7 +3442,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   onChange={(e) => setPopupEmail(e.target.value)}
                   placeholder="Enter your email address"
                   className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
-                  data-testid="input-user-email"
                 />
               </div>
               
@@ -3254,7 +3453,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   onChange={(e) => setPopupEmailConfirm(e.target.value)}
                   placeholder="Confirm your email address"
                   className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
-                  data-testid="input-user-email-confirm"
                 />
               </div>
 
@@ -3263,38 +3461,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   <p className="text-red-700 text-sm">Email addresses don't match</p>
                 </div>
               )}
-              
-              {/* Marketing Consent */}
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
-                <div className="flex items-start space-x-3">
-                  <input
-                    type="checkbox"
-                    id="marketing-consent"
-                    checked={marketingConsent}
-                    onChange={(e) => setMarketingConsent(e.target.checked)}
-                    className="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                    data-testid="checkbox-marketing-consent"
-                  />
-                  <label htmlFor="marketing-consent" className="text-sm text-gray-700 leading-relaxed">
-                    <span className="font-medium text-purple-700">Join our creative community!</span> 
-                    <br />
-                    Get exclusive card templates, celebration inspiration, and special offers. You can unsubscribe anytime.
-                  </label>
-                </div>
-              </div>
 
               {/* Generate Button - Matching Your Screenshot */}
               <div className="flex justify-center pt-4">
                 <Button 
-                  onClick={async () => {
-                    if (!popupName.trim()) {
-                      toast({
-                        title: "Name Required",
-                        description: "Please enter your name.",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
+                  onClick={() => {
                     if (!popupEmail || !popupEmailConfirm) {
                       toast({
                         title: "Email Required",
@@ -3312,39 +3483,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                       return;
                     }
                     
-                    // Store user information in answers
+                    // Store user email in answers
                     answers.user_email = popupEmail;
-                    answers.user_name = popupName.trim();
-                    answers.marketing_consent = marketingConsent;
-                    
-                    // Sign up user for marketing (if they consented)
-                    try {
-                      const signupResponse = await apiRequest("POST", "/api/signup-user", {
-                        email: popupEmail,
-                        name: popupName.trim(),
-                        marketingConsent: marketingConsent
-                      });
-                      
-                      const signupResult = await signupResponse.json();
-                      console.log('User signup result:', signupResult);
-                      
-                      // Show success message for new users who opted in
-                      if (!signupResult.isExistingUser && marketingConsent) {
-                        toast({
-                          title: "Welcome to Celebrait! 🎉",
-                          description: "You'll receive exclusive templates and celebration inspiration.",
-                          variant: "default"
-                        });
-                      }
-                    } catch (signupError) {
-                      console.error('User signup error:', signupError);
-                      // Don't block card generation if signup fails
-                    }
                     
                     // Start actual card generation
                     actuallyGenerateCard();
                   }}
-                  disabled={!popupName.trim() || !popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
+                  disabled={!popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
                   className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   GENERATE MY CARD
