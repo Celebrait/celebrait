@@ -51,11 +51,8 @@ export default function TestSafetyModal() {
       
       // Check if this triggered our safety modal logic
       if (error?.isSafetyError || error?.errorType) {
-        toast({
-          title: "Test Successful!",
-          description: "Safety error correctly detected and modal logic triggered",
-          variant: "default"
-        });
+        console.log('✅ Safety error detected, showing SafetyGuideModal');
+        setShowModal(true); // Actually show the modal instead of just a success toast
       } else {
         toast({
           title: "Unexpected Error",

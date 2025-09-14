@@ -1794,14 +1794,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
     } catch (error: any) {
       console.error('Card generation error:', error);
+      console.log('🔍 SAFETY ERROR DEBUG - Full error object:', error);
+      console.log('🔍 SAFETY ERROR DEBUG - error.isSafetyError:', error?.isSafetyError);
+      console.log('🔍 SAFETY ERROR DEBUG - error.errorType:', error?.errorType);
+      console.log('🔍 SAFETY ERROR DEBUG - error.message:', error?.message);
+      console.log('🔍 SAFETY ERROR DEBUG - error includes moderation:', error?.message && error.message.includes('moderation'));
       
       // Check if this is a safety error from our backend
       if (error?.isSafetyError || error?.errorType === 'safety_filter' || 
           (error?.message && error.message.includes('moderation'))) {
-        console.log('Safety error detected, showing safety modal');
+        console.log('✅ SAFETY ERROR DETECTED - Showing safety modal instead of toast');
         setShowSafetyModal(true);
         return; // Don't show the toast, show the modal instead
       }
+      
+      console.log('❌ NOT A SAFETY ERROR - Will show generic error toast');
       
       // Handle empty error objects and provide meaningful feedback
       let errorMessage = 'Unknown error occurred during card generation';
