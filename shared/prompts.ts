@@ -99,12 +99,10 @@ export const buildInsidePrompt = (insideText: string, artStyle?: string, frontPr
   // Dynamic style consistency with front card
   parts.push(`Use the same artistic style that was intelligently chosen for the front card to maintain visual consistency. Apply the same style treatment, color palette, and visual aesthetic as the front card.`);
   
-  // Enhanced typography and text requirements for inside card
-  parts.push(`PROFESSIONAL TYPOGRAPHY: The text "${insideText}" must be rendered with perfect clarity, professional font selection, and high-quality letterforms. Use elegant, highly readable typography that complements the artistic style. Ensure optimal character spacing (kerning), line spacing (leading), and overall text layout.`);
+  // Strict text restriction for inside card
+  parts.push(`STRICT TEXT RESTRICTION: Include EXACTLY and ONLY the text "${insideText}" - ABSOLUTELY NO OTHER TEXT, WORDS, LETTERS, NUMBERS, SIGNS, LABELS, OR WRITING of any kind should appear anywhere in the image. FORBIDDEN: Do not add any background text, signage, labels, captions, watermarks, logos, brand names, decorative text, or any other written content. TYPOGRAPHY: Integrate ONLY the specified text naturally into the design as an organic part of the composition.`);
   
-  parts.push(`STRICT TEXT RESTRICTION: Include EXACTLY and ONLY the text "${insideText}" - ABSOLUTELY NO OTHER TEXT, WORDS, LETTERS, NUMBERS, SIGNS, LABELS, OR WRITING of any kind should appear anywhere in the image. FORBIDDEN: Do not add any background text, signage, labels, captions, watermarks, logos, brand names, decorative text, or any other written content.`);
-  
-  parts.push(`TYPOGRAPHY INTEGRATION: Naturally integrate the specified text into the design as the primary focal point. The text should be prominently displayed with excellent readability, appropriate font size, professional typography treatment, and clear contrast against the background. Use high-quality, print-ready typography rendering.`);
+  parts.push('text prominently displayed and clearly readable');
   parts.push('minimal decorative elements that complement without overwhelming the message');
   parts.push('print-ready artwork, no mockup visible');
   
