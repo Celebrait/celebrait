@@ -3462,36 +3462,32 @@ COMPOSITION RULES - DO NOT COPY REFERENCE PHOTO:
 14) SCENE-APPROPRIATE CLOTHING: CHANGE the clothing completely to fit the new scene - ${clothingInstruction} for the scenario while maintaining identical faces only
 15) ENVIRONMENTAL INTEGRATION: ${positioningInstruction} for the new environment to create an immersive scene composition
 ${formatInstruction}`;
-      if (style && style.trim()) {
-        // Enhanced style specifications for consistent results
-        let enhancedStyle = style;
+      // DYNAMIC STYLE SELECTION: Let AI choose the most appropriate artistic style based on scene content
+      const dynamicStyleInstruction = `DYNAMIC STYLE SELECTION: Analyze the scene description "${scenePrompt}" and intelligently choose the most appropriate artistic style that best complements the mood, atmosphere, setting, and emotional tone of this specific scene.
+
+Consider artistic styles such as:
+- Watercolor painting (for soft, dreamy, romantic scenes)
+- Oil painting (for classical, elegant, formal celebrations)
+- Digital illustration (for modern, contemporary settings)
+- Fantasy art (for magical, mystical, fairytale scenes)
+- Storybook illustration (for whimsical, children's book-style scenes)
+- Impressionistic (for atmospheric, mood-focused scenes)
+- Contemporary art (for urban, trendy, modern celebrations)
+- Realistic photography style (for authentic, documentary-style moments)
+- Vintage illustration (for retro, nostalgic, classic scenes)
+- Comic book style (for dynamic, energetic, fun celebrations)
+- Minimalist design (for clean, simple, sophisticated scenes)
+- Renaissance painting (for grand, ornate, classical scenes)
+- Anime/manga style (for vibrant, expressive, youthful scenes)
+- Art nouveau (for decorative, elegant, artistic scenes)
+- And any other artistic style that would create the most visually compelling result
+
+Choose the single artistic style that creates the most contextually appropriate, visually stunning, and emotionally resonant result for this specific scene. Apply your chosen artistic style with EXACT FACIAL ACCURACY as absolute priority - maintain photographic facial likeness while applying the selected artistic aesthetic. CRITICAL: Preserve precise facial bone structure and anatomy during style conversion. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.`;
         
-        // Make "animated movie style" more specific for consistency with facial accuracy priority
-        if (style.toLowerCase().includes('animated_movie_style') || style.toLowerCase().includes('animated movie style')) {
-          enhancedStyle = `professional 3D animated movie style with EXACT FACIAL ACCURACY as absolute priority, maintain photographic facial likeness while applying high-quality computer animation aesthetic. CRITICAL: Preserve precise facial bone structure and anatomy during animation style conversion. Apply clean digital rendering with soft edges and polished surfaces only AFTER establishing perfect facial recreation. Professional animation studio quality with realistic proportions but NEVER compromise facial recognition for stylistic choices. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.`;
-        }
-        // Make "modern flat illustration" more specific and consistent with facial accuracy priority
-        else if (style.toLowerCase().includes('modern_flat_illustration') || style.toLowerCase().includes('modern flat illustration')) {
-          enhancedStyle = `contemporary editorial illustration style with precise facial accuracy as TOP PRIORITY, then apply artistic style with subtle dimensional shading, vibrant saturated color palette with rich tones, sophisticated graphic design elements with confident brushwork. CRITICAL: Maintain exact facial likeness and bone structure while applying editorial illustration aesthetic. Features modern magazine illustration style with selective artistic detail but NEVER sacrifice facial recognition. Art style influences: high-end editorial portraiture, contemporary character illustration, and professional concept art with photographic facial accuracy. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.`;
-          console.log('Applied enhanced modern flat illustration style with facial accuracy priority and contextual typography');
-        }
-        // Make "semi-realistic illustration" more specific with facial accuracy priority
-        else if (style.toLowerCase().includes('semi-realistic illustration')) {
-          enhancedStyle = 'semi-realistic digital illustration with FACIAL ACCURACY as top priority, maintain exact facial proportions and bone structure while applying clean digital art style with simplified background details. CRITICAL: Perfect facial likeness first, then apply soft edges and painterly quality for artistic balance. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.';
-        }
-        // Make "stylized semi-realism" more specific with facial accuracy priority
-        else if (style.toLowerCase().includes('stylized semi-realism')) {
-          enhancedStyle = 'stylized semi-realistic art with EXACT FACIAL RECREATION as absolute priority, preserve photographic facial likeness while applying enhanced reality and vibrant colors. Apply selective detail emphasis and refined digital painting techniques only AFTER establishing perfect facial accuracy. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.';
-        }
-        // Default fallback for other styles - ensure they also get typography integration
-        else {
-          enhancedStyle = `${style} with FACIAL ACCURACY as absolute priority, maintain exact facial proportions and bone structure while applying the artistic style. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.`;
-        }
-        
-        fullPrompt = `${fullPrompt}. FINAL STEP - ARTISTIC STYLING: Once the exact facial likeness is established, THEN apply the following artistic style while maintaining all facial accuracy: ${enhancedStyle} art style`;
-      }
+      fullPrompt = `${fullPrompt}. FINAL STEP - ARTISTIC STYLING: Once the exact facial likeness is established, THEN ${dynamicStyleInstruction}`;
+      
       if (includeText && cardText && cardText.trim()) {
-        fullPrompt = `${fullPrompt}. STRICT TEXT RESTRICTION: Add EXACTLY and ONLY the text "${cardText}" - ABSOLUTELY NO OTHER TEXT, WORDS, LETTERS, NUMBERS, SIGNS, LABELS, OR WRITING of any kind should appear anywhere in the image. CRITICAL: Do NOT overlay text on top of the image. Instead, naturally integrate ONLY this specific text into the scene as part of the artistic composition. The text should appear as if it belongs in this specific environment - carved into surfaces, written in natural elements, displayed on signs, formed by scene elements, or integrated into the background architecture. FORBIDDEN: Do not add any background text, signage, labels, captions, watermarks, logos, brand names, location names, or any other written content. Typography should match the ${style || 'artistic'} style and complement the scene's natural elements.`;
+        fullPrompt = `${fullPrompt}. STRICT TEXT RESTRICTION: Add EXACTLY and ONLY the text "${cardText}" - ABSOLUTELY NO OTHER TEXT, WORDS, LETTERS, NUMBERS, SIGNS, LABELS, OR WRITING of any kind should appear anywhere in the image. CRITICAL: Do NOT overlay text on top of the image. Instead, naturally integrate ONLY this specific text into the scene as part of the artistic composition. The text should appear as if it belongs in this specific environment - carved into surfaces, written in natural elements, displayed on signs, formed by scene elements, or integrated into the background architecture. FORBIDDEN: Do not add any background text, signage, labels, captions, watermarks, logos, brand names, location names, or any other written content. Typography should match the artistic style and complement the scene's natural elements.`;
       }
       fullPrompt = `${fullPrompt}. High-quality artistic rendering, professional artwork.`;
 
@@ -3976,26 +3972,9 @@ ${formatInstruction}`;
         ? 'Render as a portrait image with 2:3 aspect ratio (height is 1.5x the width). The final output must be portrait-formatted.'
         : 'Render as a perfectly square image with 1:1 aspect ratio (width equals height). The final output must be square-formatted, not portrait or landscape.';
       
-      // Enhanced style specifications for consistent results
+      // DYNAMIC STYLE SELECTION: For style transformation, use the original style request
+      // This endpoint is for transforming existing images to different styles, so we respect the user's style choice
       let enhancedStyle = style;
-      
-      // Make "animated movie style" more specific for consistency
-      if (style.toLowerCase().includes('animated_movie_style') || style.toLowerCase().includes('animated movie style')) {
-        enhancedStyle = `professional 3D animated movie style with realistic proportions and detailed facial features, high-quality computer animation with realistic bone structure and facial anatomy, clean digital rendering with soft edges and polished surfaces, semi-realistic character design with professional animation studio quality. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.`;
-      }
-      // Make "modern flat illustration" more specific and consistent
-      else if (style.toLowerCase().includes('modern_flat_illustration') || style.toLowerCase().includes('modern flat illustration')) {
-        enhancedStyle = `contemporary editorial illustration style with bold graphic shapes and subtle dimensional shading, vibrant saturated color palette with rich tones, clean stylized character design with artistic flair and confident brushwork. Features modern magazine illustration aesthetic with selective detail emphasis, sophisticated color blocking, and professional concept art quality. Art style influences: New Yorker magazine covers, modern book illustration, editorial art direction, contemporary graphic novel aesthetics, and high-end advertising illustration with polished artistic execution. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.`;
-        console.log('Applied enhanced modern flat illustration style with contextual typography (transform endpoint)');
-      }
-      // Make "semi-realistic illustration" more specific
-      else if (style.toLowerCase().includes('semi-realistic illustration')) {
-        enhancedStyle = 'semi-realistic digital illustration with realistic facial proportions and anatomy, clean digital art style with simplified details but accurate bone structure, soft edges and painterly quality that balances realism with artistic stylization';
-      }
-      // Make "stylized semi-realism" more specific  
-      else if (style.toLowerCase().includes('stylized semi-realism')) {
-        enhancedStyle = 'stylized semi-realistic art with enhanced reality, vibrant colors and selective detail emphasis, realistic facial structure with artistic enhancement and refined digital painting techniques';
-      }
       
       const transformPrompt = `Transform this image into ${enhancedStyle} art style. CRITICAL REQUIREMENTS: 1) Keep the EXACT same person, pose, composition, background, and all visual elements from the original photo - DO NOT change anything about the content, scene, or subject matter. 2) ONLY transform the artistic style/rendering technique to ${enhancedStyle} while preserving every detail of the original image. 3) The person must look identical to the original photo - same facial features, expression, clothing, positioning. 4) ${aspectDescription}`;
       console.log('GPT-Image-1 transformation prompt:', transformPrompt);
@@ -5386,7 +5365,7 @@ ${formatInstruction}`;
         }
         
         if (lowerStyle === 'animated_movie_style') {
-          return 'Create in professional 3D animated movie style with clean digital rendering, realistic proportions, detailed facial features, polished surfaces, and high-quality computer animation aesthetic similar to modern animated films.';
+          return 'DYNAMIC STYLE SELECTION: Analyze the scene content and choose the most appropriate artistic style that best complements the mood, atmosphere, and setting. Consider styles like watercolor, oil painting, digital illustration, fantasy art, storybook illustration, contemporary art, vintage illustration, and others. Choose the style that creates the most contextually appropriate and visually compelling result.';
         }
         
         if (lowerStyle === 'modern_flat_illustration') {

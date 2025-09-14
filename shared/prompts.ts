@@ -50,31 +50,33 @@ SCENE DESCRIPTION: ${answers.scene || 'in a celebratory setting'}
 
 ARTISTIC STYLE APPLICATION:`;
 
-  if (answers.art_style) {
-    // Enhanced style specifications
-    let enhancedStyle = answers.art_style;
+  // DYNAMIC STYLE SELECTION: Let AI choose the most appropriate artistic style based on scene content
+  const sceneDescription = answers.scene || 'in a celebratory setting';
+  const dynamicStyleInstruction = `DYNAMIC STYLE SELECTION: Analyze the scene description "${sceneDescription}" and intelligently choose the most appropriate artistic style that best complements the mood, atmosphere, setting, and emotional tone of this specific scene.
+
+Consider artistic styles such as:
+- Watercolor painting (for soft, dreamy, romantic scenes)
+- Oil painting (for classical, elegant, formal celebrations)
+- Digital illustration (for modern, contemporary settings)
+- Fantasy art (for magical, mystical, fairytale scenes)
+- Storybook illustration (for whimsical, children's book-style scenes)
+- Impressionistic (for atmospheric, mood-focused scenes)
+- Contemporary art (for urban, trendy, modern celebrations)
+- Realistic photography style (for authentic, documentary-style moments)
+- Vintage illustration (for retro, nostalgic, classic scenes)
+- Comic book style (for dynamic, energetic, fun celebrations)
+- Minimalist design (for clean, simple, sophisticated scenes)
+- Renaissance painting (for grand, ornate, classical scenes)
+- Anime/manga style (for vibrant, expressive, youthful scenes)
+- Art nouveau (for decorative, elegant, artistic scenes)
+- And any other artistic style that would create the most visually compelling result
+
+Choose the single artistic style that creates the most contextually appropriate, visually stunning, and emotionally resonant result for this specific scene. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.`;
     
-    if (answers.art_style.toLowerCase().includes('animated_movie_style') || answers.art_style.toLowerCase().includes('animated movie style')) {
-      enhancedStyle = `professional 3D animated movie style with high-quality computer animation aesthetic, clean digital rendering with soft edges and polished surfaces, professional animation studio quality with realistic proportions. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.`;
-    }
-    else if (answers.art_style.toLowerCase().includes('modern_flat_illustration') || answers.art_style.toLowerCase().includes('modern flat illustration')) {
-      enhancedStyle = `contemporary editorial illustration style with subtle dimensional shading, vibrant saturated color palette with rich tones, sophisticated graphic design elements with confident brushwork. Features modern magazine illustration style with selective artistic detail. Art style influences: high-end editorial portraiture, contemporary character illustration, and professional concept art. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.`;
-    }
-    else if (answers.art_style.toLowerCase().includes('semi-realistic illustration')) {
-      enhancedStyle = 'semi-realistic digital illustration with clean digital art style and simplified background details, soft edges and painterly quality for artistic balance. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.';
-    }
-    else if (answers.art_style.toLowerCase().includes('stylized semi-realism')) {
-      enhancedStyle = 'stylized semi-realistic art with enhanced reality and vibrant colors, selective detail emphasis and refined digital painting techniques. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.';
-    }
-    else {
-      enhancedStyle = `${answers.art_style} with TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.`;
-    }
-    
-    fullPrompt = `${fullPrompt} Apply the following artistic style: ${enhancedStyle} art style`;
-  }
+  fullPrompt = `${fullPrompt} ${dynamicStyleInstruction}`;
 
   if (cardText) {
-    fullPrompt = `${fullPrompt}. STRICT TEXT RESTRICTION: Add EXACTLY and ONLY the text "${cardText}" - ABSOLUTELY NO OTHER TEXT, WORDS, LETTERS, NUMBERS, SIGNS, LABELS, OR WRITING of any kind should appear anywhere in the image. CRITICAL: Do NOT overlay text on top of the image. Instead, naturally integrate ONLY this specific text into the scene as part of the artistic composition. The text should appear as if it belongs in this specific environment - carved into surfaces, written in natural elements, displayed on signs, formed by scene elements, or integrated into the background architecture. FORBIDDEN: Do not add any background text, signage, labels, captions, watermarks, logos, brand names, location names, or any other written content. Typography should match the ${answers.art_style || 'artistic'} style and complement the scene's natural elements.`;
+    fullPrompt = `${fullPrompt}. STRICT TEXT RESTRICTION: Add EXACTLY and ONLY the text "${cardText}" - ABSOLUTELY NO OTHER TEXT, WORDS, LETTERS, NUMBERS, SIGNS, LABELS, OR WRITING of any kind should appear anywhere in the image. CRITICAL: Do NOT overlay text on top of the image. Instead, naturally integrate ONLY this specific text into the scene as part of the artistic composition. The text should appear as if it belongs in this specific environment - carved into surfaces, written in natural elements, displayed on signs, formed by scene elements, or integrated into the background architecture. FORBIDDEN: Do not add any background text, signage, labels, captions, watermarks, logos, brand names, location names, or any other written content. Typography should match the chosen artistic style and complement the scene's natural elements.`;
   }
   
   fullPrompt = `${fullPrompt}. High-quality artistic rendering, professional artwork.`;
@@ -82,7 +84,7 @@ ARTISTIC STYLE APPLICATION:`;
   return fullPrompt;
 };
 
-export const buildInsidePrompt = (insideText: string, artStyle: string, frontPrompt?: string, sceneDescription?: string) => {
+export const buildInsidePrompt = (insideText: string, artStyle?: string, frontPrompt?: string, sceneDescription?: string) => {
   const parts = [];
   
   // Base requirements for inside card
@@ -94,10 +96,8 @@ export const buildInsidePrompt = (insideText: string, artStyle: string, frontPro
   // Message content
   parts.push(`"${insideText}" prominently displayed as the main focus`);
   
-  // Art style consistency
-  if (artStyle) {
-    parts.push(`${artStyle} art style with same visual treatment as front`);
-  }
+  // Dynamic style consistency with front card
+  parts.push(`Use the same artistic style that was intelligently chosen for the front card to maintain visual consistency. Apply the same style treatment, color palette, and visual aesthetic as the front card.`);
   
   // Strict text restriction for inside card
   parts.push(`STRICT TEXT RESTRICTION: Include EXACTLY and ONLY the text "${insideText}" - ABSOLUTELY NO OTHER TEXT, WORDS, LETTERS, NUMBERS, SIGNS, LABELS, OR WRITING of any kind should appear anywhere in the image. FORBIDDEN: Do not add any background text, signage, labels, captions, watermarks, logos, brand names, decorative text, or any other written content. TYPOGRAPHY: Integrate ONLY the specified text naturally into the design as an organic part of the composition.`);
