@@ -518,6 +518,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [returnToSummary, setReturnToSummary] = useState(false);
   const [uploadedPhotoIds, setUploadedPhotoIds] = useState<string[]>([]);
   const [typedText, setTypedText] = useState('');
+  const [photoUploadProgress, setPhotoUploadProgress] = useState<{ [fileName: string]: number }>({});
+  const [isProcessingPhotos, setIsProcessingPhotos] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
 
@@ -1345,7 +1347,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   };
 
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
       const isTransformStyle = answers.photo_option === 'upload_and_transform';
@@ -1353,11 +1355,37 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       // Limit to one file for transform style option
       const filesToProcess = isTransformStyle ? [files[0]] : Array.from(files);
       
+      setIsProcessingPhotos(true);
+      
       try {
-        // Store files in ImageStore and get lightweight IDs - NO BASE64 CONVERSION!
-        const photoIds = filesToProcess.map(file => ImageStore.addPhoto(file));
+        console.log(`[PHOTO_UPLOAD] Processing ${filesToProcess.length} photos during upload...`);
+        const processStart = performance.now();
         
-        // Update state with lightweight IDs instead of heavy Base64 strings
+        // Process photos with progress tracking
+        const photoIds: string[] = [];
+        
+        for (let i = 0; i < filesToProcess.length; i++) {
+          const file = filesToProcess[i];
+          const fileName = file.name;
+          
+          // Initialize progress for this file
+          setPhotoUploadProgress(prev => ({ ...prev, [fileName]: 0 }));
+          
+          // Process photo with progress callback
+          const photoId = await ImageStore.addPhoto(file, (progress) => {
+            setPhotoUploadProgress(prev => ({ ...prev, [fileName]: progress }));
+          });
+          
+          photoIds.push(photoId);
+          
+          // Show completion for this file
+          setPhotoUploadProgress(prev => ({ ...prev, [fileName]: 100 }));
+        }
+        
+        const processEnd = performance.now();
+        console.log(`[PHOTO_UPLOAD] Completed processing ${filesToProcess.length} photos in ${Math.round(processEnd - processStart)}ms`);
+        
+        // Update state with processed photo IDs
         setUploadedPhotoIds(photoIds);
         
         // For backward compatibility, store first photo's object URL (not Base64)
@@ -1366,18 +1394,35 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
           setAnswers(prev => ({ ...prev, photo_upload: firstPhotoUrl }));
         }
         
-        // Show success message immediately - no async operations to block the UI!
+        // Show success message with compression stats
+        const stats = ImageStore.getPhotoStats(photoIds[0]);
+        const compressionInfo = stats ? ` (compressed to ${stats.compressionRatio}% of original)` : '';
+        
         const successMessage = isTransformStyle 
-          ? 'Photo uploaded successfully for style transformation'
-          : `Photo${photoIds.length > 1 ? 's' : ''} uploaded successfully`;
+          ? `Photo processed and optimized for style transformation${compressionInfo}`
+          : `Photo${photoIds.length > 1 ? 's' : ''} processed and optimized for generation${compressionInfo}`;
         setAnswers(prev => ({ ...prev, character_description: successMessage }));
         
+        toast({
+          title: "✅ Photos Ready!",
+          description: `${filesToProcess.length} photo${filesToProcess.length > 1 ? 's' : ''} processed and compressed. Card generation will now be instant!`,
+        });
+        
       } catch (error) {
+        console.error('[PHOTO_UPLOAD] Processing failed:', error);
         toast({
           title: "Upload Error",
           description: "Failed to process uploaded photo. Please try again.",
           variant: "destructive"
         });
+        // Clear progress on error
+        setPhotoUploadProgress({});
+      } finally {
+        setIsProcessingPhotos(false);
+        // Clear progress indicators after a short delay for successful uploads
+        setTimeout(() => {
+          setPhotoUploadProgress({});
+        }, 2000);
       }
       
       // Clear the input so the same file can be uploaded again if needed
@@ -1838,24 +1883,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const generateCardWithGPTImage = async (useCardId: number) => {
     console.log('Using GPT-Image-1 for photo + scene workflow with cardId:', useCardId);
     
-    // Use original uploaded photos and convert to base64
-    const referenceFiles = uploadedPhotoIds.map(id => ImageStore.getPhotoFile(id)).filter(Boolean);
-    console.log('Converting images to base64 for API:', { 
-      originalCount: uploadedPhotoIds.length,
-      referenceFiles: referenceFiles.map((img, i) => img ? `Image ${i + 1}: ${img.name}` : `Image ${i + 1}: missing`)
+    // Use pre-processed compressed base64 images (NO FileReader needed!)
+    console.log('🚀 INSTANT: Retrieving pre-processed images from upload cache...', { 
+      photoCount: uploadedPhotoIds.length
     });
     
-    // Convert File objects to base64 data URLs
-    const referenceImages = await Promise.all(
-      referenceFiles.map(file => new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      }))
-    );
+    // Get compressed base64 data that was processed during upload
+    const referenceImages = uploadedPhotoIds
+      .map(id => ImageStore.getPhotoBase64(id))
+      .filter(Boolean) as string[];
     
-    console.log('Base64 conversion complete:', {
+    console.log('✅ INSTANT: Images ready for API call:', {
       count: referenceImages.length,
       sizes: referenceImages.map(img => `${Math.round(img.length / 1024)}KB`)
     });
@@ -1925,22 +1963,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const generateCardWithGPTImageTransform = async (useCardId: number) => {
     console.log('Using GPT-Image-1 for photo + transform style workflow with cardId:', useCardId);
     
-    // Use original uploaded photos and convert to base64
-    const referenceFiles = uploadedPhotoIds.map(id => ImageStore.getPhotoFile(id)).filter(Boolean);
-    console.log('Converting images to base64 for transform:', { 
-      originalCount: uploadedPhotoIds.length,
-      referenceFiles: referenceFiles.map((img, i) => img ? `Image ${i + 1}: ${img.name}` : `Image ${i + 1}: missing`)
+    // Use pre-processed compressed base64 images (NO FileReader needed!)
+    console.log('🚀 INSTANT: Retrieving pre-processed images from upload cache for transform...', { 
+      photoCount: uploadedPhotoIds.length
     });
     
-    // Convert File objects to base64 data URLs
-    const referenceImages = await Promise.all(
-      referenceFiles.map(file => new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      }))
-    );
+    // Get compressed base64 data that was processed during upload
+    const referenceImages = uploadedPhotoIds
+      .map(id => ImageStore.getPhotoBase64(id))
+      .filter(Boolean) as string[];
+    
+    console.log('✅ INSTANT: Images ready for transform API call:', {
+      count: referenceImages.length,
+      sizes: referenceImages.map(img => `${Math.round(img.length / 1024)}KB`)
+    });
     
     // Build style transformation prompt using the exact same approach as gpt-image-test page
     const artStyle = answers.art_style || 'semi-realistic illustration';
@@ -2946,7 +2982,36 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
                 {currentStep.type === 'photo_upload' && (answers.photo_option === 'upload_and_scene' || answers.photo_option === 'upload_and_transform') && (
                   <div className="space-y-6">
-                    {uploadedPhotoIds.length === 0 ? (
+                    {/* Photo Processing Progress */}
+                    {isProcessingPhotos && Object.keys(photoUploadProgress).length > 0 && (
+                      <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+                        <div className="text-center mb-4">
+                          <div className="flex items-center justify-center space-x-2">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                            <h3 className="text-lg font-semibold text-blue-700">Processing Photos...</h3>
+                          </div>
+                          <p className="text-blue-600 text-sm mt-1">Compressing and optimizing for instant generation</p>
+                        </div>
+                        <div className="space-y-3">
+                          {Object.entries(photoUploadProgress).map(([fileName, progress]) => (
+                            <div key={fileName} className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-blue-700 font-medium">{fileName}</span>
+                                <span className="text-blue-600">{Math.round(progress)}%</span>
+                              </div>
+                              <div className="w-full bg-blue-200 rounded-full h-2">
+                                <div 
+                                  className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300 ease-out"
+                                  style={{ width: `${progress}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {uploadedPhotoIds.length === 0 && !isProcessingPhotos ? (
                       <div className="space-y-6">
                         <div className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center bg-purple-50 hover:bg-purple-100 transition-colors">
                           <input
