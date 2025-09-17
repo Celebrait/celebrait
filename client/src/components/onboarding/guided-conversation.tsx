@@ -876,34 +876,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         : 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...'
     },
     {
-      id: 'art_style_choice',
-      question: 'How should I choose the artistic style?',
-      aiMessage: `Great scene! ✨ Now for the artistic style - would you like me to intelligently choose the perfect style based on your scene, or do you have a specific style in mind?`,
-      type: 'select',
-      options: [
-        { 
-          value: 'ai_decide', 
-          label: 'Let AI decide', 
-          description: 'I\'ll choose the perfect artistic style that matches your scene\'s mood and atmosphere', 
-          color: 'bg-purple-500',
-          icon: 'sparkles'
-        },
-        { 
-          value: 'custom_style', 
-          label: 'I have a specific style in mind', 
-          description: 'Type your own artistic style (e.g., watercolor, oil painting, digital art)', 
-          color: 'bg-blue-500',
-          icon: 'palette'
-        }
-      ]
-    },
-    {
-      id: 'custom_art_style',
-      question: 'What artistic style would you like?',
-      aiMessage: `Perfect! ✨ What artistic style would you like for ${answers.name || 'their'} card?`,
+      id: 'art_style',
+      question: 'Do you have a specific artistic style in mind?',
+      aiMessage: `Great scene! ✨ If you have a specific artistic style in mind, type it below. Otherwise, I'll intelligently choose the perfect style that matches your scene's mood and atmosphere.`,
       type: 'text',
-      placeholder: 'e.g., watercolor painting, oil painting, digital illustration, comic book style...',
-      condition: () => answers.art_style_choice === 'custom_style'
+      placeholder: 'Type your preferred style here, or leave blank for AI to decide...',
+      required: false
     },
     {
       id: 'message',
@@ -983,10 +961,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
       // For streamlined flow, only show relevant steps based on photo option
       if (streamlinedPhotoOption === 'upload_and_scene') {
-        const allowedSteps = ['name', 'celebration', 'photo_upload', 'scene', 'art_style_choice', 'custom_art_style', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
+        const allowedSteps = ['name', 'celebration', 'photo_upload', 'scene', 'art_style', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
         return allowedSteps.includes(step.id);
       } else if (streamlinedPhotoOption === 'upload_and_transform') {
-        const allowedSteps = ['name', 'celebration', 'photo_upload', 'art_style_choice', 'custom_art_style', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
+        const allowedSteps = ['name', 'celebration', 'photo_upload', 'art_style', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
         return allowedSteps.includes(step.id);
       }
     }
@@ -1640,10 +1618,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         await generateCardWithGPTImageTransform(currentCardId);
       } else {
         // Use text-only workflow with detailed prompt structure
-        // Determine art style based on user choice
+        // Determine art style based on user input
         let artStyle;
-        if (answers.art_style_choice === 'custom_style') {
-          artStyle = answers.custom_art_style || 'semi-realistic illustration';
+        if (answers.art_style && answers.art_style.trim()) {
+          artStyle = answers.art_style.trim();
         } else {
           // Let AI decide - will be handled in the prompt
           artStyle = 'ai_decide';
@@ -1718,10 +1696,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   // Background generation helper functions
   const generateCardWithDALLEInBackground = async () => {
-    // Determine art style based on user choice
+    // Determine art style based on user input
     let artStyle;
-    if (answers.art_style_choice === 'custom_style') {
-      artStyle = answers.custom_art_style || 'semi-realistic illustration';
+    if (answers.art_style && answers.art_style.trim()) {
+      artStyle = answers.art_style.trim();
     } else {
       // Let AI decide - will be handled in the prompt
       artStyle = 'ai_decide';
@@ -1955,10 +1933,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     // Build scene description with style
     const sceneDescription = answers.scene || '';
     
-    // Determine art style based on user choice
+    // Determine art style based on user input
     let artStyle;
-    if (answers.art_style_choice === 'custom_style') {
-      artStyle = answers.custom_art_style || 'semi-realistic illustration';
+    if (answers.art_style && answers.art_style.trim()) {
+      artStyle = answers.art_style.trim();
     } else {
       // Let AI decide - will be handled in the prompt
       artStyle = 'ai_decide';
@@ -2042,10 +2020,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     });
     
     // Build style transformation prompt using the exact same approach as gpt-image-test page
-    // Determine art style based on user choice
+    // Determine art style based on user input
     let artStyle;
-    if (answers.art_style_choice === 'custom_style') {
-      artStyle = answers.custom_art_style || 'semi-realistic illustration';
+    if (answers.art_style && answers.art_style.trim()) {
+      artStyle = answers.art_style.trim();
     } else {
       // Let AI decide - use default for transform style
       artStyle = 'semi-realistic illustration';
@@ -2795,12 +2773,38 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                       />
                       <Button 
                         onClick={handleTextSubmit}
-                        disabled={!currentInput.trim()}
+                        disabled={currentStep.required ? !currentInput.trim() : false}
                         className="px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
                       >
                         <ArrowRight className="w-4 h-4" />
                       </Button>
                     </div>
+
+                    {currentStep.id === 'art_style' && (
+                      <div className="mt-6 p-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl border border-purple-100">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Popular Artistic Styles:</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                          <div className="text-gray-600">• Watercolor painting</div>
+                          <div className="text-gray-600">• Oil painting</div>
+                          <div className="text-gray-600">• Digital illustration</div>
+                          <div className="text-gray-600">• Anime/Manga style</div>
+                          <div className="text-gray-600">• Comic book style</div>
+                          <div className="text-gray-600">• Vintage poster</div>
+                          <div className="text-gray-600">• Impressionist painting</div>
+                          <div className="text-gray-600">• Photography style</div>
+                          <div className="text-gray-600">• Minimalist design</div>
+                          <div className="text-gray-600">• Renaissance art</div>
+                          <div className="text-gray-600">• Pop art</div>
+                          <div className="text-gray-600">• Abstract art</div>
+                          <div className="text-gray-600">• Pencil sketch</div>
+                          <div className="text-gray-600">• Storybook illustration</div>
+                          <div className="text-gray-600">• Art nouveau</div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-3 italic">
+                          Leave blank and I'll choose the perfect style for your scene automatically ✨
+                        </p>
+                      </div>
+                    )}
 
                     {currentStep.id === 'features' && (
                       <div className="flex justify-center">
