@@ -902,6 +902,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
 
     {
+      id: 'generation_confirmation',
+      question: 'Ready to create your amazing card?',
+      aiMessage: `Perfect! ✨ Everything looks amazing. Ready to generate ${answers.name || 'your'}'s ${answers.celebration || 'special'} card? This will take about 2-3 minutes of AI magic!`,
+      type: 'generation_confirmation',
+      required: true
+    },
+    {
       id: 'final_summary',
       question: 'Perfect! Let\'s review everything before creating your card.',
       aiMessage: onboarding.selectedSceneType === 'scene-only' 
@@ -2381,6 +2388,51 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     </div>
                       </div>
                   </>
+                )}
+
+                {currentStep.type === 'generation_confirmation' && (
+                  <div className="space-y-6 text-center">
+                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-8 border border-purple-200">
+                      <div className="mb-6">
+                        <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Sparkles className="w-10 h-10 text-white" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-gray-800 mb-3">
+                          Ready to Create Magic? ✨
+                        </h3>
+                        <p className="text-gray-600 max-w-md mx-auto">
+                          I have everything I need to create an amazing {answers.celebration || 'special'} card for {answers.name || 'your recipient'}. 
+                          Generation takes 2-3 minutes!
+                        </p>
+                      </div>
+                      
+                      <Button 
+                        onClick={() => {
+                          // Show marketing data capture popup when user clicks "I'm Happy, Let's Create!"
+                          setShowEmailPopup(true);
+                        }}
+                        disabled={isLoading}
+                        className="px-12 py-6 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold text-xl shadow-xl transform hover:scale-105 transition-all duration-200"
+                        data-testid="button-happy-lets-create"
+                      >
+                        {isLoading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
+                            Creating Magic...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-6 h-6 mr-3" />
+                            I'm Happy, Let's Create!
+                          </>
+                        )}
+                      </Button>
+                      
+                      <p className="text-xs text-gray-500 mt-4">
+                        This will start the AI generation process which takes 2-3 minutes
+                      </p>
+                    </div>
+                  </div>
                 )}
 
                 {currentStep.type === 'multiselect' && currentStep.options && (
