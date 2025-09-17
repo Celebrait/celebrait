@@ -15,7 +15,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { apiRequest } from "@/lib/queryClient";
-import { buildTextOnlyImagePrompt } from "@shared/prompts";
+import { buildTextOnlyImagePrompt, buildInsidePrompt } from "@shared/prompts";
 import { ImageStore } from "@/utils/image-store";
 // Typography library removed - AI handles text integration directly
 import { AIBrainstormChat } from "@/components/ui/ai-brainstorm-chat-new";
@@ -54,6 +54,7 @@ interface ConversationStep {
   options?: Array<{ value: string; label: string; description?: string; color?: string; icon?: string; details?: string; disabled?: boolean; inspiration?: string; emoji?: string }>;
   placeholder?: string;
   required?: boolean;
+  condition?: () => boolean;
 }
 
 // Recovery system for abandoned cards
@@ -875,6 +876,36 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         : 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...'
     },
     {
+      id: 'art_style_choice',
+      question: 'How should I choose the artistic style?',
+      aiMessage: `Great scene! ✨ Now for the artistic style - would you like me to intelligently choose the perfect style based on your scene, or do you have a specific style in mind?`,
+      type: 'select',
+      options: [
+        { 
+          value: 'ai_decide', 
+          label: 'Let AI decide', 
+          description: 'I\'ll choose the perfect artistic style that matches your scene\'s mood and atmosphere', 
+          color: 'bg-purple-500',
+          icon: 'sparkles'
+        },
+        { 
+          value: 'custom_style', 
+          label: 'I have a specific style in mind', 
+          description: 'Type your own artistic style (e.g., watercolor, oil painting, digital art)', 
+          color: 'bg-blue-500',
+          icon: 'palette'
+        }
+      ]
+    },
+    {
+      id: 'custom_art_style',
+      question: 'What artistic style would you like?',
+      aiMessage: `Perfect! ✨ What artistic style would you like for ${answers.name || 'their'} card?`,
+      type: 'text',
+      placeholder: 'e.g., watercolor painting, oil painting, digital illustration, comic book style...',
+      condition: () => answers.art_style_choice === 'custom_style'
+    },
+    {
       id: 'message',
       question: 'What message should appear on the front of the card?',
       aiMessage: `Now for the text ✨ What message should appear on the front of ${answers.name || 'their'}'s ${answers.celebration} card?`,
@@ -941,16 +972,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   // Memoized filter steps based on streamlined flow, scene type and card options
   const filteredSteps = useMemo(() => steps.filter(step => {
+    // Check condition property first
+    if (step.condition && !step.condition()) {
+      return false;
+    }
+    
     // For streamlined flow, include recipient name and celebration before photo upload
     if (streamlinedFlow) {
       const streamlinedPhotoOption = selectedPhotoOption || answers.photo_option;
       
       // For streamlined flow, only show relevant steps based on photo option
       if (streamlinedPhotoOption === 'upload_and_scene') {
-        const allowedSteps = ['name', 'celebration', 'photo_upload', 'scene', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
+        const allowedSteps = ['name', 'celebration', 'photo_upload', 'scene', 'art_style_choice', 'custom_art_style', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
         return allowedSteps.includes(step.id);
       } else if (streamlinedPhotoOption === 'upload_and_transform') {
-        const allowedSteps = ['name', 'celebration', 'photo_upload', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
+        const allowedSteps = ['name', 'celebration', 'photo_upload', 'art_style_choice', 'custom_art_style', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
         return allowedSteps.includes(step.id);
       }
     }
@@ -1604,10 +1640,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         await generateCardWithGPTImageTransform(currentCardId);
       } else {
         // Use text-only workflow with detailed prompt structure
-        const frontPrompt = buildTextOnlyImagePrompt(answers);
+        // Determine art style based on user choice
+        let artStyle;
+        if (answers.art_style_choice === 'custom_style') {
+          artStyle = answers.custom_art_style || 'semi-realistic illustration';
+        } else {
+          // Let AI decide - will be handled in the prompt
+          artStyle = 'ai_decide';
+        }
+        
+        const frontPrompt = buildTextOnlyImagePrompt(answers, artStyle);
         console.log('Built front prompt with detailed structure:', frontPrompt);
         
-        const insidePrompt = buildInsidePrompt();
+        const insidePrompt = buildInsidePrompt(answers.inside_message || "Hope your special day brings you joy and happiness!", artStyle);
 
         const response = await apiRequest("POST", "/api/generate-images", {
           cardId: currentCardId,
@@ -1673,8 +1718,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   // Background generation helper functions
   const generateCardWithDALLEInBackground = async () => {
-    const frontPrompt = buildTextOnlyImagePrompt(answers);
-    const insidePrompt = buildInsidePrompt();
+    // Determine art style based on user choice
+    let artStyle;
+    if (answers.art_style_choice === 'custom_style') {
+      artStyle = answers.custom_art_style || 'semi-realistic illustration';
+    } else {
+      // Let AI decide - will be handled in the prompt
+      artStyle = 'ai_decide';
+    }
+    
+    const frontPrompt = buildTextOnlyImagePrompt(answers, artStyle);
+    const insidePrompt = buildInsidePrompt(answers.inside_message || "Hope your special day brings you joy and happiness!", artStyle);
 
     // Use the working DALL-E endpoint that exists
     const response = await apiRequest("POST", "/api/generate-images", {
@@ -1900,7 +1954,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     
     // Build scene description with style
     const sceneDescription = answers.scene || '';
-    const artStyle = answers.art_style || 'semi-realistic illustration';
+    
+    // Determine art style based on user choice
+    let artStyle;
+    if (answers.art_style_choice === 'custom_style') {
+      artStyle = answers.custom_art_style || 'semi-realistic illustration';
+    } else {
+      // Let AI decide - will be handled in the prompt
+      artStyle = 'ai_decide';
+    }
+    
     const frontCardText = answers.message || '';
     
     
@@ -1979,7 +2042,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     });
     
     // Build style transformation prompt using the exact same approach as gpt-image-test page
-    const artStyle = answers.art_style || 'semi-realistic illustration';
+    // Determine art style based on user choice
+    let artStyle;
+    if (answers.art_style_choice === 'custom_style') {
+      artStyle = answers.custom_art_style || 'semi-realistic illustration';
+    } else {
+      // Let AI decide - use default for transform style
+      artStyle = 'semi-realistic illustration';
+    }
+    
     const frontCardText = answers.message || '';
     
     // Create the prompt using the same structure as the test page
@@ -2039,38 +2110,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   };
 
 
-  const buildInsidePrompt = () => {
-    const insideMessage = answers.inside_message || "Hope your special day brings you joy and happiness!";
-    const parts = [];
-    
-    // Base requirements - Square 1:1 aspect ratio
-    parts.push("Square 1:1 aspect ratio, full bleed design with no borders or card edges visible, fill entire frame");
-    
-    // Explicit instruction to NOT include people/characters from front card
-    parts.push("DO NOT include any people, characters, or figures from the front card");
-    
-    // Message prominently displayed as main focus
-    parts.push(`"${insideMessage}" prominently displayed as the main focus`);
-    
-    // Art style consistency with front card
-    if (answers.art_style) {
-      parts.push(`${answers.art_style} art style with same visual treatment as front card`);
-    }
-    
-    // Simple typography integration instruction
-    parts.push('TYPOGRAPHY: Integrate the text naturally into the design as an organic part of the composition. The text should feel like it belongs in this artistic environment - whether displayed on surfaces, formed by design elements, or integrated into the scene. Maintain clear legibility while ensuring the typography enhances rather than competes with the artistic style.');
-    
-    // Colours matching front card exactly
-    parts.push('color palette matching front card exactly - same primary and accent colors');
-    
-    // New image must feel like it is part of the same design family
-    parts.push('new image must feel like it is part of the same design family - cohesive design language and visual consistency');
-    
-    // Final requirements
-    parts.push('print-ready artwork, no card mockup visible');
-    
-    return parts.join(', ');
-  };
 
   if (isLoading) {
     console.log('Loading screen displayed - email notification option is available');

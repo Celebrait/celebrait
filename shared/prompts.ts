@@ -6,7 +6,7 @@
 
 
 // Text-only prompt for non-photo scenarios - uses same detailed structure as GPT-Image-1 route
-export const buildTextOnlyImagePrompt = (answers: any) => {
+export const buildTextOnlyImagePrompt = (answers: any, artStyle?: string) => {
   const aspectDescription = 'MANDATORY: Create a perfectly SQUARE composition with equal width and height - NOT portrait, NOT landscape. Full bleed square design with no borders, fill entire square frame.';
   
   // Build character description from answers
@@ -50,9 +50,15 @@ SCENE DESCRIPTION: ${answers.scene || 'in a celebratory setting'}
 
 ARTISTIC STYLE APPLICATION:`;
 
-  // DYNAMIC STYLE SELECTION: Let AI choose the most appropriate artistic style based on scene content
-  const sceneDescription = answers.scene || 'in a celebratory setting';
-  const dynamicStyleInstruction = `DYNAMIC STYLE SELECTION: Analyze the scene description "${sceneDescription}" and intelligently choose the most appropriate artistic style that best complements the mood, atmosphere, setting, and emotional tone of this specific scene.
+  // Handle artistic style - either user-specified or AI-decided
+  let styleInstruction;
+  if (artStyle && artStyle !== 'ai_decide') {
+    // User-specified style
+    styleInstruction = `Apply the following artistic style: ${artStyle}. Render the entire image consistently in this style while maintaining high artistic quality and visual cohesion. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.`;
+  } else {
+    // AI-decided style (dynamic selection)
+    const sceneDescription = answers.scene || 'in a celebratory setting';
+    styleInstruction = `DYNAMIC STYLE SELECTION: Analyze the scene description "${sceneDescription}" and intelligently choose the most appropriate artistic style that best complements the mood, atmosphere, setting, and emotional tone of this specific scene.
 
 Consider artistic styles such as:
 - Watercolor painting (for soft, dreamy, romantic scenes)
@@ -72,8 +78,9 @@ Consider artistic styles such as:
 - And any other artistic style that would create the most visually compelling result
 
 Choose the single artistic style that creates the most contextually appropriate, visually stunning, and emotionally resonant result for this specific scene. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.`;
+  }
     
-  fullPrompt = `${fullPrompt} ${dynamicStyleInstruction}`;
+  fullPrompt = `${fullPrompt} ${styleInstruction}`;
 
   if (cardText) {
     fullPrompt = `${fullPrompt}. STRICT TEXT RESTRICTION: Add EXACTLY and ONLY the text "${cardText}" - ABSOLUTELY NO OTHER TEXT, WORDS, LETTERS, NUMBERS, SIGNS, LABELS, OR WRITING of any kind should appear anywhere in the image. CRITICAL: Do NOT overlay text on top of the image. Instead, naturally integrate ONLY this specific text into the scene as part of the artistic composition. The text should appear as if it belongs in this specific environment - carved into surfaces, written in natural elements, displayed on signs, formed by scene elements, or integrated into the background architecture. FORBIDDEN: Do not add any background text, signage, labels, captions, watermarks, logos, brand names, location names, or any other written content. Typography should match the chosen artistic style and complement the scene's natural elements.`;
@@ -96,8 +103,12 @@ export const buildInsidePrompt = (insideText: string, artStyle?: string, frontPr
   // Message content
   parts.push(`"${insideText}" prominently displayed as the main focus`);
   
-  // Dynamic style consistency with front card
-  parts.push(`Use the same artistic style that was intelligently chosen for the front card to maintain visual consistency. Apply the same style treatment, color palette, and visual aesthetic as the front card.`);
+  // Style consistency with front card
+  if (artStyle && artStyle !== 'ai_decide') {
+    parts.push(`Apply the same artistic style as the front card: ${artStyle}. Maintain visual consistency with the same style treatment, color palette, and visual aesthetic.`);
+  } else {
+    parts.push(`Use the same artistic style that was intelligently chosen for the front card to maintain visual consistency. Apply the same style treatment, color palette, and visual aesthetic as the front card.`);
+  }
   
   // Strict text restriction for inside card
   parts.push(`STRICT TEXT RESTRICTION: Include EXACTLY and ONLY the text "${insideText}" - ABSOLUTELY NO OTHER TEXT, WORDS, LETTERS, NUMBERS, SIGNS, LABELS, OR WRITING of any kind should appear anywhere in the image. FORBIDDEN: Do not add any background text, signage, labels, captions, watermarks, logos, brand names, decorative text, or any other written content. TYPOGRAPHY: Integrate ONLY the specified text naturally into the design as an organic part of the composition.`);
