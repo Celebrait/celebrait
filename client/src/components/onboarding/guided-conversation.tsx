@@ -500,8 +500,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       return recovered.answers;
     }
     return {
-      // Default art style to "animated_movie_style" (High-End 3D Animated Movie)
-      art_style: 'animated_movie_style',
+      // Default art style to "ai_decide" - let AI choose based on scene description
+      art_style: 'ai_decide',
       // Default photo option to match streamlined flow
       photo_option: 'upload_and_scene'
     };
