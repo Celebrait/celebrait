@@ -1501,11 +1501,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
           : `Photo${photoIds.length > 1 ? 's' : ''} processed and optimized for generation${compressionInfo}`;
         setAnswers(prev => ({ ...prev, character_description: successMessage }));
         
-        toast({
-          title: "✅ Photos Ready!",
-          description: `${filesToProcess.length} photo${filesToProcess.length > 1 ? 's' : ''} processed and compressed. Card generation will now be instant!`,
-        });
-        
       } catch (error) {
         console.error('[PHOTO_UPLOAD] Processing failed:', error);
         toast({
