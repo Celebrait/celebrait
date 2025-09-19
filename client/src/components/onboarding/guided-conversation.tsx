@@ -3074,34 +3074,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
                 {currentStep.type === 'photo_upload' && (answers.photo_option === 'upload_and_scene' || answers.photo_option === 'upload_and_transform') && (
                   <div className="space-y-6">
-                    {/* Photo Processing Progress */}
-                    {isProcessingPhotos && Object.keys(photoUploadProgress).length > 0 && (
-                      <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
-                        <div className="text-center mb-4">
-                          <div className="flex items-center justify-center space-x-2">
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-                            <h3 className="text-lg font-semibold text-blue-700">Processing Photos...</h3>
-                          </div>
-                          <p className="text-blue-600 text-sm mt-1">Compressing and optimizing for instant generation</p>
-                        </div>
-                        <div className="space-y-3">
-                          {Object.entries(photoUploadProgress).map(([fileName, progress]) => (
-                            <div key={fileName} className="space-y-2">
-                              <div className="flex justify-between text-sm">
-                                <span className="text-blue-700 font-medium">{fileName}</span>
-                                <span className="text-blue-600">{Math.round(progress)}%</span>
-                              </div>
-                              <div className="w-full bg-blue-200 rounded-full h-2">
-                                <div 
-                                  className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300 ease-out"
-                                  style={{ width: `${progress}%` }}
-                                ></div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    {/* Photo processing happens silently - no visual feedback needed */}
 
                     {uploadedPhotoIds.length === 0 && !isProcessingPhotos ? (
                       <div className="space-y-6">
