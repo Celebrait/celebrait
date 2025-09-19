@@ -1072,7 +1072,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
           // Type out the text character by character for all devices
           for (let i = 0; i <= currentPrompt.length && isActive; i++) {
             setPlaceholderText(currentPrompt.slice(0, i));
-            await new Promise(resolve => setTimeout(resolve, 30));
+            await new Promise(resolve => setTimeout(resolve, 35));
           }
           
           setIsTypingExample(false);
