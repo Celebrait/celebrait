@@ -1217,7 +1217,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
             setCurrentArtStyleExample((prev) => (prev + 1) % artStyleExamples.length);
           }, 1500);
         }
-      }, 80); // Slower typing for better visibility
+      }, 35); // Fast typing animation
     } else {
       // Reset typing text when conditions aren't met
       setTypingText('');
