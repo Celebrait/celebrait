@@ -576,26 +576,26 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   // Art style examples that rapidly change in the placeholder with typing effect
   const artStyleExamples = [
-    "Watercolor painting (think Claude Monet)",
-    "Digital art (think Spider-Verse animation)", 
-    "Oil painting (think Van Gogh's Starry Night)",
-    "Anime style (think Studio Ghibli films)",
-    "Comic book style (think Marvel artwork)",
-    "Vintage poster (think 1950s advertisements)",
-    "Impressionist painting (think Renoir)",
-    "Photography style (think Annie Leibovitz)",
-    "Minimalist design (think Apple aesthetics)",
-    "Renaissance art (think Leonardo da Vinci)",
-    "Pop art (think Andy Warhol)",
-    "Abstract art (think Picasso)",
-    "Pencil sketch (think Disney concept art)",
-    "Storybook illustration (think children's books)",
-    "Art nouveau (think Alphonse Mucha)",
-    "Surrealist painting (think Salvador Dalí)",
-    "Street art (think Banksy murals)",
-    "Pixel art (think retro video games)",
-    "Geometric art (think Piet Mondrian)",
-    "Fantasy art (think Lord of the Rings)"
+    "Watercolour painting (like Claude Monet)",
+    "Digital artwork (like Spider-Verse animation)", 
+    "Oil painting (like Van Gogh's Starry Night)",
+    "Anime style (like Studio Ghibli films)",
+    "Comic book style (like Marvel illustrations)",
+    "Vintage poster (like 1950s British adverts)",
+    "Impressionist painting (like Renoir)",
+    "Photography style (like Annie Leibovitz)",
+    "Minimalist design (like Apple aesthetics)",
+    "Renaissance art (like Leonardo da Vinci)",
+    "Pop art (like Andy Warhol)",
+    "Abstract art (like Picasso)",
+    "Pencil sketch (like Disney concept artwork)",
+    "Storybook illustration (like children's picture books)",
+    "Art nouveau (like Alphonse Mucha)",
+    "Surrealist painting (like Salvador Dalí)",
+    "Street art (like Banksy murals)",
+    "Pixel art (like retro computer games)",
+    "Geometric art (like Piet Mondrian)",
+    "Fantasy artwork (like Lord of the Rings)"
   ];
 
   const steps: ConversationStep[] = [
