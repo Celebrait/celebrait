@@ -1194,6 +1194,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   // Typing effect for art style examples
   useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+    
     if (currentStep?.id === 'art_style' && !aiDecideSelected && !currentInput.trim()) {
       const currentExample = artStyleExamples[currentArtStyleExample];
       setIsTypingArtStyle(true);
@@ -1201,26 +1204,31 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
       // Type out the current example character by character
       let charIndex = 0;
-      const typeInterval = setInterval(() => {
+      intervalId = setInterval(() => {
         if (charIndex < currentExample.length) {
           setTypingText(currentExample.substring(0, charIndex + 1));
           charIndex++;
         } else {
-          clearInterval(typeInterval);
+          if (intervalId) clearInterval(intervalId);
           setIsTypingArtStyle(false);
           
           // Wait 1.5 seconds before moving to next example
-          setTimeout(() => {
+          timeoutId = setTimeout(() => {
             setCurrentArtStyleExample((prev) => (prev + 1) % artStyleExamples.length);
           }, 1500);
         }
-      }, 50); // Type at 50ms per character
-      
-      return () => {
-        clearInterval(typeInterval);
-      };
+      }, 80); // Slower typing for better visibility
+    } else {
+      // Reset typing text when conditions aren't met
+      setTypingText('');
+      setIsTypingArtStyle(false);
     }
-  }, [currentStep?.id, aiDecideSelected, currentInput, currentArtStyleExample, artStyleExamples]);
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [currentStep?.id, aiDecideSelected, currentInput, currentArtStyleExample]);
 
   const isMobile = useIsMobile();
   
@@ -2886,7 +2894,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                                   }));
                                 }
                               }}
-                              placeholder={aiDecideSelected ? "AI will choose the perfect style ✨" : typingText || artStyleExamples[currentArtStyleExample]}
+                              placeholder={aiDecideSelected ? "AI will choose the perfect style ✨" : typingText || artStyleExamples[currentArtStyleExample] || "Loading..."}
                               className="text-sm md:text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
                               onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                               disabled={aiDecideSelected}
