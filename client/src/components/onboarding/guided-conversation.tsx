@@ -1919,107 +1919,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   };
 
-  // Streaming image generation handler for progressive loading
-  const handleStreamingGeneration = async (
-    cardId: number, 
-    frontPrompt: string, 
-    insidePrompt?: string,
-    photoData?: string[]
-  ): Promise<{ frontImageUrl: string; insideImageUrl?: string }> => {
-    return new Promise((resolve, reject) => {
-      console.log('🚀 Starting GPT-IMAGE-1 streaming generation...');
-      
-      // Configure request
-      fetch('/api/generate-images-stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          cardId,
-          frontPrompt,
-          insidePrompt,
-          photoData
-        })
-      }).then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-        
-        let frontImageUrl: string | null = null;
-        let insideImageUrl: string | null = null;
-        
-        const processStream = async () => {
-          try {
-            while (true) {
-              const { done, value } = await reader!.read();
-              if (done) break;
-              
-              const chunk = decoder.decode(value);
-              const lines = chunk.split('\n');
-              
-              for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                  try {
-                    const data = JSON.parse(line.slice(6));
-                    
-                    // Handle different event types
-                    if (data.type === 'front' && data.imageUrl) {
-                      console.log(`📸 Front image ${data.partialNumber}: ${data.progress}%`);
-                      frontImageUrl = data.imageUrl;
-                      
-                      // Show progress to user (you can add UI updates here)
-                      toast({
-                        title: "Generating Front Card",
-                        description: `Progress: ${data.progress}%`,
-                        duration: 1500,
-                      });
-                    } else if (data.type === 'inside' && data.imageUrl) {
-                      console.log(`📸 Inside image ${data.partialNumber}: ${data.progress}%`);
-                      insideImageUrl = data.imageUrl;
-                      
-                      toast({
-                        title: "Generating Inside Card", 
-                        description: `Progress: ${data.progress}%`,
-                        duration: 1500,
-                      });
-                    } else if (data.type === 'generation_complete') {
-                      console.log('✅ Streaming generation completed!');
-                      resolve({
-                        frontImageUrl: frontImageUrl!,
-                        insideImageUrl: insideImageUrl || undefined
-                      });
-                      return;
-                    } else if (data.error) {
-                      console.error('❌ Streaming error:', data.message);
-                      reject(new Error(data.message));
-                      return;
-                    }
-                  } catch (parseError) {
-                    console.log('Skipping non-JSON line:', line);
-                  }
-                }
-              }
-            }
-          } catch (streamError) {
-            console.error('Stream processing error:', streamError);
-            reject(streamError);
-          }
-        };
-        
-        processStream();
-      }).catch(error => {
-        console.error('Fetch error:', error);
-        reject(error);
-      });
-    });
-  };
 
   const generateCardWithGPTImage = async (useCardId: number) => {
-    console.log('🚀 Using GPT-IMAGE-1 streaming for photo + scene workflow with cardId:', useCardId);
+    console.log('Using GPT-Image-1 for photo + scene workflow with cardId:', useCardId);
     
     // Use pre-processed compressed base64 images (NO FileReader needed!)
     console.log('🚀 INSTANT: Retrieving pre-processed images from upload cache...', { 
@@ -2031,7 +1933,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       .map(id => ImageStore.getPhotoBase64(id))
       .filter(Boolean) as string[];
     
-    console.log('✅ INSTANT: Images ready for streaming API call:', {
+    console.log('✅ INSTANT: Images ready for API call:', {
       count: referenceImages.length,
       sizes: referenceImages.map(img => `${Math.round(img.length / 1024)}KB`)
     });
@@ -2050,51 +1952,60 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     
     const frontCardText = answers.message || '';
     
-    // Build prompts for streaming generation
-    const frontPrompt = `Create a ${artStyle === 'ai_decide' ? 'contextually appropriate artistic style' : artStyle} greeting card image. ${sceneDescription}. ${frontCardText ? `Include text: "${frontCardText}"` : ''}`;
-    const insidePrompt = answers.inside_message ? `Square 1:1 design with elegant typography displaying: "${answers.inside_message}". Match the art style and color palette from the front card.` : undefined;
     
-    console.log('🚀 Starting streaming generation with prompts:', { frontPrompt, insidePrompt });
+    // Generate front card using GPT-Image-1 with multiple images with timeout and retry  
+    console.log('[DEBUG] Calling edit-scene-gpt-image-1 with cardId:', useCardId);
     
-    // Use streaming generation for progressive loading
-    const streamingResult = await handleStreamingGeneration(
-      useCardId,
-      frontPrompt,
-      insidePrompt,
-      referenceImages
-    );
-    
-    const frontImageUrl = streamingResult.frontImageUrl;
-    const insideImageUrl = streamingResult.insideImageUrl;
-    
-    console.log('✅ Streaming generation completed:', { frontImageUrl: !!frontImageUrl, insideImageUrl: !!insideImageUrl });
+    // Generate front card using robust API call
+    const frontResult = await makeRobustAPICall("/api/edit-scene-gpt-image-1", {
+      cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
+      imageData: referenceImages[0], // Keep for backward compatibility
+      imageDataArray: referenceImages, // Send all images as base64
+      scenePrompt: sceneDescription,
+      style: artStyle,
+      includeText: !!frontCardText,
+      cardText: frontCardText,
+    }, "Front card generation");
+    const frontImageUrl = frontResult.imageUrl;
+    console.log('Front card generated:', frontResult);
 
-    // Store images in conversationData for secure access
+    // Always generate inside card for all cards now
+    let insideImageUrl = null;
+    let insideOriginalUrl = null;
+    if (answers.inside_message) {
+      console.log('[DEBUG] Calling generate-inside-card with cardId:', useCardId);
+      const insideResult = await makeRobustAPICall("/api/generate-inside-card", {
+        cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
+        frontCardImage: frontImageUrl,
+        insideText: answers.inside_message,
+        artStyle: artStyle // CRITICAL: Pass art style for proper matching
+      }, "Inside card generation");
+      
+      insideImageUrl = insideResult.imageUrl;
+      insideOriginalUrl = insideResult.originalImageUrl;
+      console.log('Inside card generated:', insideResult);
+    }
+
+    // Store original unwatermarked images in conversationData for secure access
     const conversationData = {
       ...answers,
       uploadedPhotoIds,
-      frontImageUrl: frontImageUrl,
-      insideImageUrl: insideImageUrl,
-      streamingGenerated: true // Flag to indicate this was generated via streaming
+      originalFrontImageUrl: frontResult.originalImageUrl,
+      originalInsideImageUrl: insideOriginalUrl,
+      watermarkedFrontImageUrl: frontResult.imageUrl,
+      watermarkedInsideImageUrl: insideImageUrl
     };
 
     // Update the card in storage
     const updateResponse = await apiRequest("POST", "/api/update-card-images", {
       cardId: useCardId,
       frontImageUrl: frontImageUrl,
-      insideImageUrl: insideImageUrl,
+      insideImageUrl,
       conversationData,
       status: 'completed'
     });
 
     const updatedCard = await updateResponse.json();
-    
-    toast({
-      title: "Card Generated Successfully!",
-      description: "Your card has been created with streaming generation.",
-      duration: 3000,
-    });
-    
     return updatedCard;
   };
 
