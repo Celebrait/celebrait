@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
@@ -6,16 +6,12 @@ import {
   Scan, Map, Layout, PenTool, Pencil, Layers, Mountain, Users, Focus, Sun, Settings,
   Type, AlignCenter, Search, RefreshCw, RotateCcw, Package, CheckCircle, Clock
 } from "lucide-react";
-import ProgressiveImageCanvas from "../components/ProgressiveImageCanvas";
 
 // Duplicate of the CreativeJourneyLoading component for preview
 const CreativeJourneyPreview = () => {
   const [currentPhase, setCurrentPhase] = useState(0);
   const [phaseProgress, setPhaseProgress] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
-  const [isComplete, setIsComplete] = useState(false);
-  const [frontImagePreview, setFrontImagePreview] = useState<string | null>(null);
-  const [insideImagePreview, setInsideImagePreview] = useState<string | null>(null);
 
   // Sample answers for preview
   const answers = {
@@ -126,119 +122,39 @@ const CreativeJourneyPreview = () => {
     },
   ];
 
-  // Real AI Progress Event Listener
-  useEffect(() => {
-    const handleAIProgress = (event: CustomEvent) => {
-      const { phase, progress, imageUrl } = event.detail;
-      console.log(`🎨 Creative Journey: ${phase} - ${progress}%`, { imageUrl: !!imageUrl });
-      
-      // Map AI progress to Creative Journey phases
-      const phaseMapping: { [key: string]: number } = {
-        'photo_analysis': 0,
-        'scene_planning': 1,
-        'initial_sketching': 2,
-        'base_scene': 3,
-        'face_perfection': 4,
-        'color_lighting': 5,
-        'fine_details': 6,
-        'typography_front': 7,
-        'front_analysis': 8,
-        'color_matching': 9,
-        'typography_harmony': 10,
-        'typography_inside': 10,
-        'journey_complete': 11,
-        'final_assembly': 11
-      };
-      
-      const targetPhase = phaseMapping[phase] ?? currentPhase;
-      
-      // Update phase and progress based on real AI generation
-      if (targetPhase > currentPhase) {
-        setCurrentPhase(targetPhase);
-        setPhaseProgress(progress <= 100 ? progress : 100);
-      } else if (targetPhase === currentPhase) {
-        setPhaseProgress(progress <= 100 ? progress : 100);
-      }
-      
-      // Show actual generated images when they're ready
-      if (imageUrl && phase === 'typography_front') {
-        setFrontImagePreview(imageUrl);
-      } else if (imageUrl && (phase === 'typography_inside' || phase === 'typography_harmony')) {
-        setInsideImagePreview(imageUrl);
-      }
-      
-      // Mark as complete when journey finishes
-      if ((phase === 'journey_complete' || phase === 'final_assembly') && progress >= 100) {
-        setIsRunning(false);
-        setIsComplete(true);
-      }
-    };
-
-    // Listen for real AI progress events
-    window.addEventListener('ai-generation-progress', handleAIProgress as EventListener);
-    
-    return () => {
-      window.removeEventListener('ai-generation-progress', handleAIProgress as EventListener);
-    };
-  }, []);
-
-  // Start/restart the preview with automatic simulation
+  // Start/restart the preview
   const startPreview = () => {
     setCurrentPhase(0);
     setPhaseProgress(0);
     setIsRunning(true);
-    setIsComplete(false);
-    setFrontImagePreview(null);
-    setInsideImagePreview(null);
-    
-    console.log('🚀 Creative Journey: Starting preview simulation...');
-    
-    // Simulate progress through all phases
-    let phase = 0;
-    let progress = 0;
-    
-    const simulateProgress = () => {
-      // Each phase takes 3 seconds (fast preview mode)
-      const phaseInterval = setInterval(() => {
-        progress += 20; // Increase by 20% every 600ms (5 steps to complete a phase)
-        
-        if (progress >= 100) {
-          progress = 0;
-          phase++;
-          
-          // Show sample images at appropriate phases
-          if (phase === 8) {
-            // Front card complete - show sample image
-            setFrontImagePreview('https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop');
-          }
-          if (phase === 11) {
-            // Inside card complete - show sample image  
-            setInsideImagePreview('https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop');
-          }
-          
-          if (phase >= creativePhases.length) {
-            // Journey complete
-            setIsRunning(false);
-            setIsComplete(true);
-            clearInterval(phaseInterval);
-            return;
-          }
-          
-          setCurrentPhase(phase);
-          setPhaseProgress(0);
-        } else {
-          setPhaseProgress(progress);
+
+    // Fast preview mode - 3 seconds per phase instead of 15
+    const interval = setInterval(() => {
+      setPhaseProgress(prev => {
+        if (prev >= 100) {
+          setCurrentPhase(current => {
+            if (current < creativePhases.length - 1) {
+              return current + 1;
+            }
+            return current;
+          });
+          return currentPhase < creativePhases.length - 1 ? 0 : 100;
         }
-      }, 600); // Update every 600ms for smooth progress
-    };
-    
-    // Start simulation after a brief delay
-    setTimeout(simulateProgress, 500);
+        return prev + (100 / 3); // 3 seconds per phase for demo
+      });
+    }, 1000);
+
+    // Auto-stop after all phases complete
+    setTimeout(() => {
+      clearInterval(interval);
+      setIsRunning(false);
+    }, creativePhases.length * 3000 + 1000);
   };
 
   const currentPhaseData = creativePhases[currentPhase];
   const overallProgress = Math.min(100, ((currentPhase * 100 + phaseProgress) / creativePhases.length));
   const frontCardComplete = currentPhase >= 8;
+  const isComplete = currentPhase >= creativePhases.length - 1 && phaseProgress >= 100;
 
   return (
     <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-6 md:p-8 shadow-xl border border-white/20 max-w-4xl mx-auto" data-testid="creative-journey-preview">
@@ -388,47 +304,6 @@ const CreativeJourneyPreview = () => {
         </div>
       </div>
 
-      {/* Progressive Image Generation Preview */}
-      <div className="bg-white/50 backdrop-blur-sm rounded-xl p-4 border border-white/20 mb-6">
-        <h3 className="text-center text-lg font-semibold text-gray-800 mb-4">
-          ✨ Watch AI Create Your Card
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Front Card Progressive Preview */}
-          <div className="text-center">
-            <h4 className="text-sm font-medium text-gray-600 mb-3">Front Card</h4>
-            <ProgressiveImageCanvas
-              width={300}
-              height={225}
-              finalImageUrl={frontImagePreview || undefined}
-              progress={currentPhase <= 7 ? (phaseProgress * 0.7) + (currentPhase * 10) : 70}
-              isGenerating={currentPhase <= 7 && isRunning && !frontImagePreview}
-              title="Front Card Generation"
-              className="mx-auto"
-            />
-          </div>
-          
-          {/* Inside Card Progressive Preview */}
-          <div className="text-center">
-            <h4 className="text-sm font-medium text-gray-600 mb-3">Inside Card</h4>
-            <ProgressiveImageCanvas
-              width={300}
-              height={225}
-              finalImageUrl={insideImagePreview || undefined}
-              progress={currentPhase < 8 ? 0 : currentPhase === creativePhases.length - 1 ? 100 : ((currentPhase - 8) / 3) * 30 + 70}
-              isGenerating={currentPhase >= 8 && isRunning && !insideImagePreview}
-              title="Inside Card Generation"
-              className="mx-auto"
-            />
-          </div>
-        </div>
-        
-        <p className="text-center text-xs text-gray-500 mt-4">
-          🎯 This preview shows how AI will build your card progressively during generation!
-        </p>
-      </div>
-
       {/* Control Buttons */}
       <div className="text-center">
         <Button 
@@ -484,7 +359,6 @@ export default function LoadingPreview() {
           </p>
         </div>
 
-        {/* Render the Creative Journey Preview Component */}
         <CreativeJourneyPreview />
       </div>
     </div>

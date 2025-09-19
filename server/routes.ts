@@ -2118,7 +2118,6 @@ If just having a conversation (no suggestions), respond with valid JSON:
     }
   });
 
-
   // Generate card images
   app.post("/api/generate-images", async (req, res) => {
     // Test hook for triggering safety errors (development only)

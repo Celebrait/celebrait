@@ -22,7 +22,6 @@ import { AIBrainstormChat } from "@/components/ui/ai-brainstorm-chat-new";
 import { ArtStyleSelector } from "@/components/ui/art-style-selector";
 import { ArtStyleImageViewer } from "@/components/ui/art-style-image-viewer";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import ProgressiveImageCanvas from "../ProgressiveImageCanvas";
 
 // Example prompts for the scene description
 const EXAMPLE_PROMPTS = [
@@ -123,8 +122,6 @@ const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
   const [currentPhase, setCurrentPhase] = useState(0);
   const [phaseProgress, setPhaseProgress] = useState(0);
   const [showPackaging, setShowPackaging] = useState(false);
-  const [frontImagePreview, setFrontImagePreview] = useState<string | null>(null);
-  const [insideImagePreview, setInsideImagePreview] = useState<string | null>(null);
 
   // Scroll to top when component mounts (mobile optimization)
   useEffect(() => {
@@ -234,60 +231,36 @@ const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
     },
   ];
 
-  // Real AI Progress Event Listener for Main Creative Journey
+  // Phase timing (10 seconds per phase = 2 minutes total)
   useEffect(() => {
-    const handleAIProgress = (event: CustomEvent) => {
-      const { phase, progress, imageUrl } = event.detail;
-      console.log(`🎨 Main Creative Journey: ${phase} - ${progress}%`, { imageUrl: !!imageUrl });
-      
-      // Map AI progress to Creative Journey phases
-      const phaseMapping: { [key: string]: number } = {
-        'photo_analysis': 0,
-        'scene_planning': 1,
-        'initial_sketching': 2,
-        'base_scene': 3,
-        'face_perfection': 4,
-        'color_lighting': 5,
-        'fine_details': 6,
-        'typography_front': 7,
-        'front_analysis': 8,
-        'color_matching': 9,
-        'typography_harmony': 10,
-        'typography_inside': 10,
-        'journey_complete': 11,
-        'final_assembly': 11
-      };
-      
-      const targetPhase = phaseMapping[phase] ?? currentPhase;
-      
-      // Update phase and progress based on real AI generation
-      if (targetPhase > currentPhase) {
-        setCurrentPhase(targetPhase);
-        setPhaseProgress(progress <= 100 ? progress : 100);
-      } else if (targetPhase === currentPhase) {
-        setPhaseProgress(progress <= 100 ? progress : 100);
-      }
-      
-      // Show actual generated images when they're ready
-      if (imageUrl && phase === 'typography_front') {
-        setFrontImagePreview(imageUrl);
-      } else if (imageUrl && (phase === 'typography_inside' || phase === 'typography_harmony')) {
-        setInsideImagePreview(imageUrl);
-      }
-      
-      // Trigger packaging phase when journey completes
-      if ((phase === 'journey_complete' || phase === 'final_assembly') && progress >= 100) {
-        setTimeout(() => setShowPackaging(true), 1000);
-      }
-    };
+    // Check if main generation is complete, trigger packaging phase
+    if (currentPhase >= creativePhases.length - 1 && phaseProgress >= 100 && !showPackaging) {
+      setTimeout(() => setShowPackaging(true), 500);
+      return;
+    }
 
-    // Listen for real AI progress events
-    window.addEventListener('ai-generation-progress', handleAIProgress as EventListener);
-    
-    return () => {
-      window.removeEventListener('ai-generation-progress', handleAIProgress as EventListener);
-    };
-  }, []);
+    // Don't start interval if we've completed all phases and are showing packaging
+    if (showPackaging) {
+      return;
+    }
+
+    const phaseInterval = setInterval(() => {
+      setPhaseProgress(prev => {
+        if (prev >= 100) {
+          setCurrentPhase(current => {
+            if (current < creativePhases.length - 1) {
+              return current + 1;
+            }
+            return current; // Stay at last phase
+          });
+          return currentPhase < creativePhases.length - 1 ? 0 : 100; // Keep at 100% for final phase
+        }
+        return prev + (100 / 10); // 10 seconds per phase
+      });
+    }, 1000); // Update every second
+
+    return () => clearInterval(phaseInterval);
+  }, [currentPhase, phaseProgress, showPackaging]);
 
   const currentPhaseData = creativePhases[currentPhase];
   const overallProgress = Math.min(100, ((currentPhase * 100 + phaseProgress) / creativePhases.length));
@@ -513,47 +486,6 @@ const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Progressive Image Generation */}
-      <div className="bg-white/50 backdrop-blur-sm rounded-xl p-4 border border-white/20 mt-6">
-        <h3 className="text-center text-lg font-semibold text-gray-800 mb-4">
-          ✨ Watch Your Card Build Live!
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Front Card Progressive */}
-          <div className="text-center">
-            <h4 className="text-sm font-medium text-gray-600 mb-3">Front Card</h4>
-            <ProgressiveImageCanvas
-              width={320}
-              height={240}
-              finalImageUrl={frontImagePreview || undefined}
-              progress={currentPhase <= 7 ? (phaseProgress * 0.7) + (currentPhase * 10) : 70}
-              isGenerating={currentPhase <= 7 && !frontImagePreview}
-              title="Front Card"
-              className="mx-auto"
-            />
-          </div>
-          
-          {/* Inside Card Progressive */}
-          <div className="text-center">
-            <h4 className="text-sm font-medium text-gray-600 mb-3">Inside Card</h4>
-            <ProgressiveImageCanvas
-              width={320}
-              height={240}
-              finalImageUrl={insideImagePreview || undefined}
-              progress={currentPhase < 8 ? 0 : currentPhase === creativePhases.length - 1 ? 100 : ((currentPhase - 8) / 3) * 30 + 70}
-              isGenerating={currentPhase >= 8 && !insideImagePreview}
-              title="Inside Card"
-              className="mx-auto"
-            />
-          </div>
-        </div>
-        
-        <p className="text-center text-xs text-gray-500 mt-4">
-          🎯 Experience AI creating your card in real-time! Each effect shows actual OpenAI generation progress.
-        </p>
       </div>
     </div>
   );
@@ -1492,6 +1424,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
           : `Photo${photoIds.length > 1 ? 's' : ''} processed and optimized for generation${compressionInfo}`;
         setAnswers(prev => ({ ...prev, character_description: successMessage }));
         
+        toast({
+          title: "✅ Photos Ready!",
+          description: `${filesToProcess.length} photo${filesToProcess.length > 1 ? 's' : ''} processed and compressed. Card generation will now be instant!`,
+        });
+        
       } catch (error) {
         console.error('[PHOTO_UPLOAD] Processing failed:', error);
         toast({
@@ -1982,22 +1919,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   };
 
-
-  // Progress callback system for Creative Journey sync
-  const emitProgress = (cardId: number, phase: string, progress: number, imageUrl?: string) => {
-    console.log(`🎯 Progress: ${phase} - ${progress}%`, { cardId, imageUrl: !!imageUrl });
-    
-    // Send progress to Creative Journey via custom event
-    window.dispatchEvent(new CustomEvent('ai-generation-progress', {
-      detail: { phase, progress, imageUrl, cardId }
-    }));
-  };
-
   const generateCardWithGPTImage = async (useCardId: number) => {
     console.log('Using GPT-Image-1 for photo + scene workflow with cardId:', useCardId);
-    
-    // Emit initial progress
-    emitProgress(useCardId, 'photo_analysis', 10);
     
     // Use pre-processed compressed base64 images (NO FileReader needed!)
     console.log('🚀 INSTANT: Retrieving pre-processed images from upload cache...', { 
@@ -2014,8 +1937,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       sizes: referenceImages.map(img => `${Math.round(img.length / 1024)}KB`)
     });
     
-    emitProgress(useCardId, 'scene_planning', 20);
-    
     // Build scene description with style
     const sceneDescription = answers.scene || '';
     
@@ -2030,12 +1951,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     
     const frontCardText = answers.message || '';
     
-    emitProgress(useCardId, 'initial_sketching', 30);
     
     // Generate front card using GPT-Image-1 with multiple images with timeout and retry  
     console.log('[DEBUG] Calling edit-scene-gpt-image-1 with cardId:', useCardId);
-    
-    emitProgress(useCardId, 'base_scene', 40);
     
     // Generate front card using robust API call
     const frontResult = await makeRobustAPICall("/api/edit-scene-gpt-image-1", {
@@ -2050,15 +1968,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const frontImageUrl = frontResult.imageUrl;
     console.log('Front card generated:', frontResult);
 
-    // Front card completed - show actual result!
-    emitProgress(useCardId, 'typography_front', 70, frontImageUrl);
-
     // Always generate inside card for all cards now
     let insideImageUrl = null;
     let insideOriginalUrl = null;
     if (answers.inside_message) {
-      emitProgress(useCardId, 'front_analysis', 75);
-      
       console.log('[DEBUG] Calling generate-inside-card with cardId:', useCardId);
       const insideResult = await makeRobustAPICall("/api/generate-inside-card", {
         cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
@@ -2070,13 +1983,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       insideImageUrl = insideResult.imageUrl;
       insideOriginalUrl = insideResult.originalImageUrl;
       console.log('Inside card generated:', insideResult);
-      
-      // Inside card completed - show actual result!
-      emitProgress(useCardId, 'typography_inside', 90, insideImageUrl);
     }
-
-    // Final completion progress
-    emitProgress(useCardId, 'journey_complete', 100);
 
     // Store original unwatermarked images in conversationData for secure access
     const conversationData = {
@@ -2102,7 +2009,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   };
 
   const generateCardWithGPTImageTransform = async (useCardId: number) => {
-    console.log('🚀 Using GPT-IMAGE-1 streaming for photo + transform style workflow with cardId:', useCardId);
+    console.log('Using GPT-Image-1 for photo + transform style workflow with cardId:', useCardId);
     
     // Use pre-processed compressed base64 images (NO FileReader needed!)
     console.log('🚀 INSTANT: Retrieving pre-processed images from upload cache for transform...', { 
