@@ -548,6 +548,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [popupEmailConfirm, setPopupEmailConfirm] = useState('');
   const [popupFirstName, setPopupFirstName] = useState('');
   const [popupLastName, setPopupLastName] = useState('');
+  
+  // Art style selection states
+  const [currentArtStyleExample, setCurrentArtStyleExample] = useState(0);
+  const [aiDecideSelected, setAiDecideSelected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -567,6 +571,30 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     "Simplicity is the ultimate sophistication. - Leonardo da Vinci",
     "Art enables us to find ourselves and lose ourselves at the same time. - Thomas Merton",
     "Innovation distinguishes between a leader and a follower. - Steve Jobs"
+  ];
+
+  // Art style examples that rapidly change in the placeholder
+  const artStyleExamples = [
+    "Watercolor painting like Claude Monet",
+    "Digital art like Spider-Verse animation", 
+    "Oil painting like Van Gogh's Starry Night",
+    "Anime style like Studio Ghibli films",
+    "Comic book style like Marvel artwork",
+    "Vintage poster like 1950s advertisements",
+    "Impressionist painting like Renoir",
+    "Photography style like Annie Leibovitz",
+    "Minimalist design like Apple aesthetics",
+    "Renaissance art like Leonardo da Vinci",
+    "Pop art like Andy Warhol",
+    "Abstract art like Picasso",
+    "Pencil sketch like Disney concept art",
+    "Storybook illustration like children's books",
+    "Art nouveau like Alphonse Mucha",
+    "Surrealist painting like Salvador Dalí",
+    "Street art like Banksy murals",
+    "Pixel art like retro video games",
+    "Geometric art like Piet Mondrian",
+    "Fantasy art like Lord of the Rings"
   ];
 
   const steps: ConversationStep[] = [
@@ -1163,6 +1191,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   }, [currentStep?.id, stepInputs, answers]);
 
+  // Cycle through art style examples for the art_style step
+  useEffect(() => {
+    if (currentStep?.id === 'art_style' && !aiDecideSelected && !currentInput.trim()) {
+      const interval = setInterval(() => {
+        setCurrentArtStyleExample((prev) => (prev + 1) % artStyleExamples.length);
+      }, 2000); // Change every 2 seconds
+      
+      return () => clearInterval(interval);
+    }
+  }, [currentStep?.id, aiDecideSelected, currentInput, artStyleExamples.length]);
+
   const isMobile = useIsMobile();
   
   const scrollToTop = () => {
@@ -1351,8 +1390,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   };
 
   const handleTextSubmit = () => {
+    console.log('[DEBUG] handleTextSubmit called', {
+      currentStepId: currentStep?.id,
+      currentInput: currentInput,
+      inputTrimmed: currentInput.trim(),
+      stepRequired: currentStep?.required,
+      canSubmit: !currentStep?.required || currentInput.trim()
+    });
+    
     if (currentInput.trim()) {
       handleAnswer(currentInput.trim());
+    } else if (!currentStep?.required) {
+      // Allow advancing even with empty input if step is not required
+      handleAnswer('');
     }
   };
 
@@ -2830,28 +2880,52 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     </div>
 
                     {currentStep.id === 'art_style' && (
-                      <div className="mt-6 p-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl border border-purple-100">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Popular Artistic Styles:</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                          <div className="text-gray-600">• Watercolor painting</div>
-                          <div className="text-gray-600">• Oil painting</div>
-                          <div className="text-gray-600">• Digital illustration</div>
-                          <div className="text-gray-600">• Anime/Manga style</div>
-                          <div className="text-gray-600">• Comic book style</div>
-                          <div className="text-gray-600">• Vintage poster</div>
-                          <div className="text-gray-600">• Impressionist painting</div>
-                          <div className="text-gray-600">• Photography style</div>
-                          <div className="text-gray-600">• Minimalist design</div>
-                          <div className="text-gray-600">• Renaissance art</div>
-                          <div className="text-gray-600">• Pop art</div>
-                          <div className="text-gray-600">• Abstract art</div>
-                          <div className="text-gray-600">• Pencil sketch</div>
-                          <div className="text-gray-600">• Storybook illustration</div>
-                          <div className="text-gray-600">• Art nouveau</div>
+                      <div className="space-y-6">
+                        {/* Prominent AI Decide Button */}
+                        <div className="text-center">
+                          <Button 
+                            onClick={() => {
+                              setAiDecideSelected(true);
+                              setCurrentInput('');
+                              setAnswers(prev => ({ ...prev, art_style: 'ai_decide' }));
+                              setTimeout(() => handleTextSubmit(), 100);
+                            }}
+                            className="px-8 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold text-lg shadow-xl transform hover:scale-105 transition-all duration-200"
+                            data-testid="button-ai-decide-style"
+                          >
+                            ✨ Let AI decide art style
+                          </Button>
                         </div>
-                        <p className="text-xs text-gray-500 mt-3 italic">
-                          Leave blank and I'll choose the perfect style for your scene automatically ✨
-                        </p>
+                        
+                        {/* "Or type below" text */}
+                        <div className="text-center">
+                          <p className="text-gray-600 font-medium">or type below if you prefer</p>
+                        </div>
+                        
+                        {/* Text input with rapidly changing examples */}
+                        <div className="space-y-2">
+                          <Input
+                            value={currentInput}
+                            onChange={(e) => {
+                              setCurrentInput(e.target.value);
+                              setAiDecideSelected(false);
+                              // Auto-save input as user types
+                              if (e.target.value.trim()) {
+                                setStepInputs(prev => ({
+                                  ...prev,
+                                  [currentStep.id]: e.target.value
+                                }));
+                              }
+                            }}
+                            placeholder={aiDecideSelected ? "AI will choose the perfect style ✨" : artStyleExamples[currentArtStyleExample]}
+                            className="text-sm md:text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
+                            onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
+                            disabled={aiDecideSelected}
+                          />
+                          <p className="text-xs text-gray-500 text-center italic">
+                            {aiDecideSelected ? "AI will intelligently choose the perfect style ✨" : "Examples change automatically - or describe your own style"}
+                          </p>
+                        </div>
                       </div>
                     )}
 
