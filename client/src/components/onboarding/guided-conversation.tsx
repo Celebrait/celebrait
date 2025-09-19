@@ -1212,10 +1212,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
           if (intervalId) clearInterval(intervalId);
           setIsTypingArtStyle(false);
           
-          // Wait 1.5 seconds before moving to next example
+          // Wait 1 second before moving to next example
           timeoutId = setTimeout(() => {
             setCurrentArtStyleExample((prev) => (prev + 1) % artStyleExamples.length);
-          }, 1500);
+          }, 1000);
         }
       }, 35); // Fast typing animation
     } else {
@@ -2894,7 +2894,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                                   }));
                                 }
                               }}
-                              placeholder={aiDecideSelected ? "AI will choose the perfect style ✨" : typingText || artStyleExamples[currentArtStyleExample] || "Loading..."}
+                              placeholder={aiDecideSelected ? "AI will choose the perfect style ✨" : typingText || (isTypingArtStyle ? "" : artStyleExamples[currentArtStyleExample]) || "Loading..."}
                               className="text-sm md:text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
                               onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                               disabled={aiDecideSelected}
