@@ -999,7 +999,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         const allowedSteps = ['name', 'celebration', 'photo_upload', 'scene', 'art_style', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
         return allowedSteps.includes(step.id);
       } else if (streamlinedPhotoOption === 'upload_and_transform') {
-        const allowedSteps = ['name', 'celebration', 'photo_upload', 'art_style', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
+        const allowedSteps = ['name', 'celebration', 'photo_upload', 'scene', 'art_style', 'message', 'inside_message', 'email_collection', 'generation_confirmation', 'final_summary'];
         return allowedSteps.includes(step.id);
       }
     }
@@ -1017,8 +1017,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     
     // Skip steps based on photo option choice
     if (answers.photo_option === 'upload_and_transform') {
-      // For style transformation, skip all description steps and go directly to art style
-      const skipSteps = ['heritage_photo', 'character_costume', 'gender', 'age', 'heritage', 'hair_color', 'hair_style', 'build', 'features', 'personality', 'character_summary', 'scene', 'people_details'];
+      // For style transformation, skip all description steps but keep scene for custom scenes
+      const skipSteps = ['heritage_photo', 'character_costume', 'gender', 'age', 'heritage', 'hair_color', 'hair_style', 'build', 'features', 'personality', 'character_summary', 'people_details'];
       if (skipSteps.includes(step.id)) {
         return false;
       }
