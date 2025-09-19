@@ -552,6 +552,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   // Art style selection states
   const [currentArtStyleExample, setCurrentArtStyleExample] = useState(0);
   const [aiDecideSelected, setAiDecideSelected] = useState(false);
+  const [typingText, setTypingText] = useState('');
+  const [isTypingArtStyle, setIsTypingArtStyle] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -573,28 +575,28 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     "Innovation distinguishes between a leader and a follower. - Steve Jobs"
   ];
 
-  // Art style examples that rapidly change in the placeholder
+  // Art style examples that rapidly change in the placeholder with typing effect
   const artStyleExamples = [
-    "Watercolor painting like Claude Monet",
-    "Digital art like Spider-Verse animation", 
-    "Oil painting like Van Gogh's Starry Night",
-    "Anime style like Studio Ghibli films",
-    "Comic book style like Marvel artwork",
-    "Vintage poster like 1950s advertisements",
-    "Impressionist painting like Renoir",
-    "Photography style like Annie Leibovitz",
-    "Minimalist design like Apple aesthetics",
-    "Renaissance art like Leonardo da Vinci",
-    "Pop art like Andy Warhol",
-    "Abstract art like Picasso",
-    "Pencil sketch like Disney concept art",
-    "Storybook illustration like children's books",
-    "Art nouveau like Alphonse Mucha",
-    "Surrealist painting like Salvador Dalí",
-    "Street art like Banksy murals",
-    "Pixel art like retro video games",
-    "Geometric art like Piet Mondrian",
-    "Fantasy art like Lord of the Rings"
+    "Watercolor painting (think Claude Monet)",
+    "Digital art (think Spider-Verse animation)", 
+    "Oil painting (think Van Gogh's Starry Night)",
+    "Anime style (think Studio Ghibli films)",
+    "Comic book style (think Marvel artwork)",
+    "Vintage poster (think 1950s advertisements)",
+    "Impressionist painting (think Renoir)",
+    "Photography style (think Annie Leibovitz)",
+    "Minimalist design (think Apple aesthetics)",
+    "Renaissance art (think Leonardo da Vinci)",
+    "Pop art (think Andy Warhol)",
+    "Abstract art (think Picasso)",
+    "Pencil sketch (think Disney concept art)",
+    "Storybook illustration (think children's books)",
+    "Art nouveau (think Alphonse Mucha)",
+    "Surrealist painting (think Salvador Dalí)",
+    "Street art (think Banksy murals)",
+    "Pixel art (think retro video games)",
+    "Geometric art (think Piet Mondrian)",
+    "Fantasy art (think Lord of the Rings)"
   ];
 
   const steps: ConversationStep[] = [
@@ -1191,16 +1193,35 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   }, [currentStep?.id, stepInputs, answers]);
 
-  // Cycle through art style examples for the art_style step
+  // Typing effect for art style examples
   useEffect(() => {
     if (currentStep?.id === 'art_style' && !aiDecideSelected && !currentInput.trim()) {
-      const interval = setInterval(() => {
-        setCurrentArtStyleExample((prev) => (prev + 1) % artStyleExamples.length);
-      }, 2000); // Change every 2 seconds
+      const currentExample = artStyleExamples[currentArtStyleExample];
+      setIsTypingArtStyle(true);
+      setTypingText('');
       
-      return () => clearInterval(interval);
+      // Type out the current example character by character
+      let charIndex = 0;
+      const typeInterval = setInterval(() => {
+        if (charIndex < currentExample.length) {
+          setTypingText(currentExample.substring(0, charIndex + 1));
+          charIndex++;
+        } else {
+          clearInterval(typeInterval);
+          setIsTypingArtStyle(false);
+          
+          // Wait 1.5 seconds before moving to next example
+          setTimeout(() => {
+            setCurrentArtStyleExample((prev) => (prev + 1) % artStyleExamples.length);
+          }, 1500);
+        }
+      }, 50); // Type at 50ms per character
+      
+      return () => {
+        clearInterval(typeInterval);
+      };
     }
-  }, [currentStep?.id, aiDecideSelected, currentInput, artStyleExamples.length]);
+  }, [currentStep?.id, aiDecideSelected, currentInput, currentArtStyleExample, artStyleExamples]);
 
   const isMobile = useIsMobile();
   
@@ -2851,35 +2872,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
                 {currentStep.type === 'text' && (
                   <div className="space-y-4">
-
-                    
-                    <div className="flex space-x-3">
-                      <Input
-                        value={currentInput}
-                        onChange={(e) => {
-                          setCurrentInput(e.target.value);
-                          // Auto-save input as user types
-                          if (e.target.value.trim()) {
-                            setStepInputs(prev => ({
-                              ...prev,
-                              [currentStep.id]: e.target.value
-                            }));
-                          }
-                        }}
-                        placeholder={currentStep.placeholder}
-                        className="text-sm md:text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
-                        onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
-                      />
-                      <Button 
-                        onClick={handleTextSubmit}
-                        disabled={currentStep.required ? !currentInput.trim() : false}
-                        className="px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
-                      >
-                        <ArrowRight className="w-4 h-4" />
-                      </Button>
-                    </div>
-
-                    {currentStep.id === 'art_style' && (
+                    {currentStep.id === 'art_style' ? (
                       <div className="space-y-6">
                         {/* Prominent AI Decide Button */}
                         <div className="text-center">
@@ -2902,30 +2895,65 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           <p className="text-gray-600 font-medium">or type below if you prefer</p>
                         </div>
                         
-                        {/* Text input with rapidly changing examples */}
+                        {/* Text input with rapidly changing examples and arrow button */}
                         <div className="space-y-2">
-                          <Input
-                            value={currentInput}
-                            onChange={(e) => {
-                              setCurrentInput(e.target.value);
-                              setAiDecideSelected(false);
-                              // Auto-save input as user types
-                              if (e.target.value.trim()) {
-                                setStepInputs(prev => ({
-                                  ...prev,
-                                  [currentStep.id]: e.target.value
-                                }));
-                              }
-                            }}
-                            placeholder={aiDecideSelected ? "AI will choose the perfect style ✨" : artStyleExamples[currentArtStyleExample]}
-                            className="text-sm md:text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
-                            onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
-                            disabled={aiDecideSelected}
-                          />
+                          <div className="flex space-x-3">
+                            <Input
+                              value={currentInput}
+                              onChange={(e) => {
+                                setCurrentInput(e.target.value);
+                                setAiDecideSelected(false);
+                                // Auto-save input as user types
+                                if (e.target.value.trim()) {
+                                  setStepInputs(prev => ({
+                                    ...prev,
+                                    [currentStep.id]: e.target.value
+                                  }));
+                                }
+                              }}
+                              placeholder={aiDecideSelected ? "AI will choose the perfect style ✨" : typingText || artStyleExamples[currentArtStyleExample]}
+                              className="text-sm md:text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
+                              onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
+                              disabled={aiDecideSelected}
+                            />
+                            <Button 
+                              onClick={handleTextSubmit}
+                              disabled={currentStep.required ? !currentInput.trim() : false}
+                              className="px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
+                            >
+                              <ArrowRight className="w-4 h-4" />
+                            </Button>
+                          </div>
                           <p className="text-xs text-gray-500 text-center italic">
                             {aiDecideSelected ? "AI will intelligently choose the perfect style ✨" : "Examples change automatically - or describe your own style"}
                           </p>
                         </div>
+                      </div>
+                    ) : (
+                      <div className="flex space-x-3">
+                        <Input
+                          value={currentInput}
+                          onChange={(e) => {
+                            setCurrentInput(e.target.value);
+                            // Auto-save input as user types
+                            if (e.target.value.trim()) {
+                              setStepInputs(prev => ({
+                                ...prev,
+                                [currentStep.id]: e.target.value
+                              }));
+                            }
+                          }}
+                          placeholder={currentStep.placeholder}
+                          className="text-sm md:text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
+                          onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
+                        />
+                        <Button 
+                          onClick={handleTextSubmit}
+                          disabled={currentStep.required ? !currentInput.trim() : false}
+                          className="px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
+                        >
+                          <ArrowRight className="w-4 h-4" />
+                        </Button>
                       </div>
                     )}
 
