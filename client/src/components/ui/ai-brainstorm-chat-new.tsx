@@ -22,7 +22,7 @@ interface AIBrainstormChatProps {
 }
 
 interface ConversationState {
-  currentStep: 'initial_scene' | 'scene_specifics' | 'activity' | 'clothing' | 'summary' | 'final_approval';
+  currentStep: 'initial_scene' | 'scene_specifics' | 'activity' | 'clothing' | 'summary' | 'final_approval' | 'change_request';
   showSuggestions: boolean;
   collectedInfo: {
     initialScene?: string;
@@ -471,62 +471,108 @@ export function AIBrainstormChat({
     const lastAssistantMessage = assistantMessages[assistantMessages.length - 1];
     const content = lastAssistantMessage.content;
     
-    console.log('Extracting from content:', content.substring(0, 200) + '...');
+    console.log('SCENE_EXTRACTION: Analyzing content for scene description');
+    console.log('SCENE_EXTRACTION: Content preview:', content.substring(0, 150) + '...');
 
-    // More robust pattern matching - capture everything that looks like scene content
-    const patterns = [
-      // Pattern 1: Look for complete scene descriptions that span multiple lines and sections
-      /(?:Here's|This is|Perfect!).*?(?:scene|description)[^:]*:?\s*([\s\S]*?)(?=\n\n(?:When you're ready|If you'd like|Would you like|Let me know|Feel free)|$)/i,
-      
-      // Pattern 2: Multi-section scene with Location, Activity, etc.
-      /(Location:[\s\S]*?)(?=\n\n(?:When you're ready|If you'd like|Would you like|Let me know|Feel free)|$)/i,
-      
-      // Pattern 3: Structured scene with clear sections
-      /\*\*?(?:Scene Summary|Final Scene|Complete Scene)[^:]*:?\*\*?\s*([\s\S]*?)(?=\n\n(?:When you're ready|If you'd like|Would you like|Let me know|Feel free)|$)/i,
-      
-      // Pattern 4: Any content that starts with scene details and continues
-      /([A-Z][^\n]*(?:Location|Setting|Scene)[^\n]*[\s\S]*?)(?=\n\n(?:When you're ready|If you'd like|Would you like|Let me know|Feel free)|$)/i,
-      
-      // Pattern 5: Fallback - get large chunks of descriptive content
-      /([A-Z][^.!?]*(?:[.!?][\s\S]*?){3,})(?=\n\n(?:When you're ready|If you'd like|Would you like|Let me know|Feel free)|$)/i
+    // BULLETPROOF APPROACH: Use sentence-by-sentence analysis to find ONLY scene description content
+    const sentences = content.split(/(?<=[.!?])\s+/);
+    let sceneDescription = '';
+    let captureMode = false;
+    
+    // Conversational phrases that should NEVER be included in scene description
+    const conversationalPhrases = [
+      'we\'ll proceed with', 'let me proceed', 'i\'ll proceed', 'proceeding with',
+      'you can add more', 'feel free to add', 'if you\'d like to add',
+      'when you\'re ready', 'if you\'re happy with', 'does this sound',
+      'what do you think', 'how does this sound', 'shall we proceed',
+      'would you like to', 'let me know if', 'feel free to',
+      'here\'s the summary', 'summary of your scene', 'here\'s what we have',
+      'perfect! here\'s', 'great! here\'s', 'excellent! here\'s',
+      'sounds like a plan', 'this looks good', 'ready to move forward',
+      'anything else you\'d like', 'any other details'
+    ];
+    
+    // Scene indicators that signal the start of scene description
+    const sceneIndicators = [
+      'the scene is set', 'the scene takes place', 'location:', 'setting:',
+      'the scene features', 'scene description:', 'in this scene',
+      'the setting is', 'taking place in', 'set in', 'located in',
+      'the scene shows', 'featuring', 'with', 'under', 'on the surface'
     ];
 
-    for (let i = 0; i < patterns.length; i++) {
-      const pattern = patterns[i];
-      const match = content.match(pattern);
-      if (match && match[1]) {
-        let extracted = match[1].trim();
-        
-        console.log(`Pattern ${i + 1} matched:`, extracted.substring(0, 100) + '...');
-        
-        // Clean up the extracted text
-        extracted = extracted
-          // Remove markdown formatting
-          .replace(/\*\*/g, '')
-          .replace(/#+\s*/g, '')
-          // Remove trailing conversational elements but keep the scene
-          .replace(/\n\n(?:When you're ready|If you'd like|Would you like|Let me know|Feel free).*$/s, '')
-          .replace(/(?:When you're ready|If you'd like|Would you like|Let me know|Feel free).*$/s, '')
-          // Clean up extra whitespace
-          .replace(/\n{3,}/g, '\n\n')
-          .replace(/^\s+|\s+$/g, '')
-          .trim();
-        
-        // Validate it's a meaningful scene description
-        if (extracted.length > 50 && 
-            !extracted.toLowerCase().includes('what would you like to') &&
-            !extracted.toLowerCase().includes('which option') &&
-            !extracted.toLowerCase().includes('please choose') &&
-            (extracted.includes('Location:') || extracted.includes('.') || extracted.length > 100)) {
-          console.log('Successfully extracted scene:', extracted);
-          return extracted;
+    for (const sentence of sentences) {
+      const lowerSentence = sentence.toLowerCase().trim();
+      
+      // Skip empty sentences
+      if (!sentence.trim()) continue;
+      
+      // Check if this sentence contains conversational framing - if so, skip it completely
+      const isConversational = conversationalPhrases.some(phrase => 
+        lowerSentence.includes(phrase.toLowerCase())
+      );
+      
+      if (isConversational) {
+        console.log('SCENE_EXTRACTION: Skipping conversational sentence:', sentence.substring(0, 80));
+        continue;
+      }
+      
+      // Check if this sentence starts scene description content
+      const isSceneIndicator = sceneIndicators.some(indicator => 
+        lowerSentence.includes(indicator.toLowerCase())
+      );
+      
+      if (isSceneIndicator) {
+        console.log('SCENE_EXTRACTION: Found scene indicator, starting capture mode');
+        captureMode = true;
+      }
+      
+      // If we're in capture mode and this is not conversational, include it
+      if (captureMode && !isConversational) {
+        // Additional validation: make sure it's actually descriptive content
+        if (sentence.trim().length > 10 && 
+            (sentence.includes(',') || sentence.includes('.') || sentence.length > 30)) {
+          sceneDescription += sentence.trim() + ' ';
+          console.log('SCENE_EXTRACTION: Added sentence to scene:', sentence.substring(0, 60));
         }
       }
     }
+    
+    // Clean up and validate the extracted scene
+    sceneDescription = sceneDescription.trim();
+    
+    // Remove any remaining conversational fragments
+    sceneDescription = sceneDescription
+      .replace(/^[^A-Z]*/, '') // Remove any leading non-sentences
+      .replace(/\*\*/g, '') // Remove markdown formatting
+      .replace(/#+\s*/g, '') // Remove headers
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+    
+    // Final validation
+    if (sceneDescription.length > 30 && sceneDescription.includes('.')) {
+      console.log('SCENE_EXTRACTION: Successfully extracted scene:', sceneDescription);
+      return sceneDescription;
+    }
+    
+    // If bulletproof extraction failed, try fallback pattern for structured content
+    console.log('SCENE_EXTRACTION: Bulletproof method failed, trying structured pattern fallback');
+    
+    // Look for structured scene content (Location:, Activity:, etc.) as backup
+    const structuredMatch = content.match(/Location:[\s\S]*?(?=\n\n|You can add|When you're|Feel free|$)/i);
+    if (structuredMatch) {
+      let structuredScene = structuredMatch[0].trim()
+        .replace(/\*\*/g, '')
+        .replace(/#+\s*/g, '')
+        .trim();
+        
+      if (structuredScene.length > 30) {
+        console.log('SCENE_EXTRACTION: Using structured fallback:', structuredScene);
+        return structuredScene;
+      }
+    }
 
-    console.log('All patterns failed, using collected info fallback');
-    console.log('Full content was:', content);
-    // Fallback to collected info if pattern matching fails
+    // Final fallback to collected info
+    console.log('SCENE_EXTRACTION: All methods failed, using collected info fallback');
     return generateFinalScene(conversationState.collectedInfo);
   };
 
@@ -636,7 +682,7 @@ export function AIBrainstormChat({
 
     
     // Show suggestions if available (for all steps except final approval)
-    if (showSuggestions && suggestions.length > 0 && currentStep !== 'final_approval') {
+    if (showSuggestions && suggestions.length > 0) {
       return (
         <div className="space-y-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
