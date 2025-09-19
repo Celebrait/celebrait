@@ -1453,25 +1453,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         console.log(`[PHOTO_UPLOAD] Processing ${filesToProcess.length} photos during upload...`);
         const processStart = performance.now();
         
-        // Process photos with progress tracking
+        // Process photos with reduced state updates
         const photoIds: string[] = [];
         
         for (let i = 0; i < filesToProcess.length; i++) {
           const file = filesToProcess[i];
-          const fileName = file.name;
           
-          // Initialize progress for this file
-          setPhotoUploadProgress(prev => ({ ...prev, [fileName]: 0 }));
-          
-          // Process photo with progress callback
-          const photoId = await ImageStore.addPhoto(file, (progress) => {
-            setPhotoUploadProgress(prev => ({ ...prev, [fileName]: progress }));
-          });
-          
+          // Process photo without frequent progress updates to reduce flash
+          const photoId = await ImageStore.addPhoto(file);
           photoIds.push(photoId);
-          
-          // Show completion for this file
-          setPhotoUploadProgress(prev => ({ ...prev, [fileName]: 100 }));
         }
         
         const processEnd = performance.now();
@@ -1508,10 +1498,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         setPhotoUploadProgress({});
       } finally {
         setIsProcessingPhotos(false);
-        // Clear progress indicators after a short delay for successful uploads
-        setTimeout(() => {
-          setPhotoUploadProgress({});
-        }, 2000);
       }
       
       // Clear the input so the same file can be uploaded again if needed
@@ -3176,9 +3162,24 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
                 {currentStep.type === 'photo_upload' && (answers.photo_option === 'upload_and_scene' || answers.photo_option === 'upload_and_transform') && (
                   <div className="space-y-6">
-                    {/* Photo processing happens silently - no visual feedback needed */}
-
-                    {uploadedPhotoIds.length === 0 && !isProcessingPhotos ? (
+                    {/* Show processing overlay if photos exist, full processing UI if no photos */}
+                    {isProcessingPhotos && uploadedPhotoIds.length === 0 ? (
+                      <div className="space-y-6">
+                        <div className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center bg-purple-50">
+                          <div className="space-y-4">
+                            <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto animate-pulse">
+                              <svg className="w-8 h-8 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-purple-700">Processing Photo...</h3>
+                              <p className="text-gray-600 mt-2">Optimizing your photo for the best results</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : uploadedPhotoIds.length === 0 ? (
                       <div className="space-y-6">
                         <div className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center bg-purple-50 hover:bg-purple-100 transition-colors">
                           <input
@@ -3278,6 +3279,20 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                               </div>
                             ))}
                           </div>
+                          
+                          {/* Processing indicator when additional photos are being processed */}
+                          {isProcessingPhotos && (
+                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mt-4 mb-4">
+                              <div className="flex items-center justify-center space-x-3">
+                                <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
+                                  <svg className="w-3 h-3 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                </div>
+                                <p className="text-purple-700 font-medium text-sm">Processing additional photo...</p>
+                              </div>
+                            </div>
+                          )}
                           
                           <div className="flex gap-2 mt-4 justify-center">
                             <input
