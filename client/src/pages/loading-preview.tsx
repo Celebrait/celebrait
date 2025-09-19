@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
@@ -12,6 +12,9 @@ const CreativeJourneyPreview = () => {
   const [currentPhase, setCurrentPhase] = useState(0);
   const [phaseProgress, setPhaseProgress] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
+  const [frontImagePreview, setFrontImagePreview] = useState<string | null>(null);
+  const [insideImagePreview, setInsideImagePreview] = useState<string | null>(null);
 
   // Sample answers for preview
   const answers = {
@@ -122,39 +125,77 @@ const CreativeJourneyPreview = () => {
     },
   ];
 
-  // Start/restart the preview
+  // Real AI Progress Event Listener
+  useEffect(() => {
+    const handleAIProgress = (event: CustomEvent) => {
+      const { phase, progress, imageUrl } = event.detail;
+      console.log(`🎨 Creative Journey: ${phase} - ${progress}%`, { imageUrl: !!imageUrl });
+      
+      // Map AI progress to Creative Journey phases
+      const phaseMapping: { [key: string]: number } = {
+        'photo_analysis': 0,
+        'scene_planning': 1,
+        'initial_sketching': 2,
+        'base_scene': 3,
+        'face_perfection': 4,
+        'color_lighting': 5,
+        'fine_details': 6,
+        'typography_front': 7,
+        'front_analysis': 8,
+        'color_matching': 9,
+        'typography_harmony': 10,
+        'typography_inside': 10,
+        'journey_complete': 11,
+        'final_assembly': 11
+      };
+      
+      const targetPhase = phaseMapping[phase] ?? currentPhase;
+      
+      // Update phase and progress based on real AI generation
+      if (targetPhase > currentPhase) {
+        setCurrentPhase(targetPhase);
+        setPhaseProgress(progress <= 100 ? progress : 100);
+      } else if (targetPhase === currentPhase) {
+        setPhaseProgress(progress <= 100 ? progress : 100);
+      }
+      
+      // Show actual generated images when they're ready
+      if (imageUrl && phase === 'typography_front') {
+        setFrontImagePreview(imageUrl);
+      } else if (imageUrl && (phase === 'typography_inside' || phase === 'typography_harmony')) {
+        setInsideImagePreview(imageUrl);
+      }
+      
+      // Mark as complete when journey finishes
+      if ((phase === 'journey_complete' || phase === 'final_assembly') && progress >= 100) {
+        setIsRunning(false);
+        setIsComplete(true);
+      }
+    };
+
+    // Listen for real AI progress events
+    window.addEventListener('ai-generation-progress', handleAIProgress as EventListener);
+    
+    return () => {
+      window.removeEventListener('ai-generation-progress', handleAIProgress as EventListener);
+    };
+  }, []);
+
+  // Start/restart the preview - now just initializes state
   const startPreview = () => {
     setCurrentPhase(0);
     setPhaseProgress(0);
     setIsRunning(true);
-
-    // Fast preview mode - 3 seconds per phase instead of 15
-    const interval = setInterval(() => {
-      setPhaseProgress(prev => {
-        if (prev >= 100) {
-          setCurrentPhase(current => {
-            if (current < creativePhases.length - 1) {
-              return current + 1;
-            }
-            return current;
-          });
-          return currentPhase < creativePhases.length - 1 ? 0 : 100;
-        }
-        return prev + (100 / 3); // 3 seconds per phase for demo
-      });
-    }, 1000);
-
-    // Auto-stop after all phases complete
-    setTimeout(() => {
-      clearInterval(interval);
-      setIsRunning(false);
-    }, creativePhases.length * 3000 + 1000);
+    setIsComplete(false);
+    setFrontImagePreview(null);
+    setInsideImagePreview(null);
+    
+    console.log('🚀 Creative Journey: Waiting for real AI progress events...');
   };
 
   const currentPhaseData = creativePhases[currentPhase];
   const overallProgress = Math.min(100, ((currentPhase * 100 + phaseProgress) / creativePhases.length));
   const frontCardComplete = currentPhase >= 8;
-  const isComplete = currentPhase >= creativePhases.length - 1 && phaseProgress >= 100;
 
   return (
     <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-6 md:p-8 shadow-xl border border-white/20 max-w-4xl mx-auto" data-testid="creative-journey-preview">
@@ -304,6 +345,57 @@ const CreativeJourneyPreview = () => {
         </div>
       </div>
 
+      {/* Generated Image Previews */}
+      {(frontImagePreview || insideImagePreview) && (
+        <div className="bg-white/50 backdrop-blur-sm rounded-xl p-4 border border-white/20 mb-6">
+          <h3 className="text-center text-lg font-semibold text-gray-800 mb-4">
+            ✨ Live Results from OpenAI
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Front Card Preview */}
+            {frontImagePreview && (
+              <div className="text-center">
+                <h4 className="text-sm font-medium text-gray-600 mb-2">Front Card</h4>
+                <div className="relative rounded-lg overflow-hidden shadow-lg">
+                  <img 
+                    src={frontImagePreview} 
+                    alt="Generated front card preview"
+                    className="w-full h-auto max-h-64 object-cover"
+                    data-testid="img-front-preview"
+                  />
+                  <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                    Generated!
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Inside Card Preview */}
+            {insideImagePreview && (
+              <div className="text-center">
+                <h4 className="text-sm font-medium text-gray-600 mb-2">Inside Card</h4>
+                <div className="relative rounded-lg overflow-hidden shadow-lg">
+                  <img 
+                    src={insideImagePreview} 
+                    alt="Generated inside card preview"
+                    className="w-full h-auto max-h-64 object-cover"
+                    data-testid="img-inside-preview"
+                  />
+                  <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                    Generated!
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <p className="text-center text-xs text-gray-500 mt-3">
+            🎯 These are actual images generated by OpenAI during the creative process!
+          </p>
+        </div>
+      )}
+
       {/* Control Buttons */}
       <div className="text-center">
         <Button 
@@ -359,7 +451,6 @@ export default function LoadingPreview() {
           </p>
         </div>
 
-        <CreativeJourneyPreview />
       </div>
     </div>
   );
