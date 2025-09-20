@@ -1427,11 +1427,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       canSubmit: !currentStep?.required || currentInput.trim()
     });
     
-    // Special validation for art_style steps - allow advancing with empty input since "Let AI decide" is an option
+    // Special validation for art_style steps - allow advancing with empty input only if "Let AI decide" was clicked
     if (currentStep?.id === 'art_style' || currentStep?.id === 'art_style_grid') {
-      // For art style, either text input OR "let AI decide" (empty) is valid
-      handleAnswer(currentInput.trim());
-      return;
+      // For art style, either text input OR "let AI decide" (aiDecideSelected) is valid
+      if (currentInput.trim() || aiDecideSelected) {
+        handleAnswer(currentInput.trim());
+        return;
+      } else {
+        // Prevent advancing if no text and AI decide wasn't clicked
+        return;
+      }
     }
     
     // Standard validation for all other steps
@@ -2723,7 +2728,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         </p>
                       </div>
                       
-                      <div className="flex space-x-3">
+                      <div className="space-y-4">
                         <Input
                           value={currentInput}
                           onChange={(e) => setCurrentInput(e.target.value)}
@@ -2731,13 +2736,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           className="text-sm md:text-lg p-4 rounded-xl border-2 border-purple-200 focus:border-purple-400 bg-white shadow-sm"
                           onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                         />
-                        <Button 
-                          onClick={handleTextSubmit}
-                          disabled={currentStep.id === 'art_style_grid' ? false : !currentInput.trim()}
-                          className="px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 shadow-lg"
-                        >
-                          <ArrowRight className="w-5 h-5" />
-                        </Button>
+                        <div className="flex justify-center">
+                          <Button 
+                            onClick={handleTextSubmit}
+                            disabled={!currentInput.trim()}
+                            className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
+                          >
+                            Continue
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
 
@@ -2823,7 +2831,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           <p className="text-gray-600 text-sm">Or describe your own artistic vision:</p>
                         </div>
                         
-                        <div className="flex space-x-3">
+                        <div className="space-y-4">
                           <Input
                             value={currentInput}
                             onChange={(e) => setCurrentInput(e.target.value)}
@@ -2831,13 +2839,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             className="text-sm md:text-lg p-4 rounded-xl border-2 border-purple-200 focus:border-purple-400 bg-white shadow-sm"
                             onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                           />
-                          <Button 
-                            onClick={handleTextSubmit}
-                            disabled={!currentInput.trim()}
-                            className="px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 shadow-lg"
-                          >
-                            <ArrowRight className="w-5 h-5" />
-                          </Button>
+                          <div className="flex justify-center">
+                            <Button 
+                              onClick={handleTextSubmit}
+                              disabled={!currentInput.trim()}
+                              className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
+                            >
+                              Continue
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2887,9 +2898,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           <p className="text-gray-600 font-medium">or type below if you prefer</p>
                         </div>
                         
-                        {/* Text input with rapidly changing examples and arrow button */}
-                        <div className="space-y-2">
-                          <div className="flex space-x-3">
+                        {/* Text input with rapidly changing examples */}
+                        <div className="space-y-4">
+                          <div className="space-y-2">
                             <Input
                               value={currentInput}
                               onChange={(e) => {
@@ -2908,21 +2919,24 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                               onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                               disabled={aiDecideSelected}
                             />
+                            <p className="text-xs text-gray-500 text-center italic">
+                              {aiDecideSelected ? "AI will intelligently choose the perfect style ✨" : "Examples change automatically - or describe your own style"}
+                            </p>
+                          </div>
+                          <div className="flex justify-center">
                             <Button 
                               onClick={handleTextSubmit}
-                              disabled={currentStep.required ? !currentInput.trim() : false}
-                              className="px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
+                              disabled={!aiDecideSelected && !currentInput.trim()}
+                              className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
                             >
-                              <ArrowRight className="w-4 h-4" />
+                              Continue
+                              <ArrowRight className="w-4 h-4 ml-2" />
                             </Button>
                           </div>
-                          <p className="text-xs text-gray-500 text-center italic">
-                            {aiDecideSelected ? "AI will intelligently choose the perfect style ✨" : "Examples change automatically - or describe your own style"}
-                          </p>
                         </div>
                       </div>
                     ) : (
-                      <div className="flex space-x-3">
+                      <div className="space-y-4">
                         <Input
                           value={currentInput}
                           onChange={(e) => {
@@ -2939,13 +2953,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           className="text-sm md:text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
                           onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                         />
-                        <Button 
-                          onClick={handleTextSubmit}
-                          disabled={currentStep.required ? !currentInput.trim() : false}
-                          className="px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
-                        >
-                          <ArrowRight className="w-4 h-4" />
-                        </Button>
+                        <div className="flex justify-center">
+                          <Button 
+                            onClick={handleTextSubmit}
+                            disabled={currentStep.required ? !currentInput.trim() : false}
+                            className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
+                          >
+                            Continue
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                          </Button>
+                        </div>
                       </div>
                     )}
 
