@@ -64,14 +64,65 @@ export function AIBrainstormChat({
   });
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastScrollTimeRef = useRef<number>(0);
   const { toast } = useToast();
 
-  // Auto-scroll to bottom when new messages are added
+  // High-performance mobile-optimized auto-scroll
+  const performScroll = (smooth: boolean = true) => {
+    if (!messagesEndRef.current) return;
+    
+    const now = Date.now();
+    const timeSinceLastScroll = now - lastScrollTimeRef.current;
+    
+    // For mobile performance: use instant scroll during rapid updates, smooth only for final scroll
+    const behavior = smooth && timeSinceLastScroll > 200 ? "smooth" : "auto";
+    
+    // Use requestAnimationFrame for better performance
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ 
+        behavior: behavior as ScrollBehavior, 
+        block: "end" 
+      });
+      lastScrollTimeRef.current = now;
+    });
+  };
+
+  // Throttled scroll for typing animations - prevents scroll spam
+  const throttledScroll = () => {
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    
+    // During typing: instant scroll every 100ms max
+    if (conversationState.isTyping) {
+      const now = Date.now();
+      if (now - lastScrollTimeRef.current > 100) {
+        performScroll(false); // Instant scroll during typing
+      } else {
+        scrollTimeoutRef.current = setTimeout(() => {
+          performScroll(false);
+        }, 50);
+      }
+    } else {
+      // Not typing: smooth scroll after short delay
+      scrollTimeoutRef.current = setTimeout(() => {
+        performScroll(true);
+      }, 50);
+    }
+  };
+
+  // Auto-scroll to bottom when new messages are added (optimized for mobile)
   useEffect(() => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    }, 100);
-  }, [messages, isLoading]);
+    throttledScroll();
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [messages, isLoading, conversationState.isTyping]);
 
   // Simplified auto-scroll - no need for typing animation scroll
 
@@ -182,33 +233,36 @@ export function AIBrainstormChat({
         const currentChar = content[currentIndex];
         const partialContent = content.substring(0, currentIndex + 1);
         
+        // Batch multiple character updates for better performance on mobile
+        const batchSize = 3; // Update 3 characters at once for smoother mobile performance
+        const endIndex = Math.min(currentIndex + batchSize, content.length);
+        const batchContent = content.substring(0, endIndex);
+        
         setMessages(prev => {
           const newMessages = [...prev];
           const lastMessageIndex = newMessages.length - 1;
           if (newMessages[lastMessageIndex] && newMessages[lastMessageIndex].role === 'assistant') {
             newMessages[lastMessageIndex] = {
               ...newMessages[lastMessageIndex],
-              content: partialContent
+              content: batchContent
             };
           }
           return newMessages;
         });
         
-        currentIndex++;
+        currentIndex = endIndex;
         
-        // Vary typing speed for more natural feel (reduced pauses for ChatGPT speed)
-        let nextDelay = typingSpeed;
+        // Vary typing speed for more natural feel (optimized for mobile)
+        let nextDelay = typingSpeed * batchSize;
         if (currentChar === '.' || currentChar === '!' || currentChar === '?') {
-          nextDelay = typingSpeed * 3; // Shorter pause after sentences
+          nextDelay = typingSpeed * 4; // Pause after sentences
         } else if (currentChar === ',' || currentChar === ';') {
-          nextDelay = typingSpeed * 2; // Shorter pause after commas
-        } else if (currentChar === ' ') {
-          nextDelay = typingSpeed; // No extra pause for spaces
+          nextDelay = typingSpeed * 3; // Pause after commas
         }
         
         setTimeout(typeNextCharacter, nextDelay);
       } else {
-        // Typing complete
+        // Typing complete - trigger final smooth scroll
         setMessages(prev => {
           const newMessages = [...prev];
           const lastMessageIndex = newMessages.length - 1;
@@ -223,6 +277,11 @@ export function AIBrainstormChat({
         });
         
         setConversationState(prev => ({ ...prev, isTyping: false }));
+        
+        // Force a final smooth scroll when typing is complete
+        setTimeout(() => {
+          performScroll(true);
+        }, 100);
       }
     };
     
