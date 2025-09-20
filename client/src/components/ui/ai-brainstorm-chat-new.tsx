@@ -224,8 +224,8 @@ export function AIBrainstormChat({
     setMessages(prev => [...prev, typingMessage]);
     setIsLoading(false);
     
-    // Progressive typing animation - ChatGPT speed
-    const typingSpeed = 15; // milliseconds per character (faster like ChatGPT)
+    // Progressive typing animation - Much faster speed
+    const typingSpeed = 8; // milliseconds per character (much faster for better UX)
     let currentIndex = 0;
     
     const typeNextCharacter = () => {

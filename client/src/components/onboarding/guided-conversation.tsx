@@ -902,7 +902,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       type: 'textarea',
       placeholder: onboarding.selectedSceneType === 'scene-only' 
         ? 'e.g., a beautiful sunset over mountains with floating balloons, or a cozy fireplace with warm golden light and scattered rose petals...'
-        : 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...'
+        : 'e.g., sitting in a cozy coffee shop reading a book, wearing a warm sweater, with rain gently falling outside the window...',
+      required: true
     },
     {
       id: 'art_style',
@@ -1072,7 +1073,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
           // Type out the text character by character for all devices
           for (let i = 0; i <= currentPrompt.length && isActive; i++) {
             setPlaceholderText(currentPrompt.slice(0, i));
-            await new Promise(resolve => setTimeout(resolve, 35));
+            await new Promise(resolve => setTimeout(resolve, 18));
           }
           
           setIsTypingExample(false);
@@ -1426,6 +1427,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       canSubmit: !currentStep?.required || currentInput.trim()
     });
     
+    // Special validation for art_style steps - allow advancing with empty input since "Let AI decide" is an option
+    if (currentStep?.id === 'art_style' || currentStep?.id === 'art_style_grid') {
+      // For art style, either text input OR "let AI decide" (empty) is valid
+      handleAnswer(currentInput.trim());
+      return;
+    }
+    
+    // Standard validation for all other steps
     if (currentInput.trim()) {
       handleAnswer(currentInput.trim());
     } else if (!currentStep?.required) {
@@ -2724,7 +2733,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         />
                         <Button 
                           onClick={handleTextSubmit}
-                          disabled={!currentInput.trim()}
+                          disabled={currentStep.id === 'art_style_grid' ? false : !currentInput.trim()}
                           className="px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 shadow-lg"
                         >
                           <ArrowRight className="w-5 h-5" />
