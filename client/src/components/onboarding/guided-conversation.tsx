@@ -1427,14 +1427,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       canSubmit: !currentStep?.required || currentInput.trim()
     });
     
-    // Special validation for art_style steps - allow advancing with empty input only if "Let AI decide" was clicked
+    // Special validation for art_style steps - require text input ("Let AI decide" button directly calls handleAnswer)
     if (currentStep?.id === 'art_style' || currentStep?.id === 'art_style_grid') {
-      // For art style, either text input OR "let AI decide" (aiDecideSelected) is valid
-      if (currentInput.trim() || aiDecideSelected) {
+      // For art style text input, require text to be entered
+      if (currentInput.trim()) {
         handleAnswer(currentInput.trim());
         return;
       } else {
-        // Prevent advancing if no text and AI decide wasn't clicked
+        // Prevent advancing if no text ("Let AI decide" button bypasses this function)
         return;
       }
     }
@@ -2881,10 +2881,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         <div className="text-center">
                           <Button 
                             onClick={() => {
-                              setAiDecideSelected(true);
-                              setCurrentInput('');
-                              setAnswers(prev => ({ ...prev, art_style: 'ai_decide' }));
-                              setTimeout(() => handleTextSubmit(), 100);
+                              // Directly advance to next step with 'ai_decide' 
+                              handleAnswer('ai_decide');
                             }}
                             className="px-8 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold text-lg shadow-xl transform hover:scale-105 transition-all duration-200"
                             data-testid="button-ai-decide-style"
@@ -2905,7 +2903,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                               value={currentInput}
                               onChange={(e) => {
                                 setCurrentInput(e.target.value);
-                                setAiDecideSelected(false);
                                 // Auto-save input as user types
                                 if (e.target.value.trim()) {
                                   setStepInputs(prev => ({
@@ -2914,19 +2911,18 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                                   }));
                                 }
                               }}
-                              placeholder={aiDecideSelected ? "AI will choose the perfect style ✨" : typingText || (isTypingArtStyle ? "" : artStyleExamples[currentArtStyleExample]) || "Loading..."}
+                              placeholder={typingText || (isTypingArtStyle ? "" : artStyleExamples[currentArtStyleExample]) || "Loading..."}
                               className="text-sm md:text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
                               onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
-                              disabled={aiDecideSelected}
                             />
                             <p className="text-xs text-gray-500 text-center italic">
-                              {aiDecideSelected ? "AI will intelligently choose the perfect style ✨" : "Examples change automatically - or describe your own style"}
+                              Examples change automatically - or describe your own style
                             </p>
                           </div>
                           <div className="flex justify-center">
                             <Button 
                               onClick={handleTextSubmit}
-                              disabled={!aiDecideSelected && !currentInput.trim()}
+                              disabled={!currentInput.trim()}
                               className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
                             >
                               Continue
