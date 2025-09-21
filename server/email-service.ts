@@ -10,9 +10,13 @@ if (!brevoApiKey) {
 console.log('Brevo API Key configured:', brevoApiKey ? 'Present' : 'Missing');
 console.log('Brevo API Key length:', brevoApiKey?.length || 0);
 
-// Initialize Brevo API client
+// Initialize Brevo API clients
 const apiInstance = new brevo.TransactionalEmailsApi();
 apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, brevoApiKey);
+
+// Initialize Brevo Contacts API for marketing list management
+const contactsApi = new brevo.ContactsApi();
+contactsApi.setApiKey(brevo.ContactsApiApiKeys.apiKey, brevoApiKey);
 
 function hasValidBrevoConfig(): boolean {
   return !!(brevoApiKey && brevoApiKey.length > 0);
@@ -24,6 +28,63 @@ interface EmailParams {
   subject: string;
   text?: string;
   html?: string;
+}
+
+// Marketing list management
+export async function addToMarketingList(email: string, firstName?: string, lastName?: string, metadata?: any): Promise<string | null> {
+  try {
+    console.log(`Adding contact to Brevo marketing list: ${email}`);
+    
+    const createContact = new brevo.CreateContact();
+    createContact.email = email;
+    
+    // Add optional attributes
+    const attributes: any = {};
+    if (firstName) attributes.FIRSTNAME = firstName;
+    if (lastName) attributes.LASTNAME = lastName;
+    if (metadata?.recipientName) attributes.RECIPIENT_NAME = metadata.recipientName;
+    if (metadata?.celebrationType) attributes.CELEBRATION_TYPE = metadata.celebrationType;
+    if (metadata?.signupSource) attributes.SIGNUP_SOURCE = metadata.signupSource;
+    
+    createContact.attributes = attributes;
+    
+    // Add to "Celebrait Leads" list (you'll need to create this list in Brevo)
+    createContact.listIds = [1]; // Replace with your actual list ID
+    
+    const result = await contactsApi.createContact(createContact);
+    
+    console.log('Contact added to Brevo successfully:', result.body?.id);
+    return result.body?.id?.toString() || null;
+    
+  } catch (error: any) {
+    console.error('Brevo contact creation error:', error);
+    
+    // Handle duplicate contact gracefully
+    if (error.response?.body?.code === 'duplicate_parameter') {
+      console.log('Contact already exists in Brevo, updating instead');
+      try {
+        const updateContact = new brevo.UpdateContact();
+        const attributes: any = {};
+        if (firstName) attributes.FIRSTNAME = firstName;
+        if (lastName) attributes.LASTNAME = lastName;
+        if (metadata?.recipientName) attributes.RECIPIENT_NAME = metadata.recipientName;
+        if (metadata?.celebrationType) attributes.CELEBRATION_TYPE = metadata.celebrationType;
+        if (metadata?.signupSource) attributes.SIGNUP_SOURCE = metadata.signupSource;
+        
+        updateContact.attributes = attributes;
+        updateContact.listIds = [1]; // Add to list if not already there
+        
+        await contactsApi.updateContact(email, updateContact);
+        console.log('Contact updated in Brevo successfully');
+        return 'updated';
+      } catch (updateError: any) {
+        console.error('Brevo contact update error:', updateError);
+        return null;
+      }
+    }
+    
+    return null;
+  }
 }
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
@@ -539,7 +600,7 @@ Questions? Contact us at support@celebrait.com
   };
 }
 
-export async function sendCardReadyEmail(email: string, cardId: number) {
+// Card preview recovery email template\nexport function generateCardPreviewEmail(cardData: any, previewUrl: string): EmailParams {\n  const { recipientName, celebrationType, customerName } = cardData;\n  \n  return {\n    to: cardData.email,\n    from: 'greetings@celebrait.co.za',\n    subject: `🎉 ${recipientName || 'Your loved one'}'s ${celebrationType} card is ready!`,\n    html: `\n      <!DOCTYPE html>\n      <html>\n      <head>\n        <style>\n          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n          .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n          .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: bold; }\n          .preview-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px dashed #667eea; }\n          .footer { text-align: center; margin-top: 30px; color: #666; }\n        </style>\n      </head>\n      <body>\n        <div class=\"container\">\n          <div class=\"header\">\n            <h1>✨ Your Card Preview is Ready!</h1>\n            <p>See how amazing ${recipientName || 'your card'} looks</p>\n          </div>\n          <div class=\"content\">\n            <h2>Hi ${customerName || 'there'}! 👋</h2>\n            <p>Great news! Your personalized ${celebrationType} card for <strong>${recipientName}</strong> has been generated and is ready for preview.</p>\n            \n            <div class=\"preview-box\">\n              <h3>🎨 Your Custom Card</h3>\n              <p>Take a look at your beautifully designed card and see if it's exactly what you imagined. You can always make changes before ordering!</p>\n              \n              <div style=\"text-align: center;\">\n                <a href=\"${previewUrl}\" class=\"button\">👀 VIEW YOUR CARD PREVIEW</a>\n              </div>\n            </div>\n            \n            <h3>What's Next?</h3>\n            <ul>\n              <li>✅ Preview your card design</li>\n              <li>💝 Choose digital delivery or printed card</li>\n              <li>🛒 Complete your order (from R129)</li>\n              <li>📧 Receive your final card</li>\n            </ul>\n            \n            <p><strong>💡 Pro tip:</strong> This preview link is saved for you - come back anytime to view or order your card!</p>\n            \n            <div style=\"background: #e8f4f8; padding: 15px; border-radius: 8px; margin: 20px 0;\">\n              <p style=\"margin: 0;\"><strong>Questions?</strong> Our team is here to help! Simply reply to this email or contact us at support@celebrait.co.za</p>\n            </div>\n            \n            <div style=\"text-align: center; margin: 30px 0;\">\n              <a href=\"${previewUrl}\" class=\"button\">🚀 COMPLETE YOUR ORDER NOW</a>\n            </div>\n          </div>\n          <div class=\"footer\">\n            <p>Made with ❤️ by Celebrait | Creating memories, one card at a time</p>\n            <p>© 2025 Celebrait. All rights reserved.</p>\n            <p style=\"font-size: 12px; color: #999;\">You received this email because you created a card on Celebrait. <a href=\"#\">Unsubscribe</a></p>\n          </div>\n        </div>\n      </body>\n      </html>\n    `,\n    text: `\nCard Preview Ready - Celebrait\n\nHi ${customerName || 'there'}!\n\nYour personalized ${celebrationType} card for ${recipientName} is ready for preview.\n\nView your card: ${previewUrl}\n\nWhat's next:\n✅ Preview your card design\n💝 Choose digital or printed delivery  \n🛒 Complete your order (from R129)\n📧 Receive your final card\n\nQuestions? Contact us at support@celebrait.co.za\n\n© 2025 Celebrait\n    `\n  };\n}\n\n// Send card preview email to prospects\nexport async function sendBackgroundEmail(cardId: number, email: string, userName: string): Promise<boolean> {\n  console.log('Sending background email for card:', cardId, 'to:', email);\n  \n  if (!hasValidBrevoConfig()) {\n    console.log('Brevo not configured, skipping email send');\n    return false;\n  }\n\n  try {\n    // Get card data from storage\n    const card = await storage.getCard(cardId);\n    if (!card) {\n      console.error('Card not found for background email:', cardId);\n      return false;\n    }\n\n    // Build preview URL\n    const host = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';\n    const previewUrl = `https://${host}/card-preview/${cardId}`;\n    \n    // Prepare card data for email template\n    const cardData = {\n      email,\n      recipientName: card.conversationData?.name || 'your loved one',\n      celebrationType: card.conversationData?.celebration || 'celebration',\n      customerName: userName\n    };\n    \n    // Generate and send the email\n    const emailParams = generateCardPreviewEmail(cardData, previewUrl);\n    const success = await sendEmail(emailParams);\n    \n    if (success) {\n      console.log('Card preview email sent successfully to:', email);\n    } else {\n      console.error('Failed to send card preview email to:', email);\n    }\n    \n    return success;\n    \n  } catch (error: any) {\n    console.error('Error sending background email:', error);\n    return false;\n  }\n}\n\nexport async function sendCardReadyEmail(email: string, cardId: number) {
   console.log('Attempting to send card ready email to:', email, 'for card:', cardId);
 
   if (!hasValidBrevoConfig()) {
