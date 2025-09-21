@@ -231,16 +231,18 @@ const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
     },
   ];
 
-  // Phase timing (10 seconds per phase = 2 minutes total)
+  // Phase timing (12.5 seconds per phase = 2.5 minutes total)
+  const [showRobotLoading, setShowRobotLoading] = useState(false);
+  
   useEffect(() => {
-    // Check if main generation is complete, trigger packaging phase
-    if (currentPhase >= creativePhases.length - 1 && phaseProgress >= 100 && !showPackaging) {
-      setTimeout(() => setShowPackaging(true), 500);
+    // Check if main generation is complete, show robot loading animation instead of packaging
+    if (currentPhase >= creativePhases.length - 1 && phaseProgress >= 100 && !showRobotLoading) {
+      setTimeout(() => setShowRobotLoading(true), 500);
       return;
     }
 
-    // Don't start interval if we've completed all phases and are showing packaging
-    if (showPackaging) {
+    // Don't start interval if we've completed all phases and are showing robot loading
+    if (showRobotLoading) {
       return;
     }
 
@@ -255,17 +257,103 @@ const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
           });
           return currentPhase < creativePhases.length - 1 ? 0 : 100; // Keep at 100% for final phase
         }
-        return prev + (100 / 10); // 10 seconds per phase
+        return prev + (100 / 12.5); // 12.5 seconds per phase (2.5 minutes total)
       });
     }, 1000); // Update every second
 
     return () => clearInterval(phaseInterval);
-  }, [currentPhase, phaseProgress, showPackaging]);
+  }, [currentPhase, phaseProgress, showRobotLoading]);
 
   const currentPhaseData = creativePhases[currentPhase];
   const overallProgress = Math.min(100, ((currentPhase * 100 + phaseProgress) / creativePhases.length));
   const frontCardComplete = currentPhase >= 8;
   const isComplete = currentPhase >= creativePhases.length - 1 && phaseProgress >= 100;
+
+  // Robot Loading Animation Overlay after 2.5 minutes
+  if (showRobotLoading) {
+    return (
+      <div className="relative bg-white/60 backdrop-blur-sm rounded-3xl p-6 md:p-8 shadow-2xl border border-white/20 max-w-4xl mx-auto">
+        {/* Blurred background content */}
+        <div className="opacity-30 blur-sm pointer-events-none">
+          {/* Show the same progress content but blurred */}
+          <div className="text-center mb-8">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-6">
+              Creating {answers.name ? `${answers.name}'s` : 'your'} amazing {answers.celebration || 'celebration'} card
+            </h1>
+          </div>
+          
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 border border-white/20 mb-6">
+            <div className="flex items-center space-x-4 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
+                <CheckCircle className="text-white w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold text-gray-800 mb-1">
+                  All phases complete!
+                </h3>
+                <p className="text-gray-600">
+                  Your masterpiece is being finalized...
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Robot Loading Animation Overlay */}
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-purple-200 text-center max-w-sm mx-4">
+            {/* Robot Animation */}
+            <div className="relative mb-6">
+              <div className="w-24 h-24 mx-auto relative">
+                {/* Robot body */}
+                <div className="w-16 h-20 bg-gradient-to-b from-purple-500 to-blue-500 rounded-lg mx-auto relative animate-bounce">
+                  {/* Robot head */}
+                  <div className="w-12 h-10 bg-gradient-to-b from-purple-400 to-blue-400 rounded-t-lg mx-auto -mt-2 relative">
+                    {/* Eyes */}
+                    <div className="flex justify-center space-x-2 pt-3">
+                      <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                      <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse animation-delay-300"></div>
+                    </div>
+                  </div>
+                  {/* Arms */}
+                  <div className="absolute -left-3 top-3 w-2 h-8 bg-purple-500 rounded-full animate-pulse"></div>
+                  <div className="absolute -right-3 top-3 w-2 h-8 bg-purple-500 rounded-full animate-pulse animation-delay-500"></div>
+                </div>
+                {/* Robot legs */}
+                <div className="flex justify-center space-x-2 -mt-1">
+                  <div className="w-2 h-6 bg-blue-500 rounded-full"></div>
+                  <div className="w-2 h-6 bg-blue-500 rounded-full"></div>
+                </div>
+                
+                {/* Spinning gears around robot */}
+                <div className="absolute inset-0 animate-spin">
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2">
+                    <div className="w-3 h-3 border-2 border-purple-400 rounded-full"></div>
+                  </div>
+                  <div className="absolute bottom-0 right-0">
+                    <div className="w-2 h-2 border-2 border-blue-400 rounded-full"></div>
+                  </div>
+                  <div className="absolute bottom-0 left-0">
+                    <div className="w-2 h-2 border-2 border-pink-400 rounded-full"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Almost ready...</h3>
+            <p className="text-gray-600 text-sm">Putting the finishing touches on your masterpiece!</p>
+            
+            {/* Loading dots */}
+            <div className="flex justify-center space-x-1 mt-4">
+              <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce animation-delay-200"></div>
+              <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce animation-delay-400"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Packaging and Finalising Component with seamless purple-pink design
   if (showPackaging) {

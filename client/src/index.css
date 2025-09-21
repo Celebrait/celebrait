@@ -190,4 +190,10 @@ body {
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+  
+  /* Animation delay classes for robot loading animation */
+  .animation-delay-200 { animation-delay: 0.2s; }
+  .animation-delay-300 { animation-delay: 0.3s; }
+  .animation-delay-400 { animation-delay: 0.4s; }
+  .animation-delay-500 { animation-delay: 0.5s; }
 }
