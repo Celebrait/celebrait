@@ -2912,7 +2912,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                                 }
                               }}
                               placeholder={typingText || (isTypingArtStyle ? "" : artStyleExamples[currentArtStyleExample]) || "Loading..."}
-                              className="text-sm md:text-lg p-4 rounded-xl border-purple-200 focus:border-purple-400"
+                              className="text-xs md:text-sm p-4 rounded-xl border-purple-200 focus:border-purple-400"
                               onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                             />
                             <p className="text-xs text-gray-500 text-center italic">
