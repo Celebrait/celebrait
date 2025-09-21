@@ -3526,7 +3526,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                               }
                             }));
                           }}
-                          placeholder="e.g., Wishing you all the happiness in the world on your special day. You deserve all the joy and love life has to offer!"
+                          placeholder="e.g., Hope your day is filled with joy and laughter! You mean so much to me."
                           className="text-sm md:text-lg text-gray-600 p-4 min-h-[200px] sm:min-h-[150px] rounded-xl border-purple-200 focus:border-purple-400 resize-y"
                           autoFocus
                         />
