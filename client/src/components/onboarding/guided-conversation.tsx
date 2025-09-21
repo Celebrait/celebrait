@@ -1974,9 +1974,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const generateCard = async () => {
     console.log('[DEBUG] generateCard called');
     
-    // Bypass email popup for testing or streamlined flow
-    if (import.meta.env.VITE_SKIP_EMAIL_COLLECTION === 'true' || streamlinedFlow) {
-      console.log('[DEBUG] Skipping email collection, proceeding directly to generation');
+    // Always collect email for marketing automation and card preview recovery
+    // Only bypass for specific testing scenarios (not streamlined flow)
+    if (import.meta.env.VITE_SKIP_EMAIL_COLLECTION === 'true') {
+      console.log('[DEBUG] Test mode: Skipping email collection');
       actuallyGenerateCard();
       return;
     }
