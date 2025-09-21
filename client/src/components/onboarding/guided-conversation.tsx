@@ -3609,7 +3609,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             inside_message_structured: messageData
                           }));
                           
-                          handleTextSubmit();
+                          // Save progress and advance to next step manually (don't call handleTextSubmit which would overwrite with object)
+                          setStepInputs(prev => ({
+                            ...prev,
+                            [currentStep.id]: messageData
+                          }));
+                          
+                          // Advance to next step
+                          if (currentStepIndex < filteredSteps.length - 1) {
+                            setCurrentStepIndex(prev => prev + 1);
+                          }
+                          setCurrentInput('');
                         }}
                         disabled={!(stepInputs[currentStep.id] as any)?.message?.trim()}
                         className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
