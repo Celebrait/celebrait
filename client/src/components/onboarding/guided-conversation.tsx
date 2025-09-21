@@ -3874,55 +3874,56 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
       {/* Email Collection Popup Modal */}
       <Dialog open={showEmailPopup} onOpenChange={setShowEmailPopup}>
-        <DialogContent className="max-w-2xl bg-white border-2 border-gray-200">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Email Required for Card Delivery</DialogTitle>
-            <DialogDescription>We need your email to notify you when your card is ready</DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-6 p-4">
-            {/* Header Section - Matching Your Screenshot */}
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-6 rounded-xl">
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">✨ Sign up to Celebrait</h3>
-                </div>
+        <DialogContent className="max-w-md sm:max-w-lg bg-white border-2 border-purple-200 rounded-3xl shadow-2xl mx-4">
+          <DialogHeader className="pb-4">
+            {/* Modern Header with Better Mobile Layout */}
+            <div className="text-center space-y-3">
+              <div className="mx-auto w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl flex items-center justify-center shadow-lg">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+                  Join Celebrait
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Get your personalized card + exclusive updates
+                </p>
               </div>
             </div>
+          </DialogHeader>
+          
+          <div className="space-y-5 px-1">
 
-            {/* User Details Form */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">First Name</label>
-                  <Input
-                    type="text"
-                    value={popupFirstName}
-                    onChange={(e) => setPopupFirstName(e.target.value)}
-                    placeholder="Your first name"
-                    className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Last Name</label>
-                  <Input
-                    type="text"
-                    value={popupLastName}
-                    onChange={(e) => setPopupLastName(e.target.value)}
-                    placeholder="Your last name"
-                    className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
-                  />
-                </div>
+            {/* Mobile-Optimized Form */}
+            {/* Name Fields - Stack on Mobile */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">First Name</label>
+                <Input
+                  type="text"
+                  value={popupFirstName}
+                  onChange={(e) => setPopupFirstName(e.target.value)}
+                  placeholder="Your first name"
+                  className="h-12 text-base rounded-2xl border-gray-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                />
               </div>
               
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Last Name</label>
+                <Input
+                  type="text"
+                  value={popupLastName}
+                  onChange={(e) => setPopupLastName(e.target.value)}
+                  placeholder="Your last name"
+                  className="h-12 text-base rounded-2xl border-gray-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                />
+              </div>
+            </div>
+            
+            {/* Email Fields */}
+            <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Email Address</label>
                 <Input
@@ -3930,7 +3931,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   value={popupEmail}
                   onChange={(e) => setPopupEmail(e.target.value)}
                   placeholder="Enter your email address"
-                  className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                  className="h-12 text-base rounded-2xl border-gray-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
                 />
               </div>
               
@@ -3941,26 +3942,27 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   value={popupEmailConfirm}
                   onChange={(e) => setPopupEmailConfirm(e.target.value)}
                   placeholder="Confirm your email address"
-                  className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                  className="h-12 text-base rounded-2xl border-gray-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
                 />
               </div>
-              
-              {/* Marketing opt-in checkbox */}
-              <div className="flex items-start space-x-3 p-4 bg-purple-50 rounded-xl border border-purple-200">
-                <input
-                  type="checkbox"
-                  id="marketing-optin"
-                  checked={true}
-                  readOnly
-                  className="mt-1 h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
-                />
-                <label htmlFor="marketing-optin" className="text-sm text-gray-700 leading-relaxed">
-                  <span className="font-medium">Stay updated with Celebrait!</span> 
-                  <span className="block text-xs text-gray-600 mt-1">
-                    Get special offers, new card styles, and celebration inspiration delivered to your inbox.
-                  </span>
-                </label>
-              </div>
+            </div>
+            
+            {/* Marketing opt-in checkbox - Mobile Optimized */}
+            <div className="flex items-start space-x-3 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-200">
+              <input
+                type="checkbox"
+                id="marketing-optin"
+                checked={true}
+                readOnly
+                className="mt-1 h-5 w-5 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+              />
+              <label htmlFor="marketing-optin" className="text-sm text-gray-700 leading-relaxed">
+                <span className="font-semibold text-purple-700">Stay in the loop!</span> 
+                <span className="block text-xs text-gray-600 mt-1">
+                  Get exclusive offers, new card styles & celebration ideas.
+                </span>
+              </label>
+            </div>
 
               {popupEmail && popupEmailConfirm && popupEmail !== popupEmailConfirm && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -3968,8 +3970,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                 </div>
               )}
 
-              {/* Generate Button - Matching Your Screenshot */}
-              <div className="flex justify-center pt-4">
+              {/* Sign Up Button - Mobile Optimized */}
+              <div className="flex justify-center pt-2">
                 <Button 
                   onClick={() => {
                     if (!popupFirstName || !popupEmail || !popupEmailConfirm) {
@@ -3996,13 +3998,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     actuallyGenerateCard();
                   }}
                   disabled={!popupFirstName || !popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
-                  className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                  className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-white text-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
-                  GENERATE MY CARD
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  Sign Up
+                  <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </div>
-            </div>
           </div>
         </DialogContent>
       </Dialog>
