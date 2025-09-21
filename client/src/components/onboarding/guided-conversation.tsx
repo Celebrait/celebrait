@@ -302,41 +302,23 @@ const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
         {/* Robot Loading Animation Overlay */}
         <div className="absolute inset-0 flex items-center justify-center z-10">
           <div className="bg-white/90 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-purple-200 text-center max-w-sm mx-4">
-            {/* Robot Animation */}
+            {/* AI Bot Animation - Using same design as conversation flow */}
             <div className="relative mb-6">
-              <div className="w-24 h-24 mx-auto relative">
-                {/* Robot body */}
-                <div className="w-16 h-20 bg-gradient-to-b from-purple-500 to-blue-500 rounded-lg mx-auto relative animate-bounce">
-                  {/* Robot head */}
-                  <div className="w-12 h-10 bg-gradient-to-b from-purple-400 to-blue-400 rounded-t-lg mx-auto -mt-2 relative">
-                    {/* Eyes */}
-                    <div className="flex justify-center space-x-2 pt-3">
-                      <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                      <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse animation-delay-300"></div>
-                    </div>
-                  </div>
-                  {/* Arms */}
-                  <div className="absolute -left-3 top-3 w-2 h-8 bg-purple-500 rounded-full animate-pulse"></div>
-                  <div className="absolute -right-3 top-3 w-2 h-8 bg-purple-500 rounded-full animate-pulse animation-delay-500"></div>
-                </div>
-                {/* Robot legs */}
-                <div className="flex justify-center space-x-2 -mt-1">
-                  <div className="w-2 h-6 bg-blue-500 rounded-full"></div>
-                  <div className="w-2 h-6 bg-blue-500 rounded-full"></div>
+              <div className="w-20 h-20 mx-auto relative">
+                {/* Main Bot Icon with rotating animation */}
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center animate-pulse">
+                  <Bot className="w-10 h-10 text-white animate-spin" />
                 </div>
                 
-                {/* Spinning gears around robot */}
-                <div className="absolute inset-0 animate-spin">
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2">
-                    <div className="w-3 h-3 border-2 border-purple-400 rounded-full"></div>
-                  </div>
-                  <div className="absolute bottom-0 right-0">
-                    <div className="w-2 h-2 border-2 border-blue-400 rounded-full"></div>
-                  </div>
-                  <div className="absolute bottom-0 left-0">
-                    <div className="w-2 h-2 border-2 border-pink-400 rounded-full"></div>
-                  </div>
+                {/* Spinning ring around the bot */}
+                <div className="absolute inset-0 w-20 h-20">
+                  <div className="w-full h-full border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin"></div>
                 </div>
+                
+                {/* Additional animated elements */}
+                <div className="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse animation-delay-300"></div>
+                <div className="absolute -bottom-2 -left-2 w-3 h-3 bg-pink-400 rounded-full animate-pulse animation-delay-500"></div>
+                <div className="absolute -top-2 -left-2 w-2 h-2 bg-blue-400 rounded-full animate-pulse animation-delay-200"></div>
               </div>
             </div>
             
