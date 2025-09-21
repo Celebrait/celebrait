@@ -2915,9 +2915,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                               className="text-xs md:text-sm p-4 rounded-xl border-purple-200 focus:border-purple-400"
                               onKeyPress={(e) => e.key === 'Enter' && handleTextSubmit()}
                             />
-                            <p className="text-xs text-gray-500 text-center italic">
-                              Examples change automatically - or describe your own style
-                            </p>
                           </div>
                           <div className="flex justify-center">
                             <Button 
