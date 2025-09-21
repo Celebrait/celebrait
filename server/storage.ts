@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { eq } from "drizzle-orm";
-import { users, cards, lovedOnes, orders, type User, type InsertUser, type Card, type InsertCard, type LovedOne, type InsertLovedOne, type Order, type InsertOrder } from "@shared/schema";
+import { users, cards, lovedOnes, orders, prospects, type User, type InsertUser, type Card, type InsertCard, type LovedOne, type InsertLovedOne, type Order, type InsertOrder, type Prospect, type InsertProspect } from "@shared/schema";
 
 // Database connection
 const sql = neon(process.env.DATABASE_URL!);
@@ -25,6 +25,13 @@ export interface IStorage {
   getOrderByReference(reference: string): Promise<Order | undefined>;
   updateOrder(id: number, updates: Partial<Order>): Promise<Order>;
   getOrdersByEmail(email: string): Promise<Order[]>;
+
+  // Prospect management for marketing leads
+  createProspect(prospect: InsertProspect): Promise<Prospect>;
+  getProspect(id: number): Promise<Prospect | undefined>;
+  getProspectByEmail(email: string): Promise<Prospect | undefined>;
+  updateProspect(id: number, updates: Partial<Prospect>): Promise<Prospect>;
+  markProspectConverted(email: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -32,20 +39,24 @@ export class MemStorage implements IStorage {
   private cards: Map<number, Card>;
   private lovedOnes: Map<number, LovedOne>;
   private orders: Map<number, Order>;
+  private prospects: Map<number, Prospect>;
   private currentUserId: number;
   private currentCardId: number;
   private currentLovedOneId: number;
   private currentOrderId: number;
+  private currentProspectId: number;
 
   constructor() {
     this.users = new Map();
     this.cards = new Map();
     this.lovedOnes = new Map();
     this.orders = new Map();
+    this.prospects = new Map();
     this.currentUserId = 1;
     this.currentCardId = 1;
     this.currentLovedOneId = 1;
     this.currentOrderId = 1;
+    this.currentProspectId = 1;
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -78,6 +89,9 @@ export class MemStorage implements IStorage {
       id,
       frontImageUrl: null,
       insideImageUrl: null,
+      frontImagePath: null,
+      insideImagePath: null,
+      printReadyPath: null,
       status: 'generating',
       createdAt: new Date()
     };
@@ -132,6 +146,7 @@ export class MemStorage implements IStorage {
       trackingNumber: null,
       currency: orderData.currency || 'ZAR',
       shippingAddress: orderData.shippingAddress || null,
+      recipientInfo: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       baseAmount: orderData.baseAmount || orderData.amount,

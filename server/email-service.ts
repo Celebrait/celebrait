@@ -120,264 +120,14 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
   }
 }
 
-// Email templates
-export function generateOrderConfirmationEmail(orderData: any): EmailParams {
-  const { customerEmail, customerName, paymentReference, amount, currency } = orderData;
-
-  return {
-    to: customerEmail,
-    from: 'greetings@celebrait.co.za',
-    subject: 'Order Confirmation - Your Celebrait Card',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          /* CUSTOMIZABLE: Change these values to match your brand */
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-
-          /* BRAND COLORS: Update gradient and button colors here */
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-          .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; }
-
-          /* LAYOUT: Adjust spacing and backgrounds */
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .order-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
-          .footer { text-align: center; margin-top: 30px; color: #666; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>✨ Order Confirmed!</h1>
-            <p>Thank you for choosing Celebrait</p>
-          </div>
-          <div class="content">
-            <h2>Hi ${customerName}!</h2>
-            <p>We're excited to confirm that your custom greeting card order has been received and is being processed.</p>
-
-            <div class="order-details">
-              <h3>Order Details</h3>
-              <p><strong>Reference:</strong> ${paymentReference}</p>
-              <p><strong>Amount:</strong> ${currency} ${(amount / 100).toFixed(2)}</p>
-              <p><strong>Status:</strong> Processing</p>
-            </div>
-
-            <p>Your personalized greeting card is being carefully prepared. For printed cards, you can expect delivery within 5-7 business days.</p>
-
-            <p>We'll send you another email once your order ships with tracking information.</p>
-
-            <a href="https://celebrait.com/order-status?ref=${paymentReference}" class="button">Track Your Order</a>
-          </div>
-          <div class="footer">
-            <p>Questions? Contact us at support@celebrait.com</p>
-            <p>© 2025 Celebrait. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
-    text: `
-Order Confirmation - Celebrait
-
-Hi ${customerName}!
-
-Your custom greeting card order has been confirmed.
-
-Order Details:
-- Reference: ${paymentReference}
-- Amount: ${currency} ${(amount / 100).toFixed(2)}
-- Status: Processing
-
-Your personalized greeting card is being prepared. For printed cards, expect delivery within 5-7 business days.
-
-We'll send tracking information once your order ships.
-
-Questions? Contact us at support@celebrait.com
-
-© 2025 Celebrait. All rights reserved.
-    `
-  };
-}
-
-export function generateDigitalCardEmail(orderData: any, cardImageUrl: string, host?: string): EmailParams {
-  const { customerEmail, customerName, paymentReference } = orderData;
-
-  // Use proper domain detection - if host contains localhost or undefined, use Replit domain
-  const actualHost = (!host || host.includes('localhost')) ? 
-    '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev' : 
-    host;
+// Card preview recovery email template
+export function generateCardPreviewEmail(cardData: any, previewUrl: string): EmailParams {
+  const { recipientName, celebrationType, customerName } = cardData;
   
-  // Log URL generation for debugging
-  console.log('Digital card email URL generated:', `https://${actualHost}/card/${paymentReference}`);
-
   return {
-    to: customerEmail,
+    to: cardData.email,
     from: 'greetings@celebrait.co.za',
-    subject: 'Your Digital Celebrait Card is Ready! 🎉',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; }
-          .container { max-width: 500px; margin: 0 auto; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 10px 10px; text-align: center; }
-          .card-image { max-width: 250px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin: 15px 0; }
-          .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; }
-          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🎉 Your Card is Ready!</h1>
-          </div>
-          <div class="content">
-            <p>Hi ${customerName}!</p>
-            <p>Your digital greeting card is ready to view and share:</p>
-            
-            <img src="${cardImageUrl}" alt="Your custom card" class="card-image" />
-            
-            <div>
-              <a href="https://${actualHost}/card/${paymentReference}" class="button">View Digital Card</a>
-            </div>
-            
-            <p style="color: #666; font-size: 14px; margin-top: 15px;">
-              Share this link: https://${actualHost}/card/${paymentReference}
-            </p>
-          </div>
-          
-          <div class="footer">
-            <p>© 2025 Celebrait. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
-    text: `
-Your Digital Celebrait Card is Ready! 🎉
-
-Hi ${customerName}!
-
-Your digital greeting card is ready to view and share.
-
-View your card: https://${actualHost}/card/${paymentReference}
-
-Thank you for choosing Celebrait!
-    `
-  };
-}
-
-export function generateDigitalCardEmailForRecipient(orderData: any, recipientName: string, recipientEmail: string, senderName: string, cardImageUrl: string, host?: string): EmailParams {
-  const { paymentReference } = orderData;
-
-  // Use proper domain detection - if host contains localhost or undefined, use Replit domain
-  const actualHost = (!host || host.includes('localhost')) ? 
-    '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev' : 
-    host;
-  
-  // Log URL generation for debugging
-  console.log('Digital card email URL for recipient generated:', `https://${actualHost}/card/${paymentReference}`);
-
-  return {
-    to: recipientEmail,
-    from: 'greetings@celebrait.co.za',
-    subject: `${senderName} has sent you a special digital card! 🎁`,
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; }
-          .container { max-width: 500px; margin: 0 auto; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .card-preview { text-align: center; margin: 20px 0; }
-          .card-preview img { max-width: 250px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-          .cta-button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; margin: 20px 0; }
-          .cta-button:hover { background: #5a67d8; color: white; }
-          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
-          .personal-message { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🎁 You've Received a Special Card!</h1>
-            <p>From ${senderName}</p>
-          </div>
-          <div class="content">
-            <h2>Hi ${recipientName}!</h2>
-            <p>${senderName} has created a beautiful, personalized digital card just for you using AI technology.</p>
-            
-            <div class="personal-message">
-              <h3>✨ A Personal Touch</h3>
-              <p>This isn't just any card - it's been specially crafted with you in mind. Every detail has been carefully designed to celebrate your special moment.</p>
-            </div>
-
-            <div class="card-preview">
-              <img src="${cardImageUrl}" alt="Your Special Card" />
-            </div>
-
-            <div style="text-align: center;">
-              <a href="https://${actualHost}/card/${paymentReference}" class="cta-button">
-                View Your Card 🎉
-              </a>
-            </div>
-
-            <p style="text-align: center; margin-top: 30px; color: #666;">
-              <small>You can save, download, or share this card with others. It's yours to keep forever!</small>
-            </p>
-          </div>
-          <div class="footer">
-            <p>This card was created with ❤️ using Celebrait's AI-powered greeting card platform</p>
-            <p>© 2025 Celebrait. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
-    text: `
-${senderName} has sent you a special digital card!
-
-Hi ${recipientName}!
-
-${senderName} has created a beautiful, personalized digital card just for you using AI technology.
-
-This isn't just any card - it's been specially crafted with you in mind. Every detail has been carefully designed to celebrate your special moment.
-
-View your card here: https://${actualHost}/card/${paymentReference}
-
-You can save, download, or share this card with others. It's yours to keep forever!
-
-This card was created with ❤️ using Celebrait's AI-powered greeting card platform.
-
-© 2025 Celebrait. All rights reserved.
-    `
-  };
-}
-
-export function generateCardReadyNotificationEmail(orderData: any, host?: string): EmailParams {
-  const { customerEmail, customerName, paymentReference, cardType } = orderData;
-
-  // Use proper domain detection - if host contains localhost or undefined, use Replit domain
-  const actualHost = (!host || host.includes('localhost')) ? 
-    '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev' : 
-    host;
-
-  // Send users to card preview first, then they'll proceed to delivery details
-  const nextStepUrl = `https://${actualHost}/card-preview/${paymentReference}`;
-  const nextStepText = 'View Your Card';
-    
-  const descriptionText = 'Your personalized greeting card has been generated and is ready to view! Click the button below to see your creation.';
-
-  return {
-    to: customerEmail,
-    from: 'greetings@celebrait.co.za',
-    subject: 'Your Celebrait Card is Ready to View! 🎉',
+    subject: `🎉 ${recipientName || 'Your loved one'}'s ${celebrationType} card is ready!`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -385,287 +135,124 @@ export function generateCardReadyNotificationEmail(orderData: any, host?: string
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
           .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .button-section { text-align: center; margin: 30px 0; }
-          .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px; }
+          .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: bold; }
+          .preview-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px dashed #667eea; }
           .footer { text-align: center; margin-top: 30px; color: #666; }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>🎉 Your Card is Ready!</h1>
-            <p>Time to view your personalized Celebrait card!</p>
+            <h1>✨ Your Card Preview is Ready!</h1>
+            <p>See how amazing ${recipientName || 'your card'} looks</p>
           </div>
           <div class="content">
-            <h2>Hi ${customerName}!</h2>
-            <p>${descriptionText}</p>
-
-            <div class="button-section">
-              <a href="${nextStepUrl}" class="button">${nextStepText}</a>
-              <p style="margin-top: 15px; color: #666; font-size: 14px;">
-                Or copy this link: ${nextStepUrl}
-              </p>
-            </div>
-          </div>
-
-          <div class="footer">
-            <p>Thank you for choosing Celebrait!</p>
-            <p style="font-size: 12px; color: #999;">
-              © 2025 Celebrait. All rights reserved.
-            </p>
-          </div>
-        </div>
-    `,
-    text: `
-Your Celebrait Card is Ready to View!
-
-Hi ${customerName}!
-
-${descriptionText}
-
-${nextStepText}: ${nextStepUrl}
-
-Thank you for choosing Celebrait!
-
-© 2025 Celebrait. All rights reserved.
-    `
-  };
-}
-
-export function generateAbandonmentRecoveryEmail(cardData: any, userEmail: string, userName: string, recoveryUrl: string): EmailParams {
-  return {
-    to: userEmail,
-    from: 'greetings@celebrait.co.za',
-    subject: '😢 Don\'t lose your personalized card!',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .card-preview { text-align: center; margin: 20px 0; }
-          .card-preview img { max-width: 200px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-          .recovery-button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; margin: 20px 0; text-transform: uppercase; letter-spacing: 1px; }
-          .recovery-button:hover { background: #5a67d8; color: white; }
-          .urgency { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 20px 0; color: #856404; }
-          .footer { text-align: center; margin-top: 30px; color: #666; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>😢 Your card is waiting for you!</h1>
-            <p>Complete your personalized Celebrait card</p>
-          </div>
-          <div class="content">
-            <h2>Hi ${userName}!</h2>
-            <p>We noticed you started creating a beautiful personalized card but didn't get to complete your order. Your unique creation is still waiting for you!</p>
+            <h2>Hi ${customerName || 'there'}! 👋</h2>
+            <p>Great news! Your personalized ${celebrationType} card for <strong>${recipientName}</strong> has been generated and is ready for preview.</p>
             
-            ${cardData.frontImageUrl ? `
-              <div class="card-preview">
-                <img src="${cardData.frontImageUrl}" alt="Your Card Preview" />
-                <p style="margin-top: 10px; color: #666; font-style: italic;">Here's a preview of your amazing card!</p>
+            <div class="preview-box">
+              <h3>🎨 Your Custom Card</h3>
+              <p>Take a look at your beautifully designed card and see if it's exactly what you imagined. You can always make changes before ordering!</p>
+              
+              <div style="text-align: center;">
+                <a href="${previewUrl}" class="button">👀 VIEW YOUR CARD PREVIEW</a>
               </div>
-            ` : ''}
-            
-            <div class="urgency">
-              <h3>⏰ Don't lose your personalized creation!</h3>
-              <p>We'll keep your card safe for <strong>7 days</strong>, but after that it will be permanently deleted to make room for new creations.</p>
             </div>
             
-            <div style="text-align: center;">
-              <a href="${recoveryUrl}" class="recovery-button">
-                Complete My Card Now
-              </a>
-            </div>
-            
-            <h3>Why finish your Celebrait card?</h3>
+            <h3>What's Next?</h3>
             <ul>
-              <li>✨ <strong>Unique AI creation</strong> - This exact design can never be recreated</li>
-              <li>🎯 <strong>Perfect personalization</strong> - Tailored specifically for your recipient</li>
-              <li>💝 <strong>Professional quality</strong> - High-resolution printing or digital delivery</li>
-              <li>⚡ <strong>Quick delivery</strong> - Digital cards instantly, printed cards in 3-5 days</li>
+              <li>✅ Preview your card design</li>
+              <li>💝 Choose digital delivery or printed card</li>
+              <li>🛒 Complete your order (from R129)</li>
+              <li>📧 Receive your final card</li>
             </ul>
             
-            <p style="margin-top: 30px;">If you have any questions or need help completing your order, just reply to this email. We're here to help!</p>
-          </div>
-          <div class="footer">
-            <p>Questions? Contact us at support@celebrait.com</p>
-            <p>© 2025 Celebrait. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
-    text: `
-Your Celebrait Card is Waiting!
-
-Hi ${userName}!
-
-We noticed you started creating a personalized card but didn't complete your order. Your unique creation is still waiting for you!
-
-⏰ Don't lose your personalized creation!
-We'll keep your card safe for 7 days, but after that it will be permanently deleted.
-
-Complete your card: ${recoveryUrl}
-
-Why finish your Celebrait card?
-- Unique AI creation that can never be recreated
-- Perfect personalization for your recipient  
-- Professional quality printing or digital delivery
-- Quick delivery (digital instantly, printed in 3-5 days)
-
-If you have questions, just reply to this email!
-
-© 2025 Celebrait. All rights reserved.
-    `
-  };
-}
-
-export function generateShippingNotificationEmail(orderData: any, trackingNumber: string): EmailParams {
-  const { customerEmail, customerName, paymentReference } = orderData;
-
-  return {
-    to: customerEmail,
-    from: 'greetings@celebrait.co.za',
-    subject: 'Your Celebrait Card Has Shipped! 📦',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .shipping-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
-          .footer { text-align: center; margin-top: 30px; color: #666; }
-          .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>📦 Your Card Has Shipped!</h1>
-            <p>On its way to spread joy</p>
-          </div>
-          <div class="content">
-            <h2>Hi ${customerName}!</h2>
-            <p>Great news! Your custom Celebrait card has been carefully packed and shipped.</p>
-
-            <div class="shipping-details">
-              <h3>Shipping Information</h3>
-              <p><strong>Order Reference:</strong> ${paymentReference}</p>
-              <p><strong>Tracking Number:</strong> ${trackingNumber}</p>
-              <p><strong>Expected Delivery:</strong> 3-5 business days</p>
+            <p><strong>💡 Pro tip:</strong> This preview link is saved for you - come back anytime to view or order your card!</p>
+            
+            <div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 0;"><strong>Questions?</strong> Our team is here to help! Simply reply to this email or contact us at support@celebrait.co.za</p>
             </div>
-
-            <p>You can track your package using the tracking number above. Your beautifully crafted card will arrive soon!</p>
-
-            <a href="https://tracking-link.com/${trackingNumber}" class="button">Track Your Package</a>
-
-            <p>We can't wait for you to see your personalized creation. Thank you for trusting Celebrait with your special moments!</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${previewUrl}" class="button">🚀 COMPLETE YOUR ORDER NOW</a>
+            </div>
           </div>
           <div class="footer">
-            <p>Questions about your order? Contact us at support@celebrait.com</p>
+            <p>Made with ❤️ by Celebrait | Creating memories, one card at a time</p>
             <p>© 2025 Celebrait. All rights reserved.</p>
+            <p style="font-size: 12px; color: #999;">You received this email because you created a card on Celebrait. <a href="#">Unsubscribe</a></p>
           </div>
         </div>
       </body>
       </html>
     `,
     text: `
-Your Celebrait Card Has Shipped!
+Card Preview Ready - Celebrait
 
-Hi ${customerName}!
+Hi ${customerName || 'there'}!
 
-Your custom card has been shipped and is on its way!
+Your personalized ${celebrationType} card for ${recipientName} is ready for preview.
 
-Shipping Information:
-- Order Reference: ${paymentReference}
-- Tracking Number: ${trackingNumber}
-- Expected Delivery: 3-5 business days
+View your card: ${previewUrl}
 
-Track your package: https://tracking-link.com/${trackingNumber}
+What's next:
+✅ Preview your card design
+💝 Choose digital or printed delivery  
+🛒 Complete your order (from R129)
+📧 Receive your final card
 
-Questions? Contact us at support@celebrait.com
+Questions? Contact us at support@celebrait.co.za
 
-© 2025 Celebrait. All rights reserved.
+© 2025 Celebrait
     `
   };
 }
 
-// Card preview recovery email template\nexport function generateCardPreviewEmail(cardData: any, previewUrl: string): EmailParams {\n  const { recipientName, celebrationType, customerName } = cardData;\n  \n  return {\n    to: cardData.email,\n    from: 'greetings@celebrait.co.za',\n    subject: `🎉 ${recipientName || 'Your loved one'}'s ${celebrationType} card is ready!`,\n    html: `\n      <!DOCTYPE html>\n      <html>\n      <head>\n        <style>\n          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n          .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n          .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: bold; }\n          .preview-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px dashed #667eea; }\n          .footer { text-align: center; margin-top: 30px; color: #666; }\n        </style>\n      </head>\n      <body>\n        <div class=\"container\">\n          <div class=\"header\">\n            <h1>✨ Your Card Preview is Ready!</h1>\n            <p>See how amazing ${recipientName || 'your card'} looks</p>\n          </div>\n          <div class=\"content\">\n            <h2>Hi ${customerName || 'there'}! 👋</h2>\n            <p>Great news! Your personalized ${celebrationType} card for <strong>${recipientName}</strong> has been generated and is ready for preview.</p>\n            \n            <div class=\"preview-box\">\n              <h3>🎨 Your Custom Card</h3>\n              <p>Take a look at your beautifully designed card and see if it's exactly what you imagined. You can always make changes before ordering!</p>\n              \n              <div style=\"text-align: center;\">\n                <a href=\"${previewUrl}\" class=\"button\">👀 VIEW YOUR CARD PREVIEW</a>\n              </div>\n            </div>\n            \n            <h3>What's Next?</h3>\n            <ul>\n              <li>✅ Preview your card design</li>\n              <li>💝 Choose digital delivery or printed card</li>\n              <li>🛒 Complete your order (from R129)</li>\n              <li>📧 Receive your final card</li>\n            </ul>\n            \n            <p><strong>💡 Pro tip:</strong> This preview link is saved for you - come back anytime to view or order your card!</p>\n            \n            <div style=\"background: #e8f4f8; padding: 15px; border-radius: 8px; margin: 20px 0;\">\n              <p style=\"margin: 0;\"><strong>Questions?</strong> Our team is here to help! Simply reply to this email or contact us at support@celebrait.co.za</p>\n            </div>\n            \n            <div style=\"text-align: center; margin: 30px 0;\">\n              <a href=\"${previewUrl}\" class=\"button\">🚀 COMPLETE YOUR ORDER NOW</a>\n            </div>\n          </div>\n          <div class=\"footer\">\n            <p>Made with ❤️ by Celebrait | Creating memories, one card at a time</p>\n            <p>© 2025 Celebrait. All rights reserved.</p>\n            <p style=\"font-size: 12px; color: #999;\">You received this email because you created a card on Celebrait. <a href=\"#\">Unsubscribe</a></p>\n          </div>\n        </div>\n      </body>\n      </html>\n    `,\n    text: `\nCard Preview Ready - Celebrait\n\nHi ${customerName || 'there'}!\n\nYour personalized ${celebrationType} card for ${recipientName} is ready for preview.\n\nView your card: ${previewUrl}\n\nWhat's next:\n✅ Preview your card design\n💝 Choose digital or printed delivery  \n🛒 Complete your order (from R129)\n📧 Receive your final card\n\nQuestions? Contact us at support@celebrait.co.za\n\n© 2025 Celebrait\n    `\n  };\n}\n\n// Send card preview email to prospects\nexport async function sendBackgroundEmail(cardId: number, email: string, userName: string): Promise<boolean> {\n  console.log('Sending background email for card:', cardId, 'to:', email);\n  \n  if (!hasValidBrevoConfig()) {\n    console.log('Brevo not configured, skipping email send');\n    return false;\n  }\n\n  try {\n    // Get card data from storage\n    const card = await storage.getCard(cardId);\n    if (!card) {\n      console.error('Card not found for background email:', cardId);\n      return false;\n    }\n\n    // Build preview URL\n    const host = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';\n    const previewUrl = `https://${host}/card-preview/${cardId}`;\n    \n    // Prepare card data for email template\n    const cardData = {\n      email,\n      recipientName: card.conversationData?.name || 'your loved one',\n      celebrationType: card.conversationData?.celebration || 'celebration',\n      customerName: userName\n    };\n    \n    // Generate and send the email\n    const emailParams = generateCardPreviewEmail(cardData, previewUrl);\n    const success = await sendEmail(emailParams);\n    \n    if (success) {\n      console.log('Card preview email sent successfully to:', email);\n    } else {\n      console.error('Failed to send card preview email to:', email);\n    }\n    \n    return success;\n    \n  } catch (error: any) {\n    console.error('Error sending background email:', error);\n    return false;\n  }\n}\n\nexport async function sendCardReadyEmail(email: string, cardId: number) {
-  console.log('Attempting to send card ready email to:', email, 'for card:', cardId);
-
+// Send card preview email to prospects
+export async function sendBackgroundEmail(cardId: number, email: string, userName: string): Promise<boolean> {
+  console.log('Sending background email for card:', cardId, 'to:', email);
+  
   if (!hasValidBrevoConfig()) {
     console.log('Brevo not configured, skipping email send');
     return false;
   }
 
   try {
-    // Get card from storage to verify it exists and is ready
+    // Get card data from storage
     const card = await storage.getCard(cardId);
     if (!card) {
-      console.error('Card not found for email notification:', cardId);
+      console.error('Card not found for background email:', cardId);
       return false;
     }
 
-    console.log('Card status for email notification:', card.status);
-    if (card.status !== 'completed') {
-      console.error('Card not completed, status:', card.status, 'for card:', cardId);
-      return false;
-    }
-
-    console.log('Sending email with card data:', {
-      cardId,
-      frontImageUrl: card.frontImageUrl ? 'present' : 'missing',
-      insideImageUrl: card.insideImageUrl ? 'present' : 'missing'
-    });
-
-    const sendSmtpEmail = new brevo.SendSmtpEmail();
-    sendSmtpEmail.to = [{ email: email }];
-    sendSmtpEmail.sender = { 
-      email: process.env.BREVO_FROM_EMAIL || 'noreply@celebrait.co.za',
-      name: 'Celebrait'
+    // Build preview URL
+    const host = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
+    const previewUrl = `https://${host}/card-preview/${cardId}`;
+    
+    // Prepare card data for email template
+    const cardData = {
+      email,
+      recipientName: card.conversationData?.name || 'your loved one',
+      celebrationType: card.conversationData?.celebration || 'celebration',
+      customerName: userName
     };
-    sendSmtpEmail.subject = '🎉 Your Celebrait card is ready!';
-    sendSmtpEmail.htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
-        <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-          <h1 style="color: #4F46E5; text-align: center; margin-bottom: 30px;">Your card is ready! 🎉</h1>
-          <p style="font-size: 16px; color: #333; line-height: 1.6;">
-            Great news! Your personalized greeting card has been generated and is ready for you to view and complete your order.
-          </p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.CLIENT_URL || 'http://localhost:5000'}/complete-order?cardId=${cardId}" 
-               style="background-color: #4F46E5; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
-              View Your Card & Complete Order
-            </a>
-          </div>
-          <p style="font-size: 14px; color: #666; text-align: center;">
-            This link will take you to preview your card and choose your delivery method.
-          </p>
-          <p style="font-size: 12px; color: #999; text-align: center; margin-top: 20px;">
-            Card ID: ${cardId} | Generated: ${new Date().toLocaleString()}
-          </p>
-        </div>
-      </div>
-    `;
-
-    const response = await apiInstance.sendTransacEmail(sendSmtpEmail);
-    console.log('Card ready email sent successfully to:', email, 'Response status:', response.response?.statusCode);
-    return true;
-  } catch (error: any) {
-    console.error('Failed to send card ready email:', error);
-    if (error.response) {
-      console.error('Brevo error response:', error.response.body);
+    
+    // Generate and send the email
+    const emailParams = generateCardPreviewEmail(cardData, previewUrl);
+    const success = await sendEmail(emailParams);
+    
+    if (success) {
+      console.log('Card preview email sent successfully to:', email);
+    } else {
+      console.error('Failed to send card preview email to:', email);
     }
+    
+    return success;
+    
+  } catch (error: any) {
+    console.error('Error sending background email:', error);
     return false;
   }
 }
