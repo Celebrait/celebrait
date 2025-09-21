@@ -3426,8 +3426,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             // DON'T auto-submit - let user review the populated text first
                             // They can click "Continue" when ready
                           }}
-                          buttonText="Stuck for ideas? Brainstorm with AI"
-                          buttonIcon={<Sparkles className="w-4 h-4" />}
+                          buttonText="Stuck? Brainstorm with AI"
+                          buttonIcon="✨"
                           userName={onboarding.userName}
                         />
                       </div>
