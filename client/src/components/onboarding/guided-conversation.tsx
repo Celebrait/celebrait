@@ -3488,10 +3488,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   <div className="space-y-6">
                     {/* Three separate input fields for greeting card structure */}
                     <div className="space-y-4">
-                      {/* Dear Section */}
+                      {/* Greeting Section */}
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">
-                          Dear (optional)
+                          Greeting (optional)
                         </label>
                         <input
                           type="text"
@@ -3505,7 +3505,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                               }
                             }));
                           }}
-                          placeholder="e.g., Mom, Sarah, Grandma"
+                          placeholder="e.g., Dear Mom, To my amazing friend, Hey Sarah"
                           className="w-full text-sm md:text-lg p-3 rounded-xl border border-purple-200 focus:border-purple-400 focus:outline-none transition-colors"
                         />
                       </div>
@@ -3532,10 +3532,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         />
                       </div>
 
-                      {/* From Section */}
+                      {/* Signature Section */}
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">
-                          From (optional)
+                          Signature (optional)
                         </label>
                         <input
                           type="text"
@@ -3549,24 +3549,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                               }
                             }));
                           }}
-                          placeholder="e.g., Sarah, Your daughter, The Johnson Family"
+                          placeholder="e.g., Love Sarah, From your family, With love from Mom & Dad"
                           className="w-full text-sm md:text-lg p-3 rounded-xl border border-purple-200 focus:border-purple-400 focus:outline-none transition-colors"
                         />
                       </div>
                     </div>
 
-                    {/* Example preview */}
-                    {((stepInputs[currentStep.id] as any)?.dear || (stepInputs[currentStep.id] as any)?.message || (stepInputs[currentStep.id] as any)?.from) && (
-                      <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
-                        <h4 className="text-sm font-medium text-purple-700 mb-2">Preview:</h4>
-                        <div className="text-sm text-gray-700 whitespace-pre-line italic">
-                          {[(stepInputs[currentStep.id] as any)?.dear && `Dear ${(stepInputs[currentStep.id] as any).dear},`, 
-                            (stepInputs[currentStep.id] as any)?.message, 
-                            (stepInputs[currentStep.id] as any)?.from && `From ${(stepInputs[currentStep.id] as any).from}`]
-                            .filter(Boolean).join('\n\n')}
-                        </div>
-                      </div>
-                    )}
 
                     <div className="flex justify-center">
                       <Button 
@@ -3576,11 +3564,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             return; // Don't proceed if main message is empty
                           }
                           
-                          // Combine the three parts into the final message
+                          // Combine the three parts into the final message without forced prefixes
                           const combinedMessage = [
-                            messageData.dear?.trim() && `Dear ${messageData.dear.trim()},`,
+                            messageData.dear?.trim(),
                             messageData.message?.trim(),
-                            messageData.from?.trim() && `From ${messageData.from.trim()}`
+                            messageData.from?.trim()
                           ].filter(Boolean).join('\n\n');
                           
                           // Store both the structured data and combined message

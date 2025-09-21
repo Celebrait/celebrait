@@ -109,7 +109,7 @@ export const buildInsidePrompt = (insideText: string, artStyle?: string, frontPr
     let typographyInstructions = 'GREETING CARD TYPOGRAPHY HIERARCHY: Format the text as a traditional greeting card with proper spacing and hierarchy:';
     
     if (structuredData.dear) {
-      typographyInstructions += ` - Greeting "Dear ${structuredData.dear}," should appear at the top in elegant, smaller font (14-16pt equivalent)`;
+      typographyInstructions += ` - Greeting "${structuredData.dear}" should appear at the top in elegant, smaller font (14-16pt equivalent)`;
     }
     
     if (structuredData.message) {
@@ -117,7 +117,7 @@ export const buildInsidePrompt = (insideText: string, artStyle?: string, frontPr
     }
     
     if (structuredData.from) {
-      typographyInstructions += ` - Signature "From ${structuredData.from}" should be positioned at the bottom in smaller, elegant font (12-14pt equivalent), typically bottom-right or center-bottom`;
+      typographyInstructions += ` - Signature "${structuredData.from}" should be positioned at the bottom in smaller, elegant font (12-14pt equivalent), typically bottom-right or center-bottom`;
     }
     
     typographyInstructions += '. Use traditional greeting card proportions with proper margins and spacing between sections. Ensure clear visual hierarchy and professional greeting card appearance.';
