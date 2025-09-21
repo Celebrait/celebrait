@@ -924,7 +924,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       id: 'inside_message',
       question: `What heartfelt message would you like inside the card?`,
       aiMessage: `Love it! ✨ Now what message would you like inside the card?`,
-      type: 'textarea',
+      type: 'inside_message_structured',
       placeholder: 'e.g., "Wishing you all the happiness in the world on your special day. You deserve all the joy and love life has to offer!"',
       required: true
     },
@@ -3463,6 +3463,124 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                       <Button 
                         onClick={handleTextSubmit}
                         disabled={currentStep.required && !currentInput.trim()}
+                        className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
+                      >
+                        Continue
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {currentStep.type === 'inside_message_structured' && (
+                  <div className="space-y-6">
+                    {/* Three separate input fields for greeting card structure */}
+                    <div className="space-y-4">
+                      {/* Dear Section */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Dear (optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={stepInputs[currentStep.id]?.dear || ''}
+                          onChange={(e) => {
+                            setStepInputs(prev => ({
+                              ...prev,
+                              [currentStep.id]: {
+                                ...prev[currentStep.id],
+                                dear: e.target.value
+                              }
+                            }));
+                          }}
+                          placeholder="e.g., Mom, Sarah, Grandma"
+                          className="w-full text-sm md:text-lg p-3 rounded-xl border border-purple-200 focus:border-purple-400 focus:outline-none transition-colors"
+                        />
+                      </div>
+
+                      {/* Main Message Section */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Your Message *
+                        </label>
+                        <Textarea
+                          value={stepInputs[currentStep.id]?.message || ''}
+                          onChange={(e) => {
+                            setStepInputs(prev => ({
+                              ...prev,
+                              [currentStep.id]: {
+                                ...prev[currentStep.id],
+                                message: e.target.value
+                              }
+                            }));
+                          }}
+                          placeholder="e.g., Wishing you all the happiness in the world on your special day. You deserve all the joy and love life has to offer!"
+                          className="text-sm md:text-lg p-4 min-h-[200px] sm:min-h-[150px] rounded-xl border-purple-200 focus:border-purple-400 resize-y"
+                          autoFocus
+                        />
+                      </div>
+
+                      {/* From Section */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          From (optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={stepInputs[currentStep.id]?.from || ''}
+                          onChange={(e) => {
+                            setStepInputs(prev => ({
+                              ...prev,
+                              [currentStep.id]: {
+                                ...prev[currentStep.id],
+                                from: e.target.value
+                              }
+                            }));
+                          }}
+                          placeholder="e.g., Sarah, Your daughter, The Johnson Family"
+                          className="w-full text-sm md:text-lg p-3 rounded-xl border border-purple-200 focus:border-purple-400 focus:outline-none transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Example preview */}
+                    {(stepInputs[currentStep.id]?.dear || stepInputs[currentStep.id]?.message || stepInputs[currentStep.id]?.from) && (
+                      <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                        <h4 className="text-sm font-medium text-purple-700 mb-2">Preview:</h4>
+                        <div className="text-sm text-gray-700 whitespace-pre-line italic">
+                          {[stepInputs[currentStep.id]?.dear && `Dear ${stepInputs[currentStep.id].dear},`, 
+                            stepInputs[currentStep.id]?.message, 
+                            stepInputs[currentStep.id]?.from && `From ${stepInputs[currentStep.id].from}`]
+                            .filter(Boolean).join('\n\n')}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex justify-center">
+                      <Button 
+                        onClick={() => {
+                          const messageData = stepInputs[currentStep.id] || {};
+                          if (!messageData.message?.trim()) {
+                            return; // Don't proceed if main message is empty
+                          }
+                          
+                          // Combine the three parts into the final message
+                          const combinedMessage = [
+                            messageData.dear?.trim() && `Dear ${messageData.dear.trim()},`,
+                            messageData.message?.trim(),
+                            messageData.from?.trim() && `From ${messageData.from.trim()}`
+                          ].filter(Boolean).join('\n\n');
+                          
+                          // Store both the structured data and combined message
+                          setAnswers(prev => ({
+                            ...prev,
+                            inside_message: combinedMessage,
+                            inside_message_structured: messageData
+                          }));
+                          
+                          handleTextSubmit();
+                        }}
+                        disabled={!stepInputs[currentStep.id]?.message?.trim()}
                         className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
                       >
                         Continue
