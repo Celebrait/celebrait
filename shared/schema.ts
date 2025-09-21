@@ -34,6 +34,23 @@ export const lovedOnes = pgTable("loved_ones", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const prospects = pgTable("prospects", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  cardId: integer("card_id").references(() => cards.id),
+  recipientName: text("recipient_name"),
+  celebrationType: text("celebration_type"),
+  signupSource: text("signup_source").default("card_generation"),
+  brevoContactId: text("brevo_contact_id"),
+  marketingOptIn: boolean("marketing_opt_in").default(true),
+  cardPreviewSent: boolean("card_preview_sent").default(false),
+  convertedToCustomer: boolean("converted_to_customer").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   cardId: integer("card_id").notNull().references(() => cards.id),
@@ -73,6 +90,17 @@ export const insertLovedOneSchema = createInsertSchema(lovedOnes).pick({
   birthday: true,
 });
 
+export const insertProspectSchema = createInsertSchema(prospects).pick({
+  email: true,
+  firstName: true,
+  lastName: true,
+  cardId: true,
+  recipientName: true,
+  celebrationType: true,
+  signupSource: true,
+  marketingOptIn: true,
+});
+
 export const insertOrderSchema = createInsertSchema(orders).pick({
   cardId: true,
   customerEmail: true,
@@ -96,5 +124,7 @@ export type InsertCard = z.infer<typeof insertCardSchema>;
 export type Card = typeof cards.$inferSelect;
 export type InsertLovedOne = z.infer<typeof insertLovedOneSchema>;
 export type LovedOne = typeof lovedOnes.$inferSelect;
+export type InsertProspect = z.infer<typeof insertProspectSchema>;
+export type Prospect = typeof prospects.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type Order = typeof orders.$inferSelect;
