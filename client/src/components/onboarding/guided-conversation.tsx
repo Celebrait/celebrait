@@ -1419,19 +1419,33 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   };
 
   const handleTextSubmit = () => {
+    // Handle both string inputs and object inputs
+    let inputTrimmed = '';
+    let hasContent = false;
+    
+    if (typeof currentInput === 'string') {
+      inputTrimmed = currentInput.trim();
+      hasContent = inputTrimmed.length > 0;
+    } else if (typeof currentInput === 'object' && currentInput) {
+      inputTrimmed = '[structured_input]';
+      hasContent = Object.values(currentInput).some(value => 
+        typeof value === 'string' && value.trim().length > 0
+      );
+    }
+    
     console.log('[DEBUG] handleTextSubmit called', {
       currentStepId: currentStep?.id,
       currentInput: currentInput,
-      inputTrimmed: currentInput.trim(),
+      inputTrimmed: inputTrimmed,
       stepRequired: currentStep?.required,
-      canSubmit: !currentStep?.required || currentInput.trim()
+      canSubmit: !currentStep?.required || hasContent
     });
     
     // Special validation for art_style steps - require text input ("Let AI decide" button directly calls handleAnswer)
     if (currentStep?.id === 'art_style' || currentStep?.id === 'art_style_grid') {
       // For art style text input, require text to be entered
-      if (currentInput.trim()) {
-        handleAnswer(currentInput.trim());
+      if (hasContent && typeof currentInput === 'string') {
+        handleAnswer(inputTrimmed);
         return;
       } else {
         // Prevent advancing if no text ("Let AI decide" button bypasses this function)
@@ -1440,8 +1454,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
     
     // Standard validation for all other steps
-    if (currentInput.trim()) {
-      handleAnswer(currentInput.trim());
+    if (hasContent) {
+      if (typeof currentInput === 'string') {
+        handleAnswer(inputTrimmed);
+      } else {
+        // For structured inputs, pass the entire object
+        handleAnswer(currentInput);
+      }
     } else if (!currentStep?.required) {
       // Allow advancing even with empty input if step is not required
       handleAnswer('');
