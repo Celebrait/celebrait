@@ -3527,7 +3527,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             }));
                           }}
                           placeholder="e.g., Hope your day is filled with joy and laughter! You mean so much to me."
-                          className="text-sm md:text-lg text-gray-600 p-4 min-h-[200px] sm:min-h-[150px] rounded-xl border-purple-200 focus:border-purple-400 resize-y"
+                          className="text-sm md:text-lg text-gray-600 placeholder:text-gray-400 p-4 min-h-[200px] sm:min-h-[150px] rounded-xl border-purple-200 focus:border-purple-400 resize-y"
                           autoFocus
                         />
                       </div>
