@@ -128,6 +128,21 @@ const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
+  // Auto-scroll popup to top when it opens
+  useEffect(() => {
+    if (showEmailPopup) {
+      // Slight delay to ensure the popup is rendered
+      setTimeout(() => {
+        const popup = document.querySelector('[role="dialog"]');
+        if (popup) {
+          popup.scrollTop = 0;
+          // Also scroll the viewport to top
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  }, [showEmailPopup]);
+
   // 12-Phase Creative Journey Definition
   const creativePhases = [
     // FRONT CARD CREATION (8 phases)
@@ -3874,92 +3889,92 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
       {/* Email Collection Popup Modal */}
       <Dialog open={showEmailPopup} onOpenChange={setShowEmailPopup}>
-        <DialogContent className="max-w-md sm:max-w-lg bg-white border-2 border-purple-200 rounded-3xl shadow-2xl mx-4">
-          <DialogHeader className="pb-4">
-            {/* Modern Header with Better Mobile Layout */}
-            <div className="text-center space-y-3">
-              <div className="mx-auto w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl flex items-center justify-center shadow-lg">
-                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <DialogContent className="max-w-sm sm:max-w-md bg-white border-2 border-purple-200 rounded-3xl shadow-2xl mx-4 max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="pb-2">
+            {/* Compact Mobile Header */}
+            <div className="text-center space-y-2">
+              <div className="mx-auto w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+                <h3 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                   Join Celebrait
                 </h3>
-                <p className="text-sm text-gray-600">
-                  Get your personalized card + exclusive updates
+                <p className="text-xs sm:text-sm text-gray-600">
+                  Get your card + updates
                 </p>
               </div>
             </div>
           </DialogHeader>
           
-          <div className="space-y-5 px-1">
+          <div className="space-y-3 px-1">
 
-            {/* Mobile-Optimized Form */}
+            {/* Compact Mobile Form */}
             {/* Name Fields - Stack on Mobile */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">First Name</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-700">First Name</label>
                 <Input
                   type="text"
                   value={popupFirstName}
                   onChange={(e) => setPopupFirstName(e.target.value)}
                   placeholder="Your first name"
-                  className="h-12 text-base rounded-2xl border-gray-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                  className="h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100"
                 />
               </div>
               
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Last Name</label>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-700">Last Name</label>
                 <Input
                   type="text"
                   value={popupLastName}
                   onChange={(e) => setPopupLastName(e.target.value)}
                   placeholder="Your last name"
-                  className="h-12 text-base rounded-2xl border-gray-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                  className="h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100"
                 />
               </div>
             </div>
             
             {/* Email Fields */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Email Address</label>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-700">Email Address</label>
                 <Input
                   type="email"
                   value={popupEmail}
                   onChange={(e) => setPopupEmail(e.target.value)}
                   placeholder="Enter your email address"
-                  className="h-12 text-base rounded-2xl border-gray-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                  className="h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100"
                 />
               </div>
               
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Confirm Email Address</label>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-700">Confirm Email Address</label>
                 <Input
                   type="email"
                   value={popupEmailConfirm}
                   onChange={(e) => setPopupEmailConfirm(e.target.value)}
                   placeholder="Confirm your email address"
-                  className="h-12 text-base rounded-2xl border-gray-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                  className="h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100"
                 />
               </div>
             </div>
             
-            {/* Marketing opt-in checkbox - Mobile Optimized */}
-            <div className="flex items-start space-x-3 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-200">
+            {/* Compact Marketing opt-in checkbox */}
+            <div className="flex items-start space-x-2 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
               <input
                 type="checkbox"
                 id="marketing-optin"
                 checked={true}
                 readOnly
-                className="mt-1 h-5 w-5 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                className="mt-0.5 h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
               />
-              <label htmlFor="marketing-optin" className="text-sm text-gray-700 leading-relaxed">
+              <label htmlFor="marketing-optin" className="text-xs text-gray-700 leading-snug">
                 <span className="font-semibold text-purple-700">Stay in the loop!</span> 
-                <span className="block text-xs text-gray-600 mt-1">
-                  Get exclusive offers, new card styles & celebration ideas.
+                <span className="block text-xs text-gray-600 mt-0.5">
+                  Get exclusive offers & new card styles.
                 </span>
               </label>
             </div>
@@ -3970,10 +3985,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                 </div>
               )}
 
-              {/* Sign Up Button - Mobile Optimized */}
-              <div className="flex justify-center pt-2">
+              {/* Compact Sign Up Button */}
+              <div className="flex justify-center pt-1">
                 <Button 
                   onClick={() => {
+                    // Scroll to top of popup on mobile
+                    const popup = document.querySelector('[role="dialog"]');
+                    if (popup) {
+                      popup.scrollTop = 0;
+                    }
+                    
                     if (!popupFirstName || !popupEmail || !popupEmailConfirm) {
                       toast({
                         title: "Required Fields Missing",
@@ -3998,10 +4019,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     actuallyGenerateCard();
                   }}
                   disabled={!popupFirstName || !popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
-                  className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-white text-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   Sign Up
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                  <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
           </div>
