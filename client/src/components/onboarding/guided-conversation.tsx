@@ -3892,10 +3892,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">📧 Your Details for Card Delivery</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">✨ Sign up to Celebrait</h3>
                   <p className="text-gray-700 text-sm leading-relaxed">
-                    Our AI creates incredible custom artwork, but it takes up to 2 minutes to generate. We need your email address 
-                    to send you the card link when it's ready! This way you can close this window and continue with your day while we work our magic.
+                    Join Celebrait to get your personalized card and stay updated with new features, special offers, and card inspiration. 
+                    We'll send you the card link when it's ready (takes about 2 minutes).
                   </p>
                 </div>
               </div>
@@ -3903,6 +3903,30 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
             {/* User Details Form */}
             <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">First Name</label>
+                  <Input
+                    type="text"
+                    value={popupFirstName}
+                    onChange={(e) => setPopupFirstName(e.target.value)}
+                    placeholder="Your first name"
+                    className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Last Name</label>
+                  <Input
+                    type="text"
+                    value={popupLastName}
+                    onChange={(e) => setPopupLastName(e.target.value)}
+                    placeholder="Your last name"
+                    className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
+                  />
+                </div>
+              </div>
+              
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Email Address</label>
                 <Input
@@ -3924,6 +3948,23 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   className="text-lg p-3 rounded-xl border-gray-300 focus:border-purple-400"
                 />
               </div>
+              
+              {/* Marketing opt-in checkbox */}
+              <div className="flex items-start space-x-3 p-4 bg-purple-50 rounded-xl border border-purple-200">
+                <input
+                  type="checkbox"
+                  id="marketing-optin"
+                  checked={true}
+                  readOnly
+                  className="mt-1 h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                />
+                <label htmlFor="marketing-optin" className="text-sm text-gray-700 leading-relaxed">
+                  <span className="font-medium">Stay updated with Celebrait!</span> 
+                  <span className="block text-xs text-gray-600 mt-1">
+                    Get special offers, new card styles, and celebration inspiration delivered to your inbox.
+                  </span>
+                </label>
+              </div>
 
               {popupEmail && popupEmailConfirm && popupEmail !== popupEmailConfirm && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -3935,10 +3976,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
               <div className="flex justify-center pt-4">
                 <Button 
                   onClick={() => {
-                    if (!popupEmail || !popupEmailConfirm) {
+                    if (!popupFirstName || !popupEmail || !popupEmailConfirm) {
                       toast({
-                        title: "Email Required",
-                        description: "Please enter and confirm your email address.",
+                        title: "Required Fields Missing",
+                        description: "Please fill in your first name and email address.",
                         variant: "destructive"
                       });
                       return;
@@ -3958,7 +3999,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     // Start actual card generation
                     actuallyGenerateCard();
                   }}
-                  disabled={!popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
+                  disabled={!popupFirstName || !popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
                   className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 font-semibold text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   GENERATE MY CARD
