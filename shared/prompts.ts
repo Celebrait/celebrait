@@ -91,7 +91,7 @@ Choose the single artistic style that creates the most contextually appropriate,
   return fullPrompt;
 };
 
-export const buildInsidePrompt = (insideText: string, artStyle?: string, frontPrompt?: string, sceneDescription?: string) => {
+export const buildInsidePrompt = (insideText: string, artStyle?: string, frontPrompt?: string, sceneDescription?: string, structuredData?: any) => {
   const parts = [];
   
   // Base requirements for inside card
@@ -100,8 +100,33 @@ export const buildInsidePrompt = (insideText: string, artStyle?: string, frontPr
   // Explicit instruction to NOT recreate characters
   parts.push('DO NOT include any people, characters, or figures from the front card');
   
-  // Message content
-  parts.push(`"${insideText}" prominently displayed as the main focus`);
+  // Enhanced message content with greeting card formatting instructions
+  if (structuredData && (structuredData.dear || structuredData.from)) {
+    // This is a structured greeting card message
+    parts.push(`"${insideText}" prominently displayed as the main focus with proper greeting card typography hierarchy`);
+    
+    // Add specific formatting instructions for greeting card structure
+    let typographyInstructions = 'GREETING CARD TYPOGRAPHY HIERARCHY: Format the text as a traditional greeting card with proper spacing and hierarchy:';
+    
+    if (structuredData.dear) {
+      typographyInstructions += ` - Greeting "Dear ${structuredData.dear}," should appear at the top in elegant, smaller font (14-16pt equivalent)`;
+    }
+    
+    if (structuredData.message) {
+      typographyInstructions += ` - Main message "${structuredData.message}" should be prominently displayed in the center with larger, readable font (18-24pt equivalent) and generous line spacing`;
+    }
+    
+    if (structuredData.from) {
+      typographyInstructions += ` - Signature "From ${structuredData.from}" should be positioned at the bottom in smaller, elegant font (12-14pt equivalent), typically bottom-right or center-bottom`;
+    }
+    
+    typographyInstructions += '. Use traditional greeting card proportions with proper margins and spacing between sections. Ensure clear visual hierarchy and professional greeting card appearance.';
+    
+    parts.push(typographyInstructions);
+  } else {
+    // Standard single message
+    parts.push(`"${insideText}" prominently displayed as the main focus`);
+  }
   
   // Style consistency with front card
   if (artStyle && artStyle !== 'ai_decide') {

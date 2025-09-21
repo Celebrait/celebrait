@@ -50,7 +50,7 @@ interface ConversationStep {
   id: string;
   question: string;
   aiMessage: string | JSX.Element;
-  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload' | 'photo_creation_choice' | 'people_details' | 'email_collection' | 'generation_confirmation' | 'ai_chat';
+  type: 'text' | 'select' | 'textarea' | 'summary' | 'multiselect' | 'final_summary' | 'photo_upload' | 'photo_creation_choice' | 'people_details' | 'email_collection' | 'generation_confirmation' | 'ai_chat' | 'inside_message_structured';
   options?: Array<{ value: string; label: string; description?: string; color?: string; icon?: string; details?: string; disabled?: boolean; inspiration?: string; emoji?: string }>;
   placeholder?: string;
   required?: boolean;
@@ -1702,7 +1702,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         const frontPrompt = buildTextOnlyImagePrompt(answers, artStyle);
         console.log('Built front prompt with detailed structure:', frontPrompt);
         
-        const insidePrompt = buildInsidePrompt(answers.inside_message || "Hope your special day brings you joy and happiness!", artStyle);
+        const insidePrompt = buildInsidePrompt(
+          answers.inside_message || "Hope your special day brings you joy and happiness!", 
+          artStyle, 
+          undefined, 
+          undefined, 
+          answers.inside_message_structured
+        );
 
         const response = await apiRequest("POST", "/api/generate-images", {
           cardId: currentCardId,
@@ -1778,7 +1784,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
     
     const frontPrompt = buildTextOnlyImagePrompt(answers, artStyle);
-    const insidePrompt = buildInsidePrompt(answers.inside_message || "Hope your special day brings you joy and happiness!", artStyle);
+    const insidePrompt = buildInsidePrompt(
+      answers.inside_message || "Hope your special day brings you joy and happiness!", 
+      artStyle, 
+      undefined, 
+      undefined, 
+      answers.inside_message_structured
+    );
 
     // Use the working DALL-E endpoint that exists
     const response = await apiRequest("POST", "/api/generate-images", {
@@ -3483,12 +3495,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         </label>
                         <input
                           type="text"
-                          value={stepInputs[currentStep.id]?.dear || ''}
+                          value={(stepInputs[currentStep.id] as any)?.dear || ''}
                           onChange={(e) => {
                             setStepInputs(prev => ({
                               ...prev,
                               [currentStep.id]: {
-                                ...prev[currentStep.id],
+                                ...(prev[currentStep.id] as any || {}),
                                 dear: e.target.value
                               }
                             }));
@@ -3504,12 +3516,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           Your Message *
                         </label>
                         <Textarea
-                          value={stepInputs[currentStep.id]?.message || ''}
+                          value={(stepInputs[currentStep.id] as any)?.message || ''}
                           onChange={(e) => {
                             setStepInputs(prev => ({
                               ...prev,
                               [currentStep.id]: {
-                                ...prev[currentStep.id],
+                                ...(prev[currentStep.id] as any || {}),
                                 message: e.target.value
                               }
                             }));
@@ -3527,12 +3539,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         </label>
                         <input
                           type="text"
-                          value={stepInputs[currentStep.id]?.from || ''}
+                          value={(stepInputs[currentStep.id] as any)?.from || ''}
                           onChange={(e) => {
                             setStepInputs(prev => ({
                               ...prev,
                               [currentStep.id]: {
-                                ...prev[currentStep.id],
+                                ...(prev[currentStep.id] as any || {}),
                                 from: e.target.value
                               }
                             }));
@@ -3544,13 +3556,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     </div>
 
                     {/* Example preview */}
-                    {(stepInputs[currentStep.id]?.dear || stepInputs[currentStep.id]?.message || stepInputs[currentStep.id]?.from) && (
+                    {((stepInputs[currentStep.id] as any)?.dear || (stepInputs[currentStep.id] as any)?.message || (stepInputs[currentStep.id] as any)?.from) && (
                       <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
                         <h4 className="text-sm font-medium text-purple-700 mb-2">Preview:</h4>
                         <div className="text-sm text-gray-700 whitespace-pre-line italic">
-                          {[stepInputs[currentStep.id]?.dear && `Dear ${stepInputs[currentStep.id].dear},`, 
-                            stepInputs[currentStep.id]?.message, 
-                            stepInputs[currentStep.id]?.from && `From ${stepInputs[currentStep.id].from}`]
+                          {[(stepInputs[currentStep.id] as any)?.dear && `Dear ${(stepInputs[currentStep.id] as any).dear},`, 
+                            (stepInputs[currentStep.id] as any)?.message, 
+                            (stepInputs[currentStep.id] as any)?.from && `From ${(stepInputs[currentStep.id] as any).from}`]
                             .filter(Boolean).join('\n\n')}
                         </div>
                       </div>
@@ -3559,7 +3571,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     <div className="flex justify-center">
                       <Button 
                         onClick={() => {
-                          const messageData = stepInputs[currentStep.id] || {};
+                          const messageData = (stepInputs[currentStep.id] as any) || {};
                           if (!messageData.message?.trim()) {
                             return; // Don't proceed if main message is empty
                           }
@@ -3580,7 +3592,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           
                           handleTextSubmit();
                         }}
-                        disabled={!stepInputs[currentStep.id]?.message?.trim()}
+                        disabled={!(stepInputs[currentStep.id] as any)?.message?.trim()}
                         className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500"
                       >
                         Continue
