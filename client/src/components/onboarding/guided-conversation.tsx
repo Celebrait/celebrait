@@ -1543,7 +1543,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     if (currentStepIndex > 0) {
       // Save current input for this step before navigating back
       const currentStepId = filteredSteps[currentStepIndex]?.id;
-      if (currentStepId && currentInput.trim()) {
+      
+      // Handle both string inputs and object inputs (like inside_message_structured)
+      let hasContent = false;
+      if (typeof currentInput === 'string') {
+        hasContent = currentInput.trim().length > 0;
+      } else if (typeof currentInput === 'object' && currentInput) {
+        // For structured inputs, check if any property has content
+        hasContent = Object.values(currentInput).some(value => 
+          typeof value === 'string' && value.trim().length > 0
+        );
+      }
+      
+      if (currentStepId && hasContent) {
         setStepInputs(prev => ({
           ...prev,
           [currentStepId]: currentInput
