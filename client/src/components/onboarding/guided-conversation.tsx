@@ -2593,7 +2593,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                       <Button 
                         onClick={handleGenerateCard}
                         disabled={isLoading}
-                        className="px-8 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold text-lg shadow-lg transform hover:scale-105 transition-all duration-200"
+                        className="px-8 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold text-lg shadow-xl transform hover:scale-105 transition-all duration-200"
                       >
                         {isLoading ? (
                           <>
@@ -2602,8 +2602,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           </>
                         ) : (
                           <>
-                            <Sparkles className="w-5 h-5 mr-3" />
-                            I'm Happy, Let's Create!
+                            ✨ Generate Greetings Card
                           </>
                         )}
                       </Button>
@@ -2703,17 +2702,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           </Button>
                         </div>
                       </div>
+
+                      {/* Art Style */}
+                      <div className="bg-white rounded-xl p-4 border border-purple-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold text-purple-700">Art Style</h4>
+                            <p className="text-gray-700">{answers.art_style === 'ai_decide' ? 'AI will choose the perfect style ✨' : answers.art_style || 'No style selected'}</p>
+                          </div>
+                          <Button onClick={() => handleEditStep('art_style')} variant="outline" size="sm">
+                            Edit
+                          </Button>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex justify-center">
-                      <Button 
-                        onClick={handleGenerateCard}
-                        className="px-8 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-lg font-semibold"
-                      >
-                        I'm Happy, Let's Create!
-                        <Sparkles className="w-5 h-5 ml-2" />
-                      </Button>
-                    </div>
                   </div>
                 )}
 
