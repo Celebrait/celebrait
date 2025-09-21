@@ -2676,6 +2676,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         </div>
                       )}
 
+                      {/* Art Style */}
+                      <div className="bg-white rounded-xl p-4 border border-purple-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold text-purple-700">Art Style</h4>
+                            <p className="text-gray-700">{answers.art_style === 'ai_decide' ? 'AI will choose the perfect style ✨' : answers.art_style || 'No style selected'}</p>
+                          </div>
+                          <Button onClick={() => handleEditStep('art_style')} variant="outline" size="sm">
+                            Edit
+                          </Button>
+                        </div>
+                      </div>
+
 
                       {/* Message */}
                       <div className="bg-white rounded-xl p-4 border border-purple-200">
@@ -2698,19 +2711,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             <p className="text-gray-700">{answers.inside_message || 'No inside message'}</p>
                           </div>
                           <Button onClick={() => handleEditStep('inside_message')} variant="outline" size="sm">
-                            Edit
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Art Style */}
-                      <div className="bg-white rounded-xl p-4 border border-purple-200">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <h4 className="font-semibold text-purple-700">Art Style</h4>
-                            <p className="text-gray-700">{answers.art_style === 'ai_decide' ? 'AI will choose the perfect style ✨' : answers.art_style || 'No style selected'}</p>
-                          </div>
-                          <Button onClick={() => handleEditStep('art_style')} variant="outline" size="sm">
                             Edit
                           </Button>
                         </div>
