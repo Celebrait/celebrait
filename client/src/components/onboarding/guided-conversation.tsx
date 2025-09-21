@@ -3893,10 +3893,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-gray-800 mb-2">✨ Sign up to Celebrait</h3>
-                  <p className="text-gray-700 text-sm leading-relaxed">
-                    Join Celebrait to get your personalized card and stay updated with new features, special offers, and card inspiration. 
-                    We'll send you the card link when it's ready (takes about 2 minutes).
-                  </p>
                 </div>
               </div>
             </div>
