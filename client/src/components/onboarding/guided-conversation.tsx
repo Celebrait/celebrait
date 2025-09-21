@@ -3453,7 +3453,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         }
                       }}
                       placeholder={currentStep.id === 'scene' && !userHasTyped && placeholderText ? placeholderText : currentStep.placeholder}
-                      className="text-sm md:text-lg p-4 min-h-[200px] rounded-xl border-purple-200 focus:border-purple-400 resize-y"
+                      className="text-sm md:text-lg p-4 min-h-[300px] sm:min-h-[200px] rounded-xl border-purple-200 focus:border-purple-400 resize-y"
                       autoFocus={currentStep.id !== 'scene'}
                     />
                     <div className="flex justify-center">
