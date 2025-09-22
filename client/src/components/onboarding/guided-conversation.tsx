@@ -3890,9 +3890,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       {/* Email Collection Popup Modal */}
       <Dialog open={showEmailPopup} onOpenChange={setShowEmailPopup}>
         <DialogContent className="max-w-sm sm:max-w-md bg-white border-2 border-purple-200 rounded-3xl shadow-2xl mx-4 max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="pb-2">
-            {/* Compact Mobile Header */}
-            <div className="text-center space-y-2">
+          <DialogHeader className="pb-4">
+            {/* Centered Mobile Header */}
+            <div className="text-center space-y-3">
               <div className="mx-auto w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
@@ -3909,74 +3909,78 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
             </div>
           </DialogHeader>
           
-          <div className="space-y-3 px-1">
+          <div className="space-y-4 px-4">
 
-            {/* Compact Mobile Form */}
-            {/* Name Fields - Stack on Mobile */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700">First Name</label>
-                <Input
-                  type="text"
-                  value={popupFirstName}
-                  onChange={(e) => setPopupFirstName(e.target.value)}
-                  placeholder="Your first name"
-                  className="h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100"
-                />
+            {/* Centered Form Fields */}
+            <div className="space-y-4">
+              {/* Name Fields - Stack on Mobile */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 text-left">First Name</label>
+                  <Input
+                    type="text"
+                    value={popupFirstName}
+                    onChange={(e) => setPopupFirstName(e.target.value)}
+                    placeholder="Your first name"
+                    className="w-full h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100 text-center"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 text-left">Last Name</label>
+                  <Input
+                    type="text"
+                    value={popupLastName}
+                    onChange={(e) => setPopupLastName(e.target.value)}
+                    placeholder="Your last name"
+                    className="w-full h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100 text-center"
+                  />
+                </div>
               </div>
               
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700">Last Name</label>
-                <Input
-                  type="text"
-                  value={popupLastName}
-                  onChange={(e) => setPopupLastName(e.target.value)}
-                  placeholder="Your last name"
-                  className="h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100"
-                />
-              </div>
-            </div>
-            
-            {/* Email Fields */}
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700">Email Address</label>
-                <Input
-                  type="email"
-                  value={popupEmail}
-                  onChange={(e) => setPopupEmail(e.target.value)}
-                  placeholder="Enter your email address"
-                  className="h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100"
-                />
+              {/* Email Fields */}
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 text-left">Email Address</label>
+                  <Input
+                    type="email"
+                    value={popupEmail}
+                    onChange={(e) => setPopupEmail(e.target.value)}
+                    placeholder="Enter your email address"
+                    className="w-full h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100 text-center"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 text-left">Confirm Email Address</label>
+                  <Input
+                    type="email"
+                    value={popupEmailConfirm}
+                    onChange={(e) => setPopupEmailConfirm(e.target.value)}
+                    placeholder="Confirm your email address"
+                    className="w-full h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100 text-center"
+                  />
+                </div>
               </div>
               
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700">Confirm Email Address</label>
-                <Input
-                  type="email"
-                  value={popupEmailConfirm}
-                  onChange={(e) => setPopupEmailConfirm(e.target.value)}
-                  placeholder="Confirm your email address"
-                  className="h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100"
-                />
+              {/* Centered Marketing opt-in checkbox */}
+              <div className="flex items-center justify-center">
+                <div className="flex items-start space-x-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200 max-w-sm">
+                  <input
+                    type="checkbox"
+                    id="marketing-optin"
+                    checked={true}
+                    readOnly
+                    className="mt-0.5 h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                  />
+                  <label htmlFor="marketing-optin" className="text-xs text-gray-700 leading-snug">
+                    <span className="font-semibold text-purple-700">Stay in the loop!</span> 
+                    <span className="block text-xs text-gray-600 mt-0.5">
+                      Get exclusive offers & new card styles.
+                    </span>
+                  </label>
+                </div>
               </div>
-            </div>
-            
-            {/* Compact Marketing opt-in checkbox */}
-            <div className="flex items-start space-x-2 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
-              <input
-                type="checkbox"
-                id="marketing-optin"
-                checked={true}
-                readOnly
-                className="mt-0.5 h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
-              />
-              <label htmlFor="marketing-optin" className="text-xs text-gray-700 leading-snug">
-                <span className="font-semibold text-purple-700">Stay in the loop!</span> 
-                <span className="block text-xs text-gray-600 mt-0.5">
-                  Get exclusive offers & new card styles.
-                </span>
-              </label>
             </div>
 
               {popupEmail && popupEmailConfirm && popupEmail !== popupEmailConfirm && (
@@ -3985,8 +3989,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                 </div>
               )}
 
-              {/* Compact Sign Up Button */}
-              <div className="flex justify-center pt-1">
+              {/* Centered Sign Up Button */}
+              <div className="flex justify-center pt-2">
                 <Button 
                   onClick={() => {
                     // Scroll to top of popup on mobile
@@ -4019,7 +4023,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     actuallyGenerateCard();
                   }}
                   disabled={!popupFirstName || !popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
-                  className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="w-full max-w-xs px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   Sign Up
                   <ArrowRight className="w-4 h-4 ml-2" />
