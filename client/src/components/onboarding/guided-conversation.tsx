@@ -3889,7 +3889,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
       {/* Email Collection Popup Modal */}
       <Dialog open={showEmailPopup} onOpenChange={setShowEmailPopup}>
-        <DialogContent className="max-w-sm sm:max-w-md bg-white border-2 border-purple-200 rounded-3xl shadow-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-sm sm:max-w-md bg-white border-2 border-purple-200 rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto m-4">
           <DialogHeader className="pb-4">
             {/* Centered Mobile Header */}
             <div className="text-center space-y-3">
@@ -3922,7 +3922,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     value={popupFirstName}
                     onChange={(e) => setPopupFirstName(e.target.value)}
                     placeholder="Your first name"
-                    className="w-full h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100 text-center"
+                    className="w-full h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100"
                   />
                 </div>
                 
@@ -3933,7 +3933,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     value={popupLastName}
                     onChange={(e) => setPopupLastName(e.target.value)}
                     placeholder="Your last name"
-                    className="w-full h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100 text-center"
+                    className="w-full h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100"
                   />
                 </div>
               </div>
@@ -3947,7 +3947,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     value={popupEmail}
                     onChange={(e) => setPopupEmail(e.target.value)}
                     placeholder="Enter your email address"
-                    className="w-full h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100 text-center"
+                    className="w-full h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100"
                   />
                 </div>
                 
@@ -3958,7 +3958,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     value={popupEmailConfirm}
                     onChange={(e) => setPopupEmailConfirm(e.target.value)}
                     placeholder="Confirm your email address"
-                    className="w-full h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100 text-center"
+                    className="w-full h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100"
                   />
                 </div>
               </div>
