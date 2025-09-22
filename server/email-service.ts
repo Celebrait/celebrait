@@ -232,10 +232,11 @@ export async function sendBackgroundEmail(cardId: number, email: string, userNam
     const previewUrl = `https://${host}/card-preview/${cardId}`;
     
     // Prepare card data for email template
+    const conversationData = card.conversationData as any;
     const cardData = {
       email,
-      recipientName: card.conversationData?.name || 'your loved one',
-      celebrationType: card.conversationData?.celebration || 'celebration',
+      recipientName: conversationData?.name || 'your loved one',
+      celebrationType: conversationData?.celebration || 'celebration',
       customerName: userName
     };
     
