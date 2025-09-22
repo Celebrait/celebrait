@@ -46,6 +46,14 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
           
           if (recipientName && recipientName !== 'the recipient') {
             sessionStorage.setItem('recipientName', recipientName);
+            // Ensure the name is available in onboarding.answers for title personalization
+            if (!onboarding.answers?.name && recipientName) {
+              onboarding.setAnswers({
+                ...onboarding.answers,
+                name: recipientName,
+                celebration: onboarding.answers?.celebration || card.conversationData?.celebration
+              });
+            }
             console.log('[INSTANT] Preloaded recipient name:', recipientName);
           }
           

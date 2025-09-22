@@ -16,7 +16,7 @@ import FormData from "form-data";
 import { fal } from "@fal-ai/client";
 import { createCanvas, loadImage } from "canvas";
 import sharp from "sharp";
-import { sendEmail, addToMarketingList, sendBackgroundEmail } from './email-service';
+import { sendEmail, addToMarketingList, sendBackgroundEmail, generateCardReadyNotificationEmail } from './email-service';
 import { 
   storeImageFromBase64, 
   getStoredImage, 
