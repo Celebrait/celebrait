@@ -128,20 +128,7 @@ const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // Auto-scroll popup to top when it opens
-  useEffect(() => {
-    if (showEmailPopup) {
-      // Slight delay to ensure the popup is rendered
-      setTimeout(() => {
-        const popup = document.querySelector('[role="dialog"]');
-        if (popup) {
-          popup.scrollTop = 0;
-          // Also scroll the viewport to top
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      }, 100);
-    }
-  }, [showEmailPopup]);
+  // Auto-scroll popup to top when it opens (removed as this is handled in main component)
 
   // 12-Phase Creative Journey Definition
   const creativePhases = [
@@ -3993,7 +3980,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
               {/* Centered Sign Up Button */}
               <div className="flex justify-center pt-2">
                 <Button 
-                  onClick={() => {
+                  onClick={async () => {
                     // Scroll to top of popup on mobile
                     const popup = document.querySelector('[role="dialog"]');
                     if (popup) {
@@ -4024,8 +4011,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     if (marketingOptIn) {
                       console.log('✅ Marketing opt-in checked - adding to Brevo list');
                       try {
-                        await apiRequest('/api/prospects', {
+                        const response = await fetch('/api/prospects', {
                           method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json'
+                          },
                           body: JSON.stringify({
                             email: popupEmail,
                             firstName: popupFirstName,
@@ -4035,12 +4025,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                               recipientName: answers.name || 'loved one',
                               celebrationType: answers.celebration || 'celebration'
                             }
-                          }),
-                          headers: {
-                            'Content-Type': 'application/json'
-                          }
+                          })
                         });
-                        console.log('🎉 Marketing automation: Successfully added to Brevo list');
+                        
+                        if (response.ok) {
+                          console.log('🎉 Marketing automation: Successfully added to Brevo list');
+                        } else {
+                          console.error('❌ Marketing automation: API response error', response.status);
+                        }
                       } catch (error: any) {
                         console.error('❌ Marketing automation failed:', error);
                         // Continue with card generation even if marketing automation fails
