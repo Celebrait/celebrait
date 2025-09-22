@@ -632,6 +632,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [popupEmailConfirm, setPopupEmailConfirm] = useState('');
   const [popupFirstName, setPopupFirstName] = useState('');
   const [popupLastName, setPopupLastName] = useState('');
+  const [marketingOptIn, setMarketingOptIn] = useState(true);
   
   // Art style selection states
   const [currentArtStyleExample, setCurrentArtStyleExample] = useState(0);
@@ -3969,11 +3970,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                   <input
                     type="checkbox"
                     id="marketing-optin"
-                    checked={true}
-                    readOnly
-                    className="mt-0.5 h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                    checked={marketingOptIn}
+                    onChange={(e) => setMarketingOptIn(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500 cursor-pointer"
                   />
-                  <label htmlFor="marketing-optin" className="text-xs text-gray-700 leading-snug">
+                  <label htmlFor="marketing-optin" className="text-xs text-gray-700 leading-snug cursor-pointer">
                     <span className="font-semibold text-purple-700">Stay in the loop!</span> 
                     <span className="block text-xs text-gray-600 mt-0.5">
                       Get exclusive offers & new card styles.
@@ -4018,6 +4019,35 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     
                     // Store user email in answers
                     answers.user_email = popupEmail;
+                    
+                    // 🚀 CRITICAL: Marketing automation - add user to Brevo if opted in
+                    if (marketingOptIn) {
+                      console.log('✅ Marketing opt-in checked - adding to Brevo list');
+                      try {
+                        await apiRequest('/api/prospects', {
+                          method: 'POST',
+                          body: JSON.stringify({
+                            email: popupEmail,
+                            firstName: popupFirstName,
+                            lastName: popupLastName,
+                            signupSource: 'signup_form',
+                            cardData: {
+                              recipientName: answers.name || 'loved one',
+                              celebrationType: answers.celebration || 'celebration'
+                            }
+                          }),
+                          headers: {
+                            'Content-Type': 'application/json'
+                          }
+                        });
+                        console.log('🎉 Marketing automation: Successfully added to Brevo list');
+                      } catch (error: any) {
+                        console.error('❌ Marketing automation failed:', error);
+                        // Continue with card generation even if marketing automation fails
+                      }
+                    } else {
+                      console.log('⏭️ Marketing opt-in not checked - skipping Brevo list addition');
+                    }
                     
                     // Start actual card generation
                     actuallyGenerateCard();
