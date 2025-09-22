@@ -8,6 +8,46 @@ import sampleCard from "@/assets/sample-card.jpeg";
 import founder1 from "@/assets/founder1.png";
 import founder2 from "@/assets/founder2.png";
 
+// Card carousel images - replace these with your actual card images
+const cardImages = [
+  {
+    front: sampleCard,
+    inside: sampleCard,
+    frontAlt: "Birthday celebration card front",
+    insideAlt: "Birthday celebration card inside"
+  },
+  {
+    front: sampleCard, // Replace with your second card front image
+    inside: sampleCard, // Replace with your second card inside image  
+    frontAlt: "Anniversary card front",
+    insideAlt: "Anniversary card inside"
+  },
+  {
+    front: sampleCard, // Replace with your third card front image
+    inside: sampleCard, // Replace with your third card inside image
+    frontAlt: "Wedding card front", 
+    insideAlt: "Wedding card inside"
+  },
+  {
+    front: sampleCard, // Replace with your fourth card front image
+    inside: sampleCard, // Replace with your fourth card inside image
+    frontAlt: "Graduation card front",
+    insideAlt: "Graduation card inside"
+  },
+  {
+    front: sampleCard, // Replace with your fifth card front image
+    inside: sampleCard, // Replace with your fifth card inside image
+    frontAlt: "Baby shower card front",
+    insideAlt: "Baby shower card inside"
+  },
+  {
+    front: sampleCard, // Replace with your sixth card front image
+    inside: sampleCard, // Replace with your sixth card inside image
+    frontAlt: "Holiday card front",
+    insideAlt: "Holiday card inside"
+  }
+];
+
 function HeroSection() {
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
@@ -155,14 +195,14 @@ function SeeHowItLooksSection() {
       <div className="relative overflow-hidden">
         <div className="flex gap-4 items-end overflow-x-auto scrollbar-hide pb-20" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {/* First set of card pairs */}
-          {Array.from({ length: 6 }, (_, pairIndex) => (
+          {cardImages.map((cardData, pairIndex) => (
             <div key={pairIndex} className="flex gap-4 items-end">
               {/* Front of card */}
               <div className="flex-shrink-0 relative">
                 <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
                   <img
-                    src={sampleCard}
-                    alt={`Sample card front ${pairIndex + 1}`}
+                    src={cardData.front}
+                    alt={cardData.frontAlt}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -177,8 +217,8 @@ function SeeHowItLooksSection() {
               <div className="flex-shrink-0 relative -mb-8">
                 <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
                   <img
-                    src={sampleCard}
-                    alt={`Sample card inside ${pairIndex + 1}`}
+                    src={cardData.inside}
+                    alt={cardData.insideAlt}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -197,14 +237,14 @@ function SeeHowItLooksSection() {
           ))}
           
           {/* Duplicate set for seamless loop */}
-          {Array.from({ length: 6 }, (_, pairIndex) => (
-            <div key={pairIndex + 6} className="flex gap-4 items-end">
+          {cardImages.map((cardData, pairIndex) => (
+            <div key={`duplicate-${pairIndex}`} className="flex gap-4 items-end">
               {/* Front of card */}
               <div className="flex-shrink-0 relative">
                 <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
                   <img
-                    src={sampleCard}
-                    alt={`Sample card front ${pairIndex + 7}`}
+                    src={cardData.front}
+                    alt={cardData.frontAlt}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -219,8 +259,8 @@ function SeeHowItLooksSection() {
               <div className="flex-shrink-0 relative -mb-8">
                 <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
                   <img
-                    src={sampleCard}
-                    alt={`Sample card inside ${pairIndex + 7}`}
+                    src={cardData.inside}
+                    alt={cardData.insideAlt}
                     className="w-full h-full object-cover"
                   />
                 </div>
