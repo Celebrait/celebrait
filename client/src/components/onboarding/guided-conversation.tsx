@@ -3889,7 +3889,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
       {/* Email Collection Popup Modal */}
       <Dialog open={showEmailPopup} onOpenChange={setShowEmailPopup}>
-        <DialogContent className="w-full max-w-sm sm:max-w-md bg-white border-2 border-purple-200 rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto m-4">
+        <DialogContent className="max-w-sm sm:max-w-md bg-white border-2 border-purple-200 rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto mx-auto left-1/2 right-1/2">
           <DialogHeader className="pb-4">
             {/* Centered Mobile Header */}
             <div className="text-center space-y-3">
