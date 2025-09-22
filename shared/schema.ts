@@ -4,9 +4,12 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull(),
   email: text("email").notNull().unique(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  profileImageUrl: text("profile_image_url"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const cards = pgTable("cards", {
@@ -73,8 +76,9 @@ export const orders = pgTable("orders", {
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
   email: true,
+  firstName: true,
+  lastName: true,
 });
 
 export const insertCardSchema = createInsertSchema(cards).pick({
