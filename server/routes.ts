@@ -1933,7 +1933,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           model: "gpt-image-1",
           prompt: frontPrompt,
           size: "1024x1024",
-          quality: "high",
+          quality: "standard",
           n: 1
         });
         console.log("Successfully used gpt-image-1 for front card generation");
@@ -1944,7 +1944,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           model: "gpt-image-1",
           prompt: frontPrompt,
           size: "1024x1024",
-          quality: "high",
+          quality: "standard",
           n: 1
         });
       }
@@ -1968,7 +1968,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             model: "gpt-image-1",
             prompt: insidePrompt,
             size: "1024x1024",
-            quality: "high",
+            quality: "standard",
             n: 1
           });
           console.log("Successfully used gpt-image-1 for inside card generation");
@@ -1979,7 +1979,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             model: "gpt-image-1",
             prompt: insidePrompt,
             size: "1024x1024",
-            quality: "high",
+            quality: "standard",
             n: 1
           });
         }
@@ -2037,7 +2037,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
         prompt: enhancedFrontPrompt,
         n: 1,
         size: "1024x1024",
-        quality: "high"
+        quality: "standard"
       });
 
       // Extract front image data first
@@ -2070,7 +2070,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             prompt: imageToImagePrompt,
             n: 1,
             size: "1024x1024",
-            quality: "high"
+            quality: "standard"
           });
 
           const insideResponse = insideImageGeneration as any;
@@ -2096,7 +2096,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             prompt: enhancedInsidePrompt,
             n: 1,
             size: "1024x1024",
-            quality: "high"
+            quality: "standard"
           });
 
           const fallbackResponse = fallbackGeneration as any;
@@ -2228,7 +2228,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           prompt: frontPrompt,
           n: 1,
           size: "1024x1024",
-          quality: "high"
+          quality: "standard"
         });
       } else if (photoData) {
         // Direct GPT-Image-1 transformation with multiple photo references (no GPT Vision analysis needed)
@@ -2265,7 +2265,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           formData.append('model', 'gpt-image-1');
           formData.append('n', '1');
           formData.append('size', '1024x1024');
-          formData.append('quality', 'high');
+          formData.append('quality', 'standard');
           formData.append('moderation', 'low');
 
           const fetch = (await import('node-fetch')).default;
@@ -2306,7 +2306,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             prompt: frontPrompt,
             n: 1,
             size: "1024x1024",
-            quality: "high"
+            quality: "standard"
           });
         }
       } else {
@@ -2316,7 +2316,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           prompt: frontPrompt,
           n: 1,
           size: "1024x1024",
-          quality: "high"
+          quality: "standard"
         });
       }
 
@@ -2394,7 +2394,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           formData.append('model', 'gpt-image-1');
           formData.append('n', '1');
           formData.append('size', '1024x1024');
-          formData.append('quality', 'high');
+          formData.append('quality', 'standard');
           formData.append('moderation', 'low');
 
           const fetch = (await import('node-fetch')).default;
@@ -3637,7 +3637,7 @@ Choose the single artistic style that creates the most contextually appropriate,
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
         formData.append('size', size);
-        formData.append('quality', 'high');
+        formData.append('quality', 'standard');
         formData.append('moderation', 'low');
         formData.append('background', 'auto');
 
@@ -3871,7 +3871,7 @@ Choose the single artistic style that creates the most contextually appropriate,
       formData.append('model', 'gpt-image-1');
       formData.append('n', '1');
       formData.append('size', size);
-      formData.append('quality', 'high');
+      formData.append('quality', 'standard');
       formData.append('moderation', 'low');
       formData.append('background', 'auto');
 
@@ -4125,7 +4125,7 @@ Choose the single artistic style that creates the most contextually appropriate,
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
         formData.append('size', size);
-        formData.append('quality', 'high');
+        formData.append('quality', 'standard');
         formData.append('moderation', 'low');
 
         console.log('📋 Form data parameters being sent:');
