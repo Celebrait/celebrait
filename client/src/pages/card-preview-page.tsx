@@ -91,17 +91,13 @@ export default function CardPreviewPage() {
     try {
       // PARALLEL OPTIMIZATION: Start API call immediately alongside cache check
       let apiPromise: Promise<Response> | null = null;
-      let abortController: AbortController | null = null;
       let cacheHit = false;
-      let requestAborted = false;
       
       // Start API call immediately (don't wait for cache check)
       if (reference?.startsWith('celebrait_ready_')) {
-        abortController = new AbortController();
-        apiPromise = fetch(`/api/cards/ready/${reference}`, { signal: abortController.signal });
+        apiPromise = fetch(`/api/cards/ready/${reference}`);
       } else if (reference) {
-        abortController = new AbortController();
-        apiPromise = fetch(`/api/cards/${reference}/fast-metadata`, { signal: abortController.signal });
+        apiPromise = fetch(`/api/cards/${reference}/fast-metadata`);
       }
       
       // PARALLEL: Check cache while API call is in flight
@@ -121,12 +117,8 @@ export default function CardPreviewPage() {
               setCardData(card);
               setLoading(false);
               cacheHit = true;
-              // Cancel in-flight API call to save bandwidth
-              if (abortController) {
-                requestAborted = true;
-                abortController.abort();
-              }
-              console.log(`[INSTANT] Card preview loaded from cache: ${key} - cancelled API call`);
+              // Don't abort - let request complete to avoid runtime errors
+              console.log(`[INSTANT] Card preview loaded from cache: ${key} - API call will be ignored`);
               
               // PARALLEL: Start image preloading immediately
               if (card.id) {
@@ -157,7 +149,7 @@ export default function CardPreviewPage() {
       }
       
       // If cache miss, wait for API call and show loading
-      if (!cacheHit && apiPromise && !requestAborted) {
+      if (!cacheHit && apiPromise) {
         setLoading(true);
         
         const response = await apiPromise;
