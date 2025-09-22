@@ -93,6 +93,7 @@ export default function CardPreviewPage() {
       let apiPromise: Promise<Response> | null = null;
       let abortController: AbortController | null = null;
       let cacheHit = false;
+      let requestAborted = false;
       
       // Start API call immediately (don't wait for cache check)
       if (reference?.startsWith('celebrait_ready_')) {
@@ -122,6 +123,7 @@ export default function CardPreviewPage() {
               cacheHit = true;
               // Cancel in-flight API call to save bandwidth
               if (abortController) {
+                requestAborted = true;
                 abortController.abort();
               }
               console.log(`[INSTANT] Card preview loaded from cache: ${key} - cancelled API call`);
@@ -155,7 +157,7 @@ export default function CardPreviewPage() {
       }
       
       // If cache miss, wait for API call and show loading
-      if (!cacheHit && apiPromise) {
+      if (!cacheHit && apiPromise && !requestAborted) {
         setLoading(true);
         
         const response = await apiPromise;
