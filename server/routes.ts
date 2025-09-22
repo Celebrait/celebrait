@@ -2153,6 +2153,25 @@ If just having a conversation (no suggestions), respond with valid JSON:
         status: 'completed'
       });
 
+      // 🚀 CRITICAL: Send email with card preview link after successful generation
+      try {
+        const user = await storage.getUser(updatedCard.userId);
+        if (user?.email) {
+          console.log(`✅ Card ${cardId} completed - sending preview email to ${user.email}`);
+          const emailSent = await sendBackgroundEmail(cardId, user.email, user.firstName || user.email);
+          if (emailSent) {
+            console.log(`🎉 Email sent successfully for card ${cardId}`);
+          } else {
+            console.log(`⚠️ Email failed for card ${cardId} - user still gets card but no notification`);
+          }
+        } else {
+          console.log(`⚠️ No user email found for card ${cardId} - skipping email`);
+        }
+      } catch (emailError: any) {
+        console.error(`❌ Email error for card ${cardId}:`, emailError);
+        // Continue - don't fail the card generation due to email issues
+      }
+
       res.json(updatedCard);
     } catch (error: any) {
       res.status(500).json({ message: "Error generating style transformation: " + error.message });
@@ -2460,6 +2479,25 @@ If just having a conversation (no suggestions), respond with valid JSON:
         insideImageUrl: insideImagePngUrl, // Store watermarked PNG file URL for preview
         status: 'completed'
       });
+
+      // 🚀 CRITICAL: Send email with card preview link after successful generation
+      try {
+        const user = await storage.getUser(updatedCard.userId);
+        if (user?.email) {
+          console.log(`✅ Card ${cardId} completed - sending preview email to ${user.email}`);
+          const emailSent = await sendBackgroundEmail(cardId, user.email, user.firstName || user.email);
+          if (emailSent) {
+            console.log(`🎉 Email sent successfully for card ${cardId}`);
+          } else {
+            console.log(`⚠️ Email failed for card ${cardId} - user still gets card but no notification`);
+          }
+        } else {
+          console.log(`⚠️ No user email found for card ${cardId} - skipping email`);
+        }
+      } catch (emailError: any) {
+        console.error(`❌ Email error for card ${cardId}:`, emailError);
+        // Continue - don't fail the card generation due to email issues
+      }
 
       res.json(updatedCard);
     } catch (error: any) {
@@ -3317,6 +3355,25 @@ If just having a conversation (no suggestions), respond with valid JSON:
         status: 'completed'
       });
 
+      // 🚀 CRITICAL: Send email with card preview link after successful generation
+      try {
+        const user = await storage.getUser(updatedCard.userId);
+        if (user?.email) {
+          console.log(`✅ Card ${cardId} completed - sending preview email to ${user.email}`);
+          const emailSent = await sendBackgroundEmail(cardId, user.email, user.firstName || user.email);
+          if (emailSent) {
+            console.log(`🎉 Email sent successfully for card ${cardId}`);
+          } else {
+            console.log(`⚠️ Email failed for card ${cardId} - user still gets card but no notification`);
+          }
+        } else {
+          console.log(`⚠️ No user email found for card ${cardId} - skipping email`);
+        }
+      } catch (emailError: any) {
+        console.error(`❌ Email error for card ${cardId}:`, emailError);
+        // Continue - don't fail the card generation due to email issues
+      }
+
       res.json(updatedCard);
     } catch (error: any) {
       console.error('Character transformation error:', error);
@@ -3419,6 +3476,25 @@ If just having a conversation (no suggestions), respond with valid JSON:
         frontImageUrl,
         status: 'completed'
       });
+
+      // 🚀 CRITICAL: Send email with card preview link after successful generation
+      try {
+        const user = await storage.getUser(updatedCard.userId);
+        if (user?.email) {
+          console.log(`✅ Card ${cardId} completed - sending preview email to ${user.email}`);
+          const emailSent = await sendBackgroundEmail(cardId, user.email, user.firstName || user.email);
+          if (emailSent) {
+            console.log(`🎉 Email sent successfully for card ${cardId}`);
+          } else {
+            console.log(`⚠️ Email failed for card ${cardId} - user still gets card but no notification`);
+          }
+        } else {
+          console.log(`⚠️ No user email found for card ${cardId} - skipping email`);
+        }
+      } catch (emailError: any) {
+        console.error(`❌ Email error for card ${cardId}:`, emailError);
+        // Continue - don't fail the card generation due to email issues
+      }
 
       res.json(updatedCard);
     } catch (error: any) {
