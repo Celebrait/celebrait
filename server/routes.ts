@@ -2064,6 +2064,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
         const imageToImagePrompt = `Using the attached front greeting card image as a visual style reference, create the interior of this greeting card. Match the exact artistic style, color palette, lighting, and visual mood from the reference image. Use identical typography treatment and display this message prominently: "${insidePrompt.match(/"([^"]+)"/)?.[1] || 'Message'}". Create a subtle, complementary background that references visual elements from the front card. The inside should look like it was designed by the same artist using the same design system.`;
 
+        console.log('🎯 EXACT INSIDE PROMPT SENT TO GPT-IMAGE-1 (IMAGE-TO-IMAGE):', imageToImagePrompt);
         try {
           const insideImageGeneration = await openai.images.generate({
             model: "gpt-image-1",
@@ -2091,6 +2092,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
           const enhancedInsidePrompt = `${insidePrompt}. STYLE MATCHING: Use exactly the same artistic style, color palette, and visual treatment as the front card. Create a cohesive design where the inside feels like the same artist created both cards with consistent visual language.`;
 
+          console.log('🎯 EXACT INSIDE PROMPT SENT TO GPT-IMAGE-1 (FALLBACK):', enhancedInsidePrompt);
           const fallbackGeneration = await openai.images.generate({
             model: "gpt-image-1", 
             prompt: enhancedInsidePrompt,
@@ -2222,6 +2224,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       if (hasDetailedCharacters) {
         // Use the detailed prompt directly from the test page
         console.log('Using detailed character prompt from frontend:', frontPrompt);
+        console.log('🎯 EXACT FRONT PROMPT SENT TO GPT-IMAGE-1:', frontPrompt);
 
         frontImageGeneration = await openai.images.generate({
           model: "gpt-image-1",
@@ -2261,6 +2264,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             });
           });
 
+          console.log('🎯 EXACT FRONT PROMPT SENT TO GPT-IMAGE-1 (FORM DATA):', frontPrompt);
           formData.append('prompt', frontPrompt);
           formData.append('model', 'gpt-image-1');
           formData.append('n', '1');
