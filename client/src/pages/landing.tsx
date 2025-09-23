@@ -150,27 +150,28 @@ function HeroSection() {
 
 
 
-function WatchVideoSection() {
-  return (
-    <section className="max-w-7xl mx-auto px-4 md:px-8 py-16 space-y-6 text-center">
-      <h2 className="text-3xl md:text-4xl font-extrabold">
-        <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">
-          Watch How it Works
-        </span>
-      </h2>
+// Video section hidden per user request
+// function WatchVideoSection() {
+//   return (
+//     <section className="max-w-7xl mx-auto px-4 md:px-8 py-16 space-y-6 text-center">
+//       <h2 className="text-3xl md:text-4xl font-extrabold">
+//         <span className="bg-gradient-to-r from-purple-500 via-purple-600 to-pink-500 text-transparent bg-clip-text">
+//           Watch How it Works
+//         </span>
+//       </h2>
 
-      <div className="w-full h-0 pb-[56.25%] relative rounded-2xl overflow-hidden shadow-lg max-w-4xl mx-auto">
-        <iframe
-          src="https://www.youtube.com/embed/dQw4w9WgXcQ" // replace with your video URL
-          title="How it Works"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="absolute top-0 left-0 w-full h-full"
-        />
-      </div>
-    </section>
-  );
-}
+//       <div className="w-full h-0 pb-[56.25%] relative rounded-2xl overflow-hidden shadow-lg max-w-4xl mx-auto">
+//         <iframe
+//           src="https://www.youtube.com/embed/dQw4w9WgXcQ" // replace with your video URL
+//           title="How it Works"
+//           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+//           allowFullScreen
+//           className="absolute top-0 left-0 w-full h-full"
+//         />
+//       </div>
+//     </section>
+//   );
+// }
 
 function SeeHowItLooksSection() {
   return (
@@ -411,7 +412,7 @@ export default function Landing() {
 
       <main className={`py-8 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
         <HeroSection />
-        <WatchVideoSection />
+        {/* <WatchVideoSection /> */}
         <SeeHowItLooksSection />
         <CallToActionSection />
       </main>
