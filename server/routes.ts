@@ -3514,7 +3514,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
     }
 
     try {
-      const { imageData, imageDataArray, scenePrompt, style, includeText, cardText, size = '1024x1024' } = req.body;
+      const { imageData, imageDataArray, scenePrompt, style, includeText, cardText, size = '1024x1024', userClothing, userArtStyle } = req.body;
 
       // Support both single image (legacy) and multiple images (new)
       const imagesToProcess = imageDataArray || (imageData ? [imageData] : []);
@@ -3555,36 +3555,20 @@ If just having a conversation (no suggestions), respond with valid JSON:
       const clothingInstruction = 'dress the characters appropriately';
       const positioningInstruction = 'Reimagine character positioning and interactions';
 
-      let fullPrompt = `${aspectDescription} ABSOLUTE PRIORITY: FACIAL ACCURACY FIRST - Before applying any artistic style, the EXACT facial likeness must be preserved with photographic precision. 
+      // Build clothing requirements section
+      let clothingSection = '';
+      if (userClothing && userClothing.trim()) {
+        clothingSection = `CLOTHING REQUIREMENTS: The scene description includes specific clothing requirements. Dress the character(s) exactly as described: ${userClothing}`;
+      } else {
+        clothingSection = `CLOTHING REQUIREMENTS: Choose scene-appropriate clothing that fits the new environment and activity. Change the clothing completely from the reference photo to match the scenario while maintaining identical faces only.`;
+      }
 
-MANDATORY FACIAL RECREATION REQUIREMENTS (COMPLETE BEFORE ANY STYLING):
-1) FACIAL STRUCTURE MATCH: Recreate the EXACT facial bone structure - same cheekbone height, same jawline angle, same forehead shape, same chin projection
-2) EYE PRECISION: Match exact eye shape (almond, round, hooded), eye spacing, eyelid fold pattern, iris color, eyebrow shape and arch
-3) NOSE ACCURACY: Replicate precise nose bridge width, nostril shape, nose tip definition, any bumps or unique nose characteristics  
-4) MOUTH DUPLICATION: Copy exact lip fullness, mouth width, corner shape, any asymmetries or distinctive mouth features
-5) SKIN MATCHING: Preserve exact skin tone, texture, any blemishes, freckles, moles, or distinctive skin characteristics
-6) HAIR PRECISION: Match exact hair color, texture, natural growth patterns, hairline shape
-7) DISTINCTIVE MARKS: Include any scars, dimples, laugh lines, or other identifying facial features
-8) CRITICAL EXPRESSION CHANGE: DO NOT copy the original facial expression from the reference photo. You must create a COMPLETELY NEW facial expression that matches the mood and energy of the new scene
-
-AFTER ESTABLISHING PERFECT LIKENESS - SCENE CREATION:
-Create a completely new scene featuring ${characterText}.
-
-COMPOSITION RULES - DO NOT COPY REFERENCE PHOTO:
-- If reference photo is a headshot/upper body, create a FULL BODY or WIDE scene shot
-- If reference photo is close-up, create a MID-SHOT or ENVIRONMENTAL shot  
-- Show the character actively participating in the scene, not just posing
-- Include relevant background elements that tell the story of the scene
-9) SCENE-APPROPRIATE EXPRESSION: The character must display a brand NEW facial expression that perfectly captures the energy and mood of this specific scene: "${scenePrompt}". If it's a party scene, show excitement and joy. If it's relaxing, show contentment. If it's adventurous, show confidence and thrill. NEVER use the original photo's expression
-10) COMPLETELY IGNORE ORIGINAL PHOTO COMPOSITION: Do NOT copy the positioning, framing, or body placement from the reference photo. The reference is ONLY for facial features.
-11) CREATE ENTIRELY NEW SCENE COMPOSITION for: ${scenePrompt}
-12) CREATIVE POSITIONING REQUIRED: ${characterPositioning} in completely different positions that showcase the full scene context. If it's a yacht scene, show the character on deck with ocean background. If it's a party, show them dancing or celebrating. Use full-body or three-quarter shots that tell the story of the scene.
-13) DYNAMIC POSES AND INTERACTIONS: ${characterPoses} completely new poses that are appropriate for the scene activity and energy level
-14) SCENE-APPROPRIATE CLOTHING: CHANGE the clothing completely to fit the new scene - ${clothingInstruction} for the scenario while maintaining identical faces only
-15) ENVIRONMENTAL INTEGRATION: ${positioningInstruction} for the new environment to create an immersive scene composition
-${formatInstruction}`;
-      // DYNAMIC STYLE SELECTION: Let AI choose the most appropriate artistic style based on scene content
-      const dynamicStyleInstruction = `DYNAMIC STYLE SELECTION: Analyze the scene description "${scenePrompt}" and intelligently choose the most appropriate artistic style that best complements the mood, atmosphere, setting, and emotional tone of this specific scene.
+      // Build art style section
+      let styleSection = '';
+      if (userArtStyle && userArtStyle.trim() && userArtStyle !== 'ai_decide') {
+        styleSection = `ARTISTIC STYLE APPLICATION: Apply the user-specified artistic style: ${userArtStyle}. Render the entire image consistently in this style while maintaining high artistic quality and visual cohesion.`;
+      } else {
+        styleSection = `ARTISTIC STYLE APPLICATION: DYNAMIC STYLE SELECTION: Analyze the scene description and intelligently choose the most appropriate artistic style that best complements the mood, atmosphere, setting, and emotional tone of this specific scene.
 
 Consider artistic styles such as:
 - Watercolor painting (for soft, dreamy, romantic scenes)
@@ -3601,11 +3585,43 @@ Consider artistic styles such as:
 - Renaissance painting (for grand, ornate, classical scenes)
 - Anime/manga style (for vibrant, expressive, youthful scenes)
 - Art nouveau (for decorative, elegant, artistic scenes)
-- And any other artistic style that would create the most visually compelling result
 
-Choose the single artistic style that creates the most contextually appropriate, visually stunning, and emotionally resonant result for this specific scene. Apply your chosen artistic style with EXACT FACIAL ACCURACY as absolute priority - maintain photographic facial likeness while applying the selected artistic aesthetic. CRITICAL: Preserve precise facial bone structure and anatomy during style conversion. TYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.`;
-        
-      fullPrompt = `${fullPrompt}. FINAL STEP - ARTISTIC STYLING: Once the exact facial likeness is established, THEN ${dynamicStyleInstruction}`;
+Choose the single artistic style that creates the most contextually appropriate, visually stunning, and emotionally resonant result for this specific scene.`;
+      }
+
+      let fullPrompt = `${aspectDescription} ABSOLUTE PRIORITY: FACIAL ACCURACY FIRST - Before applying any artistic style, the EXACT facial likeness from the reference photo(s) must be preserved with absolute precision in the new scene.
+
+MANDATORY FACIAL RECREATION REQUIREMENTS FOR ALL CHARACTERS IN THE REFERENCE PHOTO(S) (COMPLETE BEFORE ANY STYLING):
+1) FACIAL STRUCTURE MATCH: Recreate the EXACT facial bone structure - same cheekbone height, same jawline angle, same forehead shape, same chin projection
+2) EYE PRECISION: Match exact eye shape (almond, round, hooded), eye spacing, eyelid fold pattern, iris color, eyebrow shape and arch
+3) NOSE ACCURACY: Replicate precise nose bridge width, nostril shape, nose tip definition, any bumps or unique nose characteristics  
+4) MOUTH DUPLICATION: Copy exact lip fullness, mouth width, corner shape, any asymmetries or distinctive mouth features
+5) SKIN MATCHING: Preserve exact skin tone, texture, any blemishes, freckles, moles, or distinctive skin characteristics
+6) HAIR PRECISION: Match exact hair color, texture, natural growth patterns, hairline shape
+7) DISTINCTIVE MARKS: Include any scars, dimples, laugh lines, or other identifying facial features
+8) CRITICAL EXPRESSION CHANGE: DO NOT copy the original facial expression from the reference photo. You must create a COMPLETELY NEW facial expression that matches the mood and energy of the new scene
+
+AFTER ESTABLISHING PERFECT LIKENESS - SCENE CREATION:
+Create a completely new scene featuring the character(s) from the reference photo(s).
+
+COMPOSITION RULES:
+- Show the character(s) actively participating in the new scene, not just posing
+- Include relevant background elements that tell the story of the scene
+- Use full-body or three-quarter shots that tell the story of the scene
+- Create immersive scene composition that showcases the environment
+- SCENE-APPROPRIATE EXPRESSION: The character(s) must display a brand NEW facial expression that perfectly captures the energy and mood of this specific scene
+- COMPLETELY IGNORE ORIGINAL PHOTO COMPOSITION: Do NOT copy the positioning, framing, or body placement from the reference photo. The reference is ONLY for facial features
+- CREATIVE POSITIONING REQUIRED: Position character(s) in completely different positions that showcase the full scene context
+- DYNAMIC POSES AND INTERACTIONS: Create completely new poses that are appropriate for the scene activity and energy level
+- ENVIRONMENTAL INTEGRATION: Reimagine character positioning and interactions for the new environment to create an immersive scene composition
+
+SCENE DESCRIPTION: ${scenePrompt}
+
+${clothingSection}
+
+${styleSection}`;
+      // Add typography integration
+      fullPrompt = `${fullPrompt}\n\nTYPOGRAPHY INTEGRATION: Naturally integrate text into the scene as part of the artistic composition - text should appear carved into surfaces, written in natural elements, displayed on signs, or formed by scene elements, ensuring clear legibility while feeling like an organic part of the scene rather than overlaid text.`;
       
       if (includeText && cardText && cardText.trim()) {
         fullPrompt = `${fullPrompt}. STRICT TEXT RESTRICTION: Add EXACTLY and ONLY the text "${cardText}" - ABSOLUTELY NO OTHER TEXT, WORDS, LETTERS, NUMBERS, SIGNS, LABELS, OR WRITING of any kind should appear anywhere in the image. CRITICAL: Do NOT overlay text on top of the image. Instead, naturally integrate ONLY this specific text into the scene as part of the artistic composition. The text should appear as if it belongs in this specific environment - carved into surfaces, written in natural elements, displayed on signs, formed by scene elements, or integrated into the background architecture. FORBIDDEN: Do not add any background text, signage, labels, captions, watermarks, logos, brand names, location names, or any other written content. Typography should match the artistic style and complement the scene's natural elements.`;
