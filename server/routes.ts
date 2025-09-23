@@ -2225,6 +2225,9 @@ If just having a conversation (no suggestions), respond with valid JSON:
         // Use the detailed prompt directly from the test page
         console.log('Using detailed character prompt from frontend:', frontPrompt);
         console.log('🎯 PATH 1 - SIMPLE TEXT PROMPT TO GPT-IMAGE-1:', frontPrompt);
+        console.log('=== DEBUG: EXACT PROMPT SENT TO GPT-IMAGE-1 ===');
+        console.log(frontPrompt);
+        console.log('=== END PROMPT ===');
 
         frontImageGeneration = await openai.images.generate({
           model: "gpt-image-1",
@@ -2265,6 +2268,9 @@ If just having a conversation (no suggestions), respond with valid JSON:
           });
 
           console.log('🎯 PATH 1 - SIMPLE PROMPT + PHOTO TO GPT-IMAGE-1 EDITS:', frontPrompt);
+          console.log('=== DEBUG: EXACT PROMPT FOR PHOTO EDITING ===');
+          console.log(frontPrompt);
+          console.log('=== END PROMPT ===');
           formData.append('prompt', frontPrompt);
           formData.append('model', 'gpt-image-1');
           formData.append('n', '1');
@@ -3630,6 +3636,9 @@ ${styleSection}`;
 
       console.log('🎯 PATH 2 - DETAILED FACIAL RECREATION TO GPT-IMAGE-1:', fullPrompt);
       console.log('Complete prompt for scene editing:', fullPrompt);
+      console.log('=== DEBUG: EXACT DETAILED FACIAL RECREATION PROMPT ===');
+      console.log(fullPrompt);
+      console.log('=== END DETAILED PROMPT ===');
 
       try {
         console.log('Making GPT-Image-1 scene edit API request using direct HTTP form-data');
