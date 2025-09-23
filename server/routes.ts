@@ -3608,6 +3608,7 @@ Choose the single artistic style that creates the most contextually appropriate,
       }
       fullPrompt = `${fullPrompt}. High-quality artistic rendering, professional artwork.`;
 
+      console.log('🎯 EXACT PROMPT SENT TO GPT-IMAGE-1:', fullPrompt);
       console.log('Complete prompt for scene editing:', fullPrompt);
 
       try {
