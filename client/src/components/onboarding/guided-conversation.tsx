@@ -2131,6 +2131,46 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       artStyle = 'ai_decide';
     }
     
+    // Detect clothing in scene description
+    const detectClothing = (sceneText: string): string | null => {
+      if (!sceneText) return null;
+      
+      const clothingKeywords = [
+        'wearing', 'dressed in', 'outfit', 'clothes', 'clothing', 'attire',
+        'shirt', 'dress', 'suit', 'pants', 'jeans', 'skirt', 'top', 'blouse',
+        'jacket', 'coat', 'sweater', 'hoodie', 'tshirt', 't-shirt', 'tank top',
+        'shorts', 'trousers', 'gown', 'uniform', 'costume', 'robe', 'pajamas',
+        'swimsuit', 'bikini', 'tuxedo', 'blazer', 'cardigan', 'vest', 'polo',
+        'jumpsuit', 'overalls', 'sundress', 'cocktail dress', 'evening gown'
+      ];
+      
+      const text = sceneText.toLowerCase();
+      
+      // Look for clothing keywords
+      for (const keyword of clothingKeywords) {
+        if (text.includes(keyword)) {
+          // Try to extract clothing context around the keyword
+          const sentences = sceneText.split(/[.!?]+/);
+          for (const sentence of sentences) {
+            if (sentence.toLowerCase().includes(keyword)) {
+              // Return the sentence that contains clothing reference
+              return sentence.trim();
+            }
+          }
+          // Fallback: return the keyword context
+          const index = text.indexOf(keyword);
+          const start = Math.max(0, index - 20);
+          const end = Math.min(text.length, index + keyword.length + 20);
+          return sceneText.substring(start, end).trim();
+        }
+      }
+      
+      return null;
+    };
+    
+    const detectedClothing = detectClothing(sceneDescription);
+    console.log('Clothing detection result:', detectedClothing);
+    
     const frontCardText = answers.message || '';
     
     
@@ -2138,7 +2178,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     console.log('[DEBUG] Calling edit-scene-gpt-image-1 with cardId:', useCardId);
     
     // Generate front card using robust API call
-    const frontResult = await makeRobustAPICall("/api/edit-scene-gpt-image-1", {
+    const apiPayload: any = {
       cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
       imageData: referenceImages[0], // Keep for backward compatibility
       imageDataArray: referenceImages, // Send all images as base64
@@ -2146,7 +2186,18 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       style: artStyle,
       includeText: !!frontCardText,
       cardText: frontCardText,
-    }, "Front card generation");
+      userArtStyle: artStyle !== 'ai_decide' ? artStyle : null
+    };
+    
+    // Only include userClothing if clothing was detected in scene description
+    if (detectedClothing) {
+      apiPayload.userClothing = detectedClothing;
+      console.log('Including user-specified clothing:', detectedClothing);
+    } else {
+      console.log('No clothing specified - letting AI decide');
+    }
+    
+    const frontResult = await makeRobustAPICall("/api/edit-scene-gpt-image-1", apiPayload, "Front card generation");
     const frontImageUrl = frontResult.imageUrl;
     console.log('Front card generated:', frontResult);
 
