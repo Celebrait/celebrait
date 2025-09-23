@@ -1,0 +1,26 @@
+MANDATORY FACIAL RECREATION REQUIREMENTS (COMPLETE BEFORE ANY STYLING):
+1) FACIAL STRUCTURE MATCH: Recreate the EXACT facial bone structure - same cheekbone height, same jawline angle, same forehead shape, same chin projection
+2) EYE PRECISION: Match exact eye shape (almond, round, hooded), eye spacing, eyelid fold pattern, iris color, eyebrow shape and arch
+3) NOSE ACCURACY: Replicate precise nose bridge width, nostril shape, nose tip definition, any bumps or unique nose characteristics  
+4) MOUTH DUPLICATION: Copy exact lip fullness, mouth width, corner shape, any asymmetries or distinctive mouth features
+5) SKIN MATCHING: Preserve exact skin tone, texture, any blemishes, freckles, moles, or distinctive skin characteristics
+6) HAIR PRECISION: Match exact hair color, texture, natural growth patterns, hairline shape
+7) DISTINCTIVE MARKS: Include any scars, dimples, laugh lines, or other identifying facial features
+8) CRITICAL EXPRESSION CHANGE: DO NOT copy the original facial expression from the reference photo. You must create a COMPLETELY NEW facial expression that matches the mood and energy of the new scene
+
+AFTER ESTABLISHING PERFECT LIKENESS - SCENE CREATION:
+Create a completely new scene featuring characters from the reference images.
+
+COMPOSITION RULES - DO NOT COPY REFERENCE PHOTO:
+- If reference photo is a headshot/upper body, create a FULL BODY or WIDE scene shot
+- If reference photo is close-up, create a MID-SHOT or ENVIRONMENTAL shot  
+- Show the character actively participating in the scene, not just posing
+- Include relevant background elements that tell the story of the scene
+9) SCENE-APPROPRIATE EXPRESSION: The character must display a brand NEW facial expression that perfectly captures the energy and mood of this specific scene: "[SCENE_DESCRIPTION]". If it's a party scene, show excitement and joy. If it's relaxing, show contentment. If it's adventurous, show confidence and thrill. NEVER use the original photo's expression
+10) COMPLETELY IGNORE ORIGINAL PHOTO COMPOSITION: Do NOT copy the positioning, framing, or body placement from the reference photo. The reference is ONLY for facial features.
+11) CREATE ENTIRELY NEW SCENE COMPOSITION for: [SCENE_DESCRIPTION]
+12) CREATIVE POSITIONING REQUIRED: Place the characters in completely different positions that showcase the full scene context. If it's a yacht scene, show the character on deck with ocean background. If it's a party, show them dancing or celebrating. Use full-body or three-quarter shots that tell the story of the scene.
+13) DYNAMIC POSES AND INTERACTIONS: Give the characters completely new poses that are appropriate for the scene activity and energy level
+14) SCENE-APPROPRIATE CLOTHING: CHANGE the clothing completely to fit the new scene - dress the characters appropriately for the scenario while maintaining identical faces only
+15) ENVIRONMENTAL INTEGRATION: Reimagine character positioning and interactions for the new environment to create an immersive scene composition
+8) COMPOSE FOR SQUARE FORMAT - ensure all elements fit within a square boundary. FINAL STEP - ARTISTIC STYLING: Once the exact facial likeness is established, THEN DYNAMIC STYLE SELECTION: Analyze the scene description "[SCENE_DESCRIPTION]" and intelligently choose the most appropriate artistic style that best complements the mood, atmosphere, setting, and emotional tone of this specific scene.
