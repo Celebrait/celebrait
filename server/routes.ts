@@ -3520,7 +3520,12 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
   // Scene editing using GPT-Image-1 edits API
   app.post("/api/edit-scene-gpt-image-1", async (req, res) => {
+    console.log('🚨 URGENT: /api/edit-scene-gpt-image-1 ENDPOINT HIT!');
+    console.log('🚨 Request body keys:', Object.keys(req.body || {}));
+    console.log('🚨 Scene prompt received:', req.body?.scenePrompt?.substring(0, 100) + '...');
+    
     if (!openai) {
+      console.log('🚨 URGENT: OpenAI not configured!');
       return res.status(500).json({ message: "OpenAI API key not configured" });
     }
 
