@@ -3520,28 +3520,21 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
   // Scene editing using GPT-Image-1 edits API
   app.post("/api/edit-scene-gpt-image-1", async (req, res) => {
-    console.log('🚨 URGENT: /api/edit-scene-gpt-image-1 ENDPOINT HIT!');
-    console.log('🚨 Request body keys:', Object.keys(req.body || {}));
-    console.log('🚨 Scene prompt received:', req.body?.scenePrompt?.substring(0, 100) + '...');
-    
     if (!openai) {
-      console.log('🚨 URGENT: OpenAI not configured!');
       return res.status(500).json({ message: "OpenAI API key not configured" });
     }
 
     try {
-      const { imageData, imageDataArray, scenePrompt, style, includeText, cardText, size = '1024x1024', userClothing, userArtStyle } = req.body;
+      const { imageData, imageDataArray, scenePrompt, style, includeText, cardText, userClothing, userArtStyle } = req.body;
+
+      // ALWAYS FORCE SQUARE ASPECT RATIO - IGNORE ANY SIZE PARAMETER
+      const size = '1024x1024';
 
       // Support both single image (legacy) and multiple images (new)
       const imagesToProcess = imageDataArray || (imageData ? [imageData] : []);
 
       if (imagesToProcess.length === 0 || !scenePrompt) {
         return res.status(400).json({ message: "Image data and scene description are required" });
-      }
-
-      // Validate size parameter
-      if (!['1024x1024', '1024x1536'].includes(size)) {
-        return res.status(400).json({ message: "Size must be either 1024x1024 or 1024x1536" });
       }
 
       console.log('🎯 STARTING /api/edit-scene-gpt-image-1 - SCENE EDIT REQUEST');
@@ -3559,12 +3552,9 @@ If just having a conversation (no suggestions), respond with valid JSON:
       
       // Build the complete prompt using naturally inclusive language
       const characterText = 'characters from the reference images';
-      const aspectDescription = size === '1024x1536' 
-        ? 'MANDATORY: Create a PORTRAIT composition with 2:3 aspect ratio (height is 1.5x the width). Full bleed portrait design with no borders, fill entire portrait frame.'
-        : 'MANDATORY: Create a perfectly SQUARE composition with equal width and height - NOT portrait, NOT landscape. Full bleed square design with no borders, fill entire square frame.';
-      const formatInstruction = size === '1024x1536' 
-        ? '8) COMPOSE FOR PORTRAIT FORMAT - ensure all elements fit within a portrait boundary'
-        : '8) COMPOSE FOR SQUARE FORMAT - ensure all elements fit within a square boundary';
+      // ALWAYS FORCE SQUARE ASPECT RATIO - NO PORTRAIT ALLOWED
+      const aspectDescription = 'MANDATORY: Create a perfectly SQUARE composition with equal width and height - NOT portrait, NOT landscape. Full bleed square design with no borders, fill entire square frame.';
+      const formatInstruction = 'COMPOSE FOR SQUARE FORMAT - ensure all elements fit within a square boundary';
       
       const faceAnalysisText = 'ANALYZE EACH FACE IN DETAIL';
       const faceRecreationText = 'RECREATE EACH IDENTICAL FACE';
@@ -3678,7 +3668,7 @@ ${styleSection}`;
         formData.append('prompt', fullPrompt);
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
-        formData.append('size', size);
+        formData.append('size', '1024x1024');
         formData.append('quality', 'low');
         formData.append('moderation', 'low');
         formData.append('background', 'auto');
