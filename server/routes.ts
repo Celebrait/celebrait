@@ -3539,7 +3539,9 @@ If just having a conversation (no suggestions), respond with valid JSON:
         return res.status(400).json({ message: "Size must be either 1024x1024 or 1024x1536" });
       }
 
-      console.log('Processing GPT-Image-1 scene edit request');
+      console.log('🎯 STARTING /api/edit-scene-gpt-image-1 - SCENE EDIT REQUEST');
+      console.log('Processing GPT-Image-1 scene edit request with scene:', scenePrompt);
+      console.log('Art style:', userArtStyle || 'AI_DECIDE');
       console.log('Number of images:', imagesToProcess.length);
       console.log('Scene prompt:', scenePrompt);
       console.log('Style:', style);
@@ -4209,6 +4211,11 @@ ${styleSection}`;
           });
         });
 
+        console.log('🎯 FRONT CARD /api/edit-scene-gpt-image-1 - EXACT PROMPT SENT TO GPT-IMAGE-1:');
+        console.log('=== DEBUG: FRONT CARD SCENE EDIT PROMPT START ===');
+        console.log(transformPrompt);
+        console.log('=== DEBUG: FRONT CARD SCENE EDIT PROMPT END ===');
+        
         formData.append('prompt', transformPrompt);
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
