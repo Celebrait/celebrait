@@ -3874,9 +3874,57 @@ ${styleSection}`;
 
       console.log('Front card image buffer size:', imageBuffer.length, 'bytes, MIME type:', mimeType);
 
+      // Parse inside message into structured greeting card components
+      const parseInsideMessage = (text: string) => {
+        const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        
+        // Look for greeting patterns (Dear X, Hi X, etc.)
+        const greetingPatterns = /^(dear|hi|hello|hey)\s+[^,]+[,]?/i;
+        // Look for signature patterns (Love X, From X, -X, etc.)
+        const signaturePatterns = /^(love|from|yours|sincerely|best|cheers|xoxo|\-|♥)\s*.+$/i;
+        
+        let greeting = null;
+        let message = [];
+        let signature = null;
+        
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          
+          if (i === 0 && greetingPatterns.test(line)) {
+            greeting = line;
+          } else if (i === lines.length - 1 && signaturePatterns.test(line)) {
+            signature = line;
+          } else if (signature === null && signaturePatterns.test(line)) {
+            signature = line;
+          } else {
+            message.push(line);
+          }
+        }
+        
+        // If no structured components found, treat as simple message
+        if (!greeting && !signature) {
+          return null;
+        }
+        
+        return {
+          dear: greeting,
+          message: message.join(' '),
+          from: signature
+        };
+      };
+      
+      const structuredData = parseInsideMessage(insideText);
+      console.log('Parsed inside message structure:', structuredData);
+      
       // Use the enhanced buildInsidePrompt function for proper style matching
       const { buildInsidePrompt } = await import('../shared/prompts');
-      const insideCardPrompt = buildInsidePrompt(insideText, artStyle || 'artistic');
+      const insideCardPrompt = buildInsidePrompt(
+        insideText, 
+        artStyle || 'artistic', 
+        undefined, 
+        undefined, 
+        structuredData
+      );
 
       console.log('Inside card prompt:', insideCardPrompt);
 
