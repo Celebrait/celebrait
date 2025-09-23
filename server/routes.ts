@@ -2032,6 +2032,11 @@ If just having a conversation (no suggestions), respond with valid JSON:
         enhancedFrontPrompt += `. CRITICAL REQUIREMENTS: 1) Recreate the exact composition, pose, and scene described. 2) Text must be large, bold, and clearly readable - positioned prominently. 3) Maintain the essence of the original while transforming the artistic style completely.`;
       }
 
+      console.log('🎯 FRONT CARD - EXACT PROMPT SENT TO GPT-IMAGE-1:');
+      console.log('=== DEBUG: FRONT CARD PROMPT START ===');
+      console.log(enhancedFrontPrompt);
+      console.log('=== DEBUG: FRONT CARD PROMPT END ===');
+      
       const frontImageGeneration = await openai.images.generate({
         model: "gpt-image-1",
         prompt: enhancedFrontPrompt,
@@ -3945,6 +3950,11 @@ ${styleSection}`;
         filename: `front-card.${mimeType}`,
         contentType: `image/${mimeType}`
       });
+      console.log('🎯 INSIDE CARD - EXACT PROMPT SENT TO GPT-IMAGE-1:');
+      console.log('=== DEBUG: INSIDE CARD PROMPT START ===');
+      console.log(insideCardPrompt);
+      console.log('=== DEBUG: INSIDE CARD PROMPT END ===');
+      
       formData.append('prompt', insideCardPrompt);
       formData.append('model', 'gpt-image-1');
       formData.append('n', '1');
