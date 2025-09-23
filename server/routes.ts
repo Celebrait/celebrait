@@ -2224,7 +2224,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       if (hasDetailedCharacters) {
         // Use the detailed prompt directly from the test page
         console.log('Using detailed character prompt from frontend:', frontPrompt);
-        console.log('🎯 EXACT FRONT PROMPT SENT TO GPT-IMAGE-1:', frontPrompt);
+        console.log('🎯 PATH 1 - SIMPLE TEXT PROMPT TO GPT-IMAGE-1:', frontPrompt);
 
         frontImageGeneration = await openai.images.generate({
           model: "gpt-image-1",
@@ -2264,7 +2264,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             });
           });
 
-          console.log('🎯 EXACT FRONT PROMPT SENT TO GPT-IMAGE-1 (FORM DATA):', frontPrompt);
+          console.log('🎯 PATH 1 - SIMPLE PROMPT + PHOTO TO GPT-IMAGE-1 EDITS:', frontPrompt);
           formData.append('prompt', frontPrompt);
           formData.append('model', 'gpt-image-1');
           formData.append('n', '1');
@@ -3612,7 +3612,7 @@ Choose the single artistic style that creates the most contextually appropriate,
       }
       fullPrompt = `${fullPrompt}. High-quality artistic rendering, professional artwork.`;
 
-      console.log('🎯 EXACT PROMPT SENT TO GPT-IMAGE-1:', fullPrompt);
+      console.log('🎯 PATH 2 - DETAILED FACIAL RECREATION TO GPT-IMAGE-1:', fullPrompt);
       console.log('Complete prompt for scene editing:', fullPrompt);
 
       try {
