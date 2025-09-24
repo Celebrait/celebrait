@@ -135,54 +135,44 @@ export function AIBrainstormChat({
 
   // Removed typing animation timing logic - messages appear instantly now
 
-  const handleInitialMessage = async () => {
-    // Show thinking animation
-    setConversationState(prev => ({ ...prev, isTyping: true }));
-    setIsLoading(true);
+  const handleInitialMessage = () => {
+    // Create preset initial message based on context - no API call needed
+    let presetMessage = `Hello ${userName}! I'm here to help you create the perfect`;
     
-    try {
-      const response = await apiRequest("POST", "/api/ai-brainstorm", {
-        type,
-        userInput: "Start conversation",
-        recipientName,
-        celebration,
-        conversationStep: conversationState.currentStep,
-        conversationHistory: [], // Empty for initial message
-        photoContext,
-        userName,
-        collectedInfo: conversationState.collectedInfo
-      });
-
-      const result = await response.json();
-      
-      // Wait a moment for thinking, then show message instantly (no typing for first message)
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const initialMessage: ChatMessage = {
-        role: "assistant",
-        content: result.response,
-        timestamp: new Date()
-      };
-      
-      setMessages([initialMessage]);
-      
-    } catch (error) {
-      console.error('Initial AI message error:', error);
-      // Fallback to simple message if API fails
-      const fallbackMessage = `Hello ${userName}! I'm here to help you create a detailed scene description for your ${celebration} card. Let's start with the setting - where should this scene take place?`;
-      
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const fallbackMessageObj: ChatMessage = {
-        role: "assistant",
-        content: fallbackMessage,
-        timestamp: new Date()
-      };
-      
-      setMessages([fallbackMessageObj]);
-    } finally {
-      setConversationState(prev => ({ ...prev, isTyping: false }));
-      setIsLoading(false);
+    if (type === "scene") {
+      presetMessage += ` scene description for ${recipientName}'s ${celebration} card.`;
+      if (photoContext && photoContext.trim()) {
+        presetMessage += ` I can see you've uploaded a photo, so I'll help you create a scene that incorporates that image.`;
+      }
+      presetMessage += `\n\nLet's start with the setting - where would you like this scene to take place?`;
+    } else if (type === "art_style") {
+      presetMessage += ` art style for ${recipientName}'s ${celebration} card.\n\nI can suggest different artistic styles that would work beautifully for your card. What kind of mood or feeling are you going for?`;
+    }
+    
+    // Show preset message immediately - no delay, no API call, no thinking animation
+    const initialMessage: ChatMessage = {
+      role: "assistant",
+      content: presetMessage,
+      timestamp: new Date()
+    };
+    
+    setMessages([initialMessage]);
+    
+    // Set up initial conversation state for the type
+    setConversationState(prev => ({
+      ...prev,
+      isTyping: false,
+      showSuggestions: type === "scene"
+    }));
+    
+    // Add some initial suggestions for scene type
+    if (type === "scene") {
+      setSuggestions([
+        "At home in a cozy living room",
+        "Outdoors in a beautiful garden", 
+        "At a fancy restaurant",
+        "On a beach at sunset"
+      ]);
     }
   };
   
