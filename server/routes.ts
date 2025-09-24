@@ -3808,22 +3808,20 @@ ${styleSection}`;
     } catch (error: any) {
       console.error('GPT-Image-1 scene edit error:', error);
 
-      let errorMessage = 'Scene editing failed';
-      let isSafetyError = false;
+      // Use enhanced error handler
+      const { mapOpenAIError } = await import('../shared/openaiErrorHandler');
+      const mappedError = mapOpenAIError(error);
       
-      if (error.message?.includes('moderation')) {
-        errorMessage = 'Content moderation detected unsafe content in the image or prompt';
-        isSafetyError = true;
-      } else if (error.message?.includes('special access')) {
-        errorMessage = 'GPT-Image-1 requires special access permissions from OpenAI';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
+      console.log('🔍 MAPPED ERROR:', mappedError);
 
-      res.status(500).json({ 
-        message: errorMessage, 
-        isSafetyError,
-        errorType: isSafetyError ? 'safety_filter' : 'general_error'
+      res.status(mappedError.http).json({ 
+        message: mappedError.userMessage, 
+        isSafetyError: mappedError.kind === 'safety',
+        errorType: mappedError.kind === 'safety' ? 'safety_filter' : mappedError.kind,
+        errorKind: mappedError.kind,
+        title: mappedError.title,
+        techMessage: mappedError.techMessage,
+        code: mappedError.code
       });
     }
   });
@@ -4078,22 +4076,20 @@ ${styleSection}`;
     } catch (error: any) {
       console.error('Inside card generation error:', error);
 
-      let errorMessage = 'Inside card generation failed';
-      let isSafetyError = false;
+      // Use enhanced error handler
+      const { mapOpenAIError } = await import('../shared/openaiErrorHandler');
+      const mappedError = mapOpenAIError(error);
       
-      if (error.message?.includes('moderation')) {
-        errorMessage = 'Content moderation detected unsafe content in the text or image';
-        isSafetyError = true;
-      } else if (error.message?.includes('special access')) {
-        errorMessage = 'GPT-Image-1 requires special access permissions from OpenAI';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
+      console.log('🔍 MAPPED ERROR:', mappedError);
 
-      res.status(500).json({ 
-        message: errorMessage, 
-        isSafetyError,
-        errorType: isSafetyError ? 'safety_filter' : 'general_error'
+      res.status(mappedError.http).json({ 
+        message: mappedError.userMessage, 
+        isSafetyError: mappedError.kind === 'safety',
+        errorType: mappedError.kind === 'safety' ? 'safety_filter' : mappedError.kind,
+        errorKind: mappedError.kind,
+        title: mappedError.title,
+        techMessage: mappedError.techMessage,
+        code: mappedError.code
       });
     }
   });

@@ -587,6 +587,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [showAllOptions, setShowAllOptions] = useState<Record<string, boolean>>({});
   const [showCustomInput, setShowCustomInput] = useState<Record<string, boolean>>({});
   const [showSafetyModal, setShowSafetyModal] = useState(false);
+  const [safetyError, setSafetyError] = useState<{
+    title?: string;
+    message?: string;
+    kind?: string;
+    code?: string;
+  } | null>(null);
   const [editingStep, setEditingStep] = useState<string | null>(null);
   const [returnToSummary, setReturnToSummary] = useState(false);
   const [uploadedPhotoIds, setUploadedPhotoIds] = useState<string[]>([]);
@@ -2070,6 +2076,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       if (error?.isSafetyError || error?.errorType === 'safety_filter' || 
           (error?.message && error.message.includes('moderation'))) {
         console.log('✅ SAFETY ERROR DETECTED - Showing safety modal instead of toast');
+        
+        // Extract enhanced error information
+        setSafetyError({
+          title: error?.title || 'Safety System Alert',
+          message: error?.message || 'Content flagged by our safety system',
+          kind: error?.errorKind || 'safety',
+          code: error?.code || 'content_policy_violation'
+        });
+        
         setShowSafetyModal(true);
         return; // Don't show the toast, show the modal instead
       }
@@ -4168,11 +4183,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       {/* Safety Guide Modal */}
       <SafetyGuideModal
         isOpen={showSafetyModal}
-        onClose={() => setShowSafetyModal(false)}
+        onClose={() => {
+          setShowSafetyModal(false);
+          setSafetyError(null);
+        }}
         onRetry={() => {
           setShowSafetyModal(false);
+          setSafetyError(null);
           actuallyGenerateCard();
         }}
+        errorTitle={safetyError?.title}
+        errorMessage={safetyError?.message}
+        errorKind={safetyError?.kind as any}
+        errorCode={safetyError?.code}
       />
     </div>
   );

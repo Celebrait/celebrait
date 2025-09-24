@@ -21,6 +21,10 @@ interface SafetyGuideModalProps {
   onClose: () => void;
   onRetry: () => void;
   detectedIssues?: string[];
+  errorTitle?: string;
+  errorMessage?: string;
+  errorKind?: 'safety' | 'auth' | 'rate' | 'server' | 'invalid';
+  errorCode?: string;
 }
 
 const safetyCategories: SafetyIssue[] = [
@@ -80,23 +84,46 @@ const getRiskBadge = (level: 'low' | 'medium' | 'high') => {
   }
 };
 
-export function SafetyGuideModal({ isOpen, onClose, onRetry, detectedIssues }: SafetyGuideModalProps) {
+export function SafetyGuideModal({ 
+  isOpen, 
+  onClose, 
+  onRetry, 
+  detectedIssues, 
+  errorTitle, 
+  errorMessage, 
+  errorKind, 
+  errorCode 
+}: SafetyGuideModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" data-testid="modal-safety-guide">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Shield className="h-6 w-6 text-blue-600" />
-            AI Safety Check Triggered
+            {errorTitle || "AI Safety Check Triggered"}
           </DialogTitle>
           <DialogDescription className="text-base text-gray-600">
-            Our AI safety system has flagged your content. Don't worry - this happens occasionally! 
-            Here's what might have caused it and how to fix it:
+            {errorMessage || "Our AI safety system has flagged your content. Don't worry - this happens occasionally! Here's what might have caused it and how to fix it:"}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 mt-4">
-          {safetyCategories.map((issue, index) => (
+          {/* Show enhanced error info if available */}
+          {errorKind && errorCode && (
+            <div className="bg-gray-50 border rounded-lg p-4 mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                <span className="font-medium text-gray-900">Error Details</span>
+              </div>
+              <div className="text-sm text-gray-700">
+                <p><strong>Type:</strong> {errorKind}</p>
+                <p><strong>Code:</strong> {errorCode}</p>
+              </div>
+            </div>
+          )}
+          
+          {/* Show safety guidance only for safety errors or when no specific error kind */}
+          {(!errorKind || errorKind === 'safety') && safetyCategories.map((issue, index) => (
             <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
               <div className="flex items-start justify-between mb-2">
                 <h4 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -125,6 +152,30 @@ export function SafetyGuideModal({ isOpen, onClose, onRetry, detectedIssues }: S
               )}
             </div>
           ))}
+          
+          {/* Show different guidance for non-safety errors */}
+          {errorKind && errorKind !== 'safety' && (
+            <div className="border rounded-lg p-4 bg-blue-50">
+              <div className="flex items-center gap-2 mb-2">
+                <Info className="h-4 w-4 text-blue-600" />
+                <span className="font-medium text-blue-900">What to try next:</span>
+              </div>
+              <div className="text-sm text-blue-800">
+                {errorKind === 'rate' && (
+                  <p>Wait a few moments and try again. The AI service is temporarily busy.</p>
+                )}
+                {errorKind === 'auth' && (
+                  <p>There's an authentication issue with the AI service. Please contact support if this persists.</p>
+                )}
+                {errorKind === 'server' && (
+                  <p>The AI service is experiencing technical difficulties. Please try again in a few moments.</p>
+                )}
+                {errorKind === 'invalid' && (
+                  <p>Please check your input and try making small adjustments to your request.</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="border-t pt-4 mt-6">
