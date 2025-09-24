@@ -179,7 +179,7 @@ To get us started, where would you like the scene to take place?`;
     await addTypingAnimation(restartMessage, 1200);
   };
 
-  const addTypingAnimation = async (content: string, initialDelay: number = 200) => {
+  const addTypingAnimation = async (content: string, initialDelay: number = 50) => {
     // Set typing state
     setConversationState(prev => ({ ...prev, isTyping: true }));
     setIsLoading(true);
@@ -199,7 +199,7 @@ To get us started, where would you like the scene to take place?`;
     setIsLoading(false);
     
     // Progressive typing animation - Much faster speed
-    const typingSpeed = 3; // milliseconds per character (much faster for better UX)
+    const typingSpeed = 1; // milliseconds per character (ultra fast for better UX)
     let currentIndex = 0;
     
     const typeNextCharacter = () => {
@@ -208,7 +208,7 @@ To get us started, where would you like the scene to take place?`;
         const partialContent = content.substring(0, currentIndex + 1);
         
         // Batch multiple character updates for better performance on mobile
-        const batchSize = 3; // Update 3 characters at once for smoother mobile performance
+        const batchSize = 5; // Update 5 characters at once for smoother mobile performance
         const endIndex = Math.min(currentIndex + batchSize, content.length);
         const batchContent = content.substring(0, endIndex);
         
@@ -229,9 +229,9 @@ To get us started, where would you like the scene to take place?`;
         // Vary typing speed for more natural feel (optimized for mobile)
         let nextDelay = typingSpeed * batchSize;
         if (currentChar === '.' || currentChar === '!' || currentChar === '?') {
-          nextDelay = typingSpeed * 2; // Shorter pause after sentences
+          nextDelay = typingSpeed * 1; // Minimal pause after sentences
         } else if (currentChar === ',' || currentChar === ';') {
-          nextDelay = typingSpeed * 1.5; // Shorter pause after commas
+          nextDelay = typingSpeed * 1; // Minimal pause after commas
         }
         
         setTimeout(typeNextCharacter, nextDelay);
