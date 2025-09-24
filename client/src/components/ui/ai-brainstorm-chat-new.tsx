@@ -136,18 +136,12 @@ export function AIBrainstormChat({
   // Removed typing animation timing logic - messages appear instantly now
 
   const handleInitialMessage = () => {
-    // Create preset initial message based on context - no API call needed
-    let presetMessage = `Hello ${userName}! I'm here to help you create the perfect`;
-    
-    if (type === "scene") {
-      presetMessage += ` scene description for ${recipientName}'s ${celebration} card.`;
-      if (photoContext && photoContext.trim()) {
-        presetMessage += ` I can see you've uploaded a photo, so I'll help you create a scene that incorporates that image.`;
-      }
-      presetMessage += `\n\nLet's start with the setting - where would you like this scene to take place?`;
-    } else if (type === "art_style") {
-      presetMessage += ` art style for ${recipientName}'s ${celebration} card.\n\nI can suggest different artistic styles that would work beautifully for your card. What kind of mood or feeling are you going for?`;
-    }
+    // Use exact preset message as specified
+    const presetMessage = `Greetings! ✨ I'm here to help you create an amazing scene for the front of ${recipientName}'s ${celebration} card.
+
+For this first question, I'll need you to type your own creative input, but throughout the rest of our conversation you can either type your ideas or ask me for suggestions anytime.
+
+To get us started, where would you like the scene to take place?`;
     
     // Show preset message immediately - no delay, no API call, no thinking animation
     const initialMessage: ChatMessage = {
@@ -158,22 +152,12 @@ export function AIBrainstormChat({
     
     setMessages([initialMessage]);
     
-    // Set up initial conversation state for the type
+    // Set up initial conversation state
     setConversationState(prev => ({
       ...prev,
       isTyping: false,
-      showSuggestions: type === "scene"
+      showSuggestions: false // No suggestions initially as requested
     }));
-    
-    // Add some initial suggestions for scene type
-    if (type === "scene") {
-      setSuggestions([
-        "At home in a cozy living room",
-        "Outdoors in a beautiful garden", 
-        "At a fancy restaurant",
-        "On a beach at sunset"
-      ]);
-    }
   };
   
   const handleStartOver = async () => {
