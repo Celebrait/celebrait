@@ -127,85 +127,258 @@ export function generateCardPreviewEmail(cardData: any, previewUrl: string): Ema
   return {
     to: cardData.email,
     from: 'greetings@celebrait.co.za',
-    subject: `🎉 ${recipientName || 'Your loved one'}'s ${celebrationType} card is ready!`,
+    subject: `${recipientName}'s ${celebrationType} card is ready to preview! 🎉`,
     html: `
       <!DOCTYPE html>
       <html>
       <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your Celebrait Card is Ready!</title>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: bold; }
-          .preview-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px dashed #667eea; }
-          .footer { text-align: center; margin-top: 30px; color: #666; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #1a1a1a; 
+            background: #f8f9fa;
+            padding: 20px 0;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(139, 92, 246, 0.1);
+          }
+          .header { 
+            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); 
+            color: white; 
+            padding: 40px 30px; 
+            text-align: center; 
+          }
+          .logo {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+          }
+          .header h1 { 
+            font-size: 28px; 
+            font-weight: 700; 
+            margin-bottom: 8px; 
+            letter-spacing: -0.5px;
+          }
+          .header p { 
+            font-size: 16px; 
+            opacity: 0.9; 
+            font-weight: 400;
+          }
+          .content { 
+            padding: 40px 30px; 
+          }
+          .greeting {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+          }
+          .message {
+            font-size: 16px;
+            color: #4a5568;
+            margin-bottom: 30px;
+            line-height: 1.7;
+          }
+          .card-highlight {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 30px 0;
+            position: relative;
+            overflow: hidden;
+          }
+          .card-highlight::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #8b5cf6, #ec4899);
+            margin: -2px;
+            border-radius: 12px;
+            z-index: -1;
+          }
+          .card-highlight h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 12px;
+          }
+          .card-highlight p {
+            color: #4a5568;
+            margin-bottom: 20px;
+          }
+          .button { 
+            display: inline-block; 
+            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); 
+            color: white; 
+            padding: 16px 32px; 
+            text-decoration: none; 
+            border-radius: 12px; 
+            font-weight: 600; 
+            font-size: 16px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+          }
+          .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+          }
+          .button-center {
+            text-align: center;
+            margin: 30px 0;
+          }
+          .features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+          }
+          .feature {
+            text-align: center;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+          }
+          .feature-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+          }
+          .feature h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 4px;
+          }
+          .feature p {
+            font-size: 12px;
+            color: #718096;
+          }
+          .footer { 
+            background: #f8fafc;
+            padding: 30px; 
+            text-align: center; 
+            border-top: 1px solid #e2e8f0;
+          }
+          .footer p {
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 8px;
+          }
+          .footer .brand {
+            color: #4a5568;
+            font-weight: 600;
+            margin-bottom: 16px;
+          }
+          @media (max-width: 600px) {
+            .features { grid-template-columns: 1fr; }
+            .content { padding: 30px 20px; }
+            .header { padding: 30px 20px; }
+            .greeting { font-size: 20px; }
+          }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>✨ Your Card Preview is Ready!</h1>
-            <p>See how amazing ${recipientName || 'your card'} looks</p>
+            <div class="logo">🎉</div>
+            <h1>Your Card is Ready!</h1>
+            <p>Time to see your amazing creation</p>
           </div>
+          
           <div class="content">
-            <h2>Hi ${customerName || 'there'}! 👋</h2>
-            <p>Great news! Your personalized ${celebrationType} card for <strong>${recipientName}</strong> has been generated and is ready for preview.</p>
+            <div class="greeting">Greetings, ${customerName || 'friend'}!</div>
             
-            <div class="preview-box">
-              <h3>🎨 Your Custom Card</h3>
-              <p>Take a look at your beautifully designed card and see if it's exactly what you imagined. You can always make changes before ordering!</p>
+            <div class="message">
+              Welcome to Celebrait! We're thrilled to let you know that <strong>${recipientName}'s ${celebrationType} card</strong> has been beautifully created and is ready for you to preview.
+            </div>
+            
+            <div class="card-highlight">
+              <h3>🎨 ${recipientName}'s ${celebrationType} card</h3>
+              <p>Your personalized design is waiting! Take a moment to preview your card and see how every detail came together perfectly.</p>
               
-              <div style="text-align: center;">
-                <a href="${previewUrl}" class="button">👀 VIEW YOUR CARD PREVIEW</a>
+              <div class="button-center">
+                <a href="${previewUrl}" class="button">Preview & Purchase Your Card</a>
               </div>
             </div>
             
-            <h3>What's Next?</h3>
-            <ul>
-              <li>✅ Preview your card design</li>
-              <li>💝 Choose digital delivery or printed card</li>
-              <li>🛒 Complete your order (from R129)</li>
-              <li>📧 Receive your final card</li>
-            </ul>
-            
-            <p><strong>💡 Pro tip:</strong> This preview link is saved for you - come back anytime to view or order your card!</p>
-            
-            <div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin: 20px 0;">
-              <p style="margin: 0;"><strong>Questions?</strong> Our team is here to help! Simply reply to this email or contact us at support@celebrait.co.za</p>
+            <div class="features">
+              <div class="feature">
+                <div class="feature-icon">👀</div>
+                <h4>Preview First</h4>
+                <p>See your card before ordering</p>
+              </div>
+              <div class="feature">
+                <div class="feature-icon">💝</div>
+                <h4>Choose Delivery</h4>
+                <p>Digital or printed options</p>
+              </div>
+              <div class="feature">
+                <div class="feature-icon">✨</div>
+                <h4>AI-Crafted</h4>
+                <p>Personalized just for ${recipientName}</p>
+              </div>
+              <div class="feature">
+                <div class="feature-icon">🚀</div>
+                <h4>Quick Order</h4>
+                <p>From R129, ready in minutes</p>
+              </div>
             </div>
             
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${previewUrl}" class="button">🚀 COMPLETE YOUR ORDER NOW</a>
+            <div style="background: linear-gradient(135deg, #f0f4ff 0%, #fef7ff 100%); padding: 20px; border-radius: 12px; margin: 30px 0; text-align: center;">
+              <p style="color: #6b46c1; font-weight: 600; margin: 0;">Questions? We're here to help!</p>
+              <p style="color: #7c3aed; font-size: 14px; margin: 8px 0 0;">Reply to this email or contact support@celebrait.co.za</p>
             </div>
           </div>
+          
           <div class="footer">
-            <p>Made with ❤️ by Celebrait | Creating memories, one card at a time</p>
-            <p>© 2025 Celebrait. All rights reserved.</p>
-            <p style="font-size: 12px; color: #999;">You received this email because you created a card on Celebrait. <a href="#">Unsubscribe</a></p>
+            <p class="brand">Celebrait</p>
+            <p>Creating memories, one card at a time</p>
+            <p style="font-size: 12px; margin-top: 16px;">© 2025 Celebrait. All rights reserved.</p>
           </div>
         </div>
       </body>
       </html>
     `,
     text: `
-Card Preview Ready - Celebrait
+Greetings, ${customerName || 'friend'}!
 
-Hi ${customerName || 'there'}!
+Welcome to Celebrait! ${recipientName}'s ${celebrationType} card has been beautifully created and is ready for preview.
 
-Your personalized ${celebrationType} card for ${recipientName} is ready for preview.
+Your personalized card is waiting! Preview and purchase: ${previewUrl}
 
-View your card: ${previewUrl}
-
-What's next:
-✅ Preview your card design
-💝 Choose digital or printed delivery  
-🛒 Complete your order (from R129)
-📧 Receive your final card
+What you can do:
+👀 Preview your card design
+💝 Choose digital or printed delivery
+🚀 Complete your order from R129
+✨ Celebrate with ${recipientName}
 
 Questions? Contact us at support@celebrait.co.za
 
-© 2025 Celebrait
+© 2025 Celebrait - Creating memories, one card at a time
     `
   };
 }
@@ -268,66 +441,206 @@ export function generateCardReadyNotificationEmail(orderData: any, host?: string
 
   // Send users to card preview first, then they'll proceed to delivery details
   const nextStepUrl = `https://${actualHost}/card-preview/${paymentReference}`;
-  const nextStepText = 'View Your Card';
-    
-  const descriptionText = 'Your personalized greeting card has been generated and is ready to view! Click the button below to see your creation.';
 
   return {
     to: customerEmail,
     from: 'greetings@celebrait.co.za',
-    subject: 'Your Celebrait Card is Ready to View! 🎉',
+    subject: 'Your Celebrait card is ready to view! 🎉',
     html: `
       <!DOCTYPE html>
       <html>
       <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your Celebrait Card is Ready!</title>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .button-section { text-align: center; margin: 30px 0; }
-          .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px; }
-          .footer { text-align: center; margin-top: 30px; color: #666; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #1a1a1a; 
+            background: #f8f9fa;
+            padding: 20px 0;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(139, 92, 246, 0.1);
+          }
+          .header { 
+            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); 
+            color: white; 
+            padding: 40px 30px; 
+            text-align: center; 
+          }
+          .logo {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+          }
+          .header h1 { 
+            font-size: 28px; 
+            font-weight: 700; 
+            margin-bottom: 8px; 
+            letter-spacing: -0.5px;
+          }
+          .header p { 
+            font-size: 16px; 
+            opacity: 0.9; 
+            font-weight: 400;
+          }
+          .content { 
+            padding: 40px 30px; 
+          }
+          .greeting {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+          }
+          .message {
+            font-size: 16px;
+            color: #4a5568;
+            margin-bottom: 30px;
+            line-height: 1.7;
+          }
+          .card-highlight {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 30px 0;
+            position: relative;
+            overflow: hidden;
+          }
+          .card-highlight::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #8b5cf6, #ec4899);
+            margin: -2px;
+            border-radius: 12px;
+            z-index: -1;
+          }
+          .card-highlight h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 12px;
+          }
+          .card-highlight p {
+            color: #4a5568;
+            margin-bottom: 20px;
+          }
+          .button { 
+            display: inline-block; 
+            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); 
+            color: white; 
+            padding: 16px 32px; 
+            text-decoration: none; 
+            border-radius: 12px; 
+            font-weight: 600; 
+            font-size: 16px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+          }
+          .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+          }
+          .button-center {
+            text-align: center;
+            margin: 30px 0;
+          }
+          .footer { 
+            background: #f8fafc;
+            padding: 30px; 
+            text-align: center; 
+            border-top: 1px solid #e2e8f0;
+          }
+          .footer p {
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 8px;
+          }
+          .footer .brand {
+            color: #4a5568;
+            font-weight: 600;
+            margin-bottom: 16px;
+          }
+          @media (max-width: 600px) {
+            .content { padding: 30px 20px; }
+            .header { padding: 30px 20px; }
+            .greeting { font-size: 20px; }
+          }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>🎉 Your Card is Ready!</h1>
-            <p>Time to view your personalized Celebrait card!</p>
+            <div class="logo">🎉</div>
+            <h1>Your Card is Ready!</h1>
+            <p>Your personalized creation awaits</p>
           </div>
+          
           <div class="content">
-            <h2>Hi ${customerName}!</h2>
-            <p>${descriptionText}</p>
-
-            <div class="button-section">
-              <a href="${nextStepUrl}" class="button">${nextStepText}</a>
-              <p style="margin-top: 15px; color: #666; font-size: 14px;">
-                Or copy this link: ${nextStepUrl}
-              </p>
+            <div class="greeting">Greetings, ${customerName || 'friend'}!</div>
+            
+            <div class="message">
+              Fantastic news! Your personalized greeting card has been beautifully generated and is ready for you to view and enjoy.
+            </div>
+            
+            <div class="card-highlight">
+              <h3>🎨 Your custom card is ready</h3>
+              <p>Take a moment to see your beautiful creation. You can preview, download, or share your card right away!</p>
+              
+              <div class="button-center">
+                <a href="${nextStepUrl}" class="button">View Your Card Now</a>
+              </div>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #f0f4ff 0%, #fef7ff 100%); padding: 20px; border-radius: 12px; margin: 30px 0; text-align: center;">
+              <p style="color: #6b46c1; font-weight: 600; margin: 0;">Questions? We're here to help!</p>
+              <p style="color: #7c3aed; font-size: 14px; margin: 8px 0 0;">Reply to this email or contact support@celebrait.co.za</p>
             </div>
           </div>
-
+          
           <div class="footer">
-            <p>Thank you for choosing Celebrait!</p>
-            <p style="font-size: 12px; color: #999;">
-              © 2025 Celebrait. All rights reserved.
-            </p>
+            <p class="brand">Celebrait</p>
+            <p>Creating memories, one card at a time</p>
+            <p style="font-size: 12px; margin-top: 16px;">© 2025 Celebrait. All rights reserved.</p>
           </div>
         </div>
+      </body>
+      </html>
     `,
     text: `
-Your Celebrait Card is Ready to View!
+Greetings, ${customerName || 'friend'}!
 
-Hi ${customerName}!
+Fantastic news! Your personalized greeting card has been beautifully generated and is ready for you to view.
 
-${descriptionText}
+View your card now: ${nextStepUrl}
 
-${nextStepText}: ${nextStepUrl}
+Questions? Contact us at support@celebrait.co.za
 
-Thank you for choosing Celebrait!
-
-© 2025 Celebrait. All rights reserved.
+© 2025 Celebrait - Creating memories, one card at a time
     `
   };
 }
