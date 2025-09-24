@@ -179,7 +179,7 @@ To get us started, where would you like the scene to take place?`;
     await addTypingAnimation(restartMessage, 1200);
   };
 
-  const addTypingAnimation = async (content: string, initialDelay: number = 500) => {
+  const addTypingAnimation = async (content: string, initialDelay: number = 200) => {
     // Set typing state
     setConversationState(prev => ({ ...prev, isTyping: true }));
     setIsLoading(true);
@@ -199,7 +199,7 @@ To get us started, where would you like the scene to take place?`;
     setIsLoading(false);
     
     // Progressive typing animation - Much faster speed
-    const typingSpeed = 8; // milliseconds per character (much faster for better UX)
+    const typingSpeed = 3; // milliseconds per character (much faster for better UX)
     let currentIndex = 0;
     
     const typeNextCharacter = () => {
@@ -229,9 +229,9 @@ To get us started, where would you like the scene to take place?`;
         // Vary typing speed for more natural feel (optimized for mobile)
         let nextDelay = typingSpeed * batchSize;
         if (currentChar === '.' || currentChar === '!' || currentChar === '?') {
-          nextDelay = typingSpeed * 4; // Pause after sentences
+          nextDelay = typingSpeed * 2; // Shorter pause after sentences
         } else if (currentChar === ',' || currentChar === ';') {
-          nextDelay = typingSpeed * 3; // Pause after commas
+          nextDelay = typingSpeed * 1.5; // Shorter pause after commas
         }
         
         setTimeout(typeNextCharacter, nextDelay);
