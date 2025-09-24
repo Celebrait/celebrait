@@ -674,7 +674,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     "80s neon style",
     "Anime style",
     "Polaroid photography",
-    "Art deco style"
+    "Art deco style",
+    "Netflix series style",
+    "Magazine cover style",
+    "Movie poster style",
+    "Sketch style",
+    "Pastel aesthetic",
+    "Grunge style",
+    "Retro gaming style",
+    "Fashion magazine style",
+    "Street photography",
+    "Cyberpunk style"
   ];
 
   const steps: ConversationStep[] = [
