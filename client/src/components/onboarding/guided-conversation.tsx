@@ -655,26 +655,26 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   // Art style examples that rapidly change in the placeholder with typing effect
   const artStyleExamples = [
-    "Watercolour painting (like Claude Monet)",
-    "Digital artwork (like Spider-Verse animation)", 
-    "Oil painting (like Van Gogh's Starry Night)",
-    "Anime style (like Studio Ghibli films)",
-    "Comic book style (like Marvel illustrations)",
-    "Vintage poster (like 1950s British adverts)",
-    "Impressionist painting (like Renoir)",
-    "Photography style (like Annie Leibovitz)",
-    "Minimalist design (like Apple aesthetics)",
-    "Renaissance art (like Leonardo da Vinci)",
-    "Pop art (like Andy Warhol)",
-    "Abstract art (like Picasso)",
-    "Pencil sketch (like Disney concept artwork)",
-    "Storybook illustration (like children's picture books)",
-    "Art nouveau (like Alphonse Mucha)",
-    "Surrealist painting (like Salvador Dalí)",
-    "Street art (like Banksy murals)",
-    "Pixel art (like retro computer games)",
-    "Geometric art (like Piet Mondrian)",
-    "Fantasy artwork (like Lord of the Rings)"
+    "Watercolor painting",
+    "90s sitcom style", 
+    "Photography style",
+    "Cartoon style",
+    "90s retro aesthetic",
+    "Digital art",
+    "Vintage poster",
+    "TikTok filter style",
+    "Pop art",
+    "Studio Ghibli style",
+    "Instagram aesthetic",
+    "Comic book style",
+    "Disney animation",
+    "Oil painting",
+    "Y2K aesthetic",
+    "Minimalist design",
+    "80s neon style",
+    "Anime style",
+    "Polaroid photography",
+    "Art deco style"
   ];
 
   const steps: ConversationStep[] = [
