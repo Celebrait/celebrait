@@ -9,6 +9,8 @@ import founder1 from "@/assets/founder1.png";
 import founder2 from "@/assets/founder2.png";
 import cardExample1Front from "@assets/image_1758792931055.png";
 import cardExample1Inside from "@assets/image_1758792941633.png";
+import cardExample2Front from "@assets/image_1758809123282.png";
+import cardExample2Inside from "@assets/image_1758809131632.png";
 
 // Card carousel images - replace these with your actual card images
 const cardImages = [
@@ -19,10 +21,10 @@ const cardImages = [
     insideAlt: "Birthday celebration card inside message"
   },
   {
-    front: sampleCard, // Replace with your second card front image
-    inside: sampleCard, // Replace with your second card inside image  
-    frontAlt: "Anniversary card front",
-    insideAlt: "Anniversary card inside"
+    front: cardExample2Front,
+    inside: cardExample2Inside,
+    frontAlt: "Congratulations award ceremony card front",
+    insideAlt: "Congratulations card inside message"
   },
   {
     front: sampleCard, // Replace with your third card front image
