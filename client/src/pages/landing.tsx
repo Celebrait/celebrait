@@ -7,14 +7,16 @@ import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import sampleCard from "@/assets/sample-card.jpeg";
 import founder1 from "@/assets/founder1.png";
 import founder2 from "@/assets/founder2.png";
+import cardExample1Front from "@assets/image_1758792931055.png";
+import cardExample1Inside from "@assets/image_1758792941633.png";
 
 // Card carousel images - replace these with your actual card images
 const cardImages = [
   {
-    front: sampleCard,
-    inside: sampleCard,
-    frontAlt: "Birthday celebration card front",
-    insideAlt: "Birthday celebration card inside"
+    front: cardExample1Front,
+    inside: cardExample1Inside,
+    frontAlt: "Birthday fairy celebration card front",
+    insideAlt: "Birthday celebration card inside message"
   },
   {
     front: sampleCard, // Replace with your second card front image
