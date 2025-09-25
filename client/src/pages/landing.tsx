@@ -12,44 +12,32 @@ import cardExample1Inside from "@assets/image_1758792941633.png";
 import cardExample2Front from "@assets/image_1758809123282.png";
 import cardExample2Inside from "@assets/image_1758809131632.png";
 
-// Card carousel images - replace these with your actual card images
-const cardImages = [
-  {
-    front: cardExample1Front,
-    inside: cardExample1Inside,
-    frontAlt: "Birthday fairy celebration card front",
-    insideAlt: "Birthday celebration card inside message"
-  },
-  {
-    front: cardExample2Front,
-    inside: cardExample2Inside,
-    frontAlt: "Congratulations award ceremony card front",
-    insideAlt: "Congratulations card inside message"
-  },
-  {
-    front: sampleCard, // Replace with your third card front image
-    inside: sampleCard, // Replace with your third card inside image
-    frontAlt: "Wedding card front", 
-    insideAlt: "Wedding card inside"
-  },
-  {
-    front: sampleCard, // Replace with your fourth card front image
-    inside: sampleCard, // Replace with your fourth card inside image
-    frontAlt: "Graduation card front",
-    insideAlt: "Graduation card inside"
-  },
-  {
-    front: sampleCard, // Replace with your fifth card front image
-    inside: sampleCard, // Replace with your fifth card inside image
-    frontAlt: "Baby shower card front",
-    insideAlt: "Baby shower card inside"
-  },
-  {
-    front: sampleCard, // Replace with your sixth card front image
-    inside: sampleCard, // Replace with your sixth card inside image
-    frontAlt: "Holiday card front",
-    insideAlt: "Holiday card inside"
-  }
+// Card carousel images - 24 individual image slots
+const carouselImages = [
+  { src: cardExample1Front, alt: "Birthday fairy celebration card front" },
+  { src: cardExample1Inside, alt: "Birthday celebration card inside message" },
+  { src: cardExample2Front, alt: "Congratulations award ceremony card front" },
+  { src: cardExample2Inside, alt: "Congratulations card inside message" },
+  { src: sampleCard, alt: "Wedding card example" },
+  { src: sampleCard, alt: "Graduation card example" },
+  { src: sampleCard, alt: "Baby shower card example" },
+  { src: sampleCard, alt: "Holiday card example" },
+  { src: sampleCard, alt: "Anniversary card example" },
+  { src: sampleCard, alt: "Thank you card example" },
+  { src: sampleCard, alt: "Retirement card example" },
+  { src: sampleCard, alt: "New home card example" },
+  { src: sampleCard, alt: "Get well card example" },
+  { src: sampleCard, alt: "Promotion card example" },
+  { src: sampleCard, alt: "Valentine's card example" },
+  { src: sampleCard, alt: "Mother's Day card example" },
+  { src: sampleCard, alt: "Father's Day card example" },
+  { src: sampleCard, alt: "Christmas card example" },
+  { src: sampleCard, alt: "Easter card example" },
+  { src: sampleCard, alt: "Halloween card example" },
+  { src: sampleCard, alt: "New Year card example" },
+  { src: sampleCard, alt: "Friendship card example" },
+  { src: sampleCard, alt: "Sympathy card example" },
+  { src: sampleCard, alt: "Congratulations card example" }
 ];
 
 function HeroSection() {
@@ -198,88 +186,22 @@ function SeeHowItLooksSection() {
       </div>
       
       <div className="relative overflow-hidden">
-        <div className="flex gap-4 items-end overflow-x-auto scrollbar-hide pb-20" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          {/* First set of card pairs */}
-          {cardImages.map((cardData, pairIndex) => (
-            <div key={pairIndex} className="flex gap-4 items-end">
-              {/* Front of card */}
-              <div className="flex-shrink-0 relative">
-                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                  <img
-                    src={cardData.front}
-                    alt={cardData.frontAlt}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                    Front of Card
-                  </span>
-                </div>
+        <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-20" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {/* 24 individual card images */}
+          {carouselImages.map((imageData, index) => (
+            <div key={index} className="flex-shrink-0 relative">
+              <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
+                <img
+                  src={imageData.src}
+                  alt={imageData.alt}
+                  className="w-full h-full object-cover"
+                />
               </div>
-              
-              {/* Inside of card - slightly higher position */}
-              <div className="flex-shrink-0 relative -mb-8">
-                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                  <img
-                    src={cardData.inside}
-                    alt={cardData.insideAlt}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                    Inside of Card
-                  </span>
-                </div>
+              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
+                  Card {index + 1}
+                </span>
               </div>
-              
-              {/* Vertical separator after each pair */}
-              {pairIndex < 5 && (
-                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
-              )}
-            </div>
-          ))}
-          
-          {/* Duplicate set for seamless loop */}
-          {cardImages.map((cardData, pairIndex) => (
-            <div key={`duplicate-${pairIndex}`} className="flex gap-4 items-end">
-              {/* Front of card */}
-              <div className="flex-shrink-0 relative">
-                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                  <img
-                    src={cardData.front}
-                    alt={cardData.frontAlt}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                    Front of Card
-                  </span>
-                </div>
-              </div>
-              
-              {/* Inside of card - slightly higher position */}
-              <div className="flex-shrink-0 relative -mb-8">
-                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                  <img
-                    src={cardData.inside}
-                    alt={cardData.insideAlt}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                    Inside of Card
-                  </span>
-                </div>
-              </div>
-              
-              {/* Vertical separator after each pair */}
-              {pairIndex < 5 && (
-                <div className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
-              )}
             </div>
           ))}
         </div>
