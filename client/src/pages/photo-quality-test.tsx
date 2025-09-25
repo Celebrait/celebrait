@@ -36,30 +36,44 @@ export function PhotoQualityTest() {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    if (files.length === 0) return;
+    console.log("[PHOTO_QUALITY_TEST] File upload triggered, file count:", files.length);
+    
+    if (files.length === 0) {
+      console.log("[PHOTO_QUALITY_TEST] No files selected");
+      return;
+    }
 
     try {
+      console.log("[PHOTO_QUALITY_TEST] Converting files to base64...");
       // Convert files to base64
-      const photoPromises = files.map(file => {
+      const photoPromises = files.map((file, index) => {
+        console.log(`[PHOTO_QUALITY_TEST] Processing file ${index + 1}: ${file.name} (${file.size} bytes)`);
         return new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
+          reader.onload = () => {
+            console.log(`[PHOTO_QUALITY_TEST] File ${index + 1} converted to base64`);
+            resolve(reader.result as string);
+          };
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
       });
 
       const photoDataUrls = await Promise.all(photoPromises);
+      console.log("[PHOTO_QUALITY_TEST] All files converted, setting state with", photoDataUrls.length, "photos");
+      
       setUploadedPhotos(photoDataUrls);
       setAssessments([]);
       setSummary(null);
       setAssessmentComplete(false);
       
+      console.log("[PHOTO_QUALITY_TEST] State updated, showing toast");
       toast({
         title: "Photos uploaded",
         description: `${files.length} photos ready for quality assessment`
       });
     } catch (error) {
+      console.error("[PHOTO_QUALITY_TEST] Upload error:", error);
       toast({
         title: "Upload failed",
         description: "Failed to process uploaded photos",
@@ -71,13 +85,18 @@ export function PhotoQualityTest() {
   const assessPhotoQuality = async () => {
     if (uploadedPhotos.length === 0) return;
 
+    console.log("[PHOTO_QUALITY_TEST] Starting assessment for", uploadedPhotos.length, "photos");
+    
     setIsAssessing(true);
     try {
+      console.log("[PHOTO_QUALITY_TEST] Making API request to /api/assess-photo-quality");
       const response = await apiRequest("POST", "/api/assess-photo-quality", {
         images: uploadedPhotos
       });
 
+      console.log("[PHOTO_QUALITY_TEST] Response status:", response.status);
       const result = await response.json();
+      console.log("[PHOTO_QUALITY_TEST] Response data:", result);
       
       if (result.success) {
         setAssessments(result.assessments);
