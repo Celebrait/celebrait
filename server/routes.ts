@@ -5972,6 +5972,145 @@ ${styleSection}`;
     }
   });
 
+  // Photo Quality Assessment endpoint using GPT-4 Vision
+  app.post("/api/assess-photo-quality", async (req, res) => {
+    if (!openai) {
+      return res.status(503).json({ error: "OpenAI API not configured" });
+    }
+
+    try {
+      const { images } = req.body;
+      
+      if (!images || !Array.isArray(images) || images.length === 0) {
+        return res.status(400).json({ error: "Images array is required" });
+      }
+
+      console.log(`[PHOTO_QUALITY] Assessing quality for ${images.length} photos using GPT-4 Vision`);
+      
+      const assessments = await Promise.all(
+        images.map(async (imageData: string, index: number) => {
+          try {
+            const response = await openai.chat.completions.create({
+              model: "gpt-4o",
+              messages: [{
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: `Assess this photo's suitability for AI character generation. Rate each factor 1-10 and provide an overall quality score:
+
+FACE QUALITY FACTORS:
+- Face clarity/sharpness: Is the face in focus vs blurry?
+- Face size in frame: Too small (poor), appropriate size (good), or too large (acceptable)
+- Face angle: Profile view (poor 3-4), 3/4 view (good 6-7), frontal view (excellent 8-10)
+- Lighting on face: Poor lighting/harsh shadows (low), even natural lighting (high)
+- Eye visibility: Eyes clearly visible (high) vs sunglasses/hidden (reduces score)
+
+TECHNICAL QUALITY:
+- Overall image sharpness and focus
+- Resolution and detail level
+- Color balance and natural skin tones
+- Noise/grain levels (low noise = better)
+
+COMPOSITION FACTORS:
+- Number of faces: Single person (best 8-10), multiple people (harder 5-7)
+- Face obstructions: Clear face (high) vs hands/hair/objects covering (lower)
+- Background complexity: Simple background (better) vs busy/distracting (lower)
+
+ASSESSMENT REQUIREMENTS:
+1. Provide overall quality score (1-10)
+2. List 2-3 specific strengths or issues
+3. Give recommendation: "Excellent for AI generation" / "Good with minor limitations" / "Fair - may have some issues" / "Poor - consider retaking photo"
+4. If score is below 6, suggest specific improvements
+
+Format: "Quality Score: X/10" followed by brief analysis.`
+                  },
+                  {
+                    type: "image_url",
+                    image_url: { url: imageData }
+                  }
+                ]
+              }],
+              max_tokens: 500,
+              temperature: 0.3 // Lower temperature for more consistent assessments
+            });
+
+            const content = response.choices[0].message.content || "Could not assess photo quality";
+            
+            // Parse the response to extract structured data
+            const scoreMatch = content.match(/Quality Score:\s*(\d+(?:\.\d+)?)/i);
+            const score = scoreMatch ? parseFloat(scoreMatch[1]) : 5;
+            
+            // Determine rating and usability
+            const rating = score >= 8 ? "Excellent" : 
+                          score >= 6 ? "Good" : 
+                          score >= 4 ? "Fair" : "Poor";
+            
+            const usableForGeneration = score >= 5;
+            
+            // Extract recommendation
+            const recommendationMatch = content.match(/recommendation:\s*"([^"]+)"/i) ||
+                                      content.match(/(Excellent for AI generation|Good with.*?limitations|Fair.*?issues|Poor.*?retaking)/i);
+            const recommendation = recommendationMatch ? recommendationMatch[1] : 
+                                 score >= 7 ? "Great for AI generation!" :
+                                 score >= 5 ? "Usable with some limitations" :
+                                 "Consider retaking photo for better results";
+
+            console.log(`[PHOTO_QUALITY] Photo ${index + 1}: Score ${score}/10, Rating: ${rating}`);
+            
+            return {
+              photoIndex: index + 1,
+              qualityScore: score,
+              rating,
+              usableForGeneration,
+              recommendation,
+              detailedAnalysis: content,
+              timestamp: new Date().toISOString()
+            };
+            
+          } catch (error: any) {
+            console.error(`[PHOTO_QUALITY] Error assessing photo ${index + 1}:`, error);
+            return {
+              photoIndex: index + 1,
+              qualityScore: 5,
+              rating: "Unknown",
+              usableForGeneration: true,
+              recommendation: "Unable to assess - proceeding with generation",
+              detailedAnalysis: `Assessment failed: ${error.message}`,
+              timestamp: new Date().toISOString()
+            };
+          }
+        })
+      );
+
+      // Calculate overall session stats
+      const avgScore = assessments.reduce((sum, a) => sum + a.qualityScore, 0) / assessments.length;
+      const usableCount = assessments.filter(a => a.usableForGeneration).length;
+      
+      console.log(`[PHOTO_QUALITY] Assessment complete - Average score: ${avgScore.toFixed(1)}/10, ${usableCount}/${assessments.length} photos usable`);
+      
+      res.json({
+        success: true,
+        assessments,
+        summary: {
+          averageScore: Math.round(avgScore * 10) / 10,
+          totalPhotos: assessments.length,
+          usablePhotos: usableCount,
+          recommendation: avgScore >= 7 ? "Photos are excellent for generation" :
+                         avgScore >= 5 ? "Photos are suitable for generation" :
+                         "Consider improving photo quality for better results"
+        }
+      });
+      
+    } catch (error: any) {
+      console.error('[PHOTO_QUALITY] Assessment error:', error);
+      res.status(500).json({ 
+        error: "Failed to assess photo quality",
+        message: error.message 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
