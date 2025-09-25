@@ -135,6 +135,9 @@ export const buildInsidePrompt = (insideText: string, artStyle?: string, frontPr
     parts.push(`Use the same artistic style that was intelligently chosen for the front card to maintain visual consistency. Apply the same style treatment, color palette, and visual aesthetic as the front card.`);
   }
   
+  // Subtle theme reference instruction
+  parts.push('Make subtle reference to the theme on the front of the card, but ensure any reference is kept very subtle so that the main focus is the text which is always to be readable');
+  
   // Strict text restriction for inside card
   parts.push(`STRICT TEXT RESTRICTION: Include EXACTLY and ONLY the text "${insideText}" - ABSOLUTELY NO OTHER TEXT, WORDS, LETTERS, NUMBERS, SIGNS, LABELS, OR WRITING of any kind should appear anywhere in the image. FORBIDDEN: Do not add any background text, signage, labels, captions, watermarks, logos, brand names, decorative text, or any other written content. TYPOGRAPHY: Integrate ONLY the specified text naturally into the design as an organic part of the composition.`);
   
