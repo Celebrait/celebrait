@@ -1933,7 +1933,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           model: "gpt-image-1",
           prompt: frontPrompt,
           size: "1024x1024",
-          quality: "low",
+          quality: "high",
           n: 1
         });
         console.log("Successfully used gpt-image-1 for front card generation");
@@ -1944,7 +1944,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           model: "gpt-image-1",
           prompt: frontPrompt,
           size: "1024x1024",
-          quality: "low",
+          quality: "high",
           n: 1
         });
       }
@@ -1968,7 +1968,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             model: "gpt-image-1",
             prompt: insidePrompt,
             size: "1024x1024",
-            quality: "low",
+            quality: "high",
             n: 1
           });
           console.log("Successfully used gpt-image-1 for inside card generation");
@@ -1979,7 +1979,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             model: "gpt-image-1",
             prompt: insidePrompt,
             size: "1024x1024",
-            quality: "low",
+            quality: "high",
             n: 1
           });
         }
@@ -2280,7 +2280,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           formData.append('model', 'gpt-image-1');
           formData.append('n', '1');
           formData.append('size', '1024x1024');
-          formData.append('quality', 'low');
+          formData.append('quality', 'high');
           formData.append('moderation', 'low');
 
           const fetch = (await import('node-fetch')).default;
@@ -2409,7 +2409,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           formData.append('model', 'gpt-image-1');
           formData.append('n', '1');
           formData.append('size', '1024x1024');
-          formData.append('quality', 'low');
+          formData.append('quality', 'high');
           formData.append('moderation', 'low');
 
           const fetch = (await import('node-fetch')).default;
@@ -3669,7 +3669,7 @@ ${styleSection}`;
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
         formData.append('size', '1024x1024');
-        formData.append('quality', 'low');
+        formData.append('quality', 'high');
         formData.append('moderation', 'low');
         formData.append('background', 'auto');
 
@@ -3954,7 +3954,7 @@ ${styleSection}`;
       formData.append('model', 'gpt-image-1');
       formData.append('n', '1');
       formData.append('size', size);
-      formData.append('quality', 'low');
+      formData.append('quality', 'high');
       formData.append('moderation', 'low');
       formData.append('background', 'auto');
 
@@ -4211,7 +4211,7 @@ ${styleSection}`;
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
         formData.append('size', size);
-        formData.append('quality', 'low');
+        formData.append('quality', 'high');
         formData.append('moderation', 'low');
 
         console.log('📋 Form data parameters being sent:');
