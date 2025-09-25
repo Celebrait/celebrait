@@ -2223,98 +2223,52 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
       let frontImageGeneration;
 
-      // Check if frontPrompt already contains detailed character descriptions (from test page)
-      const hasDetailedCharacters = frontPrompt.includes('featuring Person') || frontPrompt.includes('Person 1:') || frontPrompt.includes('Person 2:');
-
-      if (hasDetailedCharacters) {
-        // Use the detailed prompt directly from the test page
-        console.log('Using detailed character prompt from frontend:', frontPrompt);
-        console.log('🎯 PATH 1 - SIMPLE TEXT PROMPT TO GPT-IMAGE-1:', frontPrompt);
-        console.log('=== DEBUG: EXACT PROMPT SENT TO GPT-IMAGE-1 ===');
-        console.log(frontPrompt);
-        console.log('=== END PROMPT ===');
-
-        frontImageGeneration = await openai.images.generate({
-          model: "gpt-image-1",
-          prompt: frontPrompt,
-          n: 1,
-          size: "1024x1024",
-          quality: "low"
-        });
-      } else if (photoData) {
-        // Direct GPT-Image-1 transformation with multiple photo references (no GPT Vision analysis needed)
-        console.log('Using direct GPT-Image-1 edits API with photo reference');
-
+      // CRITICAL UPDATE: All photo uploads now use detailed 8-step facial recreation prompt (PATH 2)
+      // This eliminates simple prompts and ensures consistent high-quality results
+      
+      if (photoData) {
+        // REDIRECT ALL PHOTO UPLOADS TO PATH 2: Detailed 8-step facial recreation
+        console.log('🎯 REDIRECTING PHOTO UPLOADS TO PATH 2 - DETAILED FACIAL RECREATION');
+        console.log('Photo upload detected - using detailed /api/edit-scene-gpt-image-1 endpoint');
+        
+        // Extract scene and style from the front prompt for PATH 2
+        const imageDataArray = Array.isArray(photoData) ? photoData : [photoData];
+        
+        // Make internal call to the detailed PATH 2 endpoint
         try {
-          console.log('Using GPT-Image-1 edits API for direct transformation with multiple photo support');
-
-          // Support both single photo and multiple photos
-          const photosToProcess = Array.isArray(photoData) ? photoData : [photoData];
-
-          // Use form-data approach with GPT-Image-1 edits API
-          const FormData = (await import('form-data')).default;
-          const formData = new FormData();
-
-          // Add all photos to the form data
-          photosToProcess.forEach((photo: string, index: number) => {
-            // Extract MIME type and base64 data from uploaded photo
-            const mimeMatch = photo.match(/^data:image\/([a-z]+);base64,/);
-            const mimeType = mimeMatch ? mimeMatch[1] : 'png';
-            const base64Data = photo.replace(/^data:image\/[a-z]+;base64,/, '');
-            const imageBuffer = Buffer.from(base64Data, 'base64');
-
-            console.log(`Photo ${index + 1} buffer size:`, imageBuffer.length, 'bytes, MIME type:', mimeType);
-
-            // Add image buffer with proper metadata using image[] parameter for multiple photos
-            formData.append('image[]', imageBuffer, {
-              filename: `photo${index + 1}.${mimeType}`,
-              contentType: `image/${mimeType}`
-            });
-          });
-
-          console.log('🎯 PATH 1 - SIMPLE PROMPT + PHOTO TO GPT-IMAGE-1 EDITS:', frontPrompt);
-          console.log('=== DEBUG: EXACT PROMPT FOR PHOTO EDITING ===');
-          console.log(frontPrompt);
-          console.log('=== END PROMPT ===');
-          formData.append('prompt', frontPrompt);
-          formData.append('model', 'gpt-image-1');
-          formData.append('n', '1');
-          formData.append('size', '1024x1024');
-          formData.append('quality', 'high');
-          formData.append('moderation', 'low');
-
-          const fetch = (await import('node-fetch')).default;
-          const response = await fetch('https://api.openai.com/v1/images/edits', {
+          const sceneEditResponse = await fetch(`${req.protocol}://${req.get('host')}/api/edit-scene-gpt-image-1`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-              ...formData.getHeaders()
+              'Content-Type': 'application/json',
+              'Authorization': req.headers.authorization || ''
             },
-            body: formData
+            body: JSON.stringify({
+              imageDataArray,
+              scenePrompt: frontPrompt,
+              cardText: '', // Will be extracted from prompt
+              includeText: true,
+              userArtStyle: 'ai_decide',
+              userClothing: ''
+            })
           });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            let errorData;
-            try {
-              errorData = JSON.parse(errorText);
-            } catch {
-              errorData = { error: { message: errorText } };
-            }
-            throw new Error(`GPT-Image-1 API error: ${response.status} ${errorData.error?.message || 'Unknown error'}`);
+          
+          if (!sceneEditResponse.ok) {
+            throw new Error(`PATH 2 endpoint failed: ${sceneEditResponse.status}`);
           }
-
-          const responseData = await response.json();
-
-          // Process the response to create frontImageGeneration-like object
+          
+          const sceneEditResult = await sceneEditResponse.json();
+          
+          // Convert PATH 2 response to expected format
           frontImageGeneration = {
-            data: (responseData as any).data || []
+            data: [{
+              url: sceneEditResult.imageUrl || sceneEditResult.transformedImageUrl
+            }]
           };
-
-          console.log('Successfully generated image using GPT-Image-1 edits API with multiple photo support');
-        } catch (imageEditError: any) {
-          console.log('GPT-Image-1 edits API failed, falling back to standard text generation:', imageEditError.message);
-
+          
+          console.log('🎯 SUCCESS: Photo upload processed through PATH 2 detailed facial recreation');
+        } catch (path2Error: any) {
+          console.log('PATH 2 detailed processing failed, falling back to text generation:', path2Error.message);
+          
           // Fallback to standard text-only generation
           frontImageGeneration = await openai.images.generate({
             model: "gpt-image-1",
