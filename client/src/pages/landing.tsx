@@ -188,22 +188,28 @@ function SeeHowItLooksSection() {
       <div className="relative overflow-hidden">
         <div className="flex gap-4 items-end overflow-x-auto scrollbar-hide pb-20" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {/* 24 individual card images with alternating heights */}
-          {carouselImages.map((imageData, index) => (
-            <div key={index} className={`flex-shrink-0 relative ${index % 2 === 1 ? '-mb-8' : ''}`}>
-              <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                <img
-                  src={imageData.src}
-                  alt={imageData.alt}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                  {index % 2 === 0 ? 'Front of Card' : 'Inside of Card'}
-                </span>
-              </div>
-            </div>
-          ))}
+          {carouselImages.map((imageData, index) => [
+              <div key={`card-${index}`} className={`flex-shrink-0 relative ${index % 2 === 1 ? '-mb-8' : ''}`}>
+                <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
+                  <img
+                    src={imageData.src}
+                    alt={imageData.alt}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
+                    {index % 2 === 0 ? 'Front of Card' : 'Inside of Card'}
+                  </span>
+                </div>
+              </div>,
+              
+              /* Vertical separator after each pair (after every 2nd image) */
+              index % 2 === 1 && index < carouselImages.length - 1 && (
+                <div key={`separator-${index}`} className="flex-shrink-0 w-px h-64 bg-gray-300/50 mx-6 self-center"></div>
+              )
+            ].filter(Boolean)
+          )}
         </div>
       </div>
     </section>
