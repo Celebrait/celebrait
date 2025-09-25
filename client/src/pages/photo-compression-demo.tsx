@@ -101,17 +101,24 @@ export function PhotoCompressionDemo() {
         </CardContent>
       </Card>
 
-      {/* Results Section */}
-      {originalFile && stats && (
+      {/* Visual Comparison Section */}
+      {originalFile && stats && processedId && (
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Processing Results</CardTitle>
+            <CardTitle>Visual Quality Comparison</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 gap-6">
-              {/* Original File Info */}
+              {/* Original Image */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">Original File</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Original Image</h3>
+                <div className="border rounded-lg overflow-hidden bg-gray-50">
+                  <img 
+                    src={URL.createObjectURL(originalFile)}
+                    alt="Original" 
+                    className="w-full h-auto max-h-96 object-contain"
+                  />
+                </div>
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-600">File Name:</span>
@@ -130,9 +137,16 @@ export function PhotoCompressionDemo() {
                 </div>
               </div>
 
-              {/* Processed Info */}
+              {/* Processed Image */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">Processed (Base64)</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Processed Image (AI-Ready)</h3>
+                <div className="border rounded-lg overflow-hidden bg-gray-50">
+                  <img 
+                    src={ImageStore.getPhotoBase64(processedId) || ''}
+                    alt="Processed" 
+                    className="w-full h-auto max-h-96 object-contain"
+                  />
+                </div>
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Format:</span>
@@ -164,6 +178,9 @@ export function PhotoCompressionDemo() {
                   {stats.compressionRatio}% of original
                 </Badge>
               </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Compare the images above to see the actual quality difference. The processed image is optimized for AI processing while maintaining visual quality.
+              </p>
             </div>
           </CardContent>
         </Card>
