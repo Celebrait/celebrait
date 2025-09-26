@@ -17,6 +17,7 @@ import { fal } from "@fal-ai/client";
 import { createCanvas, loadImage } from "canvas";
 import sharp from "sharp";
 import { sendEmail, addToMarketingList, sendBackgroundEmail, generateCardReadyNotificationEmail } from './email-service';
+import { generateOrderConfirmationEmail, generateDigitalCardEmail, generateDigitalCardEmailForRecipient, generateAbandonmentRecoveryEmail, generateShippingNotificationEmail } from './missing-email-functions';
 import { 
   storeImageFromBase64, 
   getStoredImage, 
@@ -5262,15 +5263,44 @@ ${styleSection}`;
 
         console.log('Payment confirmed for order:', order.id);
 
+        // Generate PDFs for ALL card types after payment completion
+        const card = await storage.getCard(order.cardId);
+        if (card) {
+          console.log('Generating PDFs for card after payment completion:', card.id);
+          try {
+            // Generate high-quality PDFs for both digital and printed cards
+            const pdfs = await generateSeparatePDFs({
+              cardId: card.id,
+              format: '5x5',
+              dpi: 300
+            });
+            console.log('PDFs generated successfully:', pdfs);
+          } catch (pdfError) {
+            console.error('PDF generation failed after payment:', pdfError);
+            // Don't fail the whole payment process if PDF generation fails
+          }
+        }
+
         // Send order confirmation email and digital card if applicable
         try {
-          const emailParams = generateOrderConfirmationEmail({
-            customerEmail: order.customerEmail,
-            customerName: order.customerName,
-            paymentReference: order.paymentReference,
-            amount: order.amount,
-            currency: order.currency
-          });
+          // For now, send a simple order confirmation email
+          const emailParams = {
+            to: order.customerEmail,
+            subject: 'Order Confirmation - Your Celebrait Card',
+            html: `
+              <h2>Thank you for your order!</h2>
+              <p>Dear ${order.customerName},</p>
+              <p>Your payment has been confirmed and your order is being processed.</p>
+              <p><strong>Order Details:</strong></p>
+              <ul>
+                <li>Payment Reference: ${order.paymentReference}</li>
+                <li>Amount: ${order.currency} ${(order.amount / 100).toFixed(2)}</li>
+                <li>Card ID: ${order.cardId}</li>
+              </ul>
+              <p>You can download your PDFs from your payment confirmation page.</p>
+              <p>Thank you for choosing Celebrait!</p>
+            `
+          };
           await sendEmail(emailParams);
           console.log('Order confirmation email sent for:', order.paymentReference);
           
