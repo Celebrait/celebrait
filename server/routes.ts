@@ -17,7 +17,7 @@ import { fal } from "@fal-ai/client";
 import { createCanvas, loadImage } from "canvas";
 import sharp from "sharp";
 import { sendEmail, addToMarketingList, sendBackgroundEmail, generateCardReadyNotificationEmail } from './email-service';
-import { generateOrderConfirmationEmail, generateDigitalCardEmail, generateDigitalCardEmailForRecipient, generateAbandonmentRecoveryEmail, generateShippingNotificationEmail } from './missing-email-functions';
+import { generateOrderConfirmationEmail, generateDigitalCardEmail, generateDigitalCardEmailForRecipient, generateAbandonmentRecoveryEmail, generateShippingNotificationEmail, generateBusinessOrderEmail } from './missing-email-functions';
 import { 
   storeImageFromBase64, 
   getStoredImage, 
@@ -5281,28 +5281,66 @@ ${styleSection}`;
           }
         }
 
-        // Send order confirmation email and digital card if applicable
+        // Send dual email system: customer confirmation + business order processing
         try {
-          // For now, send a simple order confirmation email
-          const emailParams = {
-            to: order.customerEmail,
-            subject: 'Order Confirmation - Your Celebrait Card',
-            html: `
-              <h2>Thank you for your order!</h2>
-              <p>Dear ${order.customerName},</p>
-              <p>Your payment has been confirmed and your order is being processed.</p>
-              <p><strong>Order Details:</strong></p>
-              <ul>
-                <li>Payment Reference: ${order.paymentReference}</li>
-                <li>Amount: ${order.currency} ${(order.amount / 100).toFixed(2)}</li>
-                <li>Card ID: ${order.cardId}</li>
-              </ul>
-              <p>You can download your PDFs from your payment confirmation page.</p>
-              <p>Thank you for choosing Celebrait!</p>
-            `
-          };
-          await sendEmail(emailParams);
-          console.log('Order confirmation email sent for:', order.paymentReference);
+          const actualHost = '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev';
+          
+          // 1. Send customer confirmation email with mobile image links
+          const customerEmailParams = generateOrderConfirmationEmail(order, card?.id, actualHost);
+          await sendEmail(customerEmailParams);
+          console.log('✅ Customer confirmation email sent to:', order.customerEmail);
+          
+          // 2. Send business order processing email with PDF attachments
+          const businessEmailParams = generateBusinessOrderEmail(order, {
+            name: order.customerName,
+            email: order.customerEmail,
+            phone: order.customerPhone
+          }, order.shippingAddress ? JSON.parse(order.shippingAddress) : null);
+          
+          // Add PDF attachments if they were generated
+          if (card) {
+            try {
+              const fs = require('fs').promises;
+              const path = require('path');
+              
+              // Check for PDF files and attach them
+              const frontPdfPath = path.join(process.cwd(), 'print_files', `card_${card.id}_front_5x5_300dpi.pdf`);
+              const insidePdfPath = path.join(process.cwd(), 'print_files', `card_${card.id}_inside_5x5_300dpi.pdf`);
+              
+              businessEmailParams.attachments = [];
+              
+              try {
+                await fs.access(frontPdfPath);
+                const frontPdfData = await fs.readFile(frontPdfPath);
+                businessEmailParams.attachments.push({
+                  name: `Order_${order.paymentReference}_Front.pdf`,
+                  content: frontPdfData.toString('base64'),
+                  type: 'application/pdf'
+                });
+                console.log('📎 Front PDF attached to business email');
+              } catch (e) {
+                console.log('⚠️ Front PDF not found for attachment');
+              }
+              
+              try {
+                await fs.access(insidePdfPath);
+                const insidePdfData = await fs.readFile(insidePdfPath);
+                businessEmailParams.attachments.push({
+                  name: `Order_${order.paymentReference}_Inside.pdf`,
+                  content: insidePdfData.toString('base64'),
+                  type: 'application/pdf'
+                });
+                console.log('📎 Inside PDF attached to business email');
+              } catch (e) {
+                console.log('⚠️ Inside PDF not found for attachment');
+              }
+            } catch (attachmentError) {
+              console.error('Error adding PDF attachments:', attachmentError);
+            }
+          }
+          
+          await sendEmail(businessEmailParams);
+          console.log('✅ Business order email sent with order details and PDF attachments');
           
           // If digital card (R5.00 = 500 cents), also send the digital card email
           if (order.amount === 500) {
@@ -5999,6 +6037,80 @@ ${styleSection}`;
     } catch (error) {
       console.error('Error sending abandonment email:', error);
       res.status(500).json({ error: 'Failed to send abandonment email' });
+    }
+  });
+
+  // Mobile-friendly image download endpoints for customer phones
+  app.get("/api/cards/:cardId/download-image/:side", async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.cardId);
+      const side = req.params.side; // 'front' or 'inside'
+      
+      if (!cardId || isNaN(cardId)) {
+        return res.status(400).json({ message: "Invalid card ID" });
+      }
+      
+      if (side !== 'front' && side !== 'inside') {
+        return res.status(400).json({ message: "Side must be 'front' or 'inside'" });
+      }
+      
+      // Look for unwatermarked PNG files first (best quality for customers)
+      const unwatermarkedPath = path.join(process.cwd(), 'stored_images', `card_${cardId}_${side}_unwatermarked.png`);
+      
+      try {
+        await fsPromises.access(unwatermarkedPath);
+        
+        // File exists, send it with mobile-friendly headers
+        const stats = await fsPromises.stat(unwatermarkedPath);
+        const filename = `Celebrait_Card_${side.charAt(0).toUpperCase() + side.slice(1)}.png`;
+        
+        res.set({
+          'Content-Type': 'image/png',
+          'Content-Length': stats.size.toString(),
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
+          'Access-Control-Allow-Origin': '*' // Allow mobile apps to download
+        });
+        
+        const readStream = fsPromises.createReadStream(unwatermarkedPath);
+        readStream.pipe(res);
+        
+        console.log(`📱 Mobile image download: ${side} for card ${cardId}`);
+        return;
+        
+      } catch (unwatermarkedError) {
+        // Fall back to regular watermarked image if unwatermarked not available
+        const watermarkedPath = path.join(process.cwd(), 'stored_images', `card_${cardId}_${side}.png`);
+        
+        try {
+          await fsPromises.access(watermarkedPath);
+          
+          const stats = await fsPromises.stat(watermarkedPath);
+          const filename = `Celebrait_Card_${side.charAt(0).toUpperCase() + side.slice(1)}.png`;
+          
+          res.set({
+            'Content-Type': 'image/png',
+            'Content-Length': stats.size.toString(),
+            'Content-Disposition': `attachment; filename="${filename}"`,
+            'Cache-Control': 'public, max-age=86400',
+            'Access-Control-Allow-Origin': '*'
+          });
+          
+          const readStream = fsPromises.createReadStream(watermarkedPath);
+          readStream.pipe(res);
+          
+          console.log(`📱 Mobile image download (watermarked): ${side} for card ${cardId}`);
+          return;
+          
+        } catch (watermarkedError) {
+          console.error(`Image not found for card ${cardId} ${side}:`, watermarkedError);
+          return res.status(404).json({ message: "Image not found for this card" });
+        }
+      }
+      
+    } catch (error: any) {
+      console.error('Mobile image download error:', error);
+      res.status(500).json({ message: "Error downloading image: " + error.message });
     }
   });
 
