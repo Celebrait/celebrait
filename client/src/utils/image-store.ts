@@ -257,6 +257,17 @@ class ImageStoreImpl {
   getPhotoCount(): number {
     return this.store.size;
   }
+
+  // Get photo processing info
+  getPhotoInfo(id: string): { wasCropped: boolean; originalDimensions: { width: number; height: number } } | null {
+    const entry = this.store.get(id);
+    if (!entry) return null;
+    
+    return {
+      wasCropped: entry.wasCropped,
+      originalDimensions: entry.originalDimensions
+    };
+  }
 }
 
 // Singleton instance
