@@ -11,13 +11,17 @@ import cardExample1Front from "@assets/image_1758792931055.png";
 import cardExample1Inside from "@assets/image_1758792941633.png";
 import cardExample2Front from "@assets/image_1758809123282.png";
 import cardExample2Inside from "@assets/image_1758809131632.png";
+import fathersDayFront from "@/assets/fathers-day-front.png";
+import fathersDayInside from "@/assets/fathers-day-inside.png";
 
-// Optimized carousel images - 2 sets of 5 for better variety
+// Optimized carousel images - 2 sets of 6 for better variety
 const carouselImages = [
   { src: cardExample1Front, alt: "Birthday fairy celebration card front", type: "front" },
   { src: cardExample1Inside, alt: "Birthday celebration card inside message", type: "inside" },
   { src: cardExample2Front, alt: "Congratulations award ceremony card front", type: "front" },
   { src: cardExample2Inside, alt: "Congratulations card inside message", type: "inside" },
+  { src: fathersDayFront, alt: "Father's Day safari adventure card front", type: "front" },
+  { src: fathersDayInside, alt: "Father's Day heartfelt message card inside", type: "inside" },
   { src: sampleCard, alt: "Wedding celebration card", type: "front" },
   { src: sampleCard, alt: "Graduation achievement card", type: "inside" },
   { src: sampleCard, alt: "Anniversary milestone card", type: "front" },
