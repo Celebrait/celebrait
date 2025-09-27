@@ -12,7 +12,7 @@ import cardExample1Inside from "@assets/image_1758792941633.png";
 import cardExample2Front from "@assets/image_1758809123282.png";
 import cardExample2Inside from "@assets/image_1758809131632.png";
 import fathersDayFront from "@/assets/fathers-day-front.png";
-import fathersDayInside from "@/assets/fathers-day-inside.png";
+import fathersDayInside from "@/assets/fathers-day-inside-new.png";
 
 // Optimized carousel images - 2 sets of 6 for better variety
 const carouselImages = [
