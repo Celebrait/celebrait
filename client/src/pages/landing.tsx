@@ -12,7 +12,7 @@ import cardExample1Inside from "@assets/image_1758792941633.png";
 import cardExample2Front from "@assets/image_1758809123282.png";
 import cardExample2Inside from "@assets/image_1758809131632.png";
 
-// Optimized carousel images - reduced duplicates for better performance
+// Optimized carousel images - 2 sets of 5 for better variety
 const carouselImages = [
   { src: cardExample1Front, alt: "Birthday fairy celebration card front", type: "front" },
   { src: cardExample1Inside, alt: "Birthday celebration card inside message", type: "inside" },
@@ -21,7 +21,9 @@ const carouselImages = [
   { src: sampleCard, alt: "Wedding celebration card", type: "front" },
   { src: sampleCard, alt: "Graduation achievement card", type: "inside" },
   { src: sampleCard, alt: "Anniversary milestone card", type: "front" },
-  { src: sampleCard, alt: "Holiday greetings card", type: "inside" }
+  { src: sampleCard, alt: "Holiday greetings card", type: "inside" },
+  { src: sampleCard, alt: "Thank you appreciation card", type: "front" },
+  { src: sampleCard, alt: "New baby celebration card", type: "inside" }
 ];
 
 function HeroSection() {
