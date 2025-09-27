@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useLocation } from "wouter";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -12,32 +12,16 @@ import cardExample1Inside from "@assets/image_1758792941633.png";
 import cardExample2Front from "@assets/image_1758809123282.png";
 import cardExample2Inside from "@assets/image_1758809131632.png";
 
-// Card carousel images - 24 individual image slots
+// Optimized carousel images - reduced duplicates for better performance
 const carouselImages = [
-  { src: cardExample1Front, alt: "Birthday fairy celebration card front" },
-  { src: cardExample1Inside, alt: "Birthday celebration card inside message" },
-  { src: cardExample2Front, alt: "Congratulations award ceremony card front" },
-  { src: cardExample2Inside, alt: "Congratulations card inside message" },
-  { src: sampleCard, alt: "Wedding card example" },
-  { src: sampleCard, alt: "Graduation card example" },
-  { src: sampleCard, alt: "Baby shower card example" },
-  { src: sampleCard, alt: "Holiday card example" },
-  { src: sampleCard, alt: "Anniversary card example" },
-  { src: sampleCard, alt: "Thank you card example" },
-  { src: sampleCard, alt: "Retirement card example" },
-  { src: sampleCard, alt: "New home card example" },
-  { src: sampleCard, alt: "Get well card example" },
-  { src: sampleCard, alt: "Promotion card example" },
-  { src: sampleCard, alt: "Valentine's card example" },
-  { src: sampleCard, alt: "Mother's Day card example" },
-  { src: sampleCard, alt: "Father's Day card example" },
-  { src: sampleCard, alt: "Christmas card example" },
-  { src: sampleCard, alt: "Easter card example" },
-  { src: sampleCard, alt: "Halloween card example" },
-  { src: sampleCard, alt: "New Year card example" },
-  { src: sampleCard, alt: "Friendship card example" },
-  { src: sampleCard, alt: "Sympathy card example" },
-  { src: sampleCard, alt: "Congratulations card example" }
+  { src: cardExample1Front, alt: "Birthday fairy celebration card front", type: "front" },
+  { src: cardExample1Inside, alt: "Birthday celebration card inside message", type: "inside" },
+  { src: cardExample2Front, alt: "Congratulations award ceremony card front", type: "front" },
+  { src: cardExample2Inside, alt: "Congratulations card inside message", type: "inside" },
+  { src: sampleCard, alt: "Wedding celebration card", type: "front" },
+  { src: sampleCard, alt: "Graduation achievement card", type: "inside" },
+  { src: sampleCard, alt: "Anniversary milestone card", type: "front" },
+  { src: sampleCard, alt: "Holiday greetings card", type: "inside" }
 ];
 
 function HeroSection() {
@@ -165,6 +149,53 @@ function HeroSection() {
 //   );
 // }
 
+// Optimized image component with lazy loading
+function OptimizedImage({ src, alt, className, ...props }) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const imgRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { rootMargin: '100px' } // Start loading 100px before the image comes into view
+    );
+
+    if (imgRef.current) {
+      observer.observe(imgRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={imgRef} className={className}>
+      {isInView && (
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          onLoad={() => setIsLoaded(true)}
+          className={`transition-opacity duration-300 ${
+            isLoaded ? 'opacity-100' : 'opacity-0'
+          } w-full h-full object-cover`}
+          {...props}
+        />
+      )}
+      {!isLoaded && isInView && (
+        <div className="w-full h-full bg-gray-100 animate-pulse flex items-center justify-center">
+          <div className="w-8 h-8 bg-gray-300 rounded-full animate-bounce"></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SeeHowItLooksSection() {
   return (
     <section className="w-full py-16 pb-24">
@@ -187,19 +218,19 @@ function SeeHowItLooksSection() {
       
       <div className="relative overflow-hidden">
         <div className="flex gap-4 items-end overflow-x-auto scrollbar-hide pb-20" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          {/* 24 individual card images with alternating heights */}
+          {/* Optimized carousel with fewer images and lazy loading */}
           {carouselImages.map((imageData, index) => [
               <div key={`card-${index}`} className={`flex-shrink-0 relative ${index % 2 === 1 ? '-mb-8' : ''}`}>
                 <div className="w-72 h-72 rounded-2xl overflow-hidden shadow-lg bg-white">
-                  <img
+                  <OptimizedImage
                     src={imageData.src}
                     alt={imageData.alt}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full"
                   />
                 </div>
                 <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
                   <span className="bg-white px-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-md">
-                    {index % 2 === 0 ? 'Front of Card' : 'Inside of Card'}
+                    {imageData.type === 'front' ? 'Front of Card' : 'Inside of Card'}
                   </span>
                 </div>
               </div>,
@@ -241,8 +272,6 @@ function LargeImageSection() {
   return (
     <div className="mx-auto mt-16 mb-8 px-4 max-w-4xl">
       <div className="relative">
-
-        
         {/* Image container */}
         <div className="relative aspect-square bg-white rounded-2xl shadow-lg overflow-hidden w-full max-w-lg mx-auto md:max-w-2xl">
           <div 
@@ -251,11 +280,16 @@ function LargeImageSection() {
           >
             {images.map((image, index) => (
               <div key={index} className="w-full flex-shrink-0">
-                <img 
-                  src={image.src} 
-                  alt={image.alt}
-                  className="w-full h-full object-cover"
-                />
+                {/* Only load the current and next image to reduce initial load time */}
+                {(index === currentIndex || index === currentIndex + 1 || index === currentIndex - 1) ? (
+                  <OptimizedImage 
+                    src={image.src} 
+                    alt={image.alt}
+                    className="w-full h-full"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-100"></div>
+                )}
               </div>
             ))}
           </div>
