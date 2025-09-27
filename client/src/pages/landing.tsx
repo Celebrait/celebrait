@@ -150,7 +150,12 @@ function HeroSection() {
 // }
 
 // Optimized image component with lazy loading
-function OptimizedImage({ src, alt, className, ...props }) {
+function OptimizedImage({ src, alt, className, ...props }: { 
+  src: string; 
+  alt: string; 
+  className?: string; 
+  [key: string]: any; 
+}) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const imgRef = useRef(null);
