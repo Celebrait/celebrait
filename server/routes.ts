@@ -6295,6 +6295,155 @@ Format: "Quality Score: X/10" followed by brief analysis.`
     }
   });
 
+  // Test endpoint for enhanced supplier email
+  app.post('/api/test-enhanced-supplier-email', async (req, res) => {
+    try {
+      console.log('🧪 Testing enhanced supplier email workflow...');
+      
+      // Get order 96 data from database
+      const order = await storage.getOrder(96);
+      if (!order) {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+      
+      const card = await storage.getCard(order.cardId);
+      if (!card) {
+        return res.status(404).json({ error: 'Card not found' });
+      }
+      
+      // Create test shipping address
+      const testShippingAddress = {
+        line1: '123 Test Street',
+        line2: 'Unit 4B',
+        city: 'Cape Town', 
+        province: 'Western Cape',
+        postalCode: '8001',
+        country: 'South Africa',
+        notes: 'Please handle with care - fragile items'
+      };
+      
+      const fs = await import('fs').then(m => m.promises);
+      const path = await import('path').then(m => m.default);
+      const { packagePDFsForSupplier, generatePrintSpecs } = await import('./pdf-generator.js');
+      
+      // Check for PDF files
+      const frontPdfPath = path.join(process.cwd(), 'print_files', `card_${card.id}_front_5x5_300dpi.pdf`);
+      const insidePdfPath = path.join(process.cwd(), 'print_files', `card_${card.id}_inside_5x5_300dpi.pdf`);
+      
+      let frontExists = false;
+      let insideExists = false;
+      
+      try {
+        await fs.access(frontPdfPath);
+        frontExists = true;
+        console.log('✅ Front PDF found for test');
+      } catch (e) {
+        console.log('⚠️ Front PDF not found for test');
+      }
+      
+      try {
+        await fs.access(insidePdfPath);
+        insideExists = true;
+        console.log('✅ Inside PDF found for test');
+      } catch (e) {
+        console.log('⚠️ Inside PDF not found for test');
+      }
+      
+      if (!frontExists) {
+        return res.status(400).json({ error: 'PDFs not found for testing' });
+      }
+      
+      // Generate print specifications
+      let printSpecsPath = null;
+      try {
+        printSpecsPath = await generatePrintSpecs(card.id);
+        console.log('✅ Print specifications generated for test');
+      } catch (e: any) {
+        console.log('⚠️ Could not generate print specifications for test:', e.message);
+      }
+      
+      // Create zip package
+      let zipFilePath = null;
+      let zipFileName = null;
+      
+      try {
+        zipFilePath = await packagePDFsForSupplier(
+          card.id,
+          order.customerName,
+          frontPdfPath,
+          insideExists ? insidePdfPath : null,
+          printSpecsPath
+        );
+        
+        zipFileName = path.basename(zipFilePath);
+        console.log('📦 Test zip package created:', zipFileName);
+      } catch (zipError) {
+        console.error('Failed to create test zip package:', zipError);
+        return res.status(500).json({ error: 'Failed to create zip package' });
+      }
+      
+      // Generate enhanced business email
+      const businessEmailParams = generateBusinessOrderEmail(
+        order, 
+        {
+          name: order.customerName,
+          email: order.customerEmail,
+          phone: order.customerPhone || '+27123456789' // Add phone for demo
+        },
+        testShippingAddress,
+        zipFileName
+      );
+      
+      // Override to send to test email
+      businessEmailParams.to = 'aidanchant26@gmail.com';
+      businessEmailParams.subject = '[TEST] ' + businessEmailParams.subject;
+      
+      // Add zip file attachment
+      if (zipFilePath) {
+        try {
+          const zipData = await fs.readFile(zipFilePath);
+          businessEmailParams.attachments = [{
+            name: zipFileName,
+            content: zipData.toString('base64'),
+            type: 'application/zip'
+          }];
+          console.log('📎 Zip attachment added to test email:', zipFileName);
+        } catch (attachmentError) {
+          console.error('Error adding zip attachment to test email:', attachmentError);
+          businessEmailParams.attachments = [];
+        }
+      }
+      
+      // Send the test email
+      await sendEmail(businessEmailParams);
+      console.log('✅ TEST EMAIL SENT: Enhanced supplier email with zip package sent to aidanchant26@gmail.com');
+      
+      // Clean up test zip file
+      if (zipFilePath) {
+        try {
+          await fs.unlink(zipFilePath);
+          console.log('🧹 Cleaned up test zip file');
+        } catch (e) {
+          console.log('Note: Could not clean up test zip file');
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        message: 'Enhanced supplier test email sent successfully',
+        details: {
+          zipFileName,
+          emailTo: businessEmailParams.to,
+          subject: businessEmailParams.subject
+        }
+      });
+      
+    } catch (error: any) {
+      console.error('❌ Test enhanced supplier email failed:', error);
+      res.status(500).json({ error: 'Failed to send test email: ' + error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
