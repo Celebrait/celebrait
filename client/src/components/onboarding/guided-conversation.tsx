@@ -572,8 +572,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       return recovered.answers;
     }
     return {
-      // Default art style to "ai_decide" - let AI choose based on scene description
-      art_style: 'ai_decide',
       // Default photo option to match streamlined flow
       photo_option: 'upload_and_scene'
     };
@@ -1272,7 +1270,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       } else {
         // Check if this step has an existing answer
         const existingAnswer = answers[currentStep.id];
-        if (existingAnswer && typeof existingAnswer === 'string') {
+        if (existingAnswer && typeof existingAnswer === 'string' && currentStep.id !== 'art_style') {
+          // Don't pre-fill art_style step to allow typing animation
           setCurrentInput(existingAnswer);
         } else {
           // Only clear input if it's not the scene step (handled above)
