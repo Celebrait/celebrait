@@ -1,6 +1,7 @@
 import PDFDocument from 'pdfkit';
 import { promises as fs } from 'fs';
 import path from 'path';
+import archiver from 'archiver';
 
 const PRINT_DIR = path.join(process.cwd(), 'print_files');
 const IMAGES_DIR = path.join(process.cwd(), 'stored_images');
@@ -177,4 +178,70 @@ export function getPDFDownloadUrls(cardId: number, format: string = '5x5', dpi: 
     inside: `${baseUrl}/${cardId}/inside/${format}/${dpi}`,
     specs: `${baseUrl}/${cardId}/specs`
   };
+}
+
+/**
+ * Package PDFs into a zip file for supplier delivery
+ */
+export async function packagePDFsForSupplier(
+  cardId: number,
+  customerName: string,
+  frontPdfPath: string,
+  insidePdfPath?: string | null,
+  printSpecs?: string
+): Promise<string> {
+  try {
+    // Clean customer name for filename (remove special characters)
+    const cleanCustomerName = customerName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_').substring(0, 30);
+    
+    // Create zip filename
+    const zipFilename = `Order_${cardId}_${cleanCustomerName}.zip`;
+    const zipPath = path.join(PRINT_DIR, zipFilename);
+    
+    // Create write stream for zip
+    const output = await fs.open(zipPath, 'w').then(handle => handle.createWriteStream());
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    
+    // Handle errors
+    archive.on('error', (err) => {
+      throw err;
+    });
+    
+    // Pipe archive to file
+    archive.pipe(output);
+    
+    // Add front PDF with descriptive name
+    const frontPdfName = `${cleanCustomerName}_Card_${cardId}_Front.pdf`;
+    archive.file(frontPdfPath, { name: frontPdfName });
+    
+    // Add inside PDF if available
+    if (insidePdfPath) {
+      const insidePdfName = `${cleanCustomerName}_Card_${cardId}_Inside.pdf`;
+      archive.file(insidePdfPath, { name: insidePdfName });
+    }
+    
+    // Add print specifications if available
+    if (printSpecs) {
+      const specsName = `${cleanCustomerName}_Card_${cardId}_PrintSpecs.json`;
+      archive.file(printSpecs, { name: specsName });
+    }
+    
+    // Finalize the archive
+    await archive.finalize();
+    
+    // Wait for the output stream to finish
+    await new Promise((resolve, reject) => {
+      output.on('close', resolve);
+      output.on('error', reject);
+    });
+    
+    const stats = await fs.stat(zipPath);
+    console.log(`[ZIP] Created supplier package: ${zipFilename} (${stats.size} bytes)`);
+    
+    return zipPath;
+    
+  } catch (error) {
+    console.error('Failed to create supplier zip package:', error);
+    throw error;
+  }
 }
