@@ -1583,6 +1583,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         setIsProcessingPhotos(true);
         setProcessingProgress(0);
         
+        // Clear old photos from ImageStore if this is a re-upload
+        if (uploadedPhotoIds.length > 0) {
+          console.log(`[PHOTO_UPLOAD] Re-upload detected, clearing ${uploadedPhotoIds.length} old photos...`);
+          uploadedPhotoIds.forEach(photoId => {
+            ImageStore.removePhoto(photoId);
+          });
+        }
+        
         console.log(`[PHOTO_UPLOAD] Processing ${filesToProcess.length} photos during upload...`);
         const processStart = performance.now();
         
