@@ -43,10 +43,20 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
           const cardData = JSON.parse(cachedData);
           const card = cardData.card || cardData;
           if (card?.conversationData) {
-            // Check for various name field formats
+            console.log('[DEBUG] conversationData keys:', Object.keys(card.conversationData));
+            console.log('[DEBUG] conversationData values:', {
+              name: card.conversationData.name,
+              recipient_name: card.conversationData.recipient_name,
+              user_name: card.conversationData.user_name,
+              recipient: card.conversationData.recipient,
+              user_first_name: card.conversationData.user_first_name,
+              user_last_name: card.conversationData.user_last_name
+            });
+            
+            // Check for various name field formats - name is the primary field from guided conversation
             const userName = card.conversationData.name || 
-                           card.conversationData.user_name || 
                            card.conversationData.recipient_name || 
+                           card.conversationData.user_name || 
                            card.conversationData.recipient || '';
             const userFirstName = card.conversationData.user_first_name || '';
             const userLastName = card.conversationData.user_last_name || '';
