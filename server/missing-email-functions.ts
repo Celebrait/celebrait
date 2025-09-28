@@ -143,7 +143,7 @@ export function generateBusinessOrderEmail(orderData: any, customerInfo: any, sh
   const isTestOrder = orderData.amount === 500; // R5.00 test orders
   
   return {
-    to: 'orders@celebrait.co.za', // Your business email
+    to: 'aidanchant26@gmail.com', // Your business email
     from: 'system@celebrait.co.za',
     subject: `${isTestOrder ? '[TEST] ' : ''}New Order #${orderData.paymentReference} - R${(orderData.amount / 100).toFixed(2)}`,
     html: `
