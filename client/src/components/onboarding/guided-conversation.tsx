@@ -3759,14 +3759,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             }));
                           }}
                           placeholder="e.g., Dear Mom, To my amazing friend, Hey Sarah"
-                          className="w-full text-sm md:text-lg p-3 rounded-xl border border-purple-200 focus:border-purple-400 focus:outline-none transition-colors"
+                          className="w-full text-sm md:text-lg text-black p-3 rounded-xl border-2 border-purple-200 focus:border-black focus:outline-none transition-colors"
+                          autoFocus
                         />
                       </div>
 
                       {/* Main Message Section */}
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">
-                          Your Message *
+                          Your Message (required)
                         </label>
                         <Textarea
                           value={(stepInputs[currentStep.id] as any)?.message || ''}
@@ -3780,8 +3781,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             }));
                           }}
                           placeholder="e.g., Hope your day is filled with joy and laughter! You mean so much to me."
-                          className="text-sm md:text-lg text-gray-600 placeholder:text-gray-400 p-4 min-h-[200px] sm:min-h-[150px] rounded-xl border-purple-200 focus:border-purple-400 resize-y"
-                          autoFocus
+                          className="text-sm md:text-lg text-black placeholder:text-gray-400 p-4 min-h-[200px] sm:min-h-[150px] rounded-xl border-2 border-purple-200 focus:border-black focus:outline-none transition-colors resize-y"
                         />
                       </div>
 
@@ -3803,7 +3803,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                             }));
                           }}
                           placeholder="e.g., Love Sarah, From your family, With love from Mom & Dad"
-                          className="w-full text-sm md:text-lg p-3 rounded-xl border border-purple-200 focus:border-purple-400 focus:outline-none transition-colors"
+                          className="w-full text-sm md:text-lg text-black p-3 rounded-xl border-2 border-purple-200 focus:border-black focus:outline-none transition-colors"
                         />
                       </div>
                     </div>
