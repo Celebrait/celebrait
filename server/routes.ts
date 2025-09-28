@@ -2364,7 +2364,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           formData.append('model', 'gpt-image-1');
           formData.append('n', '1');
           formData.append('size', '1024x1024');
-          formData.append('quality', 'high');
+          formData.append('quality', 'low');
           formData.append('moderation', 'low');
 
           const fetch = (await import('node-fetch')).default;
@@ -3624,7 +3624,7 @@ ${styleSection}`;
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
         formData.append('size', '1024x1024');
-        formData.append('quality', 'high');
+        formData.append('quality', 'low');
         formData.append('moderation', 'low');
         formData.append('background', 'auto');
 
@@ -3909,7 +3909,7 @@ ${styleSection}`;
       formData.append('model', 'gpt-image-1');
       formData.append('n', '1');
       formData.append('size', size);
-      formData.append('quality', 'high');
+      formData.append('quality', 'low');
       formData.append('moderation', 'low');
       formData.append('background', 'auto');
 
@@ -4166,7 +4166,7 @@ ${styleSection}`;
         formData.append('model', 'gpt-image-1');
         formData.append('n', '1');
         formData.append('size', size);
-        formData.append('quality', 'high');
+        formData.append('quality', 'low');
         formData.append('moderation', 'low');
 
         console.log('📋 Form data parameters being sent:');
