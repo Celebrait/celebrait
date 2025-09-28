@@ -6,6 +6,11 @@ interface EmailParams {
   subject: string;
   text?: string;
   html?: string;
+  attachments?: Array<{
+    name: string;
+    content: string;
+    type: string;
+  }>;
 }
 
 export function generateOrderConfirmationEmail(orderData: any, cardId?: number, host?: string): EmailParams {

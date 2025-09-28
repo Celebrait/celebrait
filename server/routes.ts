@@ -5290,53 +5290,95 @@ ${styleSection}`;
           await sendEmail(customerEmailParams);
           console.log('✅ Customer confirmation email sent to:', order.customerEmail);
           
-          // 2. Send business order processing email with PDF attachments
-          const businessEmailParams = generateBusinessOrderEmail(order, {
-            name: order.customerName,
-            email: order.customerEmail,
-            phone: order.customerPhone
-          }, order.shippingAddress ? JSON.parse(order.shippingAddress) : null);
+          // 2. Send business order processing email with zip package attachment
+          let zipFileName = null;
+          let zipFilePath = null;
           
-          // Add PDF attachments if they were generated
+          // Create zip package for supplier if PDFs are available
           if (card) {
             try {
               const fs = require('fs').promises;
               const path = require('path');
+              const { packagePDFsForSupplier, generatePrintSpecs } = require('./pdf-generator');
               
-              // Check for PDF files and attach them
+              // Check for PDF files
               const frontPdfPath = path.join(process.cwd(), 'print_files', `card_${card.id}_front_5x5_300dpi.pdf`);
               const insidePdfPath = path.join(process.cwd(), 'print_files', `card_${card.id}_inside_5x5_300dpi.pdf`);
               
-              businessEmailParams.attachments = [];
+              let frontExists = false;
+              let insideExists = false;
               
               try {
                 await fs.access(frontPdfPath);
-                const frontPdfData = await fs.readFile(frontPdfPath);
-                businessEmailParams.attachments.push({
-                  name: `Order_${order.paymentReference}_Front.pdf`,
-                  content: frontPdfData.toString('base64'),
-                  type: 'application/pdf'
-                });
-                console.log('📎 Front PDF attached to business email');
+                frontExists = true;
+                console.log('✅ Front PDF found for packaging');
               } catch (e) {
-                console.log('⚠️ Front PDF not found for attachment');
+                console.log('⚠️ Front PDF not found');
               }
               
               try {
                 await fs.access(insidePdfPath);
-                const insidePdfData = await fs.readFile(insidePdfPath);
-                businessEmailParams.attachments.push({
-                  name: `Order_${order.paymentReference}_Inside.pdf`,
-                  content: insidePdfData.toString('base64'),
-                  type: 'application/pdf'
-                });
-                console.log('📎 Inside PDF attached to business email');
+                insideExists = true;
+                console.log('✅ Inside PDF found for packaging');
               } catch (e) {
-                console.log('⚠️ Inside PDF not found for attachment');
+                console.log('⚠️ Inside PDF not found');
               }
-            } catch (attachmentError) {
-              console.error('Error adding PDF attachments:', attachmentError);
+              
+              // Generate print specifications
+              let printSpecsPath = null;
+              try {
+                printSpecsPath = await generatePrintSpecs(card.id);
+                console.log('✅ Print specifications generated');
+              } catch (e: any) {
+                console.log('⚠️ Could not generate print specifications:', e.message);
+              }
+              
+              // Create zip package if we have at least the front PDF
+              if (frontExists) {
+                try {
+                  zipFilePath = await packagePDFsForSupplier(
+                    card.id,
+                    order.customerName,
+                    frontPdfPath,
+                    insideExists ? insidePdfPath : null,
+                    printSpecsPath
+                  );
+                  
+                  zipFileName = path.basename(zipFilePath);
+                  console.log('📦 Supplier zip package created:', zipFileName);
+                } catch (zipError) {
+                  console.error('Failed to create zip package:', zipError);
+                }
+              }
+            } catch (packageError) {
+              console.error('Error preparing supplier package:', packageError);
             }
+          }
+          
+          // Generate business email with zip file info
+          const businessEmailParams = generateBusinessOrderEmail(order, {
+            name: order.customerName,
+            email: order.customerEmail,
+            phone: order.customerPhone
+          }, order.shippingAddress ? JSON.parse(order.shippingAddress) : null, zipFileName);
+          
+          // Add zip file attachment if created
+          if (zipFilePath) {
+            try {
+              const fs = require('fs').promises;
+              const zipData = await fs.readFile(zipFilePath);
+              businessEmailParams.attachments = [{
+                name: zipFileName,
+                content: zipData.toString('base64'),
+                type: 'application/zip'
+              }];
+              console.log('📎 Zip package attached to business email:', zipFileName);
+            } catch (attachmentError) {
+              console.error('Error attaching zip file:', attachmentError);
+              businessEmailParams.attachments = [];
+            }
+          } else {
+            businessEmailParams.attachments = [];
           }
           
           await sendEmail(businessEmailParams);
