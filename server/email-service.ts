@@ -28,6 +28,11 @@ interface EmailParams {
   subject: string;
   text?: string;
   html?: string;
+  attachments?: Array<{
+    name: string;
+    content: string;
+    type: string;
+  }>;
 }
 
 // Marketing list management
@@ -100,6 +105,16 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     sendSmtpEmail.textContent = params.text || 'Email content is available in HTML format.';
     if (params.html) {
       sendSmtpEmail.htmlContent = params.html;
+    }
+
+    // Add attachments if provided
+    if (params.attachments && params.attachments.length > 0) {
+      sendSmtpEmail.attachment = params.attachments.map(att => ({
+        name: att.name,
+        content: att.content,
+        type: att.type
+      }));
+      console.log(`📎 Adding ${params.attachments.length} attachment(s) to email`);
     }
 
     const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
