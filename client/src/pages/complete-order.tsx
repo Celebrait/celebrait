@@ -43,9 +43,13 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
           const cardData = JSON.parse(cachedData);
           const card = cardData.card || cardData;
           if (card?.conversationData) {
+            // Check for various name field formats
+            const userName = card.conversationData.name || 
+                           card.conversationData.user_name || 
+                           card.conversationData.recipient_name || 
+                           card.conversationData.recipient || '';
             const userFirstName = card.conversationData.user_first_name || '';
             const userLastName = card.conversationData.user_last_name || '';
-            const userName = card.conversationData.user_name || '';
             
             if (userFirstName || userLastName) {
               const fullName = `${userFirstName} ${userLastName}`.trim();
@@ -88,7 +92,29 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
     return '';
   });
 
-  const [customerEmailConfirm, setCustomerEmailConfirm] = useState('');
+  const [customerEmailConfirm, setCustomerEmailConfirm] = useState(() => {
+    // Auto-populate email confirmation with the same email from cache
+    const cachedKeys = ['cardPreviewData', `card_${cardId}`, `ready_${cardId}`];
+    for (const key of cachedKeys) {
+      try {
+        const cachedData = sessionStorage.getItem(key);
+        if (cachedData) {
+          const cardData = JSON.parse(cachedData);
+          const card = cardData.card || cardData;
+          if (card?.conversationData) {
+            const userEmail = card.conversationData.email || card.conversationData.user_email || '';
+            if (userEmail) {
+              console.log('[INSTANT] Email confirmation auto-populated from cache:', userEmail);
+              return userEmail;
+            }
+          }
+        }
+      } catch (e) {
+        // Continue to next cache key
+      }
+    }
+    return '';
+  });
 
   // Pricing option state
   const [selectedPrice, setSelectedPrice] = useState<'testing' | 'full'>('full');
@@ -123,6 +149,13 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
       loadCard();
     }
   }, [cardId]);
+
+  // Auto-sync email confirmation when email changes
+  useEffect(() => {
+    if (customerEmail && !customerEmailConfirm) {
+      setCustomerEmailConfirm(customerEmail);
+    }
+  }, [customerEmail, customerEmailConfirm]);
 
   const loadCard = async () => {
     try {
