@@ -150,13 +150,13 @@ export function generateBusinessOrderEmail(orderData: any, customerInfo: any, sh
   return {
     to: 'aidanchant26@gmail.com', // Your business email
     from: 'system@celebrait.co.za',
-    subject: `${isTestOrder ? '[TEST] ' : ''}NEW PRINT ORDER #${orderData.paymentReference} - ${orderData.customerName}`,
+    subject: `${isTestOrder ? '[TEST] ' : ''}NEW PRINT ORDER #${orderData.cardId} - ${orderData.customerName}`,
     html: `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 750px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
         <!-- Header -->
         <div style="background: ${isTestOrder ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, #059669 0%, #047857 100%)'}; color: white; padding: 25px; border-radius: 12px 12px 0 0; text-align: center; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
           <h1 style="margin: 0; font-size: 24px; font-weight: 700;">${isTestOrder ? '🧪 TEST PRINT ORDER' : '📦 NEW PRINT ORDER'}</h1>
-          <p style="margin: 8px 0 0; font-size: 18px; opacity: 0.95;">#${orderData.paymentReference}</p>
+          <p style="margin: 8px 0 0; font-size: 18px; opacity: 0.95;">ORDER #${orderData.cardId}</p>
           <p style="margin: 8px 0 0; font-size: 14px; opacity: 0.9;">R${(orderData.amount / 100).toFixed(2)} • ${new Date().toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })}</p>
         </div>
         
@@ -257,7 +257,7 @@ export function generateBusinessOrderEmail(orderData: any, customerInfo: any, sh
         </div>
       </div>
     `,
-    text: `NEW PRINT ORDER #${orderData.paymentReference} - ${orderData.customerName}
+    text: `NEW PRINT ORDER #${orderData.cardId} - ${orderData.customerName}
     
 CUSTOMER DETAILS:
 Name: ${orderData.customerName}
