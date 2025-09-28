@@ -1934,7 +1934,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           model: "gpt-image-1",
           prompt: frontPrompt,
           size: "1024x1024",
-          quality: "high",
+          quality: "low",
           n: 1
         });
         console.log("Successfully used gpt-image-1 for front card generation");
@@ -1945,7 +1945,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           model: "gpt-image-1",
           prompt: frontPrompt,
           size: "1024x1024",
-          quality: "high",
+          quality: "low",
           n: 1
         });
       }
@@ -1969,7 +1969,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             model: "gpt-image-1",
             prompt: insidePrompt,
             size: "1024x1024",
-            quality: "high",
+            quality: "low",
             n: 1
           });
           console.log("Successfully used gpt-image-1 for inside card generation");
@@ -1980,7 +1980,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             model: "gpt-image-1",
             prompt: insidePrompt,
             size: "1024x1024",
-            quality: "high",
+            quality: "low",
             n: 1
           });
         }
