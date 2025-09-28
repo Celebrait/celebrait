@@ -596,6 +596,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [editingStep, setEditingStep] = useState<string | null>(null);
   const [returnToSummary, setReturnToSummary] = useState(false);
   const [uploadedPhotoIds, setUploadedPhotoIds] = useState<string[]>([]);
+  const [isProcessingPhotos, setIsProcessingPhotos] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
   const [typedText, setTypedText] = useState('');
   const [photoUploadProgress, setPhotoUploadProgress] = useState<{ [fileName: string]: number }>({});
   const [isMounted, setIsMounted] = useState(false);
@@ -1577,17 +1579,32 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       const filesToProcess = isTransformStyle ? [files[0]] : Array.from(files);
       
       try {
+        // Start loading animation
+        setIsProcessingPhotos(true);
+        setProcessingProgress(0);
+        
         console.log(`[PHOTO_UPLOAD] Processing ${filesToProcess.length} photos during upload...`);
         const processStart = performance.now();
         
-        // Process photos silently
+        // Process photos with progress updates
         const photoIds: string[] = [];
         
         for (let i = 0; i < filesToProcess.length; i++) {
           const file = filesToProcess[i];
-          const photoId = await ImageStore.addPhoto(file);
+          
+          // Update progress as we start each photo
+          setProcessingProgress(Math.round((i / filesToProcess.length) * 70)); // 70% for processing
+          
+          const photoId = await ImageStore.addPhoto(file, (progress) => {
+            // Update progress within the current photo processing
+            const overallProgress = Math.round(((i / filesToProcess.length) * 70) + (progress * 0.3 / filesToProcess.length));
+            setProcessingProgress(overallProgress);
+          });
           photoIds.push(photoId);
         }
+        
+        // Final processing steps
+        setProcessingProgress(95);
         
         const processEnd = performance.now();
         console.log(`[PHOTO_UPLOAD] Completed processing ${filesToProcess.length} photos in ${Math.round(processEnd - processStart)}ms`);
@@ -1610,8 +1627,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
           : `Photo${photoIds.length > 1 ? 's' : ''} processed and optimized for generation${compressionInfo}`;
         setAnswers(prev => ({ ...prev, character_description: successMessage }));
         
+        // Complete progress
+        setProcessingProgress(100);
+        
+        // Hide loading after a brief moment
+        setTimeout(() => {
+          setIsProcessingPhotos(false);
+          setProcessingProgress(0);
+        }, 500);
+        
       } catch (error) {
         console.error('[PHOTO_UPLOAD] Processing failed:', error);
+        setIsProcessingPhotos(false);
+        setProcessingProgress(0);
         toast({
           title: "Upload Error",
           description: "Failed to process uploaded photo. Please try again.",
@@ -3441,6 +3469,43 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           </label>
                         </div>
 
+                        {/* Photo Processing Loading Animation */}
+                        {isProcessingPhotos && (
+                          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-2xl p-8 max-w-sm mx-4 text-center shadow-2xl">
+                              <div className="space-y-6">
+                                {/* Animated gradient circle */}
+                                <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse flex items-center justify-center">
+                                  <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center">
+                                    <Scan className="w-8 h-8 text-purple-500 animate-spin" />
+                                  </div>
+                                </div>
+                                
+                                {/* Progress text with typing effect */}
+                                <div>
+                                  <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                                    Analyzing your photo...
+                                  </h3>
+                                  <p className="text-sm text-gray-600 mb-4">
+                                    {processingProgress < 30 && "Detecting faces and features"}
+                                    {processingProgress >= 30 && processingProgress < 70 && "Calculating optimal crop area"}
+                                    {processingProgress >= 70 && processingProgress < 95 && "Applying smart enhancements"}
+                                    {processingProgress >= 95 && "Finishing up..."}
+                                  </p>
+                                  
+                                  {/* Progress bar */}
+                                  <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div 
+                                      className="h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
+                                      style={{ width: `${processingProgress}%` }}
+                                    ></div>
+                                  </div>
+                                  <p className="text-xs text-gray-500 mt-1">{processingProgress}% complete</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                       </div>
                     ) : (
