@@ -3402,6 +3402,43 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
                 {currentStep.type === 'photo_upload' && (answers.photo_option === 'upload_and_scene' || answers.photo_option === 'upload_and_transform') && (
                   <div className="space-y-6">
+                    {/* Photo Processing Loading Animation - Global for all upload states */}
+                    {isProcessingPhotos && (
+                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-2xl p-8 max-w-sm mx-4 text-center shadow-2xl">
+                          <div className="space-y-6">
+                            {/* Animated gradient circle */}
+                            <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse flex items-center justify-center">
+                              <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center">
+                                <Scan className="w-8 h-8 text-purple-500 animate-spin" />
+                              </div>
+                            </div>
+                            
+                            {/* Progress text with typing effect */}
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                                {uploadedPhotoIds.length > 0 ? "Processing new photo..." : "Analyzing your photo..."}
+                              </h3>
+                              <p className="text-sm text-gray-600 mb-4">
+                                {processingProgress < 30 && "Detecting faces and features"}
+                                {processingProgress >= 30 && processingProgress < 70 && "Calculating optimal crop area"}
+                                {processingProgress >= 70 && processingProgress < 95 && "Applying smart enhancements"}
+                                {processingProgress >= 95 && "Finishing up..."}
+                              </p>
+                              
+                              {/* Progress bar */}
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
+                                  style={{ width: `${processingProgress}%` }}
+                                ></div>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">{processingProgress}% complete</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     {uploadedPhotoIds.length === 0 ? (
                       <div className="space-y-6">
                         <div className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center bg-purple-50 hover:bg-purple-100 transition-colors">
@@ -3469,43 +3506,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                           </label>
                         </div>
 
-                        {/* Photo Processing Loading Animation */}
-                        {isProcessingPhotos && (
-                          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                            <div className="bg-white rounded-2xl p-8 max-w-sm mx-4 text-center shadow-2xl">
-                              <div className="space-y-6">
-                                {/* Animated gradient circle */}
-                                <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse flex items-center justify-center">
-                                  <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center">
-                                    <Scan className="w-8 h-8 text-purple-500 animate-spin" />
-                                  </div>
-                                </div>
-                                
-                                {/* Progress text with typing effect */}
-                                <div>
-                                  <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                                    Analyzing your photo...
-                                  </h3>
-                                  <p className="text-sm text-gray-600 mb-4">
-                                    {processingProgress < 30 && "Detecting faces and features"}
-                                    {processingProgress >= 30 && processingProgress < 70 && "Calculating optimal crop area"}
-                                    {processingProgress >= 70 && processingProgress < 95 && "Applying smart enhancements"}
-                                    {processingProgress >= 95 && "Finishing up..."}
-                                  </p>
-                                  
-                                  {/* Progress bar */}
-                                  <div className="w-full bg-gray-200 rounded-full h-2">
-                                    <div 
-                                      className="h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300 ease-out"
-                                      style={{ width: `${processingProgress}%` }}
-                                    ></div>
-                                  </div>
-                                  <p className="text-xs text-gray-500 mt-1">{processingProgress}% complete</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
 
                       </div>
                     ) : (
