@@ -5365,19 +5365,48 @@ ${styleSection}`;
           // Add zip file attachment if created
           if (zipFilePath) {
             try {
+              console.log('[ZIP_ATTACHMENT] Attempting to attach zip file...');
+              console.log('[ZIP_ATTACHMENT] Zip file path:', zipFilePath);
+              console.log('[ZIP_ATTACHMENT] Zip file name:', zipFileName);
+              
               const fs = require('fs').promises;
+              
+              // Verify file exists before reading
+              try {
+                await fs.access(zipFilePath);
+                console.log('[ZIP_ATTACHMENT] ✅ Zip file exists and is accessible');
+              } catch (accessError) {
+                console.error('[ZIP_ATTACHMENT] ❌ Cannot access zip file:', accessError);
+                throw new Error(`Zip file not accessible: ${zipFilePath}`);
+              }
+              
+              // Read the zip file
               const zipData = await fs.readFile(zipFilePath);
+              console.log('[ZIP_ATTACHMENT] ✅ Zip file read successfully, size:', zipData.length, 'bytes');
+              
+              // Convert to base64
+              const base64Content = zipData.toString('base64');
+              console.log('[ZIP_ATTACHMENT] ✅ Converted to base64, length:', base64Content.length);
+              
               businessEmailParams.attachments = [{
                 name: zipFileName,
-                content: zipData.toString('base64'),
+                content: base64Content,
                 type: 'application/zip'
               }];
-              console.log('📎 Zip package attached to business email:', zipFileName);
-            } catch (attachmentError) {
-              console.error('Error attaching zip file:', attachmentError);
+              console.log('[ZIP_ATTACHMENT] ✅ Attachment object created successfully');
+              console.log('[ZIP_ATTACHMENT] Attachment details:', {
+                name: zipFileName,
+                type: 'application/zip',
+                contentLength: base64Content.length
+              });
+            } catch (attachmentError: any) {
+              console.error('[ZIP_ATTACHMENT] ❌ CRITICAL ERROR attaching zip file:', attachmentError);
+              console.error('[ZIP_ATTACHMENT] Error stack:', attachmentError.stack);
+              console.error('[ZIP_ATTACHMENT] Zip path attempted:', zipFilePath);
               businessEmailParams.attachments = [];
             }
           } else {
+            console.log('[ZIP_ATTACHMENT] ⚠️ No zip file path provided, sending email without attachment');
             businessEmailParams.attachments = [];
           }
           

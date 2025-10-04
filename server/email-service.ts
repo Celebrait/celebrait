@@ -109,12 +109,26 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
 
     // Add attachments if provided
     if (params.attachments && params.attachments.length > 0) {
-      sendSmtpEmail.attachment = params.attachments.map(att => ({
-        name: att.name,
-        content: att.content,
-        type: att.type
-      }));
-      console.log(`📎 Adding ${params.attachments.length} attachment(s) to email`);
+      console.log('[EMAIL_SERVICE] Processing attachments...');
+      console.log('[EMAIL_SERVICE] Attachments array:', params.attachments.length, 'items');
+      
+      sendSmtpEmail.attachment = params.attachments.map((att, index) => {
+        console.log(`[EMAIL_SERVICE] Attachment ${index + 1}:`, {
+          name: att.name,
+          type: att.type,
+          contentLength: att.content ? att.content.length : 0,
+          hasContent: !!att.content
+        });
+        
+        return {
+          name: att.name,
+          content: att.content,
+          type: att.type
+        };
+      });
+      console.log(`[EMAIL_SERVICE] ✅ ${params.attachments.length} attachment(s) mapped to Brevo format`);
+    } else {
+      console.log('[EMAIL_SERVICE] ⚠️ No attachments provided or empty attachments array');
     }
 
     const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
