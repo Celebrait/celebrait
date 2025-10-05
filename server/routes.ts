@@ -164,6 +164,168 @@ setInterval(() => {
   metadataKeysToDelete.forEach(key => cardMetadataCache.delete(key));
 }, 10 * 60 * 1000); // Clean every 10 minutes
 
+/**
+ * Background job: Generate PDFs and send supplier email with zip attachment
+ * This runs asynchronously after payment confirmation to avoid blocking the payment flow
+ * Timing: 1-2 minutes is acceptable for supplier workflow
+ */
+async function processSupplierOrder(orderId: number, cardId: number): Promise<void> {
+  const startTime = Date.now();
+  console.log(`[SUPPLIER_PROCESSING] Starting background processing for order #${orderId}, card #${cardId}`);
+  
+  try {
+    // Get order and card data
+    const order = await storage.getOrder(orderId);
+    const card = await storage.getCard(cardId);
+    
+    if (!order || !card) {
+      console.error(`[SUPPLIER_PROCESSING] Order or card not found: order=${orderId}, card=${cardId}`);
+      return;
+    }
+    
+    console.log(`[SUPPLIER_PROCESSING] Processing order for: ${order.customerName}, delivery: ${order.deliveryMethod}`);
+    
+    // Step 1: Generate PDFs (300 DPI, 5x5 format)
+    console.log(`[SUPPLIER_PROCESSING] Step 1/3: Generating PDFs...`);
+    let pdfs;
+    try {
+      pdfs = await generateSeparatePDFs({
+        cardId: card.id,
+        format: '5x5',
+        dpi: 300
+      });
+      console.log(`[SUPPLIER_PROCESSING] ✅ PDFs generated successfully:`, pdfs);
+    } catch (pdfError: any) {
+      console.error(`[SUPPLIER_PROCESSING] ❌ PDF generation failed:`, pdfError);
+      console.error(`[SUPPLIER_PROCESSING] Error details:`, pdfError.message);
+      console.error(`[SUPPLIER_PROCESSING] Stack:`, pdfError.stack);
+      // Cannot proceed without PDFs
+      return;
+    }
+    
+    // Step 2: Create zip package with PDFs and print specs
+    console.log(`[SUPPLIER_PROCESSING] Step 2/3: Creating zip package...`);
+    let zipFilePath = null;
+    let zipFileName = null;
+    
+    try {
+      const { promises: fs } = await import('fs');
+      const pathModule = await import('path');
+      const { packagePDFsForSupplier, generatePrintSpecs } = await import('./pdf-generator.js');
+      
+      const frontPdfPath = pathModule.join(process.cwd(), 'print_files', `card_${card.id}_front_5x5_300dpi.pdf`);
+      const insidePdfPath = pathModule.join(process.cwd(), 'print_files', `card_${card.id}_inside_5x5_300dpi.pdf`);
+      
+      // Verify PDF files exist
+      let frontExists = false;
+      let insideExists = false;
+      
+      try {
+        await fs.access(frontPdfPath);
+        frontExists = true;
+        console.log(`[SUPPLIER_PROCESSING] ✅ Front PDF verified: ${frontPdfPath}`);
+      } catch (e) {
+        console.error(`[SUPPLIER_PROCESSING] ❌ Front PDF not found: ${frontPdfPath}`);
+      }
+      
+      try {
+        await fs.access(insidePdfPath);
+        insideExists = true;
+        console.log(`[SUPPLIER_PROCESSING] ✅ Inside PDF verified: ${insidePdfPath}`);
+      } catch (e) {
+        console.log(`[SUPPLIER_PROCESSING] ⚠️ Inside PDF not found (may not exist for all cards)`);
+      }
+      
+      if (!frontExists) {
+        console.error(`[SUPPLIER_PROCESSING] ❌ Cannot create zip without front PDF`);
+        return;
+      }
+      
+      // Generate print specifications
+      let printSpecsPath = null;
+      try {
+        printSpecsPath = await generatePrintSpecs(card.id);
+        console.log(`[SUPPLIER_PROCESSING] ✅ Print specifications generated`);
+      } catch (e: any) {
+        console.log(`[SUPPLIER_PROCESSING] ⚠️ Could not generate print specs:`, e.message);
+      }
+      
+      // Create zip package
+      zipFilePath = await packagePDFsForSupplier(
+        card.id,
+        order.customerName,
+        frontPdfPath,
+        insideExists ? insidePdfPath : null,
+        printSpecsPath
+      );
+      
+      zipFileName = pathModule.basename(zipFilePath);
+      console.log(`[SUPPLIER_PROCESSING] ✅ Zip package created: ${zipFileName}`);
+      
+    } catch (zipError: any) {
+      console.error(`[SUPPLIER_PROCESSING] ❌ Zip creation failed:`, zipError);
+      console.error(`[SUPPLIER_PROCESSING] Error details:`, zipError.message);
+      return;
+    }
+    
+    // Step 3: Send supplier email with zip attachment
+    console.log(`[SUPPLIER_PROCESSING] Step 3/3: Sending supplier email...`);
+    
+    try {
+      const businessEmailParams = generateBusinessOrderEmail(
+        order, 
+        {
+          name: order.customerName,
+          email: order.customerEmail,
+          phone: order.customerPhone
+        }, 
+        order.shippingAddress ? JSON.parse(order.shippingAddress) : null, 
+        zipFileName
+      );
+      
+      // Attach zip file
+      if (zipFilePath) {
+        const { promises: fsRead } = await import('fs');
+        
+        console.log(`[SUPPLIER_PROCESSING] Reading zip file: ${zipFilePath}`);
+        const zipData = await fsRead.readFile(zipFilePath);
+        console.log(`[SUPPLIER_PROCESSING] ✅ Zip file read: ${zipData.length} bytes`);
+        
+        const base64Content = zipData.toString('base64');
+        console.log(`[SUPPLIER_PROCESSING] ✅ Converted to base64: ${base64Content.length} characters`);
+        
+        businessEmailParams.attachments = [{
+          name: zipFileName,
+          content: base64Content,
+          type: 'application/zip'
+        }];
+        
+        console.log(`[SUPPLIER_PROCESSING] ✅ Attachment prepared:`, {
+          name: zipFileName,
+          size: zipData.length,
+          base64Length: base64Content.length
+        });
+      }
+      
+      // Send the email
+      await sendEmail(businessEmailParams);
+      
+      const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.log(`[SUPPLIER_PROCESSING] ✅ SUCCESS: Supplier email sent to system@celebrait.co.za`);
+      console.log(`[SUPPLIER_PROCESSING] Total processing time: ${elapsedTime} seconds`);
+      
+    } catch (emailError: any) {
+      console.error(`[SUPPLIER_PROCESSING] ❌ Email sending failed:`, emailError);
+      console.error(`[SUPPLIER_PROCESSING] Error details:`, emailError.message);
+    }
+    
+  } catch (error: any) {
+    const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.error(`[SUPPLIER_PROCESSING] ❌ CRITICAL ERROR after ${elapsedTime}s:`, error);
+    console.error(`[SUPPLIER_PROCESSING] Stack:`, error.stack);
+  }
+}
+
 // Watermark utility function (legacy - for base64 data)
 async function applyWatermark(imageData: string, opacity: number = 0.65): Promise<string> {
   try {
@@ -5263,155 +5425,14 @@ ${styleSection}`;
 
         console.log('Payment confirmed for order:', order.id);
 
-        // Generate PDFs for ALL card types after payment completion
         const card = await storage.getCard(order.cardId);
-        if (card) {
-          console.log('Generating PDFs for card after payment completion:', card.id);
-          try {
-            // Generate high-quality PDFs for both digital and printed cards
-            const pdfs = await generateSeparatePDFs({
-              cardId: card.id,
-              format: '5x5',
-              dpi: 300
-            });
-            console.log('PDFs generated successfully:', pdfs);
-          } catch (pdfError) {
-            console.error('PDF generation failed after payment:', pdfError);
-            // Don't fail the whole payment process if PDF generation fails
-          }
-        }
-
-        // Send dual email system: customer confirmation + business order processing
+        
+        // Send customer confirmation email immediately
         try {
           const actualHost = '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev';
-          
-          // 1. Send customer confirmation email with mobile image links
           const customerEmailParams = generateOrderConfirmationEmail(order, card?.id, actualHost);
           await sendEmail(customerEmailParams);
           console.log('✅ Customer confirmation email sent to:', order.customerEmail);
-          
-          // 2. Send business order processing email with zip package attachment
-          let zipFileName = null;
-          let zipFilePath = null;
-          
-          // Create zip package for supplier if PDFs are available
-          if (card) {
-            try {
-              const fs = require('fs').promises;
-              const path = require('path');
-              const { packagePDFsForSupplier, generatePrintSpecs } = require('./pdf-generator');
-              
-              // Check for PDF files
-              const frontPdfPath = path.join(process.cwd(), 'print_files', `card_${card.id}_front_5x5_300dpi.pdf`);
-              const insidePdfPath = path.join(process.cwd(), 'print_files', `card_${card.id}_inside_5x5_300dpi.pdf`);
-              
-              let frontExists = false;
-              let insideExists = false;
-              
-              try {
-                await fs.access(frontPdfPath);
-                frontExists = true;
-                console.log('✅ Front PDF found for packaging');
-              } catch (e) {
-                console.log('⚠️ Front PDF not found');
-              }
-              
-              try {
-                await fs.access(insidePdfPath);
-                insideExists = true;
-                console.log('✅ Inside PDF found for packaging');
-              } catch (e) {
-                console.log('⚠️ Inside PDF not found');
-              }
-              
-              // Generate print specifications
-              let printSpecsPath = null;
-              try {
-                printSpecsPath = await generatePrintSpecs(card.id);
-                console.log('✅ Print specifications generated');
-              } catch (e: any) {
-                console.log('⚠️ Could not generate print specifications:', e.message);
-              }
-              
-              // Create zip package if we have at least the front PDF
-              if (frontExists) {
-                try {
-                  zipFilePath = await packagePDFsForSupplier(
-                    card.id,
-                    order.customerName,
-                    frontPdfPath,
-                    insideExists ? insidePdfPath : null,
-                    printSpecsPath
-                  );
-                  
-                  zipFileName = path.basename(zipFilePath);
-                  console.log('📦 Supplier zip package created:', zipFileName);
-                } catch (zipError) {
-                  console.error('Failed to create zip package:', zipError);
-                }
-              }
-            } catch (packageError) {
-              console.error('Error preparing supplier package:', packageError);
-            }
-          }
-          
-          // Generate business email with zip file info
-          const businessEmailParams = generateBusinessOrderEmail(order, {
-            name: order.customerName,
-            email: order.customerEmail,
-            phone: order.customerPhone
-          }, order.shippingAddress ? JSON.parse(order.shippingAddress) : null, zipFileName);
-          
-          // Add zip file attachment if created
-          if (zipFilePath) {
-            try {
-              console.log('[ZIP_ATTACHMENT] Attempting to attach zip file...');
-              console.log('[ZIP_ATTACHMENT] Zip file path:', zipFilePath);
-              console.log('[ZIP_ATTACHMENT] Zip file name:', zipFileName);
-              
-              const fs = require('fs').promises;
-              
-              // Verify file exists before reading
-              try {
-                await fs.access(zipFilePath);
-                console.log('[ZIP_ATTACHMENT] ✅ Zip file exists and is accessible');
-              } catch (accessError) {
-                console.error('[ZIP_ATTACHMENT] ❌ Cannot access zip file:', accessError);
-                throw new Error(`Zip file not accessible: ${zipFilePath}`);
-              }
-              
-              // Read the zip file
-              const zipData = await fs.readFile(zipFilePath);
-              console.log('[ZIP_ATTACHMENT] ✅ Zip file read successfully, size:', zipData.length, 'bytes');
-              
-              // Convert to base64
-              const base64Content = zipData.toString('base64');
-              console.log('[ZIP_ATTACHMENT] ✅ Converted to base64, length:', base64Content.length);
-              
-              businessEmailParams.attachments = [{
-                name: zipFileName,
-                content: base64Content,
-                type: 'application/zip'
-              }];
-              console.log('[ZIP_ATTACHMENT] ✅ Attachment object created successfully');
-              console.log('[ZIP_ATTACHMENT] Attachment details:', {
-                name: zipFileName,
-                type: 'application/zip',
-                contentLength: base64Content.length
-              });
-            } catch (attachmentError: any) {
-              console.error('[ZIP_ATTACHMENT] ❌ CRITICAL ERROR attaching zip file:', attachmentError);
-              console.error('[ZIP_ATTACHMENT] Error stack:', attachmentError.stack);
-              console.error('[ZIP_ATTACHMENT] Zip path attempted:', zipFilePath);
-              businessEmailParams.attachments = [];
-            }
-          } else {
-            console.log('[ZIP_ATTACHMENT] ⚠️ No zip file path provided, sending email without attachment');
-            businessEmailParams.attachments = [];
-          }
-          
-          await sendEmail(businessEmailParams);
-          console.log('✅ Business order email sent with order details and PDF attachments');
           
           // If digital card (R5.00 = 500 cents), also send the digital card email
           if (order.amount === 500) {
@@ -5457,33 +5478,13 @@ ${styleSection}`;
           console.error('Failed to send confirmation/digital emails:', emailError);
         }
 
-        // For printed cards, generate PDFs and start fulfillment process  
-        if (order.cardId && (order.amount === 12900 || order.amount === 500)) { // R129.00 or R5.00 (testing) = 12900 or 500 cents
-          const card = await storage.getCard(order.cardId);
-          if (card) {
-            console.log('Generating PDFs for printed card:', card.id);
-            try {
-              // Generate high-quality PDFs for printing
-              const pdfs = await generateSeparatePDFs({
-                cardId: card.id,
-                format: '5x5',
-                dpi: 300
-              });
-              
-              // Generate print specs
-              await generatePrintSpecs(card.id);
-              
-              console.log('PDFs generated successfully for card:', card.id, pdfs);
-              
-              // Update order status to indicate PDFs are ready
-              await storage.updateOrder(order.id, {
-                orderStatus: 'processing' // PDFs ready for printing
-              });
-              
-            } catch (pdfError) {
-              console.error('Failed to generate PDFs for card:', card.id, pdfError);
-            }
-          }
+        // Trigger background supplier order processing (PDFs + zip + email)
+        // This runs asynchronously - 1-2 minute delay is acceptable
+        if (order.cardId && card) {
+          console.log('🚀 Triggering background supplier order processing for order #' + order.id);
+          processSupplierOrder(order.id, card.id).catch(err => {
+            console.error('Background supplier processing failed:', err);
+          });
         }
 
         res.status(200).send('OK');
@@ -6470,6 +6471,47 @@ Format: "Quality Score: X/10" followed by brief analysis.`
     } catch (error: any) {
       console.error('❌ Test enhanced supplier email failed:', error);
       res.status(500).json({ error: 'Failed to send test email: ' + error.message });
+    }
+  });
+
+  // Test endpoint: Background supplier processing workflow
+  app.post("/api/test-background-supplier-processing", async (req, res) => {
+    try {
+      console.log('🧪 Testing background supplier processing workflow...');
+      
+      // Get the most recent order with a card
+      const order = await storage.getOrder(98); // Latest test order
+      if (!order) {
+        return res.status(404).json({ error: 'Test order not found - use order ID 98' });
+      }
+      
+      const card = await storage.getCard(order.cardId);
+      if (!card) {
+        return res.status(404).json({ error: 'Card not found for order' });
+      }
+      
+      console.log(`📋 Testing background processing with order #${order.id}, card #${card.id}`);
+      console.log(`📋 Customer: ${order.customerName}, Amount: R${order.amount/100}`);
+      
+      // Trigger background processing (don't await - fire and forget like real flow)
+      processSupplierOrder(order.id, card.id).catch(err => {
+        console.error('Background processing test failed:', err);
+      });
+      
+      res.json({ 
+        success: true, 
+        message: 'Background supplier processing triggered successfully',
+        details: {
+          orderId: order.id,
+          cardId: card.id,
+          customerName: order.customerName,
+          note: 'Check logs for [SUPPLIER_PROCESSING] messages to track progress (1-2 minutes)'
+        }
+      });
+      
+    } catch (error: any) {
+      console.error('❌ Test background supplier processing failed:', error);
+      res.status(500).json({ error: 'Failed to trigger test: ' + error.message });
     }
   });
 
