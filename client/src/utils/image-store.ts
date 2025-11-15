@@ -16,6 +16,56 @@ interface ProcessedImage {
 
 class ImageStoreImpl {
   private store = new Map<string, ProcessedImage>();
+  private readonly STORAGE_KEY = 'celebrait_image_store';
+
+  constructor() {
+    this.loadFromLocalStorage();
+  }
+
+  // Load persisted images from localStorage
+  private loadFromLocalStorage(): void {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        const data = JSON.parse(stored);
+        Object.entries(data).forEach(([id, image]: [string, any]) => {
+          this.store.set(id, {
+            file: new File([], image.fileName || 'photo.jpg'),
+            objectUrl: image.compressedBase64,
+            compressedBase64: image.compressedBase64,
+            originalSize: image.originalSize || 0,
+            compressedSize: image.compressedSize || 0,
+            wasCropped: image.wasCropped || false,
+            originalDimensions: image.originalDimensions || { width: 0, height: 0 }
+          });
+        });
+        console.log(`[IMAGE_STORE] Restored ${this.store.size} images from localStorage`);
+      }
+    } catch (error) {
+      console.error('[IMAGE_STORE] Failed to load from localStorage:', error);
+    }
+  }
+
+  // Persist images to localStorage
+  private saveToLocalStorage(): void {
+    try {
+      const data: Record<string, any> = {};
+      this.store.forEach((image, id) => {
+        data[id] = {
+          compressedBase64: image.compressedBase64,
+          originalSize: image.originalSize,
+          compressedSize: image.compressedSize,
+          wasCropped: image.wasCropped,
+          originalDimensions: image.originalDimensions,
+          fileName: image.file.name
+        };
+      });
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+      console.log(`[IMAGE_STORE] Persisted ${this.store.size} images to localStorage`);
+    } catch (error) {
+      console.error('[IMAGE_STORE] Failed to save to localStorage:', error);
+    }
+  }
 
   // Store and process a photo file, return a lightweight ID
   async addPhoto(file: File, onProgress?: (progress: number) => void): Promise<string> {
@@ -46,6 +96,9 @@ class ImageStoreImpl {
         wasCropped: shouldCropToSquare(img.width, img.height),
         originalDimensions: { width: img.width, height: img.height }
       });
+      
+      // Persist to localStorage for mobile reliability
+      this.saveToLocalStorage();
       
       console.log(`[IMAGE_STORE] Processed photo ${id}: ${file.size} → ${compressedBase64.length} bytes (${Math.round((compressedBase64.length / file.size) * 100)}%)`);
       
@@ -237,6 +290,7 @@ class ImageStoreImpl {
     if (entry) {
       URL.revokeObjectURL(entry.objectUrl);
       this.store.delete(id);
+      this.saveToLocalStorage();
     }
   }
 
@@ -251,6 +305,7 @@ class ImageStoreImpl {
       URL.revokeObjectURL(entry.objectUrl);
     });
     this.store.clear();
+    localStorage.removeItem(this.STORAGE_KEY);
   }
 
   // Get photo count without accessing heavy data
