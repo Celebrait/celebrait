@@ -2096,7 +2096,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           model: "gpt-image-1",
           prompt: frontPrompt,
           size: "1024x1024",
-          quality: "low",
+          quality: "high",
           n: 1
         });
         console.log("Successfully used gpt-image-1 for front card generation");
@@ -2107,7 +2107,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           model: "gpt-image-1",
           prompt: frontPrompt,
           size: "1024x1024",
-          quality: "low",
+          quality: "high",
           n: 1
         });
       }
@@ -2131,7 +2131,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             model: "gpt-image-1",
             prompt: insidePrompt,
             size: "1024x1024",
-            quality: "low",
+            quality: "high",
             n: 1
           });
           console.log("Successfully used gpt-image-1 for inside card generation");
@@ -2142,7 +2142,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             model: "gpt-image-1",
             prompt: insidePrompt,
             size: "1024x1024",
-            quality: "low",
+            quality: "high",
             n: 1
           });
         }
@@ -2205,7 +2205,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
         prompt: enhancedFrontPrompt,
         n: 1,
         size: "1024x1024",
-        quality: "low"
+        quality: "high"
       });
 
       // Extract front image data first
@@ -2239,7 +2239,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             prompt: imageToImagePrompt,
             n: 1,
             size: "1024x1024",
-            quality: "low"
+            quality: "high"
           });
 
           const insideResponse = insideImageGeneration as any;
@@ -2266,7 +2266,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             prompt: enhancedInsidePrompt,
             n: 1,
             size: "1024x1024",
-            quality: "low"
+            quality: "high"
           });
 
           const fallbackResponse = fallbackGeneration as any;
@@ -2438,7 +2438,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             prompt: frontPrompt,
             n: 1,
             size: "1024x1024",
-            quality: "low"
+            quality: "high"
           });
         }
       } else {
@@ -2448,7 +2448,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           prompt: frontPrompt,
           n: 1,
           size: "1024x1024",
-          quality: "low"
+          quality: "high"
         });
       }
 
