@@ -5926,13 +5926,15 @@ ${cardText ? `TEXT: Add "${cardText}" integrated naturally. NO other text.` : ''
 
         if (response.ok) {
           const data = await response.json();
-          console.log('🔍 OpenAI response structure:', JSON.stringify(data).substring(0, 200));
-          console.log('🔍 Has data array?', !!data.data);
-          console.log('🔍 First image URL:', data.data?.[0]?.url);
+          // OpenAI returns b64_json instead of url, convert to data URL
+          const imageUrl = data.data[0].b64_json 
+            ? `data:image/png;base64,${data.data[0].b64_json}`
+            : data.data[0].url;
+          console.log('✅ Got image:', imageUrl ? 'YES' : 'NO');
           results.push({
             technique: "Current Method",
             description: "8-step facial recreation from scratch (your live workflow)",
-            imageUrl: data.data[0].url,
+            imageUrl,
             likenessExpected: "Medium (50/50)",
             transformLevel: "Full recreation"
           });
@@ -5966,10 +5968,13 @@ ${cardText ? `TEXT: Add "${cardText}" integrated naturally. NO other text.` : ''
 
         if (response.ok) {
           const data = await response.json();
+          const imageUrl = data.data[0].b64_json 
+            ? `data:image/png;base64,${data.data[0].b64_json}`
+            : data.data[0].url;
           results.push({
             technique: "Light Transformation",
             description: "Minimal changes - preserve photo composition & poses",
-            imageUrl: data.data[0].url,
+            imageUrl,
             likenessExpected: "Very High (90%+)",
             transformLevel: "Gentle adaptation"
           });
@@ -6003,10 +6008,13 @@ ${cardText ? `TEXT: Add "${cardText}" integrated naturally. NO other text.` : ''
 
         if (response.ok) {
           const data = await response.json();
+          const imageUrl = data.data[0].b64_json 
+            ? `data:image/png;base64,${data.data[0].b64_json}`
+            : data.data[0].url;
           results.push({
             technique: "Medium Transformation",
             description: "Balanced - preserve faces, adapt poses & scene",
-            imageUrl: data.data[0].url,
+            imageUrl,
             likenessExpected: "High (70-80%)",
             transformLevel: "Moderate adaptation"
           });
@@ -6040,10 +6048,13 @@ ${cardText ? `TEXT: Add "${cardText}" integrated naturally. NO other text.` : ''
 
         if (response.ok) {
           const data = await response.json();
+          const imageUrl = data.data[0].b64_json 
+            ? `data:image/png;base64,${data.data[0].b64_json}`
+            : data.data[0].url;
           results.push({
             technique: "Heavy Transformation",
             description: "Full creative freedom - only faces locked",
-            imageUrl: data.data[0].url,
+            imageUrl,
             likenessExpected: "Medium-High (60-75%)",
             transformLevel: "Major reimagining"
           });
