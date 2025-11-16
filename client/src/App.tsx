@@ -29,6 +29,7 @@ import LoadingPreview from "@/pages/loading-preview";
 import { PhotoCompressionDemo } from "@/pages/photo-compression-demo";
 import { PhotoQualityTest } from "@/pages/photo-quality-test";
 import CropTest from "@/pages/crop-test";
+import SceneTest from "@/pages/scene-test";
 // Typography test page removed - simplified to direct AI integration
 import NotFound from "@/pages/not-found";
 import PaymentWithTips from "@/pages/payment-with-tips";
@@ -68,6 +69,7 @@ function Router() {
         <Route path="/photo-compression-demo" component={PhotoCompressionDemo} />
         <Route path="/photo-quality-test" component={PhotoQualityTest} />
         <Route path="/crop-test" component={CropTest} />
+        <Route path="/scene-test" component={SceneTest} />
         {/* Typography test page removed - simplified to direct AI integration */}
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms-of-service" component={TermsOfService} />
