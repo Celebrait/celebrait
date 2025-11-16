@@ -70,21 +70,20 @@ export default function SceneTest() {
       reader.onload = async (event) => {
         const photoBase64 = event.target?.result as string;
 
-        const response = await apiRequest<TestResponse>("/api/test/scene-comparison", {
-          method: "POST",
-          body: JSON.stringify({
-            photoBase64,
-            sceneDescription,
-            artStyle,
-          }),
+        const response = await apiRequest("POST", "/api/test/scene-comparison", {
+          photoBase64,
+          sceneDescription,
+          artStyle,
         });
 
-        if (response.success) {
-          setResults(response.results);
-          setMetadata(response.metadata);
+        const data = await response.json() as TestResponse;
+
+        if (data.success) {
+          setResults(data.results);
+          setMetadata(data.metadata);
           toast({
             title: "Generation Complete!",
-            description: `Completed in ${response.metadata.totalTimeSeconds}s. Compare the results below.`,
+            description: `Completed in ${data.metadata.totalTimeSeconds}s. Compare the results below.`,
           });
         } else {
           throw new Error("Generation failed");
