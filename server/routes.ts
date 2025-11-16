@@ -5770,6 +5770,186 @@ ${styleSection}`;
     }
   });
 
+  // Scene Comparison Test Endpoint - Compare different image generation techniques
+  app.post("/api/test/scene-comparison", async (req, res) => {
+    try {
+      const { photoBase64, sceneDescription, artStyle = 'watercolor painting' } = req.body;
+      
+      if (!photoBase64 || !sceneDescription) {
+        return res.status(400).json({ message: "Photo and scene description are required" });
+      }
+
+      // Configure fal.ai client
+      if (process.env.FAL_API_KEY) {
+        fal.config({ credentials: process.env.FAL_API_KEY });
+      } else {
+        return res.status(400).json({ message: "FAL_API_KEY not configured" });
+      }
+
+      console.log('🧪 SCENE COMPARISON TEST - Starting...');
+      console.log('📝 Scene:', sceneDescription.substring(0, 100));
+      console.log('🎨 Style:', artStyle);
+
+      // Helper to get style instructions
+      const getStyleInstructions = (style: string): string => {
+        const lowerStyle = style.toLowerCase();
+        if (lowerStyle === 'watercolor painting') {
+          return 'Create in beautiful watercolor painting style with soft, flowing colors, natural brushstrokes, and transparent layering effects.';
+        }
+        if (lowerStyle === 'oil painting') {
+          return 'Transform into rich oil painting style with thick brushstrokes, vibrant colors, and textured canvas appearance.';
+        }
+        if (lowerStyle === 'digital art') {
+          return 'Transform into polished digital art style with crisp details, modern digital painting techniques, sophisticated color gradients.';
+        }
+        return `Transform into ${style} artistic style with professional quality, maintaining clear facial features.`;
+      };
+
+      // Build full prompt
+      const styleInstructions = getStyleInstructions(artStyle);
+      const fullPrompt = `${sceneDescription}. ${styleInstructions}`;
+
+      // Upload photo to fal.ai for reference
+      let uploadedPhotoUrl: string;
+      try {
+        const uploadResponse = await fal.storage.upload(Buffer.from(photoBase64.split(',')[1], 'base64'));
+        uploadedPhotoUrl = uploadResponse;
+        console.log('📤 Photo uploaded to fal.ai');
+      } catch (uploadError) {
+        console.error('Upload failed:', uploadError);
+        return res.status(500).json({ message: "Failed to upload photo" });
+      }
+
+      const results: any[] = [];
+      const startTime = Date.now();
+
+      // Test 1: Pure text-to-image (current approach - lowest likeness)
+      console.log('Test 1: Text-to-image only...');
+      try {
+        const textOnly = await fal.subscribe("fal-ai/flux-pro", {
+          input: {
+            prompt: fullPrompt,
+            image_size: "square_hd",
+            num_inference_steps: 28,
+            guidance_scale: 3.5,
+            num_images: 1,
+            seed: Math.floor(Math.random() * 1000000)
+          }
+        });
+        results.push({
+          technique: "Text-to-Image Only",
+          description: "Current approach - AI reimagines scene from scratch",
+          imageUrl: textOnly.data.images[0].url,
+          likenessExpected: "Low (50/50)",
+          strength: "N/A"
+        });
+        console.log('✅ Test 1 complete');
+      } catch (err) {
+        console.error('❌ Test 1 failed:', err);
+        results.push({ technique: "Text-to-Image Only", error: String(err) });
+      }
+
+      // Test 2: Image-to-image with high strength (0.85 - most transformation, like transform style)
+      console.log('Test 2: Img2img strength 0.85 (heavy transformation)...');
+      try {
+        const img2imgHigh = await fal.subscribe("fal-ai/flux-pro/v1.1-ultra", {
+          input: {
+            prompt: fullPrompt,
+            image_url: uploadedPhotoUrl,
+            strength: 0.85,
+            num_inference_steps: 28,
+            guidance_scale: 3.5,
+            seed: Math.floor(Math.random() * 1000000)
+          }
+        });
+        results.push({
+          technique: "Img2img - Strength 0.85",
+          description: "Heavy transformation while preserving core structure",
+          imageUrl: img2imgHigh.data.images[0].url,
+          likenessExpected: "Medium-High",
+          strength: 0.85
+        });
+        console.log('✅ Test 2 complete');
+      } catch (err) {
+        console.error('❌ Test 2 failed:', err);
+        results.push({ technique: "Img2img - Strength 0.85", error: String(err) });
+      }
+
+      // Test 3: Image-to-image with medium strength (0.65 - balanced)
+      console.log('Test 3: Img2img strength 0.65 (balanced)...');
+      try {
+        const img2imgMed = await fal.subscribe("fal-ai/flux-pro/v1.1-ultra", {
+          input: {
+            prompt: fullPrompt,
+            image_url: uploadedPhotoUrl,
+            strength: 0.65,
+            num_inference_steps: 28,
+            guidance_scale: 3.5,
+            seed: Math.floor(Math.random() * 1000000)
+          }
+        });
+        results.push({
+          technique: "Img2img - Strength 0.65",
+          description: "Balanced: adapts photo into scene while keeping likeness",
+          imageUrl: img2imgMed.data.images[0].url,
+          likenessExpected: "High",
+          strength: 0.65
+        });
+        console.log('✅ Test 3 complete');
+      } catch (err) {
+        console.error('❌ Test 3 failed:', err);
+        results.push({ technique: "Img2img - Strength 0.65", error: String(err) });
+      }
+
+      // Test 4: Image-to-image with low strength (0.45 - maximum likeness)
+      console.log('Test 4: Img2img strength 0.45 (gentle transformation)...');
+      try {
+        const img2imgLow = await fal.subscribe("fal-ai/flux-pro/v1.1-ultra", {
+          input: {
+            prompt: fullPrompt,
+            image_url: uploadedPhotoUrl,
+            strength: 0.45,
+            num_inference_steps: 28,
+            guidance_scale: 3.5,
+            seed: Math.floor(Math.random() * 1000000)
+          }
+        });
+        results.push({
+          technique: "Img2img - Strength 0.45",
+          description: "Gentle transformation - maximum likeness preservation",
+          imageUrl: img2imgLow.data.images[0].url,
+          likenessExpected: "Very High",
+          strength: 0.45
+        });
+        console.log('✅ Test 4 complete');
+      } catch (err) {
+        console.error('❌ Test 4 failed:', err);
+        results.push({ technique: "Img2img - Strength 0.45", error: String(err) });
+      }
+
+      const totalTime = Date.now() - startTime;
+      console.log(`⚡ All tests completed in ${(totalTime/1000).toFixed(1)}s`);
+
+      res.json({
+        success: true,
+        results,
+        metadata: {
+          totalTimeSeconds: (totalTime/1000).toFixed(1),
+          sceneDescription,
+          artStyle,
+          recommendation: "Compare results to find best strength. Higher strength = more scene transformation. Lower strength = better likeness."
+        }
+      });
+
+    } catch (error: any) {
+      console.error('❌ SCENE COMPARISON ERROR:', error);
+      res.status(500).json({ 
+        message: "Scene comparison test failed: " + error.message,
+        error: error.toString()
+      });
+    }
+  });
+
   // Flux Kontext inside card generation using front card as style reference
   app.post("/api/flux-kontext-inside-card", async (req, res) => {
     try {
