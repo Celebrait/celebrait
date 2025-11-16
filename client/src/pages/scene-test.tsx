@@ -79,6 +79,12 @@ export default function SceneTest() {
 
         const data = await response.json() as TestResponse;
 
+        console.log('📊 Received data from backend:', data);
+        console.log('📊 Results array:', data.results);
+        data.results.forEach((result, index) => {
+          console.log(`Result ${index + 1}:`, result.technique, 'has imageUrl?', !!result.imageUrl, result.imageUrl?.substring(0, 100));
+        });
+
         if (data.success) {
           setResults(data.results);
           setMetadata(data.metadata);
