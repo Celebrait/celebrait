@@ -5888,11 +5888,22 @@ ${cardText ? `TEXT: Add "${cardText}" integrated naturally. NO other text.` : ''
         }
       };
 
-      // Prepare image for all tests
+      // Prepare image for all tests - CONVERT TO PNG (OpenAI only supports JPEG, PNG, WebP)
       const mimeMatch = photoBase64.match(/^data:image\/([a-z]+);base64,/);
-      const mimeType = mimeMatch ? mimeMatch[1] : 'png';
+      const originalMimeType = mimeMatch ? mimeMatch[1] : 'png';
       const base64Data = photoBase64.replace(/^data:image\/[a-z]+;base64,/, '');
-      const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      console.log(`📸 Original image format: ${originalMimeType}`);
+      
+      // Convert to PNG using Sharp (supports all formats including AVIF)
+      const sharp = (await import('sharp')).default;
+      const originalBuffer = Buffer.from(base64Data, 'base64');
+      const imageBuffer = await sharp(originalBuffer)
+        .png()
+        .toBuffer();
+      
+      console.log(`✅ Converted to PNG: ${imageBuffer.length} bytes`);
+      const mimeType = 'png';
 
       // Test 1: Current method (8-step facial recreation)
       console.log('Test 1: Current method (8-step recreation)...');
