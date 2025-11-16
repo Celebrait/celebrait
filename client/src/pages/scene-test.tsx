@@ -14,7 +14,8 @@ interface ComparisonResult {
   description: string;
   imageUrl?: string;
   likenessExpected: string;
-  strength: string | number;
+  strength?: string | number;
+  transformLevel?: string;
   error?: string;
 }
 
@@ -70,7 +71,7 @@ export default function SceneTest() {
       reader.onload = async (event) => {
         const photoBase64 = event.target?.result as string;
 
-        const response = await apiRequest("POST", "/api/test/scene-comparison", {
+        const response = await apiRequest("POST", "/api/test/gpt-image-1-comparison", {
           photoBase64,
           sceneDescription,
           artStyle,
@@ -116,10 +117,10 @@ export default function SceneTest() {
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-            Scene Likeness Comparison Test
+            GPT-Image-1 Transformation Test
           </h1>
           <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Test different image generation techniques to find the best balance between scene transformation and facial likeness
+            Compare different transformation levels using your live gpt-image-1 workflow to find the sweet spot between facial likeness and scene creativity
           </p>
         </div>
 
@@ -189,12 +190,12 @@ export default function SceneTest() {
               {isGenerating ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Generating 4 Variations... (takes ~60-90s)
+                  Generating 4 GPT-Image-1 Variations... (takes ~2-4 mins)
                 </>
               ) : (
                 <>
                   <Sparkles className="mr-2 h-5 w-5" />
-                  Generate Comparison
+                  Generate Comparison (GPT-Image-1)
                 </>
               )}
             </Button>
@@ -257,8 +258,8 @@ export default function SceneTest() {
                               <p>{result.likenessExpected}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-semibold">Strength</p>
-                              <p className="font-mono">{result.strength}</p>
+                              <p className="font-semibold">Transform Level</p>
+                              <p className="font-mono text-xs">{result.transformLevel || result.strength}</p>
                             </div>
                           </div>
                         </div>
