@@ -5926,6 +5926,9 @@ ${cardText ? `TEXT: Add "${cardText}" integrated naturally. NO other text.` : ''
 
         if (response.ok) {
           const data = await response.json();
+          console.log('🔍 OpenAI response structure:', JSON.stringify(data).substring(0, 200));
+          console.log('🔍 Has data array?', !!data.data);
+          console.log('🔍 First image URL:', data.data?.[0]?.url);
           results.push({
             technique: "Current Method",
             description: "8-step facial recreation from scratch (your live workflow)",
