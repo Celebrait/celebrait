@@ -5770,6 +5770,301 @@ ${styleSection}`;
     }
   });
 
+  // GPT-Image-1 Scene Comparison Test - Compare transformation levels
+  app.post("/api/test/gpt-image-1-comparison", async (req, res) => {
+    try {
+      const { photoBase64, sceneDescription, artStyle = 'ai_decide', cardText = '' } = req.body;
+      
+      if (!photoBase64 || !sceneDescription) {
+        return res.status(400).json({ message: "Photo and scene description are required" });
+      }
+
+      if (!openai) {
+        return res.status(500).json({ message: "OpenAI API not configured" });
+      }
+
+      console.log('🧪 GPT-IMAGE-1 COMPARISON TEST - Starting...');
+      console.log('📝 Scene:', sceneDescription.substring(0, 100));
+      console.log('🎨 Style:', artStyle);
+
+      const results: any[] = [];
+      const startTime = Date.now();
+
+      // Helper function to build prompts with different transformation levels
+      const buildPrompt = (transformLevel: 'current' | 'light' | 'medium' | 'heavy') => {
+        const baseAspect = 'MANDATORY: Create a perfectly SQUARE 1024x1024 composition with equal width and height - NOT portrait, NOT landscape. Full bleed square design with no borders, fill entire square frame.';
+        
+        // Style section
+        let styleSection = '';
+        if (artStyle && artStyle !== 'ai_decide') {
+          styleSection = `ARTISTIC STYLE APPLICATION: Apply the artistic style: ${artStyle}. Render consistently in this style.`;
+        } else {
+          styleSection = `ARTISTIC STYLE APPLICATION: DYNAMIC STYLE SELECTION: Choose the most appropriate artistic style (watercolor, oil painting, digital art, etc.) that complements the mood of this scene.`;
+        }
+
+        if (transformLevel === 'current') {
+          // Current 8-step facial recreation method
+          return `${baseAspect} ABSOLUTE PRIORITY: FACIAL ACCURACY FIRST - Preserve EXACT facial likeness from reference with absolute precision BUT with new expressions to match the scene.
+
+MANDATORY FACIAL RECREATION (8 STEPS):
+1) FACIAL STRUCTURE: Exact bone structure, cheekbones, jawline, forehead, chin
+2) EYE PRECISION: Exact eye shape, spacing, color, eyebrows
+3) NOSE ACCURACY: Precise bridge, nostrils, tip, unique features
+4) MOUTH DUPLICATION: Exact lip fullness, width, corners
+5) SKIN MATCHING: Exact skin tone, texture, freckles, moles
+6) HAIR PRECISION: Exact color, texture, growth patterns
+7) DISTINCTIVE MARKS: Scars, dimples, laugh lines
+8) NEW EXPRESSION: Create completely new expression for scene mood
+
+SCENE CREATION: Create completely new scene. Characters actively participating, not posing. Full-body or three-quarter shots. Immersive environment.
+
+SCENE DESCRIPTION: ${sceneDescription}
+
+CLOTHING: Choose scene-appropriate clothing different from reference photo.
+
+${styleSection}
+
+${cardText ? `STRICT TEXT: Add EXACTLY "${cardText}" integrated naturally into scene. NO other text allowed.` : ''}`;
+        } else if (transformLevel === 'light') {
+          // Light transformation - preserve more of original photo
+          return `${baseAspect} GENTLE TRANSFORMATION: Start with the reference photo and make MINIMAL changes to adapt it into the new scene while preserving the original composition, poses, and facial expressions as much as possible.
+
+PRESERVATION PRIORITIES:
+- Keep facial features IDENTICAL (highest priority)
+- Preserve original body positions and poses where possible
+- Maintain similar framing and composition
+- Keep original expressions or adjust only slightly for scene
+- Preserve clothing unless absolutely necessary to change
+
+SCENE ADAPTATION: Gently adapt the background and environment to: ${sceneDescription}
+
+TRANSFORMATION APPROACH: Blend the original photo context with new scene elements. Think of this as placing the people into a new environment while keeping their original poses and expressions largely intact.
+
+${styleSection}
+
+${cardText ? `TEXT: Add "${cardText}" integrated naturally. NO other text.` : ''}`;
+        } else if (transformLevel === 'medium') {
+          // Medium transformation - balanced approach
+          return `${baseAspect} BALANCED TRANSFORMATION: Use reference photo as foundation. Preserve facial likeness precisely but allow moderate changes to poses, expressions, and composition.
+
+FACIAL ACCURACY: Maintain EXACT facial features (structure, eyes, nose, mouth, skin, hair) from reference.
+
+MODERATE CHANGES ALLOWED:
+- Adjust poses to better fit scene activity
+- Update expressions to match scene mood
+- Reframe composition if beneficial for scene
+- Change clothing to fit scene context
+- Reimagine positioning for better storytelling
+
+SCENE DESCRIPTION: ${sceneDescription}
+
+APPROACH: Keep facial likeness perfect while giving moderate creative freedom for poses, expressions, and scene integration.
+
+${styleSection}
+
+${cardText ? `TEXT: Add "${cardText}" integrated naturally. NO other text.` : ''}`;
+        } else {
+          // Heavy transformation - maximum creative freedom
+          return `${baseAspect} CREATIVE TRANSFORMATION: Use reference photo for facial features ONLY. Complete creative freedom for everything else.
+
+FACIAL LOCK: Preserve EXACT facial features (8-step precision) but with completely new expressions.
+
+FULL CREATIVE FREEDOM FOR:
+- Body positions and poses
+- Scene composition and framing
+- Character interactions
+- Environmental integration  
+- Clothing and appearance
+- Facial expressions
+- Activity and energy level
+
+SCENE DESCRIPTION: ${sceneDescription}
+
+APPROACH: Reimagine the scene completely - only facial features are sacred, everything else is creatively transformed.
+
+${styleSection}
+
+${cardText ? `TEXT: Add "${cardText}" integrated naturally. NO other text.` : ''}`;
+        }
+      };
+
+      // Prepare image for all tests
+      const mimeMatch = photoBase64.match(/^data:image\/([a-z]+);base64,/);
+      const mimeType = mimeMatch ? mimeMatch[1] : 'png';
+      const base64Data = photoBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+
+      // Test 1: Current method (8-step facial recreation)
+      console.log('Test 1: Current method (8-step recreation)...');
+      try {
+        const FormData = (await import('form-data')).default;
+        const formData = new FormData();
+        formData.append('image[]', imageBuffer, { filename: `photo.${mimeType}`, contentType: `image/${mimeType}` });
+        formData.append('prompt', buildPrompt('current'));
+        formData.append('model', 'gpt-image-1');
+        formData.append('n', '1');
+        formData.append('size', '1024x1024');
+        formData.append('quality', 'high');
+
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch('https://api.openai.com/v1/images/edits', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, ...formData.getHeaders() },
+          body: formData
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          results.push({
+            technique: "Current Method",
+            description: "8-step facial recreation from scratch (your live workflow)",
+            imageUrl: data.data[0].url,
+            likenessExpected: "Medium (50/50)",
+            transformLevel: "Full recreation"
+          });
+          console.log('✅ Test 1 complete');
+        } else {
+          throw new Error(await response.text());
+        }
+      } catch (err) {
+        console.error('❌ Test 1 failed:', err);
+        results.push({ technique: "Current Method", error: String(err) });
+      }
+
+      // Test 2: Light transformation
+      console.log('Test 2: Light transformation...');
+      try {
+        const FormData = (await import('form-data')).default;
+        const formData = new FormData();
+        formData.append('image[]', imageBuffer, { filename: `photo.${mimeType}`, contentType: `image/${mimeType}` });
+        formData.append('prompt', buildPrompt('light'));
+        formData.append('model', 'gpt-image-1');
+        formData.append('n', '1');
+        formData.append('size', '1024x1024');
+        formData.append('quality', 'high');
+
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch('https://api.openai.com/v1/images/edits', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, ...formData.getHeaders() },
+          body: formData
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          results.push({
+            technique: "Light Transformation",
+            description: "Minimal changes - preserve photo composition & poses",
+            imageUrl: data.data[0].url,
+            likenessExpected: "Very High (90%+)",
+            transformLevel: "Gentle adaptation"
+          });
+          console.log('✅ Test 2 complete');
+        } else {
+          throw new Error(await response.text());
+        }
+      } catch (err) {
+        console.error('❌ Test 2 failed:', err);
+        results.push({ technique: "Light Transformation", error: String(err) });
+      }
+
+      // Test 3: Medium transformation
+      console.log('Test 3: Medium transformation...');
+      try {
+        const FormData = (await import('form-data')).default;
+        const formData = new FormData();
+        formData.append('image[]', imageBuffer, { filename: `photo.${mimeType}`, contentType: `image/${mimeType}` });
+        formData.append('prompt', buildPrompt('medium'));
+        formData.append('model', 'gpt-image-1');
+        formData.append('n', '1');
+        formData.append('size', '1024x1024');
+        formData.append('quality', 'high');
+
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch('https://api.openai.com/v1/images/edits', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, ...formData.getHeaders() },
+          body: formData
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          results.push({
+            technique: "Medium Transformation",
+            description: "Balanced - preserve faces, adapt poses & scene",
+            imageUrl: data.data[0].url,
+            likenessExpected: "High (70-80%)",
+            transformLevel: "Moderate adaptation"
+          });
+          console.log('✅ Test 3 complete');
+        } else {
+          throw new Error(await response.text());
+        }
+      } catch (err) {
+        console.error('❌ Test 3 failed:', err);
+        results.push({ technique: "Medium Transformation", error: String(err) });
+      }
+
+      // Test 4: Heavy transformation
+      console.log('Test 4: Heavy transformation...');
+      try {
+        const FormData = (await import('form-data')).default;
+        const formData = new FormData();
+        formData.append('image[]', imageBuffer, { filename: `photo.${mimeType}`, contentType: `image/${mimeType}` });
+        formData.append('prompt', buildPrompt('heavy'));
+        formData.append('model', 'gpt-image-1');
+        formData.append('n', '1');
+        formData.append('size', '1024x1024');
+        formData.append('quality', 'high');
+
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch('https://api.openai.com/v1/images/edits', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, ...formData.getHeaders() },
+          body: formData
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          results.push({
+            technique: "Heavy Transformation",
+            description: "Full creative freedom - only faces locked",
+            imageUrl: data.data[0].url,
+            likenessExpected: "Medium-High (60-75%)",
+            transformLevel: "Major reimagining"
+          });
+          console.log('✅ Test 4 complete');
+        } else {
+          throw new Error(await response.text());
+        }
+      } catch (err) {
+        console.error('❌ Test 4 failed:', err);
+        results.push({ technique: "Heavy Transformation", error: String(err) });
+      }
+
+      const totalTime = Date.now() - startTime;
+      console.log(`⚡ All GPT-Image-1 tests completed in ${(totalTime/1000).toFixed(1)}s`);
+
+      res.json({
+        success: true,
+        results,
+        metadata: {
+          totalTimeSeconds: (totalTime/1000).toFixed(1),
+          sceneDescription,
+          artStyle,
+          recommendation: "Compare facial likeness across transformation levels. Light = best likeness but limited scene creativity. Heavy = more creative but may lose some likeness."
+        }
+      });
+
+    } catch (error: any) {
+      console.error('❌ GPT-IMAGE-1 COMPARISON ERROR:', error);
+      res.status(500).json({ 
+        message: "GPT-Image-1 comparison test failed: " + error.message,
+        error: error.toString()
+      });
+    }
+  });
+
   // Scene Comparison Test Endpoint - Compare different image generation techniques
   app.post("/api/test/scene-comparison", async (req, res) => {
     try {
