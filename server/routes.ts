@@ -2093,18 +2093,18 @@ If just having a conversation (no suggestions), respond with valid JSON:
       let frontResponse;
       try {
         frontResponse = await openai.images.generate({
-          model: "gpt-image-1",
+          model: "gpt-image-1.5",
           prompt: frontPrompt,
           size: "1024x1024",
           quality: "high",
           n: 1
         });
-        console.log("Successfully used gpt-image-1 for front card generation");
+        console.log("Successfully used gpt-image-1.5 for front card generation");
       } catch (gptError: any) {
-        console.log("gpt-image-1 not available, falling back to dall-e-2:", gptError.message);
+        console.log("gpt-image-1.5 not available, falling back to dall-e-2:", gptError.message);
 
         frontResponse = await openai.images.generate({
-          model: "gpt-image-1",
+          model: "gpt-image-1.5",
           prompt: frontPrompt,
           size: "1024x1024",
           quality: "high",
@@ -2128,18 +2128,18 @@ If just having a conversation (no suggestions), respond with valid JSON:
         let insideResponse;
         try {
           insideResponse = await openai.images.generate({
-            model: "gpt-image-1",
+            model: "gpt-image-1.5",
             prompt: insidePrompt,
             size: "1024x1024",
             quality: "high",
             n: 1
           });
-          console.log("Successfully used gpt-image-1 for inside card generation");
+          console.log("Successfully used gpt-image-1.5 for inside card generation");
         } catch (gptError: any) {
-          console.log("gpt-image-1 not available for inside card, falling back to dall-e-2:", gptError.message);
+          console.log("gpt-image-1.5 not available for inside card, falling back to dall-e-2:", gptError.message);
 
           insideResponse = await openai.images.generate({
-            model: "gpt-image-1",
+            model: "gpt-image-1.5",
             prompt: insidePrompt,
             size: "1024x1024",
             quality: "high",
@@ -2186,7 +2186,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       }
 
       console.log('Found card:', card.id);
-      console.log('Using model: gpt-image-1 for style transformation');
+      console.log('Using model: gpt-image-1.5 for style transformation');
 
       // Generate front image with style transformation
       let enhancedFrontPrompt = frontPrompt;
@@ -2201,7 +2201,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       console.log('=== DEBUG: FRONT CARD PROMPT END ===');
       
       const frontImageGeneration = await openai.images.generate({
-        model: "gpt-image-1",
+        model: "gpt-image-1.5",
         prompt: enhancedFrontPrompt,
         n: 1,
         size: "1024x1024",
@@ -2228,14 +2228,14 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
       // Generate inside image if provided, using front card as visual reference
       if (insidePrompt && frontImageUrl) {
-        console.log('Using model: gpt-image-1 for inside image with front card visual reference');
+        console.log('Using model: gpt-image-1.5 for inside image with front card visual reference');
 
         const imageToImagePrompt = `Using the attached front greeting card image as a visual style reference, create the interior of this greeting card. Match the exact artistic style, color palette, lighting, and visual mood from the reference image. Use identical typography treatment and display this message prominently: "${insidePrompt.match(/"([^"]+)"/)?.[1] || 'Message'}". Create a subtle, complementary background that references visual elements from the front card. The inside should look like it was designed by the same artist using the same design system.`;
 
         console.log('🎯 EXACT INSIDE PROMPT SENT TO GPT-IMAGE-1 (IMAGE-TO-IMAGE):', imageToImagePrompt);
         try {
           const insideImageGeneration = await openai.images.generate({
-            model: "gpt-image-1",
+            model: "gpt-image-1.5",
             prompt: imageToImagePrompt,
             n: 1,
             size: "1024x1024",
@@ -2262,7 +2262,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
           console.log('🎯 EXACT INSIDE PROMPT SENT TO GPT-IMAGE-1 (FALLBACK):', enhancedInsidePrompt);
           const fallbackGeneration = await openai.images.generate({
-            model: "gpt-image-1", 
+            model: "gpt-image-1.5", 
             prompt: enhancedInsidePrompt,
             n: 1,
             size: "1024x1024",
@@ -2382,7 +2382,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       console.log('Found card:', card.id);
 
       // Generate front image using GPT-Image-1 model
-      console.log('Using model: gpt-image-1 for front image');
+      console.log('Using model: gpt-image-1.5 for front image');
 
       let frontImageGeneration;
 
@@ -2434,7 +2434,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
           
           // Fallback to standard text-only generation
           frontImageGeneration = await openai.images.generate({
-            model: "gpt-image-1",
+            model: "gpt-image-1.5",
             prompt: frontPrompt,
             n: 1,
             size: "1024x1024",
@@ -2444,7 +2444,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       } else {
         // Standard text-only generation
         frontImageGeneration = await openai.images.generate({
-          model: "gpt-image-1",
+          model: "gpt-image-1.5",
           prompt: frontPrompt,
           n: 1,
           size: "1024x1024",
@@ -2523,7 +2523,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
             contentType: `image/${mimeType}`
           });
           formData.append('prompt', insideCardPrompt);
-          formData.append('model', 'gpt-image-1');
+          formData.append('model', 'gpt-image-1.5');
           formData.append('n', '1');
           formData.append('size', '1024x1024');
           formData.append('quality', 'high');
@@ -3783,7 +3783,7 @@ ${styleSection}`;
         });
 
         formData.append('prompt', fullPrompt);
-        formData.append('model', 'gpt-image-1');
+        formData.append('model', 'gpt-image-1.5');
         formData.append('n', '1');
         formData.append('size', '1024x1024');
         formData.append('quality', 'high');
@@ -4068,7 +4068,7 @@ ${styleSection}`;
       console.log('=== DEBUG: INSIDE CARD PROMPT END ===');
       
       formData.append('prompt', insideCardPrompt);
-      formData.append('model', 'gpt-image-1');
+      formData.append('model', 'gpt-image-1.5');
       formData.append('n', '1');
       formData.append('size', size);
       formData.append('quality', 'high');
@@ -4319,20 +4319,20 @@ ${styleSection}`;
           });
         });
 
-        console.log('🎯 FRONT CARD /api/edit-scene-gpt-image-1 - EXACT PROMPT SENT TO GPT-IMAGE-1:');
+        console.log('🎯 FRONT CARD /api/edit-scene-gpt-image-1 - EXACT PROMPT SENT TO GPT-IMAGE-1.5:');
         console.log('=== DEBUG: FRONT CARD SCENE EDIT PROMPT START ===');
         console.log(transformPrompt);
         console.log('=== DEBUG: FRONT CARD SCENE EDIT PROMPT END ===');
         
         formData.append('prompt', transformPrompt);
-        formData.append('model', 'gpt-image-1');
+        formData.append('model', 'gpt-image-1.5');
         formData.append('n', '1');
         formData.append('size', size);
         formData.append('quality', 'high');
         formData.append('moderation', 'low');
 
         console.log('📋 Form data parameters being sent:');
-        console.log('- model:', 'gpt-image-1');
+        console.log('- model:', 'gpt-image-1.5');
         console.log('- size:', size);
         console.log('- quality:', 'medium');
         console.log('- prompt length:', transformPrompt.length);
@@ -5912,7 +5912,7 @@ ${cardText ? `TEXT: Add "${cardText}" integrated naturally. NO other text.` : ''
         const formData = new FormData();
         formData.append('image[]', imageBuffer, { filename: `photo.${mimeType}`, contentType: `image/${mimeType}` });
         formData.append('prompt', buildPrompt('current'));
-        formData.append('model', 'gpt-image-1');
+        formData.append('model', 'gpt-image-1.5');
         formData.append('n', '1');
         formData.append('size', '1024x1024');
         formData.append('quality', 'high');
@@ -5954,7 +5954,7 @@ ${cardText ? `TEXT: Add "${cardText}" integrated naturally. NO other text.` : ''
         const formData = new FormData();
         formData.append('image[]', imageBuffer, { filename: `photo.${mimeType}`, contentType: `image/${mimeType}` });
         formData.append('prompt', buildPrompt('light'));
-        formData.append('model', 'gpt-image-1');
+        formData.append('model', 'gpt-image-1.5');
         formData.append('n', '1');
         formData.append('size', '1024x1024');
         formData.append('quality', 'high');
@@ -5994,7 +5994,7 @@ ${cardText ? `TEXT: Add "${cardText}" integrated naturally. NO other text.` : ''
         const formData = new FormData();
         formData.append('image[]', imageBuffer, { filename: `photo.${mimeType}`, contentType: `image/${mimeType}` });
         formData.append('prompt', buildPrompt('medium'));
-        formData.append('model', 'gpt-image-1');
+        formData.append('model', 'gpt-image-1.5');
         formData.append('n', '1');
         formData.append('size', '1024x1024');
         formData.append('quality', 'high');
@@ -6034,7 +6034,7 @@ ${cardText ? `TEXT: Add "${cardText}" integrated naturally. NO other text.` : ''
         const formData = new FormData();
         formData.append('image[]', imageBuffer, { filename: `photo.${mimeType}`, contentType: `image/${mimeType}` });
         formData.append('prompt', buildPrompt('heavy'));
-        formData.append('model', 'gpt-image-1');
+        formData.append('model', 'gpt-image-1.5');
         formData.append('n', '1');
         formData.append('size', '1024x1024');
         formData.append('quality', 'high');
