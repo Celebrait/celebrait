@@ -2326,16 +2326,21 @@ If just having a conversation (no suggestions), respond with valid JSON:
       // 🚀 CRITICAL: Send email with card preview link after successful generation
       try {
         const user = await storage.getUser(updatedCard.userId);
-        if (user?.email) {
-          console.log(`✅ Card ${cardId} completed - sending preview email to ${user.email}`);
-          const emailSent = await sendBackgroundEmail(cardId, user.email, user.firstName || user.email);
+        // Check both user.email AND conversationData.email_address
+        const conversationData = updatedCard.conversationData as any;
+        const userEmail = user?.email || conversationData?.email_address || conversationData?.email || conversationData?.user_email;
+        const userName = user?.firstName || conversationData?.name || userEmail;
+        
+        if (userEmail) {
+          console.log(`✅ Card ${cardId} completed - sending preview email to ${userEmail}`);
+          const emailSent = await sendBackgroundEmail(cardId, userEmail, userName);
           if (emailSent) {
             console.log(`🎉 Email sent successfully for card ${cardId}`);
           } else {
             console.log(`⚠️ Email failed for card ${cardId} - user still gets card but no notification`);
           }
         } else {
-          console.log(`⚠️ No user email found for card ${cardId} - skipping email`);
+          console.log(`⚠️ No email found for card ${cardId} (checked user.email and conversationData) - skipping email`);
         }
       } catch (emailError: any) {
         console.error(`❌ Email error for card ${cardId}:`, emailError);
@@ -2615,16 +2620,21 @@ If just having a conversation (no suggestions), respond with valid JSON:
       // 🚀 CRITICAL: Send email with card preview link after successful generation
       try {
         const user = await storage.getUser(updatedCard.userId);
-        if (user?.email) {
-          console.log(`✅ Card ${cardId} completed - sending preview email to ${user.email}`);
-          const emailSent = await sendBackgroundEmail(cardId, user.email, user.firstName || user.email);
+        // Check both user.email AND conversationData.email_address
+        const conversationData = updatedCard.conversationData as any;
+        const userEmail = user?.email || conversationData?.email_address || conversationData?.email || conversationData?.user_email;
+        const userName = user?.firstName || conversationData?.name || userEmail;
+        
+        if (userEmail) {
+          console.log(`✅ Card ${cardId} completed - sending preview email to ${userEmail}`);
+          const emailSent = await sendBackgroundEmail(cardId, userEmail, userName);
           if (emailSent) {
             console.log(`🎉 Email sent successfully for card ${cardId}`);
           } else {
             console.log(`⚠️ Email failed for card ${cardId} - user still gets card but no notification`);
           }
         } else {
-          console.log(`⚠️ No user email found for card ${cardId} - skipping email`);
+          console.log(`⚠️ No email found for card ${cardId} (checked user.email and conversationData) - skipping email`);
         }
       } catch (emailError: any) {
         console.error(`❌ Email error for card ${cardId}:`, emailError);
@@ -3490,16 +3500,21 @@ If just having a conversation (no suggestions), respond with valid JSON:
       // 🚀 CRITICAL: Send email with card preview link after successful generation
       try {
         const user = await storage.getUser(updatedCard.userId);
-        if (user?.email) {
-          console.log(`✅ Card ${cardId} completed - sending preview email to ${user.email}`);
-          const emailSent = await sendBackgroundEmail(cardId, user.email, user.firstName || user.email);
+        // Check both user.email AND conversationData.email_address
+        const conversationData = updatedCard.conversationData as any;
+        const userEmail = user?.email || conversationData?.email_address || conversationData?.email || conversationData?.user_email;
+        const userName = user?.firstName || conversationData?.name || userEmail;
+        
+        if (userEmail) {
+          console.log(`✅ Card ${cardId} completed - sending preview email to ${userEmail}`);
+          const emailSent = await sendBackgroundEmail(cardId, userEmail, userName);
           if (emailSent) {
             console.log(`🎉 Email sent successfully for card ${cardId}`);
           } else {
             console.log(`⚠️ Email failed for card ${cardId} - user still gets card but no notification`);
           }
         } else {
-          console.log(`⚠️ No user email found for card ${cardId} - skipping email`);
+          console.log(`⚠️ No email found for card ${cardId} (checked user.email and conversationData) - skipping email`);
         }
       } catch (emailError: any) {
         console.error(`❌ Email error for card ${cardId}:`, emailError);
@@ -3612,16 +3627,21 @@ If just having a conversation (no suggestions), respond with valid JSON:
       // 🚀 CRITICAL: Send email with card preview link after successful generation
       try {
         const user = await storage.getUser(updatedCard.userId);
-        if (user?.email) {
-          console.log(`✅ Card ${cardId} completed - sending preview email to ${user.email}`);
-          const emailSent = await sendBackgroundEmail(cardId, user.email, user.firstName || user.email);
+        // Check both user.email AND conversationData.email_address
+        const conversationData = updatedCard.conversationData as any;
+        const userEmail = user?.email || conversationData?.email_address || conversationData?.email || conversationData?.user_email;
+        const userName = user?.firstName || conversationData?.name || userEmail;
+        
+        if (userEmail) {
+          console.log(`✅ Card ${cardId} completed - sending preview email to ${userEmail}`);
+          const emailSent = await sendBackgroundEmail(cardId, userEmail, userName);
           if (emailSent) {
             console.log(`🎉 Email sent successfully for card ${cardId}`);
           } else {
             console.log(`⚠️ Email failed for card ${cardId} - user still gets card but no notification`);
           }
         } else {
-          console.log(`⚠️ No user email found for card ${cardId} - skipping email`);
+          console.log(`⚠️ No email found for card ${cardId} (checked user.email and conversationData) - skipping email`);
         }
       } catch (emailError: any) {
         console.error(`❌ Email error for card ${cardId}:`, emailError);
