@@ -1238,18 +1238,26 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       if (pendingCard.selectedPersonalities) {
         setSelectedPersonalities(pendingCard.selectedPersonalities);
       }
-      // Note: uploadedPhotoIds cannot be restored as photos are stored in memory
-      // User may need to re-upload photos if they were cleared
+      if (pendingCard.uploadedPhotoIds && pendingCard.uploadedPhotoIds.length > 0) {
+        // Photos are stored in ImageStore (localStorage), so we can restore the IDs
+        // The ImageStore restores automatically on page load
+        setUploadedPhotoIds(pendingCard.uploadedPhotoIds);
+        console.log('[AUTH_RETURN] Restored uploadedPhotoIds:', pendingCard.uploadedPhotoIds);
+      }
       
       console.log('[AUTH_RETURN] State restored, proceeding with card generation');
       
       // Clear the pending data
       sessionStorage.removeItem(AUTH_FLOW_KEY);
       
-      // Small delay to ensure state is updated, then generate
+      // Set loading state immediately to show progress screen
+      setIsLoading(true);
+      
+      // Delay to ensure state is updated and ImageStore has restored photos, then generate
       setTimeout(() => {
+        console.log('[AUTH_RETURN] Starting card generation after delay');
         actuallyGenerateCard();
-      }, 100);
+      }, 500);
       
     } catch (error) {
       console.error('[AUTH_RETURN] Error restoring card data:', error);
