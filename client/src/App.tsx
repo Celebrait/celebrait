@@ -6,34 +6,16 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ScrollToTop from "@/components/scroll-to-top";
 import { handleQuotaError } from "./lib/queryClient";
 import { useEffect } from "react";
-import Home from "@/pages/home";
 import Landing from "@/pages/landing";
 import CreateCard from "@/pages/create-card";
 import Checkout from "@/pages/checkout";
 import Payment from "@/pages/payment-simplified";
 import PaymentSuccess from './pages/payment-success';
 import PaymentCancelled from './pages/payment-cancelled';
-import PayfastTest from './pages/payfast-test';
-import LiveTest from './pages/live-test';
 import OrderSuccess from './pages/order-success';
 import CompleteOrder from './pages/complete-order';
-import DigitalCardViewer from './pages/digital-card-viewer';
-import TestPayment from "@/pages/test-payment";
-import TestGeneration from "@/pages/test-generation";
-import StyleTest from "@/pages/style-test";
-import TestSafetyModal from "@/pages/test-safety-modal";
-import GPTImageTest from "@/pages/gpt-image-test";
-import TestCardPreview from "@/pages/test-card-preview";
-import TestDashboard from "@/pages/test-dashboard";
-import LoadingPreview from "@/pages/loading-preview";
-import { PhotoCompressionDemo } from "@/pages/photo-compression-demo";
-import { PhotoQualityTest } from "@/pages/photo-quality-test";
-import CropTest from "@/pages/crop-test";
-import SceneTest from "@/pages/scene-test";
-// Typography test page removed - simplified to direct AI integration
-import NotFound from "@/pages/not-found";
-import PaymentWithTips from "@/pages/payment-with-tips";
 import CardPreviewPage from "@/pages/card-preview-page";
+import NotFound from "@/pages/not-found";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import TermsOfService from "@/pages/terms-of-service";
 import Dashboard from "@/pages/dashboard";
@@ -48,30 +30,11 @@ function Router() {
         <Route path="/create-card" component={CreateCard} />
         <Route path="/checkout/:cardId" component={Checkout} />
         <Route path="/payment/:cardId" component={Payment} />
-        <Route path="/payment-tips/:cardId" component={PaymentWithTips} />
-        <Route path="/checkout/:cardId" component={Checkout} />
         <Route path="/payment-success/:reference" component={PaymentSuccess} />
         <Route path="/payment-cancelled/:reference" component={PaymentCancelled} />
-        <Route path="/payfast-test" component={PayfastTest} />
-        <Route path="/live-test" component={LiveTest} />
         <Route path="/order-success" component={OrderSuccess} />
         <Route path="/complete-order/:cardId" component={CompleteOrder} />
-        <Route path="/card/:linkId" component={DigitalCardViewer} />
         <Route path="/card-preview/:reference" component={CardPreviewPage} />
-        <Route path="/test" component={TestGeneration} />
-        <Route path="/test-payment" component={TestPayment} />
-        <Route path="/test-generation" component={TestGeneration} />
-        <Route path="/style-test" component={StyleTest} />
-        <Route path="/test-safety-modal" component={TestSafetyModal} />
-        <Route path="/gpt-image-test" component={GPTImageTest} />
-        <Route path="/test-card-preview" component={TestCardPreview} />
-        <Route path="/test-dashboard" component={TestDashboard} />
-        <Route path="/loading-preview" component={LoadingPreview} />
-        <Route path="/photo-compression-demo" component={PhotoCompressionDemo} />
-        <Route path="/photo-quality-test" component={PhotoQualityTest} />
-        <Route path="/crop-test" component={CropTest} />
-        <Route path="/scene-test" component={SceneTest} />
-        {/* Typography test page removed - simplified to direct AI integration */}
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms-of-service" component={TermsOfService} />
         <Route path="/dashboard" component={Dashboard} />
