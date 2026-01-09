@@ -559,6 +559,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Replit Auth BEFORE other routes
   await setupAuth(app);
   registerAuthRoutes(app);
+
+  // Import isAuthenticated middleware for user-specific routes
+  const { isAuthenticated } = await import("./replit_integrations/auth/replitAuth");
+
+  // User-specific API endpoints (require authentication)
+  app.get("/api/user/cards", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const userCards = await storage.getUserCards(userId);
+      res.json(userCards);
+    } catch (error: any) {
+      console.error("Error fetching user cards:", error);
+      res.status(500).json({ message: "Failed to fetch cards" });
+    }
+  });
+
+  app.get("/api/user/orders", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const userOrders = await storage.getUserOrders(userId);
+      res.json(userOrders);
+    } catch (error: any) {
+      console.error("Error fetching user orders:", error);
+      res.status(500).json({ message: "Failed to fetch orders" });
+    }
+  });
   
   // Serve stored images statically
   app.use('/images', (req, res, next) => {
@@ -1033,38 +1059,8 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
 
 
-  // User registration
-  app.post("/api/users", async (req, res) => {
-    try {
-      const userData = insertUserSchema.parse(req.body);
-
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(userData.email);
-      if (existingUser) {
-        // Return the existing user instead of error
-        return res.json(existingUser);
-      }
-
-      const user = await storage.createUser(userData);
-
-      // Create loved ones if provided
-      if (req.body.lovedOnes && Array.isArray(req.body.lovedOnes)) {
-        for (const lovedOneData of req.body.lovedOnes) {
-          if (lovedOneData.name && lovedOneData.birthday) {
-            await storage.createLovedOne({
-              userId: user.id,
-              name: lovedOneData.name,
-              birthday: lovedOneData.birthday
-            });
-          }
-        }
-      }
-
-      res.json(user);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
+  // User registration - now handled by Replit Auth
+  // Users are created automatically when they log in via /api/login
 
   // Create prospect for marketing automation
   app.post("/api/prospects", async (req, res) => {
@@ -2330,7 +2326,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
       // 🚀 CRITICAL: Send email with card preview link after successful generation
       try {
-        const user = await storage.getUser(updatedCard.userId);
+        const user = updatedCard.userId ? await storage.getUser(updatedCard.userId) : null;
         // Check both user.email AND conversationData.email_address
         const conversationData = updatedCard.conversationData as any;
         const userEmail = user?.email || conversationData?.email_address || conversationData?.email || conversationData?.user_email;
@@ -2624,7 +2620,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
       // 🚀 CRITICAL: Send email with card preview link after successful generation
       try {
-        const user = await storage.getUser(updatedCard.userId);
+        const user = updatedCard.userId ? await storage.getUser(updatedCard.userId) : null;
         // Check both user.email AND conversationData.email_address
         const conversationData = updatedCard.conversationData as any;
         const userEmail = user?.email || conversationData?.email_address || conversationData?.email || conversationData?.user_email;
@@ -3504,7 +3500,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
       // 🚀 CRITICAL: Send email with card preview link after successful generation
       try {
-        const user = await storage.getUser(updatedCard.userId);
+        const user = updatedCard.userId ? await storage.getUser(updatedCard.userId) : null;
         // Check both user.email AND conversationData.email_address
         const conversationData = updatedCard.conversationData as any;
         const userEmail = user?.email || conversationData?.email_address || conversationData?.email || conversationData?.user_email;
@@ -3631,7 +3627,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
       // 🚀 CRITICAL: Send email with card preview link after successful generation
       try {
-        const user = await storage.getUser(updatedCard.userId);
+        const user = updatedCard.userId ? await storage.getUser(updatedCard.userId) : null;
         // Check both user.email AND conversationData.email_address
         const conversationData = updatedCard.conversationData as any;
         const userEmail = user?.email || conversationData?.email_address || conversationData?.email || conversationData?.user_email;
