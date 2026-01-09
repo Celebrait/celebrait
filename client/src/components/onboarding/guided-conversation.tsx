@@ -624,6 +624,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [showPreAuthModal, setShowPreAuthModal] = useState(false);
   
   // Art style selection states
   const [currentArtStyleExample, setCurrentArtStyleExample] = useState(0);
@@ -2084,34 +2085,39 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     
     // Check if user is authenticated
     if (!isAuthenticated || !user) {
-      console.log('[DEBUG] User not authenticated - saving progress and redirecting to auth');
-      
-      // Save current card progress to sessionStorage before redirecting
-      const authPendingData = {
-        answers,
-        currentStepIndex,
-        uploadedPhotoIds,
-        stepInputs,
-        selectedPersonalities,
-        timestamp: Date.now(),
-        returnUrl: window.location.pathname
-      };
-      
-      try {
-        sessionStorage.setItem(AUTH_FLOW_KEY, JSON.stringify(authPendingData));
-        console.log('[DEBUG] Saved auth pending card data to sessionStorage');
-      } catch (error) {
-        console.error('[DEBUG] Failed to save auth pending data:', error);
-      }
-      
-      // Redirect to Replit Auth
-      window.location.href = "/api/login";
+      console.log('[DEBUG] User not authenticated - showing pre-auth explainer modal');
+      setShowPreAuthModal(true);
       return;
     }
     
     // User is authenticated - proceed directly with card generation
     console.log('[DEBUG] User authenticated, proceeding with card generation');
     actuallyGenerateCard();
+  };
+  
+  const proceedToAuth = () => {
+    console.log('[DEBUG] User clicked continue - saving progress and redirecting to auth');
+    
+    // Save current card progress to sessionStorage before redirecting
+    const authPendingData = {
+      answers,
+      currentStepIndex,
+      uploadedPhotoIds,
+      stepInputs,
+      selectedPersonalities,
+      timestamp: Date.now(),
+      returnUrl: window.location.pathname
+    };
+    
+    try {
+      sessionStorage.setItem(AUTH_FLOW_KEY, JSON.stringify(authPendingData));
+      console.log('[DEBUG] Saved auth pending card data to sessionStorage');
+    } catch (error) {
+      console.error('[DEBUG] Failed to save auth pending data:', error);
+    }
+    
+    // Redirect to Replit Auth
+    window.location.href = "/api/login";
   };
 
   const actuallyGenerateCard = async () => {
@@ -4092,9 +4098,82 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         </DialogContent>
       </Dialog>
 
-
-
-
+      {/* Pre-Auth Explainer Modal */}
+      <Dialog open={showPreAuthModal} onOpenChange={setShowPreAuthModal}>
+        <DialogContent className="max-w-md bg-white border-2 border-purple-200">
+          <DialogHeader className="text-center pb-2">
+            <div className="flex items-center justify-center space-x-3 mb-3">
+              <div className="w-14 h-14 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                <Sparkles className="w-7 h-7 text-white" />
+              </div>
+            </div>
+            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Almost There!
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-600 mt-2">
+              Create a free account to generate your personalized card
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 p-2">
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100">
+              <div className="space-y-3">
+                <div className="flex items-start space-x-3">
+                  <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Clock className="w-3 h-3 text-white" />
+                  </div>
+                  <p className="text-gray-700 text-sm">
+                    <strong>1-2 minutes</strong> of AI magic to create your unique card
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Layout className="w-3 h-3 text-white" />
+                  </div>
+                  <p className="text-gray-700 text-sm">
+                    Your card will appear in your <strong>personal dashboard</strong>
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-700 text-sm">
+                    We'll <strong>email you a link</strong> to view and order your card
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Package className="w-3 h-3 text-white" />
+                  </div>
+                  <p className="text-gray-700 text-sm">
+                    Order a <strong>beautiful printed card</strong> delivered to your door
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex flex-col space-y-3 pt-2">
+              <Button 
+                onClick={proceedToAuth}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-6 py-3 rounded-xl font-medium shadow-lg transform hover:scale-[1.02] transition-all duration-200"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Continue to Sign Up
+              </Button>
+              <Button 
+                onClick={() => setShowPreAuthModal(false)}
+                variant="ghost"
+                className="text-gray-500 hover:text-gray-700 px-6 py-2 rounded-xl font-medium"
+              >
+                Go Back
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Photo Best Practices Modal */}
       <Dialog open={photoBestPracticesOpen} onOpenChange={setPhotoBestPracticesOpen}>
