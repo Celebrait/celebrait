@@ -62,6 +62,9 @@ interface ConversationStep {
 const RECOVERY_STORAGE_KEY = 'celebrait_card_recovery';
 const RECOVERY_EXPIRY_DAYS = 7;
 
+// Auth flow progress key - for preserving card data through auth redirect
+const AUTH_FLOW_KEY = 'celebrait_auth_pending_card';
+
 // Save progress to localStorage
 const saveRecoveryProgress = (data: any) => {
   try {
@@ -1209,6 +1212,58 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     return () => clearTimeout(mountTimer);
   }, []);
 
+  // Check for auth return - restore card progress and resume generation
+  useEffect(() => {
+    // Only check when user becomes authenticated
+    if (!isAuthenticated || !user || authLoading) return;
+    
+    try {
+      const savedData = sessionStorage.getItem(AUTH_FLOW_KEY);
+      if (!savedData) return;
+      
+      console.log('[AUTH_RETURN] Found pending card data, restoring...');
+      const pendingCard = JSON.parse(savedData);
+      
+      // Verify data is fresh (within 10 minutes)
+      const isRecent = Date.now() - pendingCard.timestamp < 10 * 60 * 1000;
+      if (!isRecent) {
+        console.log('[AUTH_RETURN] Pending card data is stale, clearing');
+        sessionStorage.removeItem(AUTH_FLOW_KEY);
+        return;
+      }
+      
+      // Restore state
+      if (pendingCard.answers) {
+        setAnswers(pendingCard.answers);
+      }
+      if (pendingCard.currentStepIndex !== undefined) {
+        setCurrentStepIndex(pendingCard.currentStepIndex);
+      }
+      if (pendingCard.stepInputs) {
+        setStepInputs(pendingCard.stepInputs);
+      }
+      if (pendingCard.selectedPersonalities) {
+        setSelectedPersonalities(pendingCard.selectedPersonalities);
+      }
+      // Note: uploadedPhotoIds cannot be restored as photos are stored in memory
+      // User may need to re-upload photos if they were cleared
+      
+      console.log('[AUTH_RETURN] State restored, proceeding with card generation');
+      
+      // Clear the pending data
+      sessionStorage.removeItem(AUTH_FLOW_KEY);
+      
+      // Small delay to ensure state is updated, then generate
+      setTimeout(() => {
+        actuallyGenerateCard();
+      }, 100);
+      
+    } catch (error) {
+      console.error('[AUTH_RETURN] Error restoring card data:', error);
+      sessionStorage.removeItem(AUTH_FLOW_KEY);
+    }
+  }, [isAuthenticated, user, authLoading]);
+
   // Initialize streamlined flow with selected photo option
   useEffect(() => {
     if (streamlinedFlow && selectedPhotoOption) {
@@ -1372,12 +1427,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const initializeCard = async (): Promise<number> => {
     try {
-      // Require authentication before creating a card
+      // User should already be authenticated at this point (checked in generateCard)
+      // If not authenticated, throw error - this should not happen in normal flow
       if (!isAuthenticated || !user) {
-        // Redirect to login silently - return a fake card ID that won't be used
-        // since the page will redirect
-        window.location.href = "/api/login";
-        return -1; // Will never be used since page redirects
+        throw new Error("Authentication required to create card");
       }
 
       // All cards are now printed only (front-and-inside)
@@ -2038,30 +2091,51 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const generateCard = async () => {
     console.log('[DEBUG] generateCard called');
     
-    // Always collect email for marketing automation and card preview recovery
-    // Only bypass for specific testing scenarios (not streamlined flow)
-    if (import.meta.env.VITE_SKIP_EMAIL_COLLECTION === 'true') {
-      console.log('[DEBUG] Test mode: Skipping email collection');
-      actuallyGenerateCard();
+    // Check if user is authenticated
+    if (!isAuthenticated || !user) {
+      console.log('[DEBUG] User not authenticated - saving progress and redirecting to auth');
+      
+      // Save current card progress to sessionStorage before redirecting
+      const authPendingData = {
+        answers,
+        currentStepIndex,
+        uploadedPhotoIds,
+        stepInputs,
+        selectedPersonalities,
+        timestamp: Date.now(),
+        returnUrl: window.location.pathname
+      };
+      
+      try {
+        sessionStorage.setItem(AUTH_FLOW_KEY, JSON.stringify(authPendingData));
+        console.log('[DEBUG] Saved auth pending card data to sessionStorage');
+      } catch (error) {
+        console.error('[DEBUG] Failed to save auth pending data:', error);
+      }
+      
+      // Redirect to Replit Auth
+      window.location.href = "/api/login";
       return;
     }
     
-    // Show email popup instead of directly generating
-    console.log('[DEBUG] Showing email popup');
-    setShowEmailPopup(true);
+    // User is authenticated - proceed directly with card generation
+    console.log('[DEBUG] User authenticated, proceeding with card generation');
+    actuallyGenerateCard();
   };
 
   const actuallyGenerateCard = async () => {
     console.log('[DEBUG] actuallyGenerateCard called');
     setIsLoading(true);
-    setShowEmailPopup(false);
+    
+    // Get user's email from their authenticated account
+    const userEmail = user?.email || '';
     
     try {
       console.log('[DEBUG] Starting card generation with options:', {
         photo_option: answers.photo_option,
         has_photos: uploadedPhotoIds.length > 0,
         cardId: cardId,
-        notification_email: popupEmail
+        user_email: userEmail
       });
       
       // Ensure card is initialized
@@ -2101,21 +2175,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       if (generatedCard) {
         onCardGenerated(generatedCard);
         
-        // Send email notification using the popup email
-        const emailToNotify = popupEmail;
-        
+        // Send email notification using the authenticated user's email
         console.log('Email notification decision:', {
-          finalEmailToNotify: emailToNotify
+          finalEmailToNotify: userEmail
         });
                             
-        if (emailToNotify && emailToNotify.trim()) {
-          console.log('Card now showing on-site, triggering email notification to:', emailToNotify);
-          console.log('Email source: popup modal');
+        if (userEmail && userEmail.trim()) {
+          console.log('Card now showing on-site, triggering email notification to:', userEmail);
+          console.log('Email source: authenticated user account');
           setTimeout(() => {
-            sendBackgroundEmail(generatedCard.id, emailToNotify, onboarding.userName || "User");
+            sendBackgroundEmail(generatedCard.id, userEmail, user?.firstName || user?.email?.split('@')[0] || "User");
           }, 2000); // 2 second delay to ensure card is fully displayed
         } else {
-          console.log('No email provided in popup modal');
+          console.log('No email available from authenticated user');
         }
       }
       
