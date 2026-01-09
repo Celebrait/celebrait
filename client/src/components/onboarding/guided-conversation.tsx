@@ -1374,14 +1374,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     try {
       // Require authentication before creating a card
       if (!isAuthenticated || !user) {
-        toast({
-          title: "Please sign in",
-          description: "You need to sign in to create a card",
-          variant: "destructive",
-        });
-        // Redirect to login
+        // Redirect to login silently - return a fake card ID that won't be used
+        // since the page will redirect
         window.location.href = "/api/login";
-        throw new Error("Authentication required");
+        return -1; // Will never be used since page redirects
       }
 
       // All cards are now printed only (front-and-inside)
