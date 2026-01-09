@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { buildTextOnlyImagePrompt, buildInsidePrompt } from "@shared/prompts";
 import { ImageStore } from "@/utils/image-store";
@@ -634,6 +635,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [isTypingArtStyle, setIsTypingArtStyle] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
 
   // Build photo context for AI brainstorm chat - simplified approach
   const buildPhotoContext = () => {
@@ -1370,11 +1372,23 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const initializeCard = async (): Promise<number> => {
     try {
+      // Require authentication before creating a card
+      if (!isAuthenticated || !user) {
+        toast({
+          title: "Please sign in",
+          description: "You need to sign in to create a card",
+          variant: "destructive",
+        });
+        // Redirect to login
+        window.location.href = "/api/login";
+        throw new Error("Authentication required");
+      }
+
       // All cards are now printed only (front-and-inside)
       const price = 12900;
 
       const cardResponse = await apiRequest("POST", "/api/cards", {
-        userId: null, // Cards can be created without login, linked to user at payment
+        userId: user.id, // Use authenticated user's ID
         cardType: 'printed',
         printOption: 'front-and-inside', // Always front and inside now
         sceneType: onboarding.selectedSceneType,

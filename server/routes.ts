@@ -1112,7 +1112,10 @@ If just having a conversation (no suggestions), respond with valid JSON:
       console.log('Extracted userId:', userId);
       console.log('Extracted cardData:', cardData);
 
-      // userId is optional - cards can be created without login and linked later
+      // Require userId - users must be logged in to create cards
+      if (!userId) {
+        return res.status(401).json({ message: "Please sign in to create a card" });
+      }
 
       // Ensure required fields have default values if missing
       const sanitizedCardData = {
@@ -1130,7 +1133,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
       const card = await storage.createCard({
         ...validatedCardData,
-        userId: userId || null // Allow null userId
+        userId: String(userId) // Ensure userId is a string for Replit Auth IDs
       });
 
       res.json(card);
