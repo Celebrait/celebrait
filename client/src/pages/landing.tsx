@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -372,8 +373,27 @@ function CallToActionSection() {
   );
 }
 
+const AUTH_FLOW_KEY = 'celebrait_auth_pending_card';
+
 export default function Landing() {
   const [isVisible, setIsVisible] = useState(false);
+  const [, setLocation] = useLocation();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Check for pending card data after auth redirect
+  useEffect(() => {
+    if (isLoading) return;
+    
+    try {
+      const pendingData = sessionStorage.getItem(AUTH_FLOW_KEY);
+      if (pendingData && isAuthenticated) {
+        console.log('[AUTH REDIRECT] Found pending card data, redirecting to create-card');
+        setLocation('/create-card');
+      }
+    } catch (error) {
+      console.error('[AUTH REDIRECT] Error checking pending data:', error);
+    }
+  }, [isAuthenticated, isLoading, setLocation]);
 
   // Fade in effect when component mounts
   useEffect(() => {
