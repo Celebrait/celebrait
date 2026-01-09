@@ -624,12 +624,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
-  const [showEmailPopup, setShowEmailPopup] = useState(false);
-  const [popupEmail, setPopupEmail] = useState('');
-  const [popupEmailConfirm, setPopupEmailConfirm] = useState('');
-  const [popupFirstName, setPopupFirstName] = useState('');
-  const [popupLastName, setPopupLastName] = useState('');
-  const [marketingOptIn, setMarketingOptIn] = useState(true);
   
   // Art style selection states
   const [currentArtStyleExample, setCurrentArtStyleExample] = useState(0);
@@ -2783,8 +2777,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                       
                       <Button 
                         onClick={() => {
-                          // Show marketing data capture popup when user clicks "I'm Happy, Let's Create!"
-                          setShowEmailPopup(true);
+                          // Start card generation - will prompt for auth if needed
+                          generateCard();
                         }}
                         disabled={isLoading}
                         className="px-12 py-6 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold text-xl shadow-xl transform hover:scale-105 transition-all duration-200"
@@ -4104,186 +4098,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
 
 
-
-      {/* Email Collection Popup Modal */}
-      <Dialog open={showEmailPopup} onOpenChange={setShowEmailPopup}>
-        <DialogContent className="max-w-sm sm:max-w-md bg-white border-2 border-purple-200 rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto mx-auto left-1/2 right-1/2">
-          <DialogHeader className="pb-4">
-            {/* Centered Mobile Header */}
-            <div className="text-center space-y-3">
-              <div className="mx-auto w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  Join Celebrait
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-600">
-                  Get your card + updates
-                </p>
-              </div>
-            </div>
-          </DialogHeader>
-          
-          <div className="space-y-4 px-4">
-
-            {/* Centered Form Fields */}
-            <div className="space-y-4">
-              {/* Name Fields - Stack on Mobile */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 text-left">First Name</label>
-                  <Input
-                    type="text"
-                    value={popupFirstName}
-                    onChange={(e) => setPopupFirstName(e.target.value)}
-                    placeholder="Your first name"
-                    className="w-full h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 text-left">Last Name</label>
-                  <Input
-                    type="text"
-                    value={popupLastName}
-                    onChange={(e) => setPopupLastName(e.target.value)}
-                    placeholder="Your last name"
-                    className="w-full h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100"
-                  />
-                </div>
-              </div>
-              
-              {/* Email Fields */}
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 text-left">Email Address</label>
-                  <Input
-                    type="email"
-                    value={popupEmail}
-                    onChange={(e) => setPopupEmail(e.target.value)}
-                    placeholder="Enter your email address"
-                    className="w-full h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 text-left">Confirm Email Address</label>
-                  <Input
-                    type="email"
-                    value={popupEmailConfirm}
-                    onChange={(e) => setPopupEmailConfirm(e.target.value)}
-                    placeholder="Confirm your email address"
-                    className="w-full h-10 text-sm rounded-xl border-gray-300 focus:border-purple-400 focus:ring-1 focus:ring-purple-100"
-                  />
-                </div>
-              </div>
-              
-              {/* Centered Marketing opt-in checkbox */}
-              <div className="flex items-center justify-center">
-                <div className="flex items-start space-x-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200 max-w-sm">
-                  <input
-                    type="checkbox"
-                    id="marketing-optin"
-                    checked={marketingOptIn}
-                    onChange={(e) => setMarketingOptIn(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500 cursor-pointer"
-                  />
-                  <label htmlFor="marketing-optin" className="text-xs text-gray-700 leading-snug cursor-pointer">
-                    <span className="font-semibold text-purple-700">Stay in the loop!</span> 
-                    <span className="block text-xs text-gray-600 mt-0.5">
-                      Get exclusive offers & new card styles.
-                    </span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-              {popupEmail && popupEmailConfirm && popupEmail !== popupEmailConfirm && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <p className="text-red-700 text-sm">Email addresses don't match</p>
-                </div>
-              )}
-
-              {/* Centered Sign Up Button */}
-              <div className="flex justify-center pt-2">
-                <Button 
-                  onClick={async () => {
-                    // Scroll to top of popup on mobile
-                    const popup = document.querySelector('[role="dialog"]');
-                    if (popup) {
-                      popup.scrollTop = 0;
-                    }
-                    
-                    if (!popupFirstName || !popupEmail || !popupEmailConfirm) {
-                      toast({
-                        title: "Required Fields Missing",
-                        description: "Please fill in your first name and email address.",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-                    if (popupEmail !== popupEmailConfirm) {
-                      toast({
-                        title: "Email Mismatch", 
-                        description: "Email addresses don't match.",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-                    
-                    // Store user email in answers
-                    answers.user_email = popupEmail;
-                    
-                    // 🚀 CRITICAL: Marketing automation - add user to Brevo if opted in
-                    if (marketingOptIn) {
-                      console.log('✅ Marketing opt-in checked - adding to Brevo list');
-                      try {
-                        const response = await fetch('/api/prospects', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json'
-                          },
-                          body: JSON.stringify({
-                            email: popupEmail,
-                            firstName: popupFirstName,
-                            lastName: popupLastName,
-                            signupSource: 'signup_form',
-                            cardData: {
-                              recipientName: answers.name || 'loved one',
-                              celebrationType: answers.celebration || 'celebration'
-                            }
-                          })
-                        });
-                        
-                        if (response.ok) {
-                          console.log('🎉 Marketing automation: Successfully added to Brevo list');
-                        } else {
-                          console.error('❌ Marketing automation: API response error', response.status);
-                        }
-                      } catch (error: any) {
-                        console.error('❌ Marketing automation failed:', error);
-                        // Continue with card generation even if marketing automation fails
-                      }
-                    } else {
-                      console.log('⏭️ Marketing opt-in not checked - skipping Brevo list addition');
-                    }
-                    
-                    // Start actual card generation
-                    actuallyGenerateCard();
-                  }}
-                  disabled={!popupFirstName || !popupEmail || !popupEmailConfirm || popupEmail !== popupEmailConfirm}
-                  className="w-full max-w-xs px-8 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                >
-                  Sign Up
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Photo Best Practices Modal */}
       <Dialog open={photoBestPracticesOpen} onOpenChange={setPhotoBestPracticesOpen}>
