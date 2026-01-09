@@ -1,39 +1,25 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, json, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  email: text("email").notNull().unique(),
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  profileImageUrl: text("profile_image_url"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+export * from "./models/auth";
+
+import { users } from "./models/auth";
 
 export const cards = pgTable("cards", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
-  cardType: text("card_type").notNull(), // 'printed' | 'digital'
-  printOption: text("print_option"), // 'front-only' | 'front-and-inside'
-  sceneType: text("scene_type").notNull(), // 'with-person' | 'scene-only'
+  userId: varchar("user_id").references(() => users.id),
+  cardType: text("card_type").notNull().default('printed'),
+  printOption: text("print_option").default('front-and-inside'),
+  sceneType: text("scene_type").notNull(),
   conversationData: jsonb("conversation_data"),
-  frontImageUrl: text("front_image_url"), // File path or legacy base64
-  insideImageUrl: text("inside_image_url"), // File path or legacy base64
-  frontImagePath: text("front_image_path"), // NEW: File system path
-  insideImagePath: text("inside_image_path"), // NEW: File system path
-  printReadyPath: text("print_ready_path"), // NEW: PDF/print-ready file path
-  status: text("status").default('generating'), // 'generating' | 'completed' | 'paid'
-  price: integer("price").notNull(), // in cents
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const lovedOnes = pgTable("loved_ones", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
-  name: text("name").notNull(),
-  birthday: text("birthday").notNull(),
+  frontImageUrl: text("front_image_url"),
+  insideImageUrl: text("inside_image_url"),
+  frontImagePath: text("front_image_path"),
+  insideImagePath: text("inside_image_path"),
+  printReadyPath: text("print_ready_path"),
+  status: text("status").default('generating'),
+  price: integer("price").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -57,6 +43,7 @@ export const prospects = pgTable("prospects", {
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   cardId: integer("card_id").notNull().references(() => cards.id),
+  userId: varchar("user_id").references(() => users.id),
   customerEmail: text("customer_email").notNull(),
   customerName: text("customer_name").notNull(),
   customerPhone: text("customer_phone"),
@@ -69,16 +56,10 @@ export const orders = pgTable("orders", {
   orderStatus: text("order_status").notNull().default("processing"),
   orderType: text("order_type").notNull().default("regular"),
   shippingAddress: json("shipping_address"),
-  recipientInfo: text("recipient_info"), // JSON string containing recipient name and email for dual delivery
+  recipientInfo: text("recipient_info"),
   trackingNumber: text("tracking_number"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
-});
-
-export const insertUserSchema = createInsertSchema(users).pick({
-  email: true,
-  firstName: true,
-  lastName: true,
 });
 
 export const insertCardSchema = createInsertSchema(cards).pick({
@@ -87,11 +68,6 @@ export const insertCardSchema = createInsertSchema(cards).pick({
   sceneType: true,
   conversationData: true,
   price: true,
-});
-
-export const insertLovedOneSchema = createInsertSchema(lovedOnes).pick({
-  name: true,
-  birthday: true,
 });
 
 export const insertProspectSchema = createInsertSchema(prospects).pick({
@@ -107,6 +83,7 @@ export const insertProspectSchema = createInsertSchema(prospects).pick({
 
 export const insertOrderSchema = createInsertSchema(orders).pick({
   cardId: true,
+  userId: true,
   customerEmail: true,
   customerName: true,
   customerPhone: true,
@@ -122,12 +99,8 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   trackingNumber: true,
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
 export type InsertCard = z.infer<typeof insertCardSchema>;
 export type Card = typeof cards.$inferSelect;
-export type InsertLovedOne = z.infer<typeof insertLovedOneSchema>;
-export type LovedOne = typeof lovedOnes.$inferSelect;
 export type InsertProspect = z.infer<typeof insertProspectSchema>;
 export type Prospect = typeof prospects.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;

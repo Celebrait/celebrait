@@ -6,7 +6,8 @@ import { spawn } from "child_process";
 import fs, { promises as fsPromises } from "fs";
 import path from "path";
 import { storage } from "./storage";
-import { insertUserSchema, insertCardSchema, insertLovedOneSchema, insertOrderSchema } from "@shared/schema";
+import { insertCardSchema, insertOrderSchema } from "@shared/schema";
+import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
 // Typography library removed - AI handles text integration directly
 
 import OpenAI from "openai";
@@ -554,6 +555,10 @@ async function processFluxBinaryOutput(output: any): Promise<string> {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Setup Replit Auth BEFORE other routes
+  await setupAuth(app);
+  registerAuthRoutes(app);
   
   // Serve stored images statically
   app.use('/images', (req, res, next) => {
