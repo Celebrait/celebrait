@@ -1370,12 +1370,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const initializeCard = async (): Promise<number> => {
     try {
-      // All cards now include front and inside content
-      const price = onboarding.selectedDelivery === 'digital' ? 2900 : 12900;
+      // All cards are now printed only (front-and-inside)
+      const price = 12900;
 
       const cardResponse = await apiRequest("POST", "/api/cards", {
-        userId: 1,
-        cardType: onboarding.selectedDelivery,
+        userId: null, // Cards can be created without login, linked to user at payment
+        cardType: 'printed',
         printOption: 'front-and-inside', // Always front and inside now
         sceneType: onboarding.selectedSceneType,
         conversationData: {},
