@@ -1,7 +1,7 @@
 # Celebrait - AI-Powered Greeting Card Generator
 
 ## Overview
-Celebrait is a full-stack web application that creates personalized greeting cards using advanced AI for image generation and natural language processing. Its purpose is to offer users a unique way to generate custom cards through a guided conversational experience, supporting both digital delivery and physical printing. The project aims to revolutionize personalized greetings with high-quality, AI-generated content.
+Celebrait is a full-stack web application that creates personalized greeting cards using advanced AI for image generation and natural language processing. Its purpose is to offer users a unique way to generate custom cards through a guided conversational experience, with printed card fulfillment (front-and-inside only). The project aims to revolutionize personalized greetings with high-quality, AI-generated content.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -11,11 +11,12 @@ Preferred communication style: Simple, everyday language.
 ### UI/UX Decisions
 - **Design Philosophy**: Focus on a clean, modern, and intuitive user interface.
 - **Styling**: Uses Tailwind CSS with shadcn/ui components for a consistent and accessible design.
-- **User Flow**: Employs a multi-step guided conversation for personalized card creation, including dynamic AI interaction for gathering details.
-- **Visuals**: Incorporates brand colors (purple-to-pink gradients), rounded elements, and engaging animations (typing effects, subtle transitions, confetti for digital cards).
-- **Responsiveness**: Mobile-first design for core AI brainstorming and digital card viewing, with responsive layouts for desktop.
+- **User Flow**: Employs a multi-step guided conversation for personalized card creation. Authentication is deferred until the "Generate Card" button - users can explore the full card creation journey without signing up, reducing friction. Card progress is preserved through the auth redirect.
+- **Visuals**: Incorporates brand colors (purple-to-pink gradients), rounded elements, and engaging animations (typing effects, subtle transitions).
+- **Responsiveness**: Mobile-first design for core AI brainstorming and card viewing, with responsive layouts for desktop.
 - **Card Design**: Offers various art styles, with AI adapting typography and visuals contextually. Prioritizes facial accuracy in generated images.
-- **Delivery Experience**: Streamlined delivery process leading directly from card preview to a single, complete order page with clear options for digital and physical delivery.
+- **Delivery Experience**: Streamlined delivery process for printed cards only (front-and-inside). After generation, users receive an email with a link to their dashboard.
+- **Authentication**: Replit Auth integration (Google, GitHub, Apple, email/password). Auth is triggered at card generation, not upfront, to reduce friction.
 
 ### Technical Implementations
 - **Frontend**: React with TypeScript, Wouter for routing, TanStack Query for server state. Vite is used for builds.
@@ -31,9 +32,9 @@ Preferred communication style: Simple, everyday language.
 - **AI-Guided Conversation**: Collects user preferences and personalization details for card generation.
 - **Image Generation**: Creates personalized card images based on user input, including scene descriptions, photo transformations, and inside card designs. Supports various aspect ratios (square, portrait).
 - **Order Management**: Tracks order status, payment verification, and fulfillment (digital delivery, physical printing routing).
-- **User Customization**: Allows selection of delivery method (digital/printed), print options, and scene types.
+- **User Customization**: Allows selection of print options and scene types. Printed cards only (front-and-inside).
 - **Payment Gateway**: Secure processing of payments via integrated third-party providers.
-- **Digital Card Viewer**: Interactive, shareable digital card experience with animations, download, and social media sharing.
+- **Customer Dashboard**: User account page at /dashboard showing profile, card history, and order status.
 
 ## External Dependencies
 
