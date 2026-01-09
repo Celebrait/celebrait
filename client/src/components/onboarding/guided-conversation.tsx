@@ -1037,10 +1037,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   ];
 
-  // All hooks must be at the top level before any conditional returns
-  useEffect(() => {
-    initializeCard();
-  }, []);
+  // Card initialization is now deferred until after authentication
+  // This allows users to explore the full journey before signing up
 
   useEffect(() => {
     // Simulate AI typing when moving to new step
@@ -1421,10 +1419,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const initializeCard = async (): Promise<number> => {
     try {
-      // User should already be authenticated at this point (checked in generateCard)
-      // If not authenticated, throw error - this should not happen in normal flow
-      if (!isAuthenticated || !user) {
-        throw new Error("Authentication required to create card");
+      // User must be authenticated at this point - generateCard handles auth flow first
+      if (!user) {
+        throw new Error("Please sign in to create your card");
       }
 
       // All cards are now printed only (front-and-inside)
