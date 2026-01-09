@@ -1112,9 +1112,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       console.log('Extracted userId:', userId);
       console.log('Extracted cardData:', cardData);
 
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
-      }
+      // userId is optional - cards can be created without login and linked later
 
       // Ensure required fields have default values if missing
       const sanitizedCardData = {
@@ -1122,7 +1120,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
         printOption: cardData.printOption || 'front-only',
         sceneType: cardData.sceneType || 'with-person',
         conversationData: cardData.conversationData || {},
-        price: cardData.price || 8900
+        price: cardData.price || 12900
       };
 
       console.log('Sanitized card data:', sanitizedCardData);
@@ -1132,7 +1130,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
 
       const card = await storage.createCard({
         ...validatedCardData,
-        userId
+        userId: userId || null // Allow null userId
       });
 
       res.json(card);
