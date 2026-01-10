@@ -585,6 +585,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch orders" });
     }
   });
+
+  // Get user's generation credits
+  app.get("/api/user/credits", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const credits = await storage.getUserGenerationCredits(userId);
+      res.json(credits);
+    } catch (error: any) {
+      console.error("Error fetching user credits:", error);
+      res.status(500).json({ message: "Failed to fetch credits" });
+    }
+  });
+
+  // Use a generation credit (called before card generation)
+  app.post("/api/user/credits/use", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = await storage.useGenerationCredit(userId);
+      
+      if (!result.success) {
+        return res.status(402).json({ 
+          message: "No generation credits available. Please purchase credits to continue.",
+          ...result
+        });
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error using credit:", error);
+      res.status(500).json({ message: "Failed to use credit" });
+    }
+  });
+
+  // Check if user can generate (pre-flight check)
+  app.get("/api/user/can-generate", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const credits = await storage.getUserGenerationCredits(userId);
+      res.json({ 
+        canGenerate: credits.canGenerate,
+        freeRemaining: credits.freeRemaining,
+        paidCredits: credits.paidCredits
+      });
+    } catch (error: any) {
+      console.error("Error checking generation ability:", error);
+      res.status(500).json({ message: "Failed to check credits" });
+    }
+  });
   
   // Serve stored images statically
   app.use('/images', (req, res, next) => {
