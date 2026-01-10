@@ -10,7 +10,7 @@ import { SafetyGuideModal } from "@/components/safety-guide-modal";
 import { 
   ArrowRight, ArrowLeft, Sparkles, Bot, User, HelpCircle, Camera, Palette, Edit3, Eye,
   Scan, Map, Layout, PenTool, Pencil, Layers, Mountain, Users, Focus, Sun, Settings,
-  Type, AlignCenter, Search, RefreshCw, RotateCcw, Package, CheckCircle, Clock
+  Type, AlignCenter, Search, RefreshCw, RotateCcw, Package, CheckCircle, Clock, CreditCard, Gift
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -625,6 +625,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [showPreAuthModal, setShowPreAuthModal] = useState(false);
+  const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
+  const [userCredits, setUserCredits] = useState<{ freeRemaining: number; paidCredits: number; canGenerate: boolean } | null>(null);
   
   // Art style selection states
   const [currentArtStyleExample, setCurrentArtStyleExample] = useState(0);
@@ -1261,6 +1263,28 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       sessionStorage.removeItem(AUTH_FLOW_KEY);
     }
   }, [isAuthenticated, user, authLoading]);
+
+  // Fetch user's generation credits when authenticated
+  useEffect(() => {
+    const fetchCredits = async () => {
+      if (!isAuthenticated || authLoading) return;
+      
+      try {
+        const response = await fetch('/api/user/credits', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const credits = await response.json();
+          setUserCredits(credits);
+          console.log('[CREDITS] User credits loaded:', credits);
+        }
+      } catch (error) {
+        console.error('[CREDITS] Error fetching credits:', error);
+      }
+    };
+    
+    fetchCredits();
+  }, [isAuthenticated, authLoading]);
 
   // Initialize streamlined flow with selected photo option
   useEffect(() => {
@@ -2126,6 +2150,52 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const actuallyGenerateCard = async () => {
     console.log('[DEBUG] actuallyGenerateCard called');
+    
+    // Check if user has generation credits before proceeding
+    try {
+      const creditsResponse = await fetch('/api/user/can-generate', {
+        credentials: 'include'
+      });
+      
+      if (creditsResponse.ok) {
+        const creditsData = await creditsResponse.json();
+        console.log('[CREDITS] Pre-generation check:', creditsData);
+        
+        if (!creditsData.canGenerate) {
+          console.log('[CREDITS] No credits available - showing payment modal');
+          setShowNoCreditsModal(true);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('[CREDITS] Error checking credits:', error);
+      // Continue anyway if credits check fails - backend will block if needed
+    }
+    
+    // Use a generation credit
+    try {
+      const useCreditsResponse = await apiRequest('POST', '/api/user/credits/use', {});
+      const useCreditsData = await useCreditsResponse.json();
+      
+      if (!useCreditsResponse.ok) {
+        console.log('[CREDITS] Failed to use credit:', useCreditsData);
+        setShowNoCreditsModal(true);
+        return;
+      }
+      
+      console.log('[CREDITS] Credit used:', useCreditsData);
+      // Update local credits state
+      setUserCredits({
+        freeRemaining: useCreditsData.remaining.freeRemaining,
+        paidCredits: useCreditsData.remaining.paidCredits,
+        canGenerate: useCreditsData.remaining.freeRemaining > 0 || useCreditsData.remaining.paidCredits > 0
+      });
+    } catch (error) {
+      console.error('[CREDITS] Error using credit:', error);
+      setShowNoCreditsModal(true);
+      return;
+    }
+    
     setIsLoading(true);
     
     // Get user's email from their authenticated account
@@ -2588,6 +2658,29 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
             </svg>
             <span className="font-medium">
               🎉 Welcome back! Your progress was saved - let's continue where you left off!
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Free Cards Remaining Badge */}
+      {isAuthenticated && userCredits && (
+        <div className="absolute top-4 right-4 z-10">
+          <div className={`flex items-center space-x-2 px-3 py-2 rounded-full shadow-md border ${
+            userCredits.freeRemaining > 0 
+              ? 'bg-green-50 border-green-200 text-green-700'
+              : userCredits.paidCredits > 0
+                ? 'bg-blue-50 border-blue-200 text-blue-700'
+                : 'bg-orange-50 border-orange-200 text-orange-700'
+          }`}>
+            <Gift className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              {userCredits.freeRemaining > 0 
+                ? `${userCredits.freeRemaining} free card${userCredits.freeRemaining !== 1 ? 's' : ''} left`
+                : userCredits.paidCredits > 0
+                  ? `${userCredits.paidCredits} paid card${userCredits.paidCredits !== 1 ? 's' : ''}`
+                  : 'No cards left'
+              }
             </span>
           </div>
         </div>
@@ -4255,6 +4348,59 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         errorKind={safetyError?.kind as any}
         errorCode={safetyError?.code}
       />
+
+      {/* No Credits Modal */}
+      <Dialog open={showNoCreditsModal} onOpenChange={setShowNoCreditsModal}>
+        <DialogContent className="max-w-md bg-white border-2 border-orange-200">
+          <DialogHeader className="text-center pb-2">
+            <div className="flex items-center justify-center space-x-3 mb-3">
+              <div className="w-14 h-14 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-full flex items-center justify-center">
+                <CreditCard className="w-7 h-7 text-white" />
+              </div>
+            </div>
+            <DialogTitle className="text-xl font-bold text-orange-600">
+              Out of Free Cards
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-600 mt-2">
+              You've used your {2} free card generations
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 p-2">
+            <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-4 border border-orange-100">
+              <div className="text-center space-y-3">
+                <p className="text-gray-700 text-sm">
+                  Each card costs us about <strong>R10</strong> to generate with AI. To continue creating amazing cards, please top up your account.
+                </p>
+                <div className="bg-white rounded-lg p-3 border border-orange-200">
+                  <p className="text-lg font-bold text-orange-600">R50 for 5 cards</p>
+                  <p className="text-xs text-gray-500">That's only R10 per card!</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex flex-col space-y-3 pt-2">
+              <Button 
+                onClick={() => {
+                  setShowNoCreditsModal(false);
+                  window.location.href = '/dashboard?tab=credits';
+                }}
+                className="bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white px-6 py-3 rounded-xl font-medium shadow-lg"
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                Buy More Cards
+              </Button>
+              <Button 
+                onClick={() => setShowNoCreditsModal(false)}
+                variant="ghost"
+                className="text-gray-500 hover:text-gray-700 px-6 py-2 rounded-xl font-medium"
+              >
+                Maybe Later
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
