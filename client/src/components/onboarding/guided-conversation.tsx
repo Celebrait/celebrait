@@ -1235,9 +1235,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       if (pendingCard.stepInputs) {
         setStepInputs(pendingCard.stepInputs);
       }
-      if (pendingCard.selectedPersonalities) {
-        setSelectedPersonalities(pendingCard.selectedPersonalities);
-      }
       if (pendingCard.uploadedPhotoIds && pendingCard.uploadedPhotoIds.length > 0) {
         // Photos are stored in ImageStore (localStorage), so we can restore the IDs
         // The ImageStore restores automatically on page load
@@ -2112,7 +2109,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       currentStepIndex,
       uploadedPhotoIds,
       stepInputs,
-      selectedPersonalities,
       timestamp: Date.now(),
       returnUrl: window.location.pathname
     };

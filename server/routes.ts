@@ -761,14 +761,38 @@ Current step: ${conversationStep || 'initial_scene'}`;
         if (conversationStep === 'summary') {
           messages.push({
             role: "system", 
-            content: `Generate a complete scene summary using all collected information. Present the final scene description in a professional manner. CRITICAL: Do NOT include any numbered suggestions, options, or lists in your response. This is a final summary, not a suggestion step. End with: "When you're ready to proceed, click 'Sounds great, let's go!' to continue to choosing text for the front of the card." IMPORTANT: You are in the SUMMARY step - this means the frontend will show "Sounds great, let's go!" and "I'd like to make a change" buttons.`
+            content: `Generate a complete scene summary using all collected information. Present the final scene description in a professional manner. CRITICAL: Do NOT include any numbered suggestions, options, or lists in your response. This is a final summary, not a suggestion step.
+
+IMPORTANT FORMAT: You MUST wrap the complete scene description between [SCENE_START] and [SCENE_END] markers exactly like this example:
+
+"Here's your complete scene:
+
+[SCENE_START]
+A cozy Christmas living room with a decorated tree, soft firelight, and warm holiday atmosphere. People gathered around opening presents with joyful expressions.
+[SCENE_END]
+
+Feel free to add any final touches! When you're ready to proceed, click 'Sounds great, let's go!' to continue to choosing text for the front of the card."
+
+IMPORTANT: You are in the SUMMARY step - this means the frontend will show "Sounds great, let's go!" and "I'd like to make a change" buttons.`
           });
         }
         
         if (conversationStep === 'change_request') {
           messages.push({
             role: "system", 
-            content: `The user wants to make a change to the scene. Process their change request and provide a complete updated scene description. Format your response as: "Got it! Let's update the scene with that detail:\n\n[COMPLETE UPDATED SCENE DESCRIPTION]\n\nWhen you're ready to proceed, click 'Sounds great, let's go!' to continue to choosing text for the front of the card." Make sure the scene description is complete and includes all previous elements plus the new changes.`
+            content: `The user wants to make a change to the scene. Process their change request and provide a complete updated scene description. 
+
+IMPORTANT FORMAT: You MUST wrap the complete scene description between [SCENE_START] and [SCENE_END] markers exactly like this:
+
+"Got it! Here's the updated scene:
+
+[SCENE_START]
+Your complete updated scene description goes here with all details.
+[SCENE_END]
+
+When you're ready to proceed, click 'Sounds great, let's go!' to continue to choosing text for the front of the card."
+
+Make sure the scene description is complete and includes all previous elements plus the new changes.`
           });
         }
       } else if (type === "art_style") {

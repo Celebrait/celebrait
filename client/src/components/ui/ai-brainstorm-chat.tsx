@@ -1059,18 +1059,28 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                 let finalScene = '';
                                 
                                 if (lastAssistantMessage && lastAssistantMessage.content) {
-                                  // Extract the scene description from the AI's final summary
                                   const content = lastAssistantMessage.content;
-                                  const sceneMatch = content.match(/Here's the complete scene description[^:]*:\s*(.+?)(?=\n\n|Please let me know|$)/s);
                                   
-                                  if (sceneMatch) {
-                                    finalScene = sceneMatch[1].trim();
+                                  // Primary extraction: Look for [SCENE_START] and [SCENE_END] markers
+                                  const markerMatch = content.match(/\[SCENE_START\]\s*([\s\S]*?)\s*\[SCENE_END\]/);
+                                  
+                                  if (markerMatch && markerMatch[1]) {
+                                    finalScene = markerMatch[1].trim();
+                                    console.log('Extracted scene using markers:', finalScene);
                                   } else {
-                                    // Fallback to simple concatenation if no formatted summary found
-                                    finalScene = `${conversationState.collectedInfo.setting || ''} ${conversationState.collectedInfo.activity || ''} ${conversationState.collectedInfo.people || ''} ${conversationState.collectedInfo.extraDetail || ''}`.trim();
+                                    // Fallback 1: Try older pattern
+                                    const legacyMatch = content.match(/Here's (?:the complete scene|your complete scene)[^:]*:\s*(.+?)(?=\n\n(?:Feel free|When you're ready)|$)/s);
+                                    if (legacyMatch && legacyMatch[1]) {
+                                      finalScene = legacyMatch[1].trim();
+                                      console.log('Extracted scene using legacy pattern:', finalScene);
+                                    } else {
+                                      // Fallback 2: Concatenate collected info
+                                      finalScene = `${conversationState.collectedInfo.setting || ''} ${conversationState.collectedInfo.activity || ''} ${conversationState.collectedInfo.people || ''} ${conversationState.collectedInfo.extraDetail || ''}`.trim();
+                                      console.log('Using fallback concatenation:', finalScene);
+                                    }
                                   }
                                 } else {
-                                  // Fallback to simple concatenation
+                                  // No assistant message - use concatenation
                                   finalScene = `${conversationState.collectedInfo.setting || ''} ${conversationState.collectedInfo.activity || ''} ${conversationState.collectedInfo.people || ''} ${conversationState.collectedInfo.extraDetail || ''}`.trim();
                                 }
                                 
