@@ -120,12 +120,17 @@ const clearRecoveryProgress = () => {
 // 12-Phase Creative Journey Component
 interface CreativeJourneyLoadingProps {
   answers: Record<string, any>;
+  generationComplete?: boolean;
+  onAnimationComplete?: () => void;
+  generatedCard?: any;
 }
 
-const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
+const CreativeJourneyLoading = ({ answers, generationComplete = false, onAnimationComplete, generatedCard }: CreativeJourneyLoadingProps) => {
   const [currentPhase, setCurrentPhase] = useState(0);
   const [phaseProgress, setPhaseProgress] = useState(0);
   const [showPackaging, setShowPackaging] = useState(false);
+  const [showAlmostReady, setShowAlmostReady] = useState(false);
+  const completionCalledRef = useRef(false);
 
   // Scroll to top when component mounts (mobile optimization)
   useEffect(() => {
@@ -237,10 +242,54 @@ const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
     },
   ];
 
-  // Phase timing (12.5 seconds per phase = 2.5 minutes total)
+  // Phase timing (12.5 seconds per phase = 2.5 minutes total normally, accelerated when generation completes)
   const [showRobotLoading, setShowRobotLoading] = useState(false);
   
+  // Accelerate to 100% when generation completes
   useEffect(() => {
+    if (generationComplete && !showAlmostReady && !completionCalledRef.current) {
+      // Fast-forward to 100% overall progress
+      const accelerateInterval = setInterval(() => {
+        setCurrentPhase(current => {
+          if (current < creativePhases.length - 1) {
+            setPhaseProgress(0);
+            return current + 1;
+          }
+          return current;
+        });
+        setPhaseProgress(prev => {
+          if (prev < 100) {
+            return Math.min(100, prev + 25); // Fast acceleration
+          }
+          return 100;
+        });
+      }, 100); // Very fast updates
+      
+      return () => clearInterval(accelerateInterval);
+    }
+  }, [generationComplete, showAlmostReady, creativePhases.length]);
+  
+  // Show "Almost ready" buffer then call completion
+  useEffect(() => {
+    const overallProg = Math.min(100, ((currentPhase * 100 + phaseProgress) / creativePhases.length));
+    
+    if (generationComplete && overallProg >= 99 && !showAlmostReady && !completionCalledRef.current) {
+      setShowAlmostReady(true);
+      
+      // After 2 second buffer, call completion
+      setTimeout(() => {
+        if (onAnimationComplete && !completionCalledRef.current) {
+          completionCalledRef.current = true;
+          onAnimationComplete();
+        }
+      }, 2000);
+    }
+  }, [generationComplete, currentPhase, phaseProgress, showAlmostReady, onAnimationComplete, creativePhases.length]);
+  
+  useEffect(() => {
+    // Don't run normal timing if generation is complete - we're accelerating
+    if (generationComplete) return;
+    
     // Check if main generation is complete, show robot loading animation instead of packaging
     if (currentPhase >= creativePhases.length - 1 && phaseProgress >= 100 && !showRobotLoading) {
       setTimeout(() => setShowRobotLoading(true), 500);
@@ -268,15 +317,57 @@ const CreativeJourneyLoading = ({ answers }: CreativeJourneyLoadingProps) => {
     }, 1000); // Update every second
 
     return () => clearInterval(phaseInterval);
-  }, [currentPhase, phaseProgress, showRobotLoading]);
+  }, [currentPhase, phaseProgress, showRobotLoading, generationComplete]);
 
   const currentPhaseData = creativePhases[currentPhase];
   const overallProgress = Math.min(100, ((currentPhase * 100 + phaseProgress) / creativePhases.length));
   const frontCardComplete = currentPhase >= 8;
   const isComplete = currentPhase >= creativePhases.length - 1 && phaseProgress >= 100;
 
-  // Robot Loading Animation Overlay after 2.5 minutes
-  if (showRobotLoading) {
+  // "Almost Ready" buffer display after generation completes and progress hits 100%
+  if (showAlmostReady) {
+    return (
+      <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 md:p-8 shadow-2xl border border-white/20 max-w-4xl mx-auto">
+        <div className="text-center">
+          {/* Success checkmark animation */}
+          <div className="relative mb-6">
+            <div className="w-24 h-24 mx-auto relative">
+              <div className="w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center animate-pulse">
+                <CheckCircle className="w-12 h-12 text-white" />
+              </div>
+              <div className="absolute inset-0 w-24 h-24">
+                <div className="w-full h-full border-4 border-green-200 border-t-green-500 rounded-full animate-spin"></div>
+              </div>
+            </div>
+          </div>
+          
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Almost ready...</h2>
+          <p className="text-gray-600 text-lg mb-4">Putting the finishing touches on your masterpiece!</p>
+          
+          {/* Progress at 100% */}
+          <div className="bg-gray-100 rounded-xl p-4 max-w-md mx-auto">
+            <div className="flex justify-between text-sm text-gray-600 mb-2">
+              <span>Overall Progress</span>
+              <span className="text-green-600 font-semibold">100% Complete</span>
+            </div>
+            <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-500 w-full transition-all duration-500"></div>
+            </div>
+          </div>
+          
+          {/* Loading dots */}
+          <div className="flex justify-center space-x-2 mt-6">
+            <div className="w-3 h-3 bg-purple-500 rounded-full animate-bounce"></div>
+            <div className="w-3 h-3 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-3 h-3 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Robot Loading Animation Overlay after 2.5 minutes (only if generation not complete)
+  if (showRobotLoading && !generationComplete) {
     return (
       <div className="relative bg-white/60 backdrop-blur-sm rounded-3xl p-6 md:p-8 shadow-2xl border border-white/20 max-w-4xl mx-auto">
         {/* Blurred background content */}
@@ -582,6 +673,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   });
   const [selectedPersonalities, setSelectedPersonalities] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [generationComplete, setGenerationComplete] = useState(false);
+  const [pendingGeneratedCard, setPendingGeneratedCard] = useState<any>(null);
   const [cardId, setCardId] = useState<number | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [currentInput, setCurrentInput] = useState('');
@@ -1831,18 +1924,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
       const updatedCard = await updateResponse.json();
       
-      // Clear loading state immediately  
-      setIsLoading(false);
-      
       toast({
-        title: "Test Card Created Instantly!",
-        description: "Mock card ready for testing complete flow",
+        title: "Test Card Created!",
+        description: "Your card is ready",
       });
       
-      // Immediately call onCardGenerated
-      onCardGenerated(updatedCard);
+      // Signal that generation is complete - let animation finish then show card
+      setPendingGeneratedCard(updatedCard);
+      setGenerationComplete(true);
     } catch (error: any) {
       setIsLoading(false);
+      setGenerationComplete(false);
       toast({
         title: "Error",
         description: `Failed to create test card: ${error.message}`,
@@ -2173,29 +2265,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
       console.log('Card generation completed:', generatedCard);
       console.log('Current answers state at completion:', answers);
-      console.log('Checking for notification email at completion:', {
-        notification_email: answers.notification_email,
-        notification_email_confirm: answers.notification_email_confirm
-      });
       
-      // Call the callback to notify parent component and show the card
+      // Signal that generation is complete - let animation catch up to 100% then show card
       if (generatedCard) {
-        onCardGenerated(generatedCard);
-        
-        // Send email notification using the authenticated user's email
-        console.log('Email notification decision:', {
-          finalEmailToNotify: userEmail
-        });
-                            
-        if (userEmail && userEmail.trim()) {
-          console.log('Card now showing on-site, triggering email notification to:', userEmail);
-          console.log('Email source: authenticated user account');
-          setTimeout(() => {
-            sendBackgroundEmail(generatedCard.id, userEmail, user?.firstName || user?.email?.split('@')[0] || "User");
-          }, 2000); // 2 second delay to ensure card is fully displayed
-        } else {
-          console.log('No email available from authenticated user');
-        }
+        console.log('Setting generationComplete=true, letting progress animation finish');
+        setPendingGeneratedCard(generatedCard);
+        setGenerationComplete(true);
+        // Note: onCardGenerated and email notification will be called by CreativeJourneyLoading's onAnimationComplete callback
       }
       
     } catch (error: any) {
@@ -2245,8 +2321,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         description: errorMessage,
         variant: "destructive",
       });
-    } finally {
+      
+      // Only reset loading state on error - success path lets animation complete first
       setIsLoading(false);
+      setGenerationComplete(false);
     }
   };
 
@@ -2480,7 +2558,31 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   if (isLoading) {
     console.log('Loading screen displayed - email notification option is available');
-    return <CreativeJourneyLoading answers={answers} />;
+    return (
+      <CreativeJourneyLoading 
+        answers={answers} 
+        generationComplete={generationComplete}
+        generatedCard={pendingGeneratedCard}
+        onAnimationComplete={() => {
+          // Animation reached 100% and buffer complete - now show the card
+          setIsLoading(false);
+          setGenerationComplete(false);
+          if (pendingGeneratedCard) {
+            onCardGenerated(pendingGeneratedCard);
+            
+            // Send email notification
+            const userEmail = user?.email || '';
+            if (userEmail && userEmail.trim()) {
+              console.log('Animation complete - sending email notification to:', userEmail);
+              setTimeout(() => {
+                sendBackgroundEmail(pendingGeneratedCard.id, userEmail, user?.firstName || user?.email?.split('@')[0] || "User");
+              }, 1000);
+            }
+            setPendingGeneratedCard(null);
+          }
+        }}
+      />
+    );
   }
 
   // Email confirmation screen
