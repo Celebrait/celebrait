@@ -693,6 +693,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [uploadedPhotoIds, setUploadedPhotoIds] = useState<string[]>([]);
   const [isProcessingPhotos, setIsProcessingPhotos] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
+  const [photoProcessingComplete, setPhotoProcessingComplete] = useState(false);
   const [typedText, setTypedText] = useState('');
   const [photoUploadProgress, setPhotoUploadProgress] = useState<{ [fileName: string]: number }>({});
   const [isMounted, setIsMounted] = useState(false);
@@ -1140,6 +1141,35 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const timer = setTimeout(() => setIsTyping(false), 1000);
     return () => clearTimeout(timer);
   }, [currentStepIndex]);
+
+  // Smooth photo processing progress animation
+  useEffect(() => {
+    if (!isProcessingPhotos) return;
+    
+    const targetProgress = photoProcessingComplete ? 100 : 90;
+    const intervalSpeed = photoProcessingComplete ? 50 : 150; // Fast catch-up when complete
+    const increment = photoProcessingComplete ? 8 : 2; // Larger increments when catching up
+    
+    const interval = setInterval(() => {
+      setProcessingProgress(prev => {
+        if (prev >= targetProgress) {
+          if (photoProcessingComplete && prev >= 100) {
+            clearInterval(interval);
+            // Brief pause at 100% before hiding
+            setTimeout(() => {
+              setIsProcessingPhotos(false);
+              setProcessingProgress(0);
+              setPhotoProcessingComplete(false);
+            }, 400);
+          }
+          return prev >= 100 ? 100 : prev;
+        }
+        return Math.min(prev + increment, targetProgress);
+      });
+    }, intervalSpeed);
+    
+    return () => clearInterval(interval);
+  }, [isProcessingPhotos, photoProcessingComplete]);
 
   // Debounced localStorage save to avoid blocking UI
   const debouncedSaveRecovery = useCallback(
@@ -1731,9 +1761,10 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       const filesToProcess = isTransformStyle ? [files[0]] : Array.from(files);
       
       try {
-        // Start loading animation
+        // Start smooth loading animation (progress handled by useEffect)
         setIsProcessingPhotos(true);
         setProcessingProgress(0);
+        setPhotoProcessingComplete(false);
         
         // Clear old photos from ImageStore if this is a re-upload
         if (uploadedPhotoIds.length > 0) {
@@ -1746,25 +1777,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         console.log(`[PHOTO_UPLOAD] Processing ${filesToProcess.length} photos during upload...`);
         const processStart = performance.now();
         
-        // Process photos with progress updates
+        // Process photos (progress animation runs smoothly in background via useEffect)
         const photoIds: string[] = [];
         
         for (let i = 0; i < filesToProcess.length; i++) {
           const file = filesToProcess[i];
-          
-          // Update progress as we start each photo
-          setProcessingProgress(Math.round((i / filesToProcess.length) * 70)); // 70% for processing
-          
-          const photoId = await ImageStore.addPhoto(file, (progress) => {
-            // Update progress within the current photo processing
-            const overallProgress = Math.round(((i / filesToProcess.length) * 70) + (progress * 0.3 / filesToProcess.length));
-            setProcessingProgress(overallProgress);
-          });
+          // No direct progress updates - let the smooth animation handle it
+          const photoId = await ImageStore.addPhoto(file);
           photoIds.push(photoId);
         }
-        
-        // Final processing steps
-        setProcessingProgress(95);
         
         const processEnd = performance.now();
         console.log(`[PHOTO_UPLOAD] Completed processing ${filesToProcess.length} photos in ${Math.round(processEnd - processStart)}ms`);
@@ -1787,19 +1808,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
           : `Photo${photoIds.length > 1 ? 's' : ''} processed and optimized for generation${compressionInfo}`;
         setAnswers(prev => ({ ...prev, character_description: successMessage }));
         
-        // Complete progress
-        setProcessingProgress(100);
-        
-        // Hide loading after a brief moment
-        setTimeout(() => {
-          setIsProcessingPhotos(false);
-          setProcessingProgress(0);
-        }, 500);
+        // Signal completion - useEffect will accelerate to 100% and then hide
+        setPhotoProcessingComplete(true);
         
       } catch (error) {
         console.error('[PHOTO_UPLOAD] Processing failed:', error);
         setIsProcessingPhotos(false);
         setProcessingProgress(0);
+        setPhotoProcessingComplete(false);
         toast({
           title: "Upload Error",
           description: "Failed to process uploaded photo. Please try again.",
