@@ -726,6 +726,11 @@ Current step: ${conversationStep || 'initial_scene'}`;
         // Build context message based on current step and user input
         let contextMessage = `I'm creating a ${celebration} greeting card for ${recipientName}. Current step: ${conversationStep || 'initial_scene'}. User input: "${userInput || ''}"`;
         
+        // Add photo context with detected face count
+        if (photoContext) {
+          contextMessage += ` Photo context: ${photoContext} detected in the uploaded photo - use this specific count when referring to people in the scene.`;
+        }
+        
         // Add collected information context
         if (collectedInfo) {
           const context = [];

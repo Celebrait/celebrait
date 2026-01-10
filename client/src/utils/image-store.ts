@@ -12,6 +12,7 @@ interface ProcessedImage {
   compressedSize: number;
   wasCropped: boolean;
   originalDimensions: { width: number; height: number };
+  faceCount: number;
 }
 
 class ImageStoreImpl {
@@ -36,7 +37,8 @@ class ImageStoreImpl {
             originalSize: image.originalSize || 0,
             compressedSize: image.compressedSize || 0,
             wasCropped: image.wasCropped || false,
-            originalDimensions: image.originalDimensions || { width: 0, height: 0 }
+            originalDimensions: image.originalDimensions || { width: 0, height: 0 },
+            faceCount: image.faceCount || 0
           });
         });
         console.log(`[IMAGE_STORE] Restored ${this.store.size} images from localStorage`);
@@ -57,7 +59,8 @@ class ImageStoreImpl {
           compressedSize: image.compressedSize,
           wasCropped: image.wasCropped,
           originalDimensions: image.originalDimensions,
-          fileName: image.file.name
+          fileName: image.file.name,
+          faceCount: image.faceCount
         };
       });
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
@@ -76,7 +79,7 @@ class ImageStoreImpl {
     
     try {
       // Process and compress the image during upload
-      const compressedBase64 = await this.compressImage(file, onProgress);
+      const result = await this.compressImage(file, onProgress);
       
       if (onProgress) onProgress(100);
       
@@ -90,17 +93,18 @@ class ImageStoreImpl {
       this.store.set(id, {
         file,
         objectUrl,
-        compressedBase64,
+        compressedBase64: result.base64,
         originalSize: file.size,
-        compressedSize: compressedBase64.length,
+        compressedSize: result.base64.length,
         wasCropped: shouldCropToSquare(img.width, img.height),
-        originalDimensions: { width: img.width, height: img.height }
+        originalDimensions: { width: img.width, height: img.height },
+        faceCount: result.faceCount
       });
       
       // Persist to localStorage for mobile reliability
       this.saveToLocalStorage();
       
-      console.log(`[IMAGE_STORE] Processed photo ${id}: ${file.size} → ${compressedBase64.length} bytes (${Math.round((compressedBase64.length / file.size) * 100)}%)`);
+      console.log(`[IMAGE_STORE] Processed photo ${id}: ${file.size} → ${result.base64.length} bytes (${Math.round((result.base64.length / file.size) * 100)}%), faces: ${result.faceCount}`);
       
       return id;
     } catch (error) {
@@ -120,7 +124,8 @@ class ImageStoreImpl {
         originalSize: file.size,
         compressedSize: 0,
         wasCropped: false,
-        originalDimensions: { width: img.width || 0, height: img.height || 0 }
+        originalDimensions: { width: img.width || 0, height: img.height || 0 },
+        faceCount: 0
       });
       
       if (onProgress) onProgress(100);
@@ -129,7 +134,7 @@ class ImageStoreImpl {
   }
 
   // Compress and resize image to optimized base64 with smart cropping
-  private async compressImage(file: File, onProgress?: (progress: number) => void): Promise<string> {
+  private async compressImage(file: File, onProgress?: (progress: number) => void): Promise<{ base64: string; faceCount: number }> {
     return new Promise(async (resolve, reject) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -147,6 +152,7 @@ class ImageStoreImpl {
 
           // Step 1: Smart cropping for portrait images
           let cropApplied = false;
+          let detectedFaceCount = 0;
           if (shouldCropToSquare(originalWidth, originalHeight)) {
             console.log(`[IMAGE_STORE] Portrait image detected (${originalWidth}x${originalHeight}), applying smart crop...`);
             
@@ -154,6 +160,7 @@ class ImageStoreImpl {
               // Try face detection first
               if (onProgress) onProgress(40);
               const faceResult = await faceDetectionService.detectFacesAndCalculateCrop(img);
+              detectedFaceCount = faceResult.faces.length;
               
               if (faceResult.cropCoordinates) {
                 // Apply face-detection based crop
@@ -161,7 +168,7 @@ class ImageStoreImpl {
                 processedWidth = faceResult.cropCoordinates.size;
                 processedHeight = faceResult.cropCoordinates.size;
                 cropApplied = true;
-                console.log(`[IMAGE_STORE] Applied face-detection crop: ${processedWidth}x${processedHeight}`);
+                console.log(`[IMAGE_STORE] Applied face-detection crop: ${processedWidth}x${processedHeight}, detected ${detectedFaceCount} faces`);
               }
             } catch (faceError) {
               console.log(`[IMAGE_STORE] Face detection failed, using center crop fallback:`, faceError);
@@ -234,12 +241,12 @@ class ImageStoreImpl {
           
           if (onProgress) onProgress(95);
           
-          console.log(`[IMAGE_STORE] Final dimensions: ${canvas.width}x${canvas.height} (crop applied: ${cropApplied})`);
+          console.log(`[IMAGE_STORE] Final dimensions: ${canvas.width}x${canvas.height} (crop applied: ${cropApplied}, faces: ${detectedFaceCount})`);
           
           // Clean up object URL to prevent memory leak
           URL.revokeObjectURL(img.src);
           
-          resolve(compressedBase64);
+          resolve({ base64: compressedBase64, faceCount: detectedFaceCount });
         } catch (error) {
           // Clean up object URL even on error
           URL.revokeObjectURL(img.src);
@@ -273,15 +280,31 @@ class ImageStoreImpl {
   }
 
   // Get processing stats for debugging
-  getPhotoStats(id: string): { originalSize: number; compressedSize: number; compressionRatio: number } | null {
+  getPhotoStats(id: string): { originalSize: number; compressedSize: number; compressionRatio: number; faceCount: number } | null {
     const entry = this.store.get(id);
     if (!entry) return null;
     
     return {
       originalSize: entry.originalSize,
       compressedSize: entry.compressedSize,
-      compressionRatio: Math.round((entry.compressedSize / entry.originalSize) * 100)
+      compressionRatio: Math.round((entry.compressedSize / entry.originalSize) * 100),
+      faceCount: entry.faceCount
     };
+  }
+
+  // Get the number of faces detected in the photo
+  getFaceCount(id: string): number {
+    const entry = this.store.get(id);
+    return entry?.faceCount || 0;
+  }
+
+  // Get total face count across all stored photos
+  getTotalFaceCount(): number {
+    let total = 0;
+    this.store.forEach(entry => {
+      total += entry.faceCount || 0;
+    });
+    return total;
   }
 
   // Remove a photo and cleanup its object URL

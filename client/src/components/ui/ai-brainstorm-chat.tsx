@@ -255,31 +255,38 @@ export function AIBrainstormChat({
   };
 
   const getInitialMessage = () => {
-    // Analyze photo context to determine if we're dealing with single person or multiple people
-    const isMultiplePeople = photoContext && (
-      photoContext.toLowerCase().includes('multiple photos') ||
-      photoContext.toLowerCase().includes('two photos') ||
-      photoContext.toLowerCase().includes('multiple people') ||
-      photoContext.toLowerCase().includes('different people') ||
-      photoContext.toLowerCase().includes('various shots') ||
-      photoContext.toLowerCase().includes('several') ||
-      photoContext.toLowerCase().includes('different angles') ||
-      photoContext.toLowerCase().includes('group shot') ||
-      photoContext.toLowerCase().includes('people detected')
-    );
+    // Parse the photoContext to get the number of people detected
+    // Format is now "1 person" or "3 people" from face detection
+    let peopleCount = 0;
+    if (photoContext) {
+      const match = photoContext.match(/(\d+)\s*(?:person|people)/i);
+      if (match) {
+        peopleCount = parseInt(match[1], 10);
+      }
+    }
+    
+    const isMultiplePeople = peopleCount > 1;
     
     console.log(`AI Initial Message Debug:
       photoContext: "${photoContext}"
+      peopleCount: ${peopleCount}
       isMultiplePeople: ${isMultiplePeople}
       recipientName: "${recipientName}"
       celebration: "${celebration}"`);
     
-    const personReference = isMultiplePeople ? 'everyone' : recipientName;
-    const contextAcknowledgment = photoContext ? 
-      (isMultiplePeople ? 
-        `I can see from your uploaded photos that we're working with multiple people in this scene. ` :
-        `I can see from your uploaded photo that we're focusing on ${recipientName} for this scene. `
-      ) : '';
+    // Use specific count in the person reference
+    let personReference: string;
+    let contextAcknowledgment = '';
+    
+    if (peopleCount === 0) {
+      personReference = recipientName;
+    } else if (peopleCount === 1) {
+      personReference = recipientName;
+      contextAcknowledgment = `I can see from your uploaded photo that we're focusing on ${recipientName} for this scene. `;
+    } else {
+      personReference = `the ${peopleCount} people`;
+      contextAcknowledgment = `I can see from your uploaded photo that we're working with ${peopleCount} people in this scene. `;
+    }
     
     return `Hello! I'm here to help you create a detailed scene description for your card.
 

@@ -729,10 +729,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const { toast } = useToast();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
 
-  // Build photo context for AI brainstorm chat - simplified approach
+  // Build photo context for AI brainstorm chat - provides face count from uploaded photos
   const buildPhotoContext = () => {
-    // Return empty string since we're using naturally inclusive language in the AI prompts instead
-    return '';
+    if (uploadedPhotoIds.length === 0) return '';
+    
+    // Get total face count from all uploaded photos
+    const totalFaces = ImageStore.getTotalFaceCount();
+    
+    if (totalFaces === 0) return '';
+    if (totalFaces === 1) return '1 person';
+    return `${totalFaces} people`;
   };
 
   // AI design quotes for loading screen
