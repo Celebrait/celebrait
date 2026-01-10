@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { Link, useLocation, useSearch } from "wouter";
+import { useEffect } from "react";
+import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import Header from "@/components/header";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { User, CreditCard, Package, LogOut, Eye, ChevronRight, Gift, Coins, Sparkles } from "lucide-react";
+import { User, CreditCard, Package, LogOut, Eye, ChevronRight } from "lucide-react";
 import type { Card as CardType, Order } from "@shared/schema";
 
 function getCardStatusBadge(status: string | null) {
@@ -67,9 +67,7 @@ function OrderSkeleton() {
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
-  const searchParams = useSearch();
   const { user, isLoading: authLoading, isAuthenticated, logout } = useAuth();
-  const creditsRef = useRef<HTMLDivElement>(null);
 
   const { data: cards, isLoading: cardsLoading } = useQuery<CardType[]>({
     queryKey: ["/api/user/cards"],
@@ -81,28 +79,11 @@ export default function Dashboard() {
     enabled: isAuthenticated,
   });
 
-  const { data: credits, isLoading: creditsLoading } = useQuery<{
-    freeRemaining: number;
-    paidCredits: number;
-    canGenerate: boolean;
-  }>({
-    queryKey: ["/api/user/credits"],
-    enabled: isAuthenticated,
-  });
-
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       window.location.href = "/api/login";
     }
   }, [authLoading, isAuthenticated]);
-
-  useEffect(() => {
-    if (searchParams.includes("tab=credits") && creditsRef.current) {
-      setTimeout(() => {
-        creditsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 300);
-    }
-  }, [searchParams, creditsLoading]);
 
   if (authLoading) {
     return (
@@ -164,105 +145,6 @@ export default function Dashboard() {
             </Button>
           </CardHeader>
         </Card>
-
-        {/* Credits Section */}
-        <div ref={creditsRef} className="mb-8">
-          <Card className={`border-2 ${searchParams.includes("tab=credits") ? 'border-orange-400 ring-2 ring-orange-200' : 'border-orange-200/50'} bg-gradient-to-br from-orange-50 to-yellow-50`}>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Coins className="w-5 h-5 text-orange-600" />
-                Card Credits
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {creditsLoading ? (
-                <div className="flex items-center gap-4">
-                  <Skeleton className="h-16 w-32" />
-                  <Skeleton className="h-16 w-32" />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Current Balance */}
-                  <div className="flex flex-wrap gap-4">
-                    <div className="bg-white rounded-xl p-4 border border-green-200 flex-1 min-w-[140px]">
-                      <div className="flex items-center gap-2 text-green-600 mb-1">
-                        <Gift className="w-4 h-4" />
-                        <span className="text-sm font-medium">Free Cards</span>
-                      </div>
-                      <p className="text-2xl font-bold text-green-700">
-                        {credits?.freeRemaining || 0} <span className="text-sm font-normal">/ 2</span>
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-xl p-4 border border-blue-200 flex-1 min-w-[140px]">
-                      <div className="flex items-center gap-2 text-blue-600 mb-1">
-                        <Coins className="w-4 h-4" />
-                        <span className="text-sm font-medium">Paid Credits</span>
-                      </div>
-                      <p className="text-2xl font-bold text-blue-700">
-                        {credits?.paidCredits || 0}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Status Message */}
-                  {credits && (
-                    <div className={`p-3 rounded-lg text-sm ${
-                      credits.freeRemaining > 0 
-                        ? 'bg-green-100 text-green-700'
-                        : credits.paidCredits > 0
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-orange-100 text-orange-700'
-                    }`}>
-                      {credits.freeRemaining > 0 
-                        ? `You have ${credits.freeRemaining} free card${credits.freeRemaining !== 1 ? 's' : ''} remaining. Enjoy!`
-                        : credits.paidCredits > 0
-                          ? `You have ${credits.paidCredits} paid credit${credits.paidCredits !== 1 ? 's' : ''} to use.`
-                          : 'You\'ve used all your free cards. Top up to continue creating!'}
-                    </div>
-                  )}
-
-                  {/* Buy More Credits */}
-                  <div className="bg-white rounded-xl p-4 border border-orange-200">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Sparkles className="w-4 h-4 text-orange-500" />
-                      <span className="font-medium text-gray-800">Buy More Credits</span>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <button 
-                        className="p-3 rounded-lg border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 transition-all text-center"
-                        onClick={() => alert('Credit top-up coming soon!')}
-                      >
-                        <p className="text-lg font-bold text-orange-600">R50</p>
-                        <p className="text-sm text-gray-600">5 cards</p>
-                        <p className="text-xs text-gray-400">R10/card</p>
-                      </button>
-                      <button 
-                        className="p-3 rounded-lg border-2 border-orange-300 bg-orange-50 hover:border-orange-400 transition-all text-center relative"
-                        onClick={() => alert('Credit top-up coming soon!')}
-                      >
-                        <Badge className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs">Popular</Badge>
-                        <p className="text-lg font-bold text-orange-600">R90</p>
-                        <p className="text-sm text-gray-600">10 cards</p>
-                        <p className="text-xs text-gray-400">R9/card</p>
-                      </button>
-                      <button 
-                        className="p-3 rounded-lg border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 transition-all text-center"
-                        onClick={() => alert('Credit top-up coming soon!')}
-                      >
-                        <p className="text-lg font-bold text-orange-600">R200</p>
-                        <p className="text-sm text-gray-600">25 cards</p>
-                        <p className="text-xs text-gray-400">R8/card</p>
-                      </button>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-3 text-center">
-                      Each AI-generated card costs us about R10 to create. Thank you for supporting our service!
-                    </p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
 
         <div className="grid gap-8 md:grid-cols-2">
           <section>

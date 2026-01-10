@@ -10,10 +10,6 @@ const db = drizzle(sql);
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  updateUser(id: string, updates: Partial<User>): Promise<User>;
-  getUserGenerationCredits(id: string): Promise<{ freeRemaining: number; paidCredits: number; canGenerate: boolean }>;
-  useGenerationCredit(id: string): Promise<{ success: boolean; creditType: 'free' | 'paid' | 'none'; remaining: { freeRemaining: number; paidCredits: number } }>;
-  addPaidCredits(id: string, amount: number): Promise<User>;
 
   createCard(card: InsertCard & { userId?: string | null }): Promise<Card>;
   getCard(id: number): Promise<Card | undefined>;
@@ -43,63 +39,6 @@ export class DatabaseStorage implements IStorage {
   async getUserByEmail(email: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
     return result[0];
-  }
-
-  async updateUser(id: string, updates: Partial<User>): Promise<User> {
-    const result = await db.update(users).set({
-      ...updates,
-      updatedAt: new Date()
-    }).where(eq(users.id, id)).returning();
-    return result[0];
-  }
-
-  async getUserGenerationCredits(id: string): Promise<{ freeRemaining: number; paidCredits: number; canGenerate: boolean }> {
-    const user = await this.getUser(id);
-    if (!user) {
-      return { freeRemaining: 0, paidCredits: 0, canGenerate: false };
-    }
-    
-    const FREE_GENERATION_LIMIT = 2;
-    const freeRemaining = Math.max(0, FREE_GENERATION_LIMIT - (user.freeGenerationsUsed || 0));
-    const paidCredits = user.paidCredits || 0;
-    const canGenerate = freeRemaining > 0 || paidCredits > 0;
-    
-    return { freeRemaining, paidCredits, canGenerate };
-  }
-
-  async useGenerationCredit(id: string): Promise<{ success: boolean; creditType: 'free' | 'paid' | 'none'; remaining: { freeRemaining: number; paidCredits: number } }> {
-    const user = await this.getUser(id);
-    if (!user) {
-      return { success: false, creditType: 'none', remaining: { freeRemaining: 0, paidCredits: 0 } };
-    }
-    
-    const FREE_GENERATION_LIMIT = 2;
-    const freeRemaining = Math.max(0, FREE_GENERATION_LIMIT - (user.freeGenerationsUsed || 0));
-    const paidCredits = user.paidCredits || 0;
-    
-    if (freeRemaining > 0) {
-      await this.updateUser(id, { freeGenerationsUsed: (user.freeGenerationsUsed || 0) + 1 });
-      return { 
-        success: true, 
-        creditType: 'free', 
-        remaining: { freeRemaining: freeRemaining - 1, paidCredits } 
-      };
-    } else if (paidCredits > 0) {
-      await this.updateUser(id, { paidCredits: paidCredits - 1 });
-      return { 
-        success: true, 
-        creditType: 'paid', 
-        remaining: { freeRemaining: 0, paidCredits: paidCredits - 1 } 
-      };
-    }
-    
-    return { success: false, creditType: 'none', remaining: { freeRemaining: 0, paidCredits: 0 } };
-  }
-
-  async addPaidCredits(id: string, amount: number): Promise<User> {
-    const user = await this.getUser(id);
-    const currentCredits = user?.paidCredits || 0;
-    return await this.updateUser(id, { paidCredits: currentCredits + amount });
   }
 
   async createCard(cardData: InsertCard & { userId?: string | null }): Promise<Card> {
