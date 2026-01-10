@@ -1803,9 +1803,15 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   };
 
-  const handleTestModeGeneration = async () => {
+  const handleTestModeGeneration = async (testCardId?: number) => {
     try {
       console.log('Creating test card with mock imagery (instant mode)');
+      
+      // Use passed cardId or fall back to state
+      const cardIdToUse = testCardId || cardId;
+      if (!cardIdToUse) {
+        throw new Error('No card ID available for test mode generation');
+      }
       
       // Set loading state for immediate feedback
       setIsLoading(true);
@@ -1816,7 +1822,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
       // Update the card with mock images (immediate API call)
       const updateResponse = await apiRequest("POST", "/api/update-card-images", {
-        cardId,
+        cardId: cardIdToUse,
         frontImageUrl: mockFrontImage,
         insideImageUrl: mockInsideImage,
         conversationData: { ...answers, isTestMode: true },
@@ -2161,7 +2167,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       } else {
         console.log('Using DALLE generation');
         // For now, show test card since DALLE is not implemented
-        await handleTestModeGeneration();
+        await handleTestModeGeneration(currentCardId);
         return;
       }
       
