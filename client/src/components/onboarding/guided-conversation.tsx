@@ -2454,7 +2454,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     const detectedClothing = detectClothing(sceneDescription);
     console.log('Clothing detection result:', detectedClothing);
     
-    const frontCardText = answers.message || '';
+    const frontCardText = effectiveAnswers.message || '';
     
     
     // Generate front card using GPT-Image-1 with multiple images with timeout and retry  
@@ -2487,12 +2487,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     // Always generate inside card for all cards now
     let insideImageUrl = null;
     let insideOriginalUrl = null;
-    if (answers.inside_message) {
+    if (effectiveAnswers.inside_message) {
       console.log('[DEBUG] Calling generate-inside-card with cardId:', useCardId);
       const insideResult = await makeRobustAPICall("/api/generate-inside-card", {
         cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
         frontCardImage: frontImageUrl,
-        insideText: answers.inside_message,
+        insideText: effectiveAnswers.inside_message,
         artStyle: artStyle // CRITICAL: Pass art style for proper matching
       }, "Inside card generation");
       
@@ -2503,8 +2503,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
     // Store original unwatermarked images in conversationData for secure access
     const conversationData = {
-      ...answers,
-      uploadedPhotoIds,
+      ...effectiveAnswers,
+      uploadedPhotoIds: effectivePhotoIds,
       originalFrontImageUrl: frontResult.originalImageUrl,
       originalInsideImageUrl: insideOriginalUrl,
       watermarkedFrontImageUrl: frontResult.imageUrl,
@@ -2524,16 +2524,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     return updatedCard;
   };
 
-  const generateCardWithGPTImageTransform = async (useCardId: number) => {
+  const generateCardWithGPTImageTransform = async (useCardId: number, overrideAnswers?: Record<string, any>, overridePhotoIds?: string[]) => {
+    const effectiveAnswers = overrideAnswers || answers;
+    const effectivePhotoIds = overridePhotoIds || uploadedPhotoIds;
+    
     console.log('Using GPT-Image-1 for photo + transform style workflow with cardId:', useCardId);
     
     // Use pre-processed compressed base64 images (NO FileReader needed!)
     console.log('🚀 INSTANT: Retrieving pre-processed images from upload cache for transform...', { 
-      photoCount: uploadedPhotoIds.length
+      photoCount: effectivePhotoIds.length
     });
     
     // Get compressed base64 data that was processed during upload
-    const referenceImages = uploadedPhotoIds
+    const referenceImages = effectivePhotoIds
       .map(id => ImageStore.getPhotoBase64(id))
       .filter(Boolean) as string[];
     
@@ -2545,14 +2548,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     // Build style transformation prompt using the exact same approach as gpt-image-test page
     // Determine art style based on user input
     let artStyle;
-    if (answers.art_style && answers.art_style.trim()) {
-      artStyle = answers.art_style.trim();
+    if (effectiveAnswers.art_style && effectiveAnswers.art_style.trim()) {
+      artStyle = effectiveAnswers.art_style.trim();
     } else {
       // Let AI decide - use default for transform style
       artStyle = 'semi-realistic illustration';
     }
     
-    const frontCardText = answers.message || '';
+    const frontCardText = effectiveAnswers.message || '';
     
     // Create the prompt using the same structure as the test page
     let transformPrompt = `Transform this into ${artStyle}`;
@@ -2574,12 +2577,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     // Always generate inside card for all cards now
     let insideImageUrl = null;
     let insideOriginalUrl = null;
-    if (answers.inside_message) {
+    if (effectiveAnswers.inside_message) {
       console.log('[DEBUG] Calling generate-inside-card with cardId:', useCardId);
       const insideResult = await makeRobustAPICall("/api/generate-inside-card", {
         cardId: useCardId, // CRITICAL: Include cardId for PNG conversion
         frontCardImage: frontImageUrl,
-        insideText: answers.inside_message,
+        insideText: effectiveAnswers.inside_message,
         artStyle: artStyle // CRITICAL: Pass art style for proper matching
       }, "Inside card generation (transform)");
       insideImageUrl = insideResult.imageUrl;
@@ -2589,8 +2592,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
     // Store original unwatermarked images in conversationData for secure access
     const conversationData = {
-      ...answers,
-      uploadedPhotoIds,
+      ...effectiveAnswers,
+      uploadedPhotoIds: effectivePhotoIds,
       originalFrontImageUrl: frontResult.originalImageUrl,
       originalInsideImageUrl: insideOriginalUrl,
       watermarkedFrontImageUrl: frontResult.imageUrl,
