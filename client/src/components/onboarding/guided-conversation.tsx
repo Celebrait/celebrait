@@ -1373,16 +1373,28 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       
       console.log('[AUTH_RETURN] State restored, proceeding with card generation');
       
+      // Capture restored data BEFORE clearing - pass directly to avoid stale closure issue
+      const restoredAnswers = pendingCard.answers || {};
+      const restoredPhotoIds = pendingCard.uploadedPhotoIds || [];
+      
+      console.log('[AUTH_RETURN] Captured restored data for direct pass:', {
+        photo_option: restoredAnswers.photo_option,
+        photoIds: restoredPhotoIds,
+        imageStoreCount: ImageStore.getPhotoCount(),
+        imageStoreIds: ImageStore.getAllPhotoIds()
+      });
+      
       // Clear the pending data
       sessionStorage.removeItem(AUTH_FLOW_KEY);
       
       // Set loading state immediately to show progress screen
       setIsLoading(true);
       
-      // Delay to ensure state is updated and ImageStore has restored photos, then generate
+      // Pass restored data directly to avoid React stale closure bug
+      // (setState is async, so answers/uploadedPhotoIds may not be updated yet when actuallyGenerateCard runs)
       setTimeout(() => {
-        console.log('[AUTH_RETURN] Starting card generation after delay');
-        actuallyGenerateCard();
+        console.log('[AUTH_RETURN] Starting card generation with directly passed restored data');
+        actuallyGenerateCard({ answers: restoredAnswers, uploadedPhotoIds: restoredPhotoIds });
       }, 500);
       
     } catch (error) {
@@ -2244,19 +2256,24 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     window.location.href = "/api/login";
   };
 
-  const actuallyGenerateCard = async () => {
-    console.log('[DEBUG] actuallyGenerateCard called');
+  const actuallyGenerateCard = async (restoredData?: { answers: Record<string, any>; uploadedPhotoIds: string[] }) => {
+    console.log('[DEBUG] actuallyGenerateCard called', restoredData ? '(with restored auth data)' : '(from current state)');
     setIsLoading(true);
+    
+    const effectiveAnswers = restoredData?.answers || answers;
+    const effectivePhotoIds = restoredData?.uploadedPhotoIds || uploadedPhotoIds;
     
     // Get user's email from their authenticated account
     const userEmail = user?.email || '';
     
     try {
       console.log('[DEBUG] Starting card generation with options:', {
-        photo_option: answers.photo_option,
-        has_photos: uploadedPhotoIds.length > 0,
+        photo_option: effectiveAnswers.photo_option,
+        has_photos: effectivePhotoIds.length > 0,
+        photoIds: effectivePhotoIds,
         cardId: cardId,
-        user_email: userEmail
+        user_email: userEmail,
+        usingRestoredData: !!restoredData
       });
       
       // Ensure card is initialized
@@ -2272,13 +2289,27 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       // Generate the card using existing logic
       let generatedCard;
       
-      if (answers.photo_option === 'upload_and_scene' && uploadedPhotoIds.length > 0) {
+      // Also check ImageStore directly as a fallback for photo IDs
+      // (ImageStore persists to localStorage and survives auth redirects)
+      let photoIdsToUse = effectivePhotoIds;
+      if (photoIdsToUse.length === 0 && ImageStore.getPhotoCount() > 0) {
+        photoIdsToUse = ImageStore.getAllPhotoIds();
+        console.log('[DEBUG] Recovered photo IDs from ImageStore:', photoIdsToUse);
+      }
+      
+      if (effectiveAnswers.photo_option === 'upload_and_scene' && photoIdsToUse.length > 0) {
         console.log('Using GPT Image scene generation with cardId:', currentCardId);
-        generatedCard = await generateCardWithGPTImage(currentCardId);
-      } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotoIds.length > 0) {
+        generatedCard = await generateCardWithGPTImage(currentCardId, effectiveAnswers, photoIdsToUse);
+      } else if (effectiveAnswers.photo_option === 'upload_and_transform' && photoIdsToUse.length > 0) {
         console.log('Using GPT Image transform generation with cardId:', currentCardId);
-        generatedCard = await generateCardWithGPTImageTransform(currentCardId);
+        generatedCard = await generateCardWithGPTImageTransform(currentCardId, effectiveAnswers, photoIdsToUse);
       } else {
+        console.log('[DEBUG] FALLBACK: No photo option or no photos available', {
+          photo_option: effectiveAnswers.photo_option,
+          photoIds: effectivePhotoIds,
+          imageStoreCount: ImageStore.getPhotoCount(),
+          imageStoreIds: ImageStore.getAllPhotoIds()
+        });
         console.log('Using DALLE generation');
         // For now, show test card since DALLE is not implemented
         await handleTestModeGeneration(currentCardId);
@@ -2350,16 +2381,19 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   };
 
-  const generateCardWithGPTImage = async (useCardId: number) => {
+  const generateCardWithGPTImage = async (useCardId: number, overrideAnswers?: Record<string, any>, overridePhotoIds?: string[]) => {
+    const effectiveAnswers = overrideAnswers || answers;
+    const effectivePhotoIds = overridePhotoIds || uploadedPhotoIds;
+    
     console.log('Using GPT-Image-1 for photo + scene workflow with cardId:', useCardId);
     
     // Use pre-processed compressed base64 images (NO FileReader needed!)
     console.log('🚀 INSTANT: Retrieving pre-processed images from upload cache...', { 
-      photoCount: uploadedPhotoIds.length
+      photoCount: effectivePhotoIds.length
     });
     
     // Get compressed base64 data that was processed during upload
-    const referenceImages = uploadedPhotoIds
+    const referenceImages = effectivePhotoIds
       .map(id => ImageStore.getPhotoBase64(id))
       .filter(Boolean) as string[];
     
@@ -2369,12 +2403,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     });
     
     // Build scene description with style
-    const sceneDescription = answers.scene || '';
+    const sceneDescription = effectiveAnswers.scene || '';
     
     // Determine art style based on user input
     let artStyle;
-    if (answers.art_style && answers.art_style.trim()) {
-      artStyle = answers.art_style.trim();
+    if (effectiveAnswers.art_style && effectiveAnswers.art_style.trim()) {
+      artStyle = effectiveAnswers.art_style.trim();
     } else {
       // Let AI decide - will be handled in the prompt
       artStyle = 'ai_decide';
