@@ -17,6 +17,7 @@ Preferred communication style: Simple, everyday language.
 - **Card Design**: Offers various art styles, with AI adapting typography and visuals contextually. Prioritizes facial accuracy in generated images.
 - **Delivery Experience**: Streamlined delivery process for printed cards only (front-and-inside). After generation, users receive an email with a link to their dashboard.
 - **Authentication**: Email OTP (one-time password) - users enter their email inline at card generation, receive a 6-digit code, and verify without any page redirects. No Replit Auth redirect involved. Both OTP sessions and legacy Replit Auth sessions are supported via the `/api/auth/user` endpoint. Auth is triggered at card generation, not upfront, to reduce friction.
+- **Background Card Generation**: After OTP verification, card generation runs entirely server-side (`server/background-generator.ts`). The user immediately sees a clean confirmation screen telling them to expect an email, and can leave. When done, `sendBackgroundEmail` emails a link to `/card-preview/:id`. A fallback "Watch it being created" link triggers the original in-browser animation flow. Text-only (DALLE) cards still use the old inline flow.
 
 ### Technical Implementations
 - **Frontend**: React with TypeScript, Wouter for routing, TanStack Query for server state. Vite is used for builds.

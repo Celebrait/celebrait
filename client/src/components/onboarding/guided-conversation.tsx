@@ -719,6 +719,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [showPreAuthModal, setShowPreAuthModal] = useState(false);
+  const [showBackgroundConfirmation, setShowBackgroundConfirmation] = useState(false);
+  const [backgroundCardEmail, setBackgroundCardEmail] = useState('');
 
   // OTP auth state
   const [otpStep, setOtpStep] = useState<'email' | 'code' | 'done'>('email');
@@ -2264,10 +2266,118 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       const result = await verifyOtp({ email: otpEmail, code: otpCode, firstName: otpFirstName || undefined });
       setOtpStep('done');
       setShowPreAuthModal(false);
-      // Pass verified user data to avoid stale closure issue
-      actuallyGenerateCard(undefined, result.user);
+      // Fire background generation and show confirmation screen
+      triggerBackgroundGeneration(result.user);
     } catch (err: any) {
       setOtpError(err?.message || 'Invalid code. Please try again.');
+    }
+  };
+
+  const triggerBackgroundGeneration = async (verifiedUser: any) => {
+    const effectiveAnswers = answers;
+    const effectivePhotoIds = uploadedPhotoIds.length > 0 ? uploadedPhotoIds : ImageStore.getAllPhotoIds();
+    const userEmail = verifiedUser?.email || otpEmail;
+    const userName = verifiedUser?.firstName || otpFirstName || userEmail.split('@')[0];
+
+    // Ensure card is initialized
+    let currentCardId = cardId;
+    if (!currentCardId) {
+      try {
+        currentCardId = await initializeCard(verifiedUser);
+      } catch (err) {
+        console.error('[BG] Failed to initialize card:', err);
+        // Fallback to the regular flow
+        actuallyGenerateCard(undefined, verifiedUser);
+        return;
+      }
+    }
+
+    // Determine generation type and build params
+    const hasPhotos = effectivePhotoIds.length > 0;
+    const photoOption = effectiveAnswers.photo_option;
+    let generationType: 'scene' | 'transform' | 'text-only' = 'text-only';
+    if (photoOption === 'upload_and_scene' && hasPhotos) generationType = 'scene';
+    else if (photoOption === 'upload_and_transform' && hasPhotos) generationType = 'transform';
+
+    if (generationType === 'text-only') {
+      // Text-only falls back to old flow (DALLE) for now
+      actuallyGenerateCard(undefined, verifiedUser);
+      return;
+    }
+
+    // Get base64 images from store
+    const imageDataArray = effectivePhotoIds
+      .map(id => ImageStore.getPhotoBase64(id))
+      .filter(Boolean) as string[];
+
+    if (imageDataArray.length === 0) {
+      // No images found, fall back
+      actuallyGenerateCard(undefined, verifiedUser);
+      return;
+    }
+
+    const artStyle = effectiveAnswers.art_style?.trim() || 'ai_decide';
+    const sceneDescription = effectiveAnswers.scene || '';
+    const frontCardText = effectiveAnswers.message || '';
+
+    // Detect clothing in scene
+    const detectClothing = (text: string): string | null => {
+      const keywords = ['wearing', 'dressed in', 'outfit', 'clothes', 'shirt', 'dress', 'suit', 'pants', 'jeans', 'skirt', 'jacket', 'coat', 'sweater', 'hoodie', 't-shirt', 'tshirt', 'shorts', 'trousers', 'gown', 'uniform', 'costume', 'swimsuit', 'tuxedo', 'blazer', 'jumpsuit'];
+      const lower = text.toLowerCase();
+      for (const kw of keywords) {
+        if (lower.includes(kw)) {
+          const sentences = text.split(/[.!?]+/);
+          for (const s of sentences) {
+            if (s.toLowerCase().includes(kw)) return s.trim();
+          }
+        }
+      }
+      return null;
+    };
+
+    const payload: any = {
+      userEmail,
+      userName,
+      generationType,
+      imageDataArray,
+      answers: effectiveAnswers,
+      uploadedPhotoIds: effectivePhotoIds,
+      artStyle,
+      insideText: effectiveAnswers.inside_message || ''
+    };
+
+    if (generationType === 'scene') {
+      payload.scenePrompt = sceneDescription;
+      payload.style = artStyle;
+      payload.includeText = !!frontCardText;
+      payload.cardText = frontCardText;
+      payload.userArtStyle = artStyle !== 'ai_decide' ? artStyle : null;
+      const clothing = detectClothing(sceneDescription);
+      if (clothing) payload.userClothing = clothing;
+    } else if (generationType === 'transform') {
+      const transformArtStyle = artStyle !== 'ai_decide' ? artStyle : 'semi-realistic illustration';
+      payload.style = `Transform this into ${transformArtStyle}${frontCardText ? `. Include the text "${frontCardText}" in the same ${transformArtStyle}, beautifully integrated into the composition.` : ''}`;
+      payload.artStyle = transformArtStyle;
+    }
+
+    try {
+      const response = await fetch(`/api/cards/${currentCardId}/generate-background`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        setBackgroundCardEmail(userEmail);
+        setShowBackgroundConfirmation(true);
+      } else {
+        // If background endpoint fails, fall back to old flow
+        console.warn('[BG] Background endpoint failed, falling back to inline flow');
+        actuallyGenerateCard(undefined, verifiedUser);
+      }
+    } catch (err) {
+      console.error('[BG] Failed to call background generation:', err);
+      actuallyGenerateCard(undefined, verifiedUser);
     }
   };
 
@@ -2630,6 +2740,59 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   };
 
 
+
+  if (showBackgroundConfirmation) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-white px-6">
+        <div className="max-w-md w-full text-center">
+          {/* Animated icon */}
+          <div className="relative mx-auto mb-8 w-24 h-24">
+            <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-400 rounded-full flex items-center justify-center shadow">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+
+          <h1 className="text-3xl font-bold text-gray-900 mb-3">Your card is being created!</h1>
+          <p className="text-gray-600 text-lg mb-6 leading-relaxed">
+            Our AI is working its magic. We'll send you an email at{' '}
+            <span className="font-semibold text-purple-700">{backgroundCardEmail}</span>{' '}
+            when it's ready — usually about 2 minutes.
+          </p>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-purple-100 p-5 mb-8">
+            <div className="flex items-center gap-3 text-left">
+              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="text-sm text-gray-600">
+                You can close this tab and come back when you get the email link. No need to wait here.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              setShowBackgroundConfirmation(false);
+              setIsLoading(true);
+              actuallyGenerateCard(undefined, user || undefined);
+            }}
+            className="text-sm text-gray-400 hover:text-purple-600 underline transition-colors"
+          >
+            Watch it being created instead →
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     console.log('Loading screen displayed - email notification option is available');

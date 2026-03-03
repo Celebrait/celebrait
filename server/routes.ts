@@ -4630,6 +4630,82 @@ ${styleSection}`;
     }
   });
 
+  // Background card generation - fire-and-forget, returns immediately
+  app.post("/api/cards/:id/generate-background", async (req: any, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      if (isNaN(cardId)) {
+        return res.status(400).json({ message: "Invalid card ID" });
+      }
+
+      // Resolve authenticated user from OTP session or Replit auth
+      const otpUserId = req.session?.otpUserId;
+      const replitUser = req.user;
+      const userId = otpUserId || replitUser?.id;
+
+      const {
+        userEmail,
+        userName,
+        generationType,
+        imageDataArray,
+        scenePrompt,
+        style,
+        includeText,
+        cardText,
+        userClothing,
+        userArtStyle,
+        insideText,
+        artStyle,
+        answers,
+        uploadedPhotoIds
+      } = req.body;
+
+      if (!userEmail || !generationType || !answers) {
+        return res.status(400).json({ message: "userEmail, generationType, and answers are required" });
+      }
+
+      // Verify card exists
+      const card = await storage.getCard(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      // Respond immediately so the user can leave
+      res.json({ success: true, message: "Card is being created. You'll get an email when it's ready." });
+
+      // Fire generation in the background
+      const { generateCardInBackground } = await import('./background-generator');
+      setImmediate(() => {
+        generateCardInBackground({
+          cardId,
+          userId,
+          userEmail,
+          userName: userName || userEmail.split('@')[0],
+          generationType,
+          imageDataArray,
+          scenePrompt,
+          style,
+          includeText,
+          cardText,
+          userClothing,
+          userArtStyle,
+          insideText,
+          artStyle,
+          answers,
+          uploadedPhotoIds
+        }).catch(err => {
+          console.error(`[BG_GEN] Unhandled error in background generation for card ${cardId}:`, err);
+        });
+      });
+
+    } catch (error: any) {
+      console.error('Background generation endpoint error:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Failed to start background generation: " + error.message });
+      }
+    }
+  });
+
   // Send card ready notification email with polling
   app.post("/api/send-card-ready-notification", async (req, res) => {
     try {
