@@ -92,6 +92,35 @@ export async function addToMarketingList(email: string, firstName?: string, last
   }
 }
 
+export async function sendOtpEmail(email: string, code: string): Promise<boolean> {
+  try {
+    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    sendSmtpEmail.to = [{ email }];
+    sendSmtpEmail.sender = { email: 'greetings@celebrait.co.za', name: 'Celebrait' };
+    sendSmtpEmail.subject = `${code} is your Celebrait verification code`;
+    sendSmtpEmail.textContent = `Your verification code is ${code}. It expires in 10 minutes. Do not share this code with anyone.`;
+    sendSmtpEmail.htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #fff;">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <h1 style="font-size: 28px; font-weight: 800; background: linear-gradient(135deg, #9333ea, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0;">Celebrait</h1>
+        </div>
+        <h2 style="font-size: 20px; font-weight: 700; color: #1a1a2e; margin-bottom: 8px;">Your verification code</h2>
+        <p style="color: #555; margin-bottom: 28px; font-size: 15px;">Enter this code to continue creating your card. It expires in 10 minutes.</p>
+        <div style="background: linear-gradient(135deg, #f3e8ff, #fce7f3); border: 2px solid #e9d5ff; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 28px;">
+          <span style="font-size: 42px; font-weight: 900; letter-spacing: 10px; color: #7c3aed;">${code}</span>
+        </div>
+        <p style="color: #888; font-size: 13px; text-align: center;">If you didn't request this, you can safely ignore this email.</p>
+      </div>
+    `;
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log(`OTP email sent to ${email}`);
+    return true;
+  } catch (error) {
+    console.error('Failed to send OTP email:', error);
+    return false;
+  }
+}
+
 export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
     console.log(`Attempting to send email to: ${params.to}`);

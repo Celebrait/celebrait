@@ -719,6 +719,13 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [showPreAuthModal, setShowPreAuthModal] = useState(false);
+
+  // OTP auth state
+  const [otpStep, setOtpStep] = useState<'email' | 'code' | 'done'>('email');
+  const [otpEmail, setOtpEmail] = useState('');
+  const [otpFirstName, setOtpFirstName] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpError, setOtpError] = useState('');
   
   // Art style selection states
   const [currentArtStyleExample, setCurrentArtStyleExample] = useState(0);
@@ -727,7 +734,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [isTypingArtStyle, setIsTypingArtStyle] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { user, isLoading: authLoading, isAuthenticated, sendOtp, isSendingOtp, verifyOtp, isVerifyingOtp } = useAuth();
 
   // Build photo context for AI brainstorm chat - provides face count from uploaded photos
   const buildPhotoContext = () => {
@@ -1564,10 +1571,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   }, [isNavigating]);
 
-  const initializeCard = async (): Promise<number> => {
+  const initializeCard = async (overrideUser?: any): Promise<number> => {
     try {
       // User must be authenticated at this point - generateCard handles auth flow first
-      if (!user) {
+      const activeUser = overrideUser || user;
+      if (!activeUser) {
         throw new Error("Please sign in to create your card");
       }
 
@@ -1575,7 +1583,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       const price = 12900;
 
       const cardResponse = await apiRequest("POST", "/api/cards", {
-        userId: user.id, // Use authenticated user's ID
+        userId: activeUser.id, // Use authenticated user's ID
         cardType: 'printed',
         printOption: 'front-and-inside', // Always front and inside now
         sceneType: onboarding.selectedSceneType,
@@ -2232,39 +2240,47 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     actuallyGenerateCard();
   };
   
-  const proceedToAuth = () => {
-    console.log('[DEBUG] User clicked continue - saving progress and redirecting to auth');
-    
-    // Save current card progress to sessionStorage before redirecting
-    const authPendingData = {
-      answers,
-      currentStepIndex,
-      uploadedPhotoIds,
-      stepInputs,
-      timestamp: Date.now(),
-      returnUrl: window.location.pathname
-    };
-    
-    try {
-      sessionStorage.setItem(AUTH_FLOW_KEY, JSON.stringify(authPendingData));
-      console.log('[DEBUG] Saved auth pending card data to sessionStorage');
-    } catch (error) {
-      console.error('[DEBUG] Failed to save auth pending data:', error);
+  const handleOtpSend = async () => {
+    if (!otpEmail || !otpEmail.includes('@')) {
+      setOtpError('Please enter a valid email address');
+      return;
     }
-    
-    // Redirect to Replit Auth
-    window.location.href = "/api/login";
+    setOtpError('');
+    try {
+      await sendOtp(otpEmail);
+      setOtpStep('code');
+    } catch (err: any) {
+      setOtpError(err?.message || 'Failed to send code. Please try again.');
+    }
   };
 
-  const actuallyGenerateCard = async (restoredData?: { answers: Record<string, any>; uploadedPhotoIds: string[] }) => {
+  const handleOtpVerify = async () => {
+    if (!otpCode || otpCode.length !== 6) {
+      setOtpError('Please enter the 6-digit code');
+      return;
+    }
+    setOtpError('');
+    try {
+      const result = await verifyOtp({ email: otpEmail, code: otpCode, firstName: otpFirstName || undefined });
+      setOtpStep('done');
+      setShowPreAuthModal(false);
+      // Pass verified user data to avoid stale closure issue
+      actuallyGenerateCard(undefined, result.user);
+    } catch (err: any) {
+      setOtpError(err?.message || 'Invalid code. Please try again.');
+    }
+  };
+
+  const actuallyGenerateCard = async (restoredData?: { answers: Record<string, any>; uploadedPhotoIds: string[] }, verifiedUser?: any) => {
     console.log('[DEBUG] actuallyGenerateCard called', restoredData ? '(with restored auth data)' : '(from current state)');
     setIsLoading(true);
     
     const effectiveAnswers = restoredData?.answers || answers;
     const effectivePhotoIds = restoredData?.uploadedPhotoIds || uploadedPhotoIds;
     
-    // Get user's email from their authenticated account
-    const userEmail = user?.email || '';
+    // Get user's email - prefer verifiedUser passed directly (avoids stale closure)
+    const effectiveUser = verifiedUser || user;
+    const userEmail = effectiveUser?.email || '';
     
     try {
       console.log('[DEBUG] Starting card generation with options:', {
@@ -2280,7 +2296,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       let currentCardId = cardId;
       if (!currentCardId) {
         console.log('[DEBUG] CardId is null/undefined, initializing card...');
-        currentCardId = await initializeCard();
+        currentCardId = await initializeCard(effectiveUser);
         console.log('[DEBUG] After initialization, cardId is:', currentCardId);
       } else {
         console.log('[DEBUG] CardId already exists:', currentCardId);
@@ -4269,79 +4285,94 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         </DialogContent>
       </Dialog>
 
-      {/* Pre-Auth Explainer Modal */}
-      <Dialog open={showPreAuthModal} onOpenChange={setShowPreAuthModal}>
-        <DialogContent className="max-w-md bg-white border-2 border-purple-200">
-          <DialogHeader className="text-center pb-2">
-            <div className="flex items-center justify-center space-x-3 mb-3">
-              <div className="w-14 h-14 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                <Sparkles className="w-7 h-7 text-white" />
+      {/* OTP Auth Modal */}
+      <Dialog open={showPreAuthModal} onOpenChange={(open) => {
+        setShowPreAuthModal(open);
+        if (!open) { setOtpStep('email'); setOtpEmail(''); setOtpCode(''); setOtpFirstName(''); setOtpError(''); }
+      }}>
+        <DialogContent className="max-w-sm bg-white border-2 border-purple-200">
+          <DialogHeader className="text-center pb-1">
+            <div className="flex items-center justify-center mb-3">
+              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-white" />
               </div>
             </div>
             <DialogTitle className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Almost There!
+              {otpStep === 'email' ? 'Almost there!' : 'Check your email'}
             </DialogTitle>
-            <DialogDescription className="text-sm text-gray-600 mt-2">
-              Create a free account to generate your personalized card
+            <DialogDescription className="text-sm text-gray-500 mt-1">
+              {otpStep === 'email'
+                ? 'Enter your email to receive your card and manage your order.'
+                : `We sent a 6-digit code to ${otpEmail}`}
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-4 p-2">
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100">
-              <div className="space-y-3">
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Clock className="w-3 h-3 text-white" />
-                  </div>
-                  <p className="text-gray-700 text-sm">
-                    <strong>1-2 minutes</strong> of AI magic to create your unique card
-                  </p>
+
+          <div className="space-y-4 pt-2">
+            {otpStep === 'email' && (
+              <>
+                <div className="space-y-3">
+                  <Input
+                    type="text"
+                    placeholder="Your first name (optional)"
+                    value={otpFirstName}
+                    onChange={(e) => setOtpFirstName(e.target.value)}
+                    className="rounded-xl border-purple-200 focus:border-purple-400"
+                    onKeyDown={(e) => e.key === 'Enter' && handleOtpSend()}
+                  />
+                  <Input
+                    type="email"
+                    placeholder="Your email address"
+                    value={otpEmail}
+                    onChange={(e) => { setOtpEmail(e.target.value); setOtpError(''); }}
+                    className="rounded-xl border-purple-200 focus:border-purple-400"
+                    onKeyDown={(e) => e.key === 'Enter' && handleOtpSend()}
+                    autoFocus
+                  />
                 </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Layout className="w-3 h-3 text-white" />
-                  </div>
-                  <p className="text-gray-700 text-sm">
-                    Your card will appear in your <strong>personal dashboard</strong>
-                  </p>
+                {otpError && <p className="text-red-500 text-sm">{otpError}</p>}
+                <Button
+                  onClick={handleOtpSend}
+                  disabled={isSendingOtp}
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl py-3 font-medium shadow-lg"
+                >
+                  {isSendingOtp ? 'Sending...' : 'Send verification code'}
+                </Button>
+                <Button onClick={() => setShowPreAuthModal(false)} variant="ghost" className="w-full text-gray-400 text-sm">
+                  Go back
+                </Button>
+              </>
+            )}
+
+            {otpStep === 'code' && (
+              <>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="6-digit code"
+                  value={otpCode}
+                  onChange={(e) => { setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError(''); }}
+                  className="rounded-xl border-purple-200 focus:border-purple-400 text-center text-2xl font-bold tracking-widest"
+                  onKeyDown={(e) => e.key === 'Enter' && handleOtpVerify()}
+                  autoFocus
+                />
+                {otpError && <p className="text-red-500 text-sm">{otpError}</p>}
+                <Button
+                  onClick={handleOtpVerify}
+                  disabled={isVerifyingOtp || otpCode.length !== 6}
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl py-3 font-medium shadow-lg"
+                >
+                  {isVerifyingOtp ? 'Verifying...' : 'Verify & generate my card'}
+                </Button>
+                <div className="flex justify-between text-sm">
+                  <button onClick={() => { setOtpStep('email'); setOtpCode(''); setOtpError(''); }} className="text-gray-400 hover:text-gray-600">
+                    Change email
+                  </button>
+                  <button onClick={handleOtpSend} disabled={isSendingOtp} className="text-purple-500 hover:text-purple-700 font-medium">
+                    {isSendingOtp ? 'Sending...' : 'Resend code'}
+                  </button>
                 </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <p className="text-gray-700 text-sm">
-                    We'll <strong>email you a link</strong> to view and order your card
-                  </p>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Package className="w-3 h-3 text-white" />
-                  </div>
-                  <p className="text-gray-700 text-sm">
-                    Order a <strong>beautiful printed card</strong> delivered to your door
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex flex-col space-y-3 pt-2">
-              <Button 
-                onClick={proceedToAuth}
-                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-6 py-3 rounded-xl font-medium shadow-lg transform hover:scale-[1.02] transition-all duration-200"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Continue to Sign Up
-              </Button>
-              <Button 
-                onClick={() => setShowPreAuthModal(false)}
-                variant="ghost"
-                className="text-gray-500 hover:text-gray-700 px-6 py-2 rounded-xl font-medium"
-              >
-                Go Back
-              </Button>
-            </div>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
