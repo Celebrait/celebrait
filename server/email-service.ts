@@ -472,6 +472,67 @@ Questions? Contact us at support@celebrait.co.za
   };
 }
 
+export async function sendGenerationStartedEmail(email: string, firstName: string | null, isNewUser: boolean): Promise<boolean> {
+  if (!hasValidBrevoConfig()) return false;
+  const name = firstName || 'there';
+  const greeting = isNewUser ? `Welcome to Celebrait, ${name}!` : `Welcome back, ${name}!`;
+  const subtext = isNewUser
+    ? 'Your account is set up and your card is on its way.'
+    : 'Your card is on its way.';
+  const params: EmailParams = {
+    to: email,
+    from: 'greetings@celebrait.co.za',
+    subject: `Your card is being created ✨`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; line-height: 1.6; color: #1a1a1a; background: #f8f9fa; padding: 20px 0; }
+          .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 32px rgba(139, 92, 246, 0.1); }
+          .header { background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); color: white; padding: 40px 30px; text-align: center; }
+          .header h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+          .header p { font-size: 15px; opacity: 0.9; }
+          .content { padding: 40px 30px; }
+          .steps { background: #f7f8fc; border-radius: 12px; padding: 24px; margin: 24px 0; }
+          .step { display: flex; align-items: flex-start; margin-bottom: 14px; }
+          .step:last-child { margin-bottom: 0; }
+          .step-icon { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6, #ec4899); color: white; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 12px; margin-top: 2px; }
+          .step-text { font-size: 15px; color: #4a5568; }
+          .footer { background: #f8f9fa; padding: 24px 30px; text-align: center; font-size: 13px; color: #a0aec0; border-top: 1px solid #edf2f7; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>${greeting}</h1>
+            <p>${subtext}</p>
+          </div>
+          <div class="content">
+            <p style="font-size:16px;color:#4a5568;margin-bottom:24px;">Our AI is working on your personalised card right now. This usually takes a couple of minutes. Here's what happens next:</p>
+            <div class="steps">
+              <div class="step"><div class="step-icon">1</div><div class="step-text"><strong>AI generation in progress</strong> — your card is being crafted right now.</div></div>
+              <div class="step"><div class="step-icon">2</div><div class="step-text"><strong>Email notification</strong> — we'll send you a link as soon as it's ready to review.</div></div>
+              <div class="step"><div class="step-icon">3</div><div class="step-text"><strong>Order and deliver</strong> — happy with it? Order your printed card to be delivered.</div></div>
+            </div>
+            <p style="font-size:14px;color:#718096;">You can safely close this page — we'll handle the rest and email you when your card is ready.</p>
+          </div>
+          <div class="footer">© 2025 Celebrait · Creating memories, one card at a time</div>
+        </div>
+      </body>
+      </html>
+    `
+  };
+  try {
+    return await sendEmail(params);
+  } catch {
+    return false;
+  }
+}
+
 // Send card preview email to prospects
 export async function sendBackgroundEmail(cardId: number, email: string, userName: string): Promise<boolean> {
   console.log('Sending background email for card:', cardId, 'to:', email);

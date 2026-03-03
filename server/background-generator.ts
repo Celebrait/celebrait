@@ -1,11 +1,7 @@
 import { storage } from './storage';
 import { sendBackgroundEmail } from './email-service';
 import FormData from 'form-data';
-import { 
-  convertBase64ToPngFile, 
-  applyWatermarkToPngFile 
-} from './image-storage';
-import { applyWatermark } from './image-storage';
+import { storeImageFromBase64, storeUnwatermarkedImage, getImageUrl } from './image-storage';
 
 export interface BackgroundGenerationParams {
   cardId: number;
@@ -170,18 +166,15 @@ function base64ToBuffer(dataUrl: string): { buffer: Buffer; mimeType: string } {
 
 async function savePngFiles(imageUrl: string, cardId: number, prefix: 'front' | 'inside'): Promise<{ watermarked: string; original: string }> {
   try {
-    const [, watermarkedPngUrl] = await Promise.all([
-      convertBase64ToPngFile(imageUrl, cardId, `${prefix}_unwatermarked`),
-      (async () => {
-        const watermarkedBase64 = await applyWatermark(imageUrl, 0.25);
-        return await convertBase64ToPngFile(watermarkedBase64, cardId, prefix);
-      })()
+    await Promise.all([
+      storeImageFromBase64(imageUrl, cardId, prefix),
+      storeUnwatermarkedImage(imageUrl, cardId, prefix)
     ]);
-    return { watermarked: watermarkedPngUrl, original: imageUrl };
+    const storedUrl = getImageUrl(cardId, prefix);
+    return { watermarked: storedUrl, original: imageUrl };
   } catch (err) {
     console.error(`[BG_GEN] PNG save failed for ${prefix}, using base64 fallback:`, err);
-    const watermarkedBase64 = await applyWatermark(imageUrl, 0.25);
-    return { watermarked: watermarkedBase64, original: imageUrl };
+    return { watermarked: imageUrl, original: imageUrl };
   }
 }
 

@@ -4,7 +4,7 @@ import { isAuthenticated } from "./replitAuth";
 import { db } from "../../db";
 import { otpCodes, users } from "@shared/models/auth";
 import { eq, and, gt } from "drizzle-orm";
-import { sendOtpEmail } from "../../email-service";
+import { sendOtpEmail, sendGenerationStartedEmail } from "../../email-service";
 
 function generateOtp(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -124,6 +124,11 @@ export function registerAuthRoutes(app: Express): void {
         }).returning();
         user = newUser;
       }
+
+      // Send immediate confirmation email (fire-and-forget)
+      sendGenerationStartedEmail(normalizedEmail, user.firstName || null, !existingUser)
+        .then(sent => console.log(`[OTP] Confirmation email ${sent ? 'sent' : 'skipped'} to ${normalizedEmail}`))
+        .catch(err => console.error('[OTP] Confirmation email error:', err));
 
       // Establish session
       req.session.otpUserId = user.id;
