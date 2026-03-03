@@ -1,5 +1,19 @@
 import * as brevo from '@getbrevo/brevo';
 import { storage } from './storage';
+import nodemailer from 'nodemailer';
+
+// SMTP transporter for OTP emails (bypasses Brevo IP restrictions)
+function createSmtpTransporter() {
+  const smtpUser = process.env.BREVO_SMTP_USER;
+  const smtpKey = process.env.BREVO_SMTP_KEY;
+  if (!smtpUser || !smtpKey) return null;
+  return nodemailer.createTransport({
+    host: 'smtp-relay.brevo.com',
+    port: 587,
+    secure: false,
+    auth: { user: smtpUser, pass: smtpKey },
+  });
+}
 
 const brevoApiKey = process.env.BREVO_API_KEY;
 
@@ -94,15 +108,16 @@ export async function addToMarketingList(email: string, firstName?: string, last
 
 export async function sendOtpEmail(email: string, code: string): Promise<boolean> {
   try {
-    const sendSmtpEmail = new brevo.SendSmtpEmail();
-    sendSmtpEmail.to = [{ email }];
-    sendSmtpEmail.sender = { email: 'greetings@celebrait.co.za', name: 'Celebrait' };
-    sendSmtpEmail.subject = `${code} is your Celebrait verification code`;
-    sendSmtpEmail.textContent = `Your verification code is ${code}. It expires in 10 minutes. Do not share this code with anyone.`;
-    sendSmtpEmail.htmlContent = `
+    const transporter = createSmtpTransporter();
+    if (!transporter) {
+      console.error('SMTP transporter not configured - missing BREVO_SMTP_USER or BREVO_SMTP_KEY');
+      return false;
+    }
+
+    const html = `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #fff;">
         <div style="text-align: center; margin-bottom: 32px;">
-          <h1 style="font-size: 28px; font-weight: 800; background: linear-gradient(135deg, #9333ea, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0;">Celebrait</h1>
+          <h1 style="font-size: 28px; font-weight: 800; color: #7c3aed; margin: 0;">Celebrait</h1>
         </div>
         <h2 style="font-size: 20px; font-weight: 700; color: #1a1a2e; margin-bottom: 8px;">Your verification code</h2>
         <p style="color: #555; margin-bottom: 28px; font-size: 15px;">Enter this code to continue creating your card. It expires in 10 minutes.</p>
@@ -112,11 +127,19 @@ export async function sendOtpEmail(email: string, code: string): Promise<boolean
         <p style="color: #888; font-size: 13px; text-align: center;">If you didn't request this, you can safely ignore this email.</p>
       </div>
     `;
-    await apiInstance.sendTransacEmail(sendSmtpEmail);
-    console.log(`OTP email sent to ${email}`);
+
+    await transporter.sendMail({
+      from: '"Celebrait" <greetings@celebrait.co.za>',
+      to: email,
+      subject: `${code} is your Celebrait verification code`,
+      text: `Your verification code is ${code}. It expires in 10 minutes. Do not share this code with anyone.`,
+      html,
+    });
+
+    console.log(`OTP email sent via SMTP to ${email}`);
     return true;
   } catch (error) {
-    console.error('Failed to send OTP email:', error);
+    console.error('Failed to send OTP email via SMTP:', error);
     return false;
   }
 }
