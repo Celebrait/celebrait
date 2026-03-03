@@ -2229,17 +2229,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
   const generateCard = async () => {
     console.log('[DEBUG] generateCard called');
-    
-    // Check if user is authenticated
-    if (!isAuthenticated || !user) {
-      console.log('[DEBUG] User not authenticated - showing pre-auth explainer modal');
-      setShowPreAuthModal(true);
-      return;
+    // OTP is always required — pre-fill email if we already know it
+    if (user?.email && !otpEmail) {
+      setOtpEmail(user.email);
     }
-    
-    // User is authenticated - use background generation flow
-    console.log('[DEBUG] User authenticated, triggering background generation');
-    triggerBackgroundGeneration(user);
+    setShowPreAuthModal(true);
   };
   
   const handleOtpSend = async () => {
@@ -2779,16 +2773,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
             </div>
           </div>
 
-          <button
-            onClick={() => {
-              setShowBackgroundConfirmation(false);
-              setIsLoading(true);
-              actuallyGenerateCard(undefined, user || undefined);
-            }}
-            className="text-sm text-gray-400 hover:text-purple-600 underline transition-colors"
-          >
-            Watch it being created instead →
-          </button>
         </div>
       </div>
     );
