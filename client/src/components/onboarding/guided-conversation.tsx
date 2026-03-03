@@ -2237,9 +2237,9 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       return;
     }
     
-    // User is authenticated - proceed directly with card generation
-    console.log('[DEBUG] User authenticated, proceeding with card generation');
-    actuallyGenerateCard();
+    // User is authenticated - use background generation flow
+    console.log('[DEBUG] User authenticated, triggering background generation');
+    triggerBackgroundGeneration(user);
   };
   
   const handleOtpSend = async () => {
