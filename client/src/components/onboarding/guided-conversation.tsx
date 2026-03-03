@@ -723,6 +723,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [backgroundCardEmail, setBackgroundCardEmail] = useState('');
   const [backgroundCardId, setBackgroundCardId] = useState<number | null>(null);
   const [bgGenStatus, setBgGenStatus] = useState<'generating' | 'completed' | 'failed'>('generating');
+  const [bgCheckPhase, setBgCheckPhase] = useState(true); // short safety-check window before showing "you can leave"
 
   // OTP auth state
   const [otpStep, setOtpStep] = useState<'email' | 'code' | 'done'>('email');
@@ -1471,19 +1472,27 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   // Poll card generation status while confirmation screen is showing
   useEffect(() => {
     if (!showBackgroundConfirmation || !backgroundCardId || bgGenStatus !== 'generating') return;
+
     const poll = async () => {
       try {
         const res = await fetch(`/api/cards/${backgroundCardId}/status`);
         if (!res.ok) return;
         const data = await res.json();
-        if (data.status === 'completed') setBgGenStatus('completed');
-        else if (data.status === 'failed') setBgGenStatus('failed');
+        if (data.status === 'completed') { setBgGenStatus('completed'); setBgCheckPhase(false); }
+        else if (data.status === 'failed') { setBgGenStatus('failed'); setBgCheckPhase(false); }
       } catch { /* ignore network blips */ }
     };
+
     poll(); // immediate first check
-    const interval = setInterval(poll, 5000);
-    return () => clearInterval(interval);
-  }, [showBackgroundConfirmation, backgroundCardId, bgGenStatus]);
+
+    // Poll every 2s during the 10s check phase, then every 5s after
+    const interval = setInterval(poll, bgCheckPhase ? 2000 : 5000);
+
+    // End the check phase after 10 seconds regardless of result
+    const checkTimer = bgCheckPhase ? setTimeout(() => setBgCheckPhase(false), 10000) : null;
+
+    return () => { clearInterval(interval); if (checkTimer) clearTimeout(checkTimer); };
+  }, [showBackgroundConfirmation, backgroundCardId, bgGenStatus, bgCheckPhase]);
 
   // Restore input when navigating to a step
   useEffect(() => {
@@ -2384,6 +2393,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         setBackgroundCardEmail(userEmail);
         setBackgroundCardId(currentCardId);
         setBgGenStatus('generating');
+        setBgCheckPhase(true);
         setShowBackgroundConfirmation(true);
       } else {
         // If background endpoint fails, fall back to old flow
@@ -2826,25 +2836,46 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-400 rounded-full flex items-center justify-center shadow">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
+                {!bgCheckPhase && (
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-400 rounded-full flex items-center justify-center shadow">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-3">Your card is being created!</h1>
-              <p className="text-gray-600 text-base mb-4 leading-relaxed">
-                Our AI is working on it. We'll send a link to{' '}
-                <span className="font-semibold text-purple-700">{backgroundCardEmail}</span>{' '}
-                when it's ready — usually about 2 minutes.
-              </p>
-              <div className="flex items-center justify-center gap-2 text-sm text-purple-600 mb-6">
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                </svg>
-                Checking progress automatically…
-              </div>
+
+              {bgCheckPhase ? (
+                <>
+                  <h1 className="text-2xl font-bold text-gray-900 mb-3">Sending to AI…</h1>
+                  <p className="text-gray-500 text-base mb-6 leading-relaxed">
+                    Doing a quick safety check on your photo — this takes about 10 seconds.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-sm text-purple-600 mb-6">
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                    </svg>
+                    Checking with AI…
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-3">Your card is being created!</h1>
+                  <p className="text-gray-600 text-base mb-4 leading-relaxed">
+                    Photo accepted ✓ — our AI is now rendering your card. We'll send a link to{' '}
+                    <span className="font-semibold text-purple-700">{backgroundCardEmail}</span>{' '}
+                    when it's ready — usually about 2 minutes.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-sm text-purple-600 mb-6">
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                    </svg>
+                    Generating…
+                  </div>
+                </>
+              )}
               <div className="grid grid-cols-3 gap-2 mb-5">
                 <div className="bg-purple-50 border border-purple-100 rounded-xl px-2 py-3 text-center">
                   <p className="text-purple-700 font-bold text-xs">Digital card</p>
