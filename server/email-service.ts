@@ -150,53 +150,61 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     console.log(`From: ${params.from}`);
     console.log(`Subject: ${params.subject}`);
 
+    const transporter = createSmtpTransporter();
+    if (!transporter) {
+      console.error('[EMAIL_SERVICE] SMTP not configured, falling back to Brevo API');
+      return sendEmailViaBrevoApi(params);
+    }
+
+    const mailOptions: any = {
+      from: `"Celebrait" <${params.from}>`,
+      to: params.to,
+      subject: params.subject,
+      text: params.text || 'Email content is available in HTML format.',
+    };
+
+    if (params.html) {
+      mailOptions.html = params.html;
+    }
+
+    if (params.attachments && params.attachments.length > 0) {
+      console.log(`[EMAIL_SERVICE] Processing ${params.attachments.length} attachment(s)...`);
+      mailOptions.attachments = params.attachments.map(att => ({
+        filename: att.name,
+        content: Buffer.from(att.content, 'base64'),
+        contentType: att.type,
+      }));
+    }
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Email sent via SMTP to ${params.to}`);
+    return true;
+  } catch (error: any) {
+    console.error('SMTP email error:', error?.message || error);
+    return false;
+  }
+}
+
+async function sendEmailViaBrevoApi(params: EmailParams): Promise<boolean> {
+  try {
     const sendSmtpEmail = new brevo.SendSmtpEmail();
     sendSmtpEmail.to = [{ email: params.to }];
     sendSmtpEmail.sender = { email: params.from, name: 'Celebrait' };
     sendSmtpEmail.subject = params.subject;
     sendSmtpEmail.textContent = params.text || 'Email content is available in HTML format.';
-    if (params.html) {
-      sendSmtpEmail.htmlContent = params.html;
-    }
-
-    // Add attachments if provided
+    if (params.html) sendSmtpEmail.htmlContent = params.html;
     if (params.attachments && params.attachments.length > 0) {
-      console.log('[EMAIL_SERVICE] Processing attachments...');
-      console.log('[EMAIL_SERVICE] Attachments array:', params.attachments.length, 'items');
-      
-      sendSmtpEmail.attachment = params.attachments.map((att, index) => {
-        console.log(`[EMAIL_SERVICE] Attachment ${index + 1}:`, {
-          name: att.name,
-          type: att.type,
-          contentLength: att.content ? att.content.length : 0,
-          hasContent: !!att.content
-        });
-        
-        return {
-          name: att.name,
-          content: att.content,
-          type: att.type
-        };
-      });
-      console.log(`[EMAIL_SERVICE] ✅ ${params.attachments.length} attachment(s) mapped to Brevo format`);
-    } else {
-      console.log('[EMAIL_SERVICE] ⚠️ No attachments provided or empty attachments array');
+      sendSmtpEmail.attachment = params.attachments.map(att => ({
+        name: att.name,
+        content: att.content,
+        type: att.type,
+      }));
     }
-
     const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
-
-    console.log('Brevo response:', result.response?.statusCode);
-    console.log('Brevo message ID:', result.body?.messageId);
-    console.log(`Email sent successfully to ${params.to}`);
+    console.log('Brevo API response:', result.response?.statusCode);
     return true;
   } catch (error: any) {
-    console.error('Brevo email error:', error);
-
-    // Log specific error details for troubleshooting
-    if (error.response && error.response.body) {
-      console.error('Brevo error details:', JSON.stringify(error.response.body, null, 2));
-    }
-
+    console.error('Brevo API email error:', error?.message || error);
     return false;
   }
 }
