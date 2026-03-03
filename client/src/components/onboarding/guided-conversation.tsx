@@ -242,7 +242,7 @@ const CreativeJourneyLoading = ({ answers, generationComplete = false, onAnimati
     },
   ];
 
-  // Phase timing (12.5 seconds per phase = 2.5 minutes total normally, accelerated when generation completes)
+  // Phase timing (9 seconds per phase = ~1.8 minutes total normally, accelerated when generation completes)
   const [showRobotLoading, setShowRobotLoading] = useState(false);
   
   // Accelerate to 100% when generation completes
@@ -312,7 +312,7 @@ const CreativeJourneyLoading = ({ answers, generationComplete = false, onAnimati
           });
           return currentPhase < creativePhases.length - 1 ? 0 : 100; // Keep at 100% for final phase
         }
-        return prev + (100 / 12.5); // 12.5 seconds per phase (2.5 minutes total)
+        return prev + (100 / 9); // 9 seconds per phase (~1.8 minutes total)
       });
     }, 1000); // Update every second
 
