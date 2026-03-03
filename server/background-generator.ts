@@ -2,6 +2,7 @@ import { storage } from './storage';
 import { sendBackgroundEmail } from './email-service';
 import FormData from 'form-data';
 import { storeImageFromBase64, storeUnwatermarkedImage, getImageUrl } from './image-storage';
+import { applyWatermark } from './watermark-utils';
 
 export interface BackgroundGenerationParams {
   cardId: number;
@@ -166,8 +167,9 @@ function base64ToBuffer(dataUrl: string): { buffer: Buffer; mimeType: string } {
 
 async function savePngFiles(imageUrl: string, cardId: number, prefix: 'front' | 'inside'): Promise<{ watermarked: string; original: string }> {
   try {
+    const watermarkedBase64 = await applyWatermark(imageUrl, 0.3);
     await Promise.all([
-      storeImageFromBase64(imageUrl, cardId, prefix),
+      storeImageFromBase64(watermarkedBase64, cardId, prefix),
       storeUnwatermarkedImage(imageUrl, cardId, prefix)
     ]);
     const storedUrl = getImageUrl(cardId, prefix);
