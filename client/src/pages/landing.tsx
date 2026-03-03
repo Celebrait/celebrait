@@ -120,11 +120,19 @@ function HeroSection() {
           )}
         </Button>
         
-        <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 max-w-lg mx-auto">
-          <p className="text-green-800 font-medium text-xs flex items-center justify-center gap-1">
-            <span className="text-green-600">✨</span>
-            Try before you buy: Create and preview your card before purchasing!
-          </p>
+        <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto mt-2">
+          <div className="bg-purple-50 border border-purple-100 rounded-xl px-3 py-3 text-center">
+            <p className="text-purple-700 font-bold text-sm">Generate</p>
+            <p className="text-purple-600 text-xs mt-0.5">Always free</p>
+          </div>
+          <div className="bg-purple-50 border border-purple-100 rounded-xl px-3 py-3 text-center">
+            <p className="text-purple-700 font-bold text-sm">Digital card</p>
+            <p className="text-purple-600 text-xs mt-0.5">Free download</p>
+          </div>
+          <div className="bg-purple-50 border border-purple-100 rounded-xl px-3 py-3 text-center">
+            <p className="text-purple-700 font-bold text-sm">Printed card</p>
+            <p className="text-purple-600 text-xs mt-0.5">From R129</p>
+          </div>
         </div>
       </div>
     </section>
@@ -362,11 +370,19 @@ function CallToActionSection() {
           </Button>
         </Link>
         
-        <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 max-w-lg mx-auto">
-          <p className="text-green-800 font-medium text-xs flex items-center justify-center gap-1">
-            <span className="text-green-600">✨</span>
-            Try before you buy: Create and preview your card before purchasing!
-          </p>
+        <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto mt-2">
+          <div className="bg-purple-50 border border-purple-100 rounded-xl px-3 py-3 text-center">
+            <p className="text-purple-700 font-bold text-sm">Generate</p>
+            <p className="text-purple-600 text-xs mt-0.5">Always free</p>
+          </div>
+          <div className="bg-purple-50 border border-purple-100 rounded-xl px-3 py-3 text-center">
+            <p className="text-purple-700 font-bold text-sm">Digital card</p>
+            <p className="text-purple-600 text-xs mt-0.5">Free download</p>
+          </div>
+          <div className="bg-purple-50 border border-purple-100 rounded-xl px-3 py-3 text-center">
+            <p className="text-purple-700 font-bold text-sm">Printed card</p>
+            <p className="text-purple-600 text-xs mt-0.5">From R129</p>
+          </div>
         </div>
       </div>
     </section>

@@ -167,9 +167,9 @@ function base64ToBuffer(dataUrl: string): { buffer: Buffer; mimeType: string } {
 
 async function savePngFiles(imageUrl: string, cardId: number, prefix: 'front' | 'inside'): Promise<{ watermarked: string; original: string }> {
   try {
-    const watermarkedBase64 = await applyWatermark(imageUrl, 0.3);
+    // Save clean image as both display and unwatermarked — no watermarking, digital cards are free
     await Promise.all([
-      storeImageFromBase64(watermarkedBase64, cardId, prefix),
+      storeImageFromBase64(imageUrl, cardId, prefix),
       storeUnwatermarkedImage(imageUrl, cardId, prefix)
     ]);
     const storedUrl = getImageUrl(cardId, prefix);

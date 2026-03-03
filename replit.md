@@ -1,7 +1,9 @@
 # Celebrait - AI-Powered Greeting Card Generator
 
 ## Overview
-Celebrait is a full-stack web application that creates personalized greeting cards using advanced AI for image generation and natural language processing. Its purpose is to offer users a unique way to generate custom cards through a guided conversational experience, with printed card fulfillment (front-and-inside only). The project aims to revolutionize personalized greetings with high-quality, AI-generated content.
+Celebrait is a full-stack web application that creates personalized greeting cards using advanced AI for image generation and natural language processing. Its purpose is to offer users a unique way to generate custom cards through a guided conversational experience.
+
+**Business Model**: Digital cards are free to generate and download (no watermarks). Printed cards start from R129. Regeneration (tweaking an existing card with new inputs) costs R25 for the front, R15 for the inside, or R35 for both.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -25,7 +27,7 @@ Preferred communication style: Simple, everyday language.
 - **Database**: PostgreSQL with Drizzle ORM for schema-first management and Neon Database for serverless hosting. Session management uses Connect-pg-simple.
 - **AI Integration**: Custom prompt engineering for OpenAI GPT-4 (conversational UI) and Replicate (image generation). AI models are leveraged for photo analysis, dynamic prompt construction, and style application.
 - **Payment Processing**: Integrates Stripe for international payments and Paystack for the South African market, including a custom tipping system.
-- **Image Pipeline**: Involves AI-powered photo analysis, dynamic prompt building, application of various art styles, and efficient handling of AI-generated image outputs (PNG-only workflow with server-side watermarking and removal).
+- **Image Pipeline**: Involves AI-powered photo analysis, dynamic prompt building, application of various art styles, and efficient handling of AI-generated image outputs (PNG-only workflow, no watermarks — clean images saved for both display and print).
 - **Email System**: Brevo integration for automated order confirmations, digital card delivery, and shipping notifications, using branded HTML templates. Provides 9,000 free emails per month.
 - **Configuration**: Manages environment variables for API keys and database connections, with strict TypeScript configuration.
 
@@ -36,6 +38,8 @@ Preferred communication style: Simple, everyday language.
 - **User Customization**: Allows selection of print options and scene types. Printed cards only (front-and-inside).
 - **Payment Gateway**: Secure processing of payments via integrated third-party providers.
 - **Customer Dashboard**: User account page at /dashboard showing profile, card history, and order status.
+- **Regeneration System**: Users can tweak an existing card (new scene, art style, or inside message) and pay R25/R15/R35 via Paystack to regenerate. Implemented via `POST /api/cards/:id/initiate-regeneration` (creates Paystack payment) and `POST /api/cards/:id/execute-regeneration` (verifies payment + triggers background generation). Post-payment redirect detected on the card preview page via URL params (`regen_ref`, `regen_type`).
+- **Free Digital Downloads**: No watermarks on any generated images. Users can download front and inside card PNGs directly from the card preview page.
 
 ## External Dependencies
 

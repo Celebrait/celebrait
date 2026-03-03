@@ -2760,6 +2760,21 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
             when it's ready — usually about 2 minutes.
           </p>
 
+          <div className="grid grid-cols-3 gap-2 mb-5">
+            <div className="bg-purple-50 border border-purple-100 rounded-xl px-2 py-3 text-center">
+              <p className="text-purple-700 font-bold text-xs">Digital card</p>
+              <p className="text-purple-600 text-xs mt-0.5">Free download</p>
+            </div>
+            <div className="bg-purple-50 border border-purple-100 rounded-xl px-2 py-3 text-center">
+              <p className="text-purple-700 font-bold text-xs">Printed card</p>
+              <p className="text-purple-600 text-xs mt-0.5">From R129</p>
+            </div>
+            <div className="bg-purple-50 border border-purple-100 rounded-xl px-2 py-3 text-center">
+              <p className="text-purple-700 font-bold text-xs">Regenerate</p>
+              <p className="text-purple-600 text-xs mt-0.5">From R25</p>
+            </div>
+          </div>
+
           <div className="bg-white rounded-2xl shadow-sm border border-purple-100 p-5 mb-8">
             <div className="flex items-center gap-3 text-left">
               <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -3134,9 +3149,11 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
                         )}
                       </Button>
                       
-                      <p className="text-xs text-gray-500 mt-4">
-                        This will start the AI generation process which takes 2-3 minutes
-                      </p>
+                      <div className="mt-4 flex justify-center gap-6 text-xs text-gray-500">
+                        <span>✓ Generation free</span>
+                        <span>✓ Digital download free</span>
+                        <span>✓ Print from R129</span>
+                      </div>
                     </div>
                   </div>
                 )}

@@ -329,69 +329,8 @@ async function processSupplierOrder(orderId: number, cardId: number): Promise<vo
 
 // Watermark utility function (legacy - for base64 data)
 async function applyWatermark(imageData: string, opacity: number = 0.65): Promise<string> {
-  try {
-    // Remove data URL prefix if present
-    const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
-    const imageBuffer = Buffer.from(base64Data, 'base64');
-
-    // Load the original image
-    const originalImage = await loadImage(imageBuffer);
-
-    // Create canvas with same dimensions
-    const canvas = createCanvas(originalImage.width, originalImage.height);
-    const ctx = canvas.getContext('2d');
-
-    // Draw original image
-    ctx.drawImage(originalImage, 0, 0);
-
-    // Apply watermark
-    ctx.save();
-
-    // Set up readable watermark text
-    const text = 'CELEBRAIT PREVIEW';
-    const fontSize = Math.min(originalImage.width, originalImage.height) * 0.08;
-    ctx.font = `bold ${fontSize}px Arial`;
-    ctx.fillStyle = `rgba(255, 255, 255, 0.3)`; // Reduced opacity white text for less prominence
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    // Rotate canvas for diagonal text
-    ctx.translate(originalImage.width / 2, originalImage.height / 2);
-    ctx.rotate(-Math.PI / 8); // Reduced angle for better readability
-
-    // Calculate text dimensions
-    const textWidth = ctx.measureText(text).width;
-    const textHeight = fontSize;
-
-    // Draw fewer, larger, more readable watermarks
-    const spacingX = textWidth * 1.5;
-    const spacingY = textHeight * 3;
-    const numCols = Math.ceil((originalImage.width * 1.5) / spacingX);
-    const numRows = Math.ceil((originalImage.height * 1.5) / spacingY);
-
-    const startX = -(numCols * spacingX) / 2;
-    const startY = -(numRows * spacingY) / 2;
-
-    for (let col = 0; col < numCols; col++) {
-      for (let row = 0; row < numRows; row++) {
-        const x = startX + col * spacingX;
-        const y = startY + row * spacingY;
-
-        // Draw text with strong outline for maximum readability
-        ctx.fillText(text, x, y);
-      }
-    }
-
-    ctx.restore();
-
-    // Convert back to base64
-    const watermarkedBuffer = canvas.toBuffer('image/png');
-    return `data:image/png;base64,${watermarkedBuffer.toString('base64')}`;
-  } catch (error) {
-    console.error('Watermark application failed:', error);
-    // Return original image if watermarking fails
-    return imageData;
-  }
+  // Watermarking removed — digital cards are free to download
+  return imageData;
 }
 
 // PNG-only watermark function - applies watermark to PNG files directly
@@ -4703,6 +4642,139 @@ ${styleSection}`;
       if (!res.headersSent) {
         res.status(500).json({ message: "Failed to start background generation: " + error.message });
       }
+    }
+  });
+
+  // Initiate regeneration payment via Paystack
+  app.post("/api/cards/:id/initiate-regeneration", async (req: any, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      if (isNaN(cardId)) return res.status(400).json({ message: "Invalid card ID" });
+
+      const card = await storage.getCard(cardId);
+      if (!card) return res.status(404).json({ message: "Card not found" });
+
+      const { email, regenerateType, newScene, newArtStyle, newInsideMessage } = req.body;
+      if (!email || !regenerateType) {
+        return res.status(400).json({ message: "email and regenerateType are required" });
+      }
+
+      const priceMap: Record<string, number> = { front: 2500, inside: 1500, both: 3500 };
+      const amount = priceMap[regenerateType];
+      if (!amount) return res.status(400).json({ message: "Invalid regenerateType. Use front, inside, or both." });
+
+      const reference = `celebrait_regen_${cardId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const callbackUrl = `https://${req.get('host')}/card-preview/celebrait_ready_${cardId}?regen_ref=${reference}&regen_type=${regenerateType}`;
+
+      if (!process.env.PAYSTACK_SECRET_KEY) {
+        return res.json({ testMode: true, reference, message: "No Paystack key — use execute-regeneration directly in test mode" });
+      }
+
+      const paystackResponse = await fetch('https://api.paystack.co/transaction/initialize', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          amount,
+          currency: 'ZAR',
+          reference,
+          callback_url: callbackUrl,
+          metadata: {
+            cardId: cardId.toString(),
+            regenerateType,
+            newScene: newScene || null,
+            newArtStyle: newArtStyle || null,
+            newInsideMessage: newInsideMessage || null,
+            type: 'regeneration'
+          }
+        })
+      });
+
+      const paystackData = await paystackResponse.json() as any;
+      if (paystackData.status) {
+        res.json({ paymentUrl: paystackData.data.authorization_url, reference });
+      } else {
+        throw new Error(paystackData.message || 'Payment initialization failed');
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: "Error initiating regeneration payment: " + error.message });
+    }
+  });
+
+  // Execute regeneration after payment verified
+  app.post("/api/cards/:id/execute-regeneration", async (req: any, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      if (isNaN(cardId)) return res.status(400).json({ message: "Invalid card ID" });
+
+      const card = await storage.getCard(cardId);
+      if (!card) return res.status(404).json({ message: "Card not found" });
+
+      const { paystackReference, regenerateType, newScene, newArtStyle, newInsideMessage, userEmail, imageDataArray } = req.body;
+
+      // Verify payment with Paystack
+      if (paystackReference && process.env.PAYSTACK_SECRET_KEY) {
+        const verifyResponse = await fetch(`https://api.paystack.co/transaction/verify/${paystackReference}`, {
+          headers: { 'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
+        });
+        const verifyData = await verifyResponse.json() as any;
+        if (!verifyData.status || verifyData.data?.status !== 'success') {
+          return res.status(402).json({ message: "Payment not verified" });
+        }
+      }
+
+      // Build updated answers by merging stored conversationData with any new values
+      const storedData = (card.conversationData as any) || {};
+      const updatedAnswers = {
+        ...storedData,
+        ...(newScene ? { scene: newScene } : {}),
+        ...(newArtStyle ? { art_style: newArtStyle } : {}),
+        ...(newInsideMessage ? { inside_message: newInsideMessage } : {})
+      };
+
+      // Determine what to regenerate
+      const doFront = regenerateType === 'front' || regenerateType === 'both';
+      const doInside = regenerateType === 'inside' || regenerateType === 'both';
+
+      // Resolve photos: use provided imageDataArray or fall back to stored front image
+      let resolvedImageDataArray = imageDataArray;
+      if (!resolvedImageDataArray?.length && doFront) {
+        const { getStoredImage } = await import('./image-storage');
+        const frontBuffer = await getStoredImage(cardId, 'front');
+        if (frontBuffer) {
+          resolvedImageDataArray = [`data:image/png;base64,${frontBuffer.toString('base64')}`];
+        }
+      }
+
+      const userName = storedData.name || (userEmail || '').split('@')[0];
+      const resolvedEmail = userEmail || storedData.userEmail || '';
+
+      // Respond immediately
+      res.json({ success: true, message: "Regeneration started. Check your email when it's ready." });
+
+      // Fire in background
+      const { generateCardInBackground } = await import('./background-generator');
+      setImmediate(() => {
+        generateCardInBackground({
+          cardId,
+          userEmail: resolvedEmail,
+          userName,
+          generationType: (updatedAnswers.photo_option === 'upload_and_scene' || resolvedImageDataArray?.length) ? 'scene' : 'text-only',
+          imageDataArray: resolvedImageDataArray,
+          scenePrompt: updatedAnswers.scene || storedData.scene,
+          userArtStyle: updatedAnswers.art_style || storedData.art_style,
+          insideText: doInside ? (updatedAnswers.inside_message || storedData.inside_message) : undefined,
+          artStyle: updatedAnswers.art_style || storedData.art_style,
+          answers: updatedAnswers,
+          uploadedPhotoIds: storedData.uploadedPhotoIds
+        }).catch(err => {
+          console.error(`[REGEN] Error in regeneration for card ${cardId}:`, err);
+        });
+      });
+
+    } catch (error: any) {
+      console.error('Execute regeneration error:', error);
+      if (!res.headersSent) res.status(500).json({ message: "Regeneration failed: " + error.message });
     }
   });
 
