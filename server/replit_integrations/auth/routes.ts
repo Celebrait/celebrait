@@ -60,7 +60,10 @@ export function registerAuthRoutes(app: Express): void {
       });
 
       // Send email
-      await sendOtpEmail(normalizedEmail, code);
+      const emailSent = await sendOtpEmail(normalizedEmail, code);
+      if (!emailSent) {
+        return res.status(503).json({ message: "Failed to send verification email. Please try again shortly." });
+      }
 
       res.json({ success: true, message: "Verification code sent" });
     } catch (error) {
