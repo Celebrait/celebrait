@@ -1,8 +1,7 @@
 import { storage } from './storage';
-import { sendBackgroundEmail } from './email-service';
+import { sendBackgroundEmail, sendEmail } from './email-service';
 import FormData from 'form-data';
 import { storeImageFromBase64, storeUnwatermarkedImage, getImageUrl } from './image-storage';
-import { applyWatermark } from './watermark-utils';
 
 export interface BackgroundGenerationParams {
   cardId: number;
@@ -89,6 +88,66 @@ async function callOpenAIImageEdit(params: {
     return imageResult.url;
   }
   throw new Error('No image data in OpenAI response');
+}
+
+async function callOpenAITextGeneration(prompt: string, size = '1024x1024'): Promise<string> {
+  const fetch = (await import('node-fetch')).default;
+  const response = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'gpt-image-1',
+      prompt,
+      n: 1,
+      size,
+      quality: 'high',
+      output_format: 'b64_json'
+    }),
+    // @ts-ignore
+    timeout: 300000
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorData: any;
+    try { errorData = JSON.parse(errorText); } catch { errorData = { error: { message: errorText } }; }
+    throw new Error(`OpenAI text generation error ${response.status}: ${errorData.error?.message || 'Unknown error'}`);
+  }
+
+  const responseData = await response.json() as any;
+  const imageResult = responseData?.data?.[0];
+  if (!imageResult) throw new Error('No image data in OpenAI text generation response');
+  if (imageResult.b64_json) return `data:image/png;base64,${imageResult.b64_json}`;
+  if (imageResult.url) return imageResult.url;
+  throw new Error('No image data in OpenAI text generation response');
+}
+
+async function sendGenerationFailedEmail(userEmail: string, userName: string, cardId: number): Promise<void> {
+  try {
+    await sendEmail({
+      to: userEmail,
+      from: 'greetings@celebrait.co.za',
+      subject: 'We hit a snag with your Celebrait card',
+      html: `
+        <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background: #fff; border-radius: 16px;">
+          <h2 style="color: #7c3aed; margin: 0 0 16px;">Hi ${userName || 'there'},</h2>
+          <p style="color: #374151; line-height: 1.6;">We ran into a problem generating your card (ID #${cardId}). This sometimes happens when our AI provider's safety system is overly cautious about an uploaded photo.</p>
+          <p style="color: #374151; line-height: 1.6;"><strong>What to do:</strong> Head back to Celebrait and try again — you can either try a different photo, or choose the text-only card option which never has this issue.</p>
+          <a href="https://celebrait.co.za" style="display: inline-block; margin-top: 20px; padding: 12px 28px; background: linear-gradient(135deg, #7c3aed, #db2777); color: #fff; text-decoration: none; border-radius: 10px; font-weight: 600;">Try Again</a>
+          <p style="color: #9ca3af; font-size: 13px; margin-top: 24px;">Sorry for the inconvenience — your card generation was not charged.</p>
+        </div>
+      `
+    });
+  } catch (e) {
+    console.error(`[BG_GEN] Failed to send failure notification email:`, e);
+  }
+}
+
+function isSafetyViolation(errorMessage: string): boolean {
+  return errorMessage.includes('safety') || errorMessage.includes('safety_violations') || errorMessage.includes('content_policy') || errorMessage.includes('rejected by the safety');
 }
 
 function buildScenePrompt(params: {
@@ -205,10 +264,23 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
       });
 
       console.log(`[BG_GEN] Calling OpenAI scene edit for card ${cardId}`);
-      const imageUrl = await callOpenAIImageEdit({ imageBuffers, prompt });
-      const { watermarked, original } = await savePngFiles(imageUrl, cardId, 'front');
-      frontWatermarked = watermarked;
-      frontOriginal = original;
+      try {
+        const imageUrl = await callOpenAIImageEdit({ imageBuffers, prompt });
+        const { watermarked, original } = await savePngFiles(imageUrl, cardId, 'front');
+        frontWatermarked = watermarked;
+        frontOriginal = original;
+      } catch (sceneErr: any) {
+        if (isSafetyViolation(sceneErr.message)) {
+          console.warn(`[BG_GEN] Safety violation on scene edit for card ${cardId} — retrying as text-only`);
+          const textPrompt = buildScenePrompt({ scenePrompt: params.scenePrompt || '', userArtStyle: params.userArtStyle, includeText: params.includeText, cardText: params.cardText });
+          const imageUrl = await callOpenAITextGeneration(textPrompt);
+          const { watermarked, original } = await savePngFiles(imageUrl, cardId, 'front');
+          frontWatermarked = watermarked;
+          frontOriginal = original;
+        } else {
+          throw sceneErr;
+        }
+      }
 
     } else if (generationType === 'transform' && params.imageDataArray?.length) {
       const artStyle = params.artStyle || params.style || 'semi-realistic illustration';
@@ -216,7 +288,27 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
       const prompt = buildTransformPrompt(artStyle, params.cardText);
 
       console.log(`[BG_GEN] Calling OpenAI transform for card ${cardId}`);
-      const imageUrl = await callOpenAIImageEdit({ imageBuffers, prompt });
+      try {
+        const imageUrl = await callOpenAIImageEdit({ imageBuffers, prompt });
+        const { watermarked, original } = await savePngFiles(imageUrl, cardId, 'front');
+        frontWatermarked = watermarked;
+        frontOriginal = original;
+      } catch (transformErr: any) {
+        if (isSafetyViolation(transformErr.message)) {
+          console.warn(`[BG_GEN] Safety violation on transform for card ${cardId} — retrying as text-only`);
+          const imageUrl = await callOpenAITextGeneration(prompt);
+          const { watermarked, original } = await savePngFiles(imageUrl, cardId, 'front');
+          frontWatermarked = watermarked;
+          frontOriginal = original;
+        } else {
+          throw transformErr;
+        }
+      }
+
+    } else if (generationType === 'text-only' || (!params.imageDataArray?.length)) {
+      console.log(`[BG_GEN] Text-only generation for card ${cardId}`);
+      const prompt = buildScenePrompt({ scenePrompt: params.scenePrompt || answers.scene || 'A beautiful celebratory scene', userArtStyle: params.userArtStyle, includeText: params.includeText, cardText: params.cardText });
+      const imageUrl = await callOpenAITextGeneration(prompt);
       const { watermarked, original } = await savePngFiles(imageUrl, cardId, 'front');
       frontWatermarked = watermarked;
       frontOriginal = original;
@@ -224,6 +316,7 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
     } else {
       console.error(`[BG_GEN] Unsupported generation type or missing images: ${generationType}`);
       await storage.updateCard(cardId, { status: 'failed' });
+      await sendGenerationFailedEmail(userEmail, userName, cardId);
       return;
     }
 
@@ -288,5 +381,7 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
     } catch (dbErr) {
       console.error(`[BG_GEN] Failed to update card status to failed:`, dbErr);
     }
+    // Notify the user so they know to try again
+    await sendGenerationFailedEmail(userEmail, userName, cardId);
   }
 }
