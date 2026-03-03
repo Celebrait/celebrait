@@ -4914,7 +4914,7 @@ ${styleSection}`;
 
       // Send card ready notification email (this should take user to delivery choice)
       try {
-        const requestHost = req.get('host') || '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev';
+        const requestHost = req.get('host') || 'localhost:5000';
         const emailParams = generateCardReadyNotificationEmail(orderData, requestHost);
         const emailSent = await sendEmail(emailParams);
         
@@ -5064,7 +5064,7 @@ ${styleSection}`;
       
       // Create card ready notification email
       const cardType = card.cardType === 'digital' ? 'digital' : 'printed';
-      const requestHost = req.get('host') || '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev';
+      const requestHost = req.get('host') || 'localhost:5000';
       const emailData = generateCardReadyNotificationEmail(
         { 
           ...card, 
@@ -5249,9 +5249,9 @@ ${styleSection}`;
 
       const order = await storage.createOrder(orderData);
 
-      // Create Payfast payment data - use correct domain for production
+      // Create Payfast payment data - use the actual host from the request (works for both dev and production)
       const host = req.get('host') || 'localhost:5000';
-      const actualHost = host.includes('localhost') ? host : '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev';
+      const actualHost = host;
       const protocol = actualHost.includes('localhost') ? 'http' : 'https';
       const baseUrl = `${protocol}://${actualHost}`;
       
@@ -5330,10 +5330,13 @@ ${styleSection}`;
 
         const card = await storage.getCard(order.cardId);
         
+        // Build base URL from the incoming request host (correctly reflects dev or production)
+        const itnHost = req.get('host') || 'localhost:5000';
+        const itnBaseUrl = itnHost.includes('localhost') ? `http://${itnHost}` : `https://${itnHost}`;
+
         // Send customer confirmation email immediately
         try {
-          const actualHost = '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev';
-          const customerEmailParams = generateOrderConfirmationEmail(order, card?.id, actualHost);
+          const customerEmailParams = generateOrderConfirmationEmail(order, card?.id, itnHost);
           await sendEmail(customerEmailParams);
           console.log('✅ Customer confirmation email sent to:', order.customerEmail);
           
@@ -5341,15 +5344,13 @@ ${styleSection}`;
           if (order.amount === 500) {
             const card = await storage.getCard(order.cardId);
             if (card) {
-              // Use the correct Replit domain for emails
-              const actualHost = '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev';
-              const baseUrl = `https://${actualHost}`;
+              const baseUrl = itnBaseUrl;
               
               // Send digital card email to customer
               const customerEmailParams = generateDigitalCardEmail(
                 { ...order, card },
                 `${baseUrl}/card/${order.paymentReference}`,
-                actualHost
+                itnHost
               );
               await sendEmail(customerEmailParams);
               console.log('Digital card email sent to customer:', order.customerEmail);
@@ -5366,7 +5367,7 @@ ${styleSection}`;
                       recipientInfo.email,
                       order.customerName,
                       `${baseUrl}/api/cards/${card.id}/digital-front-image`,
-                      actualHost
+                      itnHost
                     );
                     await sendEmail(recipientEmailParams);
                     console.log('Digital card email sent to recipient:', recipientInfo.email);
@@ -5475,7 +5476,7 @@ ${styleSection}`;
           const cardWithoutWatermarks = await removeWatermarksFromCard(card.id);
           
           // Send digital card email to customer
-          const actualHost = '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev';
+          const actualHost = req.get('host') || 'localhost:5000';
           const customerEmailData = generateDigitalCardEmail(order, `https://${actualHost}/card/${reference}`, actualHost);
           const customerEmailSent = await sendEmail(customerEmailData);
           console.log('Digital card email sent to customer:', customerEmailSent ? 'SUCCESS' : 'FAILED');

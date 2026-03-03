@@ -523,10 +523,8 @@ export async function sendBackgroundEmail(cardId: number, email: string, userNam
 export function generateCardReadyNotificationEmail(orderData: any, host?: string): EmailParams {
   const { customerEmail, customerName, paymentReference, cardType } = orderData;
 
-  // Use proper domain detection - if host contains localhost or undefined, use Replit domain
-  const actualHost = (!host || host.includes('localhost')) ? 
-    '71e6d7ef-7b58-4101-8db3-cda92f056e91-00-2ev7qrlb7zpv.picard.replit.dev' : 
-    host;
+  // Use the host passed in from the request (correctly reflects dev or production)
+  const actualHost = host || 'localhost:5000';
 
   // Send users to card preview first, then they'll proceed to delivery details
   const nextStepUrl = `https://${actualHost}/card-preview/${paymentReference}`;
