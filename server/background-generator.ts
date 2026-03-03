@@ -146,10 +146,6 @@ async function sendGenerationFailedEmail(userEmail: string, userName: string, ca
   }
 }
 
-function isSafetyViolation(errorMessage: string): boolean {
-  return errorMessage.includes('safety') || errorMessage.includes('safety_violations') || errorMessage.includes('content_policy') || errorMessage.includes('rejected by the safety');
-}
-
 function buildScenePrompt(params: {
   scenePrompt: string;
   userArtStyle?: string;
@@ -264,23 +260,10 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
       });
 
       console.log(`[BG_GEN] Calling OpenAI scene edit for card ${cardId}`);
-      try {
-        const imageUrl = await callOpenAIImageEdit({ imageBuffers, prompt });
-        const { watermarked, original } = await savePngFiles(imageUrl, cardId, 'front');
-        frontWatermarked = watermarked;
-        frontOriginal = original;
-      } catch (sceneErr: any) {
-        if (isSafetyViolation(sceneErr.message)) {
-          console.warn(`[BG_GEN] Safety violation on scene edit for card ${cardId} — retrying as text-only`);
-          const textPrompt = buildScenePrompt({ scenePrompt: params.scenePrompt || '', userArtStyle: params.userArtStyle, includeText: params.includeText, cardText: params.cardText });
-          const imageUrl = await callOpenAITextGeneration(textPrompt);
-          const { watermarked, original } = await savePngFiles(imageUrl, cardId, 'front');
-          frontWatermarked = watermarked;
-          frontOriginal = original;
-        } else {
-          throw sceneErr;
-        }
-      }
+      const sceneImageUrl = await callOpenAIImageEdit({ imageBuffers, prompt });
+      const { watermarked: sw, original: so } = await savePngFiles(sceneImageUrl, cardId, 'front');
+      frontWatermarked = sw;
+      frontOriginal = so;
 
     } else if (generationType === 'transform' && params.imageDataArray?.length) {
       const artStyle = params.artStyle || params.style || 'semi-realistic illustration';
@@ -288,22 +271,10 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
       const prompt = buildTransformPrompt(artStyle, params.cardText);
 
       console.log(`[BG_GEN] Calling OpenAI transform for card ${cardId}`);
-      try {
-        const imageUrl = await callOpenAIImageEdit({ imageBuffers, prompt });
-        const { watermarked, original } = await savePngFiles(imageUrl, cardId, 'front');
-        frontWatermarked = watermarked;
-        frontOriginal = original;
-      } catch (transformErr: any) {
-        if (isSafetyViolation(transformErr.message)) {
-          console.warn(`[BG_GEN] Safety violation on transform for card ${cardId} — retrying as text-only`);
-          const imageUrl = await callOpenAITextGeneration(prompt);
-          const { watermarked, original } = await savePngFiles(imageUrl, cardId, 'front');
-          frontWatermarked = watermarked;
-          frontOriginal = original;
-        } else {
-          throw transformErr;
-        }
-      }
+      const transformImageUrl = await callOpenAIImageEdit({ imageBuffers, prompt });
+      const { watermarked: tw, original: to_ } = await savePngFiles(transformImageUrl, cardId, 'front');
+      frontWatermarked = tw;
+      frontOriginal = to_;
 
     } else if (generationType === 'text-only' || (!params.imageDataArray?.length)) {
       console.log(`[BG_GEN] Text-only generation for card ${cardId}`);

@@ -1174,6 +1174,20 @@ If just having a conversation (no suggestions), respond with valid JSON:
   });
 
   // Get card by ID (optimized endpoint with performance monitoring)
+  // Lightweight status-only endpoint for polling — no cache
+  app.get("/api/cards/:id/status", async (req, res) => {
+    try {
+      const cardId = parseInt(req.params.id);
+      if (isNaN(cardId)) return res.status(400).json({ message: "Invalid card ID" });
+      const card = await storage.getCard(cardId);
+      if (!card) return res.status(404).json({ message: "Card not found" });
+      res.set('Cache-Control', 'no-store');
+      res.json({ id: cardId, status: card.status, hasFront: !!card.frontImageUrl, hasInside: !!card.insideImageUrl });
+    } catch (err: any) {
+      res.status(500).json({ message: "Error fetching status: " + err.message });
+    }
+  });
+
   app.get("/api/cards/:id", async (req, res) => {
     const startTime = Date.now();
     try {

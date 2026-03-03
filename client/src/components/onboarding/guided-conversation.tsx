@@ -721,6 +721,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
   const [showPreAuthModal, setShowPreAuthModal] = useState(false);
   const [showBackgroundConfirmation, setShowBackgroundConfirmation] = useState(false);
   const [backgroundCardEmail, setBackgroundCardEmail] = useState('');
+  const [backgroundCardId, setBackgroundCardId] = useState<number | null>(null);
+  const [bgGenStatus, setBgGenStatus] = useState<'generating' | 'completed' | 'failed'>('generating');
 
   // OTP auth state
   const [otpStep, setOtpStep] = useState<'email' | 'code' | 'done'>('email');
@@ -1465,6 +1467,23 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       setCurrentExampleIndex(0);
     }
   }, [currentStep.id]);
+
+  // Poll card generation status while confirmation screen is showing
+  useEffect(() => {
+    if (!showBackgroundConfirmation || !backgroundCardId || bgGenStatus !== 'generating') return;
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/cards/${backgroundCardId}/status`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.status === 'completed') setBgGenStatus('completed');
+        else if (data.status === 'failed') setBgGenStatus('failed');
+      } catch { /* ignore network blips */ }
+    };
+    poll(); // immediate first check
+    const interval = setInterval(poll, 5000);
+    return () => clearInterval(interval);
+  }, [showBackgroundConfirmation, backgroundCardId, bgGenStatus]);
 
   // Restore input when navigating to a step
   useEffect(() => {
@@ -2363,6 +2382,8 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
       if (response.ok) {
         setBackgroundCardEmail(userEmail);
+        setBackgroundCardId(currentCardId);
+        setBgGenStatus('generating');
         setShowBackgroundConfirmation(true);
       } else {
         // If background endpoint fails, fall back to old flow
@@ -2739,54 +2760,119 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-white px-6">
         <div className="max-w-md w-full text-center">
-          {/* Animated icon */}
-          <div className="relative mx-auto mb-8 w-24 h-24">
-            <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
-              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-400 rounded-full flex items-center justify-center shadow">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-          </div>
 
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">Your card is being created!</h1>
-          <p className="text-gray-600 text-lg mb-6 leading-relaxed">
-            Our AI is working its magic. We'll send you an email at{' '}
-            <span className="font-semibold text-purple-700">{backgroundCardEmail}</span>{' '}
-            when it's ready — usually about 2 minutes.
-          </p>
-
-          <div className="grid grid-cols-3 gap-2 mb-5">
-            <div className="bg-purple-50 border border-purple-100 rounded-xl px-2 py-3 text-center">
-              <p className="text-purple-700 font-bold text-xs">Digital card</p>
-              <p className="text-purple-600 text-xs mt-0.5">Free download</p>
-            </div>
-            <div className="bg-purple-50 border border-purple-100 rounded-xl px-2 py-3 text-center">
-              <p className="text-purple-700 font-bold text-xs">Printed card</p>
-              <p className="text-purple-600 text-xs mt-0.5">From R129</p>
-            </div>
-            <div className="bg-purple-50 border border-purple-100 rounded-xl px-2 py-3 text-center">
-              <p className="text-purple-700 font-bold text-xs">Regenerate</p>
-              <p className="text-purple-600 text-xs mt-0.5">From R25</p>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-sm border border-purple-100 p-5 mb-8">
-            <div className="flex items-center gap-3 text-left">
-              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          {/* FAILED state */}
+          {bgGenStatus === 'failed' && (
+            <>
+              <div className="mx-auto mb-8 w-24 h-24 bg-red-100 rounded-full flex items-center justify-center shadow">
+                <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-600">
-                You can close this tab and come back when you get the email link. No need to wait here.
+              <h1 className="text-3xl font-bold text-gray-900 mb-3">Generation failed</h1>
+              <p className="text-gray-600 text-base mb-6 leading-relaxed">
+                Our AI hit a problem — most likely the safety filter rejected your uploaded photo. We've sent a failure email to{' '}
+                <span className="font-semibold text-red-600">{backgroundCardEmail}</span>.
               </p>
-            </div>
-          </div>
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-5 mb-6 text-left">
+                <p className="text-sm font-semibold text-red-800 mb-1">What to do:</p>
+                <ul className="text-sm text-red-700 space-y-1 list-disc list-inside">
+                  <li>Try a different photo (avoid swimwear/beach shots)</li>
+                  <li>Or try the text-only card option</li>
+                </ul>
+              </div>
+              <button
+                onClick={() => { setShowBackgroundConfirmation(false); setBgGenStatus('generating'); }}
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg transition-all"
+              >
+                Try Again
+              </button>
+            </>
+          )}
+
+          {/* COMPLETED state */}
+          {bgGenStatus === 'completed' && (
+            <>
+              <div className="relative mx-auto mb-8 w-24 h-24">
+                <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                  <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-3">Your card is ready! 🎉</h1>
+              <p className="text-gray-600 text-base mb-6 leading-relaxed">
+                Check your email at{' '}
+                <span className="font-semibold text-purple-700">{backgroundCardEmail}</span>{' '}
+                for the link — or view it directly:
+              </p>
+              {backgroundCardId && (
+                <a
+                  href={`/card-preview/celebrait_ready_${backgroundCardId}`}
+                  className="block w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg transition-all text-center"
+                >
+                  View My Card
+                </a>
+              )}
+            </>
+          )}
+
+          {/* GENERATING state */}
+          {bgGenStatus === 'generating' && (
+            <>
+              <div className="relative mx-auto mb-8 w-24 h-24">
+                <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                  <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-400 rounded-full flex items-center justify-center shadow">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-3">Your card is being created!</h1>
+              <p className="text-gray-600 text-base mb-4 leading-relaxed">
+                Our AI is working on it. We'll send a link to{' '}
+                <span className="font-semibold text-purple-700">{backgroundCardEmail}</span>{' '}
+                when it's ready — usually about 2 minutes.
+              </p>
+              <div className="flex items-center justify-center gap-2 text-sm text-purple-600 mb-6">
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                </svg>
+                Checking progress automatically…
+              </div>
+              <div className="grid grid-cols-3 gap-2 mb-5">
+                <div className="bg-purple-50 border border-purple-100 rounded-xl px-2 py-3 text-center">
+                  <p className="text-purple-700 font-bold text-xs">Digital card</p>
+                  <p className="text-purple-600 text-xs mt-0.5">Free download</p>
+                </div>
+                <div className="bg-purple-50 border border-purple-100 rounded-xl px-2 py-3 text-center">
+                  <p className="text-purple-700 font-bold text-xs">Printed card</p>
+                  <p className="text-purple-600 text-xs mt-0.5">From R129</p>
+                </div>
+                <div className="bg-purple-50 border border-purple-100 rounded-xl px-2 py-3 text-center">
+                  <p className="text-purple-700 font-bold text-xs">Regenerate</p>
+                  <p className="text-purple-600 text-xs mt-0.5">From R25</p>
+                </div>
+              </div>
+              <div className="bg-white rounded-2xl shadow-sm border border-purple-100 p-5">
+                <div className="flex items-center gap-3 text-left">
+                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    You can close this tab — we'll email you the link when it's done.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
 
         </div>
       </div>
