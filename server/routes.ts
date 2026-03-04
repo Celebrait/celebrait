@@ -1139,10 +1139,14 @@ If just having a conversation (no suggestions), respond with valid JSON:
       
       console.log(`[PERF] Fast metadata database query took: ${Date.now() - dbStartTime}ms`);
       
-      // Ultra-minimal metadata for instant loading
+      // Metadata for instant loading — include image URL flags so card preview can show inside tab
       const fastMetadata = {
         id: card.id,
         cardType: card.cardType,
+        status: card.status,
+        price: card.price,
+        frontImageUrl: card.frontImageUrl ? `/api/cards/${cardId}/fast-front-image` : null,
+        insideImageUrl: card.insideImageUrl ? `/api/cards/${cardId}/fast-inside-image` : null,
         conversationData: card.conversationData || {}
       };
       
@@ -1161,7 +1165,7 @@ If just having a conversation (no suggestions), respond with valid JSON:
       // Maximum browser caching for instant subsequent loads
       res.set({
         'Cache-Control': 'public, max-age=86400, immutable', // 24-hour cache
-        'ETag': `"fast-${cardId}-v3"`,
+        'ETag': `"fast-${cardId}-v4"`,
         'X-Cache': 'MISS',
         'X-Performance': `db-${Date.now() - dbStartTime}ms`
       });

@@ -2818,7 +2818,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
               </p>
               {backgroundCardId && (
                 <a
-                  href={`/card-preview/celebrait_ready_${backgroundCardId}`}
+                  href={`/card-preview/${backgroundCardId}`}
                   className="block w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg transition-all text-center"
                 >
                   View My Card

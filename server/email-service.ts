@@ -550,9 +550,10 @@ export async function sendBackgroundEmail(cardId: number, email: string, userNam
       return false;
     }
 
-    // Build preview URL
+    // Build preview URL using the ready reference format so the card preview loads correctly
     const host = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
-    const previewUrl = `https://${host}/card-preview/${cardId}`;
+    const reference = `celebrait_ready_${cardId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const previewUrl = `https://${host}/card-preview/${reference}`;
     
     // Prepare card data for email template
     const conversationData = card.conversationData as any;
