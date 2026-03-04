@@ -38,7 +38,7 @@ Preferred communication style: Simple, everyday language.
 - **User Customization**: Allows selection of print options and scene types. Printed cards only (front-and-inside).
 - **Payment Gateway**: Secure processing of payments via integrated third-party providers.
 - **Customer Dashboard**: User account page at /dashboard showing profile, card history, and order status.
-- **Regeneration System**: Users can tweak an existing card (new scene, art style, or inside message) and pay R25/R15/R35 via Paystack to regenerate. Implemented via `POST /api/cards/:id/initiate-regeneration` (creates Paystack payment) and `POST /api/cards/:id/execute-regeneration` (verifies payment + triggers background generation). Post-payment redirect detected on the card preview page via URL params (`regen_ref`, `regen_type`).
+- **Regeneration System**: Users can regenerate a card (new scene, art style, or inside message) and pay R25/R15/R35 via Paystack. Dedicated `/regen/:cardId` page shows the original card as a reference, with accordion edit sections (scene, art style, inside message). Each regen creates a **new card row** (`parentCardId` links back to the original — the original is never overwritten). Flow: card preview → `/regen/:cardId` (inline OTP auth if needed) → edit → pay → Paystack callback to `/regen/:cardId?regen_ref=...&regen_type=...` → `POST /api/cards/:id/execute-regeneration` (verifies payment, creates new card, fires background generation) → polling confirmation screen → email with new card link.
 - **Free Digital Downloads**: No watermarks on any generated images. Users can download front and inside card PNGs directly from the card preview page.
 
 ## External Dependencies

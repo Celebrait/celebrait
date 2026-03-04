@@ -4682,7 +4682,7 @@ ${styleSection}`;
       if (!amount) return res.status(400).json({ message: "Invalid regenerateType. Use front, inside, or both." });
 
       const reference = `celebrait_regen_${cardId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      const callbackUrl = `https://${req.get('host')}/card-preview/celebrait_ready_${cardId}?regen_ref=${reference}&regen_type=${regenerateType}`;
+      const callbackUrl = `https://${req.get('host')}/regen/${cardId}?regen_ref=${reference}&regen_type=${regenerateType}`;
 
       if (!process.env.PAYSTACK_SECRET_KEY) {
         return res.json({ testMode: true, reference, message: "No Paystack key — use execute-regeneration directly in test mode" });
@@ -4747,7 +4747,7 @@ ${styleSection}`;
         ...storedData,
         ...(newScene ? { scene: newScene } : {}),
         ...(newArtStyle ? { art_style: newArtStyle } : {}),
-        ...(newInsideMessage ? { inside_message: newInsideMessage } : {})
+        ...(newInsideMessage !== undefined ? { inside_message: newInsideMessage } : {})
       };
 
       // Determine what to regenerate
@@ -4767,14 +4767,29 @@ ${styleSection}`;
       const userName = storedData.name || (userEmail || '').split('@')[0];
       const resolvedEmail = userEmail || storedData.userEmail || '';
 
-      // Respond immediately
-      res.json({ success: true, message: "Regeneration started. Check your email when it's ready." });
+      // Create a NEW card for this regeneration — original is preserved
+      const newCard = await storage.createCard({
+        userId: card.userId,
+        parentCardId: cardId,
+        cardType: card.cardType,
+        printOption: card.printOption || 'front-and-inside',
+        sceneType: card.sceneType,
+        conversationData: updatedAnswers,
+        price: card.price,
+        status: 'generating',
+      } as any);
 
-      // Fire in background
+      const newCardId = newCard.id;
+      console.log(`[REGEN] Created new card ${newCardId} as regen of card ${cardId}`);
+
+      // Respond immediately with newCardId so the client can poll it
+      res.json({ success: true, newCardId, message: "Regeneration started. Check your email when it's ready." });
+
+      // Fire generation in background against the NEW card
       const { generateCardInBackground } = await import('./background-generator');
       setImmediate(() => {
         generateCardInBackground({
-          cardId,
+          cardId: newCardId,
           userEmail: resolvedEmail,
           userName,
           generationType: (updatedAnswers.photo_option === 'upload_and_scene' || resolvedImageDataArray?.length) ? 'scene' : 'text-only',
@@ -4786,7 +4801,7 @@ ${styleSection}`;
           answers: updatedAnswers,
           uploadedPhotoIds: storedData.uploadedPhotoIds
         }).catch(err => {
-          console.error(`[REGEN] Error in regeneration for card ${cardId}:`, err);
+          console.error(`[REGEN] Error in regeneration for new card ${newCardId}:`, err);
         });
       });
 

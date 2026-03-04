@@ -9,6 +9,7 @@ import { users } from "./models/auth";
 export const cards = pgTable("cards", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id),
+  parentCardId: integer("parent_card_id"),
   cardType: text("card_type").notNull().default('printed'),
   printOption: text("print_option").default('front-and-inside'),
   sceneType: text("scene_type").notNull(),

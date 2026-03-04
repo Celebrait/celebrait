@@ -19,6 +19,7 @@ import NotFound from "@/pages/not-found";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import TermsOfService from "@/pages/terms-of-service";
 import Dashboard from "@/pages/dashboard";
+import RegenPage from "@/pages/regen-page";
 
 
 function Router() {
@@ -38,6 +39,7 @@ function Router() {
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms-of-service" component={TermsOfService} />
         <Route path="/dashboard" component={Dashboard} />
+        <Route path="/regen/:cardId" component={RegenPage} />
 
         <Route component={NotFound} />
       </Switch>
