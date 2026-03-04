@@ -55,6 +55,7 @@ async function callOpenAIImageEdit(params: {
   formData.append('quality', 'high');
   formData.append('moderation', 'low');
   formData.append('background', 'auto');
+  formData.append('output_format', 'b64_json');
 
   const fetch = (await import('node-fetch')).default;
   const response = await fetch('https://api.openai.com/v1/images/edits', {
@@ -88,6 +89,41 @@ async function callOpenAIImageEdit(params: {
     return imageResult.url;
   }
   throw new Error('No image data in OpenAI response');
+}
+
+function isSafetyViolation(message: string): boolean {
+  return (
+    message.includes('safety') ||
+    message.includes('safety_violations') ||
+    message.includes('content_policy') ||
+    message.includes('rejected by the safety')
+  );
+}
+
+async function callOpenAIImageEditWithRetry(
+  params: { imageBuffers: { buffer: Buffer; mimeType: string }[]; prompt: string; size?: string },
+  cardId: number,
+  maxAttempts = 3
+): Promise<string> {
+  let lastError: Error = new Error('Unknown error');
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await callOpenAIImageEdit(params);
+    } catch (err: any) {
+      lastError = err;
+      if (isSafetyViolation(err.message)) {
+        if (attempt < maxAttempts) {
+          console.warn(`[BG_GEN] Safety rejection on attempt ${attempt} for card ${cardId}, retrying in 3s...`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        } else {
+          console.error(`[BG_GEN] All ${maxAttempts} attempts failed for card ${cardId} due to safety rejection`);
+        }
+      } else {
+        throw err;
+      }
+    }
+  }
+  throw lastError;
 }
 
 async function callOpenAITextGeneration(prompt: string, size = '1024x1024'): Promise<string> {
@@ -260,7 +296,7 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
       });
 
       console.log(`[BG_GEN] Calling OpenAI scene edit for card ${cardId}`);
-      const sceneImageUrl = await callOpenAIImageEdit({ imageBuffers, prompt });
+      const sceneImageUrl = await callOpenAIImageEditWithRetry({ imageBuffers, prompt }, cardId);
       const { watermarked: sw, original: so } = await savePngFiles(sceneImageUrl, cardId, 'front');
       frontWatermarked = sw;
       frontOriginal = so;
@@ -271,7 +307,7 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
       const prompt = buildTransformPrompt(artStyle, params.cardText);
 
       console.log(`[BG_GEN] Calling OpenAI transform for card ${cardId}`);
-      const transformImageUrl = await callOpenAIImageEdit({ imageBuffers, prompt });
+      const transformImageUrl = await callOpenAIImageEditWithRetry({ imageBuffers, prompt }, cardId);
       const { watermarked: tw, original: to_ } = await savePngFiles(transformImageUrl, cardId, 'front');
       frontWatermarked = tw;
       frontOriginal = to_;
@@ -312,7 +348,7 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
       }
 
       const insideImageBuffers = [base64ToBuffer(frontImageForInside)];
-      const insideImageUrl = await callOpenAIImageEdit({ imageBuffers: insideImageBuffers, prompt: insidePrompt });
+      const insideImageUrl = await callOpenAIImageEditWithRetry({ imageBuffers: insideImageBuffers, prompt: insidePrompt }, cardId);
       const { watermarked: iw, original: io } = await savePngFiles(insideImageUrl, cardId, 'inside');
       insideWatermarked = iw;
       insideOriginal = io;
