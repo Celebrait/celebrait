@@ -1820,9 +1820,32 @@ If just having a conversation (no suggestions), respond with valid JSON:
       }
       
       if (!imageBuffer) {
-        // Fall back to stored image if no original is available
-        console.log(`[DOWNLOAD] Using stored front image for card ${cardId} (no original found)`);
-        imageBuffer = await getStoredImage(cardId, 'front');
+        // Try print-resolution file first (3000×3000, generated after background gen)
+        const fsModule = await import('fs');
+        const pathModule2 = await import('path');
+        const printPath = pathModule2.join(process.cwd(), 'stored_images', `card_${cardId}_front_print.png`);
+        try {
+          await fsModule.promises.access(printPath);
+          imageBuffer = await fsModule.promises.readFile(printPath);
+          console.log(`[DOWNLOAD] Serving print-resolution front image for card ${cardId} (${imageBuffer.length} bytes)`);
+        } catch {
+          // Fall back to standard stored image
+          console.log(`[DOWNLOAD] Using stored front image for card ${cardId} (no original, no print file found)`);
+          imageBuffer = await getStoredImage(cardId, 'front');
+        }
+      } else {
+        // Check if a higher-res print file is available, prefer it
+        const fsModule = await import('fs');
+        const pathModule2 = await import('path');
+        const printPath = pathModule2.join(process.cwd(), 'stored_images', `card_${cardId}_front_print.png`);
+        try {
+          await fsModule.promises.access(printPath);
+          const printBuffer = await fsModule.promises.readFile(printPath);
+          imageBuffer = printBuffer;
+          console.log(`[DOWNLOAD] Upgraded to print-resolution front image for card ${cardId} (${imageBuffer.length} bytes)`);
+        } catch {
+          // Print file not yet available, serve what we have
+        }
       }
       
       if (!imageBuffer) {
@@ -1877,9 +1900,31 @@ If just having a conversation (no suggestions), respond with valid JSON:
       }
       
       if (!imageBuffer) {
-        // Fall back to stored image if no original is available
-        console.log(`[DOWNLOAD] Using stored inside image for card ${cardId} (no original found)`);
-        imageBuffer = await getStoredImage(cardId, 'inside');
+        // Try print-resolution file first (3000×3000, generated after background gen)
+        const fsModule2 = await import('fs');
+        const pathModule3 = await import('path');
+        const printPath2 = pathModule3.join(process.cwd(), 'stored_images', `card_${cardId}_inside_print.png`);
+        try {
+          await fsModule2.promises.access(printPath2);
+          imageBuffer = await fsModule2.promises.readFile(printPath2);
+          console.log(`[DOWNLOAD] Serving print-resolution inside image for card ${cardId} (${imageBuffer.length} bytes)`);
+        } catch {
+          console.log(`[DOWNLOAD] Using stored inside image for card ${cardId} (no original, no print file found)`);
+          imageBuffer = await getStoredImage(cardId, 'inside');
+        }
+      } else {
+        // Check if a higher-res print file is available, prefer it
+        const fsModule2 = await import('fs');
+        const pathModule3 = await import('path');
+        const printPath2 = pathModule3.join(process.cwd(), 'stored_images', `card_${cardId}_inside_print.png`);
+        try {
+          await fsModule2.promises.access(printPath2);
+          const printBuffer2 = await fsModule2.promises.readFile(printPath2);
+          imageBuffer = printBuffer2;
+          console.log(`[DOWNLOAD] Upgraded to print-resolution inside image for card ${cardId} (${imageBuffer.length} bytes)`);
+        } catch {
+          // Print file not yet available, serve what we have
+        }
       }
       
       if (!imageBuffer) {
@@ -3158,19 +3203,19 @@ If just having a conversation (no suggestions), respond with valid JSON:
       });
       console.log(`[CACHE] Cached ready card metadata for reference: ${reference}`);
       
-      // Preload images into cache for instant loading
+      // Preload thumbnail images into a SEPARATE thumbnail cache for fast display.
+      // Uses thumb-front-* / thumb-inside-* keys, NOT the fast-front-* / fast-inside-* keys,
+      // so that display thumbnails never pollute the full-resolution serving path.
       if (card.frontImageUrl) {
-        const frontCacheKey = `fast-front-${cardId}`;
-        if (!imageCache.has(frontCacheKey)) {
+        const thumbCacheKey = `thumb-front-${cardId}`;
+        if (!imageCache.has(thumbCacheKey)) {
           try {
             let imageBuffer: Buffer;
             
             if (card.frontImageUrl.startsWith('data:image/')) {
-              // Handle legacy base64 data URLs
               const base64Data = card.frontImageUrl.split(',')[1];
               imageBuffer = Buffer.from(base64Data, 'base64');
             } else if (card.frontImageUrl.startsWith('/images/')) {
-              // Handle PNG file URLs
               const fs = await import('fs');
               const path = await import('path');
               const frontFilePath = path.join(process.cwd(), 'stored_images', card.frontImageUrl.replace('/images/', ''));
@@ -3187,34 +3232,32 @@ If just having a conversation (no suggestions), respond with valid JSON:
             }
             
             const compressedBuffer = await sharp(imageBuffer)
-              .jpeg({ quality: 60, progressive: true })
-              .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
+              .jpeg({ quality: 75, progressive: true })
+              .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
               .toBuffer();
             
-            imageCache.set(frontCacheKey, {
+            imageCache.set(thumbCacheKey, {
               data: compressedBuffer,
               timestamp: Date.now(),
-              etag: `"fast-front-${cardId}"`
+              etag: `"thumb-front-${cardId}"`
             });
-            console.log(`[PRELOAD] Cached front image for instant loading: ${cardId} (${imageBuffer.length} bytes)`);
+            console.log(`[PRELOAD] Cached front thumbnail for instant loading: ${cardId} (${imageBuffer.length} bytes → ${compressedBuffer.length} bytes thumbnail)`);
           } catch (e) {
-            console.warn(`[PRELOAD] Failed to cache front image: ${e}`);
+            console.warn(`[PRELOAD] Failed to cache front thumbnail: ${e}`);
           }
         }
       }
       
       if (card.insideImageUrl) {
-        const insideCacheKey = `fast-inside-${cardId}`;
-        if (!imageCache.has(insideCacheKey)) {
+        const thumbCacheKey = `thumb-inside-${cardId}`;
+        if (!imageCache.has(thumbCacheKey)) {
           try {
             let imageBuffer: Buffer;
             
             if (card.insideImageUrl.startsWith('data:image/')) {
-              // Handle legacy base64 data URLs
               const base64Data = card.insideImageUrl.split(',')[1];
               imageBuffer = Buffer.from(base64Data, 'base64');
             } else if (card.insideImageUrl.startsWith('/images/')) {
-              // Handle PNG file URLs
               const fs = await import('fs');
               const path = await import('path');
               const insideFilePath = path.join(process.cwd(), 'stored_images', card.insideImageUrl.replace('/images/', ''));
@@ -3231,18 +3274,18 @@ If just having a conversation (no suggestions), respond with valid JSON:
             }
             
             const compressedBuffer = await sharp(imageBuffer)
-              .jpeg({ quality: 60, progressive: true })
-              .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
+              .jpeg({ quality: 75, progressive: true })
+              .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
               .toBuffer();
             
-            imageCache.set(insideCacheKey, {
+            imageCache.set(thumbCacheKey, {
               data: compressedBuffer,
               timestamp: Date.now(),
-              etag: `"fast-inside-${cardId}"`
+              etag: `"thumb-inside-${cardId}"`
             });
-            console.log(`[PRELOAD] Cached inside image for instant loading: ${cardId} (${imageBuffer.length} bytes)`);
+            console.log(`[PRELOAD] Cached inside thumbnail for instant loading: ${cardId} (${imageBuffer.length} bytes → ${compressedBuffer.length} bytes thumbnail)`);
           } catch (e) {
-            console.warn(`[PRELOAD] Failed to cache inside image: ${e}`);
+            console.warn(`[PRELOAD] Failed to cache inside thumbnail: ${e}`);
           }
         }
       }

@@ -337,6 +337,38 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
 
     console.log(`[BG_GEN] Card ${cardId} generation completed successfully`);
 
+    // --- GENERATE PRINT-RESOLUTION FILES (3000×3000 Lanczos3 upscale) ---
+    // These are stored as card_${id}_front_print.png / inside_print.png for use
+    // in PDF generation and high-quality downloads. Failure here is non-fatal.
+    try {
+      const { getStoredImage, storeUnwatermarkedPngFile } = await import('./image-storage');
+      const sharp = (await import('sharp')).default;
+
+      const frontBuffer = await getStoredImage(cardId, 'front');
+      if (frontBuffer) {
+        const frontPrintBuffer = await sharp(frontBuffer)
+          .resize(3000, 3000, { kernel: sharp.kernel.lanczos3, fit: 'inside', withoutEnlargement: false })
+          .png({ compressionLevel: 6 })
+          .toBuffer();
+        const frontPrintBase64 = `data:image/png;base64,${frontPrintBuffer.toString('base64')}`;
+        await storeUnwatermarkedPngFile(frontPrintBase64, cardId, 'front_print');
+        console.log(`[BG_GEN] Print-resolution front image saved for card ${cardId} (${frontPrintBuffer.length} bytes)`);
+      }
+
+      const insideBuffer = await getStoredImage(cardId, 'inside');
+      if (insideBuffer) {
+        const insidePrintBuffer = await sharp(insideBuffer)
+          .resize(3000, 3000, { kernel: sharp.kernel.lanczos3, fit: 'inside', withoutEnlargement: false })
+          .png({ compressionLevel: 6 })
+          .toBuffer();
+        const insidePrintBase64 = `data:image/png;base64,${insidePrintBuffer.toString('base64')}`;
+        await storeUnwatermarkedPngFile(insidePrintBase64, cardId, 'inside_print');
+        console.log(`[BG_GEN] Print-resolution inside image saved for card ${cardId} (${insidePrintBuffer.length} bytes)`);
+      }
+    } catch (printErr: any) {
+      console.error(`[BG_GEN] Print-resolution upscaling failed for card ${cardId} (non-fatal):`, printErr.message);
+    }
+
     // --- SEND EMAIL ---
     try {
       const sent = await sendBackgroundEmail(cardId, userEmail, userName);

@@ -21,7 +21,7 @@ export default function CardPreview({ card, onboarding }: CardPreviewProps) {
   const handleDownload = async (type: 'front' | 'inside') => {
     setDownloading(type);
     try {
-      const url = `/api/cards/${card.id}/fast-${type}-image`;
+      const url = `/api/cards/${card.id}/download-${type}-image`;
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch image');
       const blob = await response.blob();

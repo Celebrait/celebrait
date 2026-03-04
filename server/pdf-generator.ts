@@ -60,14 +60,25 @@ async function generateSingleCardPDF(
   format: string, 
   dpi: number
 ): Promise<string> {
-  // Load unwatermarked image
-  const imagePath = path.join(IMAGES_DIR, `card_${cardId}_${side}_unwatermarked.png`);
-  
-  // Check if image exists
+  // Prefer print-resolution file (3000×3000 Lanczos upscale) when available,
+  // otherwise fall back to unwatermarked file
+  const printImagePath = path.join(IMAGES_DIR, `card_${cardId}_${side}_print.png`);
+  const unwatermarkedImagePath = path.join(IMAGES_DIR, `card_${cardId}_${side}_unwatermarked.png`);
+
+  let imagePath: string;
+  try {
+    await fs.access(printImagePath);
+    imagePath = printImagePath;
+    console.log(`[PDF] Using print-resolution image for card ${cardId} ${side}`);
+  } catch {
+    imagePath = unwatermarkedImagePath;
+  }
+
+  // Check if chosen image exists
   try {
     await fs.access(imagePath);
   } catch (error) {
-    throw new Error(`Unwatermarked ${side} image not found for card ${cardId}`);
+    throw new Error(`${side} image not found for card ${cardId}`);
   }
   
   // Get format dimensions in points (72 DPI)
