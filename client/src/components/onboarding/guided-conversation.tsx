@@ -2288,7 +2288,12 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       const result = await verifyOtp({ email: otpEmail, code: otpCode, firstName: otpFirstName || undefined });
       setOtpStep('done');
       setShowPreAuthModal(false);
-      // Fire background generation and show confirmation screen
+      // Show confirmation screen instantly — don't make user wait on the chat
+      setBackgroundCardEmail(otpEmail);
+      setBgGenStatus('generating');
+      setBgCheckPhase(true);
+      setShowBackgroundConfirmation(true);
+      // Fire background generation in the background
       triggerBackgroundGeneration(result.user);
     } catch (err: any) {
       setOtpError(err?.message || 'Invalid code. Please try again.');
@@ -2308,7 +2313,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
         currentCardId = await initializeCard(verifiedUser);
       } catch (err) {
         console.error('[BG] Failed to initialize card:', err);
-        // Fallback to the regular flow
+        setShowBackgroundConfirmation(false);
         actuallyGenerateCard(undefined, verifiedUser);
         return;
       }
@@ -2323,6 +2328,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
     if (generationType === 'text-only') {
       // Text-only falls back to old flow (DALLE) for now
+      setShowBackgroundConfirmation(false);
       actuallyGenerateCard(undefined, verifiedUser);
       return;
     }
@@ -2334,6 +2340,7 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
 
     if (imageDataArray.length === 0) {
       // No images found, fall back
+      setShowBackgroundConfirmation(false);
       actuallyGenerateCard(undefined, verifiedUser);
       return;
     }
@@ -2390,18 +2397,16 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       });
 
       if (response.ok) {
-        setBackgroundCardEmail(userEmail);
         setBackgroundCardId(currentCardId);
-        setBgGenStatus('generating');
-        setBgCheckPhase(true);
-        setShowBackgroundConfirmation(true);
       } else {
         // If background endpoint fails, fall back to old flow
         console.warn('[BG] Background endpoint failed, falling back to inline flow');
+        setShowBackgroundConfirmation(false);
         actuallyGenerateCard(undefined, verifiedUser);
       }
     } catch (err) {
       console.error('[BG] Failed to call background generation:', err);
+      setShowBackgroundConfirmation(false);
       actuallyGenerateCard(undefined, verifiedUser);
     }
   };

@@ -3,7 +3,9 @@
 ## Overview
 Celebrait is a full-stack web application that creates personalized greeting cards using advanced AI for image generation and natural language processing. Its purpose is to offer users a unique way to generate custom cards through a guided conversational experience.
 
-**Business Model**: Digital cards are free to generate and download (no watermarks). Printed cards start from R129. Regeneration (tweaking an existing card with new inputs) costs R25 for the front, R15 for the inside, or R35 for both.
+**Target Market**: UK (Print-on-Demand via POD partner). Previously South Africa.
+**Business Model**: Digital cards are free to generate and download (no watermarks). Printed cards priced in GBP (TBD). Regeneration (tweaking an existing card) requires committing to the print purchase + a regen add-on fee. Prices TBD in GBP.
+**Payment**: Stripe only (replacing PayFast/Paystack). Keys not yet configured — pending UK Stripe account setup.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -26,7 +28,7 @@ Preferred communication style: Simple, everyday language.
 - **Backend**: Node.js with Express.js, TypeScript.
 - **Database**: PostgreSQL with Drizzle ORM for schema-first management and Neon Database for serverless hosting. Session management uses Connect-pg-simple.
 - **AI Integration**: Custom prompt engineering for OpenAI GPT-4 (conversational UI) and Replicate (image generation). AI models are leveraged for photo analysis, dynamic prompt construction, and style application.
-- **Payment Processing**: Integrates Stripe for international payments and Paystack for the South African market, including a custom tipping system.
+- **Payment Processing**: Stripe only (UK market). Paystack/PayFast to be removed. Regen payments will use Stripe Payment Element embedded in a modal (no redirect). Stripe keys not yet configured.
 - **Image Pipeline**: Involves AI-powered photo analysis, dynamic prompt building, application of various art styles, and efficient handling of AI-generated image outputs (PNG-only workflow, no watermarks — clean images saved for both display and print).
 - **Email System**: Brevo integration for automated order confirmations, digital card delivery, and shipping notifications, using branded HTML templates. Provides 9,000 free emails per month.
 - **Configuration**: Manages environment variables for API keys and database connections, with strict TypeScript configuration.
@@ -38,7 +40,7 @@ Preferred communication style: Simple, everyday language.
 - **User Customization**: Allows selection of print options and scene types. Printed cards only (front-and-inside).
 - **Payment Gateway**: Secure processing of payments via integrated third-party providers.
 - **Customer Dashboard**: User account page at /dashboard showing profile, card history, and order status.
-- **Regeneration System**: Users can regenerate a card (new scene, art style, or inside message) and pay R25/R15/R35 via Paystack. Dedicated `/regen/:cardId` page shows the original card as a reference, with accordion edit sections (scene, art style, inside message). Each regen creates a **new card row** (`parentCardId` links back to the original — the original is never overwritten). Flow: card preview → `/regen/:cardId` (inline OTP auth if needed) → edit → pay → Paystack callback to `/regen/:cardId?regen_ref=...&regen_type=...` → `POST /api/cards/:id/execute-regeneration` (verifies payment, creates new card, fires background generation) → polling confirmation screen → email with new card link.
+- **Regeneration System**: Users can regenerate a card (new scene, art style, or inside message). Regen requires committing to print purchase + regen add-on (framed as "ordering a new version"). GBP prices TBD. Planned payment: Stripe Payment Element embedded modal (no redirect). Each regen creates a **new card row** (`parentCardId` links back to the original — the original is never overwritten). Current flow uses Paystack (to be replaced with Stripe modal).
 - **Free Digital Downloads**: No watermarks on any generated images. Users can download front and inside card PNGs directly from the card preview page.
 
 ## External Dependencies
@@ -47,8 +49,7 @@ Preferred communication style: Simple, everyday language.
     - OpenAI API (GPT-4 for NLP, GPT-Image-1 for image generation)
     - Replicate API (various image generation models)
 - **Payment Providers**:
-    - Stripe
-    - Paystack
+    - Stripe (UK market — keys pending setup; will replace all other payment providers)
 - **Infrastructure**:
     - Neon Database (PostgreSQL hosting)
     - Replit (Development and deployment)
