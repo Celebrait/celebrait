@@ -55,7 +55,6 @@ async function callOpenAIImageEdit(params: {
   formData.append('quality', 'high');
   formData.append('moderation', 'low');
   formData.append('background', 'auto');
-  formData.append('output_format', 'b64_json');
 
   const fetch = (await import('node-fetch')).default;
   const response = await fetch('https://api.openai.com/v1/images/edits', {
