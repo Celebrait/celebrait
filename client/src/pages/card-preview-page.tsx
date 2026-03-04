@@ -25,6 +25,24 @@ export default function CardPreviewPage() {
     }
   }, [reference, hasInitialized]);
 
+  // After card data loads, if insideImageUrl is missing, check the no-cache status endpoint
+  // to patch it in — this bypasses browser cache and sessionStorage stale data
+  useEffect(() => {
+    if (cardData?.id && !cardData.insideImageUrl) {
+      fetch(`/api/cards/${cardData.id}/status`)
+        .then(r => r.json())
+        .then(status => {
+          if (status.hasInside) {
+            setCardData((prev: any) => ({
+              ...prev,
+              insideImageUrl: `/api/cards/${prev.id}/fast-inside-image`
+            }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [cardData?.id, cardData?.insideImageUrl]);
+
   const loadCardDataInstantly = async () => {
     // For email links, prioritize instant loading
     const cacheKey = `ready_${reference}`;

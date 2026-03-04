@@ -1162,10 +1162,10 @@ If just having a conversation (no suggestions), respond with valid JSON:
         timestamp: Date.now()
       });
       
-      // Maximum browser caching for instant subsequent loads
+      // Use ETag-based validation so browsers always re-check when card data changes
       res.set({
-        'Cache-Control': 'public, max-age=86400, immutable', // 24-hour cache
-        'ETag': `"fast-${cardId}-v4"`,
+        'Cache-Control': 'no-cache',
+        'ETag': `"fast-${cardId}-v5"`,
         'X-Cache': 'MISS',
         'X-Performance': `db-${Date.now() - dbStartTime}ms`
       });
