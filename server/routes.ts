@@ -496,7 +496,11 @@ async function processFluxBinaryOutput(output: any): Promise<string> {
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // Setup Replit Auth BEFORE other routes
+  if (process.env.REPL_ID && process.env.REPL_ID.trim().length > 0) {
   await setupAuth(app);
+} else {
+  console.warn("[auth] Replit auth disabled locally (REPL_ID not set).");
+}
   registerAuthRoutes(app);
 
   // Import isAuthenticated middleware for user-specific routes
