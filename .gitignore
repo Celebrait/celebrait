@@ -6,4 +6,5 @@ dist
 # Replit artifacts
 .local/
 .replit
-replit.nix
+replit.nixstored_images/
+temp_images/
