@@ -8,3 +8,8 @@ dist
 .replit
 replit.nixstored_images/
 temp_images/
+
+# Replit artifacts
+.local/
+.replit
+replit.nix
