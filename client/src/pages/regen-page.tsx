@@ -3,7 +3,7 @@ import { useParams } from 'wouter';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import { useToast } from '@/hooks/use-toast';
-import { ChevronDown, ChevronUp, Sparkles, CheckCircle, Edit3 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Sparkles, CheckCircle, Edit3, X, Lock, CreditCard } from 'lucide-react';
 
 const ART_STYLES = [
   { value: 'ai_decide', label: 'Let AI decide' },
@@ -16,7 +16,20 @@ const ART_STYLES = [
   { value: 'impressionist', label: 'Impressionist' },
 ];
 
+const PRINT_PRICE = 9.99;
+const REGEN_PRICES = { front: 2.99, inside: 1.99, both: 3.99 };
+const REGEN_LABELS = { front: 'New front design', inside: 'New inside message', both: 'Front + inside refresh' };
+
 type RegenType = 'front' | 'inside' | 'both';
+
+function formatCard(val: string) {
+  return val.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
+}
+function formatExpiry(val: string) {
+  const digits = val.replace(/\D/g, '').slice(0, 4);
+  if (digits.length >= 3) return digits.slice(0, 2) + '/' + digits.slice(2);
+  return digits;
+}
 
 export default function RegenPage() {
   const { cardId } = useParams<{ cardId: string }>();
@@ -46,7 +59,13 @@ export default function RegenPage() {
 
   // Regeneration type
   const [regenType, setRegenType] = useState<RegenType>('both');
-  const [paying, setPaying] = useState(false);
+
+  // Payment modal state
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [mockCardNumber, setMockCardNumber] = useState('');
+  const [mockExpiry, setMockExpiry] = useState('');
+  const [mockCvc, setMockCvc] = useState('');
+  const [payProcessing, setPayProcessing] = useState(false);
 
   // Post-payment confirmation state
   const [confirmPhase, setConfirmPhase] = useState(false);
@@ -56,17 +75,16 @@ export default function RegenPage() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const numericCardId = parseInt(cardId || '0');
+  const regenPrice = REGEN_PRICES[regenType];
+  const total = (PRINT_PRICE + regenPrice).toFixed(2);
 
   // ── Auth check ─────────────────────────────────────────────────────────────
   useEffect(() => {
     fetch('/api/auth/user')
       .then(r => r.ok ? r.json() : null)
       .then(user => {
-        if (user?.id) {
-          setAuthStatus('authed');
-        } else {
-          setAuthStatus('otp-email');
-        }
+        if (user?.id) setAuthStatus('authed');
+        else setAuthStatus('otp-email');
       })
       .catch(() => setAuthStatus('otp-email'));
   }, []);
@@ -104,61 +122,6 @@ export default function RegenPage() {
     else setRegenType('both');
   }, [sceneEdited, messageEdited]);
 
-  // ── Detect post-payment redirect ──────────────────────────────────────────
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const regenRef = params.get('regen_ref');
-    const regenTypeParam = params.get('regen_type') as RegenType | null;
-    if (!regenRef || !regenTypeParam) return;
-
-    // Read saved edits from sessionStorage
-    let savedEdits: any = {};
-    try {
-      const stored = sessionStorage.getItem(`regen_edits_${numericCardId}`);
-      if (stored) savedEdits = JSON.parse(stored);
-    } catch {}
-
-    const execRegen = async () => {
-      // Need auth first — wait a moment then execute
-      const execEmail = savedEdits.userEmail || userEmail;
-
-      const body: any = {
-        paystackReference: regenRef,
-        regenerateType: regenTypeParam,
-        userEmail: execEmail,
-      };
-      if (savedEdits.newScene) body.newScene = savedEdits.newScene;
-      if (savedEdits.newArtStyle) body.newArtStyle = savedEdits.newArtStyle;
-      if (savedEdits.newInsideMessage !== undefined) body.newInsideMessage = savedEdits.newInsideMessage;
-
-      try {
-        const res = await fetch(`/api/cards/${numericCardId}/execute-regeneration`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json();
-        if (data.success && data.newCardId) {
-          setNewCardId(data.newCardId);
-          setConfirmPhase(true);
-          // Clean up URL
-          const url = new URL(window.location.href);
-          url.searchParams.delete('regen_ref');
-          url.searchParams.delete('regen_type');
-          window.history.replaceState({}, '', url.toString());
-        } else {
-          toast({ title: 'Regeneration error', description: data.message || 'Something went wrong.', variant: 'destructive' });
-        }
-      } catch {
-        toast({ title: 'Network error', description: 'Please try again.', variant: 'destructive' });
-      }
-    };
-
-    // Small delay to allow card data + user email to load
-    const timer = setTimeout(execRegen, 1000);
-    return () => clearTimeout(timer);
-  }, [numericCardId]);
-
   // ── Poll new card status in confirm phase ─────────────────────────────────
   useEffect(() => {
     if (!confirmPhase || !newCardId) return;
@@ -166,13 +129,8 @@ export default function RegenPage() {
       try {
         const res = await fetch(`/api/cards/${newCardId}/status`);
         const data = await res.json();
-        if (data.status === 'completed') {
-          setNewCardStatus('completed');
-          clearInterval(pollRef.current!);
-        } else if (data.status === 'failed') {
-          setNewCardStatus('failed');
-          clearInterval(pollRef.current!);
-        }
+        if (data.status === 'completed') { setNewCardStatus('completed'); clearInterval(pollRef.current!); }
+        else if (data.status === 'failed') { setNewCardStatus('failed'); clearInterval(pollRef.current!); }
       } catch {}
     }, 5000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
@@ -188,11 +146,8 @@ export default function RegenPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: authEmail }),
       });
-      if (res.ok) {
-        setAuthStatus('otp-code');
-      } else {
-        toast({ title: 'Error', description: 'Could not send code. Try again.', variant: 'destructive' });
-      }
+      if (res.ok) setAuthStatus('otp-code');
+      else toast({ title: 'Error', description: 'Could not send code. Try again.', variant: 'destructive' });
     } catch {
       toast({ title: 'Network error', description: 'Please try again.', variant: 'destructive' });
     } finally {
@@ -210,12 +165,8 @@ export default function RegenPage() {
         body: JSON.stringify({ email: authEmail, code: otpCode }),
       });
       const data = await res.json();
-      if (data.success) {
-        setUserEmail(authEmail);
-        setAuthStatus('authed');
-      } else {
-        toast({ title: 'Invalid code', description: 'Check your email and try again.', variant: 'destructive' });
-      }
+      if (data.success) { setUserEmail(authEmail); setAuthStatus('authed'); }
+      else toast({ title: 'Invalid code', description: 'Check your email and try again.', variant: 'destructive' });
     } catch {
       toast({ title: 'Network error', description: 'Please try again.', variant: 'destructive' });
     } finally {
@@ -223,60 +174,54 @@ export default function RegenPage() {
     }
   };
 
-  // ── Pay & Regenerate ──────────────────────────────────────────────────────
-  const handlePay = async () => {
+  // ── Open payment modal ────────────────────────────────────────────────────
+  const handleOpenPayModal = () => {
     const email = userEmail || card?.conversationData?.userEmail || card?.conversationData?.email || '';
     if (!email) {
       toast({ title: 'Email required', description: 'We need your email to send you the new card.', variant: 'destructive' });
       return;
     }
+    setMockCardNumber('');
+    setMockExpiry('');
+    setMockCvc('');
+    setShowPayModal(true);
+  };
 
-    // Build inside_message object
-    const insideMessageObj = {
-      dear: newInsideDear,
-      message: newInsideMessage,
-      from: newInsideFrom,
-    };
+  // ── Execute payment (test mode — calls execute-regeneration directly) ──────
+  const handlePay = async () => {
+    const email = userEmail || card?.conversationData?.userEmail || card?.conversationData?.email || '';
+    const insideMessageObj = { dear: newInsideDear, message: newInsideMessage, from: newInsideFrom };
 
-    // Save edits to sessionStorage before redirect
-    const edits = {
-      userEmail: email,
-      newScene: sceneEdited ? newScene : undefined,
-      newArtStyle: styleEdited ? newArtStyle : undefined,
-      newInsideMessage: messageEdited ? JSON.stringify(insideMessageObj) : undefined,
-    };
-    sessionStorage.setItem(`regen_edits_${numericCardId}`, JSON.stringify(edits));
-
-    setPaying(true);
+    setPayProcessing(true);
     try {
-      const res = await fetch(`/api/cards/${numericCardId}/initiate-regeneration`, {
+      const body: any = {
+        regenerateType: regenType,
+        userEmail: email,
+      };
+      if (sceneEdited) body.newScene = newScene;
+      if (styleEdited) body.newArtStyle = newArtStyle;
+      if (messageEdited) body.newInsideMessage = JSON.stringify(insideMessageObj);
+
+      const res = await fetch(`/api/cards/${numericCardId}/execute-regeneration`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          regenerateType: regenType,
-          newScene: sceneEdited ? newScene : undefined,
-          newArtStyle: styleEdited ? newArtStyle : undefined,
-          newInsideMessage: messageEdited ? JSON.stringify(insideMessageObj) : undefined,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (data.paymentUrl) {
-        window.location.href = data.paymentUrl;
-      } else if (data.testMode) {
-        toast({ title: 'Test mode', description: 'No payment configured — regen skipped.' });
-        setPaying(false);
+
+      if (data.success && data.newCardId) {
+        setNewCardId(data.newCardId);
+        setShowPayModal(false);
+        setConfirmPhase(true);
       } else {
-        toast({ title: 'Payment error', description: data.message || 'Could not start payment.', variant: 'destructive' });
-        setPaying(false);
+        toast({ title: 'Error', description: data.message || 'Something went wrong.', variant: 'destructive' });
+        setPayProcessing(false);
       }
     } catch {
       toast({ title: 'Network error', description: 'Please try again.', variant: 'destructive' });
-      setPaying(false);
+      setPayProcessing(false);
     }
   };
-
-  const priceLabel = regenType === 'front' ? 'R25' : regenType === 'inside' ? 'R15' : 'R35';
 
   const convData = card?.conversationData || {};
   const recipientName = convData.name || 'your recipient';
@@ -304,46 +249,28 @@ export default function RegenPage() {
             <Sparkles className="w-10 h-10 text-purple-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Sign in to regenerate</h2>
             <p className="text-gray-500 text-sm mb-6">We'll send a quick code to your email.</p>
-
             {authStatus === 'otp-email' ? (
               <>
-                <input
-                  type="email"
-                  value={authEmail}
-                  onChange={e => setAuthEmail(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSendOtp()}
-                  placeholder="your@email.com"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300 mb-4"
-                />
-                <button
-                  onClick={handleSendOtp}
-                  disabled={authLoading || !authEmail}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50"
-                >
+                <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSendOtp()} placeholder="your@email.com"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300 mb-4" />
+                <button onClick={handleSendOtp} disabled={authLoading || !authEmail}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50">
                   {authLoading ? 'Sending...' : 'Send Code'}
                 </button>
               </>
             ) : (
               <>
                 <p className="text-sm text-purple-600 font-medium mb-4">Code sent to {authEmail}</p>
-                <input
-                  type="text"
-                  value={otpCode}
+                <input type="text" value={otpCode}
                   onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  onKeyDown={e => e.key === 'Enter' && handleVerifyOtp()}
-                  placeholder="6-digit code"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-800 text-center text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-300 mb-4"
-                />
-                <button
-                  onClick={handleVerifyOtp}
-                  disabled={authLoading || otpCode.length < 6}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50"
-                >
+                  onKeyDown={e => e.key === 'Enter' && handleVerifyOtp()} placeholder="6-digit code"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-800 text-center text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-300 mb-4" />
+                <button onClick={handleVerifyOtp} disabled={authLoading || otpCode.length < 6}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50">
                   {authLoading ? 'Verifying...' : 'Verify'}
                 </button>
-                <button onClick={() => setAuthStatus('otp-email')} className="mt-3 text-sm text-gray-400 hover:text-gray-600">
-                  Back
-                </button>
+                <button onClick={() => setAuthStatus('otp-email')} className="mt-3 text-sm text-gray-400 hover:text-gray-600">Back</button>
               </>
             )}
           </div>
@@ -372,21 +299,17 @@ export default function RegenPage() {
                 <p className="text-gray-400 text-xs mt-4">This usually takes 1–2 minutes. You can safely close this page.</p>
               </>
             )}
-
             {newCardStatus === 'completed' && (
               <>
                 <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">Your new card is ready!</h2>
                 <p className="text-gray-500 text-sm mb-6">Check your email for a link, or view it now.</p>
-                <a
-                  href={`/card-preview/${newCardId}`}
-                  className="inline-block w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg hover:opacity-90 transition"
-                >
+                <a href={`/card-preview/${newCardId}`}
+                  className="inline-block w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg hover:opacity-90 transition text-center">
                   View New Card →
                 </a>
               </>
             )}
-
             {newCardStatus === 'failed' && (
               <>
                 <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -394,10 +317,7 @@ export default function RegenPage() {
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">Generation hit a snag</h2>
                 <p className="text-gray-500 text-sm mb-6">Something went wrong generating your new card. Please get in touch and we'll sort it out.</p>
-                <a
-                  href="/"
-                  className="inline-block w-full border-2 border-purple-200 text-purple-700 py-3 rounded-2xl font-semibold hover:bg-purple-50 transition"
-                >
+                <a href="/" className="inline-block w-full border-2 border-purple-200 text-purple-700 py-3 rounded-2xl font-semibold hover:bg-purple-50 transition">
                   Back to Home
                 </a>
               </>
@@ -445,8 +365,8 @@ export default function RegenPage() {
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         {/* Page header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Regenerate your card</h1>
-          <p className="text-gray-500">Edit what you want to change, then pay to create a fresh version.</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Order a new version</h1>
+          <p className="text-gray-500">Tweak the scene, style, or message — then order your updated card.</p>
         </div>
 
         {/* Reference panel */}
@@ -458,20 +378,14 @@ export default function RegenPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-xs text-gray-400 mb-1.5 font-medium">Front</p>
-              <img
-                src={`/api/cards/${numericCardId}/fast-front-image`}
-                alt="Card front"
-                className="w-full h-auto rounded-xl shadow-md border border-gray-100"
-              />
+              <img src={`/api/cards/${numericCardId}/fast-front-image`} alt="Card front"
+                className="w-full h-auto rounded-xl shadow-md border border-gray-100" />
             </div>
             {card.insideImageUrl && (
               <div>
                 <p className="text-xs text-gray-400 mb-1.5 font-medium">Inside</p>
-                <img
-                  src={`/api/cards/${numericCardId}/fast-inside-image`}
-                  alt="Card inside"
-                  className="w-full h-auto rounded-xl shadow-md border border-gray-100"
-                />
+                <img src={`/api/cards/${numericCardId}/fast-inside-image`} alt="Card inside"
+                  className="w-full h-auto rounded-xl shadow-md border border-gray-100" />
               </div>
             )}
           </div>
@@ -481,12 +395,10 @@ export default function RegenPage() {
         <div className="space-y-3 mb-6">
           <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">What would you like to change?</p>
 
-          {/* Section: Scene & Setting */}
+          {/* Scene & Setting */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <button
-              onClick={() => setOpenSection(s => s === 'scene' ? null : 'scene')}
-              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition"
-            >
+            <button onClick={() => setOpenSection(s => s === 'scene' ? null : 'scene')}
+              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition">
               <span className="flex items-center gap-3">
                 <Edit3 className="w-4 h-4 text-purple-400" />
                 <span className="font-medium text-gray-800">Scene &amp; Setting</span>
@@ -498,24 +410,19 @@ export default function RegenPage() {
             </button>
             {openSection === 'scene' && (
               <div className="px-5 pb-5 border-t border-gray-50">
-                <p className="text-xs text-gray-400 mt-3 mb-2">Describe the scene on the front of the card — location, mood, what's happening.</p>
-                <textarea
-                  value={newScene}
+                <p className="text-xs text-gray-400 mt-3 mb-2">Describe the scene on the front of the card.</p>
+                <textarea value={newScene}
                   onChange={e => { setNewScene(e.target.value); setSceneEdited(e.target.value !== (convData.scene || '')); }}
-                  rows={4}
-                  placeholder="e.g. Hanging out in front of the Pyramids at sunset..."
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
-                />
+                  rows={4} placeholder="e.g. Hanging out in front of the Pyramids at sunset..."
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none" />
               </div>
             )}
           </div>
 
-          {/* Section: Art Style */}
+          {/* Art Style */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <button
-              onClick={() => setOpenSection(s => s === 'style' ? null : 'style')}
-              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition"
-            >
+            <button onClick={() => setOpenSection(s => s === 'style' ? null : 'style')}
+              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition">
               <span className="flex items-center gap-3">
                 <Edit3 className="w-4 h-4 text-purple-400" />
                 <span className="font-medium text-gray-800">Art Style</span>
@@ -527,18 +434,11 @@ export default function RegenPage() {
             </button>
             {openSection === 'style' && (
               <div className="px-5 pb-5 border-t border-gray-50">
-                <p className="text-xs text-gray-400 mt-3 mb-3">Choose a different visual style for the card artwork.</p>
+                <p className="text-xs text-gray-400 mt-3 mb-3">Choose a different artistic style for the front.</p>
                 <div className="grid grid-cols-2 gap-2">
                   {ART_STYLES.map(s => (
-                    <button
-                      key={s.value}
-                      onClick={() => { setNewArtStyle(s.value); setStyleEdited(s.value !== (convData.art_style || 'ai_decide')); }}
-                      className={`text-sm px-3 py-2.5 rounded-xl border-2 font-medium transition-all ${
-                        newArtStyle === s.value
-                          ? 'border-purple-400 bg-purple-50 text-purple-700'
-                          : 'border-gray-200 text-gray-600 hover:border-purple-200'
-                      }`}
-                    >
+                    <button key={s.value} onClick={() => { setNewArtStyle(s.value); setStyleEdited(s.value !== (convData.art_style || 'ai_decide')); }}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium border transition text-left ${newArtStyle === s.value ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300'}`}>
                       {s.label}
                     </button>
                   ))}
@@ -547,119 +447,187 @@ export default function RegenPage() {
             )}
           </div>
 
-          {/* Section: Inside Message */}
-          {card.insideImageUrl && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <button
-                onClick={() => setOpenSection(s => s === 'message' ? null : 'message')}
-                className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition"
-              >
-                <span className="flex items-center gap-3">
-                  <Edit3 className="w-4 h-4 text-purple-400" />
-                  <span className="font-medium text-gray-800">Inside Message</span>
-                  {messageEdited
-                    ? <span className="text-xs bg-orange-100 text-orange-600 font-semibold px-2 py-0.5 rounded-full">Edited</span>
-                    : <span className="text-xs bg-gray-100 text-gray-400 font-medium px-2 py-0.5 rounded-full">Unchanged</span>}
-                </span>
-                {openSection === 'message' ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-              </button>
-              {openSection === 'message' && (
-                <div className="px-5 pb-5 border-t border-gray-50 space-y-3">
-                  <p className="text-xs text-gray-400 mt-3">Edit the personal message inside the card.</p>
-                  <div>
-                    <label className="text-xs text-gray-500 font-medium block mb-1">Dear...</label>
-                    <input
-                      type="text"
-                      value={newInsideDear}
-                      onChange={e => { setNewInsideDear(e.target.value); setMessageEdited(true); }}
-                      placeholder="e.g. Aidan"
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 font-medium block mb-1">Message</label>
-                    <textarea
-                      value={newInsideMessage}
-                      onChange={e => { setNewInsideMessage(e.target.value); setMessageEdited(true); }}
-                      rows={4}
-                      placeholder="Write your heartfelt message..."
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 font-medium block mb-1">From</label>
-                    <input
-                      type="text"
-                      value={newInsideFrom}
-                      onChange={e => { setNewInsideFrom(e.target.value); setMessageEdited(true); }}
-                      placeholder="e.g. The whole team"
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300"
-                    />
-                  </div>
+          {/* Inside Message */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <button onClick={() => setOpenSection(s => s === 'message' ? null : 'message')}
+              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition">
+              <span className="flex items-center gap-3">
+                <Edit3 className="w-4 h-4 text-purple-400" />
+                <span className="font-medium text-gray-800">Inside Message</span>
+                {messageEdited
+                  ? <span className="text-xs bg-orange-100 text-orange-600 font-semibold px-2 py-0.5 rounded-full">Edited</span>
+                  : <span className="text-xs bg-gray-100 text-gray-400 font-medium px-2 py-0.5 rounded-full">Unchanged</span>}
+              </span>
+              {openSection === 'message' ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+            </button>
+            {openSection === 'message' && (
+              <div className="px-5 pb-5 border-t border-gray-50 space-y-3 mt-3">
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Dear...</label>
+                  <input value={newInsideDear} onChange={e => { setNewInsideDear(e.target.value); setMessageEdited(true); }}
+                    placeholder="e.g. Mum" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300" />
                 </div>
-              )}
-            </div>
-          )}
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Message</label>
+                  <textarea value={newInsideMessage} onChange={e => { setNewInsideMessage(e.target.value); setMessageEdited(true); }}
+                    rows={4} placeholder="Write your heartfelt message here..."
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">From</label>
+                  <input value={newInsideFrom} onChange={e => { setNewInsideFrom(e.target.value); setMessageEdited(true); }}
+                    placeholder="e.g. Your loving family" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300" />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Regeneration type selector */}
+        {/* Regen type selector */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
-          <p className="text-sm font-semibold text-gray-700 mb-3">What should we regenerate?</p>
+          <p className="text-sm font-semibold text-gray-700 mb-3">What gets regenerated?</p>
           <div className="space-y-2">
-            {[
-              { value: 'front' as RegenType, label: 'Front design only', price: 'R25', hint: 'New scene & art style' },
-              { value: 'inside' as RegenType, label: 'Inside message only', price: 'R15', hint: 'New message design' },
-              { value: 'both' as RegenType, label: 'Front + inside', price: 'R35', hint: 'Full refresh' },
-            ].map(opt => (
-              <label
-                key={opt.value}
-                className={`flex items-center justify-between px-4 py-3.5 rounded-xl border-2 cursor-pointer transition-all ${
-                  regenType === opt.value
-                    ? 'border-purple-400 bg-purple-50'
-                    : 'border-gray-200 hover:border-purple-200'
-                }`}
-              >
+            {([
+              { value: 'front' as RegenType, label: 'Front design only', price: `+£${REGEN_PRICES.front.toFixed(2)}`, hint: 'New scene & art style' },
+              { value: 'inside' as RegenType, label: 'Inside message only', price: `+£${REGEN_PRICES.inside.toFixed(2)}`, hint: 'New message design' },
+              { value: 'both' as RegenType, label: 'Front + inside', price: `+£${REGEN_PRICES.both.toFixed(2)}`, hint: 'Full refresh' },
+            ] as const).map(opt => (
+              <label key={opt.value}
+                className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 cursor-pointer transition ${regenType === opt.value ? 'border-purple-500 bg-purple-50' : 'border-gray-100 hover:border-purple-200'}`}>
                 <span className="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    name="regenType"
-                    value={opt.value}
-                    checked={regenType === opt.value}
-                    onChange={() => setRegenType(opt.value)}
-                    className="accent-purple-600"
-                  />
+                  <input type="radio" name="regenType" value={opt.value} checked={regenType === opt.value}
+                    onChange={() => setRegenType(opt.value)} className="text-purple-600" />
                   <span>
-                    <span className="text-sm font-medium text-gray-800">{opt.label}</span>
-                    <span className="block text-xs text-gray-400">{opt.hint}</span>
+                    <span className="font-medium text-gray-800 text-sm">{opt.label}</span>
+                    <span className="text-xs text-gray-400 ml-2">{opt.hint}</span>
                   </span>
                 </span>
-                <span className="text-sm font-bold text-purple-700">{opt.price}</span>
+                <span className={`text-sm font-bold ${regenType === opt.value ? 'text-purple-600' : 'text-gray-400'}`}>{opt.price}</span>
               </label>
             ))}
           </div>
         </div>
 
         {/* CTA */}
-        <button
-          onClick={handlePay}
-          disabled={paying}
-          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg transition-all disabled:opacity-60"
-        >
-          {paying ? 'Redirecting to payment...' : `Pay ${priceLabel} & Regenerate`}
-        </button>
-        <p className="text-center text-xs text-gray-400 mt-3">
-          Your original card is safe — this creates a brand new version.
-        </p>
-
-        {/* Back link */}
-        <div className="text-center mt-6">
-          <a href={`/card-preview/${numericCardId}`} className="text-sm text-gray-400 hover:text-gray-600 transition">
-            ← Back to original card
-          </a>
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border border-purple-100 p-5 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Printed card + {REGEN_LABELS[regenType].toLowerCase()}</p>
+              <p className="text-xs text-gray-500 mt-0.5">Your original card is never overwritten</p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-purple-700">£{total}</p>
+              <p className="text-xs text-gray-400">inc. VAT</p>
+            </div>
+          </div>
+          <button onClick={handleOpenPayModal}
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white py-4 rounded-2xl font-bold text-lg shadow-lg transition-all active:scale-95">
+            Order new version — £{total}
+          </button>
+          <p className="text-xs text-center text-gray-400 mt-3">You'll receive a link to your new card by email</p>
         </div>
       </main>
 
       <Footer />
+
+      {/* ── Payment Modal ─────────────────────────────────────────────────────── */}
+      {showPayModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+
+            {/* Test mode banner */}
+            <div className="bg-amber-400 px-5 py-2.5 flex items-center gap-2">
+              <span className="text-amber-900 text-sm font-bold">🧪 TEST MODE</span>
+              <span className="text-amber-800 text-xs">No payment is processed</span>
+            </div>
+
+            {/* Header */}
+            <div className="flex items-start justify-between px-6 pt-6 pb-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Order a new version</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Ordering a printed copy of your new {recipientName} card
+                </p>
+              </div>
+              <button onClick={() => setShowPayModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition ml-4 flex-shrink-0">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Price breakdown */}
+            <div className="mx-6 mb-5 bg-gray-50 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Printed card (5″×5″, front &amp; inside)</span>
+                <span className="font-medium text-gray-800">£{PRINT_PRICE.toFixed(2)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">{REGEN_LABELS[regenType]}</span>
+                <span className="font-medium text-gray-800">+£{regenPrice.toFixed(2)}</span>
+              </div>
+              <div className="border-t border-gray-200 pt-2 flex items-center justify-between">
+                <span className="font-bold text-gray-900">Total</span>
+                <span className="font-bold text-purple-700 text-lg">£{total}</span>
+              </div>
+            </div>
+
+            {/* Mock card form */}
+            <div className="px-6 mb-5">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5" /> Card details
+              </p>
+              <div className="border border-gray-200 rounded-2xl overflow-hidden divide-y divide-gray-100">
+                <input
+                  value={mockCardNumber}
+                  onChange={e => setMockCardNumber(formatCard(e.target.value))}
+                  placeholder="4242 4242 4242 4242"
+                  inputMode="numeric"
+                  className="w-full px-4 py-3 text-sm text-gray-800 focus:outline-none focus:bg-purple-50/30 placeholder-gray-300 font-mono"
+                />
+                <div className="flex divide-x divide-gray-100">
+                  <input
+                    value={mockExpiry}
+                    onChange={e => setMockExpiry(formatExpiry(e.target.value))}
+                    placeholder="MM/YY"
+                    inputMode="numeric"
+                    className="flex-1 px-4 py-3 text-sm text-gray-800 focus:outline-none focus:bg-purple-50/30 placeholder-gray-300 font-mono"
+                  />
+                  <input
+                    value={mockCvc}
+                    onChange={e => setMockCvc(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                    placeholder="CVC"
+                    inputMode="numeric"
+                    className="w-28 px-4 py-3 text-sm text-gray-800 focus:outline-none focus:bg-purple-50/30 placeholder-gray-300 font-mono"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-center gap-1.5 mt-2.5 text-gray-400">
+                <Lock className="w-3 h-3" />
+                <span className="text-xs">Secured by Stripe</span>
+              </div>
+            </div>
+
+            {/* Pay button */}
+            <div className="px-6 pb-6">
+              <button onClick={handlePay} disabled={payProcessing}
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 disabled:opacity-60 text-white py-4 rounded-2xl font-bold text-base shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+                {payProcessing ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>Pay £{total} (Test Mode)</>
+                )}
+              </button>
+              <p className="text-xs text-center text-gray-400 mt-3">
+                In test mode, no charge is made. Add your Stripe key to go live.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
