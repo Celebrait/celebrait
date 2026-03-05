@@ -3,3 +3,7 @@ node_modules
 .env.*
 dist
 .DS_Store
+# Replit artifacts
+.local/
+.replit
+replit.nix
