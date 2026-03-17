@@ -34,7 +34,6 @@ import {
 } from "./image-storage";
 import { generateSeparatePDFs, generatePrintSpecs, getPDFDownloadUrls } from "./pdf-generator";
 import { migrateCardImages, cardNeedsMigration } from "./image-migration";
-import { removeWatermarksFromCard } from "./watermark-removal";
 import { setupGoogleAuth } from "./google-auth";
 import session from "express-session";
 import passport from "passport";

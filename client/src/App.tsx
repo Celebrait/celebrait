@@ -8,8 +8,6 @@ import { handleQuotaError } from "./lib/queryClient";
 import { useEffect } from "react";
 import Landing from "@/pages/landing";
 import CreateCard from "@/pages/create-card";
-import Checkout from "@/pages/checkout";
-import Payment from "@/pages/payment-simplified";
 import PaymentSuccess from './pages/payment-success';
 import PaymentCancelled from './pages/payment-cancelled';
 import OrderSuccess from './pages/order-success';
@@ -29,8 +27,6 @@ function Router() {
       <Switch>
         <Route path="/" component={Landing} />
         <Route path="/create-card" component={CreateCard} />
-        <Route path="/checkout/:cardId" component={Checkout} />
-        <Route path="/payment/:cardId" component={Payment} />
         <Route path="/payment-success/:reference" component={PaymentSuccess} />
         <Route path="/payment-cancelled/:reference" component={PaymentCancelled} />
         <Route path="/order-success" component={OrderSuccess} />
