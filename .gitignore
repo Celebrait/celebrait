@@ -6,7 +6,9 @@ dist
 # Replit artifacts
 .local/
 .replit
-replit.nixstored_images/
+replit.nix
+stored_images/
+FOUNDER_BRAIN_DUMP.docx
 temp_images/
 
 # Replit artifacts
