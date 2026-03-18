@@ -4662,6 +4662,13 @@ ${styleSection}`;
         return res.status(400).json({ message: "userEmail, generationType, and answers are required" });
       }
 
+      // Only scene generation is currently supported via this endpoint.
+      // Transform and text-only flows are dormant and will be re-enabled in a future release.
+      if (generationType !== 'scene') {
+        console.warn(`[BG_GEN] Rejected unsupported generationType: "${generationType}" for card ${cardId}`);
+        return res.status(400).json({ message: "Only scene generation is currently supported." });
+      }
+
       // Verify card exists
       const card = await storage.getCard(cardId);
       if (!card) {
@@ -5136,7 +5143,8 @@ ${styleSection}`;
 
       // Send card ready notification email (this should take user to delivery choice)
       try {
-        const requestHost = req.get('host') || 'localhost:5000';
+        const requestHost = req.get('host') || 'localhost:5050';
+        console.log(`[EMAIL_DEBUG] /api/send-card-ready-notification req.get('host')=${req.get('host')} requestHost=${requestHost}`);
         const emailParams = generateCardReadyNotificationEmail(orderData, requestHost);
         const emailSent = await sendEmail(emailParams);
         
@@ -5284,7 +5292,7 @@ ${styleSection}`;
       
       // Create card ready notification email
       const cardType = card.cardType === 'digital' ? 'digital' : 'printed';
-      const requestHost = req.get('host') || 'localhost:5000';
+      const requestHost = req.get('host') || 'localhost:5050';
       const emailData = generateCardReadyNotificationEmail(
         { 
           ...card, 

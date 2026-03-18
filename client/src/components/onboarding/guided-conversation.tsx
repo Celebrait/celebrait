@@ -2314,24 +2314,31 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       } catch (err) {
         console.error('[BG] Failed to initialize card:', err);
         setShowBackgroundConfirmation(false);
-        actuallyGenerateCard(undefined, verifiedUser);
+        toast({
+          title: "Something went wrong",
+          description: "We couldn't set up your card. Please try again.",
+          variant: "destructive",
+        });
         return;
       }
     }
 
     // Determine generation type and build params
     const hasPhotos = effectivePhotoIds.length > 0;
-    const photoOption = effectiveAnswers.photo_option;
-    let generationType: 'scene' | 'transform' | 'text-only' = 'text-only';
-    if (photoOption === 'upload_and_scene' && hasPhotos) generationType = 'scene';
-    else if (photoOption === 'upload_and_transform' && hasPhotos) generationType = 'transform';
 
-    if (generationType === 'text-only') {
-      // Text-only falls back to old flow (DALLE) for now
+    // Current product requires uploaded photos for scene generation.
+    // Text-only and transform flows are dormant and will be re-enabled in a future release.
+    if (!hasPhotos) {
+      toast({
+        title: "Photos required",
+        description: "Please upload at least one photo to generate your card.",
+        variant: "destructive",
+      });
       setShowBackgroundConfirmation(false);
-      actuallyGenerateCard(undefined, verifiedUser);
       return;
     }
+
+    const generationType: 'scene' = 'scene';
 
     // Get base64 images from store
     const imageDataArray = effectivePhotoIds
@@ -2339,9 +2346,14 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       .filter(Boolean) as string[];
 
     if (imageDataArray.length === 0) {
-      // No images found, fall back
+      // Photo IDs exist but base64 data is missing from the image store
+      console.error('[BG] Photo IDs present but no base64 data found in ImageStore');
       setShowBackgroundConfirmation(false);
-      actuallyGenerateCard(undefined, verifiedUser);
+      toast({
+        title: "Photos couldn't be loaded",
+        description: "Your uploaded photos couldn't be read. Please re-upload and try again.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -2399,15 +2411,22 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       if (response.ok) {
         setBackgroundCardId(currentCardId);
       } else {
-        // If background endpoint fails, fall back to old flow
-        console.warn('[BG] Background endpoint failed, falling back to inline flow');
+        console.error('[BG] Background endpoint returned error');
         setShowBackgroundConfirmation(false);
-        actuallyGenerateCard(undefined, verifiedUser);
+        toast({
+          title: "Generation failed",
+          description: "We couldn't start generating your card. Please try again.",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       console.error('[BG] Failed to call background generation:', err);
       setShowBackgroundConfirmation(false);
-      actuallyGenerateCard(undefined, verifiedUser);
+      toast({
+        title: "Connection error",
+        description: "We couldn't reach the server. Please check your connection and try again.",
+        variant: "destructive",
+      });
     }
   };
 
