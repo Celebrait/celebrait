@@ -551,10 +551,12 @@ export async function sendBackgroundEmail(cardId: number, email: string, userNam
     }
 
     // Build preview URL using the ready reference format so the card preview loads correctly
-    const host = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
+    const host = process.env.REPLIT_DOMAINS?.split(',')[0] || `localhost:${process.env.PORT || 5050}`;
+    const protocol = host.startsWith('localhost') ? 'http' : 'https';
     const reference = `celebrait_ready_${cardId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const previewUrl = `https://${host}/card-preview/${reference}`;
-    
+    const previewUrl = `${protocol}://${host}/card-preview/${reference}`;
+    console.log(`[EMAIL_DEBUG] sendBackgroundEmail previewUrl=${previewUrl} host=${host} REPLIT_DOMAINS=${process.env.REPLIT_DOMAINS} PORT=${process.env.PORT}`);
+
     // Prepare card data for email template
     const conversationData = card.conversationData as any;
     const cardData = {
@@ -582,14 +584,39 @@ export async function sendBackgroundEmail(cardId: number, email: string, userNam
   }
 }
 
+export async function sendGenerationFailedEmail(userEmail: string, userName: string, cardId: number): Promise<void> {
+  try {
+    await sendEmail({
+      to: userEmail,
+      from: 'greetings@celebrait.co.za',
+      subject: 'We hit a snag with your Celebrait card',
+      html: `
+        <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background: #fff; border-radius: 16px;">
+          <h2 style="color: #7c3aed; margin: 0 0 16px;">Hi ${userName || 'there'},</h2>
+          <p style="color: #374151; line-height: 1.6;">We ran into a problem generating your card (ID #${cardId}). This sometimes happens when our AI provider's safety system is overly cautious about an uploaded photo.</p>
+          <p style="color: #374151; line-height: 1.6;"><strong>What to do:</strong> Head back to Celebrait and try again — you can either try a different photo, or choose the text-only card option which never has this issue.</p>
+          <a href="https://celebrait.co.za" style="display: inline-block; margin-top: 20px; padding: 12px 28px; background: linear-gradient(135deg, #7c3aed, #db2777); color: #fff; text-decoration: none; border-radius: 10px; font-weight: 600;">Try Again</a>
+          <p style="color: #9ca3af; font-size: 13px; margin-top: 24px;">Sorry for the inconvenience — your card generation was not charged.</p>
+        </div>
+      `
+    });
+  } catch (e) {
+    console.error(`[BG_GEN] Failed to send failure notification email:`, e);
+  }
+}
+
 export function generateCardReadyNotificationEmail(orderData: any, host?: string): EmailParams {
   const { customerEmail, customerName, paymentReference, cardType } = orderData;
 
   // Use the host passed in from the request (correctly reflects dev or production)
-  const actualHost = host || 'localhost:5000';
+  // In local dev, req.get('host') may report a stale port; normalise to the actual server port
+  const fallbackHost = `localhost:${process.env.PORT || 5050}`;
+  const actualHost = host?.startsWith('localhost') ? fallbackHost : (host || fallbackHost);
+  const protocol = actualHost.startsWith('localhost') ? 'http' : 'https';
 
   // Send users to card preview first, then they'll proceed to delivery details
-  const nextStepUrl = `https://${actualHost}/card-preview/${paymentReference}`;
+  const nextStepUrl = `${protocol}://${actualHost}/card-preview/${paymentReference}`;
+  console.log(`[EMAIL_DEBUG] generateCardReadyNotificationEmail nextStepUrl=${nextStepUrl} host=${host} actualHost=${actualHost} PORT=${process.env.PORT}`);
 
   return {
     to: customerEmail,

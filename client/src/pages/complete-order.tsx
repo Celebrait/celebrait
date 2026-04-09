@@ -248,84 +248,10 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
   };
 
   const handleSubmit = async () => {
-    if (!isFormValid()) {
-      toast({
-        title: 'Incomplete Information',
-        description: 'Please fill in all required fields',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      // Handle digital card payment
-      const customerInfo = {
-        name: customerName,
-        email: customerEmail,
-        phone: ''
-      };
-
-      const deliveryInfo = {
-        address: {
-          line1: address.line1,
-          line2: address.line2,
-          city: address.city,
-          province: address.province,
-          postalCode: address.postalCode,
-          country: 'ZA'
-        }
-      };
-
-      const response = await fetch('/api/payfast/create-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          cardId: card.id,
-          customerInfo,
-          deliveryInfo,
-          isDigital: false,
-          amount: selectedPrice === 'full' ? 12900 : 500 // R129.00 or R5.00 in cents
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create payment');
-      }
-
-      const result = await response.json();
-      
-      // Redirect to Payfast payment for R5 digital card
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = result.paymentUrl;
-      form.style.display = 'none';
-
-      // Add all payment form fields
-      Object.entries(result.paymentData).forEach(([key, value]) => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = value as string;
-        form.appendChild(input);
-      });
-
-      document.body.appendChild(form);
-      form.submit();
-      
-    } catch (error) {
-      toast({
-        title: 'Payment Error',
-        description: error instanceof Error ? error.message : 'Failed to process payment',
-        variant: 'destructive'
-      });
-    } finally {
-      setSubmitting(false);
-    }
+    toast({
+      title: 'Payment coming soon',
+      description: 'We are setting up secure payment. Your card is saved and ready — check back shortly.',
+    });
   };
 
   const handleBack = () => {
@@ -609,10 +535,9 @@ export default function CompleteOrder({ params }: CompleteOrderProps) {
 
             <Button
               onClick={handleSubmit}
-              disabled={!isFormValid() || submitting}
               className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-4 rounded-lg font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105"
             >
-              {submitting ? 'Processing...' : `Complete Order - ${selectedPrice === 'full' ? 'R129.00' : 'R5.00'}`}
+              Payment Coming Soon
             </Button>
           </div>
 
