@@ -810,7 +810,7 @@ export function registerFulfillmentRoutes(app: Express): void {
 
       // Send shipping notification email
       try {
-        const emailParams = generateShippingNotificationEmail(order, trackingNumber);
+        const emailParams = generateShippingNotificationEmail(updatedOrder);
         await sendEmail(emailParams);
         console.log('Shipping notification email sent successfully');
 
@@ -838,14 +838,18 @@ export function registerFulfillmentRoutes(app: Express): void {
       // Update card with abandonment tracking data
       const card = await storage.getCard(cardId);
       if (card) {
+        const existingData = (card.conversationData as Record<string, any>) || {};
         await storage.updateCard(cardId, {
-          abandonmentData: JSON.stringify({
-            userEmail,
-            userName,
-            stepData,
-            stage,
-            lastActivity: Date.now()
-          })
+          conversationData: {
+            ...existingData,
+            abandonmentData: {
+              userEmail,
+              userName,
+              stepData,
+              stage,
+              lastActivity: Date.now()
+            }
+          }
         });
       }
       
@@ -876,7 +880,7 @@ export function registerFulfillmentRoutes(app: Express): void {
       
       // Check if card is still recoverable (within 7 days)
       const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-      if (new Date(card.createdAt).getTime() < sevenDaysAgo) {
+      if (card.createdAt && new Date(card.createdAt).getTime() < sevenDaysAgo) {
         return res.status(410).json({ error: 'Recovery period expired' });
       }
       
@@ -927,10 +931,14 @@ export function registerFulfillmentRoutes(app: Express): void {
       const emailSent = await sendEmail(emailParams);
       
       if (emailSent) {
-        // Update card with recovery info
+        // Update card with recovery info in conversationData
+        const existingData = (card.conversationData as Record<string, any>) || {};
         await storage.updateCard(cardId, {
-          recoveryEmailSent: new Date().toISOString(),
-          recoveryToken
+          conversationData: {
+            ...existingData,
+            recoveryEmailSent: new Date().toISOString(),
+            recoveryToken
+          }
         });
         
         res.json({ 

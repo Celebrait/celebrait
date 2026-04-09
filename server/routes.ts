@@ -41,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
-      const cards = await storage.getCardsByUserId(String(userId));
+      const cards = await storage.getUserCards(String(userId));
       res.json(cards);
     } catch (error: any) {
       res.status(500).json({ message: "Error fetching user cards: " + error.message });
@@ -54,7 +54,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
-      const orders = await storage.getOrdersByUserId(String(userId));
+      const orders = await storage.getUserOrders(String(userId));
       res.json(orders);
     } catch (error: any) {
       res.status(500).json({ message: "Error fetching user orders: " + error.message });
