@@ -20,7 +20,7 @@ interface AIBrainstormChatProps {
 }
 
 interface ConversationState {
-  currentStep: 'setting' | 'activity' | 'people' | 'extra_detail' | 'final_approval';
+  currentStep: 'setting' | 'activity' | 'people' | 'extra_detail' | 'final_approval' | 'change_request';
   settingRefinements: number; // Track number of location refinement questions asked
   collectedInfo: {
     setting?: string;
@@ -310,7 +310,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
       /\*\*([^*]+)\*\*/g
     ];
     
-    let suggestions = [];
+    let suggestions: string[] = [];
     
     // Try numbered list pattern first (most common) - handle both line breaks and inline
     const numberedMatches = content.match(/\d+[\.\)]\s*([^\n\r\d]+?)(?=\s*\d+[\.\)]|\n\n|$)/g);
@@ -1076,7 +1076,7 @@ Where should we place ${personReference} in this scene? Think about the setting 
                                     console.log('Extracted scene using markers:', finalScene);
                                   } else {
                                     // Fallback 1: Try older pattern
-                                    const legacyMatch = content.match(/Here's (?:the complete scene|your complete scene)[^:]*:\s*(.+?)(?=\n\n(?:Feel free|When you're ready)|$)/s);
+                                    const legacyMatch = content.match(/Here's (?:the complete scene|your complete scene)[^:]*:\s*([\s\S]+?)(?=\n\n(?:Feel free|When you're ready)|$)/);
                                     if (legacyMatch && legacyMatch[1]) {
                                       finalScene = legacyMatch[1].trim();
                                       console.log('Extracted scene using legacy pattern:', finalScene);
