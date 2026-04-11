@@ -16,7 +16,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
-import { buildTextOnlyImagePrompt, buildInsidePrompt } from "@shared/prompts";
 import { ImageStore } from "@/utils/image-store";
 // Typography library removed - AI handles text integration directly
 import { AIBrainstormChat } from "@/components/ui/ai-brainstorm-chat-new";
@@ -863,22 +862,17 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
       aiMessage: `Nice! ✨ Now how do you want to create ${answers.name || 'their'}'s ${answers.celebration || 'celebration'} card?`,
       type: 'photo_creation_choice',
       options: [
-        { 
-          value: 'upload_and_scene', 
-          label: 'Upload Photo(s) + Describe Scene', 
+        {
+          value: 'upload_and_scene',
+          label: 'Upload Photo(s) + Describe Scene',
           description: `Upload a photo featuring ${answers.name || 'them'} + anyone else you want to feature on their card. I'll then place them in a custom scene you describe.`,
           color: 'bg-green-500',
           icon: 'camera',
           details: 'Perfect for creating personalised scenes with custom messaging!'
-        },
-        { 
-          value: 'upload_and_transform', 
-          label: 'Upload Photo(s) + Transform Style', 
-          description: `Upload a single photo featuring ${answers.name || 'them'} and transform it into a new artistic style.`,
-          color: 'bg-purple-500',
-          icon: 'palette',
-          details: 'Great for taking special photos and making them even more unique!'
         }
+        // ─── LEGACY: upload_and_transform option removed ─── See FOUNDATION.md §5–6.
+        // Transform generation is not part of the current product.
+        // Downstream conditionals retained for now; will be cleaned up in a later pass.
       ]
     },
     {
@@ -2054,138 +2048,6 @@ export default function GuidedConversation({ onboarding, onCardGenerated, stream
     }
   };
 
-  const generateCardWithEmail = async (email: string) => {
-    try {
-      console.log('Generating card with email notification:', email);
-      
-      // Store the notification email
-      answers.notification_email = email;
-      
-      // Initialize card if needed
-      let currentCardId = cardId;
-      if (!currentCardId) {
-        currentCardId = await initializeCard();
-        console.log('[DEBUG] After initialization, cardId is:', currentCardId);
-      }
-      
-      // Generate the card normally  
-      if (answers.photo_option === 'upload_and_scene' && uploadedPhotoIds.length > 0) {
-        await generateCardWithGPTImage(currentCardId);
-      } else if (answers.photo_option === 'upload_and_transform' && uploadedPhotoIds.length > 0) {
-        await generateCardWithGPTImageTransform(currentCardId);
-      } else {
-        // Use text-only workflow with detailed prompt structure
-        // Determine art style based on user input
-        let artStyle;
-        if (answers.art_style && answers.art_style.trim()) {
-          artStyle = answers.art_style.trim();
-        } else {
-          // Let AI decide - will be handled in the prompt
-          artStyle = 'ai_decide';
-        }
-        
-        const frontPrompt = buildTextOnlyImagePrompt(answers, artStyle);
-        console.log('Built front prompt with detailed structure:', frontPrompt);
-        
-        const insidePrompt = buildInsidePrompt(
-          answers.inside_message || "Hope your special day brings you joy and happiness!", 
-          artStyle, 
-          undefined, 
-          undefined, 
-          answers.inside_message_structured
-        );
-
-        const response = await apiRequest("POST", "/api/generate-images", {
-          cardId: currentCardId,
-          frontPrompt,
-          insidePrompt,
-          photoData: answers.photo_upload || null,
-          photoAnalysis: null
-        });
-
-        const card = await response.json();
-        
-        // After successful generation, send card ready notification email
-        try {
-          // Get user's actual name from multiple sources
-          const userName = answers.user_first_name ? 
-            `${answers.user_first_name} ${answers.user_last_name || ''}`.trim() : 
-            (onboarding.userName && onboarding.userName !== 'User') ? 
-              onboarding.userName : 
-              // Try to extract from conversation context if available
-              answers.sender_name || "User";
-          
-          console.log('[EMAIL DEBUG] User name sources:', {
-            user_first_name: answers.user_first_name,
-            user_last_name: answers.user_last_name,
-            userName_used: userName,
-            onboarding_userName: onboarding.userName,
-            all_answers: Object.keys(answers)
-          });
-            
-          const emailResponse = await apiRequest("POST", "/api/send-card-ready-notification", {
-            cardId: currentCardId,
-            customerEmail: email,
-            customerName: userName
-          });
-          
-          const emailResult = await emailResponse.json();
-          console.log('Card ready notification sent:', emailResult);
-          
-          // Show success message
-          toast({
-            title: "Card Generated!",
-            description: `Your card has been generated and emailed to ${email}`,
-          });
-          
-          // Still call onCardGenerated for the UI
-          onCardGenerated(card);
-        } catch (emailError) {
-          console.error('Failed to send card ready notification:', emailError);
-          // Still show the card even if email fails
-          onCardGenerated(card);
-        }
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: `Failed to generate card: ${error.message}`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Background generation helper functions
-  const generateCardWithDALLEInBackground = async () => {
-    // Determine art style based on user input
-    let artStyle;
-    if (answers.art_style && answers.art_style.trim()) {
-      artStyle = answers.art_style.trim();
-    } else {
-      // Let AI decide - will be handled in the prompt
-      artStyle = 'ai_decide';
-    }
-    
-    const frontPrompt = buildTextOnlyImagePrompt(answers, artStyle);
-    const insidePrompt = buildInsidePrompt(
-      answers.inside_message || "Hope your special day brings you joy and happiness!", 
-      artStyle, 
-      undefined, 
-      undefined, 
-      answers.inside_message_structured
-    );
-
-    // Use the working DALL-E endpoint that exists
-    const response = await apiRequest("POST", "/api/generate-images", {
-      cardId,
-      frontPrompt,
-      insidePrompt
-    });
-
-    return await response.json();
-  };
 
   const generateCardWithGPTImageInBackground = async () => {
     console.log('Background processing: preserving exact images from interactive session');

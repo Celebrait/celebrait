@@ -15,3 +15,10 @@ temp_images/
 .local/
 .replit
 replit.nix
+
+# Claude Code local state (plans, worktrees, projects — per-machine)
+.claude/
+
+# Office lock files
+~$*.docx
+~$*.xlsx

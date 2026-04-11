@@ -1,228 +1,71 @@
+// server/replit_integrations/auth/replitAuth.ts
+//
+// (Name kept for backwards compatibility with existing imports; the module
+// no longer has anything to do with Replit Auth.)
+//
+// Since 2026-04, Celebrait uses a SINGLE auth system: email OTP.
+// See `./routes.ts` for the OTP endpoints themselves. This file owns:
+//   - Session middleware setup (PG-backed, same in dev and prod)
+//   - The `isAuthenticated` middleware used to protect user-scoped routes
+//
+// Previously this file hosted a Replit OIDC / passport stack and a
+// DEV_AUTH memory-session shortcut that created a fake `dev@localhost`
+// user. Both have been removed. Local dev now uses the real OTP flow with
+// the PG sessions table — and to avoid needing Brevo locally, the OTP
+// verify endpoint accepts a hardcoded bypass code (see `./routes.ts`).
+
 import "dotenv/config";
-
-import * as client from "openid-client";
-import { Strategy, type VerifyFunction } from "openid-client/passport";
-
-import passport from "passport";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
-import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
-import { authStorage } from "./storage";
 
-/**
- * If you are NOT running on Replit, you probably don't have these env vars.
- * We'll fall back to a simple dev-auth mode so the app can boot locally.
- */
-const HAS_REPLIT_OIDC =
-  !!process.env.REPL_ID &&
-  process.env.REPL_ID.trim().length > 0 &&
-  !!process.env.SESSION_SECRET &&
-  process.env.SESSION_SECRET.trim().length > 0;
-
-const DEV_AUTH = !HAS_REPLIT_OIDC && process.env.NODE_ENV !== "production";
-
-const getOidcConfig = memoize(
-  async () => {
-    // Only used when HAS_REPLIT_OIDC is true
-    return await client.discovery(
-      new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
-      process.env.REPL_ID!
-    );
-  },
-  { maxAge: 3600 * 1000 }
-);
+// ─── Session middleware ──────────────────────────────────────────────────────
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  const isProd = process.env.NODE_ENV === "production";
 
-  // In dev (non-Replit), use a memory session store so we don't require the PG sessions table.
-  if (DEV_AUTH) {
-    return session({
-      secret: process.env.SESSION_SECRET || "dev-session-secret",
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        httpOnly: true,
-        secure: false, // localhost
-        maxAge: sessionTtl,
-      },
-    });
-  }
-
-  // Replit / production path: store sessions in Postgres
+  // Use the PG-backed store in BOTH dev and prod. This means dev sessions
+  // survive server restarts (no more re-logging-in after every `npm run
+  // dev`) and there's one less axis of prod-vs-dev divergence.
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
+    // The `sessions` table is in shared/models/auth.ts and is created via
+    // db:push. Don't let connect-pg-simple auto-create a competing copy.
     createTableIfMissing: false,
     ttl: sessionTtl,
     tableName: "sessions",
   });
 
   return session({
-    secret: process.env.SESSION_SECRET!,
+    secret: process.env.SESSION_SECRET || "celebrait-dev-session-secret",
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      // Secure cookies require HTTPS — fine in prod, breaks on localhost.
+      secure: isProd,
       maxAge: sessionTtl,
+      sameSite: "lax",
     },
   });
 }
 
-function updateUserSession(
-  user: any,
-  tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
-) {
-  user.claims = tokens.claims();
-  user.access_token = tokens.access_token;
-  user.refresh_token = tokens.refresh_token;
-  user.expires_at = user.claims?.exp;
-}
+// ─── Setup ───────────────────────────────────────────────────────────────────
 
-async function upsertUser(claims: any) {
-  await authStorage.upsertUser({
-    id: claims["sub"],
-    email: claims["email"],
-    firstName: claims["first_name"],
-    lastName: claims["last_name"],
-    profileImageUrl: claims["profile_image_url"],
-  });
-}
-
-export async function setupAuth(app: Express) {
+export async function setupAuth(app: Express): Promise<void> {
   app.set("trust proxy", 1);
   app.use(getSession());
-  app.use(passport.initialize());
-  app.use(passport.session());
-
-  // ===== DEV AUTH MODE (local) =====
-  if (DEV_AUTH) {
-    console.warn("[auth] Replit OIDC not configured; running in DEV_AUTH mode.");
-
-    passport.serializeUser((user: Express.User, cb) => cb(null, user));
-    passport.deserializeUser((user: Express.User, cb) => cb(null, user));
-
-    // Simple login endpoint that "logs in" a dummy user
-    app.get("/api/login", (req, res) => {
-      const user = {
-        claims: {
-          sub: "dev-user",
-          email: "dev@localhost",
-          first_name: "Dev",
-          last_name: "User",
-          profile_image_url: "",
-          exp: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60,
-        },
-        access_token: "dev-access-token",
-        refresh_token: "dev-refresh-token",
-        expires_at: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60,
-      };
-
-      // Passport session login
-      req.login(user as any, (err) => {
-        if (err) return res.status(500).json({ message: "Login failed" });
-        return res.redirect("/");
-      });
-    });
-
-    // Callback is irrelevant in dev; keep route so frontend doesn't break
-    app.get("/api/callback", (_req, res) => res.redirect("/"));
-
-    app.get("/api/logout", (req, res) => {
-      req.logout(() => res.redirect("/"));
-    });
-
-    return;
-  }
-
-  // ===== REPLIT OIDC MODE =====
-  const config = await getOidcConfig();
-
-  const verify: VerifyFunction = async (
-    tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
-    verified: passport.AuthenticateCallback
-  ) => {
-    const user: any = {};
-    updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
-    verified(null, user);
-  };
-
-  const registeredStrategies = new Set<string>();
-
-  const ensureStrategy = (domain: string) => {
-    const strategyName = `replitauth:${domain}`;
-    if (!registeredStrategies.has(strategyName)) {
-      const strategy = new Strategy(
-        {
-          name: strategyName,
-          config,
-          scope: "openid email profile offline_access",
-          callbackURL: `https://${domain}/api/callback`,
-        },
-        verify
-      );
-      passport.use(strategy);
-      registeredStrategies.add(strategyName);
-    }
-  };
-
-  passport.serializeUser((user: Express.User, cb) => cb(null, user));
-  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
-
-  app.get("/api/login", (req, res, next) => {
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "login consent",
-      scope: ["openid", "email", "profile", "offline_access"],
-    })(req, res, next);
-  });
-
-  app.get("/api/callback", (req, res, next) => {
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
-    })(req, res, next);
-  });
-
-  app.get("/api/logout", (req, res) => {
-    req.logout(() => {
-      res.redirect(
-        client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        }).href
-      );
-    });
-  });
 }
 
-export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  // DEV mode: let everything through (or require /api/login once)
-  if (DEV_AUTH) return next();
+// ─── Middleware: require OTP session ─────────────────────────────────────────
 
-  const user = req.user as any;
-
-  if (!req.isAuthenticated() || !user?.expires_at) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  if (now <= user.expires_at) return next();
-
-  const refreshToken = user.refresh_token;
-  if (!refreshToken) return res.status(401).json({ message: "Unauthorized" });
-
-  try {
-    const config = await getOidcConfig();
-    const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
-    updateUserSession(user, tokenResponse);
+export const isAuthenticated: RequestHandler = (req, res, next) => {
+  const otpUserId = (req as any).session?.otpUserId;
+  if (typeof otpUserId === "string" && otpUserId.length > 0) {
     return next();
-  } catch {
-    return res.status(401).json({ message: "Unauthorized" });
   }
+  return res.status(401).json({ message: "Unauthorized" });
 };

@@ -81,7 +81,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      window.location.href = "/api/login";
+      window.location.href = "/login?redirect=/dashboard";
     }
   }, [authLoading, isAuthenticated]);
 

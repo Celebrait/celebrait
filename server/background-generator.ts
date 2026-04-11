@@ -1,7 +1,7 @@
 import { storage } from './storage';
 import { sendBackgroundEmail, sendGenerationFailedEmail } from './email-service';
-import { buildScenePrompt, buildTransformPrompt, buildInsidePrompt } from '../shared/prompts';
-import { callOpenAIImageEditWithRetry, callOpenAITextGeneration } from './pipeline/providers/OpenAIProvider';
+import { resolveFrontScenePrompt, resolveInsidePrompt } from './prompts/resolver';
+import { callOpenAIImageEditWithRetry } from './pipeline/providers/OpenAIProvider';
 import { savePngFiles, loadStoredImageAsBase64, generatePrintResolutionFiles } from './pipeline/storage/LocalStorageAdapter';
 
 export interface BackgroundGenerationParams {
@@ -9,7 +9,11 @@ export interface BackgroundGenerationParams {
   userId?: number;
   userEmail: string;
   userName: string;
-  generationType: 'scene' | 'transform' | 'text-only';
+  // NOTE: only 'scene' is actually supported at runtime. 'text-only' is accepted
+  // here so callers (e.g. regeneration in fulfillment.ts) can pass it through,
+  // but it will fail gracefully via sendGenerationFailedEmail until the Prompt
+  // Lab work adds a real text-only path.
+  generationType: 'scene' | 'text-only';
   // Scene generation params
   imageDataArray?: string[];
   scenePrompt?: string;
@@ -51,40 +55,25 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
     let insideOriginal: string | null = null;
 
     // --- FRONT CARD ---
+    // ── ACTIVE PATH: scene generation (the only supported flow) ──
     if (generationType === 'scene' && params.imageDataArray?.length) {
       const imageBuffers = params.imageDataArray.map(base64ToBuffer);
-      const prompt = buildScenePrompt({
+      const resolvedFront = await resolveFrontScenePrompt({
         scenePrompt: params.scenePrompt || '',
         userArtStyle: params.userArtStyle,
         userClothing: params.userClothing,
         includeText: params.includeText,
-        cardText: params.cardText
+        cardText: params.cardText,
       });
+      const prompt = resolvedFront.text;
 
-      console.log(`[BG_GEN] Calling OpenAI scene edit for card ${cardId}`);
+      console.log(
+        `[BG_GEN] Calling OpenAI scene edit for card ${cardId} (prompt source=${resolvedFront.source}, templateId=${resolvedFront.templateId}, v=${resolvedFront.templateVersion})`,
+      );
       const sceneImageUrl = await callOpenAIImageEditWithRetry({ imageBuffers, prompt }, cardId);
       const { watermarked: sw, original: so } = await savePngFiles(sceneImageUrl, cardId, 'front');
       frontWatermarked = sw;
       frontOriginal = so;
-
-    } else if (generationType === 'transform' && params.imageDataArray?.length) {
-      const artStyle = params.artStyle || params.style || 'semi-realistic illustration';
-      const imageBuffers = params.imageDataArray.map(base64ToBuffer);
-      const prompt = buildTransformPrompt(artStyle, params.cardText);
-
-      console.log(`[BG_GEN] Calling OpenAI transform for card ${cardId}`);
-      const transformImageUrl = await callOpenAIImageEditWithRetry({ imageBuffers, prompt }, cardId);
-      const { watermarked: tw, original: to_ } = await savePngFiles(transformImageUrl, cardId, 'front');
-      frontWatermarked = tw;
-      frontOriginal = to_;
-
-    } else if (generationType === 'text-only' || (!params.imageDataArray?.length)) {
-      console.log(`[BG_GEN] Text-only generation for card ${cardId}`);
-      const prompt = buildScenePrompt({ scenePrompt: params.scenePrompt || answers.scene || 'A beautiful celebratory scene', userArtStyle: params.userArtStyle, includeText: params.includeText, cardText: params.cardText });
-      const imageUrl = await callOpenAITextGeneration(prompt);
-      const { watermarked, original } = await savePngFiles(imageUrl, cardId, 'front');
-      frontWatermarked = watermarked;
-      frontOriginal = original;
 
     } else {
       console.error(`[BG_GEN] Unsupported generation type or missing images: ${generationType}`);
@@ -98,7 +87,11 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
     if (insideText && frontWatermarked) {
       console.log(`[BG_GEN] Generating inside card for card ${cardId}`);
       const artStyle = params.artStyle || params.userArtStyle || 'artistic';
-      const insidePrompt = buildInsidePrompt(insideText, artStyle);
+      const resolvedInside = await resolveInsidePrompt({ insideText, artStyle });
+      const insidePrompt = resolvedInside.text;
+      console.log(
+        `[BG_GEN] Inside prompt source=${resolvedInside.source}, templateId=${resolvedInside.templateId}, v=${resolvedInside.templateVersion}`,
+      );
 
       // Read the front PNG file for use as reference
       const frontImageForInside = await loadStoredImageAsBase64(frontWatermarked);
