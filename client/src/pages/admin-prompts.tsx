@@ -514,12 +514,15 @@ interface PhotoEntry {
   name: string;
 }
 
+type PhotoMode = 'one_person' | 'group';
+
 interface FrontSceneInputs {
   scenePrompt: string;
   userArtStyle: string;
   userClothing: string;
   cardText: string;
   includeText: boolean;
+  photoMode: PhotoMode;
   photos: PhotoEntry[];
 }
 
@@ -543,6 +546,7 @@ const DEFAULT_FRONT_INPUTS: FrontSceneInputs = {
   userClothing: '',
   cardText: 'Happy Birthday Sarah',
   includeText: true,
+  photoMode: 'one_person',
   photos: [],
 };
 
@@ -916,7 +920,20 @@ function FrontInputsForm({
     onChange({ ...inputs, [key]: value });
 
   const isGemini = selectedProvider === 'gemini';
-  const maxPhotos = isGemini ? 5 : 1;
+  const isOnePerson = inputs.photoMode === 'one_person';
+  // One person + Gemini: up to 5 for multi-reference identity anchoring.
+  // One person + OpenAI: 1 only.
+  // Group: always 1 (one photo with everyone in it).
+  const maxPhotos = !isOnePerson ? 1 : isGemini ? 5 : 1;
+
+  // Clear excess photos when switching modes
+  const setPhotoMode = (mode: PhotoMode) => {
+    if (mode === 'group' && inputs.photos.length > 1) {
+      onChange({ ...inputs, photoMode: mode, photos: inputs.photos.slice(0, 1) });
+    } else {
+      update('photoMode', mode);
+    }
+  };
 
   return (
     <>
@@ -968,11 +985,49 @@ function FrontInputsForm({
           Include text in the image
         </label>
       </div>
+
+      {/* Photo mode toggle */}
+      <div>
+        <Label className="text-xs">Who's on the card?</Label>
+        <div className="flex gap-2 mt-1">
+          <button
+            onClick={() => setPhotoMode('one_person')}
+            className={`flex-1 px-3 py-2 text-xs rounded border transition-colors ${
+              isOnePerson
+                ? 'border-purple-600 bg-purple-50 text-purple-700'
+                : 'border-gray-200 hover:bg-gray-50'
+            }`}
+            data-testid="mode-one-person"
+          >
+            <div className="font-semibold">One person</div>
+            <div className="text-[10px] text-gray-500">
+              {isGemini ? 'Up to 5 photos for better likeness' : '1 photo'}
+            </div>
+          </button>
+          <button
+            onClick={() => setPhotoMode('group')}
+            className={`flex-1 px-3 py-2 text-xs rounded border transition-colors ${
+              !isOnePerson
+                ? 'border-purple-600 bg-purple-50 text-purple-700'
+                : 'border-gray-200 hover:bg-gray-50'
+            }`}
+            data-testid="mode-group"
+          >
+            <div className="font-semibold">Group photo</div>
+            <div className="text-[10px] text-gray-500">1 photo with everyone</div>
+          </button>
+        </div>
+      </div>
+
+      {/* Photo upload */}
       <div>
         <Label className="text-xs flex items-center justify-between">
           <span>
-            Reference photos{' '}
-            {isGemini ? `(up to ${maxPhotos} — more = better likeness)` : '(1 max)'}
+            {isOnePerson
+              ? isGemini
+                ? 'Reference photos (up to 5 — more angles = better likeness)'
+                : 'Reference photo'
+              : 'Group photo (one photo with everyone in it)'}
           </span>
           {inputs.photos.length > 0 && (
             <button
@@ -1002,7 +1057,7 @@ function FrontInputsForm({
                   ×
                 </button>
                 <div className="text-[8px] text-gray-500 text-center truncate w-14 mt-0.5">
-                  {i === 0 ? 'Primary' : `Extra ${i}`}
+                  {isOnePerson ? (i === 0 ? 'Primary' : `Angle ${i + 1}`) : 'Group'}
                 </div>
               </div>
             ))}
@@ -1013,7 +1068,7 @@ function FrontInputsForm({
           <input
             type="file"
             accept="image/*"
-            multiple={isGemini}
+            multiple={isOnePerson && isGemini}
             onChange={(e) => onPhotosAdd(e.target.files)}
             className="text-xs mt-1 block w-full"
             data-testid="input-photo"
@@ -1021,9 +1076,11 @@ function FrontInputsForm({
         )}
 
         <p className="text-[10px] text-gray-400 mt-1">
-          {isGemini
-            ? 'Gemini uses ALL photos for identity. Add front, 3/4, and smile for best likeness.'
-            : 'OpenAI uses 1 photo only. Extra photos are ignored.'}
+          {isOnePerson
+            ? isGemini
+              ? 'Add front-facing, 3/4 angle, and smiling shots for best likeness.'
+              : 'OpenAI supports 1 photo only.'
+            : 'Upload one photo with all people visible. The model preserves each face from a single image.'}
         </p>
       </div>
     </>
