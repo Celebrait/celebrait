@@ -15,6 +15,12 @@ export interface FrontSceneVars {
   userClothing?: string;
   includeText?: boolean;
   cardText?: string;
+  /** 'one_person' = multiple photos are all the same person (multi-angle
+   *  identity anchoring). 'group' = one photo with multiple people. Absent
+   *  or undefined = legacy behaviour (no special preamble). */
+  photoMode?: 'one_person' | 'group';
+  /** How many reference photos were uploaded. */
+  photoCount?: number;
 }
 
 export interface InsideVars {
@@ -36,6 +42,9 @@ export function deriveFrontSceneVars(vars: FrontSceneVars): RenderVars {
     vars.userArtStyle.trim() &&
     vars.userArtStyle !== 'ai_decide'
   );
+  const isOnePerson = vars.photoMode === 'one_person';
+  const isGroup = vars.photoMode === 'group';
+  const photoCount = vars.photoCount ?? 1;
   return {
     scenePrompt: vars.scenePrompt,
     userArtStyle: hasUserArtStyle ? vars.userArtStyle! : '',
@@ -44,6 +53,14 @@ export function deriveFrontSceneVars(vars: FrontSceneVars): RenderVars {
     aiDecideStyle: !hasUserArtStyle,
     includeText: !!(vars.includeText && vars.cardText?.trim()),
     cardText: vars.cardText ?? '',
+    // Photo mode flags — used by {{#if}} blocks in the template to
+    // give the model explicit context about what the reference images
+    // represent (same person from multiple angles vs multiple people
+    // in one group shot).
+    isOnePerson,
+    isGroup,
+    hasMultiplePhotos: photoCount > 1,
+    photoCount: String(photoCount),
   };
 }
 

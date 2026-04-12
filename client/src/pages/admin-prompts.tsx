@@ -652,6 +652,7 @@ function TestPanel({
         inputs,
         quality,
         provider: selectedProvider,
+        photoMode: frontInputs.photoMode,
       };
       if (slot === 'front_scene' && frontInputs.photos.length > 0) {
         // First photo is the primary reference; extras are additional

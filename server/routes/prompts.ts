@@ -367,6 +367,7 @@ export function registerPromptRoutes(app: Express): void {
         photoBase64,
         referenceImageBase64,
         additionalPhotos,
+        photoMode,
       } = req.body ?? {};
 
       if (!slot || !VALID_SLOTS.has(slot)) {
@@ -391,10 +392,21 @@ export function registerPromptRoutes(app: Express): void {
       const q: 'low' | 'medium' | 'high' =
         quality === 'high' || quality === 'medium' ? quality : 'low';
 
+      // Compute photo count for the template's {{#if}} blocks.
+      const extras: string[] = Array.isArray(additionalPhotos)
+        ? additionalPhotos.filter((p: any) => typeof p === 'string' && p.length > 0)
+        : [];
+      const totalPhotoCount =
+        (typeof photoBase64 === 'string' && photoBase64 ? 1 : 0) + extras.length;
+
       // Render the template with derived vars.
       const renderVars =
         slot === 'front_scene'
-          ? deriveFrontSceneVars(inputs as FrontSceneVars)
+          ? deriveFrontSceneVars({
+              ...(inputs as FrontSceneVars),
+              photoMode: photoMode === 'group' ? 'group' : photoMode === 'one_person' ? 'one_person' : undefined,
+              photoCount: totalPhotoCount,
+            })
           : deriveInsideVars(inputs as InsideVars);
       const renderedPrompt = renderTemplate(templateText, renderVars);
 
@@ -413,11 +425,6 @@ export function registerPromptRoutes(app: Express): void {
       console.log(
         `[PROMPT_LAB_TEST] slot=${slot} provider=${pid} quality=${q} hasReference=${!!effectiveReferenceImage} promptLen=${renderedPrompt.length}`,
       );
-
-      // Collect additional reference photos (multi-photo for Gemini).
-      const extras: string[] = Array.isArray(additionalPhotos)
-        ? additionalPhotos.filter((p: any) => typeof p === 'string' && p.length > 0)
-        : [];
 
       // Delegate to the provider.
       const result = await provider.generate({
