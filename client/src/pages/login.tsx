@@ -93,21 +93,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-surface flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <img src={logoSrc} alt="Celebrait" className="h-16 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-stone-900">
             {step === 'email' ? 'Sign in to Celebrait' : 'Check your email'}
           </h1>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-stone-600 mt-1">
             {step === 'email'
               ? "We'll email you a 6-digit code. No passwords, ever."
               : `We sent a code to ${email}.`}
           </p>
         </div>
 
-        <div className="bg-white rounded-xl border border-purple-100 shadow-sm p-6 space-y-4">
+        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-6 space-y-4">
           {step === 'email' ? (
             <>
               <div>
@@ -129,7 +129,7 @@ export default function LoginPage() {
               <Button
                 onClick={handleSendCode}
                 disabled={isSendingOtp}
-                className="w-full bg-purple-600 hover:bg-purple-700"
+                className="w-full bg-green-600 hover:bg-green-700"
                 data-testid="btn-send-code"
               >
                 {isSendingOtp ? 'Sending code…' : 'Send me a code'}
@@ -165,7 +165,7 @@ export default function LoginPage() {
               <Button
                 onClick={handleVerifyCode}
                 disabled={isVerifyingOtp}
-                className="w-full bg-purple-600 hover:bg-purple-700"
+                className="w-full bg-green-600 hover:bg-green-700"
                 data-testid="btn-verify-code"
               >
                 {isVerifyingOtp ? 'Verifying…' : 'Sign in'}
@@ -175,7 +175,7 @@ export default function LoginPage() {
                   setStep('email');
                   setCode('');
                 }}
-                className="w-full text-xs text-gray-500 hover:text-gray-700"
+                className="w-full text-xs text-stone-500 hover:text-gray-700"
               >
                 ← Use a different email
               </button>
@@ -183,7 +183,7 @@ export default function LoginPage() {
           )}
         </div>
 
-        <p className="text-center text-[11px] text-gray-400 mt-6">
+        <p className="text-center text-[11px] text-stone-400 mt-6">
           By signing in you agree to our Terms of Service and Privacy Policy.
         </p>
       </div>

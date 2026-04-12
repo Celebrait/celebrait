@@ -78,10 +78,10 @@ export function RequireAdmin({ children }: RequireAdminProps) {
 
 function FullPageSpinner({ label }: { label: string }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-stone-50">
       <div className="text-center">
-        <div className="inline-block h-10 w-10 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
-        <p className="text-sm text-gray-500 mt-3">{label}</p>
+        <div className="inline-block h-10 w-10 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+        <p className="text-sm text-stone-500 mt-3">{label}</p>
       </div>
     </div>
   );
@@ -90,26 +90,26 @@ function FullPageSpinner({ label }: { label: string }) {
 function NotAdminScreen({ email }: { email: string | null }) {
   const [, setLocation] = useLocation();
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <div className="max-w-md w-full bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-stone-50 p-6">
+      <div className="max-w-md w-full bg-white rounded-xl border border-stone-200 shadow-sm p-8 text-center">
         <div className="text-5xl mb-3">🔒</div>
-        <h1 className="text-xl font-bold text-gray-900 mb-2">Admin area</h1>
-        <p className="text-sm text-gray-600 mb-1">
+        <h1 className="text-xl font-bold text-stone-900 mb-2">Admin area</h1>
+        <p className="text-sm text-stone-600 mb-1">
           You're signed in as{' '}
-          <strong className="text-gray-900">{email ?? 'unknown'}</strong>, but
+          <strong className="text-stone-900">{email ?? 'unknown'}</strong>, but
           this account doesn't have admin access.
         </p>
-        <p className="text-xs text-gray-500 mb-6">
+        <p className="text-xs text-stone-500 mb-6">
           If you need access, grant it via:
           <br />
-          <code className="bg-gray-100 px-2 py-0.5 rounded text-[11px]">
+          <code className="bg-stone-100 px-2 py-0.5 rounded text-[11px]">
             npx tsx server/scripts/make-admin.ts {email ?? '<email>'}
           </code>
         </p>
         <div className="flex gap-2 justify-center">
           <button
             onClick={() => setLocation('/')}
-            className="px-4 py-2 text-sm rounded border border-gray-200 hover:bg-gray-50"
+            className="px-4 py-2 text-sm rounded border border-stone-200 hover:bg-stone-50"
           >
             Back to Celebrait
           </button>
@@ -117,7 +117,7 @@ function NotAdminScreen({ email }: { email: string | null }) {
             onClick={() => {
               window.location.href = '/login';
             }}
-            className="px-4 py-2 text-sm rounded bg-purple-600 text-white hover:bg-purple-700"
+            className="px-4 py-2 text-sm rounded bg-violet-600 text-white hover:bg-violet-700"
           >
             Use another account
           </button>

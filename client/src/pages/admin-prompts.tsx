@@ -106,22 +106,22 @@ export default function AdminPromptsPage() {
     <div className="p-6">
       <div className="max-w-[1600px] mx-auto">
         <header className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Prompt Lab</h1>
-          <p className="text-sm text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-stone-900">Prompt Lab</h1>
+          <p className="text-sm text-stone-600 mt-1">
             Edit a prompt, test it against a real input, see the image. Every
             version is kept; the active pointer can be flipped atomically.
           </p>
         </header>
 
-        <div className="flex gap-2 mb-4 border-b border-gray-200">
+        <div className="flex gap-2 mb-4 border-b border-stone-200">
           {(Object.keys(SLOT_LABELS) as SlotId[]).map((slot) => (
             <button
               key={slot}
               onClick={() => setActiveSlot(slot)}
               className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                 activeSlot === slot
-                  ? 'border-purple-600 text-purple-700'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-violet-600 text-violet-700'
+                  : 'border-transparent text-stone-500 hover:text-stone-700'
               }`}
               data-testid={`tab-slot-${slot}`}
             >
@@ -186,7 +186,7 @@ function SlotPanel({ slot }: { slot: SlotId }) {
     }
   }, [selectedId, data, isDraft]);
 
-  if (isLoading) return <div className="p-8 text-gray-500">Loading…</div>;
+  if (isLoading) return <div className="p-8 text-stone-500">Loading…</div>;
   if (error) {
     return (
       <div className="p-8 text-red-600">
@@ -208,7 +208,7 @@ function SlotPanel({ slot }: { slot: SlotId }) {
             <CardTitle className="text-sm font-semibold">Version history</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y divide-gray-100 max-h-[75vh] overflow-y-auto">
+            <div className="divide-y divide-stone-100 max-h-[75vh] overflow-y-auto">
               {data.versions.map((v) => (
                 <button
                   key={v.id}
@@ -216,13 +216,13 @@ function SlotPanel({ slot }: { slot: SlotId }) {
                     setSelectedId(v.id);
                     setIsDraft(false);
                   }}
-                  className={`w-full text-left p-3 hover:bg-gray-50 transition-colors ${
-                    selectedId === v.id ? 'bg-purple-50 border-l-2 border-purple-600' : ''
+                  className={`w-full text-left p-3 hover:bg-stone-50 transition-colors ${
+                    selectedId === v.id ? 'bg-violet-50 border-l-2 border-violet-600' : ''
                   }`}
                   data-testid={`version-${v.id}`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-sm font-medium text-stone-900">
                       v{v.version}
                     </span>
                     {v.id === data.activeTemplateId && (
@@ -231,8 +231,8 @@ function SlotPanel({ slot }: { slot: SlotId }) {
                       </Badge>
                     )}
                   </div>
-                  <div className="text-xs text-gray-600 truncate mt-0.5">{v.name}</div>
-                  <div className="text-[11px] text-gray-400 mt-1">
+                  <div className="text-xs text-stone-600 truncate mt-0.5">{v.name}</div>
+                  <div className="text-[11px] text-stone-400 mt-1">
                     {new Date(v.createdAt).toLocaleDateString()} ·{' '}
                     {v.createdBy ?? 'unknown'}
                   </div>
@@ -283,7 +283,7 @@ function SlotPanel({ slot }: { slot: SlotId }) {
             )}
           </>
         ) : (
-          <div className="p-8 text-gray-500">Select a version to inspect.</div>
+          <div className="p-8 text-stone-500">Select a version to inspect.</div>
         )}
       </div>
     </div>
@@ -377,7 +377,7 @@ function VersionEditor({
         <div>
           <CardTitle className="flex items-center gap-2">
             <span>
-              {selected.name} <span className="text-gray-400">· v{selected.version}</span>
+              {selected.name} <span className="text-stone-400">· v{selected.version}</span>
             </span>
             {isActive && <Badge className="bg-green-100 text-green-700">ACTIVE</Badge>}
             {isDraft && (
@@ -385,9 +385,9 @@ function VersionEditor({
             )}
           </CardTitle>
           {selected.notes && (
-            <p className="text-xs text-gray-600 mt-1">{selected.notes}</p>
+            <p className="text-xs text-stone-600 mt-1">{selected.notes}</p>
           )}
-          <p className="text-[11px] text-gray-400 mt-1">
+          <p className="text-[11px] text-stone-400 mt-1">
             Created {new Date(selected.createdAt).toLocaleString()} by{' '}
             {selected.createdBy ?? 'unknown'}
           </p>
@@ -490,13 +490,13 @@ function VersionEditor({
               {selected.variables.map((v) => (
                 <code
                   key={v.name}
-                  className="text-[11px] bg-gray-100 px-2 py-0.5 rounded border border-gray-200"
+                  className="text-[11px] bg-stone-100 px-2 py-0.5 rounded border border-stone-200"
                   title={v.description}
                 >
                   {'{{'}
                   {v.name}
                   {'}}'}
-                  <span className="text-gray-400 ml-1">:{v.type}</span>
+                  <span className="text-stone-400 ml-1">:{v.type}</span>
                 </code>
               ))}
             </div>
@@ -732,9 +732,9 @@ function TestPanel({
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center justify-between">
           <span>Test this prompt</span>
-          <span className="text-xs text-gray-500 font-normal">
+          <span className="text-xs text-stone-500 font-normal">
             Running against:{' '}
-            <code className="bg-gray-100 px-1 rounded">
+            <code className="bg-stone-100 px-1 rounded">
               {typeof templateVersionLabel === 'number'
                 ? `v${templateVersionLabel}`
                 : templateVersionLabel}
@@ -762,7 +762,7 @@ function TestPanel({
               />
             )}
 
-            <div className="pt-3 border-t border-gray-100 space-y-3">
+            <div className="pt-3 border-t border-stone-100 space-y-3">
               {/* Provider selector */}
               <div>
                 <Label className="text-xs">Provider</Label>
@@ -774,16 +774,16 @@ function TestPanel({
                       disabled={!p.available}
                       className={`flex-1 px-3 py-2 text-xs rounded border transition-colors ${
                         selectedProvider === p.id
-                          ? 'border-purple-600 bg-purple-50 text-purple-700'
+                          ? 'border-violet-600 bg-violet-50 text-violet-700'
                           : p.available
-                            ? 'border-gray-200 hover:bg-gray-50'
-                            : 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
+                            ? 'border-stone-200 hover:bg-stone-50'
+                            : 'border-stone-100 bg-stone-50 text-stone-400 cursor-not-allowed'
                       }`}
                       data-testid={`provider-${p.id}`}
                     >
                       <div className="font-semibold truncate">{p.displayName}</div>
                       {!p.available && (
-                        <div className="text-[9px] text-gray-400">No API key</div>
+                        <div className="text-[9px] text-stone-400">No API key</div>
                       )}
                     </button>
                   ))}
@@ -801,13 +801,13 @@ function TestPanel({
                         onClick={() => setQuality(opt.value as any)}
                         className={`flex-1 px-3 py-2 text-xs rounded border transition-colors ${
                           quality === opt.value
-                            ? 'border-purple-600 bg-purple-50 text-purple-700'
-                            : 'border-gray-200 hover:bg-gray-50'
+                            ? 'border-violet-600 bg-violet-50 text-violet-700'
+                            : 'border-stone-200 hover:bg-stone-50'
                         }`}
                         data-testid={`quality-${opt.value}`}
                       >
                         <div className="font-semibold">{opt.label}</div>
-                        <div className="text-[10px] text-gray-500">{opt.costDisplay}</div>
+                        <div className="text-[10px] text-stone-500">{opt.costDisplay}</div>
                       </button>
                     ))}
                   </div>
@@ -828,7 +828,7 @@ function TestPanel({
                     <Button
                       onClick={() => runMutation.mutate()}
                       disabled={isDisabled}
-                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      className="w-full bg-green-600 hover:bg-green-700"
                       data-testid="btn-run-test"
                     >
                       {runMutation.isPending
@@ -840,7 +840,7 @@ function TestPanel({
                             : `Run · ${currentCostDisplay}`}
                     </Button>
                     {runMutation.isPending && (
-                      <p className="text-[11px] text-gray-500 text-center">
+                      <p className="text-[11px] text-stone-500 text-center">
                         Calling {currentProvider?.displayName ?? 'provider'} — real cost, real image.
                       </p>
                     )}
@@ -853,10 +853,10 @@ function TestPanel({
           {/* Result (right half) */}
           <div>
             {runMutation.isPending ? (
-              <div className="h-full min-h-[400px] border-2 border-dashed border-gray-200 rounded flex items-center justify-center">
+              <div className="h-full min-h-[400px] border-2 border-dashed border-stone-200 rounded flex items-center justify-center">
                 <div className="text-center">
-                  <div className="inline-block h-8 w-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
-                  <p className="text-xs text-gray-500 mt-3">Generating…</p>
+                  <div className="inline-block h-8 w-8 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+                  <p className="text-xs text-stone-500 mt-3">Generating…</p>
                 </div>
               </div>
             ) : lastResult ? (
@@ -864,32 +864,32 @@ function TestPanel({
                 <img
                   src={lastResult.imageUrl}
                   alt="Test run result"
-                  className="w-full rounded border border-gray-200"
+                  className="w-full rounded border border-stone-200"
                   data-testid="test-result-image"
                 />
-                <div className="flex items-center justify-between text-[11px] text-gray-600">
+                <div className="flex items-center justify-between text-[11px] text-stone-600">
                   <span>
                     {lastResult.provider} · {lastResult.costUsd} · {(lastResult.durationMs / 1000).toFixed(1)}s ·{' '}
                     {lastResult.quality}
                   </span>
                   <button
                     onClick={() => setExpandedPrompt(!expandedPrompt)}
-                    className="text-purple-700 hover:underline"
+                    className="text-violet-700 hover:underline"
                   >
                     {expandedPrompt ? 'Hide prompt' : 'View rendered prompt'}
                   </button>
                 </div>
                 {expandedPrompt && (
-                  <div className="bg-gray-50 border border-gray-200 rounded p-2 max-h-64 overflow-y-auto">
-                    <pre className="text-[10px] whitespace-pre-wrap font-mono text-gray-700">
+                  <div className="bg-stone-50 border border-stone-200 rounded p-2 max-h-64 overflow-y-auto">
+                    <pre className="text-[10px] whitespace-pre-wrap font-mono text-stone-700">
                       {lastResult.renderedPrompt}
                     </pre>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="h-full min-h-[400px] border-2 border-dashed border-gray-200 rounded flex items-center justify-center">
-                <div className="text-center text-gray-400 text-sm">
+              <div className="h-full min-h-[400px] border-2 border-dashed border-stone-200 rounded flex items-center justify-center">
+                <div className="text-center text-stone-400 text-sm">
                   <p>Fill in inputs on the left</p>
                   <p>and click Run.</p>
                 </div>
@@ -977,7 +977,7 @@ function FrontInputsForm({
           className="h-8 text-xs"
           data-testid="input-card-text"
         />
-        <label className="flex items-center gap-2 mt-1 text-[11px] text-gray-600">
+        <label className="flex items-center gap-2 mt-1 text-[11px] text-stone-600">
           <input
             type="checkbox"
             checked={inputs.includeText}
@@ -995,13 +995,13 @@ function FrontInputsForm({
             onClick={() => setPhotoMode('one_person')}
             className={`flex-1 px-3 py-2 text-xs rounded border transition-colors ${
               isOnePerson
-                ? 'border-purple-600 bg-purple-50 text-purple-700'
-                : 'border-gray-200 hover:bg-gray-50'
+                ? 'border-violet-600 bg-violet-50 text-violet-700'
+                : 'border-stone-200 hover:bg-stone-50'
             }`}
             data-testid="mode-one-person"
           >
             <div className="font-semibold">One person</div>
-            <div className="text-[10px] text-gray-500">
+            <div className="text-[10px] text-stone-500">
               {isGemini ? 'Up to 5 photos for better likeness' : '1 photo'}
             </div>
           </button>
@@ -1009,13 +1009,13 @@ function FrontInputsForm({
             onClick={() => setPhotoMode('group')}
             className={`flex-1 px-3 py-2 text-xs rounded border transition-colors ${
               !isOnePerson
-                ? 'border-purple-600 bg-purple-50 text-purple-700'
-                : 'border-gray-200 hover:bg-gray-50'
+                ? 'border-violet-600 bg-violet-50 text-violet-700'
+                : 'border-stone-200 hover:bg-stone-50'
             }`}
             data-testid="mode-group"
           >
             <div className="font-semibold">Group photo</div>
-            <div className="text-[10px] text-gray-500">1 photo with everyone</div>
+            <div className="text-[10px] text-stone-500">1 photo with everyone</div>
           </button>
         </div>
       </div>
@@ -1048,7 +1048,7 @@ function FrontInputsForm({
                 <img
                   src={photo.base64}
                   alt={photo.name}
-                  className="w-14 h-14 rounded border border-gray-200 object-cover"
+                  className="w-14 h-14 rounded border border-stone-200 object-cover"
                 />
                 <button
                   onClick={() => onPhotoRemove(i)}
@@ -1057,7 +1057,7 @@ function FrontInputsForm({
                 >
                   ×
                 </button>
-                <div className="text-[8px] text-gray-500 text-center truncate w-14 mt-0.5">
+                <div className="text-[8px] text-stone-500 text-center truncate w-14 mt-0.5">
                   {isOnePerson ? (i === 0 ? 'Primary' : `Angle ${i + 1}`) : 'Group'}
                 </div>
               </div>
@@ -1076,7 +1076,7 @@ function FrontInputsForm({
           />
         )}
 
-        <p className="text-[10px] text-gray-400 mt-1">
+        <p className="text-[10px] text-stone-400 mt-1">
           {isOnePerson
             ? isGemini
               ? 'Add front-facing, 3/4 angle, and smiling shots for best likeness.'
@@ -1177,7 +1177,7 @@ function InsideInputsForm({
       </div>
 
       {/* ─── Front card reference picker ─── */}
-      <div className="border-t border-gray-100 pt-3">
+      <div className="border-t border-stone-100 pt-3">
         <Label className="text-xs flex items-center justify-between">
           <span>Front card reference</span>
           {inputs.referenceImageBase64 && (
@@ -1194,17 +1194,17 @@ function InsideInputsForm({
         </Label>
 
         {inputs.referenceImageBase64 ? (
-          <div className="flex items-center gap-2 mt-1 p-2 rounded bg-purple-50 border border-purple-200">
+          <div className="flex items-center gap-2 mt-1 p-2 rounded bg-violet-50 border border-violet-200">
             <img
               src={inputs.referenceImageBase64}
               alt="Reference"
               className="w-12 h-12 object-cover rounded"
             />
             <div className="flex-1 min-w-0">
-              <div className="text-[11px] text-purple-900 truncate">
+              <div className="text-[11px] text-violet-900 truncate">
                 {inputs.referenceLabel}
               </div>
-              <div className="text-[10px] text-purple-600">
+              <div className="text-[10px] text-violet-600">
                 Inside will inherit this card's style via /v1/images/edits
               </div>
             </div>
@@ -1213,7 +1213,7 @@ function InsideInputsForm({
           <div className="mt-1 space-y-2">
             {frontRuns.length > 0 ? (
               <>
-                <div className="text-[10px] text-gray-500">
+                <div className="text-[10px] text-stone-500">
                   Pick from recent front runs in this session:
                 </div>
                 <div className="flex gap-2 overflow-x-auto pb-1">
@@ -1221,7 +1221,7 @@ function InsideInputsForm({
                     <button
                       key={run.id}
                       onClick={() => pickRecent(run)}
-                      className="flex-shrink-0 w-16 h-16 rounded border border-gray-200 hover:border-purple-500 overflow-hidden"
+                      className="flex-shrink-0 w-16 h-16 rounded border border-stone-200 hover:border-violet-500 overflow-hidden"
                       title={run.label}
                       data-testid={`pick-front-run-${run.id}`}
                     >
@@ -1235,7 +1235,7 @@ function InsideInputsForm({
                 </div>
               </>
             ) : (
-              <div className="text-[10px] text-gray-500">
+              <div className="text-[10px] text-stone-500">
                 No recent front runs yet — generate one on the Front tab first,
                 or upload a PNG below.
               </div>
@@ -1279,8 +1279,8 @@ function RecentRunsStrip({ runs }: { runs: RunRecord[] }) {
               onClick={() => setExpandedId(expandedId === run.id ? null : run.id)}
               className={`flex-shrink-0 w-32 text-left rounded border-2 transition-all ${
                 expandedId === run.id
-                  ? 'border-purple-600 shadow-md'
-                  : 'border-gray-200 hover:border-gray-300'
+                  ? 'border-violet-600 shadow-md'
+                  : 'border-stone-200 hover:border-stone-300'
               }`}
               data-testid={`recent-run-${run.id}`}
             >
@@ -1291,7 +1291,7 @@ function RecentRunsStrip({ runs }: { runs: RunRecord[] }) {
               />
               <div className="p-1.5">
                 <div className="text-[10px] font-medium truncate">{run.label}</div>
-                <div className="text-[9px] text-gray-500 flex items-center justify-between">
+                <div className="text-[9px] text-stone-500 flex items-center justify-between">
                   <span>{run.provider}</span>
                   <span>{run.costUsd}</span>
                 </div>
@@ -1301,21 +1301,21 @@ function RecentRunsStrip({ runs }: { runs: RunRecord[] }) {
         </div>
 
         {expanded && (
-          <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-2 gap-4">
+          <div className="mt-4 pt-4 border-t border-stone-200 grid grid-cols-2 gap-4">
             <img
               src={expanded.imageUrl}
               alt={expanded.label}
-              className="w-full rounded border border-gray-200"
+              className="w-full rounded border border-stone-200"
             />
             <div className="space-y-2">
-              <div className="text-xs text-gray-600">
+              <div className="text-xs text-stone-600">
                 {expanded.provider} · v{expanded.templateVersion} · {expanded.quality} · {expanded.costUsd} ·{' '}
                 {(expanded.durationMs / 1000).toFixed(1)}s ·{' '}
                 {new Date(expanded.timestamp).toLocaleTimeString()}
               </div>
               <div>
                 <Label className="text-[10px] font-semibold">Inputs</Label>
-                <pre className="text-[10px] bg-gray-50 border border-gray-200 rounded p-2 max-h-40 overflow-y-auto whitespace-pre-wrap">
+                <pre className="text-[10px] bg-stone-50 border border-stone-200 rounded p-2 max-h-40 overflow-y-auto whitespace-pre-wrap">
                   {JSON.stringify(
                     { ...expanded.inputs, photoBase64: undefined },
                     null,
@@ -1325,7 +1325,7 @@ function RecentRunsStrip({ runs }: { runs: RunRecord[] }) {
               </div>
               <div>
                 <Label className="text-[10px] font-semibold">Rendered prompt</Label>
-                <pre className="text-[10px] bg-gray-50 border border-gray-200 rounded p-2 max-h-40 overflow-y-auto whitespace-pre-wrap font-mono">
+                <pre className="text-[10px] bg-stone-50 border border-stone-200 rounded p-2 max-h-40 overflow-y-auto whitespace-pre-wrap font-mono">
                   {expanded.renderedPrompt}
                 </pre>
               </div>
@@ -1342,7 +1342,7 @@ function RecentRunsStrip({ runs }: { runs: RunRecord[] }) {
 function DiffView({ left, right }: { left: string; right: string }) {
   const { lhs, rhs } = useMemo(() => buildLineDiff(left, right), [left, right]);
   return (
-    <div className="grid grid-cols-2 gap-3 border border-gray-200 rounded font-mono text-[11px]">
+    <div className="grid grid-cols-2 gap-3 border border-stone-200 rounded font-mono text-[11px]">
       <div className="p-2 bg-red-50/30">
         <div className="text-xs font-semibold text-red-700 mb-1">Active</div>
         {lhs.map((line, i) => (
