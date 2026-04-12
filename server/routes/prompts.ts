@@ -27,8 +27,7 @@ import {
   type FrontSceneVars,
   type InsideVars,
 } from '../prompts/derive';
-import { openai } from '../utils/shared';
-import FormData from 'form-data';
+import { getProvider, listProviders } from '../providers/registry';
 
 /**
  * Reads the caller's OTP session and checks the `users.is_admin` DB flag.
@@ -323,56 +322,48 @@ export function registerPromptRoutes(app: Express): void {
     }
   });
 
+  // GET /api/admin/prompts/providers
+  // Returns the list of registered image providers with availability status.
+  // The client uses this to populate the provider selector dropdown and to
+  // adapt the quality selector per provider.
+  app.get('/api/admin/prompts/providers', async (req, res) => {
+    if (!(await requireAdmin(req, res))) return;
+    try {
+      res.json({ providers: listProviders() });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // POST /api/admin/prompts/test-run
-  // The heart of the Prompt Lab. Takes a template string (the one the admin
-  // is currently editing — could be an unsaved draft), a set of input vars,
-  // and an optional reference photo. Renders the template, calls OpenAI at
-  // the requested quality, returns the generated image + metadata.
-  //
-  // This is the "click Run and see an image" primitive. Everything Phase 3+
-  // builds on top — fixtures, variant grids, cost ledgers — is just UI/data
-  // layered on this call.
+  // The heart of the Prompt Lab. Renders a template with input vars, then
+  // delegates image generation to the selected provider (OpenAI or Gemini).
   //
   // Body:
   //   {
   //     slot: 'front_scene' | 'inside',
-  //     templateText: string,               // the template to render
-  //     inputs: FrontSceneVars | InsideVars, // what to substitute
-  //     quality: 'low' | 'medium' | 'high', // OpenAI quality tier
-  //     photoBase64?: string,               // optional: user's face photo (front_scene)
-  //     referenceImageBase64?: string,      // optional: front-card reference (inside)
+  //     templateText: string,
+  //     inputs: FrontSceneVars | InsideVars,
+  //     quality: 'low' | 'medium' | 'high',
+  //     provider?: string,                  // default: 'openai'
+  //     photoBase64?: string,               // user's face photo (front_scene)
+  //     referenceImageBase64?: string,      // front-card reference (inside)
   //   }
-  //
-  // Both image params are accepted as "data:image/...;base64,..." or raw
-  // base64. Either one routes to /v1/images/edits at the OpenAI level; if
-  // both are present referenceImageBase64 wins. If neither is present,
-  // the call is text-only via images.generate.
   //
   // Returns:
   //   {
-  //     imageUrl: string,                   // data URL, base64 PNG
-  //     renderedPrompt: string,             // the exact text sent to OpenAI
-  //     costCents: number,                  // approximate cost in US cents
-  //     costUsd: string,                    // formatted for display
-  //     durationMs: number,
-  //     quality: string,
-  //     hadReferenceImage: boolean,
+  //     imageUrl, renderedPrompt, costCents, costUsd, durationMs,
+  //     quality, hadReferenceImage, provider, model
   //   }
   app.post('/api/admin/prompts/test-run', async (req, res) => {
     if (!(await requireAdmin(req, res))) return;
-    const startTime = Date.now();
     try {
-      if (!openai) {
-        return res
-          .status(503)
-          .json({ message: 'OpenAI API key not configured on server' });
-      }
-
       const {
         slot,
         templateText,
         inputs,
         quality,
+        provider: providerId,
         photoBase64,
         referenceImageBase64,
       } = req.body ?? {};
@@ -386,180 +377,67 @@ export function registerPromptRoutes(app: Express): void {
       if (typeof inputs !== 'object' || inputs === null) {
         return res.status(400).json({ message: 'inputs must be an object' });
       }
+
+      // Resolve provider (default to openai for backwards compat)
+      const pid = typeof providerId === 'string' && providerId ? providerId : 'openai';
+      const provider = getProvider(pid);
+      if (!provider.isAvailable()) {
+        return res
+          .status(503)
+          .json({ message: `Provider "${pid}" is not available — API key not configured.` });
+      }
+
       const q: 'low' | 'medium' | 'high' =
         quality === 'high' || quality === 'medium' ? quality : 'low';
 
-      // Render the template with derived vars (so {{#if}} blocks work the
-      // same way as production).
+      // Render the template with derived vars.
       const renderVars =
         slot === 'front_scene'
           ? deriveFrontSceneVars(inputs as FrontSceneVars)
           : deriveInsideVars(inputs as InsideVars);
       const renderedPrompt = renderTemplate(templateText, renderVars);
 
-      // Unified reference-image resolution. Two param names are accepted:
-      //   - photoBase64: the user's face photo (front_scene flow)
-      //   - referenceImageBase64: a previously generated front card to
-      //     inherit style from (inside flow — mirrors production, where
-      //     background-generator.ts feeds the front card PNG into the
-      //     inside /v1/images/edits call)
-      // Both wire into /v1/images/edits the same way at the OpenAI level.
+      // Resolve the reference image (user photo or front card).
       const effectiveReferenceImage: string | null =
         (typeof referenceImageBase64 === 'string' && referenceImageBase64) ||
         (typeof photoBase64 === 'string' && photoBase64) ||
         null;
 
-      console.log(
-        `[PROMPT_LAB_TEST] slot=${slot} quality=${q} hasReference=${!!effectiveReferenceImage} promptLen=${renderedPrompt.length}`,
-      );
-
-      // Route 1: reference image provided → /v1/images/edits (multipart)
-      // Route 2: no reference → openai.images.generate (text-only)
-      //
-      // For the inside slot, text-only is technically valid but misleading
-      // — the v1 inside template references "the front card" which only
-      // makes sense when a reference image is actually present. Log a
-      // warning so it shows up in the console for the user.
-      let imageUrl: string | null = null;
-
       if (slot === 'inside' && !effectiveReferenceImage) {
         console.warn(
-          `[PROMPT_LAB_TEST] WARN: inside slot running WITHOUT a front-card reference image — output will NOT reflect production behaviour, where the inside card is rendered via /v1/images/edits with the front PNG as input. Pass referenceImageBase64 to mirror production.`,
+          `[PROMPT_LAB_TEST] WARN: inside slot running WITHOUT a front-card reference — results will NOT reflect production.`,
         );
       }
-
-      if (effectiveReferenceImage) {
-        // Normalise: strip data URL prefix if present
-        const base64Match = effectiveReferenceImage.match(/^data:image\/([a-z0-9]+);base64,(.+)$/);
-        const mimeType = base64Match ? base64Match[1] : 'png';
-        const rawBase64 = base64Match ? base64Match[2] : effectiveReferenceImage;
-        const imageBuffer = Buffer.from(rawBase64, 'base64');
-
-        // Diagnostic: prove the buffer actually contains a valid image.
-        // PNGs start with [89 50 4E 47 0D 0A 1A 0A], JPEGs with [FF D8].
-        // If the first 8 bytes are garbage, the base64 decode failed or
-        // the data URL was malformed.
-        const first8 = imageBuffer.subarray(0, 8).toString('hex');
-        const isPng = first8.startsWith('89504e470d0a1a0a');
-        const isJpeg = first8.startsWith('ffd8');
-        console.log(
-          `[PROMPT_LAB_TEST] reference image: mimeClaimed=${mimeType} bufferBytes=${imageBuffer.length} first8=${first8} detected=${isPng ? 'PNG' : isJpeg ? 'JPEG' : 'UNKNOWN/CORRUPT'}`,
-        );
-
-        const formData = new FormData();
-        formData.append('image', imageBuffer, {
-          filename: `reference.${mimeType}`,
-          contentType: `image/${mimeType}`,
-        });
-        formData.append('prompt', renderedPrompt);
-        formData.append('model', 'gpt-image-1.5');
-        formData.append('n', '1');
-        formData.append('size', '1024x1024');
-        formData.append('quality', q);
-        formData.append('moderation', 'low');
-        formData.append('background', 'auto');
-
-        const fetch = (await import('node-fetch')).default;
-        const openaiStart = Date.now();
-        console.log(
-          `[PROMPT_LAB_TEST] → POST https://api.openai.com/v1/images/edits (model=gpt-image-1.5 quality=${q} imageBytes=${imageBuffer.length})`,
-        );
-        const response = await fetch('https://api.openai.com/v1/images/edits', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            ...formData.getHeaders(),
-          },
-          body: formData as any,
-        });
-        console.log(
-          `[PROMPT_LAB_TEST] ← ${response.status} ${response.statusText} (${Date.now() - openaiStart}ms)`,
-        );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          let errMsg = errorText;
-          try {
-            const parsed = JSON.parse(errorText);
-            errMsg = parsed?.error?.message ?? errorText;
-          } catch {
-            /* keep raw */
-          }
-          return res.status(response.status).json({
-            message: `OpenAI error: ${errMsg}`,
-            renderedPrompt,
-          });
-        }
-
-        const json = (await response.json()) as any;
-        const b64 = json?.data?.[0]?.b64_json;
-        if (!b64) {
-          return res.status(500).json({
-            message: 'OpenAI returned no image data',
-            renderedPrompt,
-          });
-        }
-        imageUrl = `data:image/png;base64,${b64}`;
-      } else {
-        // Text-only generation via the OpenAI SDK (hits
-        // https://api.openai.com/v1/images/generations under the hood).
-        const openaiStart = Date.now();
-        console.log(
-          `[PROMPT_LAB_TEST] → openai.images.generate (model=gpt-image-1.5 quality=${q})`,
-        );
-        const gen = await openai.images.generate({
-          model: 'gpt-image-1.5',
-          prompt: renderedPrompt,
-          n: 1,
-          size: '1024x1024',
-          quality: q,
-        } as any);
-        console.log(
-          `[PROMPT_LAB_TEST] ← openai.images.generate returned (${Date.now() - openaiStart}ms)`,
-        );
-        const data = (gen as any)?.data?.[0];
-        const b64 = data?.b64_json;
-        if (b64) {
-          imageUrl = `data:image/png;base64,${b64}`;
-        } else if (data?.url) {
-          imageUrl = data.url;
-        }
-        if (!imageUrl) {
-          return res.status(500).json({
-            message: 'OpenAI returned no image data',
-            renderedPrompt,
-          });
-        }
-      }
-
-      // Cost estimate — figures from OpenAI pricing at 2026-04-10 for
-      // gpt-image-1.5 at 1024x1024. See PROMPT_LAB_PLAN.md §6.1.
-      // low=$0.009, medium=$0.034, high=$0.133 per image.
-      const costByQuality: Record<string, number> = {
-        low: 0.9,
-        medium: 3.4,
-        high: 13.3,
-      };
-      const costCents = costByQuality[q];
-      const costUsd = `$${(costCents / 100).toFixed(3)}`;
-      const durationMs = Date.now() - startTime;
 
       console.log(
-        `[PROMPT_LAB_TEST] SUCCESS slot=${slot} quality=${q} cost=${costUsd} duration=${durationMs}ms`,
+        `[PROMPT_LAB_TEST] slot=${slot} provider=${pid} quality=${q} hasReference=${!!effectiveReferenceImage} promptLen=${renderedPrompt.length}`,
+      );
+
+      // Delegate to the provider.
+      const result = await provider.generate({
+        prompt: renderedPrompt,
+        referenceImageBase64: effectiveReferenceImage ?? undefined,
+        quality: q,
+        size: '1024x1024',
+      });
+
+      console.log(
+        `[PROMPT_LAB_TEST] SUCCESS provider=${result.provider} model=${result.model} cost=${result.costUsd} duration=${result.durationMs}ms`,
       );
 
       return res.json({
-        imageUrl,
+        imageUrl: result.imageUrl,
         renderedPrompt,
-        costCents,
-        costUsd,
-        durationMs,
+        costCents: result.costCents,
+        costUsd: result.costUsd,
+        durationMs: result.durationMs,
         quality: q,
         hadReferenceImage: !!effectiveReferenceImage,
+        provider: result.provider,
+        model: result.model,
       });
     } catch (err: any) {
-      const durationMs = Date.now() - startTime;
-      console.error(`[PROMPT_LAB_TEST] FAILED after ${durationMs}ms:`, err);
+      console.error(`[PROMPT_LAB_TEST] FAILED:`, err);
       res.status(500).json({
         message: err?.message ?? 'Test run failed',
       });

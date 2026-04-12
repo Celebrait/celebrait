@@ -65,7 +65,9 @@ interface TestRunResult {
   costUsd: string;
   durationMs: number;
   quality: string;
-  hadPhoto: boolean;
+  hadReferenceImage: boolean;
+  provider: string;
+  model: string;
 }
 
 interface RunRecord extends TestRunResult {
@@ -74,6 +76,18 @@ interface RunRecord extends TestRunResult {
   label: string;                // short description shown under thumbnail
   templateVersion: number | string; // 'draft' if not saved
   inputs: FrontSceneInputs | InsideInputs;
+}
+
+interface ProviderInfo {
+  id: string;
+  displayName: string;
+  model: string;
+  available: boolean;
+  qualityOptions: Array<{
+    value: string;
+    label: string;
+    costDisplay: string;
+  }>;
 }
 
 type SlotId = 'front_scene' | 'inside';
@@ -559,15 +573,30 @@ function TestPanel({
 }: TestPanelProps) {
   const [frontInputs, setFrontInputs] = useState<FrontSceneInputs>(DEFAULT_FRONT_INPUTS);
   const [insideInputs, setInsideInputs] = useState<InsideInputs>(DEFAULT_INSIDE_INPUTS);
+  const [selectedProvider, setSelectedProvider] = useState<string>('openai');
   const [quality, setQuality] = useState<'low' | 'medium' | 'high'>('low');
   const [lastResult, setLastResult] = useState<TestRunResult | null>(null);
   const [expandedPrompt, setExpandedPrompt] = useState(false);
 
+  // Fetch available providers from the server.
+  const { data: providersData } = useQuery<{ providers: ProviderInfo[] }>({
+    queryKey: ['/api/admin/prompts/providers'],
+  });
+  const providers = providersData?.providers ?? [];
+  const currentProvider = providers.find((p) => p.id === selectedProvider);
+
+  // When provider changes, reset quality to the first available option
+  // for that provider (e.g. Gemini only has 'high'/Standard).
+  useEffect(() => {
+    if (currentProvider?.qualityOptions.length) {
+      const firstQuality = currentProvider.qualityOptions[0].value as 'low' | 'medium' | 'high';
+      setQuality(firstQuality);
+    }
+  }, [selectedProvider, currentProvider?.id]);
+
   // Auto-select the most recent front run as the inside reference whenever
   // this component mounts (or remounts — e.g. after switching tabs) with
-  // nothing selected but with front runs available. Without this, switching
-  // to the inside tab wipes the selection on unmount and users silently
-  // run without a reference — the bug that wasted us a few $0.13 runs.
+  // nothing selected but with front runs available.
   useEffect(() => {
     if (
       slot === 'inside' &&
@@ -584,11 +613,10 @@ function TestPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slot, frontRuns.length]);
 
-  const qualityCost: Record<string, string> = {
-    low: '$0.009',
-    medium: '$0.034',
-    high: '$0.133',
-  };
+  // Get cost display for the current provider + quality combination.
+  const currentCostDisplay =
+    currentProvider?.qualityOptions.find((o) => o.value === quality)?.costDisplay ??
+    '$0.009';
 
   const runMutation = useMutation({
     mutationFn: async () => {
@@ -616,29 +644,22 @@ function TestPanel({
         templateText: liveTemplateText,
         inputs,
         quality,
+        provider: selectedProvider,
       };
       if (slot === 'front_scene' && frontInputs.photoBase64) {
         body.photoBase64 = frontInputs.photoBase64;
       }
       if (slot === 'inside' && insideInputs.referenceImageBase64) {
-        // Mirrors production: inside card inherits style from a front
-        // card PNG via /v1/images/edits. See background-generator.ts.
         body.referenceImageBase64 = insideInputs.referenceImageBase64;
       }
 
-      // Diagnostic: log what's actually leaving the browser, with image
-      // fields truncated so the console isn't flooded. If this doesn't
-      // show referenceImageBase64 when you expect it to, the state wasn't
-      // where you thought it was.
       console.log('[PROMPT_LAB_TEST] POST body (truncated):', {
         slot: body.slot,
+        provider: body.provider,
         quality: body.quality,
         templateLen: body.templateText?.length,
-        inputs: body.inputs,
         hasPhoto: !!body.photoBase64,
-        photoBytes: body.photoBase64?.length,
         hasReferenceImage: !!body.referenceImageBase64,
-        referenceBytes: body.referenceImageBase64?.length,
       });
 
       const res = await apiRequest('POST', '/api/admin/prompts/test-run', body);
@@ -661,7 +682,7 @@ function TestPanel({
       });
       toast({
         title: 'Run complete',
-        description: `${result.costUsd} · ${(result.durationMs / 1000).toFixed(1)}s`,
+        description: `${result.provider} · ${result.costUsd} · ${(result.durationMs / 1000).toFixed(1)}s`,
       });
     },
     onError: (err: Error) => {
@@ -719,39 +740,66 @@ function TestPanel({
             )}
 
             <div className="pt-3 border-t border-gray-100 space-y-3">
+              {/* Provider selector */}
               <div>
-                <Label className="text-xs">Quality</Label>
+                <Label className="text-xs">Provider</Label>
                 <div className="flex gap-2 mt-1">
-                  {(['low', 'medium', 'high'] as const).map((q) => (
+                  {providers.map((p) => (
                     <button
-                      key={q}
-                      onClick={() => setQuality(q)}
+                      key={p.id}
+                      onClick={() => p.available && setSelectedProvider(p.id)}
+                      disabled={!p.available}
                       className={`flex-1 px-3 py-2 text-xs rounded border transition-colors ${
-                        quality === q
+                        selectedProvider === p.id
                           ? 'border-purple-600 bg-purple-50 text-purple-700'
-                          : 'border-gray-200 hover:bg-gray-50'
+                          : p.available
+                            ? 'border-gray-200 hover:bg-gray-50'
+                            : 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
                       }`}
-                      data-testid={`quality-${q}`}
+                      data-testid={`provider-${p.id}`}
                     >
-                      <div className="font-semibold capitalize">{q}</div>
-                      <div className="text-[10px] text-gray-500">{qualityCost[q]}</div>
+                      <div className="font-semibold truncate">{p.displayName}</div>
+                      {!p.available && (
+                        <div className="text-[9px] text-gray-400">No API key</div>
+                      )}
                     </button>
                   ))}
                 </div>
               </div>
 
+              {/* Quality selector (adapts per provider) */}
+              {currentProvider && currentProvider.qualityOptions.length > 1 && (
+                <div>
+                  <Label className="text-xs">Quality</Label>
+                  <div className="flex gap-2 mt-1">
+                    {currentProvider.qualityOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setQuality(opt.value as any)}
+                        className={`flex-1 px-3 py-2 text-xs rounded border transition-colors ${
+                          quality === opt.value
+                            ? 'border-purple-600 bg-purple-50 text-purple-700'
+                            : 'border-gray-200 hover:bg-gray-50'
+                        }`}
+                        data-testid={`quality-${opt.value}`}
+                      >
+                        <div className="font-semibold">{opt.label}</div>
+                        <div className="text-[10px] text-gray-500">{opt.costDisplay}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {(() => {
-                // Hard-block the Run button on the inside tab if no front
-                // reference is selected. Mirrors production: inside cards
-                // must be generated via /v1/images/edits with a front PNG
-                // input, otherwise the output is misleading (text-only
-                // generation doesn't see any reference image at all).
                 const insideNeedsReference =
                   slot === 'inside' && !insideInputs.referenceImageBase64;
+                const providerUnavailable = currentProvider && !currentProvider.available;
                 const isDisabled =
                   runMutation.isPending ||
                   !liveTemplateText ||
-                  insideNeedsReference;
+                  insideNeedsReference ||
+                  !!providerUnavailable;
                 return (
                   <>
                     <Button
@@ -764,11 +812,13 @@ function TestPanel({
                         ? `Generating… (up to 30s)`
                         : insideNeedsReference
                           ? 'Pick a front reference above to run'
-                          : `Run · ${qualityCost[quality]}`}
+                          : providerUnavailable
+                            ? `${currentProvider?.displayName} — no API key`
+                            : `Run · ${currentCostDisplay}`}
                     </Button>
                     {runMutation.isPending && (
                       <p className="text-[11px] text-gray-500 text-center">
-                        Calling OpenAI — real cost, real image.
+                        Calling {currentProvider?.displayName ?? 'provider'} — real cost, real image.
                       </p>
                     )}
                   </>
@@ -796,7 +846,7 @@ function TestPanel({
                 />
                 <div className="flex items-center justify-between text-[11px] text-gray-600">
                   <span>
-                    {lastResult.costUsd} · {(lastResult.durationMs / 1000).toFixed(1)}s ·{' '}
+                    {lastResult.provider} · {lastResult.costUsd} · {(lastResult.durationMs / 1000).toFixed(1)}s ·{' '}
                     {lastResult.quality}
                   </span>
                   <button
@@ -1125,7 +1175,7 @@ function RecentRunsStrip({ runs }: { runs: RunRecord[] }) {
               <div className="p-1.5">
                 <div className="text-[10px] font-medium truncate">{run.label}</div>
                 <div className="text-[9px] text-gray-500 flex items-center justify-between">
-                  <span>v{run.templateVersion}</span>
+                  <span>{run.provider}</span>
                   <span>{run.costUsd}</span>
                 </div>
               </div>
@@ -1142,7 +1192,7 @@ function RecentRunsStrip({ runs }: { runs: RunRecord[] }) {
             />
             <div className="space-y-2">
               <div className="text-xs text-gray-600">
-                v{expanded.templateVersion} · {expanded.quality} · {expanded.costUsd} ·{' '}
+                {expanded.provider} · v{expanded.templateVersion} · {expanded.quality} · {expanded.costUsd} ·{' '}
                 {(expanded.durationMs / 1000).toFixed(1)}s ·{' '}
                 {new Date(expanded.timestamp).toLocaleTimeString()}
               </div>
