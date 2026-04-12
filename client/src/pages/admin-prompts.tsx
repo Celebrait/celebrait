@@ -509,14 +509,18 @@ function VersionEditor({
 
 // ─── Test panel: form + run button + result ─────────────────────────────────
 
+interface PhotoEntry {
+  base64: string;
+  name: string;
+}
+
 interface FrontSceneInputs {
   scenePrompt: string;
   userArtStyle: string;
   userClothing: string;
   cardText: string;
   includeText: boolean;
-  photoBase64: string | null;
-  photoName: string | null;
+  photos: PhotoEntry[];
 }
 
 interface InsideInputs {
@@ -539,8 +543,7 @@ const DEFAULT_FRONT_INPUTS: FrontSceneInputs = {
   userClothing: '',
   cardText: 'Happy Birthday Sarah',
   includeText: true,
-  photoBase64: null,
-  photoName: null,
+  photos: [],
 };
 
 const DEFAULT_INSIDE_INPUTS: InsideInputs = {
@@ -646,8 +649,13 @@ function TestPanel({
         quality,
         provider: selectedProvider,
       };
-      if (slot === 'front_scene' && frontInputs.photoBase64) {
-        body.photoBase64 = frontInputs.photoBase64;
+      if (slot === 'front_scene' && frontInputs.photos.length > 0) {
+        // First photo is the primary reference; extras are additional
+        // references (Gemini uses all, OpenAI uses only the first).
+        body.photoBase64 = frontInputs.photos[0].base64;
+        if (frontInputs.photos.length > 1) {
+          body.additionalPhotos = frontInputs.photos.slice(1).map((p) => p.base64);
+        }
       }
       if (slot === 'inside' && insideInputs.referenceImageBase64) {
         body.referenceImageBase64 = insideInputs.referenceImageBase64;
@@ -658,7 +666,7 @@ function TestPanel({
         provider: body.provider,
         quality: body.quality,
         templateLen: body.templateText?.length,
-        hasPhoto: !!body.photoBase64,
+        photoCount: frontInputs.photos.length,
         hasReferenceImage: !!body.referenceImageBase64,
       });
 
@@ -690,20 +698,28 @@ function TestPanel({
     },
   });
 
-  const handlePhotoUpload = async (file: File | null) => {
-    if (!file) {
-      setFrontInputs((p) => ({ ...p, photoBase64: null, photoName: null }));
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFrontInputs((p) => ({
-        ...p,
-        photoBase64: reader.result as string,
-        photoName: file.name,
-      }));
-    };
-    reader.readAsDataURL(file);
+  const handlePhotosAdd = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setFrontInputs((prev) => ({
+          ...prev,
+          photos: [
+            ...prev.photos,
+            { base64: reader.result as string, name: file.name },
+          ],
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handlePhotoRemove = (index: number) => {
+    setFrontInputs((prev) => ({
+      ...prev,
+      photos: prev.photos.filter((_, i) => i !== index),
+    }));
   };
 
   return (
@@ -729,7 +745,9 @@ function TestPanel({
               <FrontInputsForm
                 inputs={frontInputs}
                 onChange={setFrontInputs}
-                onPhotoChange={handlePhotoUpload}
+                onPhotosAdd={handlePhotosAdd}
+                onPhotoRemove={handlePhotoRemove}
+                selectedProvider={selectedProvider}
               />
             ) : (
               <InsideInputsForm
@@ -884,14 +902,21 @@ function TestPanel({
 function FrontInputsForm({
   inputs,
   onChange,
-  onPhotoChange,
+  onPhotosAdd,
+  onPhotoRemove,
+  selectedProvider,
 }: {
   inputs: FrontSceneInputs;
   onChange: (next: FrontSceneInputs) => void;
-  onPhotoChange: (file: File | null) => void;
+  onPhotosAdd: (files: FileList | null) => void;
+  onPhotoRemove: (index: number) => void;
+  selectedProvider: string;
 }) {
   const update = <K extends keyof FrontSceneInputs>(key: K, value: FrontSceneInputs[K]) =>
     onChange({ ...inputs, [key]: value });
+
+  const isGemini = selectedProvider === 'gemini';
+  const maxPhotos = isGemini ? 5 : 1;
 
   return (
     <>
@@ -944,27 +969,61 @@ function FrontInputsForm({
         </label>
       </div>
       <div>
-        <Label className="text-xs">Reference photo (optional)</Label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => onPhotoChange(e.target.files?.[0] ?? null)}
-          className="text-xs mt-1 block w-full"
-          data-testid="input-photo"
-        />
-        {inputs.photoName && (
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-[11px] text-gray-600">{inputs.photoName}</span>
+        <Label className="text-xs flex items-center justify-between">
+          <span>
+            Reference photos{' '}
+            {isGemini ? `(up to ${maxPhotos} — more = better likeness)` : '(1 max)'}
+          </span>
+          {inputs.photos.length > 0 && (
             <button
-              onClick={() => onPhotoChange(null)}
-              className="text-[11px] text-red-600 hover:underline"
+              onClick={() => onChange({ ...inputs, photos: [] })}
+              className="text-[10px] text-red-600 hover:underline"
             >
-              remove
+              clear all
             </button>
+          )}
+        </Label>
+
+        {/* Thumbnails of uploaded photos */}
+        {inputs.photos.length > 0 && (
+          <div className="flex gap-2 mt-1 flex-wrap">
+            {inputs.photos.map((photo, i) => (
+              <div key={i} className="relative group">
+                <img
+                  src={photo.base64}
+                  alt={photo.name}
+                  className="w-14 h-14 rounded border border-gray-200 object-cover"
+                />
+                <button
+                  onClick={() => onPhotoRemove(i)}
+                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Remove"
+                >
+                  ×
+                </button>
+                <div className="text-[8px] text-gray-500 text-center truncate w-14 mt-0.5">
+                  {i === 0 ? 'Primary' : `Extra ${i}`}
+                </div>
+              </div>
+            ))}
           </div>
         )}
+
+        {inputs.photos.length < maxPhotos && (
+          <input
+            type="file"
+            accept="image/*"
+            multiple={isGemini}
+            onChange={(e) => onPhotosAdd(e.target.files)}
+            className="text-xs mt-1 block w-full"
+            data-testid="input-photo"
+          />
+        )}
+
         <p className="text-[10px] text-gray-400 mt-1">
-          With photo: uses /v1/images/edits. Without: text-only generation.
+          {isGemini
+            ? 'Gemini uses ALL photos for identity. Add front, 3/4, and smile for best likeness.'
+            : 'OpenAI uses 1 photo only. Extra photos are ignored.'}
         </p>
       </div>
     </>

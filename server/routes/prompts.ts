@@ -366,6 +366,7 @@ export function registerPromptRoutes(app: Express): void {
         provider: providerId,
         photoBase64,
         referenceImageBase64,
+        additionalPhotos,
       } = req.body ?? {};
 
       if (!slot || !VALID_SLOTS.has(slot)) {
@@ -413,10 +414,16 @@ export function registerPromptRoutes(app: Express): void {
         `[PROMPT_LAB_TEST] slot=${slot} provider=${pid} quality=${q} hasReference=${!!effectiveReferenceImage} promptLen=${renderedPrompt.length}`,
       );
 
+      // Collect additional reference photos (multi-photo for Gemini).
+      const extras: string[] = Array.isArray(additionalPhotos)
+        ? additionalPhotos.filter((p: any) => typeof p === 'string' && p.length > 0)
+        : [];
+
       // Delegate to the provider.
       const result = await provider.generate({
         prompt: renderedPrompt,
         referenceImageBase64: effectiveReferenceImage ?? undefined,
+        additionalReferenceImages: extras.length > 0 ? extras : undefined,
         quality: q,
         size: '1024x1024',
       });

@@ -44,6 +44,12 @@ export class OpenAIImageProvider implements ImageProvider {
     const q = req.quality;
     let imageUrl: string | null = null;
 
+    if (req.additionalReferenceImages?.length) {
+      console.log(
+        `[PROVIDER:openai] NOTE: ${req.additionalReferenceImages.length} additional reference image(s) ignored — OpenAI only supports 1 reference. Use Gemini for multi-photo.`,
+      );
+    }
+
     if (req.referenceImageBase64) {
       // ── Image-to-image via /v1/images/edits ──
       const base64Match = req.referenceImageBase64.match(

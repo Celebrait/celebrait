@@ -64,29 +64,37 @@ export class GeminiImageProvider implements ImageProvider {
       | { inlineData: { mimeType: string; data: string } }
     > = [{ text: req.prompt }];
 
-    if (req.referenceImageBase64) {
-      // Strip data URL prefix if present to get raw base64
-      const base64Match = req.referenceImageBase64.match(
+    // Collect all reference images (primary + additional). Gemini supports
+    // up to 14 inline images in a single call. More reference photos of the
+    // same person = better identity preservation.
+    const allRefImages: string[] = [];
+    if (req.referenceImageBase64) allRefImages.push(req.referenceImageBase64);
+    if (req.additionalReferenceImages?.length) {
+      allRefImages.push(...req.additionalReferenceImages);
+    }
+
+    for (const refImg of allRefImages) {
+      const base64Match = refImg.match(
         /^data:image\/([a-z0-9]+);base64,(.+)$/,
       );
       const mimeType = base64Match ? `image/${base64Match[1]}` : 'image/png';
-      const rawBase64 = base64Match
-        ? base64Match[2]
-        : req.referenceImageBase64;
-
+      const rawBase64 = base64Match ? base64Match[2] : refImg;
       parts.push({
         inlineData: {
           mimeType,
           data: rawBase64,
         },
       });
+    }
 
+    const totalRefImages = allRefImages.length;
+    if (totalRefImages > 0) {
       console.log(
-        `[PROVIDER:gemini] → generateContent (model=${this.model} hasRef=true refBytes=${rawBase64.length})`,
+        `[PROVIDER:gemini] → generateContent (model=${this.model} refImages=${totalRefImages})`,
       );
     } else {
       console.log(
-        `[PROVIDER:gemini] → generateContent (model=${this.model} hasRef=false text-only)`,
+        `[PROVIDER:gemini] → generateContent (model=${this.model} text-only)`,
       );
     }
 
@@ -103,7 +111,6 @@ export class GeminiImageProvider implements ImageProvider {
         imageConfig: {
           aspectRatio: '1:1',
           imageSize: '1K',
-          personGeneration: 'ALLOW_ALL',
         },
       },
     });

@@ -9,9 +9,14 @@
 export interface ImageGenerationRequest {
   /** The fully rendered prompt text (template already substituted). */
   prompt: string;
-  /** Optional reference image — user's face photo (front_scene) or a
-   *  previously generated front card (inside). Data URL or raw base64. */
+  /** Optional primary reference image — user's face photo (front_scene)
+   *  or a previously generated front card (inside). Data URL or raw base64. */
   referenceImageBase64?: string;
+  /** Additional reference images of the same subject (e.g. different
+   *  angles of the same person). Providers that support multi-reference
+   *  (Gemini: up to 14) pass them all. Providers that don't (OpenAI)
+   *  silently ignore these. */
+  additionalReferenceImages?: string[];
   /** Quality tier. Providers that don't support tiers ignore this. */
   quality: 'low' | 'medium' | 'high';
   /** Target image dimensions. Default: '1024x1024'. */
