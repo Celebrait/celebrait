@@ -550,9 +550,59 @@ interface InsideInputs {
   referenceLabel: string | null;
 }
 
+// ─── Style presets ────────────────────────────────────────────────────────────
+// Each preset has a label (shown to user), icon, and a renderBlock (the
+// detailed art direction sent to the model). See STYLE_PRESETS.md for the
+// full spec and testing protocol.
+
+interface StylePreset {
+  id: string;
+  label: string;
+  icon: string;
+  renderBlock: string;
+}
+
+const STYLE_PRESETS: StylePreset[] = [
+  {
+    id: 'watercolour',
+    label: 'Watercolour',
+    icon: '🎨',
+    renderBlock:
+      'Traditional watercolour painting on cold-pressed textured watercolour paper. Visible wet-on-wet bleeding where colours meet, soft diffused edges on all shapes, and pigment granulation visible in wash areas. The palette should be warm and slightly muted — think raw sienna, burnt umber, cerulean blue, and sap green with selective pops of saturated colour for focal points. White paper must be visible through transparent washes, especially in highlight areas and sky. Brushstroke texture and water marks visible throughout. The overall impression should be of a skilled human artist painting with real pigments on real paper — NOT a digital rendering with a watercolour filter applied. Edges should be imperfect and organic.',
+  },
+  {
+    id: 'cinematic',
+    label: 'Cinematic',
+    icon: '📸',
+    renderBlock:
+      'Cinematic photorealistic style shot with professional film photography quality. Dramatic natural lighting with strong golden-hour warmth — rich amber highlights and cool blue-purple shadows creating depth. Shallow depth of field with the subject in sharp focus and background elements softly blurred into creamy bokeh. Film grain subtly visible throughout. Colour grading reminiscent of high-end cinema — slightly lifted blacks, warm midtones, and desaturated highlights. The composition should follow cinematic framing rules: rule of thirds, leading lines, and deliberate negative space. The overall impression should be a still frame from a beautifully shot film, not a phone snapshot.',
+  },
+  {
+    id: 'illustrated',
+    label: 'Illustrated',
+    icon: '✏️',
+    renderBlock:
+      'Modern digital illustration with clean, confident line work and a contemporary colour palette. Flat colour areas with subtle gradients and soft ambient lighting. Slightly stylised proportions — not cartoon-exaggerated but gently idealised. Clean vector-like edges with occasional hand-drawn texture for warmth. The palette should be fresh and modern: muted pastels mixed with one or two bold accent colours. Subtle paper or canvas texture in the background. The overall impression should be of a professional illustrator\'s portfolio piece — polished, intentional, and contemporary. Think editorial illustration for a premium magazine, not clip art.',
+  },
+  {
+    id: 'classic_oil',
+    label: 'Classic',
+    icon: '🖼️',
+    renderBlock:
+      'Classical oil painting on stretched canvas with visible impasto brushwork — thick paint ridges catching light on highlights, smooth blended areas in shadows. Rich, saturated colour palette with deep jewel tones: burgundy, forest green, gold, navy, and warm ochre. Dramatic chiaroscuro lighting with strong directional light source creating bold highlights and deep shadows. Canvas weave texture subtly visible through thinner paint areas. The composition should feel balanced and deliberate, with a sense of gravitas. The overall impression should be of a painting that could hang in a gallery — timeless, accomplished, and unmistakably handcrafted with oil pigments on canvas.',
+  },
+  {
+    id: 'bold_fun',
+    label: 'Bold & Fun',
+    icon: '💥',
+    renderBlock:
+      'Vibrant, high-energy illustration with bold saturated colours and dynamic composition. Exaggerated, slightly cartoonish proportions — big smiles, expressive poses, larger-than-life energy. Bright primary and secondary colours dominating: electric blue, hot pink, sunshine yellow, lime green, and orange. Thick outlines with confident strokes. Background filled with energy — confetti, streamlines, stars, bursts, or graphic patterns. Slight retro pop-art influence with halftone dots or comic-book shading in places. The overall impression should be of pure celebration and fun — like a greeting card designed by someone who thinks every birthday deserves a party. Nothing subtle, nothing muted, nothing restrained.',
+  },
+];
+
 const DEFAULT_FRONT_INPUTS: FrontSceneInputs = {
   scenePrompt: 'Sarah on a beach at sunset, looking joyful',
-  userArtStyle: 'watercolor painting',
+  userArtStyle: STYLE_PRESETS[0].renderBlock,
   userClothing: '',
   cardText: 'Happy Birthday Sarah',
   includeText: true,
@@ -988,27 +1038,61 @@ function FrontInputsForm({
           data-testid="input-scene-prompt"
         />
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <Label className="text-xs">Art style</Label>
+      <div>
+        <Label className="text-xs">Art style</Label>
+        <div className="flex gap-1.5 mt-1 flex-wrap">
+          {STYLE_PRESETS.map((style) => {
+            const isSelected = inputs.userArtStyle === style.renderBlock;
+            return (
+              <button
+                key={style.id}
+                onClick={() => update('userArtStyle', style.renderBlock)}
+                className={`px-2.5 py-1.5 text-xs rounded border transition-colors ${
+                  isSelected
+                    ? 'border-violet-600 bg-violet-50 text-violet-700 font-medium'
+                    : 'border-stone-200 hover:bg-stone-50 text-stone-700'
+                }`}
+                data-testid={`style-${style.id}`}
+              >
+                <span className="mr-1">{style.icon}</span>
+                {style.label}
+              </button>
+            );
+          })}
+          <button
+            onClick={() => update('userArtStyle', '')}
+            className={`px-2.5 py-1.5 text-xs rounded border transition-colors ${
+              inputs.userArtStyle !== '' && !STYLE_PRESETS.some((s) => s.renderBlock === inputs.userArtStyle)
+                ? 'border-violet-600 bg-violet-50 text-violet-700 font-medium'
+                : inputs.userArtStyle === ''
+                  ? 'border-violet-600 bg-violet-50 text-violet-700 font-medium'
+                  : 'border-stone-200 hover:bg-stone-50 text-stone-700'
+            }`}
+            data-testid="style-custom"
+          >
+            ✍️ Custom
+          </button>
+        </div>
+        {/* Show text input only when Custom is selected */}
+        {!STYLE_PRESETS.some((s) => s.renderBlock === inputs.userArtStyle) && (
           <Input
             value={inputs.userArtStyle}
             onChange={(e) => update('userArtStyle', e.target.value)}
-            placeholder="watercolor, oil, …"
-            className="h-8 text-xs"
+            placeholder="Type any style: disney, lego, 90s sitcom…"
+            className="h-8 text-xs mt-1.5"
             data-testid="input-art-style"
           />
-        </div>
-        <div>
-          <Label className="text-xs">Clothing</Label>
-          <Input
-            value={inputs.userClothing}
-            onChange={(e) => update('userClothing', e.target.value)}
-            placeholder="optional"
-            className="h-8 text-xs"
-            data-testid="input-clothing"
-          />
-        </div>
+        )}
+      </div>
+      <div>
+        <Label className="text-xs">Clothing (optional)</Label>
+        <Input
+          value={inputs.userClothing}
+          onChange={(e) => update('userClothing', e.target.value)}
+          placeholder="e.g. floral dress, suit and tie, Hawaiian shirt…"
+          className="h-8 text-xs"
+          data-testid="input-clothing"
+        />
       </div>
       <div>
         <Label className="text-xs">Card text (what appears on the card)</Label>
