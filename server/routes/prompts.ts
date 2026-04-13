@@ -424,8 +424,14 @@ export function registerPromptRoutes(app: Express): void {
         );
       }
 
+      // Log the full rendered prompt so we can trace exactly what was sent
+      // to the model for any given run. Truncated to 500 chars in the
+      // summary line; full prompt logged separately for debugging.
       console.log(
         `[PROMPT_LAB_TEST] slot=${slot} provider=${pid} quality=${q} hasReference=${!!effectiveReferenceImage} promptLen=${renderedPrompt.length}`,
+      );
+      console.log(
+        `[PROMPT_LAB_TEST] RENDERED_PROMPT:\n${renderedPrompt}\n[END_PROMPT]`,
       );
 
       // Delegate to the provider with automatic retry on safety errors.
