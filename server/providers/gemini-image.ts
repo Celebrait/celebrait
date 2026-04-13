@@ -18,6 +18,7 @@ import type {
   ImageGenerationRequest,
   ImageGenerationResult,
 } from './image-provider';
+import { ProviderError, classifyGeminiError } from './errors';
 
 // Single cost for 1K resolution (1024×1024). Gemini 3 Pro Image doesn't
 // have quality tiers like OpenAI — you get one quality level at $0.134.
@@ -98,22 +99,27 @@ export class GeminiImageProvider implements ImageProvider {
       );
     }
 
-    const response = await client.models.generateContent({
-      model: this.model,
-      contents: [
-        {
-          role: 'user',
-          parts,
+    let response: any;
+    try {
+      response = await client.models.generateContent({
+        model: this.model,
+        contents: [
+          {
+            role: 'user',
+            parts,
+          },
+        ],
+        config: {
+          responseModalities: ['IMAGE', 'TEXT'],
+          imageConfig: {
+            aspectRatio: '1:1',
+            imageSize: '1K',
+          },
         },
-      ],
-      config: {
-        responseModalities: ['IMAGE', 'TEXT'],
-        imageConfig: {
-          aspectRatio: '1:1',
-          imageSize: '1K',
-        },
-      },
-    });
+      });
+    } catch (sdkErr: unknown) {
+      throw classifyGeminiError(sdkErr, this.id);
+    }
 
     const elapsed = Date.now() - startTime;
     console.log(
@@ -121,14 +127,13 @@ export class GeminiImageProvider implements ImageProvider {
     );
 
     // Extract the generated image from the response.
-    // Gemini returns parts — some text, some image. We want the first
-    // image part.
     const candidate = response.candidates?.[0];
     if (!candidate?.content?.parts) {
-      const finishReason = candidate?.finishReason;
-      throw new Error(
-        `Gemini returned no content (finishReason=${finishReason ?? 'unknown'}). ` +
-          'This may be a safety filter or a billing issue.',
+      const finishReason = String(candidate?.finishReason ?? 'unknown');
+      throw classifyGeminiError(
+        new Error(`Gemini returned no content (finishReason=${finishReason})`),
+        this.id,
+        { finishReason, modelText: null as any },
       );
     }
 
@@ -137,14 +142,16 @@ export class GeminiImageProvider implements ImageProvider {
     );
 
     if (!imagePart || !(imagePart as any).inlineData?.data) {
-      // Check if there's a text-only response (model declined to
-      // generate an image — often a safety refusal).
+      // Text-only response = safety refusal or other model refusal.
       const textParts = candidate.content.parts
         .filter((p: any) => p.text)
         .map((p: any) => p.text)
         .join(' ');
-      throw new Error(
-        `Gemini did not return an image. ${textParts ? `Model said: "${textParts.slice(0, 200)}"` : 'No explanation provided.'}`,
+      const finishReason = String(candidate.finishReason ?? '');
+      throw classifyGeminiError(
+        new Error(`Gemini did not return an image`),
+        this.id,
+        { finishReason, modelText: textParts || null },
       );
     }
 

@@ -10,6 +10,7 @@ import type {
   ImageGenerationRequest,
   ImageGenerationResult,
 } from './image-provider';
+import { ProviderError, classifyOpenAIError } from './errors';
 import { openai } from '../utils/shared';
 
 const COST_BY_QUALITY: Record<string, number> = {
@@ -90,40 +91,70 @@ export class OpenAIImageProvider implements ImageProvider {
 
       if (!response.ok) {
         const errorText = await response.text();
-        let errMsg = errorText;
-        try {
-          errMsg = JSON.parse(errorText)?.error?.message ?? errorText;
-        } catch { /* keep raw */ }
-        throw new Error(`OpenAI error: ${errMsg}`);
+        let errorData: any;
+        try { errorData = JSON.parse(errorText); } catch { errorData = { error: { message: errorText } }; }
+        throw classifyOpenAIError(
+          { ...errorData, status: response.status },
+          this.id,
+        );
       }
 
       const json = (await response.json()) as any;
       const b64 = json?.data?.[0]?.b64_json;
-      if (!b64) throw new Error('OpenAI returned no image data');
+      if (!b64) {
+        throw new ProviderError({
+          kind: 'server',
+          code: 'empty_response',
+          message: 'OpenAI returned no image data',
+          retryable: true,
+          provider: this.id,
+        });
+      }
       imageUrl = `data:image/png;base64,${b64}`;
     } else {
       // ── Text-only via SDK ──
-      if (!openai) throw new Error('OpenAI client not initialised');
+      if (!openai) {
+        throw new ProviderError({
+          kind: 'auth',
+          code: 'no_client',
+          message: 'OpenAI client not initialised',
+          retryable: false,
+          provider: this.id,
+        });
+      }
       console.log(`[PROVIDER:openai] → images.generate (quality=${q})`);
-      const gen = await openai.images.generate({
-        model: this.model,
-        prompt: req.prompt,
-        n: 1,
-        size: req.size as any,
-        quality: q,
-      } as any);
+      let gen: any;
+      try {
+        gen = await openai.images.generate({
+          model: this.model,
+          prompt: req.prompt,
+          n: 1,
+          size: req.size as any,
+          quality: q,
+        } as any);
+      } catch (sdkErr: unknown) {
+        throw classifyOpenAIError(sdkErr, this.id);
+      }
       console.log(
         `[PROVIDER:openai] ← images.generate returned (${Date.now() - startTime}ms)`,
       );
 
-      const data = (gen as any)?.data?.[0];
+      const data = gen?.data?.[0];
       const b64 = data?.b64_json;
       if (b64) {
         imageUrl = `data:image/png;base64,${b64}`;
       } else if (data?.url) {
         imageUrl = data.url;
       }
-      if (!imageUrl) throw new Error('OpenAI returned no image data');
+      if (!imageUrl) {
+        throw new ProviderError({
+          kind: 'server',
+          code: 'empty_response',
+          message: 'OpenAI returned no image data',
+          retryable: true,
+          provider: this.id,
+        });
+      }
     }
 
     const durationMs = Date.now() - startTime;

@@ -28,6 +28,8 @@ import {
   type InsideVars,
 } from '../prompts/derive';
 import { getProvider, listProviders } from '../providers/registry';
+import { generateWithRetry } from '../providers/retry';
+import { isProviderError } from '../providers/errors';
 
 /**
  * Reads the caller's OTP session and checks the `users.is_admin` DB flag.
@@ -426,14 +428,21 @@ export function registerPromptRoutes(app: Express): void {
         `[PROMPT_LAB_TEST] slot=${slot} provider=${pid} quality=${q} hasReference=${!!effectiveReferenceImage} promptLen=${renderedPrompt.length}`,
       );
 
-      // Delegate to the provider.
-      const result = await provider.generate({
-        prompt: renderedPrompt,
-        referenceImageBase64: effectiveReferenceImage ?? undefined,
-        additionalReferenceImages: extras.length > 0 ? extras : undefined,
-        quality: q,
-        size: '1024x1024',
-      });
+      // Delegate to the provider with automatic retry on safety errors.
+      const result = await generateWithRetry(
+        provider,
+        {
+          prompt: renderedPrompt,
+          referenceImageBase64: effectiveReferenceImage ?? undefined,
+          additionalReferenceImages: extras.length > 0 ? extras : undefined,
+          quality: q,
+          size: '1024x1024',
+        },
+        {
+          maxAttempts: 3,
+          delayMs: 3000,
+        },
+      );
 
       console.log(
         `[PROMPT_LAB_TEST] SUCCESS provider=${result.provider} model=${result.model} cost=${result.costUsd} duration=${result.durationMs}ms`,
@@ -451,6 +460,23 @@ export function registerPromptRoutes(app: Express): void {
         model: result.model,
       });
     } catch (err: any) {
+      // Structured error handling — returns typed JSON so the client
+      // can show safety errors differently from generic failures.
+      if (isProviderError(err)) {
+        console.error(
+          `[PROMPT_LAB_TEST] FAILED kind=${err.kind} code=${err.code} retries=${err.retryAttempts} provider=${err.provider}`,
+        );
+        return res.status(err.httpStatus).json({
+          message: err.message,
+          kind: err.kind,
+          code: err.code,
+          modelExplanation: err.modelExplanation,
+          retryAttempts: err.retryAttempts,
+          suggestions: err.suggestions,
+          provider: err.provider,
+        });
+      }
+      // Fallback for non-provider errors
       console.error(`[PROMPT_LAB_TEST] FAILED:`, err);
       res.status(500).json({
         message: err?.message ?? 'Test run failed',

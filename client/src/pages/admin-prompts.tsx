@@ -78,6 +78,16 @@ interface RunRecord extends TestRunResult {
   inputs: FrontSceneInputs | InsideInputs;
 }
 
+interface StructuredError {
+  kind: string;
+  message: string;
+  code?: string;
+  modelExplanation?: string;
+  retryAttempts?: number;
+  suggestions?: string[];
+  provider?: string;
+}
+
 interface ProviderInfo {
   id: string;
   displayName: string;
@@ -583,6 +593,7 @@ function TestPanel({
   const [selectedProvider, setSelectedProvider] = useState<string>('openai');
   const [quality, setQuality] = useState<'low' | 'medium' | 'high'>('low');
   const [lastResult, setLastResult] = useState<TestRunResult | null>(null);
+  const [lastError, setLastError] = useState<StructuredError | null>(null);
   const [expandedPrompt, setExpandedPrompt] = useState(false);
 
   // Fetch available providers from the server.
@@ -627,6 +638,9 @@ function TestPanel({
 
   const runMutation = useMutation({
     mutationFn: async () => {
+      // Clear previous error/result when starting a new run.
+      setLastError(null);
+
       const inputs =
         slot === 'front_scene'
           ? {
@@ -680,6 +694,7 @@ function TestPanel({
     },
     onSuccess: (result) => {
       setLastResult(result);
+      setLastError(null);
       setExpandedPrompt(false);
       const label =
         slot === 'front_scene'
@@ -698,8 +713,32 @@ function TestPanel({
         description: `${result.provider} · ${result.costUsd} · ${(result.durationMs / 1000).toFixed(1)}s`,
       });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Run failed', description: err.message, variant: 'destructive' });
+    onError: (err: any) => {
+      // The server returns structured JSON for provider errors.
+      // queryClient's throwIfResNotOk does Object.assign(error, errorData),
+      // so structured fields land on the Error object.
+      const kind = err?.kind;
+      if (kind === 'safety') {
+        setLastError({
+          kind,
+          message: err.message,
+          code: err.code,
+          modelExplanation: err.modelExplanation,
+          retryAttempts: err.retryAttempts,
+          suggestions: err.suggestions,
+          provider: err.provider,
+        });
+        setLastResult(null);
+        // No toast — the SafetyErrorCard shows inline
+      } else {
+        setLastError(null);
+        const title =
+          kind === 'rate' ? 'Rate limited' :
+          kind === 'auth' ? 'API key error' :
+          kind === 'server' ? 'Provider error' :
+          'Run failed';
+        toast({ title, description: err.message, variant: 'destructive' });
+      }
     },
   });
 
@@ -859,6 +898,8 @@ function TestPanel({
                   <p className="text-xs text-stone-500 mt-3">Generating…</p>
                 </div>
               </div>
+            ) : lastError?.kind === 'safety' ? (
+              <SafetyErrorCard error={lastError} />
             ) : lastResult ? (
               <div className="space-y-2">
                 <img
@@ -1257,6 +1298,54 @@ function InsideInputsForm({
         )}
       </div>
     </>
+  );
+}
+
+// ─── Safety error card (shown inline instead of a toast) ─────────────────────
+
+function SafetyErrorCard({ error }: { error: StructuredError }) {
+  return (
+    <div className="h-full min-h-[400px] border-2 border-amber-300 bg-amber-50 rounded p-5 flex flex-col justify-center">
+      <div className="text-center mb-4">
+        <div className="text-3xl mb-2">🛡️</div>
+        <h3 className="text-base font-bold text-stone-900">Safety Filter Blocked Generation</h3>
+        {error.retryAttempts && error.retryAttempts > 1 && (
+          <p className="text-[11px] text-stone-500 mt-1">
+            Failed after {error.retryAttempts} attempts (automatic retry)
+          </p>
+        )}
+      </div>
+
+      {error.modelExplanation && (
+        <div className="bg-white border border-amber-200 rounded p-3 mb-3">
+          <div className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider mb-1">
+            Model explanation
+          </div>
+          <p className="text-xs text-stone-700">{error.modelExplanation}</p>
+        </div>
+      )}
+
+      {error.suggestions && error.suggestions.length > 0 && (
+        <div className="mb-3">
+          <div className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider mb-1">
+            Try these changes
+          </div>
+          <ul className="space-y-1">
+            {error.suggestions.map((s, i) => (
+              <li key={i} className="text-xs text-stone-700 flex gap-2">
+                <span className="text-amber-600 flex-shrink-0">→</span>
+                {s}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="text-[10px] text-stone-400 text-center">
+        {error.provider && <span>{error.provider}</span>}
+        {error.code && <span> · {error.code}</span>}
+      </div>
+    </div>
   );
 }
 
