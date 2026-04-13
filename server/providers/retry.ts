@@ -21,7 +21,7 @@ export interface RetryOptions {
 const DEFAULT_OPTIONS: RetryOptions = {
   maxAttempts: 3,
   delayMs: 3000,
-  retryOnKinds: new Set<ProviderErrorKind>(['safety']),
+  retryOnKinds: new Set<ProviderErrorKind>(['safety', 'server']),
   onRetry: undefined,
 };
 
