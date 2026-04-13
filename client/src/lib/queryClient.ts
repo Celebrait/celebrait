@@ -2,26 +2,26 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    // Clone the response so we can try JSON first, then text as fallback
     const text = await res.text();
-    
+
+    // Try to parse as structured JSON error.
+    let errorData: any = null;
     try {
-      // Try to parse as JSON
-      const errorData = JSON.parse(text);
-      
-      // If we have structured error data, throw it with the parsed data
-      if (errorData && typeof errorData === 'object') {
-        const error = new Error(errorData.message || res.statusText);
-        // Add structured error data to the error object
-        Object.assign(error, errorData);
-        throw error;
-      }
-    } catch (jsonError) {
-      // If JSON parsing fails, use the text we already have
-      throw new Error(`${res.status}: ${text || res.statusText}`);
+      errorData = JSON.parse(text);
+    } catch {
+      // Not JSON — fall through to plain text error.
     }
-    
-    // Fallback if no JSON data
+
+    if (errorData && typeof errorData === 'object') {
+      // Structured error — preserve all fields (kind, code,
+      // modelExplanation, suggestions, etc.) on the Error object so
+      // the calling mutation's onError handler can read them.
+      const error = new Error(errorData.message || res.statusText);
+      Object.assign(error, errorData);
+      throw error;
+    }
+
+    // Plain text fallback.
     throw new Error(`${res.status}: ${text || res.statusText}`);
   }
 }
