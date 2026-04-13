@@ -564,45 +564,37 @@ interface StylePreset {
 
 const STYLE_PRESETS: StylePreset[] = [
   {
-    id: 'watercolour',
-    label: 'Watercolour',
-    icon: '',
-    renderBlock:
-      'Traditional watercolour painting on cold-pressed textured watercolour paper. Visible wet-on-wet bleeding where colours meet, soft diffused edges on all shapes, and pigment granulation visible in wash areas. The palette should be warm and slightly muted — think raw sienna, burnt umber, cerulean blue, and sap green with selective pops of saturated colour for focal points. White paper must be visible through transparent washes, especially in highlight areas and sky. Brushstroke texture and water marks visible throughout. The overall impression should be of a skilled human artist painting with real pigments on real paper — NOT a digital rendering with a watercolour filter applied. Edges should be imperfect and organic.',
-  },
-  {
-    id: 'cinematic',
-    label: 'Cinematic',
-    icon: '',
-    renderBlock:
-      'Cinematic photorealistic style shot with professional film photography quality. Dramatic natural lighting with strong golden-hour warmth — rich amber highlights and cool blue-purple shadows creating depth. Shallow depth of field with the subject in sharp focus and background elements softly blurred into creamy bokeh. Film grain subtly visible throughout. Colour grading reminiscent of high-end cinema — slightly lifted blacks, warm midtones, and desaturated highlights. The composition should follow cinematic framing rules: rule of thirds, leading lines, and deliberate negative space. The overall impression should be a still frame from a beautifully shot film, not a phone snapshot.',
-  },
-  {
-    id: 'illustrated',
-    label: 'Illustrated',
-    icon: '',
-    renderBlock:
-      'Modern digital illustration with clean, confident line work and a contemporary colour palette. Flat colour areas with subtle gradients and soft ambient lighting. Slightly stylised proportions — not cartoon-exaggerated but gently idealised. Clean vector-like edges with occasional hand-drawn texture for warmth. The palette should be fresh and modern: muted pastels mixed with one or two bold accent colours. Subtle paper or canvas texture in the background. The overall impression should be of a professional illustrator\'s portfolio piece — polished, intentional, and contemporary. Think editorial illustration for a premium magazine, not clip art.',
-  },
-  {
-    id: 'classic_oil',
-    label: 'Classic',
-    icon: '',
-    renderBlock:
-      'Classical oil painting on stretched canvas with visible impasto brushwork — thick paint ridges catching light on highlights, smooth blended areas in shadows. Rich, saturated colour palette with deep jewel tones: burgundy, forest green, gold, navy, and warm ochre. Dramatic chiaroscuro lighting with strong directional light source creating bold highlights and deep shadows. Canvas weave texture subtly visible through thinner paint areas. The composition should feel balanced and deliberate, with a sense of gravitas. The overall impression should be of a painting that could hang in a gallery — timeless, accomplished, and unmistakably handcrafted with oil pigments on canvas.',
-  },
-  {
     id: 'bold_fun',
     label: 'Bold & Fun',
     icon: '',
     renderBlock:
       'Vibrant, high-energy illustration with bold saturated colours and dynamic composition. Exaggerated, slightly cartoonish proportions — big smiles, expressive poses, larger-than-life energy. Bright primary and secondary colours dominating: electric blue, hot pink, sunshine yellow, lime green, and orange. Thick outlines with confident strokes. Background filled with energy — confetti, streamlines, stars, bursts, or graphic patterns. Slight retro pop-art influence with halftone dots or comic-book shading in places. The overall impression should be of pure celebration and fun — like a greeting card designed by someone who thinks every birthday deserves a party. Nothing subtle, nothing muted, nothing restrained.',
   },
+  {
+    id: 'digital_art',
+    label: 'Digital Art',
+    icon: '',
+    renderBlock:
+      'High-end digital art with the polish of a Pixar movie poster or AAA game cinematic. The character should look like a stylised but believable version of themselves — recognisable features preserved but elevated with smooth, flawless rendering. Rich, realistic lighting with volumetric rays, ambient occlusion, and subtle subsurface scattering on skin. Detailed textures on clothing and environment — fabric weave, surface reflections, atmospheric haze. Proportions are natural (not cartoon-exaggerated) but gently idealised — slightly larger eyes, cleaner skin, more defined features. Colour palette is cinematic and saturated: deep teals, warm ambers, rich magentas. The background should have depth and atmosphere — bokeh, light particles, environmental storytelling. The overall impression should be of a premium digital painting that could be a character poster for an animated feature film. NOT flat illustration, NOT photorealistic — the sweet spot between the two where everything looks polished, intentional, and slightly magical.',
+  },
+  {
+    id: 'animation',
+    label: 'Animation',
+    icon: '',
+    renderBlock:
+      'Animated character style inspired by modern animation studios — think Studio Ghibli warmth meets Into the Spider-Verse energy. The character should be rendered as a fully animated version of themselves with expressive, exaggerated facial features: larger eyes with visible highlights and reflections, simplified but recognisable nose and mouth, smooth stylised hair with chunky defined strands. Proportions are cartoon-friendly: slightly larger head, expressive hands, dynamic pose with movement and energy. Bold, confident outlines with varying line weight — thicker on silhouettes, thinner on details. Colours are vivid and saturated with flat base colours and cel-shading — distinct shadow shapes rather than smooth gradients. Background rendered in a complementary animated style with simplified shapes, warm atmospheric lighting, and subtle texture. The overall impression should make someone say "I look like a cartoon character!" and absolutely love it. Fun, charming, expressive — like a frame from your own personal animated movie.',
+  },
+  {
+    id: 'custom',
+    label: 'Custom',
+    icon: '',
+    renderBlock: '',
+  },
 ];
 
 const DEFAULT_FRONT_INPUTS: FrontSceneInputs = {
   scenePrompt: 'Sarah on a beach at sunset, looking joyful',
-  userArtStyle: STYLE_PRESETS[0].renderBlock,
+  userArtStyle: STYLE_PRESETS.find((s) => s.id === 'digital_art')!.renderBlock,
   userClothing: '',
   cardText: 'Happy Birthday Sarah',
   includeText: true,
@@ -1042,7 +1034,10 @@ function FrontInputsForm({
         <Label className="text-xs">Art style</Label>
         <div className="flex gap-1.5 mt-1 flex-wrap">
           {STYLE_PRESETS.map((style) => {
-            const isSelected = inputs.userArtStyle === style.renderBlock;
+            const isCustom = style.id === 'custom';
+            const isSelected = isCustom
+              ? !STYLE_PRESETS.some((s) => s.id !== 'custom' && s.renderBlock === inputs.userArtStyle)
+              : inputs.userArtStyle === style.renderBlock;
             return (
               <button
                 key={style.id}
@@ -1058,26 +1053,13 @@ function FrontInputsForm({
               </button>
             );
           })}
-          <button
-            onClick={() => update('userArtStyle', '')}
-            className={`px-2.5 py-1.5 text-xs rounded border transition-colors ${
-              inputs.userArtStyle !== '' && !STYLE_PRESETS.some((s) => s.renderBlock === inputs.userArtStyle)
-                ? 'border-violet-600 bg-violet-50 text-violet-700 font-medium'
-                : inputs.userArtStyle === ''
-                  ? 'border-violet-600 bg-violet-50 text-violet-700 font-medium'
-                  : 'border-stone-200 hover:bg-stone-50 text-stone-700'
-            }`}
-            data-testid="style-custom"
-          >
-            Custom
-          </button>
         </div>
-        {/* Show text input only when Custom is selected */}
-        {!STYLE_PRESETS.some((s) => s.renderBlock === inputs.userArtStyle) && (
+        {/* Show text input when Custom is active */}
+        {!STYLE_PRESETS.some((s) => s.id !== 'custom' && s.renderBlock === inputs.userArtStyle) && (
           <Input
             value={inputs.userArtStyle}
             onChange={(e) => update('userArtStyle', e.target.value)}
-            placeholder="Type any style: disney, lego, 90s sitcom…"
+            placeholder="Type any style: disney, lego, 90s sitcom, cinematic..."
             className="h-8 text-xs mt-1.5"
             data-testid="input-art-style"
           />
