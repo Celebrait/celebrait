@@ -562,27 +562,19 @@ interface StylePreset {
   renderBlock: string;
 }
 
+// Celebrait house style — one style, perfected. The customer never
+// chooses a style; every card has this look. The lab keeps "Custom"
+// for experimentation but the house style is the default and the
+// only option in the customer flow.
+const CELEBRAIT_HOUSE_STYLE =
+  'Warm, modern animated illustration with a premium, polished feel. The character should be a stylised but clearly recognisable version of themselves — expressive features, warm natural smile, lively eyes with visible highlights. Proportions are gently stylised: not full cartoon but not photorealistic — the appealing middle ground where someone looks at it and says "that looks like me, but better." Smooth, confident rendering with soft cel-shading — gentle shadow shapes rather than harsh lines, with warm ambient light throughout. Colour palette is rich and inviting: warm sunset oranges, golden ambers, soft teals, dusty pinks, and deep but never cold blues. The overall lighting should feel like golden hour — warm, flattering, slightly magical. Environment rendered with the same warmth: simplified but atmospheric backgrounds with depth, soft bokeh, and gentle environmental details that tell the story of the scene. The overall impression should be unmistakably a "Celebrait card" — warm enough for a mum, fun enough for a mate, premium enough to frame. It should make the recipient smile the moment they see it. Think: the warmth of Pixar meets the charm of Studio Ghibli, designed specifically for greeting cards that celebrate people.';
+
 const STYLE_PRESETS: StylePreset[] = [
   {
-    id: 'bold_fun',
-    label: 'Bold & Fun',
+    id: 'celebrait',
+    label: 'Celebrait',
     icon: '',
-    renderBlock:
-      'Vibrant, high-energy illustration with bold saturated colours and dynamic composition. Exaggerated, slightly cartoonish proportions — big smiles, expressive poses, larger-than-life energy. Bright primary and secondary colours dominating: electric blue, hot pink, sunshine yellow, lime green, and orange. Thick outlines with confident strokes. Background filled with energy — confetti, streamlines, stars, bursts, or graphic patterns. Slight retro pop-art influence with halftone dots or comic-book shading in places. The overall impression should be of pure celebration and fun — like a greeting card designed by someone who thinks every birthday deserves a party. Nothing subtle, nothing muted, nothing restrained.',
-  },
-  {
-    id: 'digital_art',
-    label: 'Digital Art',
-    icon: '',
-    renderBlock:
-      'High-end digital art with the polish of a Pixar movie poster or AAA game cinematic. The character should look like a stylised but believable version of themselves — recognisable features preserved but elevated with smooth, flawless rendering. Rich, realistic lighting with volumetric rays, ambient occlusion, and subtle subsurface scattering on skin. Detailed textures on clothing and environment — fabric weave, surface reflections, atmospheric haze. Proportions are natural (not cartoon-exaggerated) but gently idealised — slightly larger eyes, cleaner skin, more defined features. Colour palette is cinematic and saturated: deep teals, warm ambers, rich magentas. The background should have depth and atmosphere — bokeh, light particles, environmental storytelling. The overall impression should be of a premium digital painting that could be a character poster for an animated feature film. NOT flat illustration, NOT photorealistic — the sweet spot between the two where everything looks polished, intentional, and slightly magical.',
-  },
-  {
-    id: 'animation',
-    label: 'Animation',
-    icon: '',
-    renderBlock:
-      'Animated character style inspired by modern animation studios — think Studio Ghibli warmth meets Into the Spider-Verse energy. The character should be rendered as a fully animated version of themselves with expressive, exaggerated facial features: larger eyes with visible highlights and reflections, simplified but recognisable nose and mouth, smooth stylised hair with chunky defined strands. Proportions are cartoon-friendly: slightly larger head, expressive hands, dynamic pose with movement and energy. Bold, confident outlines with varying line weight — thicker on silhouettes, thinner on details. Colours are vivid and saturated with flat base colours and cel-shading — distinct shadow shapes rather than smooth gradients. Background rendered in a complementary animated style with simplified shapes, warm atmospheric lighting, and subtle texture. The overall impression should make someone say "I look like a cartoon character!" and absolutely love it. Fun, charming, expressive — like a frame from your own personal animated movie.',
+    renderBlock: CELEBRAIT_HOUSE_STYLE,
   },
   {
     id: 'custom',
@@ -594,7 +586,7 @@ const STYLE_PRESETS: StylePreset[] = [
 
 const DEFAULT_FRONT_INPUTS: FrontSceneInputs = {
   scenePrompt: 'Sarah on a beach at sunset, looking joyful',
-  userArtStyle: STYLE_PRESETS.find((s) => s.id === 'digital_art')!.renderBlock,
+  userArtStyle: CELEBRAIT_HOUSE_STYLE,
   userClothing: '',
   cardText: 'Happy Birthday Sarah',
   includeText: true,
