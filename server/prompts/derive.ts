@@ -21,6 +21,10 @@ export interface FrontSceneVars {
   photoMode?: 'one_person' | 'group';
   /** How many reference photos were uploaded. */
   photoCount?: number;
+  /** Typography layout: 'scene_integrated' = carved in sand, painted on
+   *  walls, etc. 'movie_poster' = large text behind/around the character
+   *  as background typography. */
+  textLayout?: 'scene_integrated' | 'movie_poster';
 }
 
 export interface InsideVars {
@@ -61,6 +65,8 @@ export function deriveFrontSceneVars(vars: FrontSceneVars): RenderVars {
     isGroup,
     hasMultiplePhotos: photoCount > 1,
     photoCount: String(photoCount),
+    isSceneIntegrated: vars.textLayout !== 'movie_poster',
+    isMoviePoster: vars.textLayout === 'movie_poster',
   };
 }
 

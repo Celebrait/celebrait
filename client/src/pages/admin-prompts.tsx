@@ -525,6 +525,7 @@ interface PhotoEntry {
 }
 
 type PhotoMode = 'one_person' | 'group';
+type TextLayout = 'scene_integrated' | 'movie_poster';
 
 interface FrontSceneInputs {
   scenePrompt: string;
@@ -532,6 +533,7 @@ interface FrontSceneInputs {
   userClothing: string;
   cardText: string;
   includeText: boolean;
+  textLayout: TextLayout;
   photoMode: PhotoMode;
   photos: PhotoEntry[];
 }
@@ -590,6 +592,7 @@ const DEFAULT_FRONT_INPUTS: FrontSceneInputs = {
   userClothing: '',
   cardText: 'Happy Birthday Sarah',
   includeText: true,
+  textLayout: 'scene_integrated',
   photoMode: 'one_person',
   photos: [],
 };
@@ -701,6 +704,7 @@ function TestPanel({
         quality,
         provider: selectedProvider,
         photoMode: frontInputs.photoMode,
+        textLayout: frontInputs.textLayout,
       };
       if (slot === 'front_scene' && frontInputs.photos.length > 0) {
         // First photo is the primary reference; extras are additional
@@ -1083,6 +1087,34 @@ function FrontInputsForm({
           />
           Include text in the image
         </label>
+        {inputs.includeText && (
+          <div className="flex gap-2 mt-1.5">
+            <button
+              onClick={() => update('textLayout', 'scene_integrated')}
+              className={`flex-1 px-2 py-1.5 text-[11px] rounded border transition-colors ${
+                inputs.textLayout === 'scene_integrated'
+                  ? 'border-violet-600 bg-violet-50 text-violet-700 font-medium'
+                  : 'border-stone-200 hover:bg-stone-50 text-stone-600'
+              }`}
+              data-testid="text-layout-scene"
+            >
+              Scene integrated
+              <div className="text-[9px] text-stone-400 font-normal">Carved, painted, on signs</div>
+            </button>
+            <button
+              onClick={() => update('textLayout', 'movie_poster')}
+              className={`flex-1 px-2 py-1.5 text-[11px] rounded border transition-colors ${
+                inputs.textLayout === 'movie_poster'
+                  ? 'border-violet-600 bg-violet-50 text-violet-700 font-medium'
+                  : 'border-stone-200 hover:bg-stone-50 text-stone-600'
+              }`}
+              data-testid="text-layout-poster"
+            >
+              Movie poster
+              <div className="text-[9px] text-stone-400 font-normal">Large text behind character</div>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Photo mode toggle */}

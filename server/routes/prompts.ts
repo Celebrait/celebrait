@@ -370,6 +370,7 @@ export function registerPromptRoutes(app: Express): void {
         referenceImageBase64,
         additionalPhotos,
         photoMode,
+        textLayout,
       } = req.body ?? {};
 
       if (!slot || !VALID_SLOTS.has(slot)) {
@@ -408,6 +409,7 @@ export function registerPromptRoutes(app: Express): void {
               ...(inputs as FrontSceneVars),
               photoMode: photoMode === 'group' ? 'group' : photoMode === 'one_person' ? 'one_person' : undefined,
               photoCount: totalPhotoCount,
+              textLayout: textLayout === 'movie_poster' ? 'movie_poster' : 'scene_integrated',
             })
           : deriveInsideVars(inputs as InsideVars);
       const renderedPrompt = renderTemplate(templateText, renderVars);
