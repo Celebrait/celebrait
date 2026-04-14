@@ -569,7 +569,13 @@ interface StylePreset {
 // chooses a style; every card has this look. The lab keeps "Custom"
 // for experimentation but the house style is the default and the
 // only option in the customer flow.
-const CELEBRAIT_HOUSE_STYLE =
+// Gemini house style — the warm animated look that Gemini nails naturally.
+const CELEBRAIT_HOUSE_STYLE_GEMINI =
+  'Warm, modern animated illustration with a premium, polished feel. The character should be a stylised but clearly recognisable version of themselves — expressive features, warm natural smile, lively eyes with visible highlights. Proportions are gently stylised: not full cartoon but not photorealistic — the appealing middle ground where someone looks at it and says "that looks like me, but better." Smooth, confident rendering with soft cel-shading — gentle shadow shapes rather than harsh lines, with warm ambient light throughout. Colour palette is rich and inviting: warm sunset oranges, golden ambers, soft teals, dusty pinks, and deep but never cold blues. The overall lighting should feel like golden hour — warm, flattering, slightly magical. Environment rendered with the same warmth: simplified but atmospheric backgrounds with depth, soft bokeh, and gentle environmental details that tell the story of the scene. The overall impression should be unmistakably a "Celebrait card" — warm enough for a mum, fun enough for a mate, premium enough to frame. It should make the recipient smile the moment they see it. Think: the warmth of Pixar meets the charm of Studio Ghibli, designed specifically for greeting cards that celebrate people.';
+
+// OpenAI house style — needs more explicit vector/illustration direction
+// to avoid its photorealistic bias.
+const CELEBRAIT_HOUSE_STYLE_OPENAI =
   'Highly polished stylised digital illustration in a modern animated film / premium greeting card style. Clean, vector-like rendering with soft blended gradients and minimal visible brush texture. Smooth, airbrushed shading with gentle transitions and no harsh contrast. Lighting is cinematic and softly diffused, with subtle rim lighting and natural light falloff to enhance form and depth. Colour palette is vibrant yet balanced, using harmonious tones with controlled saturation rather than extreme contrast. Characters (if present) are slightly idealised with simplified, expressive features and approachable emotion. Minimal linework, with forms defined primarily through colour and shading rather than outlines. Environments are clean and stylised with simplified shapes, clear depth layering (foreground, midground, background), and soft atmospheric perspective. Textures are minimal and refined, prioritising clarity and visual polish over realism. Composition is balanced and visually appealing, with natural framing and strong readability. Overall aesthetic is warm, inviting, and commercially refined, combining high-end animated film quality with modern vector travel poster sensibilities.';
 
 const STYLE_PRESETS: StylePreset[] = [
@@ -577,7 +583,7 @@ const STYLE_PRESETS: StylePreset[] = [
     id: 'celebrait',
     label: 'Celebrait',
     icon: '',
-    renderBlock: CELEBRAIT_HOUSE_STYLE,
+    renderBlock: CELEBRAIT_HOUSE_STYLE_GEMINI, // default shown in UI
   },
   {
     id: 'custom',
@@ -589,7 +595,7 @@ const STYLE_PRESETS: StylePreset[] = [
 
 const DEFAULT_FRONT_INPUTS: FrontSceneInputs = {
   scenePrompt: 'Sarah on a beach at sunset, looking joyful',
-  userArtStyle: CELEBRAIT_HOUSE_STYLE,
+  userArtStyle: CELEBRAIT_HOUSE_STYLE_GEMINI,
   userClothing: '',
   cardText: 'Happy Birthday Sarah',
   includeText: true,
@@ -698,7 +704,12 @@ function TestPanel({
         slot === 'front_scene'
           ? {
               scenePrompt: frontInputs.scenePrompt,
-              userArtStyle: frontInputs.userArtStyle,
+              // Per-provider house style: Gemini and OpenAI need different
+              // render blocks to produce the same visual output.
+              userArtStyle:
+                frontInputs.userArtStyle === CELEBRAIT_HOUSE_STYLE_GEMINI && selectedProvider === 'openai'
+                  ? CELEBRAIT_HOUSE_STYLE_OPENAI
+                  : frontInputs.userArtStyle,
               userClothing: frontInputs.userClothing,
               cardText: frontInputs.cardText,
               includeText: frontInputs.includeText,
