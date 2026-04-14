@@ -215,7 +215,7 @@ Output the description as a single block of text with each category on its own l
       const timeoutMs = 30000;
       const response = await Promise.race([
         client.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3-flash-preview',
           contents: [{ role: 'user', parts }],
           config: {
             maxOutputTokens: 2000,
