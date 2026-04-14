@@ -178,20 +178,18 @@ export class GeminiImageProvider implements ImageProvider {
       | { inlineData: { mimeType: string; data: string } }
     > = [
       {
-        text: `Analyze the person in this image to create a highly detailed 'Character Anchor' description for facial consistency in AI image generation.
+        text: `You are creating a detailed facial identity reference for an AI image generator. Analyse every photo of this person and output a structured description that would allow another AI to recreate their EXACT appearance.
 
-Describe the following with extreme precision:
-- Face Shape: specific geometry (e.g., heart-shaped, tapering jaw, high cheekbones, round, square)
-- Eyes: shape, eyelid fold (monolid, hooded, double lid), exact iris color, eyebrow shape and thickness
-- Nose & Mouth: bridge shape, nostril width, nose tip, lip fullness, cupid's bow shape, mouth width
-- Distinctive Markers: any moles, freckle patterns, scars, dimples, unique skin textures, facial hair
-- Hair: texture, length, hairline shape, exact color including any gradients or highlights
-- Skin: exact tone, undertone (warm/cool/neutral), any visible texture or characteristics
-- Build: face proportions, jaw definition, neck width, overall impression
+FACE SHAPE: [Describe the precise geometry — jaw angle, chin shape, cheekbone prominence, forehead width and height, face length-to-width ratio]
+EYES: [Shape, size relative to face, spacing, eyelid type (hooded/double/monolid), exact iris colour, eyebrow shape/thickness/arch height, any asymmetry]
+NOSE: [Bridge width and profile (straight/curved/bumped), tip shape (round/pointed/upturned), nostril width and shape, overall size relative to face]
+MOUTH: [Lip fullness (upper vs lower), mouth width, cupid's bow definition, any asymmetry, natural resting expression]
+SKIN: [Exact tone and undertone (warm/cool/olive), any freckles (where and how dense), moles (exact locations), texture, visible pores or lines]
+FACIAL HAIR: [Style, density, colour, coverage pattern — or clean-shaven]
+HAIR: [Exact colour including roots/tips/highlights, texture (straight/wavy/curly/coily), thickness, length, hairline shape (straight/receding/widow's peak), parting side]
+DISTINCTIVE FEATURES: [The 3-5 things that make THIS person instantly recognisable — the features a friend would use to describe them. Be specific.]
 
-Create a 100-150 word descriptive paragraph that acts as a precise blueprint to recreate this exact person in a stylised illustration. Focus on the features that make this person UNIQUE — the things that distinguish them from a generic face. Do NOT describe clothing or background.
-
-Return ONLY the character anchor paragraph, nothing else.`,
+Output the description as a single block of text with each category on its own line. Do NOT include category labels — just the descriptions flowing naturally. Do NOT describe clothing, background, or pose. Do NOT add any preamble or explanation — start directly with the face description.`,
       },
     ];
 
@@ -209,11 +207,11 @@ Return ONLY the character anchor paragraph, nothing else.`,
 
     try {
       const response = await client.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash',
         contents: [{ role: 'user', parts }],
         config: {
-          maxOutputTokens: 1000,
-          temperature: 0.3,
+          maxOutputTokens: 2000,
+          temperature: 0.2,
         },
       });
 
