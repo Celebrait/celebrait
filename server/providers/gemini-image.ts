@@ -193,8 +193,11 @@ Output the description as a single block of text with each category on its own l
       },
     ];
 
-    // Add all reference images
-    for (const img of images) {
+    // Cap at 3 photos for analysis — the text model doesn't need all
+    // angles to describe a face, and more photos = larger payload =
+    // higher chance of timeout. All photos still go to image generation.
+    const analysisImages = images.slice(0, 3);
+    for (const img of analysisImages) {
       const base64Match = img.match(/^data:image\/([a-z0-9]+);base64,(.+)$/);
       const mimeType = base64Match ? `image/${base64Match[1]}` : 'image/png';
       const rawBase64 = base64Match ? base64Match[2] : img;
@@ -212,7 +215,7 @@ Output the description as a single block of text with each category on its own l
       const timeoutMs = 30000;
       const response = await Promise.race([
         client.models.generateContent({
-          model: 'gemini-3.1-pro-preview',
+          model: 'gemini-2.5-flash',
           contents: [{ role: 'user', parts }],
           config: {
             maxOutputTokens: 2000,
