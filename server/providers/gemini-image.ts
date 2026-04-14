@@ -212,7 +212,7 @@ Return ONLY the character anchor paragraph, nothing else.`,
         model: 'gemini-2.5-flash',
         contents: [{ role: 'user', parts }],
         config: {
-          maxOutputTokens: 300,
+          maxOutputTokens: 1000,
           temperature: 0.3,
         },
       });
