@@ -583,6 +583,9 @@ const CELEBRAIT_HOUSE_STYLE_OPENAI =
 const CELEBRAIT_POLISHED =
   'Highly polished stylised digital illustration in a modern animated film / premium greeting card style. Clean, vector-like rendering with soft blended gradients and minimal visible brush texture. Smooth, airbrushed shading with gentle transitions and no harsh contrast. Lighting is cinematic and softly diffused, with subtle rim lighting and natural light falloff to enhance form and depth. Colour palette is vibrant yet balanced, using harmonious tones with controlled saturation rather than extreme contrast. Characters (if present) are slightly idealised with simplified, expressive features and approachable emotion. Minimal linework, with forms defined primarily through colour and shading rather than outlines. Environments are clean and stylised with simplified shapes, clear depth layering (foreground, midground, background), and soft atmospheric perspective. Textures are minimal and refined, prioritising clarity and visual polish over realism. Composition is balanced and visually appealing, with natural framing and strong readability. Overall aesthetic is warm, inviting, and commercially refined, combining high-end animated film quality with modern vector travel poster sensibilities.';
 
+const CELEBRAIT_CINEMATIC =
+  'Photorealistic cinematic portrait with the quality of a high-budget film still. Shot on an ARRI Alexa with anamorphic lenses — natural skin texture with visible pores, fine facial hair, and authentic imperfections. Shallow depth of field with creamy bokeh in the background. Lighting is dramatic and intentional: warm golden key light from one side, cool blue-purple fill from the other, soft rim light separating the subject from the background. Natural film grain throughout. Colour grading is cinematic: lifted shadows with a slight teal tint, warm midtones, desaturated but rich highlights. Skin has natural subsurface scattering — warm translucency on ears and nose. Hair has individual strand detail catching the light. Clothing has real fabric texture and natural draping. The character must look EXACTLY like the reference photo — this is photorealistic, not stylised. Every facial feature preserved with maximum fidelity. Background has real-world environmental detail with atmospheric haze and depth. The overall impression should be indistinguishable from a professional photograph taken by Annie Leibovitz or Peter Lindbergh.';
+
 const STYLE_PRESETS: StylePreset[] = [
   {
     id: 'celebrait',
@@ -595,6 +598,12 @@ const STYLE_PRESETS: StylePreset[] = [
     label: 'Polished',
     icon: '',
     renderBlock: CELEBRAIT_POLISHED,
+  },
+  {
+    id: 'cinematic',
+    label: 'Cinematic',
+    icon: '',
+    renderBlock: CELEBRAIT_CINEMATIC,
   },
   {
     id: 'custom',
