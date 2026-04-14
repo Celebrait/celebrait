@@ -206,14 +206,23 @@ Output the description as a single block of text with each category on its own l
     );
 
     try {
-      const response = await client.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: [{ role: 'user', parts }],
-        config: {
-          maxOutputTokens: 2000,
-          temperature: 0.2,
-        },
-      });
+      // 30-second timeout on the analysis call. If Gemini hangs (which
+      // it does occasionally), we fail fast and proceed without the
+      // anchor rather than blocking the entire request for 5+ minutes.
+      const timeoutMs = 30000;
+      const response = await Promise.race([
+        client.models.generateContent({
+          model: 'gemini-3-pro-preview',
+          contents: [{ role: 'user', parts }],
+          config: {
+            maxOutputTokens: 2000,
+            temperature: 0.2,
+          },
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Character anchor analysis timed out after 30s')), timeoutMs),
+        ),
+      ]);
 
       const text = response.candidates?.[0]?.content?.parts
         ?.filter((p: any) => p.text)
