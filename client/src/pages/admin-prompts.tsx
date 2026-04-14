@@ -642,6 +642,9 @@ function TestPanel({
   const [lastResult, setLastResult] = useState<TestRunResult | null>(null);
   const [lastError, setLastError] = useState<StructuredError | null>(null);
   const [expandedPrompt, setExpandedPrompt] = useState(false);
+  const [editHistory, setEditHistory] = useState<Array<{
+    before: string; after: string; instruction: string; costUsd: string;
+  }>>([]);
   // 'off' | 'openai' | 'gemini' — which provider analyses the face
   const [anchorMode, setAnchorMode] = useState<'off' | 'openai' | 'gemini'>('off');
   // Prompt version override — 'live' uses the editor text, or pick a
@@ -690,8 +693,9 @@ function TestPanel({
 
   const runMutation = useMutation({
     mutationFn: async () => {
-      // Clear previous error/result when starting a new run.
+      // Clear previous error/result/edit history when starting a new run.
       setLastError(null);
+      setEditHistory([]);
 
       // Resolve which template text to use — either the live editor
       // or a specific saved version.
@@ -1041,7 +1045,13 @@ function TestPanel({
                     </pre>
                   </div>
                 )}
-                <EditPanel imageUrl={lastResult.imageUrl} onEdited={(result) => {
+                <EditPanel imageUrl={lastResult.imageUrl} onEdited={(result, instruction) => {
+                  setEditHistory((prev) => [...prev, {
+                    before: lastResult.imageUrl,
+                    after: result.imageUrl,
+                    instruction,
+                    costUsd: result.costUsd,
+                  }]);
                   setLastResult({
                     ...lastResult,
                     imageUrl: result.imageUrl,
@@ -1052,6 +1062,24 @@ function TestPanel({
                     model: result.model,
                   });
                 }} />
+                {editHistory.length > 0 && (
+                  <div className="mt-3 border-t border-stone-200 pt-2">
+                    <div className="text-[10px] font-semibold text-stone-500 mb-1">Edit history</div>
+                    <div className="space-y-2">
+                      {editHistory.map((edit, i) => (
+                        <div key={i} className="flex gap-2 items-start">
+                          <img src={edit.before} alt="Before" className="w-16 h-16 rounded border border-stone-200 object-cover" />
+                          <div className="flex-shrink-0 text-stone-400 text-xs self-center">→</div>
+                          <img src={edit.after} alt="After" className="w-16 h-16 rounded border border-stone-200 object-cover" />
+                          <div className="flex-1 min-w-0 self-center">
+                            <div className="text-[10px] text-stone-700 truncate">{edit.instruction}</div>
+                            <div className="text-[9px] text-stone-400">{edit.costUsd}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="h-full min-h-[400px] border-2 border-dashed border-stone-200 rounded flex items-center justify-center">
@@ -1482,7 +1510,7 @@ function EditPanel({
   onEdited,
 }: {
   imageUrl: string;
-  onEdited: (result: { imageUrl: string; costCents: number; costUsd: string; durationMs: number; provider: string; model: string }) => void;
+  onEdited: (result: { imageUrl: string; costCents: number; costUsd: string; durationMs: number; provider: string; model: string }, instruction: string) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [instruction, setInstruction] = useState('');
@@ -1496,7 +1524,7 @@ function EditPanel({
       return res.json();
     },
     onSuccess: (result: any) => {
-      onEdited(result);
+      onEdited(result, instruction);
       setInstruction('');
       setIsOpen(false);
       toast({
