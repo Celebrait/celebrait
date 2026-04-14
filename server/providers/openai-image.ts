@@ -221,7 +221,17 @@ Return ONLY the character anchor paragraph, nothing else.`,
       console.log(
         `[PROVIDER:openai] ← analyzeReference returned (${text?.length ?? 0} chars)`,
       );
-      return text || null;
+
+      // GPT-4o sometimes refuses to describe faces (biometric safety).
+      // Detect refusals and return null instead of garbage.
+      if (!text) return null;
+      const refusalPatterns = /I'm sorry|I can't|I cannot|I'm unable|I am unable|not able to|against my|policy/i;
+      if (refusalPatterns.test(text)) {
+        console.log(`[PROVIDER:openai] analyzeReference: detected refusal, skipping anchor`);
+        return null;
+      }
+
+      return text;
     } catch (err: any) {
       console.error(`[PROVIDER:openai] analyzeReference failed:`, err.message);
       return null;
