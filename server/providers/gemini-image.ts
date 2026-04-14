@@ -169,6 +169,97 @@ export class GeminiImageProvider implements ImageProvider {
     };
   }
 
+  /**
+   * Take an existing generated image and modify it based on a text
+   * instruction. Gemini's generateContent supports this natively —
+   * pass the image back as an inline part with the edit instruction.
+   * OpenAI cannot do this (each call is stateless).
+   */
+  async refine(
+    imageBase64: string,
+    instruction: string,
+  ): Promise<ImageGenerationResult> {
+    const client = getClient();
+    const startTime = Date.now();
+
+    // Strip data URL prefix
+    const base64Match = imageBase64.match(
+      /^data:image\/([a-z0-9]+);base64,(.+)$/,
+    );
+    const mimeType = base64Match ? `image/${base64Match[1]}` : 'image/png';
+    const rawBase64 = base64Match ? base64Match[2] : imageBase64;
+
+    console.log(
+      `[PROVIDER:gemini] → refine (model=${this.model} instruction="${instruction.slice(0, 80)}")`,
+    );
+
+    let response: any;
+    try {
+      response = await client.models.generateContent({
+        model: this.model,
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: instruction },
+              { inlineData: { mimeType, data: rawBase64 } },
+            ],
+          },
+        ],
+        config: {
+          responseModalities: ['IMAGE', 'TEXT'],
+          imageConfig: {
+            aspectRatio: '1:1',
+            imageSize: '1K',
+          },
+        },
+      });
+    } catch (sdkErr: unknown) {
+      throw classifyGeminiError(sdkErr, this.id);
+    }
+
+    const elapsed = Date.now() - startTime;
+    console.log(`[PROVIDER:gemini] ← refine returned (${elapsed}ms)`);
+
+    const candidate = response.candidates?.[0];
+    if (!candidate?.content?.parts) {
+      const finishReason = String(candidate?.finishReason ?? 'unknown');
+      throw classifyGeminiError(
+        new Error(`Gemini refine returned no content (finishReason=${finishReason})`),
+        this.id,
+        { finishReason, modelText: null as any },
+      );
+    }
+
+    const imagePart = candidate.content.parts.find(
+      (p: any) => p.inlineData?.mimeType?.startsWith('image/'),
+    );
+
+    if (!imagePart || !(imagePart as any).inlineData?.data) {
+      const textParts = candidate.content.parts
+        .filter((p: any) => p.text)
+        .map((p: any) => p.text)
+        .join(' ');
+      throw classifyGeminiError(
+        new Error('Gemini refine did not return an image'),
+        this.id,
+        { finishReason: String(candidate.finishReason ?? ''), modelText: textParts || null },
+      );
+    }
+
+    const imgData = (imagePart as any).inlineData;
+    const imageUrl = `data:${imgData.mimeType};base64,${imgData.data}`;
+
+    return {
+      imageUrl,
+      durationMs: Date.now() - startTime,
+      costCents: COST_CENTS_1K,
+      costUsd: `$${(COST_CENTS_1K / 100).toFixed(3)}`,
+      provider: this.id,
+      model: this.model,
+    };
+  }
+
   async analyzeReference(images: string[]): Promise<string | null> {
     if (images.length === 0) return null;
     const client = getClient();

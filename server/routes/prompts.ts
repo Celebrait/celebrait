@@ -529,4 +529,71 @@ export function registerPromptRoutes(app: Express): void {
       });
     }
   });
+
+  // POST /api/admin/prompts/test-refine
+  // Takes an existing generated image and a modification instruction.
+  // Passes both back to Gemini which modifies the image in-place.
+  // OpenAI cannot do this — Gemini only.
+  //
+  // Body:
+  //   {
+  //     imageBase64: string,     // the existing generated image (data URL)
+  //     instruction: string,     // what to change: "make the shirt blue"
+  //   }
+  app.post('/api/admin/prompts/test-refine', async (req, res) => {
+    if (!(await requireAdmin(req, res))) return;
+    try {
+      const { imageBase64, instruction } = req.body ?? {};
+
+      if (typeof imageBase64 !== 'string' || !imageBase64) {
+        return res.status(400).json({ message: 'imageBase64 is required' });
+      }
+      if (typeof instruction !== 'string' || !instruction.trim()) {
+        return res.status(400).json({ message: 'instruction is required' });
+      }
+
+      const gemini = getProvider('gemini');
+      if (!gemini.isAvailable()) {
+        return res.status(503).json({ message: 'Gemini API key not configured' });
+      }
+
+      // Type-check that the provider has the refine method
+      if (!('refine' in gemini)) {
+        return res.status(501).json({ message: 'Refine is only supported on Gemini' });
+      }
+
+      console.log(
+        `[PROMPT_LAB_TEST] REFINE instruction="${instruction.slice(0, 100)}"`,
+      );
+
+      const result = await (gemini as any).refine(imageBase64, instruction);
+
+      console.log(
+        `[PROMPT_LAB_TEST] REFINE SUCCESS cost=${result.costUsd} duration=${result.durationMs}ms`,
+      );
+
+      return res.json({
+        imageUrl: result.imageUrl,
+        costCents: result.costCents,
+        costUsd: result.costUsd,
+        durationMs: result.durationMs,
+        provider: result.provider,
+        model: result.model,
+        instruction,
+      });
+    } catch (err: any) {
+      if (isProviderError(err)) {
+        return res.status(err.httpStatus).json({
+          message: err.message,
+          kind: err.kind,
+          code: err.code,
+          modelExplanation: err.modelExplanation,
+          suggestions: err.suggestions,
+          provider: err.provider,
+        });
+      }
+      console.error(`[PROMPT_LAB_TEST] REFINE FAILED:`, err);
+      res.status(500).json({ message: err?.message ?? 'Refine failed' });
+    }
+  });
 }

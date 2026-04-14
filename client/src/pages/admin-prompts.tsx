@@ -1041,6 +1041,17 @@ function TestPanel({
                     </pre>
                   </div>
                 )}
+                <EditPanel imageUrl={lastResult.imageUrl} onEdited={(result) => {
+                  setLastResult({
+                    ...lastResult,
+                    imageUrl: result.imageUrl,
+                    costCents: result.costCents,
+                    costUsd: result.costUsd,
+                    durationMs: result.durationMs,
+                    provider: result.provider,
+                    model: result.model,
+                  });
+                }} />
               </div>
             ) : (
               <div className="h-full min-h-[400px] border-2 border-dashed border-stone-200 rounded flex items-center justify-center">
@@ -1461,6 +1472,86 @@ function InsideInputsForm({
         )}
       </div>
     </>
+  );
+}
+
+// ─── Edit panel (Gemini refine) ──────────────────────────────────────────────
+
+function EditPanel({
+  imageUrl,
+  onEdited,
+}: {
+  imageUrl: string;
+  onEdited: (result: { imageUrl: string; costCents: number; costUsd: string; durationMs: number; provider: string; model: string }) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [instruction, setInstruction] = useState('');
+
+  const refineMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', '/api/admin/prompts/test-refine', {
+        imageBase64: imageUrl,
+        instruction,
+      });
+      return res.json();
+    },
+    onSuccess: (result: any) => {
+      onEdited(result);
+      setInstruction('');
+      setIsOpen(false);
+      toast({
+        title: 'Edit applied',
+        description: `${result.costUsd} · ${(result.durationMs / 1000).toFixed(1)}s`,
+      });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Edit failed', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="text-[11px] text-violet-700 hover:underline mt-1"
+      >
+        Edit this image (Gemini only)
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-2 p-2 bg-stone-50 border border-stone-200 rounded space-y-2">
+      <div className="flex gap-2">
+        <Input
+          value={instruction}
+          onChange={(e) => setInstruction(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && !refineMutation.isPending && instruction.trim() && refineMutation.mutate()}
+          placeholder="e.g. Change the shirt to blue, move text lower..."
+          className="h-8 text-xs flex-1"
+          autoFocus
+        />
+        <Button
+          onClick={() => refineMutation.mutate()}
+          disabled={refineMutation.isPending || !instruction.trim()}
+          size="sm"
+          className="bg-green-600 hover:bg-green-700 text-xs h-8"
+        >
+          {refineMutation.isPending ? 'Editing...' : 'Apply'}
+        </Button>
+        <Button
+          onClick={() => { setIsOpen(false); setInstruction(''); }}
+          variant="outline"
+          size="sm"
+          className="text-xs h-8"
+        >
+          Cancel
+        </Button>
+      </div>
+      <p className="text-[10px] text-stone-400">
+        Sends the current image back to Gemini with your instruction. The model modifies the image in-place.
+      </p>
+    </div>
   );
 }
 
