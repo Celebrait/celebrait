@@ -482,6 +482,7 @@ export function registerPromptRoutes(app: Express): void {
           additionalReferenceImages: extras.length > 0 ? extras : undefined,
           quality: q,
           size: '1024x1024',
+          slot,
         },
         {
           maxAttempts: 3,

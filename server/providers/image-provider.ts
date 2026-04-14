@@ -21,6 +21,9 @@ export interface ImageGenerationRequest {
   quality: 'low' | 'medium' | 'high';
   /** Target image dimensions. Default: '1024x1024'. */
   size: string;
+  /** Which slot is being generated — providers can use different models
+   *  per slot (e.g. Flash for front, Pro for inside). */
+  slot?: string;
 }
 
 export interface ImageGenerationResult {

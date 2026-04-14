@@ -35,10 +35,16 @@ function getClient(): GoogleGenAI {
   return _client;
 }
 
+// Nano Banana 2 (Flash) is faster and potentially better at likeness
+// for front cards. Nano Banana Pro handles image-to-image tasks
+// (inside cards, refine/edit) which Flash can't do reliably.
+const MODEL_FLASH = 'gemini-3.1-flash-image-preview'; // Nano Banana 2
+const MODEL_PRO = 'nano-banana-pro-preview';           // Nano Banana Pro
+
 export class GeminiImageProvider implements ImageProvider {
   id = 'gemini';
-  displayName = 'Nano Banana Pro';
-  model = 'nano-banana-pro-preview';
+  displayName = 'Gemini';
+  model = MODEL_PRO; // default shown in UI
 
   isAvailable(): boolean {
     return !!process.env.GEMINI_API_KEY;
@@ -57,6 +63,12 @@ export class GeminiImageProvider implements ImageProvider {
   async generate(req: ImageGenerationRequest): Promise<ImageGenerationResult> {
     const client = getClient();
     const startTime = Date.now();
+
+    // Use Nano Banana 2 (Flash) for front cards — faster, potentially
+    // better likeness. Use Pro for inside cards and anything with
+    // image-to-image reference (Flash can't handle that reliably).
+    const useFlash = req.slot === 'front_scene';
+    const activeModel = useFlash ? MODEL_FLASH : MODEL_PRO;
 
     // Build the content parts array. Text prompt first, then optional
     // reference image(s) as inline_data.
@@ -91,18 +103,18 @@ export class GeminiImageProvider implements ImageProvider {
     const totalRefImages = allRefImages.length;
     if (totalRefImages > 0) {
       console.log(
-        `[PROVIDER:gemini] → generateContent (model=${this.model} refImages=${totalRefImages})`,
+        `[PROVIDER:gemini] → generateContent (model=${activeModel} refImages=${totalRefImages})`,
       );
     } else {
       console.log(
-        `[PROVIDER:gemini] → generateContent (model=${this.model} text-only)`,
+        `[PROVIDER:gemini] → generateContent (model=${activeModel} text-only)`,
       );
     }
 
     let response: any;
     try {
       response = await client.models.generateContent({
-        model: this.model,
+        model: activeModel,
         contents: [
           {
             role: 'user',
@@ -165,7 +177,7 @@ export class GeminiImageProvider implements ImageProvider {
       costCents: COST_CENTS_1K,
       costUsd: `$${(COST_CENTS_1K / 100).toFixed(3)}`,
       provider: this.id,
-      model: this.model,
+      model: activeModel,
     };
   }
 
