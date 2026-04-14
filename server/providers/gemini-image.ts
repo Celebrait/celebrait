@@ -37,8 +37,8 @@ function getClient(): GoogleGenAI {
 
 export class GeminiImageProvider implements ImageProvider {
   id = 'gemini';
-  displayName = 'Gemini 3 Pro Image';
-  model = 'gemini-3-pro-image-preview';
+  displayName = 'Gemini 3.1 Flash Image';
+  model = 'gemini-3.1-flash-image-preview';
 
   isAvailable(): boolean {
     return !!process.env.GEMINI_API_KEY;
