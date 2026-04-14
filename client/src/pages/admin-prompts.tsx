@@ -1023,7 +1023,9 @@ function FrontInputsForm({
   // One person + Gemini: up to 5 for multi-reference identity anchoring.
   // One person + OpenAI: 1 only.
   // Group: always 1 (one photo with everyone in it).
-  const maxPhotos = !isOnePerson ? 1 : isGemini ? 5 : 1;
+  // Both providers support multiple images. Gemini up to 14, OpenAI
+  // via image[] array syntax. Cap at 5 for practical purposes.
+  const maxPhotos = !isOnePerson ? 1 : 5;
 
   // Clear excess photos when switching modes
   const setPhotoMode = (mode: PhotoMode) => {
@@ -1151,7 +1153,7 @@ function FrontInputsForm({
           >
             <div className="font-semibold">One person</div>
             <div className="text-[10px] text-stone-500">
-              {isGemini ? 'Up to 5 photos for better likeness' : '1 photo'}
+              Up to 5 photos for better likeness
             </div>
           </button>
           <button
@@ -1174,9 +1176,7 @@ function FrontInputsForm({
         <Label className="text-xs flex items-center justify-between">
           <span>
             {isOnePerson
-              ? isGemini
-                ? 'Reference photos (up to 5 — more angles = better likeness)'
-                : 'Reference photo'
+              ? 'Reference photos (up to 5 — more angles = better likeness)'
               : 'Group photo (one photo with everyone in it)'}
           </span>
           {inputs.photos.length > 0 && (
@@ -1218,7 +1218,7 @@ function FrontInputsForm({
           <input
             type="file"
             accept="image/*"
-            multiple={isOnePerson && isGemini}
+            multiple={isOnePerson}
             onChange={(e) => onPhotosAdd(e.target.files)}
             className="text-xs mt-1 block w-full"
             data-testid="input-photo"
@@ -1227,9 +1227,7 @@ function FrontInputsForm({
 
         <p className="text-[10px] text-stone-400 mt-1">
           {isOnePerson
-            ? isGemini
-              ? 'Add front-facing, 3/4 angle, and smiling shots for best likeness.'
-              : 'OpenAI supports 1 photo only.'
+            ? 'Add front-facing, 3/4 angle, and smiling shots for best likeness.'
             : 'Upload one photo with all people visible. The model preserves each face from a single image.'}
         </p>
       </div>

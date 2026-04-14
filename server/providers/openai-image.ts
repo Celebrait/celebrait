@@ -45,26 +45,44 @@ export class OpenAIImageProvider implements ImageProvider {
     const q = req.quality;
     let imageUrl: string | null = null;
 
-    if (req.additionalReferenceImages?.length) {
-      console.log(
-        `[PROVIDER:openai] NOTE: ${req.additionalReferenceImages.length} additional reference image(s) ignored — OpenAI only supports 1 reference. Use Gemini for multi-photo.`,
-      );
-    }
-
     if (req.referenceImageBase64) {
       // ── Image-to-image via /v1/images/edits ──
-      const base64Match = req.referenceImageBase64.match(
-        /^data:image\/([a-z0-9]+);base64,(.+)$/,
-      );
-      const mimeType = base64Match ? base64Match[1] : 'png';
-      const rawBase64 = base64Match ? base64Match[2] : req.referenceImageBase64;
-      const imageBuffer = Buffer.from(rawBase64, 'base64');
+      // Collect all reference images (primary + additional).
+      // OpenAI supports multiple via image[] array syntax.
+      const allImages: string[] = [req.referenceImageBase64];
+      if (req.additionalReferenceImages?.length) {
+        allImages.push(...req.additionalReferenceImages);
+      }
 
       const formData = new FormData();
-      formData.append('image', imageBuffer, {
-        filename: `reference.${mimeType}`,
-        contentType: `image/${mimeType}`,
-      });
+
+      if (allImages.length === 1) {
+        // Single image: use 'image' field
+        const base64Match = allImages[0].match(
+          /^data:image\/([a-z0-9]+);base64,(.+)$/,
+        );
+        const mimeType = base64Match ? base64Match[1] : 'png';
+        const rawBase64 = base64Match ? base64Match[2] : allImages[0];
+        const imageBuffer = Buffer.from(rawBase64, 'base64');
+        formData.append('image', imageBuffer, {
+          filename: `reference.${mimeType}`,
+          contentType: `image/${mimeType}`,
+        });
+      } else {
+        // Multiple images: use 'image[]' array syntax
+        allImages.forEach((img, index) => {
+          const base64Match = img.match(
+            /^data:image\/([a-z0-9]+);base64,(.+)$/,
+          );
+          const mimeType = base64Match ? base64Match[1] : 'png';
+          const rawBase64 = base64Match ? base64Match[2] : img;
+          const imageBuffer = Buffer.from(rawBase64, 'base64');
+          formData.append('image[]', imageBuffer, {
+            filename: `reference${index + 1}.${mimeType}`,
+            contentType: `image/${mimeType}`,
+          });
+        });
+      }
       formData.append('prompt', req.prompt);
       formData.append('model', this.model);
       formData.append('n', '1');
@@ -74,8 +92,12 @@ export class OpenAIImageProvider implements ImageProvider {
       formData.append('background', 'auto');
 
       const fetch = (await import('node-fetch')).default;
+      const totalImageBytes = allImages.reduce((sum, img) => {
+        const match = img.match(/^data:image\/[a-z0-9]+;base64,(.+)$/);
+        return sum + (match ? match[1].length : img.length);
+      }, 0);
       console.log(
-        `[PROVIDER:openai] → POST /v1/images/edits (quality=${q} imageBytes=${imageBuffer.length})`,
+        `[PROVIDER:openai] → POST /v1/images/edits (quality=${q} images=${allImages.length} totalBytes=${totalImageBytes})`,
       );
       const response = await fetch('https://api.openai.com/v1/images/edits', {
         method: 'POST',
