@@ -415,12 +415,19 @@ export function registerPromptRoutes(app: Express): void {
       // in the template vars — which skips the generic 8-point facial
       // recreation section (the anchor replaces it with specific values).
       let characterAnchor: string | null = null;
-      if (useCharacterAnchor && effectiveReferenceImage && provider.analyzeReference) {
+      if (useCharacterAnchor && effectiveReferenceImage) {
+        // Always use OpenAI (GPT-4o) for face analysis — it's faster
+        // and more reliable than Gemini's preview models for text tasks.
+        // The image generation still uses whichever provider is selected.
+        const anchorProvider = getProvider('openai');
+        const analyzeWith = anchorProvider.analyzeReference ? anchorProvider : provider;
         const allImages = [effectiveReferenceImage, ...extras];
         console.log(
-          `[PROMPT_LAB_TEST] CHARACTER_ANCHOR: analysing ${allImages.length} image(s) via ${pid}...`,
+          `[PROMPT_LAB_TEST] CHARACTER_ANCHOR: analysing ${allImages.length} image(s) via ${analyzeWith.id}...`,
         );
-        characterAnchor = await provider.analyzeReference(allImages);
+        characterAnchor = analyzeWith.analyzeReference
+          ? await analyzeWith.analyzeReference(allImages)
+          : null;
         if (characterAnchor) {
           console.log(
             `[PROMPT_LAB_TEST] CHARACTER_ANCHOR result (${characterAnchor.length} chars):\n${characterAnchor}`,
