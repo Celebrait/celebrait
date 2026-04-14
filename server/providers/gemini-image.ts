@@ -178,18 +178,15 @@ export class GeminiImageProvider implements ImageProvider {
       | { inlineData: { mimeType: string; data: string } }
     > = [
       {
-        text: `You are creating a detailed facial identity reference for an AI image generator. Analyse every photo of this person and output a structured description that would allow another AI to recreate their EXACT appearance.
-
-FACE SHAPE: [Describe the precise geometry — jaw angle, chin shape, cheekbone prominence, forehead width and height, face length-to-width ratio]
-EYES: [Shape, size relative to face, spacing, eyelid type (hooded/double/monolid), exact iris colour, eyebrow shape/thickness/arch height, any asymmetry]
-NOSE: [Bridge width and profile (straight/curved/bumped), tip shape (round/pointed/upturned), nostril width and shape, overall size relative to face]
-MOUTH: [Lip fullness (upper vs lower), mouth width, cupid's bow definition, any asymmetry, natural resting expression]
-SKIN: [Exact tone and undertone (warm/cool/olive), any freckles (where and how dense), moles (exact locations), texture, visible pores or lines]
-FACIAL HAIR: [Style, density, colour, coverage pattern — or clean-shaven]
-HAIR: [Exact colour including roots/tips/highlights, texture (straight/wavy/curly/coily), thickness, length, hairline shape (straight/receding/widow's peak), parting side]
-DISTINCTIVE FEATURES: [The 3-5 things that make THIS person instantly recognisable — the features a friend would use to describe them. Be specific.]
-
-Output the description as a single block of text with each category on its own line. Do NOT include category labels — just the descriptions flowing naturally. Do NOT describe clothing, background, or pose. Do NOT add any preamble or explanation — start directly with the face description.`,
+        text: `Analyze the person in this image to create a highly detailed 'Character Anchor' description for facial consistency in AI generation.
+Please describe the following with extreme precision:
+Face Shape: The specific geometry (e.g., heart-shaped, tapering jaw, high cheekbones).
+Eyes: Shape, eyelid fold (monolid, hooded, etc.), and exact iris color.
+Nose & Mouth: The bridge shape, nostril width, and the specific curve of the cupid's bow.
+Distinctive Markers: Any moles, freckle patterns, scars, or unique skin textures (e.g., crows' feet, matte skin).
+Hair: Texture (e.g., 4C curls, fine strands), hairline shape, and exact color gradients.
+Goal: Create a 100-word descriptive paragraph that acts as a blueprint to recreate this exact person without distortion or 'beauty-filter' blurring.
+Give me the final prompt as the result.`,
       },
     ];
 
