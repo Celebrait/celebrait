@@ -403,18 +403,6 @@ export function registerPromptRoutes(app: Express): void {
       const totalPhotoCount =
         (typeof photoBase64 === 'string' && photoBase64 ? 1 : 0) + extras.length;
 
-      // Render the template with derived vars.
-      const renderVars =
-        slot === 'front_scene'
-          ? deriveFrontSceneVars({
-              ...(inputs as FrontSceneVars),
-              photoMode: photoMode === 'group' ? 'group' : photoMode === 'one_person' ? 'one_person' : undefined,
-              photoCount: totalPhotoCount,
-              textLayout: textLayout === 'movie_poster' ? 'movie_poster' : 'scene_integrated',
-            })
-          : deriveInsideVars(inputs as InsideVars);
-      let renderedPrompt = renderTemplate(templateText, renderVars);
-
       // Resolve the reference image (user photo or front card).
       const effectiveReferenceImage: string | null =
         (typeof referenceImageBase64 === 'string' && referenceImageBase64) ||
@@ -422,9 +410,10 @@ export function registerPromptRoutes(app: Express): void {
         null;
 
       // Character Anchor: if enabled, analyse the reference photos with the
-      // provider's vision model BEFORE generating the image. The face
-      // description is prepended to the prompt, giving the image model both
-      // a visual reference (photo) AND a text-based identity blueprint.
+      // provider's vision model BEFORE rendering the template. We need to
+      // know whether the anchor succeeded so we can set hasCharacterAnchor
+      // in the template vars — which skips the generic 8-point facial
+      // recreation section (the anchor replaces it with specific values).
       let characterAnchor: string | null = null;
       if (useCharacterAnchor && effectiveReferenceImage && provider.analyzeReference) {
         const allImages = [effectiveReferenceImage, ...extras];
@@ -436,10 +425,29 @@ export function registerPromptRoutes(app: Express): void {
           console.log(
             `[PROMPT_LAB_TEST] CHARACTER_ANCHOR result (${characterAnchor.length} chars):\n${characterAnchor}`,
           );
-          renderedPrompt = `CHARACTER ANCHOR — preserve these EXACT features in the output:\n${characterAnchor}\n\n${renderedPrompt}`;
         } else {
           console.log(`[PROMPT_LAB_TEST] CHARACTER_ANCHOR: analysis returned nothing`);
         }
+      }
+
+      // Render the template with derived vars. When hasCharacterAnchor is
+      // true, the template skips the generic facial recreation section
+      // (the anchor already provides specific feature descriptions).
+      const renderVars =
+        slot === 'front_scene'
+          ? deriveFrontSceneVars({
+              ...(inputs as FrontSceneVars),
+              photoMode: photoMode === 'group' ? 'group' : photoMode === 'one_person' ? 'one_person' : undefined,
+              photoCount: totalPhotoCount,
+              textLayout: textLayout === 'movie_poster' ? 'movie_poster' : 'scene_integrated',
+              hasCharacterAnchor: !!characterAnchor,
+            })
+          : deriveInsideVars(inputs as InsideVars);
+      let renderedPrompt = renderTemplate(templateText, renderVars);
+
+      // Prepend the anchor to the rendered prompt.
+      if (characterAnchor) {
+        renderedPrompt = `CHARACTER ANCHOR — preserve these EXACT features in the output:\n${characterAnchor}\n\n${renderedPrompt}`;
       }
 
       if (slot === 'inside' && !effectiveReferenceImage) {

@@ -31,7 +31,7 @@ const FRONT_SCENE_V1 = `MANDATORY: Create a perfectly SQUARE 1024x1024 compositi
 
 {{#if isOnePerson}}{{#if hasMultiplePhotos}}REFERENCE PHOTO CONTEXT: You have been given {{photoCount}} photos of THE SAME PERSON from different angles. These are NOT different people — they are all the same individual. Use ALL photos together to build a comprehensive understanding of this person's facial structure, features, and proportions. The multiple angles give you more identity signal — use it to produce a more accurate likeness than any single photo could achieve.{{/if}}{{/if}}{{#if isGroup}}REFERENCE PHOTO CONTEXT: The reference photo contains MULTIPLE DIFFERENT PEOPLE. You MUST preserve each person's DISTINCT facial identity — do NOT blend or average facial features between subjects. Each person must remain individually recognisable in the output. Pay special attention to distinguishing features that differentiate each person (skin tone differences, face shapes, hair styles, facial hair, etc.).{{/if}}
 
-MANDATORY FACIAL RECREATION REQUIREMENTS FOR ALL CHARACTERS IN THE REFERENCE PHOTO(S) (COMPLETE BEFORE ANY STYLING):
+{{#if noCharacterAnchor}}MANDATORY FACIAL RECREATION REQUIREMENTS FOR ALL CHARACTERS IN THE REFERENCE PHOTO(S) (COMPLETE BEFORE ANY STYLING):
 1) FACIAL STRUCTURE MATCH: Recreate the EXACT facial bone structure - same cheekbone height, same jawline angle, same forehead shape, same chin projection (but with new facial expression to match the new scene and mood)
 2) EYE PRECISION: Match exact eye shape (almond, round, hooded), eye spacing, eyelid fold pattern, iris color, eyebrow shape and arch
 3) NOSE ACCURACY: Replicate precise nose bridge width, nostril shape, nose tip definition, any bumps or unique nose characteristics
@@ -40,7 +40,7 @@ MANDATORY FACIAL RECREATION REQUIREMENTS FOR ALL CHARACTERS IN THE REFERENCE PHO
 6) HAIR PRECISION: Match exact hair color, texture, natural growth patterns, hairline shape
 7) DISTINCTIVE MARKS: Include any scars, dimples, laugh lines, or other identifying facial features
 8) CRITICAL EXPRESSION CHANGE: DO NOT copy the original facial expression from the reference photo. You must create a COMPLETELY NEW facial expression that matches the mood and energy of the new scene
-
+{{/if}}
 AFTER ESTABLISHING PERFECT LIKENESS - SCENE CREATION:
 Create a completely new scene featuring the character(s) from the reference photo(s). CRITICAL: Ensure the characters facial expressions capture the mood of the new scene. DO NOT COPY the original expressions.
 

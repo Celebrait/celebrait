@@ -25,6 +25,9 @@ export interface FrontSceneVars {
    *  walls, etc. 'movie_poster' = large text behind/around the character
    *  as background typography. */
   textLayout?: 'scene_integrated' | 'movie_poster';
+  /** When true, a character anchor has been prepended to the prompt and
+   *  the generic 8-point facial recreation section should be skipped. */
+  hasCharacterAnchor?: boolean;
 }
 
 export interface InsideVars {
@@ -67,6 +70,8 @@ export function deriveFrontSceneVars(vars: FrontSceneVars): RenderVars {
     photoCount: String(photoCount),
     isSceneIntegrated: vars.textLayout !== 'movie_poster',
     isMoviePoster: vars.textLayout === 'movie_poster',
+    hasCharacterAnchor: !!vars.hasCharacterAnchor,
+    noCharacterAnchor: !vars.hasCharacterAnchor,
   };
 }
 
