@@ -578,12 +578,23 @@ const CELEBRAIT_HOUSE_STYLE_GEMINI =
 const CELEBRAIT_HOUSE_STYLE_OPENAI =
   'Highly polished stylised digital illustration in a modern animated film / premium greeting card style. Clean, vector-like rendering with soft blended gradients and minimal visible brush texture. Smooth, airbrushed shading with gentle transitions and no harsh contrast. Lighting is cinematic and softly diffused, with subtle rim lighting and natural light falloff to enhance form and depth. Colour palette is vibrant yet balanced, using harmonious tones with controlled saturation rather than extreme contrast. Characters (if present) are slightly idealised with simplified, expressive features and approachable emotion. Minimal linework, with forms defined primarily through colour and shading rather than outlines. Environments are clean and stylised with simplified shapes, clear depth layering (foreground, midground, background), and soft atmospheric perspective. Textures are minimal and refined, prioritising clarity and visual polish over realism. Composition is balanced and visually appealing, with natural framing and strong readability. Overall aesthetic is warm, inviting, and commercially refined, combining high-end animated film quality with modern vector travel poster sensibilities.';
 
+// Polished vector style — the OpenAI-optimised prompt that also works
+// as a second option on Gemini for a cleaner, more refined look.
+const CELEBRAIT_POLISHED =
+  'Highly polished stylised digital illustration in a modern animated film / premium greeting card style. Clean, vector-like rendering with soft blended gradients and minimal visible brush texture. Smooth, airbrushed shading with gentle transitions and no harsh contrast. Lighting is cinematic and softly diffused, with subtle rim lighting and natural light falloff to enhance form and depth. Colour palette is vibrant yet balanced, using harmonious tones with controlled saturation rather than extreme contrast. Characters (if present) are slightly idealised with simplified, expressive features and approachable emotion. Minimal linework, with forms defined primarily through colour and shading rather than outlines. Environments are clean and stylised with simplified shapes, clear depth layering (foreground, midground, background), and soft atmospheric perspective. Textures are minimal and refined, prioritising clarity and visual polish over realism. Composition is balanced and visually appealing, with natural framing and strong readability. Overall aesthetic is warm, inviting, and commercially refined, combining high-end animated film quality with modern vector travel poster sensibilities.';
+
 const STYLE_PRESETS: StylePreset[] = [
   {
     id: 'celebrait',
     label: 'Celebrait',
     icon: '',
-    renderBlock: CELEBRAIT_HOUSE_STYLE_GEMINI, // default shown in UI
+    renderBlock: CELEBRAIT_HOUSE_STYLE_GEMINI,
+  },
+  {
+    id: 'polished',
+    label: 'Polished',
+    icon: '',
+    renderBlock: CELEBRAIT_POLISHED,
   },
   {
     id: 'custom',
@@ -711,7 +722,7 @@ function TestPanel({
               // Per-provider house style: Gemini and OpenAI need different
               // render blocks to produce the same visual output.
               userArtStyle:
-                frontInputs.userArtStyle === CELEBRAIT_HOUSE_STYLE_GEMINI && selectedProvider === 'openai'
+                selectedProvider === 'openai' && frontInputs.userArtStyle === CELEBRAIT_HOUSE_STYLE_GEMINI
                   ? CELEBRAIT_HOUSE_STYLE_OPENAI
                   : frontInputs.userArtStyle,
               userClothing: frontInputs.userClothing,
