@@ -286,6 +286,7 @@ function SlotPanel({ slot }: { slot: SlotId }) {
               templateVersionLabel={isDraft ? 'draft' : selected.version}
               onRunComplete={appendRun}
               frontRuns={runsBySlot['front_scene'] ?? []}
+              versions={data.versions}
             />
 
             {recentRuns.length > 0 && (
@@ -616,6 +617,8 @@ interface TestPanelProps {
    *  reference image picker so inside tests mirror production, where the
    *  inside card is generated from a front card PNG via /v1/images/edits. */
   frontRuns: RunRecord[];
+  /** All saved prompt versions for this slot, for the version picker. */
+  versions: PromptTemplate[];
 }
 
 function TestPanel({
@@ -624,6 +627,7 @@ function TestPanel({
   templateVersionLabel,
   onRunComplete,
   frontRuns,
+  versions,
 }: TestPanelProps) {
   const [frontInputs, setFrontInputs] = useState<FrontSceneInputs>(DEFAULT_FRONT_INPUTS);
   const [insideInputs, setInsideInputs] = useState<InsideInputs>(DEFAULT_INSIDE_INPUTS);
@@ -634,6 +638,9 @@ function TestPanel({
   const [expandedPrompt, setExpandedPrompt] = useState(false);
   // 'off' | 'openai' | 'gemini' — which provider analyses the face
   const [anchorMode, setAnchorMode] = useState<'off' | 'openai' | 'gemini'>('off');
+  // Prompt version override — 'live' uses the editor text, or pick a
+  // specific version by ID to test against saved templates.
+  const [promptVersionId, setPromptVersionId] = useState<'live' | number>('live');
 
   // Fetch available providers from the server.
   const { data: providersData } = useQuery<{ providers: ProviderInfo[] }>({
@@ -680,6 +687,13 @@ function TestPanel({
       // Clear previous error/result when starting a new run.
       setLastError(null);
 
+      // Resolve which template text to use — either the live editor
+      // or a specific saved version.
+      const effectiveTemplate =
+        promptVersionId === 'live'
+          ? liveTemplateText
+          : versions.find((v) => v.id === promptVersionId)?.templateText ?? liveTemplateText;
+
       const inputs =
         slot === 'front_scene'
           ? {
@@ -701,7 +715,7 @@ function TestPanel({
 
       const body: any = {
         slot,
-        templateText: liveTemplateText,
+        templateText: effectiveTemplate,
         inputs,
         quality,
         provider: selectedProvider,
@@ -747,7 +761,9 @@ function TestPanel({
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         timestamp: Date.now(),
         label,
-        templateVersion: templateVersionLabel,
+        templateVersion: promptVersionId === 'live'
+          ? templateVersionLabel
+          : `v${versions.find((v) => v.id === promptVersionId)?.version ?? '?'}`,
         inputs: slot === 'front_scene' ? frontInputs : insideInputs,
       });
       toast({
@@ -811,17 +827,32 @@ function TestPanel({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center justify-between">
-          <span>Test this prompt</span>
-          <span className="text-xs text-stone-500 font-normal">
-            Running against:{' '}
-            <code className="bg-stone-100 px-1 rounded">
-              {typeof templateVersionLabel === 'number'
-                ? `v${templateVersionLabel}`
-                : templateVersionLabel}
-            </code>
-          </span>
-        </CardTitle>
+        <CardTitle className="text-base">Test</CardTitle>
+        <div className="flex gap-1.5 mt-2 flex-wrap">
+          <button
+            onClick={() => setPromptVersionId('live')}
+            className={`px-2.5 py-1 text-[11px] rounded border transition-colors ${
+              promptVersionId === 'live'
+                ? 'border-violet-600 bg-violet-50 text-violet-700 font-medium'
+                : 'border-stone-200 hover:bg-stone-50 text-stone-600'
+            }`}
+          >
+            Live editor
+          </button>
+          {versions.map((v) => (
+            <button
+              key={v.id}
+              onClick={() => setPromptVersionId(v.id)}
+              className={`px-2.5 py-1 text-[11px] rounded border transition-colors ${
+                promptVersionId === v.id
+                  ? 'border-violet-600 bg-violet-50 text-violet-700 font-medium'
+                  : 'border-stone-200 hover:bg-stone-50 text-stone-600'
+              }`}
+            >
+              v{v.version}{v.isActive ? ' (active)' : ''} — {v.name.slice(0, 30)}
+            </button>
+          ))}
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-6">
@@ -931,7 +962,7 @@ function TestPanel({
                 const providerUnavailable = currentProvider && !currentProvider.available;
                 const isDisabled =
                   runMutation.isPending ||
-                  !liveTemplateText ||
+                  !(promptVersionId === 'live' ? liveTemplateText : versions.find((v) => v.id === promptVersionId)?.templateText) ||
                   insideNeedsReference ||
                   !!providerUnavailable;
                 return (
