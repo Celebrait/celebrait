@@ -632,6 +632,7 @@ function TestPanel({
   const [lastResult, setLastResult] = useState<TestRunResult | null>(null);
   const [lastError, setLastError] = useState<StructuredError | null>(null);
   const [expandedPrompt, setExpandedPrompt] = useState(false);
+  const [useCharacterAnchor, setUseCharacterAnchor] = useState(false);
 
   // Fetch available providers from the server.
   const { data: providersData } = useQuery<{ providers: ProviderInfo[] }>({
@@ -705,6 +706,7 @@ function TestPanel({
         provider: selectedProvider,
         photoMode: frontInputs.photoMode,
         textLayout: frontInputs.textLayout,
+        useCharacterAnchor,
       };
       if (slot === 'front_scene' && frontInputs.photos.length > 0) {
         // First photo is the primary reference; extras are additional
@@ -840,6 +842,23 @@ function TestPanel({
             )}
 
             <div className="pt-3 border-t border-stone-100 space-y-3">
+              {/* Character Anchor toggle */}
+              {slot === 'front_scene' && frontInputs.photos.length > 0 && (
+                <label className="flex items-center gap-2 text-[11px] text-stone-700 bg-stone-50 rounded p-2 border border-stone-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useCharacterAnchor}
+                    onChange={(e) => setUseCharacterAnchor(e.target.checked)}
+                  />
+                  <div>
+                    <div className="font-medium">Character Anchor</div>
+                    <div className="text-[10px] text-stone-500">
+                      Analyse face first, then generate — may improve likeness
+                    </div>
+                  </div>
+                </label>
+              )}
+
               {/* Provider selector */}
               <div>
                 <Label className="text-xs">Provider</Label>

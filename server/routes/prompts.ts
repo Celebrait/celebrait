@@ -371,6 +371,7 @@ export function registerPromptRoutes(app: Express): void {
         additionalPhotos,
         photoMode,
         textLayout,
+        useCharacterAnchor,
       } = req.body ?? {};
 
       if (!slot || !VALID_SLOTS.has(slot)) {
@@ -412,13 +413,34 @@ export function registerPromptRoutes(app: Express): void {
               textLayout: textLayout === 'movie_poster' ? 'movie_poster' : 'scene_integrated',
             })
           : deriveInsideVars(inputs as InsideVars);
-      const renderedPrompt = renderTemplate(templateText, renderVars);
+      let renderedPrompt = renderTemplate(templateText, renderVars);
 
       // Resolve the reference image (user photo or front card).
       const effectiveReferenceImage: string | null =
         (typeof referenceImageBase64 === 'string' && referenceImageBase64) ||
         (typeof photoBase64 === 'string' && photoBase64) ||
         null;
+
+      // Character Anchor: if enabled, analyse the reference photos with the
+      // provider's vision model BEFORE generating the image. The face
+      // description is prepended to the prompt, giving the image model both
+      // a visual reference (photo) AND a text-based identity blueprint.
+      let characterAnchor: string | null = null;
+      if (useCharacterAnchor && effectiveReferenceImage && provider.analyzeReference) {
+        const allImages = [effectiveReferenceImage, ...extras];
+        console.log(
+          `[PROMPT_LAB_TEST] CHARACTER_ANCHOR: analysing ${allImages.length} image(s) via ${pid}...`,
+        );
+        characterAnchor = await provider.analyzeReference(allImages);
+        if (characterAnchor) {
+          console.log(
+            `[PROMPT_LAB_TEST] CHARACTER_ANCHOR result (${characterAnchor.length} chars):\n${characterAnchor}`,
+          );
+          renderedPrompt = `CHARACTER ANCHOR — preserve these EXACT features in the output:\n${characterAnchor}\n\n${renderedPrompt}`;
+        } else {
+          console.log(`[PROMPT_LAB_TEST] CHARACTER_ANCHOR: analysis returned nothing`);
+        }
+      }
 
       if (slot === 'inside' && !effectiveReferenceImage) {
         console.warn(
@@ -459,6 +481,7 @@ export function registerPromptRoutes(app: Express): void {
       return res.json({
         imageUrl: result.imageUrl,
         renderedPrompt,
+        characterAnchor,
         costCents: result.costCents,
         costUsd: result.costUsd,
         durationMs: result.durationMs,

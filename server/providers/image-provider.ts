@@ -56,6 +56,11 @@ export interface ImageProvider {
   }>;
   /** Generate an image from a prompt and optional reference image. */
   generate(req: ImageGenerationRequest): Promise<ImageGenerationResult>;
+  /** Analyse reference photo(s) and return a detailed face description
+   *  ("character anchor") that can be prepended to the generation prompt
+   *  to improve identity preservation. Uses the provider's vision model.
+   *  Returns null if the provider doesn't support face analysis. */
+  analyzeReference?(images: string[]): Promise<string | null>;
 }
 
 /** Serialisable summary returned by GET /api/admin/prompts/providers. */

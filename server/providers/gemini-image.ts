@@ -168,4 +168,69 @@ export class GeminiImageProvider implements ImageProvider {
       model: this.model,
     };
   }
+
+  async analyzeReference(images: string[]): Promise<string | null> {
+    if (images.length === 0) return null;
+    const client = getClient();
+
+    const parts: Array<
+      | { text: string }
+      | { inlineData: { mimeType: string; data: string } }
+    > = [
+      {
+        text: `Analyze the person in this image to create a highly detailed 'Character Anchor' description for facial consistency in AI image generation.
+
+Describe the following with extreme precision:
+- Face Shape: specific geometry (e.g., heart-shaped, tapering jaw, high cheekbones, round, square)
+- Eyes: shape, eyelid fold (monolid, hooded, double lid), exact iris color, eyebrow shape and thickness
+- Nose & Mouth: bridge shape, nostril width, nose tip, lip fullness, cupid's bow shape, mouth width
+- Distinctive Markers: any moles, freckle patterns, scars, dimples, unique skin textures, facial hair
+- Hair: texture, length, hairline shape, exact color including any gradients or highlights
+- Skin: exact tone, undertone (warm/cool/neutral), any visible texture or characteristics
+- Build: face proportions, jaw definition, neck width, overall impression
+
+Create a 100-150 word descriptive paragraph that acts as a precise blueprint to recreate this exact person in a stylised illustration. Focus on the features that make this person UNIQUE — the things that distinguish them from a generic face. Do NOT describe clothing or background.
+
+Return ONLY the character anchor paragraph, nothing else.`,
+      },
+    ];
+
+    // Add all reference images
+    for (const img of images) {
+      const base64Match = img.match(/^data:image\/([a-z0-9]+);base64,(.+)$/);
+      const mimeType = base64Match ? `image/${base64Match[1]}` : 'image/png';
+      const rawBase64 = base64Match ? base64Match[2] : img;
+      parts.push({ inlineData: { mimeType, data: rawBase64 } });
+    }
+
+    console.log(
+      `[PROVIDER:gemini] → analyzeReference (${images.length} image(s))`,
+    );
+
+    try {
+      const response = await client.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [{ role: 'user', parts }],
+        config: {
+          maxOutputTokens: 300,
+          temperature: 0.3,
+        },
+      });
+
+      const text = response.candidates?.[0]?.content?.parts
+        ?.filter((p: any) => p.text)
+        .map((p: any) => p.text)
+        .join(' ')
+        .trim();
+
+      console.log(
+        `[PROVIDER:gemini] ← analyzeReference returned (${text?.length ?? 0} chars)`,
+      );
+
+      return text || null;
+    } catch (err: any) {
+      console.error(`[PROVIDER:gemini] analyzeReference failed:`, err.message);
+      return null;
+    }
+  }
 }

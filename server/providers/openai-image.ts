@@ -168,4 +168,63 @@ export class OpenAIImageProvider implements ImageProvider {
       model: this.model,
     };
   }
+
+  async analyzeReference(images: string[]): Promise<string | null> {
+    if (images.length === 0 || !openai) return null;
+
+    // Use GPT-4o vision to analyse the face
+    const imageContent = images.slice(0, 3).map((img) => {
+      const url = img.startsWith('data:') ? img : `data:image/png;base64,${img}`;
+      return {
+        type: 'image_url' as const,
+        image_url: { url, detail: 'high' as const },
+      };
+    });
+
+    console.log(
+      `[PROVIDER:openai] → analyzeReference (${images.length} image(s) via GPT-4o)`,
+    );
+
+    try {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        max_tokens: 300,
+        temperature: 0.3,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Analyze the person in this image to create a highly detailed 'Character Anchor' description for facial consistency in AI image generation.
+
+Describe the following with extreme precision:
+- Face Shape: specific geometry (e.g., heart-shaped, tapering jaw, high cheekbones, round, square)
+- Eyes: shape, eyelid fold (monolid, hooded, double lid), exact iris color, eyebrow shape and thickness
+- Nose & Mouth: bridge shape, nostril width, nose tip, lip fullness, cupid's bow shape, mouth width
+- Distinctive Markers: any moles, freckle patterns, scars, dimples, unique skin textures, facial hair
+- Hair: texture, length, hairline shape, exact color including any gradients or highlights
+- Skin: exact tone, undertone (warm/cool/neutral), any visible texture or characteristics
+- Build: face proportions, jaw definition, neck width, overall impression
+
+Create a 100-150 word descriptive paragraph that acts as a precise blueprint to recreate this exact person in a stylised illustration. Focus on the features that make this person UNIQUE — the things that distinguish them from a generic face. Do NOT describe clothing or background.
+
+Return ONLY the character anchor paragraph, nothing else.`,
+              },
+              ...imageContent,
+            ],
+          },
+        ],
+      });
+
+      const text = response.choices?.[0]?.message?.content?.trim();
+      console.log(
+        `[PROVIDER:openai] ← analyzeReference returned (${text?.length ?? 0} chars)`,
+      );
+      return text || null;
+    } catch (err: any) {
+      console.error(`[PROVIDER:openai] analyzeReference failed:`, err.message);
+      return null;
+    }
+  }
 }
