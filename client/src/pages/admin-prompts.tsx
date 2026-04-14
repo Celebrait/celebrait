@@ -1514,18 +1514,32 @@ function EditPanel({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [instruction, setInstruction] = useState('');
+  const [refPhotos, setRefPhotos] = useState<Array<{ base64: string; name: string }>>([]);
+
+  const handleRefPhotoAdd = (files: FileList | null) => {
+    if (!files) return;
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setRefPhotos((prev) => [...prev, { base64: reader.result as string, name: file.name }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
 
   const refineMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest('POST', '/api/admin/prompts/test-refine', {
         imageBase64: imageUrl,
         instruction,
+        referencePhotos: refPhotos.length > 0 ? refPhotos.map((p) => p.base64) : undefined,
       });
       return res.json();
     },
     onSuccess: (result: any) => {
       onEdited(result, instruction);
       setInstruction('');
+      setRefPhotos([]);
       setIsOpen(false);
       toast({
         title: 'Edit applied',
@@ -1555,7 +1569,7 @@ function EditPanel({
           value={instruction}
           onChange={(e) => setInstruction(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !refineMutation.isPending && instruction.trim() && refineMutation.mutate()}
-          placeholder="e.g. Change the shirt to blue, move text lower..."
+          placeholder="e.g. Make the face more accurate, change the shirt to blue..."
           className="h-8 text-xs flex-1"
           autoFocus
         />
@@ -1568,7 +1582,7 @@ function EditPanel({
           {refineMutation.isPending ? 'Editing...' : 'Apply'}
         </Button>
         <Button
-          onClick={() => { setIsOpen(false); setInstruction(''); }}
+          onClick={() => { setIsOpen(false); setInstruction(''); setRefPhotos([]); }}
           variant="outline"
           size="sm"
           className="text-xs h-8"
@@ -1576,8 +1590,32 @@ function EditPanel({
           Cancel
         </Button>
       </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(e) => handleRefPhotoAdd(e.target.files)}
+          className="text-[10px] flex-1"
+        />
+        {refPhotos.length > 0 && (
+          <div className="flex gap-1">
+            {refPhotos.map((p, i) => (
+              <div key={i} className="relative group">
+                <img src={p.base64} alt={p.name} className="w-8 h-8 rounded border border-stone-200 object-cover" />
+                <button
+                  onClick={() => setRefPhotos((prev) => prev.filter((_, j) => j !== i))}
+                  className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 text-white text-[7px] flex items-center justify-center opacity-0 group-hover:opacity-100"
+                >x</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       <p className="text-[10px] text-stone-400">
-        Sends the current image back to Gemini with your instruction. The model modifies the image in-place.
+        {refPhotos.length > 0
+          ? `${refPhotos.length} reference photo(s) attached — Gemini will use these alongside your instruction.`
+          : 'Optional: attach reference photos for likeness refinement.'}
       </p>
     </div>
   );

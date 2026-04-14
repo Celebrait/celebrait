@@ -544,7 +544,7 @@ export function registerPromptRoutes(app: Express): void {
   app.post('/api/admin/prompts/test-refine', async (req, res) => {
     if (!(await requireAdmin(req, res))) return;
     try {
-      const { imageBase64, instruction } = req.body ?? {};
+      const { imageBase64, instruction, referencePhotos } = req.body ?? {};
 
       if (typeof imageBase64 !== 'string' || !imageBase64) {
         return res.status(400).json({ message: 'imageBase64 is required' });
@@ -558,16 +558,23 @@ export function registerPromptRoutes(app: Express): void {
         return res.status(503).json({ message: 'Gemini API key not configured' });
       }
 
-      // Type-check that the provider has the refine method
       if (!('refine' in gemini)) {
         return res.status(501).json({ message: 'Refine is only supported on Gemini' });
       }
 
+      const refPhotos: string[] = Array.isArray(referencePhotos)
+        ? referencePhotos.filter((p: any) => typeof p === 'string' && p.length > 0)
+        : [];
+
       console.log(
-        `[PROMPT_LAB_TEST] REFINE instruction="${instruction.slice(0, 100)}"`,
+        `[PROMPT_LAB_TEST] REFINE instruction="${instruction.slice(0, 100)}" refPhotos=${refPhotos.length}`,
       );
 
-      const result = await (gemini as any).refine(imageBase64, instruction);
+      const result = await (gemini as any).refine(
+        imageBase64,
+        instruction,
+        refPhotos.length > 0 ? refPhotos : undefined,
+      );
 
       console.log(
         `[PROMPT_LAB_TEST] REFINE SUCCESS cost=${result.costUsd} duration=${result.durationMs}ms`,

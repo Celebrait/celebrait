@@ -64,11 +64,10 @@ export class GeminiImageProvider implements ImageProvider {
     const client = getClient();
     const startTime = Date.now();
 
-    // Use Nano Banana 2 (Flash) for front cards — faster, potentially
-    // better likeness. Use Pro for inside cards and anything with
-    // image-to-image reference (Flash can't handle that reliably).
-    const useFlash = req.slot === 'front_scene';
-    const activeModel = useFlash ? MODEL_FLASH : MODEL_PRO;
+    // Use Flash for front_scene, Pro for inside/everything else.
+    // Flash is faster for front cards but can struggle with groups
+    // and image-to-image tasks. Pro is consistent for everything.
+    const activeModel = req.slot === 'front_scene' ? MODEL_FLASH : MODEL_PRO;
 
     // Build the content parts array. Text prompt first, then optional
     // reference image(s) as inline_data.
@@ -190,19 +189,37 @@ export class GeminiImageProvider implements ImageProvider {
   async refine(
     imageBase64: string,
     instruction: string,
+    referencePhotos?: string[],
   ): Promise<ImageGenerationResult> {
     const client = getClient();
     const startTime = Date.now();
 
-    // Strip data URL prefix
+    // Build parts: instruction text + current image + optional reference photos
+    const parts: Array<
+      | { text: string }
+      | { inlineData: { mimeType: string; data: string } }
+    > = [{ text: instruction }];
+
+    // Add the current generated image
     const base64Match = imageBase64.match(
       /^data:image\/([a-z0-9]+);base64,(.+)$/,
     );
     const mimeType = base64Match ? `image/${base64Match[1]}` : 'image/png';
     const rawBase64 = base64Match ? base64Match[2] : imageBase64;
+    parts.push({ inlineData: { mimeType, data: rawBase64 } });
+
+    // Add any reference photos (e.g. for likeness refinement)
+    if (referencePhotos?.length) {
+      for (const ref of referencePhotos) {
+        const refMatch = ref.match(/^data:image\/([a-z0-9]+);base64,(.+)$/);
+        const refMime = refMatch ? `image/${refMatch[1]}` : 'image/png';
+        const refBase64 = refMatch ? refMatch[2] : ref;
+        parts.push({ inlineData: { mimeType: refMime, data: refBase64 } });
+      }
+    }
 
     console.log(
-      `[PROVIDER:gemini] → refine (model=${this.model} instruction="${instruction.slice(0, 80)}")`,
+      `[PROVIDER:gemini] → refine (model=${this.model} instruction="${instruction.slice(0, 80)}" refPhotos=${referencePhotos?.length ?? 0})`,
     );
 
     let response: any;
@@ -212,10 +229,7 @@ export class GeminiImageProvider implements ImageProvider {
         contents: [
           {
             role: 'user',
-            parts: [
-              { text: instruction },
-              { inlineData: { mimeType, data: rawBase64 } },
-            ],
+            parts,
           },
         ],
         config: {
