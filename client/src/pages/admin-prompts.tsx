@@ -632,7 +632,8 @@ function TestPanel({
   const [lastResult, setLastResult] = useState<TestRunResult | null>(null);
   const [lastError, setLastError] = useState<StructuredError | null>(null);
   const [expandedPrompt, setExpandedPrompt] = useState(false);
-  const [useCharacterAnchor, setUseCharacterAnchor] = useState(false);
+  // 'off' | 'openai' | 'gemini' — which provider analyses the face
+  const [anchorMode, setAnchorMode] = useState<'off' | 'openai' | 'gemini'>('off');
 
   // Fetch available providers from the server.
   const { data: providersData } = useQuery<{ providers: ProviderInfo[] }>({
@@ -706,7 +707,8 @@ function TestPanel({
         provider: selectedProvider,
         photoMode: frontInputs.photoMode,
         textLayout: frontInputs.textLayout,
-        useCharacterAnchor,
+        useCharacterAnchor: anchorMode !== 'off',
+        anchorProviderId: anchorMode !== 'off' ? anchorMode : undefined,
       };
       if (slot === 'front_scene' && frontInputs.photos.length > 0) {
         // First photo is the primary reference; extras are additional
@@ -842,21 +844,34 @@ function TestPanel({
             )}
 
             <div className="pt-3 border-t border-stone-100 space-y-3">
-              {/* Character Anchor toggle */}
+              {/* Character Anchor selector */}
               {slot === 'front_scene' && frontInputs.photos.length > 0 && (
-                <label className="flex items-center gap-2 text-[11px] text-stone-700 bg-stone-50 rounded p-2 border border-stone-200 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={useCharacterAnchor}
-                    onChange={(e) => setUseCharacterAnchor(e.target.checked)}
-                  />
-                  <div>
-                    <div className="font-medium">Character Anchor</div>
-                    <div className="text-[10px] text-stone-500">
-                      Analyse face first, then generate — may improve likeness
-                    </div>
+                <div>
+                  <Label className="text-xs">Character Anchor</Label>
+                  <div className="flex gap-1.5 mt-1">
+                    {([
+                      { id: 'off', label: 'Off' },
+                      { id: 'openai', label: 'OpenAI (GPT-4o)' },
+                      { id: 'gemini', label: 'Gemini 3.1 Pro' },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setAnchorMode(opt.id)}
+                        className={`flex-1 px-2 py-1.5 text-[11px] rounded border transition-colors ${
+                          anchorMode === opt.id
+                            ? 'border-violet-600 bg-violet-50 text-violet-700 font-medium'
+                            : 'border-stone-200 hover:bg-stone-50 text-stone-600'
+                        }`}
+                        data-testid={`anchor-${opt.id}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
                   </div>
-                </label>
+                  <p className="text-[10px] text-stone-400 mt-1">
+                    Analyses face before generating. OpenAI is reliable but generic. Gemini is more specific.
+                  </p>
+                </div>
               )}
 
               {/* Provider selector */}

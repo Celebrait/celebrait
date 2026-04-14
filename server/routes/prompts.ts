@@ -372,6 +372,7 @@ export function registerPromptRoutes(app: Express): void {
         photoMode,
         textLayout,
         useCharacterAnchor,
+        anchorProviderId,
       } = req.body ?? {};
 
       if (!slot || !VALID_SLOTS.has(slot)) {
@@ -416,10 +417,9 @@ export function registerPromptRoutes(app: Express): void {
       // recreation section (the anchor replaces it with specific values).
       let characterAnchor: string | null = null;
       if (useCharacterAnchor && effectiveReferenceImage) {
-        // Always use OpenAI (GPT-4o) for face analysis — it's faster
-        // and more reliable than Gemini's preview models for text tasks.
-        // The image generation still uses whichever provider is selected.
-        const anchorProvider = getProvider('openai');
+        // Use the specified anchor provider, defaulting to openai.
+        const apid = typeof anchorProviderId === 'string' && anchorProviderId ? anchorProviderId : 'openai';
+        const anchorProvider = getProvider(apid);
         const analyzeWith = anchorProvider.analyzeReference ? anchorProvider : provider;
         const allImages = [effectiveReferenceImage, ...extras];
         console.log(
