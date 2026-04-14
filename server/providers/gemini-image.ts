@@ -207,7 +207,7 @@ Output the description as a single block of text with each category on its own l
 
     try {
       const response = await client.models.generateContent({
-        model: 'gemini-2.5-flash-preview-05-20',
+        model: 'gemini-2.5-flash',
         contents: [{ role: 'user', parts }],
         config: {
           maxOutputTokens: 2000,
