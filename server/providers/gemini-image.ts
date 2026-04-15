@@ -64,10 +64,10 @@ export class GeminiImageProvider implements ImageProvider {
     const client = getClient();
     const startTime = Date.now();
 
-    // Use Flash for front_scene, Pro for inside/everything else.
-    // Flash is faster for front cards but can struggle with groups
-    // and image-to-image tasks. Pro is consistent for everything.
-    const activeModel = req.slot === 'front_scene' ? MODEL_FLASH : MODEL_PRO;
+    // Use Pro for everything. Flash (Nano Banana 2) was tested but
+    // proved unreliable — response times swung from 14s to 196s with
+    // no pattern. Pro is consistent at 20-30s for all tasks.
+    const activeModel = MODEL_PRO;
 
     // Build the content parts array. Text prompt first, then optional
     // reference image(s) as inline_data.
@@ -112,22 +112,30 @@ export class GeminiImageProvider implements ImageProvider {
 
     let response: any;
     try {
-      response = await client.models.generateContent({
-        model: activeModel,
-        contents: [
-          {
-            role: 'user',
-            parts,
+      // 60-second timeout on image generation. Flash sometimes hangs
+      // for 3+ minutes — this lets the retry wrapper catch it and
+      // try again instead of blocking indefinitely.
+      response = await Promise.race([
+        client.models.generateContent({
+          model: activeModel,
+          contents: [
+            {
+              role: 'user',
+              parts,
+            },
+          ],
+          config: {
+            responseModalities: ['IMAGE', 'TEXT'],
+            imageConfig: {
+              aspectRatio: '1:1',
+              imageSize: '1K',
+            },
           },
-        ],
-        config: {
-          responseModalities: ['IMAGE', 'TEXT'],
-          imageConfig: {
-            aspectRatio: '1:1',
-            imageSize: '1K',
-          },
-        },
-      });
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Image generation timed out after 60s')), 60000),
+        ),
+      ]);
     } catch (sdkErr: unknown) {
       throw classifyGeminiError(sdkErr, this.id);
     }
