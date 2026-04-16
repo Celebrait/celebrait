@@ -1,12 +1,11 @@
 import "dotenv/config";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { and, desc, eq } from "drizzle-orm";
-import { cards, orders, photos, type Card, type InsertCard, type Order, type InsertOrder, type Photo, type InsertPhoto, type User } from "@shared/schema";
+import { and, desc, eq, sql } from "drizzle-orm";
+import { cards, orders, photos, type Card, type CardGridItem, type InsertCard, type Order, type InsertOrder, type Photo, type InsertPhoto, type User } from "@shared/schema";
 import { users } from "@shared/models/auth";
 
-const sql = neon(process.env.DATABASE_URL!);
-const db = drizzle(sql);
+const db = drizzle(neon(process.env.DATABASE_URL!));
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -17,6 +16,7 @@ export interface IStorage {
   getCard(id: number): Promise<Card | undefined>;
   updateCard(id: number, updates: Partial<Card>): Promise<Card>;
   getUserCards(userId: string): Promise<Card[]>;
+  getUserCardsForGrid(userId: string): Promise<CardGridItem[]>;
 
   createOrder(order: InsertOrder): Promise<Order>;
   getOrder(id: number): Promise<Order | undefined>;
@@ -73,6 +73,56 @@ export class DatabaseStorage implements IStorage {
 
   async getUserCards(userId: string): Promise<Card[]> {
     return await db.select().from(cards).where(eq(cards.userId, userId));
+  }
+
+  // Lightweight projection for the Studio grid. The old customer flow
+  // stored multi-MB base64 data URLs in frontImageUrl, insideImageUrl,
+  // AND inside the conversationData jsonb (as `photo_upload` /
+  // `frontImageUrl` keys). Selecting any of those in bulk blew past
+  // Neon's 64MB response cap for users with many cards.
+  //
+  // Raw SQL so we can pluck specific jsonb keys via `->>` — that way
+  // Postgres only returns short strings, never the full blob. The
+  // typed query builder makes this awkward with jsonb operators so we
+  // drop to execute() here; the result set is small and well-defined.
+  async getUserCardsForGrid(userId: string): Promise<CardGridItem[]> {
+    const result = await db.execute(sql`
+      SELECT
+        id,
+        user_id        AS "userId",
+        status,
+        card_type      AS "cardType",
+        created_at     AS "createdAt",
+        front_image_path AS "frontImagePath",
+        COALESCE(
+          conversation_data->>'name',
+          conversation_data->>'recipientName'
+        ) AS "recipientName",
+        COALESCE(
+          conversation_data->>'celebration',
+          conversation_data->>'celebrationType',
+          conversation_data->>'occasion'
+        ) AS "occasion"
+      FROM cards
+      WHERE user_id = ${userId}
+      ORDER BY created_at DESC
+      LIMIT 200
+    `);
+
+    // neon-http returns rows directly as an array; drizzle-orm's
+    // execute() wraps it as { rows } on some drivers. Handle both.
+    const rows: any[] = Array.isArray(result) ? result : (result as any).rows ?? [];
+
+    return rows.map((r) => ({
+      id: Number(r.id),
+      userId: r.userId ?? null,
+      status: r.status ?? null,
+      cardType: r.cardType ?? null,
+      createdAt: r.createdAt ? new Date(r.createdAt) : null,
+      recipientName: r.recipientName ?? null,
+      occasion: r.occasion ?? null,
+      frontImageUrl: r.frontImagePath ? `/images/${r.frontImagePath}` : null,
+    }));
   }
 
   async createOrder(orderData: InsertOrder): Promise<Order> {

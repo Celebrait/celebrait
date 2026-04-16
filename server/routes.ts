@@ -44,7 +44,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
-      const cards = await storage.getUserCards(String(userId));
+      // Use the lightweight grid projection — see storage.getUserCardsForGrid
+      // for why (Neon 64MB response cap + legacy base64 columns).
+      const cards = await storage.getUserCardsForGrid(String(userId));
       res.json(cards);
     } catch (error: any) {
       res.status(500).json({ message: "Error fetching user cards: " + error.message });

@@ -78,3 +78,20 @@ export type InsertCard = z.infer<typeof insertCardSchema>;
 export type Card = typeof cards.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type Order = typeof orders.$inferSelect;
+
+// Slim projection used by the Studio grid. Historical cards stored
+// multi-MB base64 blobs in frontImageUrl, insideImageUrl AND nested
+// inside conversationData (as photo_upload / frontImageUrl keys).
+// Pulling any of those for a full listing blew past Neon's 64MB
+// response cap. The grid query plucks only the scalar fields the tile
+// actually needs — no jsonb payloads, no image bytes.
+export type CardGridItem = {
+  id: number;
+  userId: string | null;
+  status: string | null;
+  cardType: string | null;
+  createdAt: Date | null;
+  recipientName: string | null;
+  occasion: string | null;
+  frontImageUrl: string | null;
+};
