@@ -7,12 +7,14 @@
 import type { ImageProvider, ProviderInfo } from './image-provider';
 import { OpenAIImageProvider } from './openai-image';
 import { GeminiImageProvider } from './gemini-image';
+import { FluxImageProvider } from './flux-image';
 
 const providers = new Map<string, ImageProvider>();
 
 // Register adapters. Add new providers here as they're built.
 providers.set('openai', new OpenAIImageProvider());
 providers.set('gemini', new GeminiImageProvider());
+providers.set('flux', new FluxImageProvider());
 
 /** Look up a provider by ID. Throws if unknown. */
 export function getProvider(id: string): ImageProvider {
