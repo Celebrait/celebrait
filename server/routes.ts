@@ -22,6 +22,7 @@ import { registerGenerationRoutes } from "./routes/generation";
 import { registerPaymentRoutes } from "./routes/payment";
 import { registerFulfillmentRoutes } from "./routes/fulfillment";
 import { registerPromptRoutes } from "./routes/prompts";
+import { registerPhotoRoutes } from "./routes/photos";
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
@@ -316,6 +317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerPaymentRoutes(app);
   registerFulfillmentRoutes(app);
   registerPromptRoutes(app);
+  registerPhotoRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

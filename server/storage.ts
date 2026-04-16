@@ -1,8 +1,8 @@
 import "dotenv/config";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { eq } from "drizzle-orm";
-import { cards, orders, prospects, type Card, type InsertCard, type Order, type InsertOrder, type Prospect, type InsertProspect, type User } from "@shared/schema";
+import { and, desc, eq } from "drizzle-orm";
+import { cards, orders, photos, type Card, type InsertCard, type Order, type InsertOrder, type Photo, type InsertPhoto, type User } from "@shared/schema";
 import { users } from "@shared/models/auth";
 
 const sql = neon(process.env.DATABASE_URL!);
@@ -25,11 +25,11 @@ export interface IStorage {
   getOrdersByEmail(email: string): Promise<Order[]>;
   getUserOrders(userId: string): Promise<Order[]>;
 
-  createProspect(prospect: InsertProspect): Promise<Prospect>;
-  getProspect(id: number): Promise<Prospect | undefined>;
-  getProspectByEmail(email: string): Promise<Prospect | undefined>;
-  updateProspect(id: number, updates: Partial<Prospect>): Promise<Prospect>;
-  markProspectConverted(email: string): Promise<void>;
+  createPhoto(photo: InsertPhoto): Promise<Photo>;
+  getPhoto(id: number): Promise<Photo | undefined>;
+  getUserPhotos(userId: string): Promise<Photo[]>;
+  updatePhoto(id: number, updates: Partial<Photo>): Promise<Photo>;
+  deletePhoto(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -103,30 +103,31 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(orders).where(eq(orders.userId, userId));
   }
 
-  async createProspect(prospectData: InsertProspect): Promise<Prospect> {
-    const result = await db.insert(prospects).values(prospectData).returning();
+  async createPhoto(photoData: InsertPhoto): Promise<Photo> {
+    const result = await db.insert(photos).values(photoData).returning();
     return result[0];
   }
 
-  async getProspect(id: number): Promise<Prospect | undefined> {
-    const result = await db.select().from(prospects).where(eq(prospects.id, id)).limit(1);
+  async getPhoto(id: number): Promise<Photo | undefined> {
+    const result = await db.select().from(photos).where(eq(photos.id, id)).limit(1);
     return result[0];
   }
 
-  async getProspectByEmail(email: string): Promise<Prospect | undefined> {
-    const result = await db.select().from(prospects).where(eq(prospects.email, email)).limit(1);
+  async getUserPhotos(userId: string): Promise<Photo[]> {
+    return await db
+      .select()
+      .from(photos)
+      .where(eq(photos.userId, userId))
+      .orderBy(desc(photos.createdAt));
+  }
+
+  async updatePhoto(id: number, updates: Partial<Photo>): Promise<Photo> {
+    const result = await db.update(photos).set(updates).where(eq(photos.id, id)).returning();
     return result[0];
   }
 
-  async updateProspect(id: number, updates: Partial<Prospect>): Promise<Prospect> {
-    const result = await db.update(prospects).set(updates).where(eq(prospects.id, id)).returning();
-    return result[0];
-  }
-
-  async markProspectConverted(email: string): Promise<void> {
-    await db.update(prospects)
-      .set({ convertedToCustomer: true, updatedAt: new Date() })
-      .where(eq(prospects.email, email));
+  async deletePhoto(id: number): Promise<void> {
+    await db.delete(photos).where(eq(photos.id, id));
   }
 }
 
