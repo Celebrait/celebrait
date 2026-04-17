@@ -659,6 +659,9 @@ function TestPanel({
   const [insideInputs, setInsideInputs] = useState<InsideInputs>(DEFAULT_INSIDE_INPUTS);
   const [selectedProvider, setSelectedProvider] = useState<string>('openai');
   const [quality, setQuality] = useState<'low' | 'medium' | 'high'>('low');
+  // Output dimensions. Production is locked to square (1024x1024); the
+  // other two are here for comparative testing — see server/providers/size.ts.
+  const [size, setSize] = useState<'1024x1024' | '1024x1536' | '1536x1024'>('1024x1024');
   const [lastResult, setLastResult] = useState<TestRunResult | null>(null);
   const [lastError, setLastError] = useState<StructuredError | null>(null);
   const [expandedPrompt, setExpandedPrompt] = useState(false);
@@ -758,6 +761,7 @@ function TestPanel({
         textLayout: frontInputs.textLayout,
         useCharacterAnchor: anchorMode !== 'off',
         anchorProviderId: anchorMode !== 'off' ? anchorMode : undefined,
+        size,
       };
       if (slot === 'front_scene' && frontInputs.photos.length > 0) {
         // First photo is the primary reference; extras are additional
@@ -990,6 +994,41 @@ function TestPanel({
                   </div>
                 </div>
               )}
+
+              {/* Size / aspect selector. Production is locked to square; the
+                  other two are here for comparative testing. Non-square
+                  selections inject an override header into the prompt so
+                  templates that still say "SQUARE 1024x1024" don't fight
+                  the model. See server/providers/size.ts. */}
+              <div>
+                <Label className="text-xs">Size</Label>
+                <div className="flex gap-2 mt-1">
+                  {[
+                    { value: '1024x1024', label: 'Square', sub: '1:1' },
+                    { value: '1024x1536', label: 'Portrait', sub: '2:3' },
+                    { value: '1536x1024', label: 'Landscape', sub: '3:2' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setSize(opt.value as any)}
+                      className={`flex-1 px-3 py-2 text-xs rounded border transition-colors ${
+                        size === opt.value
+                          ? 'border-violet-600 bg-violet-50 text-violet-700'
+                          : 'border-stone-200 hover:bg-stone-50'
+                      }`}
+                      data-testid={`size-${opt.value}`}
+                    >
+                      <div className="font-semibold">{opt.label}</div>
+                      <div className="text-[10px] text-stone-500">{opt.sub}</div>
+                    </button>
+                  ))}
+                </div>
+                {size !== '1024x1024' && (
+                  <p className="text-[10px] text-amber-700 mt-1">
+                    Testing only — production is locked to square. An override is prepended to the prompt.
+                  </p>
+                )}
+              </div>
 
               {(() => {
                 const insideNeedsReference =

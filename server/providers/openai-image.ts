@@ -11,6 +11,7 @@ import type {
   ImageGenerationResult,
 } from './image-provider';
 import { ProviderError, classifyOpenAIError } from './errors';
+import { openaiSize } from './size';
 import { openai } from '../utils/shared';
 
 const COST_BY_QUALITY: Record<string, number> = {
@@ -86,7 +87,7 @@ export class OpenAIImageProvider implements ImageProvider {
       formData.append('prompt', req.prompt);
       formData.append('model', this.model);
       formData.append('n', '1');
-      formData.append('size', req.size);
+      formData.append('size', openaiSize(req.size));
       formData.append('quality', q);
       formData.append('moderation', 'low');
       formData.append('background', 'auto');
@@ -151,7 +152,7 @@ export class OpenAIImageProvider implements ImageProvider {
           model: this.model,
           prompt: req.prompt,
           n: 1,
-          size: req.size as any,
+          size: openaiSize(req.size) as any,
           quality: q,
         } as any);
       } catch (sdkErr: unknown) {

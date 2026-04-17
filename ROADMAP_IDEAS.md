@@ -25,14 +25,87 @@ in the occasion reminder email. Natural upsell surface.
 
 ## Product expansion
 
-### Invitations + other celebratory print
-Studio isn't just greeting cards long-term — invitations, thank-you cards,
-save-the-dates, maybe event stationery. Same card maker engine, different
-scene/layout templates per product.
+### Celebration stationery suite (tier 1 — natural extensions)
+All share the same "card" DNA — same AI engine, same customer moment,
+same print partner relationships, just different cuts + templates.
+Target: one wedding customer buys 4+ SKUs → 4× AOV from one event.
+
+- **Invitations** — weddings, birthdays, kids' parties, baby showers, engagement parties
+- **Save the dates** — smaller format, precedes invitations chronologically
+- **Thank you cards** — post-event. Underserved by AI, huge volume category
+- **RSVP cards** — natural bundle with invitations (premium wedding package)
+- **Announcements** — baby, engagement, moving, graduation
+- **Order of service / wedding programs** — premium paper spend category
+- **Menu + place cards** — dinner parties, weddings, milestone birthdays
+
 **Why it matters:** bigger market, higher AOV for events, reuse of existing
 infrastructure. Informs the sidebar nav structure (which is why the sidebar
 was chosen over top-nav in Sprint 2).
 **Ships after:** Core greeting card flow is polished and converting.
+
+### Paper/print family (tier 2 — slight stretch)
+Still print, still celebration-related, but requires new print specs.
+
+- **Framed AI portraits / prints** — "Dad's 70th in oil painting style" as a wall piece
+- **Personalised calendars** — 12 AI-generated scenes, one per month, annual repeat purchase
+- **Photo books** — compile a year of cards/scenes into a keepsake
+- **Christmas card bulk orders** — 50+ personalised cards for family mailout lists
+- **Gift tags** — high-volume impulse add-on to main order
+
+### Custom apparel (tier 2 — separate product line)
+Hen/stag t-shirts, family reunion merch, milestone birthday group shirts.
+Vistaprint does this badly with clipart — AI could produce custom cartoon
+group portraits no one else offers.
+
+**Why it works:** bulk orders (10-20 shirts per order), £200-400 AOV,
+differentiated product. Hen/stag especially is an underserved AI niche.
+**Why it's a different business:** DTG garment printers (not card printers),
+sizing matrices, higher return rates.
+**Ships:** Sprint 8+. Own workflow + supplier relationships.
+
+### Party collateral bundles (tier 3 — stretch)
+Full event packages around one celebration: banners, balloons with faces,
+photo-booth props, custom wrapping paper, favour bags.
+**Why interesting:** sells as "Dad's 60th package" = 5× AOV from one moment.
+Real business-model shift to event bundles.
+**Why risky:** more print partners, SKU complexity, harder to demo online.
+
+---
+
+## Digital products strategy
+
+### The thesis
+Digital is **the acquisition funnel, not the product**. "Sell the AI image"
+is a dead business — ChatGPT commoditises that. Celebrait's moat is the
+curated prompt library, style presets, house style, and the 100+ hours of
+prompt engineering that makes outputs reliably good — plus the physical
+fulfilment on the back end.
+
+### The funnel
+1. **Free digital card with watermark** — homepage generation hook
+2. **£0.99 digital card without watermark** — low-friction conversion
+3. **£4.99 printed card + delivery** — the real margin (~£2.70/unit)
+
+Digital proves intent. Physical prints the money.
+
+### Worth selling digitally
+- **Instant e-card delivery** — email/WhatsApp link with animated reveal.
+  Same-day "oh shit it's today" sends is a huge underserved market
+- **Video messages** — AI-animated cards as short video. ChatGPT can't do this
+- **Bulk digital packs** — "50 personalised thank-yous for wedding guests, £29"
+  (nobody does 50 iterations in ChatGPT manually)
+- **Social share templates** — card auto-reformatted to square + 9:16 Story
+
+### Not worth selling digitally
+- Single static "just the image" downloads (ChatGPT commoditises this)
+- Stock-style template libraries
+
+### Format rule for digital products
+- **Digital-native → portrait** (phones, Stories, WhatsApp previews, email on mobile)
+- **Physical → whatever the product demands** (greeting cards square, invitations
+  often portrait, banners landscape)
+- **Digital bonus attached to a physical order → match the physical format**
+  (don't re-crop what they already bought)
 
 ---
 

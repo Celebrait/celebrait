@@ -30,6 +30,7 @@ import {
 import { getProvider, listProviders } from '../providers/registry';
 import { generateWithRetry } from '../providers/retry';
 import { isProviderError } from '../providers/errors';
+import { aspectLabel, isKnownSize } from '../providers/size';
 
 /**
  * Reads the caller's OTP session and checks the `users.is_admin` DB flag.
@@ -373,6 +374,7 @@ export function registerPromptRoutes(app: Express): void {
         textLayout,
         useCharacterAnchor,
         anchorProviderId,
+        size,
       } = req.body ?? {};
 
       if (!slot || !VALID_SLOTS.has(slot)) {
@@ -396,6 +398,11 @@ export function registerPromptRoutes(app: Express): void {
 
       const q: 'low' | 'medium' | 'high' =
         quality === 'high' || quality === 'medium' ? quality : 'low';
+
+      // Validate + default the output size. Unknown values fall back to
+      // square (the production default) so a bad client can't make us
+      // generate a weirdly shaped image.
+      const resolvedSize = typeof size === 'string' && isKnownSize(size) ? size : '1024x1024';
 
       // Compute photo count for the template's {{#if}} blocks.
       const extras: string[] = Array.isArray(additionalPhotos)
@@ -457,6 +464,41 @@ export function registerPromptRoutes(app: Express): void {
         renderedPrompt = `CHARACTER ANCHOR — preserve these EXACT features in the output:\n${characterAnchor}\n\n${renderedPrompt}`;
       }
 
+      // When testing a non-square size, the existing templates still
+      // bake "SQUARE 1024x1024" / "Square 1:1" into the prompt text.
+      // A polite "override" prefix doesn't beat baked-in "MANDATORY
+      // SQUARE" — the model keeps fighting itself. Instead we surgically
+      // rewrite the offending phrases before prepending the new
+      // orientation instruction. No-op for the square default.
+      if (resolvedSize !== '1024x1024') {
+        const [w, h] = resolvedSize.split('x');
+        const aspect = aspectLabel(resolvedSize);
+
+        // Strip phrases that lock the model into square. Case-insensitive,
+        // intentionally greedy — better to remove too much square
+        // language than leave a stray "perfectly square" to fight with.
+        const replacements: Array<[RegExp, string]> = [
+          [/MANDATORY:\s*Create a perfectly SQUARE 1024x1024 composition with equal width and height - NOT portrait, NOT landscape\.?\s*/gi, ''],
+          [/Full bleed square design with no borders, fill entire square frame\.?\s*/gi, ''],
+          [/Create a SQUARE 1024x1024 card image, full bleed, no borders\.?\s*/gi, ''],
+          [/Square 1:1 aspect ratio interior design,?\s*/gi, ''],
+          [/,?\s*square 1:1 aspect ratio\.?/gi, ''],
+          [/\bperfectly square\b/gi, `perfectly ${aspect}`],
+          [/\bSQUARE 1024x1024\b/gi, `${aspect} ${w}×${h}`],
+          [/\b1024x1024\b/g, `${w}×${h}`],
+          [/\bsquare frame\b/gi, `${aspect} frame`],
+          [/\bsquare composition\b/gi, `${aspect} composition`],
+        ];
+        for (const [rx, replacement] of replacements) {
+          renderedPrompt = renderedPrompt.replace(rx, replacement);
+        }
+
+        // Now prepend the new orientation instruction. By this point
+        // the contradictions are gone and the model has no reason to
+        // default back to square.
+        renderedPrompt = `OUTPUT FORMAT: Generate this image in ${aspect} aspect ratio (${w}×${h} pixels). The composition must fill the entire ${aspect} frame — no borders, no letterboxing, no square canvas inside a ${aspect} image.\n\n${renderedPrompt}`;
+      }
+
       if (slot === 'inside' && !effectiveReferenceImage) {
         console.warn(
           `[PROMPT_LAB_TEST] WARN: inside slot running WITHOUT a front-card reference — results will NOT reflect production.`,
@@ -467,7 +509,7 @@ export function registerPromptRoutes(app: Express): void {
       // to the model for any given run. Truncated to 500 chars in the
       // summary line; full prompt logged separately for debugging.
       console.log(
-        `[PROMPT_LAB_TEST] slot=${slot} provider=${pid} quality=${q} hasReference=${!!effectiveReferenceImage} promptLen=${renderedPrompt.length}`,
+        `[PROMPT_LAB_TEST] slot=${slot} provider=${pid} quality=${q} size=${resolvedSize} hasReference=${!!effectiveReferenceImage} promptLen=${renderedPrompt.length}`,
       );
       console.log(
         `[PROMPT_LAB_TEST] RENDERED_PROMPT:\n${renderedPrompt}\n[END_PROMPT]`,
@@ -481,7 +523,7 @@ export function registerPromptRoutes(app: Express): void {
           referenceImageBase64: effectiveReferenceImage ?? undefined,
           additionalReferenceImages: extras.length > 0 ? extras : undefined,
           quality: q,
-          size: '1024x1024',
+          size: resolvedSize,
           slot,
         },
         {

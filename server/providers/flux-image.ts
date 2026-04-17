@@ -14,6 +14,7 @@ import type {
   ImageGenerationResult,
 } from './image-provider';
 import { ProviderError, classifyGeminiError } from './errors';
+import { fluxImageSize } from './size';
 
 const COST_CENTS = 3.0; // ~$0.03 per 1MP image (1024x1024)
 
@@ -68,7 +69,7 @@ export class FluxImageProvider implements ImageProvider {
           input: {
             prompt: req.prompt,
             image_urls: allImages,
-            image_size: 'square_hd',
+            image_size: fluxImageSize(req.size),
             output_format: 'png',
             safety_tolerance: 5,
           },
@@ -113,7 +114,7 @@ export class FluxImageProvider implements ImageProvider {
         const result = await client.subscribe('fal-ai/flux-2-pro', {
           input: {
             prompt: req.prompt,
-            image_size: 'square_hd',
+            image_size: fluxImageSize(req.size),
             output_format: 'png',
             safety_tolerance: 5,
           },

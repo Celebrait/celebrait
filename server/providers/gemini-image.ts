@@ -19,6 +19,7 @@ import type {
   ImageGenerationResult,
 } from './image-provider';
 import { ProviderError, classifyGeminiError } from './errors';
+import { geminiAspect } from './size';
 
 // Single cost for 1K resolution (1024×1024). Gemini 3 Pro Image doesn't
 // have quality tiers like OpenAI — you get one quality level at $0.134.
@@ -127,7 +128,7 @@ export class GeminiImageProvider implements ImageProvider {
           config: {
             responseModalities: ['IMAGE', 'TEXT'],
             imageConfig: {
-              aspectRatio: '1:1',
+              aspectRatio: geminiAspect(req.size),
               imageSize: '1K',
             },
           },
