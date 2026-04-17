@@ -25,6 +25,7 @@ import {
 } from '@/components/studio/steps/recipient-step';
 import { SceneStep, isSceneStepReady } from '@/components/studio/steps/scene-step';
 import { StyleStep, isStyleStepReady } from '@/components/studio/steps/style-step';
+import { PhotoStep, isPhotoStepReady } from '@/components/studio/steps/photo-step';
 import { CARD_MAKER_STEPS, type CardDraftState } from '@shared/schema';
 
 // ── Entry: POST a new draft, then redirect to the edit URL ───────────
@@ -174,9 +175,10 @@ function CardMakerInner({ cardId }: { cardId: number }) {
             Photo moved to position 2 (index 1) so the emotional "we've got
             them" moment happens before the blank scene textarea. */}
         {currentStep === 0 && <RecipientStep state={state} onChange={update} />}
+        {currentStep === 1 && <PhotoStep state={state} onChange={update} />}
         {currentStep === 2 && <SceneStep state={state} onChange={update} />}
         {currentStep === 3 && <StyleStep state={state} onChange={update} />}
-        {(currentStep === 1 || currentStep >= 4) && <StepPanelPlaceholder stepIndex={currentStep} />}
+        {currentStep >= 4 && <StepPanelPlaceholder stepIndex={currentStep} />}
       </div>
 
       {/* ── Nav ─────────────────────────────────────────────────── */}
@@ -223,6 +225,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
 //   0 recipient, 1 photo, 2 scene, 3 style, 4 inside, 5 review
 function isStepReady(stepIndex: number, state: CardDraftState): boolean {
   if (stepIndex === 0) return isRecipientStepReady(state);
+  if (stepIndex === 1) return isPhotoStepReady(state);
   if (stepIndex === 2) return isSceneStepReady(state);
   if (stepIndex === 3) return isStyleStepReady(state);
   return true;
