@@ -19,7 +19,12 @@ import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
 import { useCardMaker } from '@/hooks/use-card-maker';
 import { Stepper } from '@/components/studio/stepper';
-import { CARD_MAKER_STEPS } from '@shared/schema';
+import {
+  RecipientStep,
+  isRecipientStepReady,
+} from '@/components/studio/steps/recipient-step';
+import { SceneStep, isSceneStepReady } from '@/components/studio/steps/scene-step';
+import { CARD_MAKER_STEPS, type CardDraftState } from '@shared/schema';
 
 // ── Entry: POST a new draft, then redirect to the edit URL ───────────
 // Keeping the "create draft" side-effect on the /studio/new-card route
@@ -90,6 +95,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     isLoading,
     loadError,
     isSaving,
+    update,
     setStep,
     goNext,
     goBack,
@@ -123,6 +129,9 @@ function CardMakerInner({ cardId }: { cardId: number }) {
   // on the draft. Lets the user click back to any earlier step but not
   // skip forward past where they've been.
   const furthestStep = Math.max(currentStep, state.step ?? 0);
+
+  // Gate the Next button on the current step being complete.
+  const canAdvance = isStepReady(currentStep, state);
 
   return (
     <div>
@@ -160,7 +169,9 @@ function CardMakerInner({ cardId }: { cardId: number }) {
 
       {/* ── Step panel ─────────────────────────────────────────── */}
       <div className="bg-white border border-stone-200 rounded-2xl p-6 sm:p-10 min-h-[380px]">
-        <StepPanelPlaceholder stepIndex={currentStep} />
+        {currentStep === 0 && <RecipientStep state={state} onChange={update} />}
+        {currentStep === 1 && <SceneStep state={state} onChange={update} />}
+        {currentStep >= 2 && <StepPanelPlaceholder stepIndex={currentStep} />}
       </div>
 
       {/* ── Nav ─────────────────────────────────────────────────── */}
@@ -178,7 +189,8 @@ function CardMakerInner({ cardId }: { cardId: number }) {
         {!isLast ? (
           <Button
             onClick={goNext}
-            className="bg-brand hover:bg-brand-dark text-brand-foreground"
+            disabled={!canAdvance}
+            className="bg-brand hover:bg-brand-dark text-brand-foreground disabled:opacity-50"
             data-testid="btn-card-maker-next"
           >
             Next
@@ -197,6 +209,15 @@ function CardMakerInner({ cardId }: { cardId: number }) {
       </div>
     </div>
   );
+}
+
+// Per-step readiness gate. Steps that haven't been built yet default
+// to "ready" (true) so the Next button works through the whole flow;
+// as each step arrives it gains its own isXStepReady check here.
+function isStepReady(stepIndex: number, state: CardDraftState): boolean {
+  if (stepIndex === 0) return isRecipientStepReady(state);
+  if (stepIndex === 1) return isSceneStepReady(state);
+  return true;
 }
 
 // Placeholder panel rendered for every step until the real step
