@@ -1,16 +1,28 @@
 // client/src/components/studio/card-thumbnail.tsx
 //
-// Single card tile in the Studio "My Cards" grid. Shows the front image
-// (or a placeholder while generating / on failure), the recipient name +
-// occasion derived from conversationData, and a status badge.
+// Single card tile in the Studio "My Cards" grid. Shows the front
+// image (or a placeholder while generating / on failure), the
+// derived title, a status badge, and a hover-revealed delete button.
 //
-// Clicking a tile currently routes to /studio/card/:id which doesn't
-// exist yet — Sprint 3 adds the card detail / maker pages. For now the
-// link is a no-op so the UI still feels alive.
+// Drafts click into the maker to resume; finished cards click into
+// their detail page (which is still a Sprint 4 placeholder).
 
 import { useState } from 'react';
 import { Link } from 'wouter';
-import { ImageOff, Loader2 } from 'lucide-react';
+import { ImageOff, Loader2, Trash2 } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { StatusBadge } from './status-badge';
 import type { CardGridItem } from '@shared/schema';
 
@@ -32,17 +44,34 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
   const isGenerating = card.status === 'generating';
   const isDraft = card.status === 'draft';
   const [imageFailed, setImageFailed] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const { toast } = useToast();
   const hasImage = !!card.frontImageUrl && !imageFailed;
   // Drafts click back into the maker to resume; finished cards go to
   // their detail/preview page (not built yet — Sprint 4).
   const href = isDraft ? `/studio/card/${card.id}/edit` : `/studio/card/${card.id}`;
 
-  return (
-    <Link
-      href={href}
-      className="group block bg-white rounded-2xl border border-stone-200 overflow-hidden hover:border-brand hover:shadow-lg transition-all"
-      data-testid={`card-tile-${card.id}`}
-    >
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest('DELETE', `/api/studio/cards/${card.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
+      toast({ title: 'Card deleted' });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Couldn't delete",
+        description: err?.message ?? 'Try again in a moment.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Shared tile body so the tile stays one clickable unit while the
+  // delete button sits absolutely on top of it.
+  const tileBody = (
+    <>
       <div className="aspect-square bg-stone-100 relative overflow-hidden">
         {hasImage ? (
           <img
@@ -70,6 +99,66 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
       <div className="p-3">
         <p className="text-sm font-medium text-stone-900 truncate">{title}</p>
       </div>
-    </Link>
+    </>
+  );
+
+  return (
+    <div className="group relative">
+      <Link
+        href={href}
+        className="block bg-white rounded-2xl border border-stone-200 overflow-hidden hover:border-brand hover:shadow-lg transition-all"
+        data-testid={`card-tile-${card.id}`}
+      >
+        {tileBody}
+      </Link>
+
+      {/* Delete — absolute so it overlays the Link without becoming
+          part of its click target. Appears on hover (desktop) and
+          on focus (keyboard), and stays visible on touch devices
+          via the always-shown `sm:opacity-0 sm:group-hover:opacity-100`
+          trick: mobile gets always-visible, desktop gets hover-reveal. */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setConfirmOpen(true);
+        }}
+        disabled={deleteMutation.isPending}
+        className="absolute top-2 left-2 flex items-center justify-center w-7 h-7 rounded-full bg-white/90 backdrop-blur text-stone-600 hover:text-red-600 hover:bg-white shadow-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-50"
+        aria-label={`Delete ${title}`}
+        data-testid={`btn-delete-card-${card.id}`}
+      >
+        {deleteMutation.isPending ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : (
+          <Trash2 className="w-3.5 h-3.5" />
+        )}
+      </button>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this card?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{title}" will be removed from your gallery. Any generated
+              images are also deleted. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="btn-cancel-delete-card">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate()}
+              className="bg-red-600 hover:bg-red-700"
+              data-testid="btn-confirm-delete-card"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }

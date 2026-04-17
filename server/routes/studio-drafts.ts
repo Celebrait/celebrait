@@ -15,6 +15,8 @@
 // Nobody should be able to PATCH someone else's draft.
 
 import type { Express, Request, Response } from 'express';
+import path from 'path';
+import { promises as fs } from 'fs';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../db';
 import { cards, EMPTY_CARD_DRAFT, type CardDraftState } from '@shared/schema';
@@ -23,6 +25,16 @@ import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 function getUserId(req: Request): string | null {
   const id = (req as any).session?.otpUserId;
   return typeof id === 'string' && id.length > 0 ? id : null;
+}
+
+// Strip the /images/ prefix to get the path relative to stored_images/.
+// Images are served via express.static('stored_images') at /images, so
+// what's in the DB may be either a bare relative path or already have
+// the /images/ prefix depending on when it was written.
+function imageDiskPath(storedPath: string | null | undefined): string | null {
+  if (!storedPath) return null;
+  const rel = storedPath.startsWith('/images/') ? storedPath.slice('/images/'.length) : storedPath;
+  return path.join(process.cwd(), 'stored_images', rel);
 }
 
 export function registerStudioDraftRoutes(app: Express): void {
@@ -135,6 +147,54 @@ export function registerStudioDraftRoutes(app: Express): void {
     } catch (err: any) {
       console.error('[STUDIO] draft patch error:', err);
       res.status(500).json({ message: 'Could not save draft' });
+    }
+  });
+
+  // ── DELETE /api/studio/cards/:id ──────────────────────────────────
+  // Hard-delete a card from the gallery. Nukes the row and any
+  // associated images on disk (front/inside/print-ready). Uploaded
+  // reference photos are kept — those live in the user's photo
+  // library and may be in use by other cards.
+  app.delete('/api/studio/cards/:id', isAuthenticated, async (req: Request, res: Response) => {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+
+    try {
+      // Grab the card first so we know which files to clean up AND so
+      // we can enforce ownership before any deletion side effect.
+      const rows = await db
+        .select({
+          id: cards.id,
+          userId: cards.userId,
+          frontImagePath: cards.frontImagePath,
+          insideImagePath: cards.insideImagePath,
+          printReadyPath: cards.printReadyPath,
+        })
+        .from(cards)
+        .where(eq(cards.id, id))
+        .limit(1);
+
+      const row = rows[0];
+      if (!row) return res.status(404).json({ message: 'Card not found' });
+      if (row.userId !== userId) return res.status(403).json({ message: 'Not your card' });
+
+      // Best-effort delete on disk — a missing file shouldn't block
+      // the DB delete. Same pattern as /api/photos/:id.
+      const diskPaths = [row.frontImagePath, row.insideImagePath, row.printReadyPath]
+        .map(imageDiskPath)
+        .filter((p): p is string => typeof p === 'string' && p.length > 0);
+      for (const p of diskPaths) {
+        await fs.unlink(p).catch(() => {});
+      }
+
+      await db.delete(cards).where(eq(cards.id, id));
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error('[STUDIO] card delete error:', err);
+      res.status(500).json({ message: 'Could not delete card: ' + (err?.message ?? String(err)) });
     }
   });
 }
