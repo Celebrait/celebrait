@@ -1,18 +1,24 @@
 // client/src/components/studio/crop-dialog.tsx
 //
-// Forced-crop step for uploaded photos. The product decision is that
-// every reference photo gets a 1:1 square crop before being saved —
-// tight crops give the image model more face pixels after downscale,
-// which materially improves likeness at 1024×1024 generation.
+// Forced-crop step for uploaded photos. Every reference gets a 1:1
+// square crop before being saved — tight face crops materially
+// improve likeness after the provider's 1024× downscale.
 //
-// Uses react-easy-crop for the interactive area (pinch/drag/zoom) and
-// a native canvas to produce the cropped blob. We send the ORIGINAL
-// image bytes + the crop rectangle to the server; the server's Sharp
-// pipeline handles the actual crop. This keeps the client lightweight
-// and means server-authoritative crop bounds are always preserved.
+// Uses react-image-crop for the familiar draggable-corner-handle UX
+// over a fixed image (what users expect from iPhone crop, Instagram,
+// Photoshop, etc.). We convert the library's percentage-based crop
+// into absolute pixel coordinates against the ORIGINAL image and send
+// those to the server; Sharp does the actual crop. Client stays light,
+// bounds stay server-authoritative.
 
-import { useCallback, useEffect, useState } from 'react';
-import Cropper, { type Area } from 'react-easy-crop';
+import { useRef, useState } from 'react';
+import ReactCrop, {
+  type Crop,
+  type PixelCrop,
+  centerCrop,
+  makeAspectCrop,
+} from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -32,34 +38,64 @@ interface CropDialogProps {
   onConfirm: (bounds: CropBounds) => void;
 }
 
+// Starts the crop at 80% of the shorter side, centred, 1:1 aspect.
+function buildInitialCrop(imageWidth: number, imageHeight: number): Crop {
+  return centerCrop(
+    makeAspectCrop(
+      { unit: '%', width: 80 },
+      1,
+      imageWidth,
+      imageHeight,
+    ),
+    imageWidth,
+    imageHeight,
+  );
+}
+
 export function CropDialog({ src, onCancel, onConfirm }: CropDialogProps) {
-  const [crop, setCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [pixelCrop, setPixelCrop] = useState<Area | null>(null);
-  const open = !!src;
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
 
-  // Reset zoom/crop when a new image is loaded.
-  useEffect(() => {
-    if (src) {
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      setPixelCrop(null);
-    }
-  }, [src]);
+  // Natural (original) image dimensions, captured when the <img> loads.
+  // react-image-crop's PixelCrop values are relative to the DISPLAYED
+  // size — we scale them to the natural size before sending to the
+  // server so Sharp extracts the correct region.
+  const naturalRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
+  const displayedRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
 
-  const onCropComplete = useCallback((_area: Area, areaPixels: Area) => {
-    setPixelCrop(areaPixels);
-  }, []);
+  const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight, width, height } = e.currentTarget;
+    naturalRef.current = { w: naturalWidth, h: naturalHeight };
+    displayedRef.current = { w: width, h: height };
+    setCrop(buildInitialCrop(width, height));
+  };
 
   const handleConfirm = () => {
-    if (!pixelCrop) return;
-    onConfirm({
-      x: Math.round(pixelCrop.x),
-      y: Math.round(pixelCrop.y),
-      width: Math.round(pixelCrop.width),
-      height: Math.round(pixelCrop.height),
-    });
+    if (!completedCrop) return;
+    const { w: naturalW, h: naturalH } = naturalRef.current;
+    const { w: displayW, h: displayH } = displayedRef.current;
+    if (!naturalW || !displayW) return;
+
+    // Scale from displayed pixels to original-image pixels.
+    const sx = naturalW / displayW;
+    const sy = naturalH / displayH;
+
+    // Round and clamp so we never send out-of-bounds coords. The server
+    // validates too, but being strict here gives a friendlier UX if the
+    // crop library ever produces slightly off values on edge cases.
+    const x = Math.max(0, Math.round(completedCrop.x * sx));
+    const y = Math.max(0, Math.round(completedCrop.y * sy));
+    let w = Math.round(completedCrop.width * sx);
+    let h = Math.round(completedCrop.height * sy);
+    w = Math.min(w, naturalW - x);
+    h = Math.min(h, naturalH - y);
+
+    if (w <= 0 || h <= 0) return;
+    onConfirm({ x, y, width: w, height: h });
   };
+
+  const open = !!src;
+  const canConfirm = !!completedCrop && completedCrop.width > 0;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
@@ -67,39 +103,34 @@ export function CropDialog({ src, onCancel, onConfirm }: CropDialogProps) {
         <DialogHeader>
           <DialogTitle>Crop your photo</DialogTitle>
           <DialogDescription>
-            Tight crops around the face give much better results. Drag, pinch,
-            and zoom to frame them up.
+            Drag the corners of the crop box to frame up the face. Tight crops
+            give much better results.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative w-full aspect-square bg-stone-900 rounded-lg overflow-hidden">
+        <div className="bg-stone-900 rounded-lg overflow-hidden flex items-center justify-center min-h-[320px] max-h-[60vh]">
           {src && (
-            <Cropper
-              image={src}
+            <ReactCrop
               crop={crop}
-              zoom={zoom}
+              onChange={(_, percentCrop) => setCrop(percentCrop)}
+              onComplete={(c) => setCompletedCrop(c)}
               aspect={1}
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onCropComplete={onCropComplete}
-              showGrid={true}
-              objectFit="contain"
-            />
+              keepSelection
+              ruleOfThirds
+              minWidth={40}
+              className="max-h-[60vh]"
+            >
+              {/* react-image-crop renders the image as its child. Any
+                  sizing/object-fit we want goes on this <img>. */}
+              <img
+                src={src}
+                onLoad={onImageLoad}
+                alt="Crop source"
+                className="max-h-[60vh] w-auto select-none"
+                draggable={false}
+              />
+            </ReactCrop>
           )}
-        </div>
-
-        <div className="flex items-center gap-3 mt-2">
-          <span className="text-xs text-stone-500 w-14">Zoom</span>
-          <input
-            type="range"
-            min={1}
-            max={4}
-            step={0.05}
-            value={zoom}
-            onChange={(e) => setZoom(parseFloat(e.target.value))}
-            className="flex-1 accent-brand"
-            data-testid="crop-zoom-slider"
-          />
         </div>
 
         <DialogFooter className="gap-2">
@@ -108,7 +139,7 @@ export function CropDialog({ src, onCancel, onConfirm }: CropDialogProps) {
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={!pixelCrop}
+            disabled={!canConfirm}
             className="bg-brand hover:bg-brand-dark text-brand-foreground disabled:opacity-50"
             data-testid="btn-crop-confirm"
           >

@@ -146,23 +146,41 @@ export function registerPhotoRoutes(app: Express): void {
       // Write the original bytes verbatim so we don't re-encode.
       await fs.writeFile(originalAbs, decoded.buffer);
 
-      // Generate a small square thumbnail for the library picker.
-      await sharp(decoded.buffer)
-        .resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, { fit: 'cover', position: 'attention' })
-        .jpeg({ quality: 80 })
-        .toFile(thumbAbs);
-
-      // If the client supplied a crop, materialize the cropped derivative
-      // now. Providers receive this version at generation time.
+      // If the client supplied a crop, materialise the cropped derivative
+      // now — providers receive this version at generation time, and we
+      // also base the thumbnail on it so the UI reflects what the user
+      // actually framed (rather than the full original, which made the
+      // crop feel like it hadn't saved).
       let croppedRel: string | null = null;
+      let thumbSourceBuffer: Buffer = decoded.buffer;
       if (validCrop) {
         croppedRel = `photos/${userId}/cropped_${photoId}.jpg`;
         const croppedAbs = path.join(process.cwd(), 'stored_images', croppedRel);
-        await sharp(decoded.buffer)
-          .extract({ left: validCrop.x, top: validCrop.y, width: validCrop.width, height: validCrop.height })
+        const croppedBuffer = await sharp(decoded.buffer)
+          .extract({
+            left: validCrop.x,
+            top: validCrop.y,
+            width: validCrop.width,
+            height: validCrop.height,
+          })
           .jpeg({ quality: 92 })
-          .toFile(croppedAbs);
+          .toBuffer();
+        await fs.writeFile(croppedAbs, croppedBuffer);
+        thumbSourceBuffer = croppedBuffer;
       }
+
+      // Generate a small square thumbnail from the cropped derivative
+      // when available, otherwise from the original. position:'attention'
+      // does a rough saliency crop which is fine for uncropped originals
+      // but is unnecessary (and mildly incorrect) when we already have a
+      // hand-chosen crop — use 'centre' in that case.
+      await sharp(thumbSourceBuffer)
+        .resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, {
+          fit: 'cover',
+          position: validCrop ? 'centre' : 'attention',
+        })
+        .jpeg({ quality: 80 })
+        .toFile(thumbAbs);
 
       // Patch the row with real paths + crop metadata.
       const updated = await storage.updatePhoto(photoId, {
