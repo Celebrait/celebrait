@@ -72,6 +72,73 @@ Real business-model shift to event bundles.
 
 ---
 
+## Customer-facing style system
+
+### Two named style modes (+ custom)
+Replace the current three-way Celebrait / Polished / Cinematic choice
+with two customer-friendly brand-flavoured options plus a custom escape
+hatch. Polished gets folded into one of the two or retired.
+
+- **animAIted** (the current warm Celebrait illustration house)
+- **reAIlistic** (photoreal / Cinematic preset, rebranded)
+- **Custom** — free-text style field gated by a modal that manages
+  expectations (good/bad examples, 15-char minimum, suggested
+  "medium + era + feel" structure). Stops "cool" / "nice" mush
+  before it reaches the prompt layer.
+
+**Why:** two distinct tracks is easier to choose between than three
+fuzzy options, the "AI" wordplay is a cheap brand moment without being
+cringy, and Custom preserves power-user reach without polluting the
+default UX.
+**Where it goes in code:** keep technical enum simple — `'animated'
+| 'realistic' | 'custom'` — do the AI-in-the-middle branding only in
+customer-visible copy.
+**Ships in:** Sprint 3 (card maker v2).
+
+---
+
+## Invitations — flagship features
+
+### Mass-personalise invites with AI name-swap
+Customer designs one master invitation, Gemini's edit endpoint then
+swaps the recipient's name (and optionally greeting + message) on a
+per-guest basis, producing 50 near-identical invites each personalised
+for the recipient.
+
+**Why it's strong:** Gemini Pro is uniquely good at "change this
+specific element, preserve everything else" — exactly this task.
+Paperless Post does template-based personalisation, nobody does
+AI name-swap. Differentiated.
+**Unit economics:** ~$0.134 per edit × 50 guests = $6.70 model cost.
+Bundle pricing e.g. "50-guest wedding pack — £29" keeps margin healthy.
+**Risks:** Gemini sometimes shifts unrelated details; needs a "confirm
+these 10 samples look right" step before committing to full batch.
+**Ships:** Invitations launch (Sprint 6-8).
+
+### Bulk email delivery (transactional)
+Send personalised digital invites via Brevo transactional email.
+Safe, scalable, needs a warmed-up domain for volume. The obvious
+default channel — everyone has email.
+**Ships with:** Invitation personalisation.
+
+### WhatsApp delivery
+Delivering invitations via WhatsApp feels native in many markets
+(esp. South Africa, India). Needs the WhatsApp Business API (Twilio
+or 360dialog) — DIY sending at volume is ToS-violating and gets
+numbers banned.
+**Risks:** approval process, template pre-approval, rate limits,
+ongoing per-message cost.
+**Ships:** post-invitations launch, once volume justifies the
+integration work.
+
+### RSVP tracking + event dashboard
+Once invitations are sent, users want to see who replied. Each
+invite gets a unique link; responses roll up into a simple dashboard.
+Natural lock-in — users come back to check replies.
+**Ships with:** Invitations launch.
+
+---
+
 ## Digital products strategy
 
 ### The thesis
