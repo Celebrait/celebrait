@@ -45,12 +45,16 @@ export const EMPTY_CARD_DRAFT: CardDraftState = {
   step: 0,
 };
 
-/** The six customer-facing steps, in order. */
+/** The six customer-facing steps, in order. Photo moved to step 2 (was
+ *  step 4) so users see their photo acknowledged early in the flow —
+ *  the emotional click of "we've got Mum" happens before the blank
+ *  scene description, not after. Analysis of the photo is deferred to
+ *  a later sprint; this sprint just does upload + crop + confirmation. */
 export const CARD_MAKER_STEPS = [
   { id: 'recipient', label: 'Recipient' },
+  { id: 'photo', label: 'Photo' },
   { id: 'scene', label: 'Scene' },
   { id: 'style', label: 'Style' },
-  { id: 'photo', label: 'Photo' },
   { id: 'inside', label: 'Inside' },
   { id: 'review', label: 'Review' },
 ] as const;
