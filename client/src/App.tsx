@@ -20,6 +20,7 @@ import RegenPage from "@/pages/regen-page";
 import AdminPromptsPage from "@/pages/admin-prompts";
 import LoginPage from "@/pages/login";
 import StudioHome from "@/pages/studio";
+import { NewCardPage, CardMakerPage } from "@/pages/card-maker";
 import { RequireAuth, RequireAdmin } from "@/components/require-auth";
 import AdminLayout from "@/layouts/admin-layout";
 import StudioLayout from "@/layouts/studio-layout";
@@ -44,6 +45,20 @@ function Router() {
           <RequireAuth>
             <StudioLayout>
               <StudioHome />
+            </StudioLayout>
+          </RequireAuth>
+        </Route>
+        <Route path="/studio/new-card">
+          <RequireAuth>
+            <StudioLayout>
+              <NewCardPage />
+            </StudioLayout>
+          </RequireAuth>
+        </Route>
+        <Route path="/studio/card/:id/edit">
+          <RequireAuth>
+            <StudioLayout>
+              <CardMakerPage />
             </StudioLayout>
           </RequireAuth>
         </Route>

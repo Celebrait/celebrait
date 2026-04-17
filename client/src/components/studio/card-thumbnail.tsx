@@ -30,12 +30,16 @@ function deriveTitle(card: CardGridItem): string {
 export function CardThumbnail({ card }: CardThumbnailProps) {
   const title = deriveTitle(card);
   const isGenerating = card.status === 'generating';
+  const isDraft = card.status === 'draft';
   const [imageFailed, setImageFailed] = useState(false);
   const hasImage = !!card.frontImageUrl && !imageFailed;
+  // Drafts click back into the maker to resume; finished cards go to
+  // their detail/preview page (not built yet — Sprint 4).
+  const href = isDraft ? `/studio/card/${card.id}/edit` : `/studio/card/${card.id}`;
 
   return (
     <Link
-      href={`/studio/card/${card.id}`}
+      href={href}
       className="group block bg-white rounded-2xl border border-stone-200 overflow-hidden hover:border-brand hover:shadow-lg transition-all"
       data-testid={`card-tile-${card.id}`}
     >

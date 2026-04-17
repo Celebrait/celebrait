@@ -23,6 +23,7 @@ import { registerPaymentRoutes } from "./routes/payment";
 import { registerFulfillmentRoutes } from "./routes/fulfillment";
 import { registerPromptRoutes } from "./routes/prompts";
 import { registerPhotoRoutes } from "./routes/photos";
+import { registerStudioDraftRoutes } from "./routes/studio-drafts";
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
@@ -320,6 +321,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerFulfillmentRoutes(app);
   registerPromptRoutes(app);
   registerPhotoRoutes(app);
+  registerStudioDraftRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

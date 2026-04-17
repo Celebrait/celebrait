@@ -5,6 +5,7 @@ import { z } from "zod";
 export * from "./models/auth";
 export * from "./models/prompts";
 export * from "./models/photos";
+export * from "./models/card-draft";
 
 import { users } from "./models/auth";
 
