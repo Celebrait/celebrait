@@ -22,6 +22,7 @@ import { db } from '../db';
 import { cards, EMPTY_CARD_DRAFT, type CardDraftState } from '@shared/schema';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import { generateStudioCard } from '../background-generator';
+import { checkDailyGenerationLimit } from '../rate-limits';
 
 function getUserId(req: Request): string | null {
   const id = (req as any).session?.otpUserId;
@@ -239,6 +240,21 @@ export function registerStudioDraftRoutes(app: Express): void {
       const ready = isDraftReadyToGenerate(state);
       if (!ready.ok) {
         return res.status(400).json({ message: ready.reason });
+      }
+
+      // Daily cap check. Limit is a rolling 24h window based on
+      // generation_log rows (see server/rate-limits.ts). We check
+      // BEFORE flipping status so a rate-limited request leaves the
+      // draft in 'draft' state — the user can try again tomorrow
+      // without needing a reset.
+      const rate = await checkDailyGenerationLimit(userId);
+      if (!rate.allowed) {
+        return res.status(429).json({
+          message: `You've reached today's generation limit (${rate.used}/${rate.limit}). Try again tomorrow.`,
+          used: rate.used,
+          limit: rate.limit,
+          oldestCountedAt: rate.oldestCountedAt,
+        });
       }
 
       // Flip to 'generating' BEFORE dispatching so a refresh during the

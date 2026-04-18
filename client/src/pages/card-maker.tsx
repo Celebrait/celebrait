@@ -17,6 +17,7 @@ import { useLocation, useRoute } from 'wouter';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
+import { toast } from '@/hooks/use-toast';
 import { useCardMaker } from '@/hooks/use-card-maker';
 import { Stepper } from '@/components/studio/stepper';
 import {
@@ -210,8 +211,25 @@ function CardMakerInner({ cardId }: { cardId: number }) {
             stepIndexById={stepIndexById}
             onJumpToStep={setStep}
             onGenerate={() => {
-              void startGeneration().catch((err) => {
+              void startGeneration().catch((err: Error & { used?: number; limit?: number }) => {
                 console.error('[CARD_MAKER] startGeneration failed:', err);
+                // Rate-limit errors carry structured `used` / `limit`
+                // fields from the server (via apiRequest's error
+                // hydration). Show a clear daily-limit toast in that
+                // case; generic failure toast otherwise.
+                if (typeof err.limit === 'number') {
+                  toast({
+                    title: "You've reached today's limit",
+                    description: `${err.used}/${err.limit} cards generated in the last 24 hours. Try again tomorrow.`,
+                    variant: 'destructive',
+                  });
+                } else {
+                  toast({
+                    title: "Couldn't start generation",
+                    description: err.message,
+                    variant: 'destructive',
+                  });
+                }
               });
             }}
             isGenerating={isStartingGeneration}
