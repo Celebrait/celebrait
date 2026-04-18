@@ -17,6 +17,8 @@ import {
   PROMPT_SLOTS,
   type PromptSlot,
   type PromptTemplate,
+  type PromptProvider,
+  type PromptQuality,
 } from '@shared/schema';
 import { buildScenePrompt, buildInsidePrompt } from '@shared/prompts';
 import {
@@ -28,9 +30,18 @@ import {
 
 // In-memory cache to avoid a DB round-trip on every image generation. The
 // admin UI invalidates this cache via `invalidatePromptCache()` whenever a
-// template is activated.
+// template is activated (or its production config is edited).
+//
+// Caches the *full active config* — template + provider + quality + vars —
+// so the entire production row is one read.
+interface ActiveConfig {
+  template: PromptTemplate;
+  provider: PromptProvider | null;
+  quality: PromptQuality | null;
+  vars: Record<string, unknown> | null;
+}
 type CacheKey = string;
-const templateCache = new Map<CacheKey, PromptTemplate>();
+const configCache = new Map<CacheKey, ActiveConfig>();
 const CACHE_TTL_MS = 60_000;
 const cacheTimestamps = new Map<CacheKey, number>();
 
@@ -40,31 +51,41 @@ function cacheKey(slot: string, cardType: string | null): CacheKey {
 
 export function invalidatePromptCache(slot?: string, cardType?: string | null): void {
   if (!slot) {
-    templateCache.clear();
+    configCache.clear();
     cacheTimestamps.clear();
     return;
   }
   const key = cacheKey(slot, cardType ?? null);
-  templateCache.delete(key);
+  configCache.delete(key);
   cacheTimestamps.delete(key);
 }
 
 /**
- * Loads the active template for (slot, cardType) from the DB, falling back
- * to the default (cardType = "") row if no card-type-specific override
- * exists. Returns null if nothing is active yet — callers use the hardcoded
- * fallback in that case.
+ * Loads the active *config* for (slot, cardType) — template + provider +
+ * quality + vars — falling back to the default (cardType = "") row if no
+ * card-type-specific override exists. Returns null if nothing is active yet;
+ * callers use the hardcoded fallback in that case.
  */
-async function loadActiveTemplate(
+async function loadActiveConfig(
   slot: string,
   cardType: string | null,
-): Promise<PromptTemplate | null> {
+): Promise<ActiveConfig | null> {
   const key = cacheKey(slot, cardType);
-  const cached = templateCache.get(key);
+  const cached = configCache.get(key);
   const cachedAt = cacheTimestamps.get(key) ?? 0;
   if (cached && Date.now() - cachedAt < CACHE_TTL_MS) {
     return cached;
   }
+
+  const rowToConfig = (row: {
+    prompt_templates: PromptTemplate;
+    prompt_active: { provider: string | null; quality: string | null; vars: unknown };
+  }): ActiveConfig => ({
+    template: row.prompt_templates,
+    provider: (row.prompt_active.provider as PromptProvider | null) ?? null,
+    quality: (row.prompt_active.quality as PromptQuality | null) ?? null,
+    vars: (row.prompt_active.vars as Record<string, unknown> | null) ?? null,
+  });
 
   // 1. Try card-type-specific override
   if (cardType) {
@@ -78,10 +99,10 @@ async function loadActiveTemplate(
       .where(and(eq(promptActive.slot, slot), eq(promptActive.cardType, cardType)))
       .limit(1);
     if (specific.length > 0) {
-      const tpl = specific[0].prompt_templates;
-      templateCache.set(key, tpl);
+      const config = rowToConfig(specific[0]);
+      configCache.set(key, config);
       cacheTimestamps.set(key, Date.now());
-      return tpl;
+      return config;
     }
   }
 
@@ -93,10 +114,10 @@ async function loadActiveTemplate(
     .where(and(eq(promptActive.slot, slot), eq(promptActive.cardType, '')))
     .limit(1);
   if (defaultRow.length > 0) {
-    const tpl = defaultRow[0].prompt_templates;
-    templateCache.set(key, tpl);
+    const config = rowToConfig(defaultRow[0]);
+    configCache.set(key, config);
     cacheTimestamps.set(key, Date.now());
-    return tpl;
+    return config;
   }
 
   return null;
@@ -164,6 +185,15 @@ export interface ResolvedPrompt {
   templateVersion: number | null;
   slot: PromptSlot;
   cardType: string | null;
+  /** Provider the admin chose for this slot in production. Null = caller
+   *  should use its runtime fallback (current behaviour: OpenAI). */
+  provider: PromptProvider | null;
+  /** Quality tier the admin chose. Null = caller's runtime fallback. */
+  quality: PromptQuality | null;
+  /** Slot-specific variable overrides merged into the render. The resolver
+   *  already applied these to `text`; exposed so downstream code (e.g. the
+   *  generator choosing reference handling per layout) can inspect them. */
+  vars: Record<string, unknown> | null;
 }
 
 export type { FrontSceneVars, InsideVars } from './derive';
@@ -172,15 +202,25 @@ export async function resolveFrontScenePrompt(
   vars: FrontSceneVars,
   cardType: string | null = null,
 ): Promise<ResolvedPrompt> {
-  const tpl = await loadActiveTemplate(PROMPT_SLOTS.FRONT_SCENE, cardType);
-  if (tpl) {
+  const config = await loadActiveConfig(PROMPT_SLOTS.FRONT_SCENE, cardType);
+  if (config) {
+    // Slot-level variable overrides win over caller-supplied vars — the
+    // admin's production choice is the source of truth. Only known keys are
+    // merged (guards against accidental template pollution).
+    const merged: FrontSceneVars = {
+      ...vars,
+      ...extractFrontSceneOverrides(config.vars),
+    };
     return {
-      text: renderTemplate(tpl.templateText, deriveFrontSceneVars(vars)),
+      text: renderTemplate(config.template.templateText, deriveFrontSceneVars(merged)),
       source: 'db',
-      templateId: tpl.id,
-      templateVersion: tpl.version,
+      templateId: config.template.id,
+      templateVersion: config.template.version,
       slot: PROMPT_SLOTS.FRONT_SCENE,
       cardType,
+      provider: config.provider,
+      quality: config.quality,
+      vars: config.vars,
     };
   }
   return {
@@ -190,6 +230,9 @@ export async function resolveFrontScenePrompt(
     templateVersion: null,
     slot: PROMPT_SLOTS.FRONT_SCENE,
     cardType,
+    provider: null,
+    quality: null,
+    vars: null,
   };
 }
 
@@ -206,15 +249,18 @@ export async function resolveInsidePrompt(
   vars: InsideResolveVars,
   cardType: string | null = null,
 ): Promise<ResolvedPrompt> {
-  const tpl = await loadActiveTemplate(PROMPT_SLOTS.INSIDE, cardType);
-  if (tpl) {
+  const config = await loadActiveConfig(PROMPT_SLOTS.INSIDE, cardType);
+  if (config) {
     return {
-      text: renderTemplate(tpl.templateText, deriveInsideVars(vars)),
+      text: renderTemplate(config.template.templateText, deriveInsideVars(vars)),
       source: 'db',
-      templateId: tpl.id,
-      templateVersion: tpl.version,
+      templateId: config.template.id,
+      templateVersion: config.template.version,
       slot: PROMPT_SLOTS.INSIDE,
       cardType,
+      provider: config.provider,
+      quality: config.quality,
+      vars: config.vars,
     };
   }
   return {
@@ -230,5 +276,22 @@ export async function resolveInsidePrompt(
     templateVersion: null,
     slot: PROMPT_SLOTS.INSIDE,
     cardType,
+    provider: null,
+    quality: null,
+    vars: null,
   };
+}
+
+// Pull the known front-scene overrides out of the generic `vars` jsonb.
+// Anything the template doesn't recognise is dropped silently — the jsonb
+// is open-ended so future keys land here without a schema change.
+function extractFrontSceneOverrides(
+  vars: Record<string, unknown> | null,
+): Partial<FrontSceneVars> {
+  if (!vars) return {};
+  const out: Partial<FrontSceneVars> = {};
+  if (vars.textLayout === 'scene_integrated' || vars.textLayout === 'movie_poster') {
+    out.textLayout = vars.textLayout;
+  }
+  return out;
 }
