@@ -1,8 +1,16 @@
 import { storage } from './storage';
 import { sendBackgroundEmail, sendGenerationFailedEmail } from './email-service';
-import { resolveFrontScenePrompt, resolveInsidePrompt } from './prompts/resolver';
-import { callOpenAIImageEditWithRetry } from './pipeline/providers/OpenAIProvider';
+import { resolveFrontScenePrompt, resolveInsidePrompt, type ResolvedPrompt } from './prompts/resolver';
+import { getProvider } from './providers/registry';
+import { logGeneration } from './prompts/generation-log';
 import { savePngFiles, loadStoredImageAsBase64, generatePrintResolutionFiles } from './pipeline/storage/LocalStorageAdapter';
+
+// Fallback provider / quality used when the active prompt_active row has
+// null values. Matches the hardcoded behaviour this function had before
+// Phase 4b so existing cards keep generating unchanged.
+const FALLBACK_PROVIDER = 'openai';
+const FALLBACK_QUALITY = 'high' as const;
+const FALLBACK_SIZE = '1024x1024';
 
 export interface BackgroundGenerationParams {
   cardId: number;
@@ -32,11 +40,72 @@ export interface BackgroundGenerationParams {
 
 
 
-function base64ToBuffer(dataUrl: string): { buffer: Buffer; mimeType: string } {
-  const mimeMatch = dataUrl.match(/^data:image\/([a-z]+);base64,/);
-  const mimeType = mimeMatch ? mimeMatch[1] : 'png';
-  const base64Data = dataUrl.replace(/^data:image\/[a-z]+;base64,/, '');
-  return { buffer: Buffer.from(base64Data, 'base64'), mimeType };
+// Ensure a data URL, not a raw base64 string. The modern provider registry
+// expects data URLs (data:image/png;base64,...). Legacy callers sometimes
+// pass raw base64 — wrap if necessary.
+function ensureDataUrl(s: string): string {
+  return s.startsWith('data:image/') ? s : `data:image/png;base64,${s}`;
+}
+
+// Run a resolved prompt through the active provider, log the result, and
+// return the generated image as a data URL ready for savePngFiles. Handles
+// the null-fallback convention (null provider → openai; null quality → high)
+// so the caller doesn't branch on it. Writes exactly one generation_log row
+// per call (success OR failure) — callers must not double-log.
+async function generateViaActiveConfig(params: {
+  cardId: number;
+  resolved: ResolvedPrompt;
+  referenceImages: string[];
+}): Promise<string> {
+  const { cardId, resolved, referenceImages } = params;
+  const providerId = resolved.provider ?? FALLBACK_PROVIDER;
+  const quality = resolved.quality ?? FALLBACK_QUALITY;
+  const provider = getProvider(providerId);
+
+  const [primary, ...additional] = referenceImages.map(ensureDataUrl);
+
+  try {
+    const result = await provider.generate({
+      prompt: resolved.text,
+      referenceImageBase64: primary,
+      additionalReferenceImages: additional.length ? additional : undefined,
+      quality,
+      size: FALLBACK_SIZE,
+      slot: resolved.slot,
+    });
+
+    await logGeneration({
+      cardId,
+      slot: resolved.slot,
+      templateId: resolved.templateId,
+      templateVersion: resolved.templateVersion,
+      provider: result.provider,
+      model: result.model,
+      quality,
+      costCents: result.costCents,
+      durationMs: result.durationMs,
+      success: true,
+    });
+
+    return result.imageUrl;
+  } catch (err: any) {
+    await logGeneration({
+      cardId,
+      slot: resolved.slot,
+      templateId: resolved.templateId,
+      templateVersion: resolved.templateVersion,
+      provider: providerId,
+      // The provider throws before returning its model, so fall back to
+      // whatever we know from the registry for correlation purposes.
+      model: provider.model,
+      quality,
+      costCents: 0,
+      durationMs: 0,
+      success: false,
+      errorCode: err?.kind ?? err?.code ?? 'unknown',
+    });
+    throw err;
+  }
 }
 
 
@@ -57,7 +126,6 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
     // --- FRONT CARD ---
     // ── ACTIVE PATH: scene generation (the only supported flow) ──
     if (generationType === 'scene' && params.imageDataArray?.length) {
-      const imageBuffers = params.imageDataArray.map(base64ToBuffer);
       const resolvedFront = await resolveFrontScenePrompt({
         scenePrompt: params.scenePrompt || '',
         userArtStyle: params.userArtStyle,
@@ -65,12 +133,17 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
         includeText: params.includeText,
         cardText: params.cardText,
       });
-      const prompt = resolvedFront.text;
 
       console.log(
-        `[BG_GEN] Calling OpenAI scene edit for card ${cardId} (prompt source=${resolvedFront.source}, templateId=${resolvedFront.templateId}, v=${resolvedFront.templateVersion})`,
+        `[BG_GEN] Generating front for card ${cardId} via provider=${resolvedFront.provider ?? FALLBACK_PROVIDER} ` +
+          `quality=${resolvedFront.quality ?? FALLBACK_QUALITY} ` +
+          `(prompt source=${resolvedFront.source}, templateId=${resolvedFront.templateId}, v=${resolvedFront.templateVersion})`,
       );
-      const sceneImageUrl = await callOpenAIImageEditWithRetry({ imageBuffers, prompt }, cardId);
+      const sceneImageUrl = await generateViaActiveConfig({
+        cardId,
+        resolved: resolvedFront,
+        referenceImages: params.imageDataArray,
+      });
       const { watermarked: sw, original: so } = await savePngFiles(sceneImageUrl, cardId, 'front');
       frontWatermarked = sw;
       frontOriginal = so;
@@ -85,19 +158,24 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
     // --- INSIDE CARD ---
     const insideText = params.insideText || answers.inside_message;
     if (insideText && frontWatermarked) {
-      console.log(`[BG_GEN] Generating inside card for card ${cardId}`);
       const artStyle = params.artStyle || params.userArtStyle || 'artistic';
       const resolvedInside = await resolveInsidePrompt({ insideText, artStyle });
-      const insidePrompt = resolvedInside.text;
+
       console.log(
-        `[BG_GEN] Inside prompt source=${resolvedInside.source}, templateId=${resolvedInside.templateId}, v=${resolvedInside.templateVersion}`,
+        `[BG_GEN] Generating inside for card ${cardId} via provider=${resolvedInside.provider ?? FALLBACK_PROVIDER} ` +
+          `quality=${resolvedInside.quality ?? FALLBACK_QUALITY} ` +
+          `(prompt source=${resolvedInside.source}, templateId=${resolvedInside.templateId}, v=${resolvedInside.templateVersion})`,
       );
 
-      // Read the front PNG file for use as reference
+      // Read the front PNG file for use as reference — the inside card
+      // inherits the front's style via the image-to-image edit path.
       const frontImageForInside = await loadStoredImageAsBase64(frontWatermarked);
 
-      const insideImageBuffers = [base64ToBuffer(frontImageForInside)];
-      const insideImageUrl = await callOpenAIImageEditWithRetry({ imageBuffers: insideImageBuffers, prompt: insidePrompt }, cardId);
+      const insideImageUrl = await generateViaActiveConfig({
+        cardId,
+        resolved: resolvedInside,
+        referenceImages: [frontImageForInside],
+      });
       const { watermarked: iw, original: io } = await savePngFiles(insideImageUrl, cardId, 'inside');
       insideWatermarked = iw;
       insideOriginal = io;
