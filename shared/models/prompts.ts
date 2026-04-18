@@ -30,10 +30,16 @@ import { z } from "zod";
 
 // Slot identifiers. Kept as loose strings in the DB so new slots can be added
 // without a migration, but these constants are the canonical values.
+//
+// `inside` was split into `inside_write` (text-bearing v1 template) and
+// `inside_blank` (decorative-border v2 template for customers who'll
+// handwrite) in Phase 4c. They're now genuinely different products — each
+// can pick its own provider/quality — so the pointer rows are separate.
 export const PROMPT_SLOTS = {
-  FRONT_SCENE: 'front_scene',   // photo-based front (primary flow)
-  FRONT_TEXT: 'front_text',     // text-only front (no photo)
-  INSIDE: 'inside',             // inside card
+  FRONT_SCENE: 'front_scene',       // photo-based front (primary flow)
+  FRONT_TEXT: 'front_text',         // text-only front (no photo)
+  INSIDE_WRITE: 'inside_write',     // inside card — AI renders typed message
+  INSIDE_BLANK: 'inside_blank',     // inside card — blank centre, decorated border only
 } as const;
 
 export type PromptSlot = typeof PROMPT_SLOTS[keyof typeof PROMPT_SLOTS];

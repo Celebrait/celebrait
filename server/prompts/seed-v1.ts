@@ -160,13 +160,13 @@ async function main(): Promise<void> {
   await activate(PROMPT_SLOTS.FRONT_SCENE, frontSceneId);
 
   const insideId = await upsertVersion1(
-    PROMPT_SLOTS.INSIDE,
+    PROMPT_SLOTS.INSIDE_WRITE,
     'Inside card v1 (baseline)',
     INSIDE_V1,
     INSIDE_VARS,
     'Initial baseline migrated from shared/prompts.ts buildInsidePrompt()',
   );
-  await activate(PROMPT_SLOTS.INSIDE, insideId);
+  await activate(PROMPT_SLOTS.INSIDE_WRITE, insideId);
 
   console.log('[SEED] Done.');
   process.exit(0);

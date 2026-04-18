@@ -344,7 +344,7 @@ export function registerPromptRoutes(app: Express): void {
   //
   // Body:
   //   {
-  //     slot: 'front_scene' | 'inside',
+  //     slot: 'front_scene' | 'inside_write' | 'inside_blank',
   //     templateText: string,
   //     inputs: FrontSceneVars | InsideVars,
   //     quality: 'low' | 'medium' | 'high',
@@ -499,9 +499,9 @@ export function registerPromptRoutes(app: Express): void {
         renderedPrompt = `OUTPUT FORMAT: Generate this image in ${aspect} aspect ratio (${w}×${h} pixels). The composition must fill the entire ${aspect} frame — no borders, no letterboxing, no square canvas inside a ${aspect} image.\n\n${renderedPrompt}`;
       }
 
-      if (slot === 'inside' && !effectiveReferenceImage) {
+      if (slot.startsWith('inside_') && !effectiveReferenceImage) {
         console.warn(
-          `[PROMPT_LAB_TEST] WARN: inside slot running WITHOUT a front-card reference — results will NOT reflect production.`,
+          `[PROMPT_LAB_TEST] WARN: ${slot} slot running WITHOUT a front-card reference — results will NOT reflect production.`,
         );
       }
 

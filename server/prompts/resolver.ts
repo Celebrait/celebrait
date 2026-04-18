@@ -245,23 +245,65 @@ export interface InsideResolveVars extends InsideVars {
   sceneDescription?: string;
 }
 
-export async function resolveInsidePrompt(
+/**
+ * Resolve the inside-card prompt for an AI-rendered written message.
+ * This is the default path — customer typed Dear/Message/From in the
+ * Studio (or the legacy guided flow supplied insideText) and the model
+ * renders it as typography matching the card's style.
+ *
+ * Prompt Lab slot: `inside_write`.
+ */
+export async function resolveInsideWritePrompt(
   vars: InsideResolveVars,
   cardType: string | null = null,
 ): Promise<ResolvedPrompt> {
-  const config = await loadActiveConfig(PROMPT_SLOTS.INSIDE, cardType);
+  return resolveInsideByMode('write', vars, cardType);
+}
+
+/**
+ * Resolve the inside-card prompt for a blank-centre card. The model
+ * produces a decorative border that matches the card's style; the
+ * centre stays clean for a handwritten message. No text variable is
+ * required by the template (v2).
+ *
+ * Prompt Lab slot: `inside_blank`.
+ */
+export async function resolveInsideBlankPrompt(
+  vars: InsideResolveVars,
+  cardType: string | null = null,
+): Promise<ResolvedPrompt> {
+  return resolveInsideByMode('blank', vars, cardType);
+}
+
+async function resolveInsideByMode(
+  mode: 'write' | 'blank',
+  vars: InsideResolveVars,
+  cardType: string | null,
+): Promise<ResolvedPrompt> {
+  const slot = mode === 'blank' ? PROMPT_SLOTS.INSIDE_BLANK : PROMPT_SLOTS.INSIDE_WRITE;
+  const config = await loadActiveConfig(slot, cardType);
   if (config) {
     return {
       text: renderTemplate(config.template.templateText, deriveInsideVars(vars)),
       source: 'db',
       templateId: config.template.id,
       templateVersion: config.template.version,
-      slot: PROMPT_SLOTS.INSIDE,
+      slot,
       cardType,
       provider: config.provider,
       quality: config.quality,
       vars: config.vars,
     };
+  }
+  // Fallback only covers write mode — the hardcoded buildInsidePrompt
+  // always renders text. Blank mode with no active template would produce
+  // a card with text in it, defeating the point; surface that as a clear
+  // error rather than silently falling back.
+  if (mode === 'blank') {
+    throw new Error(
+      `No active template for slot "${PROMPT_SLOTS.INSIDE_BLANK}". ` +
+        `Seed and activate inside v2 (blank) before using blank mode.`,
+    );
   }
   return {
     text: buildInsidePrompt(
@@ -274,12 +316,25 @@ export async function resolveInsidePrompt(
     source: 'fallback',
     templateId: null,
     templateVersion: null,
-    slot: PROMPT_SLOTS.INSIDE,
+    slot,
     cardType,
     provider: null,
     quality: null,
     vars: null,
   };
+}
+
+/**
+ * @deprecated Call resolveInsideWritePrompt or resolveInsideBlankPrompt
+ * directly. This wrapper preserves the pre-Phase-4c signature so legacy
+ * callers (regeneration, guided-conversation) keep compiling; it always
+ * resolves the Write mode.
+ */
+export async function resolveInsidePrompt(
+  vars: InsideResolveVars,
+  cardType: string | null = null,
+): Promise<ResolvedPrompt> {
+  return resolveInsideWritePrompt(vars, cardType);
 }
 
 // Pull the known front-scene overrides out of the generic `vars` jsonb.

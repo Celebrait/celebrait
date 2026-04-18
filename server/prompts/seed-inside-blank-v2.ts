@@ -65,8 +65,12 @@ const INSIDE_BLANK_VARS: PromptVariable[] = [
 async function main(): Promise<void> {
   console.log('[SEED] inside v2 (blank) seeding starting…');
 
-  const slot = PROMPT_SLOTS.INSIDE;
-  const version = 2;
+  // Seeds into the dedicated blank slot. Phase 4c split the old 'inside'
+  // slot into 'inside_write' + 'inside_blank'; this seed writes v1 of the
+  // blank slot (the template is still called "v2" historically because
+  // it was originally the second version of the unified inside slot).
+  const slot = PROMPT_SLOTS.INSIDE_BLANK;
+  const version = 1;
 
   // Idempotency check — bail if v2 already exists.
   const existing = await db

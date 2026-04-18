@@ -100,12 +100,18 @@ interface ProviderInfo {
   }>;
 }
 
-type SlotId = 'front_scene' | 'inside';
+type SlotId = 'front_scene' | 'inside_write' | 'inside_blank';
 
 const SLOT_LABELS: Record<SlotId, string> = {
   front_scene: 'Front — Scene (photo)',
-  inside: 'Inside card',
+  inside_write: 'Inside — Write',
+  inside_blank: 'Inside — Blank',
 };
+
+// True for any slot that renders the inside-card surface, regardless of
+// mode. Used by the test panel to decide whether to show the inside
+// input form + front-card reference picker (vs the front-scene form).
+const isInsideSlot = (slot: SlotId): boolean => slot.startsWith('inside_');
 
 // ─── Main page component ─────────────────────────────────────────────────────
 
@@ -695,7 +701,7 @@ function TestPanel({
   // nothing selected but with front runs available.
   useEffect(() => {
     if (
-      slot === 'inside' &&
+      isInsideSlot(slot) &&
       !insideInputs.referenceImageBase64 &&
       frontRuns.length > 0
     ) {
@@ -771,7 +777,7 @@ function TestPanel({
           body.additionalPhotos = frontInputs.photos.slice(1).map((p) => p.base64);
         }
       }
-      if (slot === 'inside' && insideInputs.referenceImageBase64) {
+      if (isInsideSlot(slot) && insideInputs.referenceImageBase64) {
         body.referenceImageBase64 = insideInputs.referenceImageBase64;
       }
 
@@ -1032,7 +1038,7 @@ function TestPanel({
 
               {(() => {
                 const insideNeedsReference =
-                  slot === 'inside' && !insideInputs.referenceImageBase64;
+                  isInsideSlot(slot) && !insideInputs.referenceImageBase64;
                 const providerUnavailable = currentProvider && !currentProvider.available;
                 const isDisabled =
                   runMutation.isPending ||
