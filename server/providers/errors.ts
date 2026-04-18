@@ -187,8 +187,21 @@ export function classifyGeminiError(
     });
   }
 
-  // Auth / quota
-  if (/401|unauthorized|api.key/i.test(message)) {
+  // Auth only — tight match. The previous `/api.key/i` regex fired on
+  // boilerplate BadRequest payloads that mention "API key" in passing
+  // (e.g. a 400 echoing back "check your API key configuration"),
+  // mis-labelling real user-input errors as auth failures. Now requires
+  // either an explicit 401 status or a clear invalid-key phrase /
+  // Google's API_KEY_INVALID reason code.
+  const status: number = err?.status ?? err?.statusCode ?? 0;
+  const reason: string = err?.error?.details?.[0]?.reason ?? err?.reason ?? '';
+  if (
+    status === 401 ||
+    reason === 'API_KEY_INVALID' ||
+    /\b(401|unauthorized)\b/i.test(message) ||
+    /api[\s_-]?key\s+(not\s+valid|invalid|expired|missing)/i.test(message) ||
+    /invalid\s+api[\s_-]?key/i.test(message)
+  ) {
     return new ProviderError({
       kind: 'auth',
       code: 'auth_error',

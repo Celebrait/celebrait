@@ -121,6 +121,27 @@ const SLOT_IDS: SlotId[] = ['front_scene', 'inside_write', 'inside_blank'];
 // input form + front-card reference picker (vs the front-scene form).
 const isInsideSlot = (slot: SlotId): boolean => slot.startsWith('inside_');
 
+// Filter an uploaded FileList to actual image files. Anything without
+// an `image/*` MIME gets dropped with a toast — catches drag-drop of
+// wrong file types and native pickers set to "All files". The `accept`
+// attribute on <input> is a picker hint only; users can bypass it.
+// Returns a plain File[] so callers can forEach over the filtered list.
+function filterToImageFiles(files: FileList | File[] | null): File[] {
+  if (!files) return [];
+  const arr = Array.from(files);
+  const valid = arr.filter((f) => f.type.startsWith('image/'));
+  const rejected = arr.length - valid.length;
+  if (rejected > 0) {
+    toast({
+      title: rejected === 1 ? 'Not an image file' : `${rejected} file(s) skipped`,
+      description:
+        'Only image files are accepted (PNG, JPEG, WebP). Other formats are skipped.',
+      variant: 'destructive',
+    });
+  }
+  return valid;
+}
+
 // ─── Main page component ─────────────────────────────────────────────────────
 
 export default function AdminPromptsPage() {
@@ -865,8 +886,9 @@ function TestPanel({
   });
 
   const handlePhotosAdd = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    Array.from(files).forEach((file) => {
+    const valid = filterToImageFiles(files);
+    if (valid.length === 0) return;
+    valid.forEach((file) => {
       const reader = new FileReader();
       reader.onload = () => {
         setFrontInputs((prev) => ({
@@ -1433,15 +1455,17 @@ function InsideInputsForm({
       update('referenceLabel', null);
       return;
     }
+    const [valid] = filterToImageFiles([file]);
+    if (!valid) return;
     const reader = new FileReader();
     reader.onload = () => {
       onChange({
         ...inputs,
         referenceImageBase64: reader.result as string,
-        referenceLabel: `Uploaded: ${file.name}`,
+        referenceLabel: `Uploaded: ${valid.name}`,
       });
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(valid);
   };
 
   const pickRecent = (run: RunRecord) => {
@@ -1601,8 +1625,9 @@ function EditPanel({
   const [refPhotos, setRefPhotos] = useState<Array<{ base64: string; name: string }>>([]);
 
   const handleRefPhotoAdd = (files: FileList | null) => {
-    if (!files) return;
-    Array.from(files).forEach((file) => {
+    const valid = filterToImageFiles(files);
+    if (valid.length === 0) return;
+    valid.forEach((file) => {
       const reader = new FileReader();
       reader.onload = () => {
         setRefPhotos((prev) => [...prev, { base64: reader.result as string, name: file.name }]);
