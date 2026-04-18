@@ -21,6 +21,7 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '../db';
 import { cards, EMPTY_CARD_DRAFT, type CardDraftState } from '@shared/schema';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
+import { generateStudioCard } from '../background-generator';
 
 function getUserId(req: Request): string | null {
   const id = (req as any).session?.otpUserId;
@@ -35,6 +36,39 @@ function imageDiskPath(storedPath: string | null | undefined): string | null {
   if (!storedPath) return null;
   const rel = storedPath.startsWith('/images/') ? storedPath.slice('/images/'.length) : storedPath;
   return path.join(process.cwd(), 'stored_images', rel);
+}
+
+// Server-side mirror of the client's readiness gates. The UI blocks Next
+// until each step is complete, but the server shouldn't trust that — a
+// crafted POST could skip straight to /generate with a half-filled state.
+function isDraftReadyToGenerate(state: CardDraftState): { ok: boolean; reason?: string } {
+  if (!state.recipient?.name?.trim() || !state.recipient?.occasion?.trim()) {
+    return { ok: false, reason: 'Recipient name + occasion required' };
+  }
+  if (!state.photos?.photoIds?.length) {
+    return { ok: false, reason: 'At least one photo required' };
+  }
+  if (!state.scene?.description?.trim()) {
+    return { ok: false, reason: 'Scene description required' };
+  }
+  const styleMode = state.style?.mode;
+  if (styleMode !== 'animated' && styleMode !== 'realistic' && styleMode !== 'custom') {
+    return { ok: false, reason: 'Style selection required' };
+  }
+  if (styleMode === 'custom' && (state.style?.custom?.trim().length ?? 0) < 15) {
+    return { ok: false, reason: 'Custom style needs at least 15 characters' };
+  }
+  const insideMode = state.inside?.mode;
+  if (insideMode === 'blank') {
+    // Blank is always ready.
+  } else if (insideMode === 'write') {
+    if (!state.inside?.write?.message?.trim()) {
+      return { ok: false, reason: 'Inside message required for Write mode' };
+    }
+  } else {
+    return { ok: false, reason: 'Inside mode (write or blank) required' };
+  }
+  return { ok: true };
 }
 
 export function registerStudioDraftRoutes(app: Express): void {
@@ -86,6 +120,8 @@ export function registerStudioDraftRoutes(app: Express): void {
           userId: cards.userId,
           status: cards.status,
           conversationData: cards.conversationData,
+          frontImageUrl: cards.frontImageUrl,
+          insideImageUrl: cards.insideImageUrl,
           createdAt: cards.createdAt,
         })
         .from(cards)
@@ -107,6 +143,8 @@ export function registerStudioDraftRoutes(app: Express): void {
       res.json({
         id: row.id,
         status: row.status,
+        frontImageUrl: row.frontImageUrl,
+        insideImageUrl: row.insideImageUrl,
         createdAt: row.createdAt,
         state,
       });
@@ -147,6 +185,120 @@ export function registerStudioDraftRoutes(app: Express): void {
     } catch (err: any) {
       console.error('[STUDIO] draft patch error:', err);
       res.status(500).json({ message: 'Could not save draft' });
+    }
+  });
+
+  // ── POST /api/studio/drafts/:id/generate ─────────────────────────
+  // Kick off background generation for a draft. Ownership + readiness
+  // checks run synchronously; generation itself is fire-and-forget
+  // (the client polls GET /api/studio/drafts/:id for status).
+  //
+  // Transitions:  draft → generating → completed / failed
+  // Returns 409 if the card isn't in 'draft' status (already generating,
+  // completed, etc.) so double-click spam doesn't re-enter the pipeline.
+  app.post('/api/studio/drafts/:id/generate', isAuthenticated, async (req: Request, res: Response) => {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+
+    try {
+      // Single query: ownership + status + state in one go.
+      const rows = await db
+        .select({
+          id: cards.id,
+          userId: cards.userId,
+          status: cards.status,
+          conversationData: cards.conversationData,
+        })
+        .from(cards)
+        .where(eq(cards.id, id))
+        .limit(1);
+
+      const row = rows[0];
+      if (!row) return res.status(404).json({ message: 'Draft not found' });
+      if (row.userId !== userId) return res.status(403).json({ message: 'Not your draft' });
+
+      // Only 'draft' can start a generation. 'generating' means one is in
+      // flight; 'completed'/'failed' means it's done (retry should go
+      // through a regeneration flow, not this endpoint).
+      if (row.status !== 'draft') {
+        return res
+          .status(409)
+          .json({ message: `Draft is ${row.status}, not 'draft' — nothing to start` });
+      }
+
+      const state = row.conversationData as CardDraftState | null;
+      if (!state || state.version !== 1) {
+        return res.status(400).json({ message: 'Draft has no valid state' });
+      }
+
+      // Readiness gates — mirror the client-side isXStepReady checks so
+      // the server doesn't trust a malicious client bypassing the UI.
+      const ready = isDraftReadyToGenerate(state);
+      if (!ready.ok) {
+        return res.status(400).json({ message: ready.reason });
+      }
+
+      // Flip to 'generating' BEFORE dispatching so a refresh during the
+      // gap between response and job start shows the right status.
+      await db
+        .update(cards)
+        .set({ status: 'generating' })
+        .where(and(eq(cards.id, id), eq(cards.userId, userId)));
+
+      // Fire-and-forget. generateStudioCard does its own error handling
+      // (sets status='failed' and logs). Not awaited by the request.
+      setImmediate(() => {
+        generateStudioCard(id).catch((err) => {
+          console.error(`[STUDIO] generateStudioCard threw for card ${id}:`, err);
+        });
+      });
+
+      res.json({ id, status: 'generating' });
+    } catch (err: any) {
+      console.error('[STUDIO] generate start error:', err);
+      res.status(500).json({ message: 'Could not start generation' });
+    }
+  });
+
+  // ── POST /api/studio/drafts/:id/retry ────────────────────────────
+  // Reset a failed draft back to 'draft' status so the user can hit
+  // Generate again without losing any of their inputs. Only valid
+  // transition is 'failed' → 'draft'; everything else is 409.
+  app.post('/api/studio/drafts/:id/retry', isAuthenticated, async (req: Request, res: Response) => {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+
+    try {
+      const rows = await db
+        .select({ id: cards.id, userId: cards.userId, status: cards.status })
+        .from(cards)
+        .where(eq(cards.id, id))
+        .limit(1);
+
+      const row = rows[0];
+      if (!row) return res.status(404).json({ message: 'Draft not found' });
+      if (row.userId !== userId) return res.status(403).json({ message: 'Not your draft' });
+      if (row.status !== 'failed') {
+        return res
+          .status(409)
+          .json({ message: `Draft is ${row.status}, only 'failed' can retry` });
+      }
+
+      await db
+        .update(cards)
+        .set({ status: 'draft' })
+        .where(and(eq(cards.id, id), eq(cards.userId, userId)));
+
+      res.json({ ok: true, status: 'draft' });
+    } catch (err: any) {
+      console.error('[STUDIO] retry error:', err);
+      res.status(500).json({ message: 'Could not reset draft' });
     }
   });
 

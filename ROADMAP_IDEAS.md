@@ -224,6 +224,20 @@ Once users have >10 photos, the library picker needs structure — labels
 the `photos` table, just no UI yet.
 **Ships when:** heavy users hit friction finding the right photo.
 
+### Journey preview panel in the Studio
+Always-visible card-shaped frame alongside the maker steps, populated
+as the user progresses — photo (cropped), recipient name + occasion as
+placeholder text, scene as a quote, style tag. **Progress visualisation,
+not product preview** — clearly "your card in progress", not "your
+generated card" (AI output won't look like this). Moonpig/Paperless Post
+have real previews because their product IS a template; ours isn't.
+**Risk:** mis-sets expectations about the AI output if it looks too
+finished. Mobile constraint — a right-side panel is desktop UX; on
+mobile it eats vertical space or has to hide. Sprint 3 ships with the
+Review-step summary only; this is a post-launch candidate.
+**Revisit if:** Review-step summary feels too abrupt or customers say
+they don't feel committed until they see something visual earlier.
+
 ---
 
 ## Business & ops

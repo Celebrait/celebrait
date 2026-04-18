@@ -1,9 +1,21 @@
+import path from 'path';
+import { promises as fs } from 'fs';
+import { eq, inArray } from 'drizzle-orm';
+import { db } from './db';
 import { storage } from './storage';
 import { sendBackgroundEmail, sendGenerationFailedEmail } from './email-service';
-import { resolveFrontScenePrompt, resolveInsidePrompt, type ResolvedPrompt } from './prompts/resolver';
+import {
+  resolveFrontScenePrompt,
+  resolveInsidePrompt,
+  resolveInsideWritePrompt,
+  resolveInsideBlankPrompt,
+  type ResolvedPrompt,
+} from './prompts/resolver';
 import { getProvider } from './providers/registry';
 import { logGeneration } from './prompts/generation-log';
 import { savePngFiles, loadStoredImageAsBase64, generatePrintResolutionFiles } from './pipeline/storage/LocalStorageAdapter';
+import { cards, photos, type CardDraftState } from '@shared/schema';
+import { resolveStyleDescription } from '@shared/style-descriptions';
 
 // Fallback provider / quality used when the active prompt_active row has
 // null values. Matches the hardcoded behaviour this function had before
@@ -221,4 +233,206 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
     // Notify the user so they know to try again
     await sendGenerationFailedEmail(userEmail, userName, cardId);
   }
+}
+
+// ── Studio card generation (Sprint 3 Phase 6) ────────────────────────────
+//
+// Reads a Studio draft row by id, translates its CardDraftState into the
+// vars the prompt resolvers expect, and runs the full front+inside
+// generation. Differences from generateCardInBackground:
+//
+//   - Reads inputs from cards.conversationData (draft state) rather than
+//     taking them as explicit params.
+//   - Routes to resolveInsideWritePrompt vs resolveInsideBlankPrompt based
+//     on the customer's mode choice.
+//   - Concatenates salutation / message / signoff into insideText for
+//     write mode; blank mode passes an empty string (the v2 template
+//     ignores it).
+//   - Loads reference photos from the user's photo library (photos.photoIds
+//     in the draft state) rather than accepting pre-encoded base64.
+//   - Doesn't send email on completion — Studio clients poll status
+//     directly and show the result in-page.
+//
+// The card's `status` column drives the Studio UI's polling loop:
+//   draft → generating → completed (happy path)
+//                     → failed     (provider error / safety block / etc.)
+
+export async function generateStudioCard(cardId: number): Promise<void> {
+  console.log(`[STUDIO_GEN] Starting Studio generation for card ${cardId}`);
+
+  // ── Load draft state ─────────────────────────────────────────────
+  const rows = await db
+    .select({
+      id: cards.id,
+      userId: cards.userId,
+      conversationData: cards.conversationData,
+    })
+    .from(cards)
+    .where(eq(cards.id, cardId))
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) {
+    console.error(`[STUDIO_GEN] Card ${cardId} not found`);
+    return;
+  }
+
+  const state = row.conversationData as CardDraftState | null;
+  if (!state || state.version !== 1) {
+    console.error(`[STUDIO_GEN] Card ${cardId} has no valid draft state`);
+    await storage.updateCard(cardId, { status: 'failed' });
+    return;
+  }
+
+  try {
+    await storage.updateCard(cardId, { status: 'generating' });
+
+    // ── Load reference photos ────────────────────────────────────
+    const photoIds = state.photos?.photoIds ?? [];
+    if (photoIds.length === 0) {
+      throw new Error('No reference photos on this draft');
+    }
+    const photoRows = await db
+      .select()
+      .from(photos)
+      .where(inArray(photos.id, photoIds));
+
+    // Order photoRows to match the user's photoIds order. DB doesn't
+    // guarantee order on an IN query, and the primary photo is
+    // photoIds[0] in the draft.
+    const byId = new Map(photoRows.map((p) => [p.id, p]));
+    const orderedPhotos = photoIds
+      .map((id) => byId.get(id))
+      .filter((p): p is NonNullable<typeof p> => !!p);
+
+    // Prefer cropped version (tighter on the face → better likeness
+    // after the provider's downscale) when available. Photo paths are
+    // relative to stored_images/.
+    const referenceImages: string[] = [];
+    for (const p of orderedPhotos) {
+      const rel = p.croppedStoragePath ?? p.storagePath;
+      const abs = path.join(process.cwd(), 'stored_images', rel);
+      const buf = await fs.readFile(abs);
+      referenceImages.push(`data:${p.mimeType};base64,${buf.toString('base64')}`);
+    }
+
+    // ── Build front-scene vars ───────────────────────────────────
+    const artStyle = resolveStyleDescription(state.style?.mode, state.style?.custom);
+    const cardText = buildCardText(state);
+    const includeText = cardText.length > 0;
+
+    const resolvedFront = await resolveFrontScenePrompt({
+      scenePrompt: state.scene?.description ?? '',
+      userArtStyle: artStyle,
+      includeText,
+      cardText,
+      photoMode: orderedPhotos.length > 1 ? 'group' : 'one_person',
+      photoCount: orderedPhotos.length,
+      // textLayout is NOT set here — the resolver pulls it from the
+      // prompt_active row's vars (see Production View). Passing it
+      // explicitly would override the admin's choice.
+    });
+
+    console.log(
+      `[STUDIO_GEN] Front: provider=${resolvedFront.provider ?? 'openai(fallback)'} ` +
+        `quality=${resolvedFront.quality ?? 'high(fallback)'} ` +
+        `templateId=${resolvedFront.templateId} v=${resolvedFront.templateVersion}`,
+    );
+
+    const frontImageUrl = await generateViaActiveConfig({
+      cardId,
+      resolved: resolvedFront,
+      referenceImages,
+    });
+    const { watermarked: frontWatermarked } = await savePngFiles(
+      frontImageUrl,
+      cardId,
+      'front',
+    );
+
+    // ── Build inside-mode vars + resolve the right template ───────
+    const insideMode = state.inside?.mode;
+    let resolvedInside: ResolvedPrompt | null = null;
+    if (insideMode === 'write') {
+      const insideText = buildInsideText(state);
+      resolvedInside = await resolveInsideWritePrompt({
+        insideText,
+        artStyle,
+      });
+    } else if (insideMode === 'blank') {
+      resolvedInside = await resolveInsideBlankPrompt({
+        insideText: '',
+        artStyle,
+      });
+    }
+
+    let insideWatermarked: string | null = null;
+    if (resolvedInside) {
+      console.log(
+        `[STUDIO_GEN] Inside (${insideMode}): provider=${resolvedInside.provider ?? 'openai(fallback)'} ` +
+          `quality=${resolvedInside.quality ?? 'high(fallback)'} ` +
+          `templateId=${resolvedInside.templateId} v=${resolvedInside.templateVersion}`,
+      );
+
+      // Inside inherits style from the front via image-to-image edit.
+      const frontForInside = await loadStoredImageAsBase64(frontWatermarked);
+      const insideImageUrl = await generateViaActiveConfig({
+        cardId,
+        resolved: resolvedInside,
+        referenceImages: [frontForInside],
+      });
+      const saved = await savePngFiles(insideImageUrl, cardId, 'inside');
+      insideWatermarked = saved.watermarked;
+    }
+
+    // ── Persist + finalise ───────────────────────────────────────
+    await storage.updateCard(cardId, {
+      frontImageUrl: frontWatermarked,
+      insideImageUrl: insideWatermarked,
+      status: 'completed',
+    });
+
+    console.log(`[STUDIO_GEN] Card ${cardId} completed`);
+
+    // Print-resolution upscale — non-fatal, same as the legacy flow.
+    await generatePrintResolutionFiles(cardId);
+  } catch (err: any) {
+    console.error(`[STUDIO_GEN] Card ${cardId} FAILED:`, err?.message ?? err);
+    try {
+      await storage.updateCard(cardId, { status: 'failed' });
+    } catch (dbErr) {
+      console.error(`[STUDIO_GEN] Failed to update status:`, dbErr);
+    }
+    // Studio UI polls status — no email needed. Rethrow is deliberate
+    // NOT done: this is fire-and-forget from the request handler.
+  }
+}
+
+/** Build the short text rendered on the card front (customer greeting).
+ *  e.g. "Happy Birthday Sarah". Returns empty string if we can't form a
+ *  reasonable phrase — the front-scene prompt's `includeText` flag gates
+ *  the "render text" instruction on non-empty output. */
+function buildCardText(state: CardDraftState): string {
+  const name = state.recipient?.name?.trim();
+  const occasion = state.recipient?.occasion?.trim();
+  if (!name || !occasion) return '';
+  // Occasion presets in the Studio are keys like 'birthday', 'wedding',
+  // 'anniversary'. Simple title-case works for the common English words.
+  // If the user picked 'other' we fall back to just the name.
+  if (occasion === 'other') return name;
+  const occasionTitle = occasion.charAt(0).toUpperCase() + occasion.slice(1);
+  return `Happy ${occasionTitle} ${name}`;
+}
+
+/** Concatenate the customer's Dear / Message / From fields into the
+ *  single `insideText` variable the v1 inside template expects. Salutation
+ *  and sign-off are optional decoration — only the message is required
+ *  (enforced by isInsideStepReady in the UI). */
+function buildInsideText(state: CardDraftState): string {
+  const write = state.inside?.write ?? {};
+  const parts: string[] = [];
+  if (write.salutation?.trim()) parts.push(write.salutation.trim());
+  if (write.message?.trim()) parts.push(write.message.trim());
+  if (write.signoff?.trim()) parts.push(write.signoff.trim());
+  return parts.join('\n\n');
 }

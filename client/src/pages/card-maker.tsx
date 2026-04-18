@@ -27,7 +27,8 @@ import { SceneStep, isSceneStepReady } from '@/components/studio/steps/scene-ste
 import { StyleStep, isStyleStepReady } from '@/components/studio/steps/style-step';
 import { PhotoStep, isPhotoStepReady } from '@/components/studio/steps/photo-step';
 import { InsideStep, isInsideStepReady } from '@/components/studio/steps/inside-step';
-import { CARD_MAKER_STEPS, type CardDraftState } from '@shared/schema';
+import { ReviewStep } from '@/components/studio/steps/review-step';
+import { CARD_MAKER_STEPS, type CardDraftState, type StepId } from '@shared/schema';
 
 // ── Entry: POST a new draft, then redirect to the edit URL ───────────
 // Keeping the "create draft" side-effect on the /studio/new-card route
@@ -98,15 +99,27 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     isLoading,
     loadError,
     isSaving,
+    status,
+    frontImageUrl,
+    insideImageUrl,
     update,
     setStep,
     goNext,
     goBack,
     scheduleSave,
     flushSave,
+    startGeneration,
+    isStartingGeneration,
     currentStep,
     totalSteps,
   } = useCardMaker({ cardId });
+
+  // Map step IDs back to their indexes so the Review step's "Edit"
+  // links can jump to the right step without hardcoding numbers.
+  const stepIndexById = CARD_MAKER_STEPS.reduce((acc, step, idx) => {
+    acc[step.id] = idx;
+    return acc;
+  }, {} as Record<StepId, number>);
 
   if (isLoading) {
     return (
@@ -189,22 +202,43 @@ function CardMakerInner({ cardId }: { cardId: number }) {
             flushSave={flushSave}
           />
         )}
-        {currentStep >= 5 && <StepPanelPlaceholder stepIndex={currentStep} />}
+        {currentStep === 5 && (
+          <ReviewStep
+            cardId={cardId}
+            state={state}
+            status={status}
+            stepIndexById={stepIndexById}
+            onJumpToStep={setStep}
+            onGenerate={() => {
+              void startGeneration().catch((err) => {
+                console.error('[CARD_MAKER] startGeneration failed:', err);
+              });
+            }}
+            isGenerating={isStartingGeneration}
+            generatedFrontUrl={frontImageUrl}
+            generatedInsideUrl={insideImageUrl}
+          />
+        )}
       </div>
 
       {/* ── Nav ─────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between mt-6">
-        <Button
-          variant="ghost"
-          onClick={goBack}
-          disabled={isFirst}
-          className="text-stone-600"
-          data-testid="btn-card-maker-back"
-        >
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Back
-        </Button>
-        {!isLast ? (
+      {/* The Review step owns its own Generate button, and once a
+          generation is in flight (or complete) there's nothing useful
+          to do with Back. Hide the whole nav on the Review step
+          except when the user is still on the review summary and
+          might want to go back to the Inside step. */}
+      {!isLast && (
+        <div className="flex items-center justify-between mt-6">
+          <Button
+            variant="ghost"
+            onClick={goBack}
+            disabled={isFirst}
+            className="text-stone-600"
+            data-testid="btn-card-maker-back"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Back
+          </Button>
           <Button
             onClick={goNext}
             disabled={!canAdvance}
@@ -214,17 +248,21 @@ function CardMakerInner({ cardId }: { cardId: number }) {
             Next
             <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
-        ) : (
-          // The green Generate button — wired up for real in Phase 6.
+        </div>
+      )}
+      {isLast && (status === null || status === 'draft') && (
+        <div className="flex items-center justify-start mt-6">
           <Button
-            disabled
-            className="bg-cta text-cta-foreground opacity-60 cursor-not-allowed"
-            data-testid="btn-card-maker-generate"
+            variant="ghost"
+            onClick={goBack}
+            className="text-stone-600"
+            data-testid="btn-card-maker-back"
           >
-            Generate (coming in Phase 6)
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Back
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -243,22 +281,3 @@ function isStepReady(stepIndex: number, state: CardDraftState): boolean {
   return true;
 }
 
-// Placeholder panel rendered for every step until the real step
-// components land in phases 2-5. Keeps Phase 1 visually complete so
-// the stepper and nav can be tested end-to-end.
-function StepPanelPlaceholder({ stepIndex }: { stepIndex: number }) {
-  const step = CARD_MAKER_STEPS[stepIndex];
-  return (
-    <div className="text-center py-12">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-brand-muted text-brand-dark mb-4 text-sm font-semibold">
-        {stepIndex + 1}
-      </div>
-      <p className="text-lg font-medium text-stone-900 mb-2">{step?.label}</p>
-      <p className="text-sm text-stone-500 max-w-sm mx-auto">
-        This step's form lands in a later sprint phase. For now, use the
-        stepper above or the Next / Back buttons to move through the flow
-        — progress is auto-saved.
-      </p>
-    </div>
-  );
-}
