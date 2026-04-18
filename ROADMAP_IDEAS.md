@@ -224,6 +224,24 @@ Once users have >10 photos, the library picker needs structure — labels
 the `photos` table, just no UI yet.
 **Ships when:** heavy users hit friction finding the right photo.
 
+### "On this day" — wait-time widget + daily content engine
+Two surfaces, one data source. While the card is generating (~20-60s),
+show a rotating one-liner: "On this day in history…" or "Famous birthdays
+today." Kills the dead-air wait, on-theme for a celebrations brand.
+**Bigger play:** the same data powers a daily social-content engine.
+One Reel/TikTok/Short per day: "Today is [date]. Famous birthdays today:
+X, Y, Z. We made [X] a card." Zero creative block, 365 hooks per year,
+SEO-friendly ("who was born on [date]" is a high-intent query).
+Free data source: Wikipedia's On-This-Day REST API.
+**UX constraints:** single line, ephemeral, no scroll, doesn't compete
+with the "your card's ready" completion moment.
+**Nice-to-have later:** collect recipient's actual birthday date in the
+Studio and personalise to THEIR day ("On {name}'s birthday, the world
+also celebrates…") instead of today's date. Makes the widget emotional
+rather than incidental.
+**Ships when:** Sprint 3.7 Soul Pass is done and you're ready to think
+about the daily content engine separately. Don't bolt onto Sprint 3.
+
 ### Revisit scene suggestions UX
 The current Scene step has an `[Ideas]` drawer with ~15 presets per
 occasion (from `client/src/lib/scene-presets.ts`). Click a preset →
