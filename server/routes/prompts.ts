@@ -239,13 +239,22 @@ export function registerPromptRoutes(app: Express): void {
   });
 
   // POST /api/admin/prompts/activate
-  // Body: { slot, cardType?, templateId }
-  // Atomically flips the prompt_active pointer to the given template.
+  // Body: {
+  //   slot, cardType?, templateId,
+  //   provider?: 'openai'|'gemini'|'flux',   // optional: set production provider
+  //   quality?: 'low'|'medium'|'high',       // optional: set production quality tier
+  //   vars?: object,                         // optional: slot-specific var overrides
+  //                                          //   (e.g. { textLayout: 'scene_integrated' })
+  //                                          //   passing undefined preserves the existing row's value;
+  //                                          //   passing null explicitly clears it.
+  // }
+  // Atomically flips the prompt_active pointer to the given template and
+  // updates any of the production-config fields that were included.
   // Invalidates the in-process cache so next generation picks it up.
   app.post('/api/admin/prompts/activate', async (req, res) => {
     if (!(await requireAdmin(req, res))) return;
     try {
-      const { slot, cardType, templateId } = req.body ?? {};
+      const { slot, cardType, templateId, provider, quality, vars } = req.body ?? {};
       if (!slot || typeof slot !== 'string' || !VALID_SLOTS.has(slot)) {
         return res.status(400).json({ message: 'Invalid slot' });
       }
@@ -254,6 +263,22 @@ export function registerPromptRoutes(app: Express): void {
         return res.status(400).json({ message: 'Invalid templateId' });
       }
       const ct: string = cardType && typeof cardType === 'string' ? cardType : '';
+
+      // Validate the optional production-config fields.
+      const providerValid =
+        provider === undefined ||
+        provider === null ||
+        (typeof provider === 'string' && ['openai', 'gemini', 'flux'].includes(provider));
+      if (!providerValid) {
+        return res.status(400).json({ message: 'Invalid provider' });
+      }
+      const qualityValid =
+        quality === undefined ||
+        quality === null ||
+        (typeof quality === 'string' && ['low', 'medium', 'high'].includes(quality));
+      if (!qualityValid) {
+        return res.status(400).json({ message: 'Invalid quality' });
+      }
 
       // Verify the template exists and belongs to the slot
       const tpl = await db
@@ -274,6 +299,16 @@ export function registerPromptRoutes(app: Express): void {
       const updatedBy: string =
         user?.claims?.email ?? user?.email ?? 'admin-ui';
 
+      // Build the partial update. Only keys the caller passed (undefined = leave).
+      const updates: Record<string, unknown> = {
+        activeTemplateId: id,
+        updatedAt: new Date(),
+        updatedBy,
+      };
+      if (provider !== undefined) updates.provider = provider; // null or string
+      if (quality !== undefined) updates.quality = quality;
+      if (vars !== undefined) updates.vars = vars;
+
       // Upsert the pointer
       const existing = await db
         .select()
@@ -284,22 +319,68 @@ export function registerPromptRoutes(app: Express): void {
       if (existing.length > 0) {
         await db
           .update(promptActive)
-          .set({ activeTemplateId: id, updatedAt: new Date(), updatedBy })
+          .set(updates)
           .where(and(eq(promptActive.slot, slot), eq(promptActive.cardType, ct)));
       } else {
         await db.insert(promptActive).values({
           slot,
           cardType: ct,
           activeTemplateId: id,
+          provider: provider ?? null,
+          quality: quality ?? null,
+          vars: vars ?? null,
           updatedBy,
         });
       }
 
       invalidatePromptCache(slot, ct === '' ? null : ct);
 
-      res.json({ success: true, slot, cardType: ct || null, activeTemplateId: id });
+      res.json({
+        success: true,
+        slot,
+        cardType: ct || null,
+        activeTemplateId: id,
+        provider: provider ?? null,
+        quality: quality ?? null,
+        vars: vars ?? null,
+      });
     } catch (err: any) {
       console.error('[ADMIN_PROMPTS] activate error:', err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // GET /api/admin/prompts/production
+  // Returns the full production config for every active slot — the data
+  // powering the Production View dashboard. One row per active (slot,
+  // cardType) pairing, joined with the template it points at so the UI
+  // can display template name + version without a second request.
+  app.get('/api/admin/prompts/production', async (req, res) => {
+    if (!(await requireAdmin(req, res))) return;
+    try {
+      const rows = await db
+        .select({
+          slot: promptActive.slot,
+          cardType: promptActive.cardType,
+          activeTemplateId: promptActive.activeTemplateId,
+          provider: promptActive.provider,
+          quality: promptActive.quality,
+          vars: promptActive.vars,
+          updatedAt: promptActive.updatedAt,
+          updatedBy: promptActive.updatedBy,
+          templateName: promptTemplates.name,
+          templateVersion: promptTemplates.version,
+          templateText: promptTemplates.templateText,
+        })
+        .from(promptActive)
+        .innerJoin(
+          promptTemplates,
+          eq(promptActive.activeTemplateId, promptTemplates.id),
+        );
+
+      res.json({ configs: rows });
+    } catch (err: any) {
+      console.error('[ADMIN_PROMPTS] production fetch error:', err);
       res.status(500).json({ message: err.message });
     }
   });

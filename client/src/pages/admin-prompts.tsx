@@ -101,12 +101,20 @@ interface ProviderInfo {
 }
 
 type SlotId = 'front_scene' | 'inside_write' | 'inside_blank';
+type TabId = SlotId | 'production';
 
 const SLOT_LABELS: Record<SlotId, string> = {
   front_scene: 'Front — Scene (photo)',
   inside_write: 'Inside — Write',
   inside_blank: 'Inside — Blank',
 };
+
+const TAB_LABELS: Record<TabId, string> = {
+  ...SLOT_LABELS,
+  production: 'Production',
+};
+
+const SLOT_IDS: SlotId[] = ['front_scene', 'inside_write', 'inside_blank'];
 
 // True for any slot that renders the inside-card surface, regardless of
 // mode. Used by the test panel to decide whether to show the inside
@@ -116,7 +124,9 @@ const isInsideSlot = (slot: SlotId): boolean => slot.startsWith('inside_');
 // ─── Main page component ─────────────────────────────────────────────────────
 
 export default function AdminPromptsPage() {
-  const [activeSlot, setActiveSlot] = useState<SlotId>('front_scene');
+  const [activeTab, setActiveTab] = useState<TabId>('front_scene');
+
+  const tabIds: TabId[] = [...SLOT_IDS, 'production'];
 
   return (
     <div className="p-6">
@@ -125,28 +135,37 @@ export default function AdminPromptsPage() {
           <h1 className="text-2xl font-bold text-stone-900">Prompt Lab</h1>
           <p className="text-sm text-stone-600 mt-1">
             Edit a prompt, test it against a real input, see the image. Every
-            version is kept; the active pointer can be flipped atomically.
+            version is kept; the Production tab shows what customers actually get.
           </p>
         </header>
 
         <div className="flex gap-2 mb-4 border-b border-stone-200">
-          {(Object.keys(SLOT_LABELS) as SlotId[]).map((slot) => (
-            <button
-              key={slot}
-              onClick={() => setActiveSlot(slot)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                activeSlot === slot
-                  ? 'border-violet-600 text-violet-700'
-                  : 'border-transparent text-stone-500 hover:text-stone-700'
-              }`}
-              data-testid={`tab-slot-${slot}`}
-            >
-              {SLOT_LABELS[slot]}
-            </button>
-          ))}
+          {tabIds.map((tab) => {
+            const isProduction = tab === 'production';
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                  activeTab === tab
+                    ? isProduction
+                      ? 'border-green-600 text-green-700'
+                      : 'border-violet-600 text-violet-700'
+                    : 'border-transparent text-stone-500 hover:text-stone-700'
+                } ${isProduction ? 'ml-auto' : ''}`}
+                data-testid={isProduction ? 'tab-production' : `tab-slot-${tab}`}
+              >
+                {TAB_LABELS[tab]}
+              </button>
+            );
+          })}
         </div>
 
-        <SlotPanel slot={activeSlot} />
+        {activeTab === 'production' ? (
+          <ProductionView />
+        ) : (
+          <SlotPanel slot={activeTab} />
+        )}
       </div>
     </div>
   );
@@ -1900,4 +1919,289 @@ function buildLineDiff(
     j--;
   }
   return { lhs, rhs };
+}
+
+// ─── Production View ─────────────────────────────────────────────────────────
+// Dashboard-style page showing the current live config for every slot.
+// One row per slot. Every field is editable — active template version,
+// provider, quality, slot-specific vars. Saving POSTs the full config to
+// /api/admin/prompts/activate which atomically updates promptActive.
+//
+// This is the "what ships" page. Changes here take effect on the next
+// generation (after the resolver cache TTL — up to 60s).
+
+interface ProductionConfig {
+  slot: string;
+  cardType: string;
+  activeTemplateId: number;
+  provider: string | null;
+  quality: string | null;
+  vars: Record<string, unknown> | null;
+  updatedAt: string | null;
+  updatedBy: string | null;
+  templateName: string;
+  templateVersion: number;
+}
+
+function ProductionView() {
+  const { data, isLoading, error } = useQuery<{ configs: ProductionConfig[] }>({
+    queryKey: ['/api/admin/prompts/production'],
+  });
+  const { data: providersData } = useQuery<{ providers: ProviderInfo[] }>({
+    queryKey: ['/api/admin/prompts/providers'],
+  });
+  const providers = providersData?.providers ?? [];
+
+  if (isLoading) return <div className="p-8 text-stone-500">Loading…</div>;
+  if (error) {
+    return (
+      <div className="p-8 text-red-600">
+        Failed to load production config: {(error as Error).message}
+      </div>
+    );
+  }
+
+  const configs = data?.configs ?? [];
+  // Group by slot, keeping only the default (cardType='') row for now.
+  // Per-card-type overrides can be surfaced later if/when they're used.
+  const defaults = new Map<string, ProductionConfig>();
+  for (const c of configs) {
+    if (c.cardType === '') defaults.set(c.slot, c);
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card className="bg-green-50/40 border-green-200">
+        <CardContent className="py-3 text-xs text-green-900">
+          <strong>This is what customers get.</strong> Changes here take
+          effect on the next generation (propagation up to ~60s). The Lab
+          tabs above are for iteration — they don't affect production until
+          you save here.
+        </CardContent>
+      </Card>
+
+      {SLOT_IDS.map((slot) => (
+        <ProductionSlotRow
+          key={slot}
+          slot={slot}
+          config={defaults.get(slot) ?? null}
+          providers={providers}
+        />
+      ))}
+    </div>
+  );
+}
+
+interface ProductionSlotRowProps {
+  slot: SlotId;
+  config: ProductionConfig | null;
+  providers: ProviderInfo[];
+}
+
+function ProductionSlotRow({ slot, config, providers }: ProductionSlotRowProps) {
+  const queryClient = useQueryClient();
+
+  // Fetch all versions of this slot so the admin can pick any saved one
+  // as the active template.
+  const { data: slotData } = useQuery<SlotVersionsResponse>({
+    queryKey: [`/api/admin/prompts/slot/${slot}`],
+  });
+  const versions = slotData?.versions ?? [];
+
+  // Local form state — mirrors the saved row until the user saves.
+  const [templateId, setTemplateId] = useState<number | null>(
+    config?.activeTemplateId ?? null,
+  );
+  const [provider, setProvider] = useState<string | null>(config?.provider ?? null);
+  const [quality, setQuality] = useState<string | null>(config?.quality ?? null);
+  const [textLayout, setTextLayout] = useState<string | null>(
+    (config?.vars?.textLayout as string) ?? null,
+  );
+
+  // Re-sync local state whenever the server's saved row changes (e.g.
+  // after a successful save refetches the query).
+  useEffect(() => {
+    setTemplateId(config?.activeTemplateId ?? null);
+    setProvider(config?.provider ?? null);
+    setQuality(config?.quality ?? null);
+    setTextLayout((config?.vars?.textLayout as string) ?? null);
+  }, [config?.activeTemplateId, config?.provider, config?.quality, config?.vars]);
+
+  const currentProvider = providers.find((p) => p.id === provider);
+
+  // Reset quality when provider changes — providers offer different
+  // tier sets (Gemini/FLUX: high only; OpenAI: low/medium/high).
+  useEffect(() => {
+    if (!currentProvider) return;
+    const available = currentProvider.qualityOptions.map((q) => q.value);
+    if (quality && !available.includes(quality)) {
+      setQuality(currentProvider.qualityOptions[0]?.value ?? null);
+    }
+  }, [provider]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const dirty =
+    templateId !== (config?.activeTemplateId ?? null) ||
+    provider !== (config?.provider ?? null) ||
+    quality !== (config?.quality ?? null) ||
+    textLayout !== ((config?.vars?.textLayout as string) ?? null);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (templateId == null) throw new Error('Pick an active template');
+      // Only front_scene uses textLayout today. Other slots save vars as null
+      // until they gain their own knobs.
+      const varsPayload =
+        slot === 'front_scene' ? (textLayout ? { textLayout } : null) : null;
+      const body = {
+        slot,
+        cardType: '',
+        templateId,
+        provider: provider ?? null,
+        quality: quality ?? null,
+        vars: varsPayload,
+      };
+      const res = await apiRequest('POST', '/api/admin/prompts/activate', body);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Production config saved',
+        description: `${SLOT_LABELS[slot]} updated. New generations will use it within ~60s.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/prompts/production'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/prompts/slot/${slot}`] });
+    },
+    onError: (err: Error) => {
+      toast({
+        title: 'Save failed',
+        description: err.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const noConfig = !config;
+
+  return (
+    <Card className={noConfig ? 'border-amber-300' : ''}>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between gap-4">
+          <CardTitle className="text-base font-semibold">
+            {SLOT_LABELS[slot]}
+          </CardTitle>
+          {config?.updatedAt && (
+            <span className="text-[11px] text-stone-400">
+              Last changed {new Date(config.updatedAt).toLocaleString()}
+              {config.updatedBy ? ` by ${config.updatedBy}` : ''}
+            </span>
+          )}
+        </div>
+        {noConfig && (
+          <p className="text-xs text-amber-700 mt-1">
+            No production config yet. Pick a template and provider, then save.
+          </p>
+        )}
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Active template */}
+          <div>
+            <Label className="text-xs text-stone-600">Active template</Label>
+            <select
+              value={templateId ?? ''}
+              onChange={(e) => setTemplateId(parseInt(e.target.value, 10) || null)}
+              className="mt-1 w-full h-9 px-2 text-sm rounded-md border border-stone-300 bg-white"
+              data-testid={`production-${slot}-template`}
+            >
+              <option value="">— pick a version —</option>
+              {versions.map((v) => (
+                <option key={v.id} value={v.id}>
+                  v{v.version} · {v.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Provider */}
+          <div>
+            <Label className="text-xs text-stone-600">Provider</Label>
+            <select
+              value={provider ?? ''}
+              onChange={(e) => setProvider(e.target.value || null)}
+              className="mt-1 w-full h-9 px-2 text-sm rounded-md border border-stone-300 bg-white"
+              data-testid={`production-${slot}-provider`}
+            >
+              <option value="">— fallback (openai) —</option>
+              {providers.map((p) => (
+                <option key={p.id} value={p.id} disabled={!p.available}>
+                  {p.displayName}
+                  {!p.available ? ' (no API key)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Quality */}
+          <div>
+            <Label className="text-xs text-stone-600">Quality</Label>
+            <select
+              value={quality ?? ''}
+              onChange={(e) => setQuality(e.target.value || null)}
+              className="mt-1 w-full h-9 px-2 text-sm rounded-md border border-stone-300 bg-white disabled:bg-stone-100"
+              disabled={!currentProvider}
+              data-testid={`production-${slot}-quality`}
+            >
+              <option value="">— fallback (high) —</option>
+              {(currentProvider?.qualityOptions ?? []).map((q) => (
+                <option key={q.value} value={q.value}>
+                  {q.label} ({q.costDisplay})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Slot-specific vars */}
+          <div>
+            {slot === 'front_scene' ? (
+              <>
+                <Label className="text-xs text-stone-600">Typography</Label>
+                <select
+                  value={textLayout ?? ''}
+                  onChange={(e) => setTextLayout(e.target.value || null)}
+                  className="mt-1 w-full h-9 px-2 text-sm rounded-md border border-stone-300 bg-white"
+                  data-testid="production-front_scene-textlayout"
+                >
+                  <option value="">— template default —</option>
+                  <option value="scene_integrated">Scene integrated</option>
+                  <option value="movie_poster">Movie poster</option>
+                </select>
+              </>
+            ) : (
+              <>
+                <Label className="text-xs text-stone-400">Vars</Label>
+                <p className="mt-1 text-xs text-stone-400">
+                  No slot-specific options yet.
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center gap-3">
+          <Button
+            size="sm"
+            onClick={() => saveMutation.mutate()}
+            disabled={!dirty || templateId == null || saveMutation.isPending}
+            className="bg-green-600 hover:bg-green-700 text-white"
+            data-testid={`btn-production-save-${slot}`}
+          >
+            {saveMutation.isPending ? 'Saving…' : dirty ? 'Save to production' : 'Saved'}
+          </Button>
+          {dirty && (
+            <span className="text-xs text-amber-700">Unsaved changes</span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
