@@ -224,6 +224,18 @@ Once users have >10 photos, the library picker needs structure — labels
 the `photos` table, just no UI yet.
 **Ships when:** heavy users hit friction finding the right photo.
 
+### Revisit scene suggestions UX
+The current Scene step has an `[Ideas]` drawer with ~15 presets per
+occasion (from `client/src/lib/scene-presets.ts`). Click a preset →
+fills the textarea, cursor at end, fully editable. Functional, but
+doesn't sit right — unclear yet if it's the drawer pattern, the
+preset content, the way it competes with the textarea, or something
+else tonal. Flagged by Kevin post-Sprint-3 while walking the flow.
+**Revisit when:** brainstorm-chat wiring lands (Sprint 3.5) — the
+combination of Brainstorm-with-AI + preset drawer may need the
+whole "stuck? here's help" UX rethought as one thing, not two.
+Don't polish the presets in isolation.
+
 ### Journey preview panel in the Studio
 Always-visible card-shaped frame alongside the maker steps, populated
 as the user progresses — photo (cropped), recipient name + occasion as
