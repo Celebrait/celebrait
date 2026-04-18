@@ -139,6 +139,39 @@ Natural lock-in — users come back to check replies.
 
 ---
 
+## Brand + trust
+
+### 100% Satisf-AI-ction Guarantee (human-in-the-loop safety net)
+Customer-facing promise: if the AI output doesn't land, a Celebrait
+specialist takes over on WhatsApp and iterates with the customer until
+they're happy. Removes the biggest pre-purchase fear ("what if the
+result looks rubbish?") and underwrites the pay-before-generate model
+— customers know there's a human backstop, so paying first feels safe.
+
+**Why it matters:**
+- Removes the conversion-killing anxiety around "I haven't seen it yet"
+- On-brand with the AI wordplay pattern (animAIted / reAIlistic)
+- Creates a moat versus self-serve AI card tools — nobody else will
+  operate a human rescue line
+- Surfaces real prompt-engineering gaps as free feedback
+
+**Operational shape (for when we ship it):**
+- Tiered escalation, not WhatsApp-by-default — free auto-regen first,
+  WhatsApp only if that fails. Keeps specialist load low.
+- "Specialist" needs a proper surface: admin view of the customer's
+  card, ability to tweak the prompt + regenerate on their behalf,
+  chat history attached.
+- Templated responses for common complaints (facial likeness,
+  background, text placement) so specialists aren't writing cold.
+- Track NPS / resolution rate per specialist interaction — it's free
+  training data for Prompt Lab improvements.
+
+**Ships when:** soon after launch. Guarantee language can go on the
+landing page from day one (it's a policy, not a feature). The admin
+tooling ships when first specialist escalation hits.
+
+---
+
 ## Digital products strategy
 
 ### The thesis
