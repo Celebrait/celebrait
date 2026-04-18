@@ -10,7 +10,7 @@
 // verbatim on PATCH — the shape is the contract.
 
 export type StyleMode = 'animated' | 'realistic' | 'custom';
-export type InsideMode = 'generate' | 'write' | 'blank';
+export type InsideMode = 'write' | 'blank';
 
 export interface CardDraftState {
   /** Schema version. Bumps force-migrate older drafts on read. */
@@ -35,8 +35,14 @@ export interface CardDraftState {
   };
   inside?: {
     mode?: InsideMode;
-    /** User-written inside message (only when mode='write'). */
-    text?: string;
+    /** Only present when mode='write'. All three fields are optional —
+     *  only `message` gates readiness (salutation + signoff are decoration).
+     *  Concatenated into the v1 `insideText` prompt variable at generate time. */
+    write?: {
+      salutation?: string;
+      message?: string;
+      signoff?: string;
+    };
   };
 }
 

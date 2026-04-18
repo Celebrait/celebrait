@@ -26,6 +26,7 @@ import {
 import { SceneStep, isSceneStepReady } from '@/components/studio/steps/scene-step';
 import { StyleStep, isStyleStepReady } from '@/components/studio/steps/style-step';
 import { PhotoStep, isPhotoStepReady } from '@/components/studio/steps/photo-step';
+import { InsideStep, isInsideStepReady } from '@/components/studio/steps/inside-step';
 import { CARD_MAKER_STEPS, type CardDraftState } from '@shared/schema';
 
 // ── Entry: POST a new draft, then redirect to the edit URL ───────────
@@ -101,6 +102,8 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     setStep,
     goNext,
     goBack,
+    scheduleSave,
+    flushSave,
     currentStep,
     totalSteps,
   } = useCardMaker({ cardId });
@@ -178,7 +181,15 @@ function CardMakerInner({ cardId }: { cardId: number }) {
         {currentStep === 1 && <PhotoStep state={state} onChange={update} />}
         {currentStep === 2 && <SceneStep state={state} onChange={update} />}
         {currentStep === 3 && <StyleStep state={state} onChange={update} />}
-        {currentStep >= 4 && <StepPanelPlaceholder stepIndex={currentStep} />}
+        {currentStep === 4 && (
+          <InsideStep
+            state={state}
+            onChange={update}
+            scheduleSave={scheduleSave}
+            flushSave={flushSave}
+          />
+        )}
+        {currentStep >= 5 && <StepPanelPlaceholder stepIndex={currentStep} />}
       </div>
 
       {/* ── Nav ─────────────────────────────────────────────────── */}
@@ -228,6 +239,7 @@ function isStepReady(stepIndex: number, state: CardDraftState): boolean {
   if (stepIndex === 1) return isPhotoStepReady(state);
   if (stepIndex === 2) return isSceneStepReady(state);
   if (stepIndex === 3) return isStyleStepReady(state);
+  if (stepIndex === 4) return isInsideStepReady(state);
   return true;
 }
 
