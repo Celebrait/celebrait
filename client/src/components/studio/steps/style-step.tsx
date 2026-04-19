@@ -131,8 +131,8 @@ export function StyleStep({ state, onChange }: StyleStepProps) {
                   strokeWidth={1.75}
                 />
                 {active && (
-                  <span className="absolute top-3 right-3 w-6 h-6 rounded-full bg-brand text-brand-foreground flex items-center justify-center shadow-sm">
-                    <Check className="w-3.5 h-3.5" />
+                  <span className="absolute top-3 right-3 w-6 h-6 rounded-full bg-cta text-cta-foreground flex items-center justify-center shadow-sm">
+                    <Check className="w-3.5 h-3.5" strokeWidth={3} />
                   </span>
                 )}
               </div>
@@ -190,7 +190,9 @@ export function StyleStep({ state, onChange }: StyleStepProps) {
           </span>
         </span>
         {currentMode === 'custom' && (
-          <Check className="w-4 h-4 text-brand shrink-0" />
+          <span className="w-5 h-5 rounded-full bg-cta text-cta-foreground flex items-center justify-center shrink-0 shadow-sm">
+            <Check className="w-3 h-3" strokeWidth={3} />
+          </span>
         )}
       </button>
 

@@ -85,10 +85,13 @@ export function ReviewStep({
   }
 
   // Default: review + generate.
+  const recipientName = state.recipient?.name?.trim();
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <p className="text-sm text-stone-600 mb-1">Ready to generate?</p>
+        <p className="text-sm text-ink font-medium mb-1">
+          {recipientName ? `${recipientName}'s card — ready to make` : 'Ready to make'}
+        </p>
         <p className="text-xs text-stone-500">
           Here's what you've chosen. Tap any section to change it.
         </p>
@@ -103,11 +106,11 @@ export function ReviewStep({
       <div className="pt-2">
         <Button
           onClick={onGenerate}
-          className="w-full bg-cta hover:bg-cta-hover text-cta-foreground text-base py-6"
+          className="w-full bg-cta hover:bg-cta-hover text-cta-foreground text-base py-6 shadow-sm hover:shadow-md transition-shadow"
           data-testid="btn-generate-card"
         >
           <Sparkles className="w-5 h-5 mr-2" />
-          Generate my card
+          {recipientName ? `Generate ${recipientName}'s card` : 'Generate my card'}
         </Button>
         <p className="text-[11px] text-stone-400 text-center mt-2">
           Usually takes ~{TYPICAL_GENERATION_SECONDS} seconds.
@@ -145,15 +148,16 @@ function SummaryPanel({
           : '—';
 
   return (
-    <div className="bg-white border-2 border-stone-200 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm">
+    <div className="bg-white border border-accent-coral-light rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm">
       <SummaryRow
         icon={User}
+        iconTint="coral"
         label="Recipient"
         onEdit={() => onJumpToStep(stepIndexById.recipient)}
         testId="summary-recipient"
       >
-        <div className="text-sm text-stone-900">
-          {recipient?.name || <span className="text-stone-400">Not set</span>}
+        <div className="text-sm text-ink font-medium">
+          {recipient?.name || <span className="text-stone-400 font-normal">Not set</span>}
         </div>
         {recipient?.occasion && (
           <div className="text-xs text-stone-500 capitalize mt-0.5">
@@ -164,11 +168,12 @@ function SummaryPanel({
 
       <SummaryRow
         icon={ImageIcon}
+        iconTint="brand"
         label="Photo"
         onEdit={() => onJumpToStep(stepIndexById.photo)}
         testId="summary-photo"
       >
-        <div className="text-sm text-stone-900">
+        <div className="text-sm text-ink">
           {photoCount === 0 ? (
             <span className="text-stone-400">Not uploaded</span>
           ) : photoCount === 1 ? (
@@ -181,12 +186,13 @@ function SummaryPanel({
 
       <SummaryRow
         icon={MessageSquare}
+        iconTint="amber"
         label="Scene"
         onEdit={() => onJumpToStep(stepIndexById.scene)}
         testId="summary-scene"
       >
         {scene ? (
-          <p className="text-sm text-stone-900 leading-relaxed">{scene}</p>
+          <p className="text-sm text-ink leading-relaxed">{scene}</p>
         ) : (
           <span className="text-sm text-stone-400">Not set</span>
         )}
@@ -194,11 +200,12 @@ function SummaryPanel({
 
       <SummaryRow
         icon={Palette}
+        iconTint="brand"
         label="Style"
         onEdit={() => onJumpToStep(stepIndexById.style)}
         testId="summary-style"
       >
-        <div className="text-sm text-stone-900">{styleLabel}</div>
+        <div className="text-sm text-ink font-medium">{styleLabel}</div>
         {styleMode === 'custom' && styleCustom && (
           <div className="text-xs text-stone-500 mt-0.5 line-clamp-2">
             {styleCustom}
@@ -208,6 +215,7 @@ function SummaryPanel({
 
       <SummaryRow
         icon={FileText}
+        iconTint="coral"
         label="Inside"
         onEdit={() => onJumpToStep(stepIndexById.inside)}
         testId="summary-inside"
@@ -232,14 +240,29 @@ function SummaryPanel({
   );
 }
 
+// Tint mapping — each section gets a distinct accent so the summary
+// reads as a journey (different colours per step) rather than five
+// identical grey rows. Coral = emotion, brand = identity, amber =
+// scene/storytelling. Keeps the palette rules consistent with the
+// rest of the flow.
+type IconTint = 'coral' | 'brand' | 'amber';
+
+const ICON_TINT_STYLES: Record<IconTint, string> = {
+  coral: 'bg-accent-coral-light text-accent-coral-dark',
+  brand: 'bg-brand-muted text-brand',
+  amber: 'bg-accent-amber-light text-accent-amber-dark',
+};
+
 function SummaryRow({
   icon: Icon,
+  iconTint,
   label,
   onEdit,
   children,
   testId,
 }: {
   icon: typeof User;
+  iconTint: IconTint;
   label: string;
   onEdit: () => void;
   children: React.ReactNode;
@@ -247,12 +270,14 @@ function SummaryRow({
 }) {
   return (
     <div className="flex items-start gap-3" data-testid={testId}>
-      <div className="w-8 h-8 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center shrink-0 mt-0.5">
-        <Icon className="w-4 h-4" />
+      <div
+        className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${ICON_TINT_STYLES[iconTint]}`}
+      >
+        <Icon className="w-4 h-4" strokeWidth={1.75} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">
+          <p className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider">
             {label}
           </p>
           <button

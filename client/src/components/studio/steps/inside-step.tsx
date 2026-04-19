@@ -257,8 +257,8 @@ function BlankPanel({ onUndo }: { onUndo: () => void }) {
       data-testid="inside-blank-panel"
     >
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-8 h-8 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0">
-          <Check className="w-4 h-4" />
+        <div className="w-8 h-8 rounded-full bg-cta text-cta-foreground flex items-center justify-center shrink-0 shadow-sm">
+          <Check className="w-4 h-4" strokeWidth={3} />
         </div>
         <div className="min-w-0">
           <p className="text-sm font-semibold text-brand-dark">

@@ -264,8 +264,8 @@ function OccasionButton({
         {label}
       </span>
       {selected && (
-        <span className="ml-auto w-5 h-5 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0">
-          <Check className="w-3 h-3" />
+        <span className="ml-auto w-5 h-5 rounded-full bg-cta text-cta-foreground flex items-center justify-center shrink-0 shadow-sm">
+          <Check className="w-3 h-3" strokeWidth={3} />
         </span>
       )}
     </button>

@@ -118,6 +118,27 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
     }
   };
 
+  const fillExample = (text: string) => {
+    setLocal(text);
+    onChange({ scene: { ...state.scene, description: text } });
+    // Focus the textarea with cursor at end so editing feels natural.
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (el) {
+        el.focus();
+        el.setSelectionRange(text.length, text.length);
+      }
+    });
+  };
+
+  // Flatten the first few scenes from the occasion's preset groups
+  // into a flat list. Lightweight quick-start chips — no drawer, no
+  // category nav. Brainstorm chat is the "real" helper; these are
+  // just a nudge for users who need a push off the blank page.
+  const exampleScenes: string[] = presetSet.presets
+    .flatMap((group) => group.scenes.slice(0, 2))
+    .slice(0, 4);
+
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       <div>
@@ -150,29 +171,60 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
           <p className="text-[11px] text-stone-400">
             {local.length > 0
               ? `${local.length} characters`
-              : 'Stuck? Try the AI helper below →'}
+              : 'Tap an example below to start from — fully editable.'}
           </p>
         </div>
       </div>
 
-      <div className="flex gap-2">
+      {/* Quick-start example chips — fill-and-edit, not a canonical
+          picker. Only shown while the textarea is empty so they fade
+          out once the user has written their own scene. */}
+      {local.length === 0 && exampleScenes.length > 0 && (
+        <div>
+          <p className="text-[11px] font-semibold text-accent-coral-dark uppercase tracking-wider mb-2">
+            Need a spark?
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {exampleScenes.map((ex, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => fillExample(ex)}
+                className="text-left text-xs leading-snug px-3 py-2 rounded-lg bg-surface-cream border border-accent-coral-light hover:border-accent-coral-dark hover:bg-accent-coral-light/60 text-stone-700 transition-colors max-w-full"
+                data-testid={`scene-example-${i}`}
+              >
+                {ex}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Brainstorm with AI — the real helper once wired up in 3.7b.
+          Gets a gradient + sparkle treatment now so when it goes live
+          it reads as the standout "stuck?" affordance instead of a
+          timid outline button. Still disabled for now, with a clear
+          Coming Soon chip so the visual promise matches reality. */}
+      <div className="flex gap-2 items-center">
         <Tooltip>
           <TooltipTrigger asChild>
             <span>
               <Button
                 type="button"
-                variant="outline"
                 disabled
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-gradient-to-r from-brand via-brand-dark to-accent-coral-dark text-white shadow-sm hover:shadow-md disabled:opacity-90 disabled:cursor-not-allowed"
                 data-testid="btn-scene-ai-help"
               >
-                <Sparkles className="w-4 h-4 text-accent-amber" />
-                Brainstorm with AI
+                <Sparkles className="w-4 h-4 text-accent-amber-light" />
+                <span className="font-semibold">Brainstorm with AI</span>
               </Button>
             </span>
           </TooltipTrigger>
           <TooltipContent>Coming soon — chat through ideas with the AI</TooltipContent>
         </Tooltip>
+        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent-amber-light text-accent-amber-dark border border-accent-amber/40">
+          Coming soon
+        </span>
       </div>
     </div>
   );

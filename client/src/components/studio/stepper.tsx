@@ -38,22 +38,22 @@ export function Stepper({ currentStep, furthestStep, onStepClick }: StepperProps
               data-testid={`step-${s.id}`}
             >
               <span
-                className={`flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs font-semibold shrink-0 transition-colors ${
+                className={`flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs font-semibold shrink-0 transition-colors shadow-sm ${
                   isCurrent
                     ? 'bg-brand text-brand-foreground ring-2 ring-brand-light'
                     : isDone
                       ? 'bg-cta text-cta-foreground'
-                      : 'bg-stone-100 text-stone-400'
+                      : 'bg-stone-100 text-stone-400 shadow-none'
                 }`}
               >
-                {isDone ? <Check className="w-4 h-4" /> : i + 1}
+                {isDone ? <Check className="w-4 h-4" strokeWidth={3} /> : i + 1}
               </span>
               <span
                 className={`hidden md:inline text-xs sm:text-sm truncate transition-colors ${
                   isCurrent
-                    ? 'text-stone-900 font-medium'
+                    ? 'text-ink font-semibold'
                     : isDone
-                      ? 'text-stone-700'
+                      ? 'text-cta-hover'
                       : 'text-stone-400'
                 }`}
               >
