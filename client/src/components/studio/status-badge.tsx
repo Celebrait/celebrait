@@ -43,6 +43,13 @@ const STATUS_MAP: Record<string, StatusVariant> = {
     label: 'Failed',
     className: 'bg-red-50 text-red-700 border-red-200',
   },
+  // Shown when a card's status suggests it's completed but the image
+  // isn't viewable (legacy data from before the Studio). Softer than
+  // "Ready" so it's obviously a different state the user can't act on.
+  archived: {
+    label: 'Archived',
+    className: 'bg-stone-50 text-stone-500 border-stone-200',
+  },
 };
 
 export function StatusBadge({ status }: { status: string | null | undefined }) {

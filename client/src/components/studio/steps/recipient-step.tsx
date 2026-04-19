@@ -3,19 +3,47 @@
 // Step 1: who's the card for, and what's the occasion. Drives the
 // tone of every subsequent step — scene presets are occasion-specific,
 // inside-message generation uses the name, etc.
+//
+// Layout (3.7a rewrite):
+//   - Name input up top
+//   - Occasions rendered as button cards (four primary + "More" + "Other")
+//     rather than a dropdown. Mirrors the MVP's better-tested pattern —
+//     big tappable targets, zero-click discovery of options.
+//   - "Other" surfaces a free-text field so custom occasions ("Retirement",
+//     "New home", "Divorce party") don't fall through a keyword gap.
 
 import { useState } from 'react';
+import { Check, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import type { CardDraftState } from '@shared/schema';
 import { OCCASION_OPTIONS, getOccasionLabel } from '../scene-presets';
+
+// The four occasions shown by default. Rest are behind a "More" disclosure
+// so the step doesn't feel like a dropdown pretending to be buttons.
+// Order reflects expected popularity for UK/ZAR at launch.
+const PRIMARY_OCCASIONS: readonly string[] = [
+  'birthday',
+  'anniversary',
+  'wedding',
+  'graduation',
+];
+
+// Optional decorative emoji per occasion — gentle celebratory signal
+// without leaning into cartoon territory. Null = no icon (clean label
+// is fine).
+const OCCASION_ICON: Record<string, string> = {
+  birthday: '🎂',
+  anniversary: '💞',
+  wedding: '💍',
+  graduation: '🎓',
+  engagement: '💐',
+  baby: '👶',
+  christmas: '🎄',
+  valentines: '💌',
+  thankyou: '🙏',
+  sympathy: '🤍',
+};
 
 interface RecipientStepProps {
   state: CardDraftState;
@@ -27,6 +55,25 @@ export function RecipientStep({ state, onChange }: RecipientStepProps) {
   // keystroke. Commits on blur.
   const [localName, setLocalName] = useState(state.recipient?.name ?? '');
 
+  const selectedOccasion = state.recipient?.occasion ?? '';
+
+  // Show more options if the user has already picked a non-primary
+  // occasion (so they don't have to re-click "More" to see why their
+  // pick is highlighted).
+  const [showMore, setShowMore] = useState(
+    !!selectedOccasion &&
+      !PRIMARY_OCCASIONS.includes(selectedOccasion) &&
+      selectedOccasion !== 'other',
+  );
+
+  // "Other" free-text — separate field so switching to Other and back
+  // doesn't lose what the user typed.
+  const [otherText, setOtherText] = useState(
+    selectedOccasion && !(OCCASION_OPTIONS as readonly string[]).includes(selectedOccasion)
+      ? selectedOccasion
+      : '',
+  );
+
   const commitName = () => {
     const trimmed = localName.trim();
     if (trimmed !== (state.recipient?.name ?? '')) {
@@ -34,18 +81,36 @@ export function RecipientStep({ state, onChange }: RecipientStepProps) {
     }
   };
 
-  const setOccasion = (occasion: string) => {
+  const pickOccasion = (occasion: string) => {
     onChange({ recipient: { ...state.recipient, occasion } });
   };
 
+  const commitOther = () => {
+    const trimmed = otherText.trim();
+    // Only persist non-empty custom occasions. Empty → fall back to
+    // the 'other' sentinel so readiness gate still passes.
+    const final = trimmed.length > 0 ? trimmed : 'other';
+    if (final !== selectedOccasion) {
+      onChange({ recipient: { ...state.recipient, occasion: final } });
+    }
+  };
+
+  const moreOccasions = OCCASION_OPTIONS.filter(
+    (o) => !PRIMARY_OCCASIONS.includes(o) && o !== 'other',
+  );
+  const isOtherPicked =
+    selectedOccasion === 'other' ||
+    (!!selectedOccasion && !(OCCASION_OPTIONS as readonly string[]).includes(selectedOccasion));
+
   return (
-    <div className="max-w-md mx-auto space-y-6">
+    <div className="max-w-xl mx-auto space-y-6">
       <p className="text-sm text-stone-600">
         Who's this card for, and what are you celebrating?
       </p>
 
+      {/* Name */}
       <div className="space-y-2">
-        <Label htmlFor="recipient-name" className="text-sm">
+        <Label htmlFor="recipient-name" className="text-sm text-ink">
           Their name
         </Label>
         <Input
@@ -60,30 +125,132 @@ export function RecipientStep({ state, onChange }: RecipientStepProps) {
         />
       </div>
 
+      {/* Occasion */}
       <div className="space-y-2">
-        <Label htmlFor="recipient-occasion" className="text-sm">
-          Occasion
-        </Label>
-        <Select value={state.recipient?.occasion ?? ''} onValueChange={setOccasion}>
-          <SelectTrigger id="recipient-occasion" data-testid="select-recipient-occasion">
-            <SelectValue placeholder="Choose an occasion" />
-          </SelectTrigger>
-          <SelectContent>
-            {OCCASION_OPTIONS.map((o) => (
-              <SelectItem key={o} value={o}>
-                {getOccasionLabel(o)}
-              </SelectItem>
+        <Label className="text-sm text-ink">The occasion</Label>
+        <div className="grid grid-cols-2 gap-2.5">
+          {PRIMARY_OCCASIONS.map((o) => (
+            <OccasionButton
+              key={o}
+              occasion={o}
+              icon={OCCASION_ICON[o]}
+              label={getOccasionLabel(o)}
+              selected={selectedOccasion === o}
+              onPick={() => pickOccasion(o)}
+            />
+          ))}
+        </div>
+
+        {/* More disclosure */}
+        {!showMore && (
+          <button
+            type="button"
+            onClick={() => setShowMore(true)}
+            className="flex items-center gap-1.5 text-xs text-brand hover:text-brand-dark mt-1 underline underline-offset-2"
+            data-testid="btn-more-occasions"
+          >
+            <ChevronDown className="w-3 h-3" />
+            More occasions
+          </button>
+        )}
+        {showMore && (
+          <div className="grid grid-cols-2 gap-2.5 pt-1">
+            {moreOccasions.map((o) => (
+              <OccasionButton
+                key={o}
+                occasion={o}
+                icon={OCCASION_ICON[o]}
+                label={getOccasionLabel(o)}
+                selected={selectedOccasion === o}
+                onPick={() => pickOccasion(o)}
+              />
             ))}
-          </SelectContent>
-        </Select>
+          </div>
+        )}
+
+        {/* "Other" card — always visible once More is expanded, or if
+            the user has an Other value already. Separate row so it
+            stands apart from the canonical list. */}
+        {(showMore || isOtherPicked) && (
+          <div className="pt-2">
+            <OccasionButton
+              occasion="other"
+              icon="✍️"
+              label={isOtherPicked && otherText ? `Custom: ${otherText}` : 'Something else'}
+              selected={isOtherPicked}
+              onPick={() => pickOccasion('other')}
+              wide
+            />
+            {isOtherPicked && (
+              <div className="mt-2">
+                <Input
+                  value={otherText}
+                  onChange={(e) => setOtherText(e.target.value)}
+                  onBlur={commitOther}
+                  placeholder="Type the occasion… e.g. Retirement, New home"
+                  className="text-sm"
+                  data-testid="input-other-occasion"
+                  autoFocus
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+// Tappable occasion card. Visual feedback is the whole point — big
+// target, obvious selected state, small icon for warmth.
+function OccasionButton({
+  occasion,
+  icon,
+  label,
+  selected,
+  onPick,
+  wide = false,
+}: {
+  occasion: string;
+  icon?: string;
+  label: string;
+  selected: boolean;
+  onPick: () => void;
+  wide?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      className={`relative flex items-center gap-2.5 text-left p-3 rounded-xl border-2 transition-all ${
+        selected
+          ? 'border-brand bg-brand-muted shadow-sm'
+          : 'border-stone-200 hover:border-stone-300 bg-white'
+      } ${wide ? 'w-full' : ''}`}
+      data-testid={`btn-occasion-${occasion}`}
+    >
+      {icon && <span className="text-lg leading-none">{icon}</span>}
+      <span
+        className={`text-sm font-medium truncate ${
+          selected ? 'text-brand-dark' : 'text-stone-800'
+        }`}
+      >
+        {label}
+      </span>
+      {selected && (
+        <span className="ml-auto w-5 h-5 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0">
+          <Check className="w-3 h-3" />
+        </span>
+      )}
+    </button>
   );
 }
 
 /** Is the Recipient step complete enough to move on? */
 export function isRecipientStepReady(state: CardDraftState): boolean {
   const name = state.recipient?.name?.trim();
-  const occasion = state.recipient?.occasion;
-  return !!name && !!occasion;
+  const occasion = state.recipient?.occasion?.trim();
+  return !!name && !!occasion && occasion !== 'other';
+  // ^ 'other' on its own isn't ready — user must either type their
+  //   custom occasion or pick a real one. Prevents ambiguous drafts.
 }

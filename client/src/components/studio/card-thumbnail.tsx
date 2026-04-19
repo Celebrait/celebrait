@@ -47,6 +47,22 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const { toast } = useToast();
   const hasImage = !!card.frontImageUrl && !imageFailed;
+
+  // A card whose status claims it's ready-for-the-customer (completed,
+  // ready, paid, purchased) but has no viewable image is almost always
+  // legacy data from the pre-Studio flow where image paths were stored
+  // differently. Don't mislead the user with a green "Ready" badge on
+  // a card they can't see — downgrade to an "Archived" label instead
+  // so it's clearly a different state.
+  const isOrphanedCompleted =
+    !hasImage &&
+    !isGenerating &&
+    !isDraft &&
+    (card.status === 'completed' ||
+      card.status === 'ready' ||
+      card.status === 'paid' ||
+      card.status === 'purchased');
+  const effectiveStatus = isOrphanedCompleted ? 'archived' : card.status;
   // Drafts click back into the maker to resume; finished cards go to
   // their detail/preview page (not built yet — Sprint 4).
   const href = isDraft ? `/studio/card/${card.id}/edit` : `/studio/card/${card.id}`;
@@ -89,11 +105,13 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-stone-400">
             <ImageOff className="w-8 h-8 mb-1" />
-            <p className="text-xs">No preview</p>
+            <p className="text-xs">
+              {isOrphanedCompleted ? 'Image unavailable' : 'No preview'}
+            </p>
           </div>
         )}
         <div className="absolute top-2 right-2">
-          <StatusBadge status={card.status} />
+          <StatusBadge status={effectiveStatus} />
         </div>
       </div>
       <div className="p-3">

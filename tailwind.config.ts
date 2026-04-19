@@ -31,10 +31,28 @@ export default {
           light: '#e0f8db',       // pale green — success backgrounds
           foreground: '#ffffff',
         },
+        // Accent palette — semantic usage rules (see UX_STUDIO_TONE.md):
+        //   coral = emotion / recipient moments (hearts, personal moments)
+        //   amber = celebration / success / sparkle moments
+        //   cream = warm neutral surfaces (step backgrounds, card frames)
+        //   ink   = premium headings / deep text anchor (not for body)
+        accent: {
+          coral: '#ff9ec7',      // soft coral — emotion, warmth
+          'coral-dark': '#ec4899', // saturated coral — hover / emphasis
+          'coral-light': '#ffe4ef', // pale coral wash — backgrounds
+          amber: '#fbbf24',      // sunny amber — celebration, success
+          'amber-dark': '#f59e0b', // deeper amber — hover
+          'amber-light': '#fef3c7', // pale amber wash
+        },
         surface: {
           DEFAULT: '#fafaf9',     // stone-50 — page background (warm)
           card: '#ffffff',        // card backgrounds
           muted: '#f5f5f4',       // stone-100 — subtle differentiation
+          cream: '#fef7ed',       // warm cream — step backgrounds, frames
+        },
+        ink: {
+          DEFAULT: '#312e81',    // deep violet — premium headings (anchors the palette)
+          soft: '#4c4a8a',       // slightly softer variant for sub-headings
         },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",

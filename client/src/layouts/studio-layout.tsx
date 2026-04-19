@@ -162,11 +162,11 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
           <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
             {isOnHome && (
               <div className="mb-6 sm:mb-8">
-                <h1 className="text-2xl sm:text-3xl font-semibold text-stone-900">
-                  Welcome back, {displayName}
+                <h1 className="text-2xl sm:text-3xl font-semibold text-ink">
+                  Hi {displayName} <span className="text-accent-amber">✨</span>
                 </h1>
                 <p className="text-sm text-stone-600 mt-1">
-                  Your studio — where your cards live.
+                  Your studio — every card you've crafted, all in one place.
                 </p>
               </div>
             )}

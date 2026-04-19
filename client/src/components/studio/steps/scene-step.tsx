@@ -1,26 +1,26 @@
 // client/src/components/studio/steps/scene-step.tsx
 //
-// Step 2: describe the scene that goes on the card front. The editable
-// textarea IS the primary input — the Ideas drawer just pre-fills it.
-// Per the product brief, every input path ends up in the same textarea
-// so users never feel locked into a mode.
+// Step 3: describe the scene that goes on the card front. The editable
+// textarea IS the primary input — per the locked product decision,
+// every input path ends up in the same textarea so users never feel
+// locked into a mode.
 //
-// The AI help button is a stub in this phase (Sprint 3) and wires up
-// the existing brainstorm chat component in a later sprint.
+// Placeholder rotates between occasion-specific example scenes, typed
+// out character-by-character (not snap-swapped) so the eye tracks
+// what's changing. Feels like the textarea is gently suggesting, not
+// flashing.
+//
+// AI help is a stub in this phase — wiring the brainstorm chat is a
+// 3.7b deliverable. The old Ideas drawer is gone: we decided (2026-04-19)
+// that two helper paths split attention; AI help is the single "stuck?"
+// affordance once it's live.
 
 import { useEffect, useRef, useState } from 'react';
-import { Sparkles, Lightbulb } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet';
 import type { CardDraftState } from '@shared/schema';
 import { OCCASION_PRESETS } from '../scene-presets';
 
@@ -29,9 +29,12 @@ interface SceneStepProps {
   onChange: (patch: Partial<CardDraftState>) => void;
 }
 
-// Rotate placeholder every N ms (only while the textarea is empty and
-// not focused — we don't fight the user once they engage).
-const PLACEHOLDER_ROTATE_MS = 3500;
+// How long between placeholder phrases (after one finishes typing).
+const PLACEHOLDER_PAUSE_MS = 2500;
+// Type speed — per character. Slightly varies feel for natural rhythm.
+const TYPE_CHAR_MS = 45;
+// Backspace speed — faster than typing so the loop doesn't drag.
+const BACKSPACE_CHAR_MS = 20;
 
 export function SceneStep({ state, onChange }: SceneStepProps) {
   const occasion = state.recipient?.occasion ?? 'other';
@@ -39,31 +42,74 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
 
   // Local textarea value so typing doesn't fire a save per keystroke.
   // Commits on blur. Kept in sync if `state.scene.description` changes
-  // from elsewhere (preset fill).
+  // from elsewhere.
   const [local, setLocal] = useState(state.scene?.description ?? '');
   const [focused, setFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
-    // External changes (e.g. preset click) should update the textarea.
+    // External changes (e.g. preset fill from future brainstorm-chat)
+    // should update the textarea.
     if ((state.scene?.description ?? '') !== local) {
       setLocal(state.scene?.description ?? '');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.scene?.description]);
 
-  // Rotating placeholder index. Only advances while the textarea is
-  // empty + unfocused, so we never distract a typing user.
+  // ── Typing placeholder ───────────────────────────────────────────
+  // State machine:
+  //   typing → paused → deleting → next phrase → typing
+  // Only runs while textarea is empty + unfocused (don't fight the user).
+  const placeholders = presetSet.placeholders;
+  const [placeholderText, setPlaceholderText] = useState('');
   const [phIndex, setPhIndex] = useState(0);
-  useEffect(() => {
-    if (local.length > 0 || focused) return;
-    const t = setInterval(() => {
-      setPhIndex((i) => (i + 1) % presetSet.placeholders.length);
-    }, PLACEHOLDER_ROTATE_MS);
-    return () => clearInterval(t);
-  }, [local.length, focused, presetSet.placeholders.length]);
+  const [phPhase, setPhPhase] = useState<'typing' | 'pausing' | 'deleting'>(
+    'typing',
+  );
 
-  const currentPlaceholder = presetSet.placeholders[phIndex] ?? presetSet.placeholders[0];
+  const shouldAnimate = local.length === 0 && !focused;
+
+  useEffect(() => {
+    if (!shouldAnimate) return;
+    const target = placeholders[phIndex] ?? placeholders[0] ?? '';
+
+    if (phPhase === 'typing') {
+      if (placeholderText.length < target.length) {
+        const t = setTimeout(
+          () => setPlaceholderText(target.slice(0, placeholderText.length + 1)),
+          TYPE_CHAR_MS,
+        );
+        return () => clearTimeout(t);
+      }
+      // Finished typing — pause before deleting.
+      const t = setTimeout(() => setPhPhase('pausing'), 0);
+      return () => clearTimeout(t);
+    }
+    if (phPhase === 'pausing') {
+      const t = setTimeout(() => setPhPhase('deleting'), PLACEHOLDER_PAUSE_MS);
+      return () => clearTimeout(t);
+    }
+    // phPhase === 'deleting'
+    if (placeholderText.length > 0) {
+      const t = setTimeout(
+        () => setPlaceholderText(placeholderText.slice(0, -1)),
+        BACKSPACE_CHAR_MS,
+      );
+      return () => clearTimeout(t);
+    }
+    // Fully deleted — advance to next phrase + start typing.
+    setPhIndex((i) => (i + 1) % placeholders.length);
+    setPhPhase('typing');
+  }, [phPhase, placeholderText, phIndex, placeholders, shouldAnimate]);
+
+  // When animation is suspended (user focused or typed), reset to a
+  // fresh start so resuming doesn't pick up mid-word.
+  useEffect(() => {
+    if (!shouldAnimate) {
+      setPlaceholderText('');
+      setPhPhase('typing');
+    }
+  }, [shouldAnimate]);
 
   const commit = () => {
     const trimmed = local.trim();
@@ -72,25 +118,10 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
     }
   };
 
-  const [ideasOpen, setIdeasOpen] = useState(false);
-  const pickPreset = (scene: string) => {
-    setLocal(scene);
-    onChange({ scene: { ...state.scene, description: scene } });
-    setIdeasOpen(false);
-    // Focus the textarea with cursor at end so editing feels natural.
-    requestAnimationFrame(() => {
-      const el = textareaRef.current;
-      if (el) {
-        el.focus();
-        el.setSelectionRange(scene.length, scene.length);
-      }
-    });
-  };
-
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       <div>
-        <Label htmlFor="scene-description" className="text-sm">
+        <Label htmlFor="scene-description" className="text-sm text-ink">
           What's happening in the scene?
         </Label>
         <p className="text-xs text-stone-500 mt-1 mb-2">
@@ -107,14 +138,19 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
             setFocused(false);
             commit();
           }}
-          placeholder={currentPlaceholder}
+          placeholder={placeholderText}
           rows={5}
           className="text-base resize-none"
+          // aria-live=off so the animated placeholder doesn't spam
+          // screen readers with every keystroke-of-text change.
+          aria-live="off"
           data-testid="input-scene-description"
         />
         <div className="flex items-center justify-between mt-1">
           <p className="text-[11px] text-stone-400">
-            {local.length > 0 ? `${local.length} characters` : 'Tap an example for a starting point →'}
+            {local.length > 0
+              ? `${local.length} characters`
+              : 'Stuck? Try the AI helper below →'}
           </p>
         </div>
       </div>
@@ -130,80 +166,15 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
                 className="flex items-center gap-2"
                 data-testid="btn-scene-ai-help"
               >
-                <Sparkles className="w-4 h-4" />
-                AI help
+                <Sparkles className="w-4 h-4 text-accent-amber" />
+                Brainstorm with AI
               </Button>
             </span>
           </TooltipTrigger>
-          <TooltipContent>Coming soon — brainstorm with AI</TooltipContent>
+          <TooltipContent>Coming soon — chat through ideas with the AI</TooltipContent>
         </Tooltip>
-
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setIdeasOpen(true)}
-          className="flex items-center gap-2"
-          data-testid="btn-scene-ideas"
-        >
-          <Lightbulb className="w-4 h-4" />
-          Ideas
-        </Button>
       </div>
-
-      <IdeasDrawer
-        open={ideasOpen}
-        onOpenChange={setIdeasOpen}
-        presetSet={presetSet}
-        onPick={pickPreset}
-      />
     </div>
-  );
-}
-
-function IdeasDrawer({
-  open,
-  onOpenChange,
-  presetSet,
-  onPick,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  presetSet: (typeof OCCASION_PRESETS)[string];
-  onPick: (scene: string) => void;
-}) {
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
-        <SheetHeader className="mb-4">
-          <SheetTitle>Scene ideas — {presetSet.label}</SheetTitle>
-          <SheetDescription>
-            Tap a starting point. You can edit it once it's in the box.
-          </SheetDescription>
-        </SheetHeader>
-        <div className="space-y-5">
-          {presetSet.presets.map((group) => (
-            <div key={group.category}>
-              <div className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-2">
-                {group.category}
-              </div>
-              <div className="space-y-1.5">
-                {group.scenes.map((scene, i) => (
-                  <button
-                    key={`${group.category}-${i}`}
-                    type="button"
-                    onClick={() => onPick(scene)}
-                    className="block w-full text-left text-sm px-3 py-2 rounded-lg bg-surface-muted hover:bg-brand-muted hover:text-brand-dark transition-colors"
-                    data-testid={`preset-${group.category}-${i}`}
-                  >
-                    {scene}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </SheetContent>
-    </Sheet>
   );
 }
 

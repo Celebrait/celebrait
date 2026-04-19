@@ -14,7 +14,7 @@
 
 import { useEffect, useState } from 'react';
 import { useLocation, useRoute } from 'wouter';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Sparkle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
@@ -39,9 +39,18 @@ import { CARD_MAKER_STEPS, type CardDraftState, type StepId } from '@shared/sche
 export function NewCardPage() {
   const [, setLocation] = useLocation();
   const [error, setError] = useState<string | null>(null);
+  // Track how long we've been waiting so the fast-path stays near-invisible
+  // (no artificial delay) while a slow path (Neon cold start, etc.) gets
+  // the full branded treatment.
+  const [showBrandedWait, setShowBrandedWait] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    // Only dress up the wait if it's been slow enough to need it.
+    // Sub-400ms requests never flash the animation — they just redirect.
+    const brandedTimer = setTimeout(() => {
+      if (!cancelled) setShowBrandedWait(true);
+    }, 400);
     (async () => {
       try {
         const res = await apiRequest('POST', '/api/studio/drafts');
@@ -53,6 +62,7 @@ export function NewCardPage() {
     })();
     return () => {
       cancelled = true;
+      clearTimeout(brandedTimer);
     };
   }, [setLocation]);
 
@@ -66,9 +76,27 @@ export function NewCardPage() {
     );
   }
 
+  // Fast-path: brief minimal spinner, no visual noise.
+  if (!showBrandedWait) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="w-6 h-6 animate-spin text-brand" />
+      </div>
+    );
+  }
+
+  // Slow-path (Neon cold start etc.): branded "booting the studio" state.
+  // Gentle pulse + copy that says "we haven't stalled."
   return (
-    <div className="flex items-center justify-center py-24">
-      <Loader2 className="w-6 h-6 animate-spin text-brand" />
+    <div className="max-w-md mx-auto text-center py-24" data-testid="new-card-branded-wait">
+      <div className="relative inline-flex items-center justify-center mb-5">
+        <span className="absolute inline-flex w-20 h-20 rounded-full bg-brand-muted animate-ping opacity-60" />
+        <span className="relative inline-flex w-16 h-16 rounded-full bg-brand-muted border-2 border-brand items-center justify-center">
+          <Sparkle className="w-7 h-7 text-accent-amber" />
+        </span>
+      </div>
+      <p className="text-base font-semibold text-ink mb-1">Warming up the studio…</p>
+      <p className="text-xs text-stone-500">This usually takes a second or two.</p>
     </div>
   );
 }
