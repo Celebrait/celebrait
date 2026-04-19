@@ -51,8 +51,13 @@ export default {
           cream: '#fef7ed',       // warm cream — step backgrounds, frames
         },
         ink: {
-          DEFAULT: '#312e81',    // deep violet — premium headings (anchors the palette)
-          soft: '#4c4a8a',       // slightly softer variant for sub-headings
+          // Dark neutral anchor for body text + headings. Was deep violet
+          // originally, but that made the whole flow read as a sea of
+          // purple when combined with the brand + ink-soft. Premium brands
+          // in this space (Moonpig / Papier / Paperless Post) use a dark
+          // neutral and let their brand colour signal actions + accents.
+          DEFAULT: '#0f172a',    // slate-900 — body, headings, selected labels
+          soft: '#475569',       // slate-600 — secondary sub-headings / body-lite
         },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",

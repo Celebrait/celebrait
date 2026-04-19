@@ -140,9 +140,9 @@ function SummaryPanel({
 
   const styleLabel =
     styleMode === 'animated'
-      ? 'animAIted'
+      ? 'Animated'
       : styleMode === 'realistic'
-        ? 'reAIlistic'
+        ? 'Realistic'
         : styleMode === 'custom'
           ? 'Custom'
           : '—';
@@ -277,7 +277,7 @@ function SummaryRow({
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider">
+          <p className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
             {label}
           </p>
           <button
