@@ -101,15 +101,48 @@ Review step's success state (`status === 'completed'`) already shows the front +
 
 ## Proposed Delivery
 
-Scoped as **"Sprint 3.7 — Soul Pass"**, shipping after Sprint 3 Phase 6b (rate limit) lands and Sprint 3 merges to main.
+Originally scoped as a single Sprint 3.7. After Kevin's shakedown walk of the shipped Studio (2026-04-19), the feedback expanded beyond tone — structural UX changes and real bugs surfaced. Splitting into **3.7a (visual lift + quick wins)** and **3.7b (structural + wiring)** so 3.7a can land fast and 3.7b doesn't get delayed by not-yet-final decisions.
 
-Estimated scope: 4–8 hours of focused work. Commit plan:
+### Sprint 3.7a — Visual lift + quick wins (~half day)
 
-1. **Copy rewrite** — all six step components + labels + headers. Static strings.
-2. **Dynamic name-weaving** — tiny helper (`withName(template, state)`) used in step headers/subheaders.
-3. **Micro-acknowledgments** — Framer Motion fade-up on step transition.
-4. **AI-assist wiring** — "Brainstorm with AI" button live on Scene; "Let AI decide" on Style. (Brainstorm extraction may slip into Sprint 3.5 if the 1,227-line component needs more work.)
-5. **Completion polish** — subtle animation on the completed state + better "what next" affordance.
+1. **Palette expansion** — add accent tokens (coral, amber, cream, deep ink) alongside the provisional brand + CTA. Semantic usage rules locked before any sprinkling (coral = emotion, amber = celebration, cream = warm surface, ink = premium heading).
+2. **Occasions as button cards, not dropdown** — 4-6 primary occasion tiles (Birthday / Anniversary / Graduation / Wedding / Sympathy / Other...), "type your own" fallback for custom. Mirrors the MVP pattern.
+3. **Placeholder typing animation on Scene textarea** — replaces the rotating-string placeholder. `aria-live="off"` so screen readers don't spam.
+4. **New-card loading animation** — brand-moment dress-up for the draft creation wait. Only when there's a real wait (Neon cold-start); fast path stays invisible so we don't artificially slow things down.
+5. **My Cards grid polish** — fix the Ready-badge-with-no-preview bug (status/preview mismatch), better empty state treatment, warmer framing.
+
+### Sprint 3.7b — Structural changes + wiring (~1–2 days)
+
+6. **Copy rewrite pass** — all six step components, warmer tone, dynamic name-weaving from step 2 onward (helper `withName(template, state)`).
+7. **Micro-acknowledgment transitions** — Framer Motion fade-up between steps. No "Perfect!" words; animation carries the feeling.
+8. **Brainstorm chat wiring** — extract the 1,227-line MVP component to `useBrainstormChat` hook, wire into Scene step (drawer/modal). Output flows back into the Scene textarea (one canonical input). See `memory/next_brainstorm_chat_wiring.md`.
+9. **Kill the Scene ideas drawer** — single "stuck? here's help" path via brainstorm chat only. No inline preset chips (decided 2026-04-19 — tradeoffs were a wash, one path is cleaner).
+10. **"Let AI decide" on Style step** — picks animAIted silently + advances. Reduces friction for the "I don't know what I want" user.
+11. **Photo step: Solo vs Group mode toggle + multi-photo upload** — real structural fix. See the Photo Step section below.
+12. **Auto-face-crop hybrid** — client-side face detection pre-fills the crop box; user adjusts if needed. Crop tool stays but is invisible for the 90% happy path. Library TBD (probably `face-api.js` or similar — vision API is overkill and adds cost per upload).
+13. **Photo copy rewrite** — "Show us {name}" header, progressive disclosure for multi-upload ("+ Add another — more angles = better likeness"), no big "Important" warning box.
+14. **Review step completion polish** — subtle sparkle/confetti on the rendered state, clearer "what next" (download, order print, share).
+
+### Photo Step: Solo vs Group mode toggle
+
+Uncovered during the shakedown — group shots and multi-angle uploads are currently **not mapped correctly** in the Studio. The Prompt Lab's semantics:
+
+- `one_person` + N photos = same person at N angles (multi-reference identity anchor)
+- `group` + 1 photo = one photo containing multiple people
+
+The Studio currently:
+
+- Accepts only 1 photo (PhotoStep header comment: "One photo per card for v1 — multi-reference is a later polish pass").
+- Derives `photoMode` as `orderedPhotos.length > 1 ? 'group' : 'one_person'` in `background-generator.ts:329` — **semantically inverted** relative to the Prompt Lab. Latent bug today (length always = 1) but active bug the moment multi-upload ships.
+- No UI signal for "this is a group shot" — users uploading a group photo of Mum + her sisters today get `'one_person'` mode and the template will render only Mum.
+
+Fix (in 3.7b):
+
+- PhotoStep gains a two-mode toggle at the top: **Solo** (default) or **Group**.
+- Solo mode: can upload 1-N photos of the same person; all flow to the generator as multi-reference.
+- Group mode: exactly one photo, clamps to 1 (matches the Prompt Lab's clamp logic in `admin-prompts.tsx:1234`).
+- `photoMode` in the generator comes from the toggle, not derived from count. Remove the inverted derivation.
+- `CardDraftState.photos` may need a `mode: 'solo' | 'group'` field alongside `photoIds[]` for persistence.
 
 Brand palette decision (separate track) is a prerequisite for the completion animation + any colour-specific tactics. Tone pass can land before palette is final.
 
