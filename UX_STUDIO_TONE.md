@@ -189,6 +189,27 @@ Learned the hard way after a few feedback rounds where violet text felt
 - New Card tile hover state.
 - Nothing else.
 
+**Icon tile backgrounds (codified 2026-04-19):**
+There are two icon-tile patterns in the Studio. The split is semantic,
+not decorative — keep them separate.
+
+- **Interactive picker tiles** (occasion buttons on Recipient, the
+  "Describe your own style" button on Style, and any future "pick one
+  of N" tappable icons) → unselected = `bg-accent-coral-light
+  text-accent-coral-dark`, selected flips to `bg-brand
+  text-brand-foreground`. Coral says "pick me"; the flip to violet is
+  the same "selected = brand" signal as every other selection tick.
+- **Non-interactive anchor tiles** (the MessageSquare on the Inside
+  "Write your own" pill *if it still exists*, Review summary-row
+  leading tiles) → `bg-brand-muted text-brand`. Quiet violet, doesn't
+  compete with interactive elements, reads as "context marker."
+- **Stroke weight** stays `1.75` on lucide icons throughout so glyphs
+  read at the same visual density across steps.
+
+Don't mix the two patterns within a single step — a coral pill next
+to a violet pill inside the same panel reads as accidental, not
+intentional.
+
 ## Open Questions
 
 - **Voice of brand** — warm-friend-at-your-shoulder or poised-premium-concierge? Both can work; they imply different copy weights. TBD with first copy pass.

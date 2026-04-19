@@ -27,6 +27,7 @@ import {
   Palette,
   MessageSquare,
   FileText,
+  Type,
   AlertTriangle,
   PartyPopper,
 } from 'lucide-react';
@@ -34,6 +35,7 @@ import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
 import type { CardDraftState, StepId } from '@shared/schema';
+import { deriveDefaultFrontText } from '@shared/schema';
 
 // Approximate generation time for a front + inside pair. Used to size
 // the progress copy ("this usually takes ~45 seconds"). Not a hard
@@ -88,14 +90,9 @@ export function ReviewStep({
   const recipientName = state.recipient?.name?.trim();
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <p className="text-sm text-ink font-medium mb-1">
-          {recipientName ? `${recipientName}'s card — ready to make` : 'Ready to make'}
-        </p>
-        <p className="text-xs text-stone-500">
-          Here's what you've chosen. Tap any section to change it.
-        </p>
-      </div>
+      <p className="text-sm text-stone-600">
+        Here's what you've chosen. Tap any section to change it.
+      </p>
 
       <SummaryPanel
         state={state}
@@ -113,7 +110,7 @@ export function ReviewStep({
           {recipientName ? `Generate ${recipientName}'s card` : 'Generate my card'}
         </Button>
         <p className="text-[11px] text-stone-400 text-center mt-2">
-          Usually takes ~{TYPICAL_GENERATION_SECONDS} seconds.
+          Usually about {TYPICAL_GENERATION_SECONDS} seconds.
         </p>
       </div>
     </div>
@@ -137,6 +134,10 @@ function SummaryPanel({
   const insideMode = state.inside?.mode;
   const insideWrite = state.inside?.write ?? {};
   const photoCount = state.photos?.photoIds?.length ?? 0;
+  // Resolved front text for display — mirrors server's buildCardText()
+  // precedence so what we show matches what'll render.
+  const frontText = state.front?.text?.trim() || deriveDefaultFrontText(state);
+  const frontTextIsDefault = !state.front?.text?.trim();
 
   const styleLabel =
     styleMode === 'animated'
@@ -148,7 +149,7 @@ function SummaryPanel({
           : '—';
 
   return (
-    <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm">
+    <div className="space-y-3">
       <SummaryRow
         icon={User}
         label="Recipient"
@@ -210,6 +211,26 @@ function SummaryPanel({
       </SummaryRow>
 
       <SummaryRow
+        icon={Type}
+        label="Front text"
+        onEdit={() => onJumpToStep(stepIndexById.front)}
+        testId="summary-front"
+      >
+        {frontText ? (
+          <>
+            <div className="text-sm text-ink font-medium">{frontText}</div>
+            {frontTextIsDefault && (
+              <div className="text-xs text-stone-500 mt-0.5">
+                Default — tap Edit to change.
+              </div>
+            )}
+          </>
+        ) : (
+          <span className="text-sm text-stone-400">No text on front</span>
+        )}
+      </SummaryRow>
+
+      <SummaryRow
         icon={FileText}
         label="Inside"
         onEdit={() => onJumpToStep(stepIndexById.inside)}
@@ -254,7 +275,10 @@ function SummaryRow({
   testId: string;
 }) {
   return (
-    <div className="flex items-start gap-3" data-testid={testId}>
+    <div
+      className="flex items-start gap-3 bg-white border border-stone-200 rounded-xl p-4 sm:p-5 shadow-sm"
+      data-testid={testId}
+    >
       <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 bg-brand-muted text-brand">
         <Icon className="w-4 h-4" strokeWidth={1.75} />
       </div>
@@ -319,10 +343,10 @@ function CompletedView({
           <PartyPopper className="w-6 h-6" />
         </div>
         <h2 className="text-lg font-semibold text-ink mb-1">
-          Your card is ready
+          Your card is ready ✨
         </h2>
         <p className="text-sm text-stone-600">
-          Front and inside, freshly generated.
+          Front and inside — take a look.
         </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -385,8 +409,7 @@ function FailedView({ cardId }: { cardId: number }) {
         Something went wrong
       </h2>
       <p className="text-sm text-stone-600 mb-6">
-        The AI couldn't generate your card this time. Give it another go —
-        most issues clear up on a second attempt.
+        The AI couldn't make your card that time. Give it another go.
       </p>
       <Button
         onClick={() => retryMutation.mutate()}

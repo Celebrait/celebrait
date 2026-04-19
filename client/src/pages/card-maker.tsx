@@ -12,8 +12,9 @@
 // Both render under StudioLayout so the sidebar + header stay. The
 // FAB is auto-hidden on these routes by StudioLayout's HIDE_FAB_ON.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useRoute } from 'wouter';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Loader2, Sparkle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
@@ -26,6 +27,7 @@ import {
 } from '@/components/studio/steps/recipient-step';
 import { SceneStep, isSceneStepReady } from '@/components/studio/steps/scene-step';
 import { StyleStep, isStyleStepReady } from '@/components/studio/steps/style-step';
+import { FrontStep, isFrontStepReady } from '@/components/studio/steps/front-step';
 import { PhotoStep, isPhotoStepReady } from '@/components/studio/steps/photo-step';
 import { InsideStep, isInsideStepReady } from '@/components/studio/steps/inside-step';
 import { ReviewStep } from '@/components/studio/steps/review-step';
@@ -95,7 +97,7 @@ export function NewCardPage() {
           <Sparkle className="w-7 h-7 text-accent-amber" />
         </span>
       </div>
-      <p className="text-base font-semibold text-ink mb-1">Warming up the studio…</p>
+      <p className="text-base font-semibold text-ink mb-1">Warming up the Studio…</p>
       <p className="text-xs text-stone-500">This usually takes a second or two.</p>
     </div>
   );
@@ -143,6 +145,18 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     totalSteps,
   } = useCardMaker({ cardId });
 
+  // Hooks must run every render — keep them above the isLoading /
+  // loadError early returns. stateRef backs the delayed re-check in
+  // handleAutoAdvance so we read the latest state when the timer fires.
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  // Respect prefers-reduced-motion. When true, step transitions swap
+  // instantly with no fade-up (accessibility baseline).
+  const prefersReducedMotion = useReducedMotion();
+
   // Map step IDs back to their indexes so the Review step's "Edit"
   // links can jump to the right step without hardcoding numbers.
   const stepIndexById = CARD_MAKER_STEPS.reduce((acc, step, idx) => {
@@ -168,7 +182,11 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     );
   }
 
-  const stepLabel = CARD_MAKER_STEPS[currentStep]?.label ?? '';
+  const currentStepId = CARD_MAKER_STEPS[currentStep]?.id;
+  // Conversational headline per step — name-woven where possible. The
+  // stepper below keeps short-noun labels for scannable navigation;
+  // the h1 carries the voice.
+  const stepHeadline = currentStepId ? getStepHeadline(currentStepId, state) : '';
   const isFirst = currentStep === 0;
   const isLast = currentStep === totalSteps - 1;
 
@@ -180,33 +198,48 @@ function CardMakerInner({ cardId }: { cardId: number }) {
   // Gate the Next button on the current step being complete.
   const canAdvance = isStepReady(currentStep, state);
 
+  // Auto-advance on steps that have a clear "done" signal (Recipient
+  // picks + name, Style pick/custom confirm). The trigger fires from
+  // the step component on that transition; we gate here so it only
+  // works on forward progress (the user's frontier step), never on
+  // revisits. 250ms delay lets the picked-state animation render
+  // before the step swaps out. Re-check readiness at fire time since
+  // state could have moved during the delay.
+  const handleAutoAdvance = (fromStep: number) => {
+    if (fromStep !== furthestStep) return;
+    if (fromStep !== currentStep) return;
+    if (!isStepReady(fromStep, state)) return;
+    setTimeout(() => {
+      if (isStepReady(fromStep, stateRef.current)) {
+        goNext();
+      }
+    }, 250);
+  };
+
   return (
     <div>
-      {/* ── Top bar: stepper + save status + start over ───────── */}
+      {/* ── Top bar: Saved + Close (page chrome) ───────────────── */}
+      <div className="flex items-center justify-end gap-3 mb-3 text-xs text-stone-500">
+        {isSaving ? (
+          <span className="flex items-center gap-1.5">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            Saving…
+          </span>
+        ) : (
+          <span className="text-stone-400">Saved</span>
+        )}
+        <button
+          type="button"
+          onClick={() => setLocation('/studio')}
+          className="text-stone-400 hover:text-stone-700 underline underline-offset-2"
+          data-testid="link-start-over"
+        >
+          Close
+        </button>
+      </div>
+
+      {/* ── Stepper (global nav) ──────────────────────────────── */}
       <div className="mb-6 sm:mb-8">
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <h1 className="text-xl sm:text-2xl font-semibold text-stone-900">
-            {stepLabel}
-          </h1>
-          <div className="flex items-center gap-3 text-xs text-stone-500">
-            {isSaving ? (
-              <span className="flex items-center gap-1.5">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                Saving…
-              </span>
-            ) : (
-              <span className="text-stone-400">Saved</span>
-            )}
-            <button
-              type="button"
-              onClick={() => setLocation('/studio')}
-              className="text-stone-400 hover:text-stone-700 underline underline-offset-2"
-              data-testid="link-start-over"
-            >
-              Exit
-            </button>
-          </div>
-        </div>
         <Stepper
           currentStep={currentStep}
           furthestStep={furthestStep}
@@ -214,57 +247,99 @@ function CardMakerInner({ cardId }: { cardId: number }) {
         />
       </div>
 
-      {/* ── Step panel ─────────────────────────────────────────── */}
+      {/* ── Step panel — conversational title lives inside ─────── */}
       <div className="bg-white border border-stone-200 rounded-2xl p-6 sm:p-10 min-h-[380px]">
-        {/* Step order: Recipient → Photo → Scene → Style → Inside → Review.
-            Photo moved to position 2 (index 1) so the emotional "we've got
-            them" moment happens before the blank scene textarea. */}
-        {currentStep === 0 && <RecipientStep state={state} onChange={update} />}
-        {currentStep === 1 && <PhotoStep state={state} onChange={update} />}
-        {currentStep === 2 && <SceneStep state={state} onChange={update} />}
-        {currentStep === 3 && <StyleStep state={state} onChange={update} />}
-        {currentStep === 4 && (
-          <InsideStep
-            state={state}
-            onChange={update}
-            scheduleSave={scheduleSave}
-            flushSave={flushSave}
-          />
-        )}
-        {currentStep === 5 && (
-          <ReviewStep
-            cardId={cardId}
-            state={state}
-            status={status}
-            stepIndexById={stepIndexById}
-            onJumpToStep={setStep}
-            onGenerate={() => {
-              void startGeneration().catch((err: Error & { used?: number; limit?: number }) => {
-                console.error('[CARD_MAKER] startGeneration failed:', err);
-                // Rate-limit errors carry structured `used` / `limit`
-                // fields from the server (via apiRequest's error
-                // hydration). Show a clear daily-limit toast in that
-                // case; generic failure toast otherwise.
-                if (typeof err.limit === 'number') {
-                  toast({
-                    title: "You've reached today's limit",
-                    description: `${err.used}/${err.limit} cards generated in the last 24 hours. Try again tomorrow.`,
-                    variant: 'destructive',
-                  });
-                } else {
-                  toast({
-                    title: "Couldn't start generation",
-                    description: err.message,
-                    variant: 'destructive',
-                  });
-                }
-              });
+        {/* Fade-up transition between steps. Outer panel stays put so
+            the white card doesn't flicker; only the h1 + body animate.
+            Key on currentStep so each advance remounts the motion div
+            and replays the enter. Reduced-motion users get an instant
+            swap (0 duration, no transform). */}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={currentStep}
+            initial={
+              prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }
+            }
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+            transition={{
+              duration: prefersReducedMotion ? 0 : 0.22,
+              ease: 'easeOut',
             }}
-            isGenerating={isStartingGeneration}
-            generatedFrontUrl={frontImageUrl}
-            generatedInsideUrl={insideImageUrl}
-          />
-        )}
+          >
+            {/* h1 uses the same max-w-2xl + mx-auto as the step body below
+                so it aligns with the form on desktop (Recipient is narrower
+                at max-w-xl — close enough; the h1 left edge matches the
+                wider form grid). */}
+            <h1 className="max-w-2xl mx-auto text-xl sm:text-2xl font-semibold text-stone-900 mb-5 sm:mb-6">
+              {stepHeadline}
+            </h1>
+            {/* Step order: Recipient → Photo → Scene → Style → Front → Inside → Review.
+                Photo moved to position 2 (index 1) so the emotional "we've got
+                them" moment happens before the blank scene textarea. Front text
+                (index 4) was added 2026-04-19 so the user sees + can edit the
+                headline that's always been rendered on the card front. */}
+            {currentStep === 0 && (
+              <RecipientStep
+                state={state}
+                onChange={update}
+                onAdvance={() => handleAutoAdvance(0)}
+              />
+            )}
+            {currentStep === 1 && <PhotoStep state={state} onChange={update} />}
+            {currentStep === 2 && <SceneStep state={state} onChange={update} />}
+            {currentStep === 3 && (
+              <StyleStep
+                state={state}
+                onChange={update}
+                onAdvance={() => handleAutoAdvance(3)}
+              />
+            )}
+            {currentStep === 4 && <FrontStep state={state} onChange={update} />}
+            {currentStep === 5 && (
+              <InsideStep
+                state={state}
+                onChange={update}
+                scheduleSave={scheduleSave}
+                flushSave={flushSave}
+              />
+            )}
+            {currentStep === 6 && (
+              <ReviewStep
+                cardId={cardId}
+                state={state}
+                status={status}
+                stepIndexById={stepIndexById}
+                onJumpToStep={setStep}
+                onGenerate={() => {
+                  void startGeneration().catch((err: Error & { used?: number; limit?: number }) => {
+                    console.error('[CARD_MAKER] startGeneration failed:', err);
+                    // Rate-limit errors carry structured `used` / `limit`
+                    // fields from the server (via apiRequest's error
+                    // hydration). Show a clear daily-limit toast in that
+                    // case; generic failure toast otherwise.
+                    if (typeof err.limit === 'number') {
+                      toast({
+                        title: "You've reached today's limit",
+                        description: `You've made ${err.used} cards today (${err.limit} max). Try again tomorrow.`,
+                        variant: 'destructive',
+                      });
+                    } else {
+                      toast({
+                        title: "Couldn't start making your card",
+                        description: err.message,
+                        variant: 'destructive',
+                      });
+                    }
+                  });
+                }}
+                isGenerating={isStartingGeneration}
+                generatedFrontUrl={frontImageUrl}
+                generatedInsideUrl={insideImageUrl}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* ── Nav ─────────────────────────────────────────────────── */}
@@ -317,13 +392,38 @@ function CardMakerInner({ cardId }: { cardId: number }) {
 // to "ready" (true) so the Next button works through the whole flow;
 // as each step arrives it gains its own isXStepReady check here.
 // Step indexes follow CARD_MAKER_STEPS:
-//   0 recipient, 1 photo, 2 scene, 3 style, 4 inside, 5 review
+//   0 recipient, 1 photo, 2 scene, 3 style, 4 front, 5 inside, 6 review
 function isStepReady(stepIndex: number, state: CardDraftState): boolean {
   if (stepIndex === 0) return isRecipientStepReady(state);
   if (stepIndex === 1) return isPhotoStepReady(state);
   if (stepIndex === 2) return isSceneStepReady(state);
   if (stepIndex === 3) return isStyleStepReady(state);
-  if (stepIndex === 4) return isInsideStepReady(state);
+  if (stepIndex === 4) return isFrontStepReady(state);
+  if (stepIndex === 5) return isInsideStepReady(state);
   return true;
+}
+
+// Conversational h1 per step. Name-weaves where we have a recipient
+// name; graceful fallback otherwise. Shown above the stepper as the
+// page's primary voice — the stepper itself stays short-noun for
+// scannability (those are navigation, not narrative).
+function getStepHeadline(stepId: StepId, state: CardDraftState): string {
+  const name = state.recipient?.name?.trim();
+  switch (stepId) {
+    case 'recipient':
+      return "Who's this card for?";
+    case 'photo':
+      return name ? `Show us ${name}` : "Show us who it's for";
+    case 'scene':
+      return name ? `What's the scene for ${name}'s card?` : "What's the scene?";
+    case 'style':
+      return name ? `How should ${name}'s card look?` : 'How should the card look?';
+    case 'front':
+      return name ? `What should ${name}'s card say?` : 'What should it say on the front?';
+    case 'inside':
+      return name ? `What's the message for ${name}?` : "What's the message?";
+    case 'review':
+      return name ? `${name}'s card — ready to make` : 'Ready to make it';
+  }
 }
 

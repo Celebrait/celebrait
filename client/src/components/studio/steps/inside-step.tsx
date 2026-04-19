@@ -24,13 +24,14 @@
 // keystroke-level autosave (1s debounced via the hook's scheduleSave).
 // Salutation + sign-off save on blur like every other field.
 
+import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { FileText, Pencil, Check, MessageSquare } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { FileText, PenLine, Check, User, AlignLeft } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { CardDraftState } from '@shared/schema';
-import { RecipientContextStrip } from '../recipient-context-strip';
 
 const MESSAGE_AUTOSAVE_MS = 1000;
 
@@ -46,6 +47,10 @@ interface InsideStepProps {
 
 export function InsideStep({ state, onChange, scheduleSave, flushSave }: InsideStepProps) {
   const mode = state.inside?.mode;
+  // Write is the implicit default (~everyone types a message). Undefined
+  // mode is treated as Write for display so the happy path is one click
+  // shorter — tiles are visible for the decision, but the write form is
+  // already there. Blank is an explicit opt-in.
   const isBlank = mode === 'blank';
 
   const switchToBlank = () => {
@@ -66,22 +71,11 @@ export function InsideStep({ state, onChange, scheduleSave, flushSave }: InsideS
     });
   };
 
-  const recipientName = state.recipient?.name?.trim();
-
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      {/* Persistent context strip — Scene has it, Inside gets it too
-          so the late-flow steps all feel anchored to the recipient. */}
-      <RecipientContextStrip state={state} />
-
-      <div>
-        <p className="text-sm text-ink font-semibold mb-0.5">
-          {recipientName ? `A message for ${recipientName}` : 'Your message'}
-        </p>
-        <p className="text-xs text-stone-500">
-          We'll render this in a style that matches your card.
-        </p>
-      </div>
+      <p className="text-sm text-stone-600">
+        We'll set it in a style that matches the card.
+      </p>
 
       {isBlank ? (
         <BlankPanel onUndo={switchToWrite} />
@@ -100,6 +94,69 @@ export function InsideStep({ state, onChange, scheduleSave, flushSave }: InsideS
   );
 }
 
+// ── Leave-blank escape hatch ─────────────────────────────────────────
+// Secondary path below the write form. Visually subordinate (dashed
+// border, no fill) so Write reads as the default and Blank as the
+// opt-out — matches the actual usage frequency.
+function LeaveBlankCard({ onPick }: { onPick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      className="w-full text-left p-4 rounded-xl border border-dashed border-stone-300 hover:border-brand hover:bg-brand-muted/40 transition-colors flex items-start gap-3"
+      data-testid="inside-leave-blank"
+    >
+      <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-brand-muted text-brand shrink-0">
+        <FileText className="w-4 h-4" strokeWidth={1.75} />
+      </span>
+      <div>
+        <div className="text-sm font-medium text-ink">
+          Leave blank instead
+        </div>
+        <p className="text-xs text-stone-500 mt-0.5">
+          We'll design a decorative border only — you handwrite the
+          message after it arrives.
+        </p>
+      </div>
+    </button>
+  );
+}
+
+// ── Blank-mode panel (replaces the form when picked) ─────────────────
+function BlankPanel({ onUndo }: { onUndo: () => void }) {
+  return (
+    <div
+      className="bg-brand-muted border-2 border-brand rounded-2xl p-6"
+      data-testid="inside-blank-panel"
+    >
+      <div className="flex items-start gap-3 mb-3">
+        <div className="w-8 h-8 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0 shadow-sm">
+          <Check className="w-4 h-4" strokeWidth={3} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-ink">
+            We'll leave the inside blank
+          </p>
+          <p className="text-xs text-stone-600 mt-0.5">
+            We'll design a decorative border that matches your card's
+            style. The centre stays clean for you to handwrite your
+            message after it arrives.
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onUndo}
+        className="inline-flex items-center gap-1.5 text-xs text-brand hover:text-brand-dark underline underline-offset-2"
+        data-testid="inside-back-to-writing"
+      >
+        <PenLine className="w-3 h-3" />
+        Actually, I'll write a message
+      </button>
+    </div>
+  );
+}
+
 // ── Write-mode fields (default view) ─────────────────────────────────
 function WriteFields({
   state,
@@ -113,6 +170,16 @@ function WriteFields({
   flushSave: () => Promise<void>;
 }) {
   const write = state.inside?.write ?? {};
+  // Name-weave into placeholders so the user sees "Dear Dad," not
+  // "Dear Mum," when the recipient is Dad. Sign-off stays abstract
+  // ("Love, your name") because we don't know the sender's name.
+  const recipientName = state.recipient?.name?.trim();
+  const salutationPlaceholder = recipientName
+    ? `Dear ${recipientName},`
+    : 'Dear …,';
+  const messagePlaceholder = recipientName
+    ? `Write what you'd like ${recipientName} to read…`
+    : "Write what you'd like them to read…";
 
   // Local mirrors so typing doesn't round-trip through the parent on
   // every keystroke. The hook owns the canonical state; these just buffer.
@@ -163,161 +230,101 @@ function WriteFields({
   };
 
   return (
-    // Framed writing surface — cream background, brand-muted icon tile
-    // leading, mirrors the Review step's row grammar so Inside reads
-    // as part of the same family instead of a naked form. Icon + label
-    // at the top; the three fields flow below.
-    <div
-      className="bg-surface-cream border border-accent-coral-light rounded-2xl p-5 sm:p-6"
-      data-testid="inside-write-form"
-    >
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-brand-muted text-brand">
-          <MessageSquare className="w-4 h-4" strokeWidth={1.75} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
-            Write your own
-          </p>
-          <p className="text-xs text-stone-500">
-            Only the message is required.
-          </p>
-        </div>
-      </div>
+    // Three co-equal cards (same treatment as Review summary rows).
+    // Icons carry the role differentiation (User / AlignLeft / PenLine);
+    // containers carry the visual separation. No hero field — with the
+    // containers in place the Message no longer needs size emphasis.
+    <div className="space-y-3" data-testid="inside-write-form">
+      <FieldCard icon={User} label="Greeting" htmlFor="inside-salutation" optional>
+        <Input
+          id="inside-salutation"
+          value={salutation}
+          onChange={(e) => setSalutation(e.target.value)}
+          onBlur={() => {
+            if (salutation !== (write.salutation ?? '')) {
+              commit({ salutation });
+            }
+          }}
+          placeholder={salutationPlaceholder}
+          className="bg-white border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
+          data-testid="input-inside-salutation"
+        />
+      </FieldCard>
 
-      <div className="space-y-4">
-        {/* Salutation */}
-        <div className="space-y-1.5">
-          <Label htmlFor="inside-salutation" className="text-xs text-stone-500">
-            Greeting
-            <span className="ml-2 text-stone-400 font-normal">optional</span>
-          </Label>
-          <Input
-            id="inside-salutation"
-            value={salutation}
-            onChange={(e) => setSalutation(e.target.value)}
-            onBlur={() => {
-              if (salutation !== (write.salutation ?? '')) {
-                commit({ salutation });
-              }
-            }}
-            placeholder="Dear Mum,"
-            className="bg-white"
-            data-testid="input-inside-salutation"
-          />
-        </div>
+      <FieldCard icon={AlignLeft} label="Message" htmlFor="inside-message">
+        <Textarea
+          id="inside-message"
+          value={message}
+          onChange={(e) => onMessageChange(e.target.value)}
+          onBlur={() => {
+            // Flush any pending debounced save so the latest value is
+            // on the server before the user navigates away.
+            void flushSave();
+          }}
+          placeholder={messagePlaceholder}
+          rows={6}
+          className="bg-white leading-relaxed resize-none border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
+          data-testid="input-inside-message"
+        />
+      </FieldCard>
 
-        {/* Main message — the only field with keystroke autosave */}
-        <div className="space-y-1.5">
-          <Label htmlFor="inside-message" className="text-xs text-stone-500">
-            Message
-          </Label>
-          <Textarea
-            id="inside-message"
-            value={message}
-            onChange={(e) => onMessageChange(e.target.value)}
-            onBlur={() => {
-              // Flush any pending debounced save so the latest value is
-              // on the server before the user navigates away.
-              void flushSave();
-            }}
-            placeholder="Write whatever you'd like them to read…"
-            rows={6}
-            className="bg-white leading-relaxed resize-none"
-            data-testid="input-inside-message"
-          />
-        </div>
-
-        {/* Sign-off */}
-        <div className="space-y-1.5">
-          <Label htmlFor="inside-signoff" className="text-xs text-stone-500">
-            Sign-off
-            <span className="ml-2 text-stone-400 font-normal">optional</span>
-          </Label>
-          <Input
-            id="inside-signoff"
-            value={signoff}
-            onChange={(e) => setSignoff(e.target.value)}
-            onBlur={() => {
-              if (signoff !== (write.signoff ?? '')) {
-                commit({ signoff });
-              }
-            }}
-            placeholder="Love, Sarah"
-            className="bg-white"
-            data-testid="input-inside-signoff"
-          />
-        </div>
-      </div>
+      <FieldCard icon={PenLine} label="Sign-off" htmlFor="inside-signoff" optional>
+        <Input
+          id="inside-signoff"
+          value={signoff}
+          onChange={(e) => setSignoff(e.target.value)}
+          onBlur={() => {
+            if (signoff !== (write.signoff ?? '')) {
+              commit({ signoff });
+            }
+          }}
+          placeholder="Love, your name"
+          className="bg-white border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
+          data-testid="input-inside-signoff"
+        />
+      </FieldCard>
     </div>
   );
 }
 
-// ── Leave-blank escape hatch ─────────────────────────────────────────
-// A single low-emphasis card below the form. Visually subordinate to
-// the write fields but still discoverable for customers who want the
-// handwritten moment.
-function LeaveBlankCard({ onPick }: { onPick: () => void }) {
+// ── Field card wrapper ──────────────────────────────────────────────
+// Same shell for Greeting / Message / Sign-off so they read as three
+// co-equal beats. Icon + label up top, input below. Matches the Review
+// summary-row container style so the Studio feels like a single family.
+function FieldCard({
+  icon: Icon,
+  label,
+  htmlFor,
+  optional = false,
+  children,
+}: {
+  icon: LucideIcon;
+  label: string;
+  htmlFor: string;
+  optional?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <button
-      type="button"
-      onClick={onPick}
-      className="w-full text-left p-4 rounded-xl border border-dashed border-stone-300 hover:border-brand hover:bg-brand-muted/40 transition-colors flex items-start gap-3"
-      data-testid="inside-leave-blank"
-    >
-      <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-accent-coral-light text-accent-coral-dark shrink-0">
-        <FileText className="w-4 h-4" strokeWidth={1.75} />
-      </span>
-      <div>
-        <div className="text-sm font-medium text-ink">
-          Leave blank instead
-        </div>
-        <p className="text-xs text-stone-500 mt-0.5">
-          We'll design a decorative border only — you handwrite the
-          message after it arrives.
-        </p>
-      </div>
-    </button>
-  );
-}
-
-// ── Blank-mode panel (replaces the form when picked) ─────────────────
-function BlankPanel({ onUndo }: { onUndo: () => void }) {
-  return (
-    <div
-      className="bg-brand-muted border-2 border-brand rounded-2xl p-6"
-      data-testid="inside-blank-panel"
-    >
-      <div className="flex items-start gap-3 mb-3">
-        <div className="w-8 h-8 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0 shadow-sm">
-          <Check className="w-4 h-4" strokeWidth={3} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-ink">
-            The inside will be blank
-          </p>
-          <p className="text-xs text-stone-600 mt-0.5">
-            We'll design a decorative border that matches your card's
-            style. The centre stays clean for you to handwrite your
-            message after it arrives.
-          </p>
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={onUndo}
-        className="inline-flex items-center gap-1.5 text-xs text-brand hover:text-brand-dark underline underline-offset-2"
-        data-testid="inside-back-to-writing"
+    <div className="bg-white border border-stone-200 rounded-xl p-4 sm:p-5 shadow-sm">
+      <Label
+        htmlFor={htmlFor}
+        className="flex items-center gap-1.5 text-sm text-ink mb-2"
       >
-        <Pencil className="w-3 h-3" />
-        Actually, I'll write a message
-      </button>
+        <Icon className="w-4 h-4 text-brand" strokeWidth={1.75} aria-hidden="true" />
+        {label}
+        {optional && (
+          <span className="ml-1 text-xs text-stone-400 font-normal">optional</span>
+        )}
+      </Label>
+      {children}
     </div>
   );
 }
 
-/** Is the Inside step complete? Ready if the user has explicitly chosen
- *  blank, or has typed a non-empty message (implicit write mode). */
+
+/** Is the Inside step complete? Blank mode is ready immediately. Write
+ *  mode (explicit or implicit — undefined is treated as write since the
+ *  form is pre-revealed) is ready once the message textarea has content. */
 export function isInsideStepReady(state: CardDraftState): boolean {
   if (state.inside?.mode === 'blank') return true;
   return (state.inside?.write?.message?.trim().length ?? 0) > 0;

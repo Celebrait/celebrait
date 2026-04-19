@@ -72,7 +72,7 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
     if (!ACCEPTED_TYPES.includes(file.type)) {
       toast({
         title: 'Unsupported image',
-        description: 'Use a JPEG, PNG, WebP, or HEIC photo.',
+        description: "We can't read that format. Try a JPEG, PNG, WebP or HEIC.",
         variant: 'destructive',
       });
       return;
@@ -80,7 +80,7 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
     if (file.size > CLIENT_MAX_BYTES) {
       toast({
         title: 'Photo too large',
-        description: 'Maximum 15 MB. Try reducing it first.',
+        description: "That photo's over 15 MB. Could you shrink it and try again?",
         variant: 'destructive',
       });
       return;
@@ -206,7 +206,7 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
           />
         </div>
         <p className="text-base font-semibold text-ink mt-4">
-          {recipientName ? `${recipientName} — ready to go` : 'Photo — ready to go'}
+          {recipientName ? `Got ${recipientName}` : 'Photo ready'}
         </p>
         <button
           type="button"
@@ -225,8 +225,8 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
     <div className="max-w-2xl mx-auto">
       <p className="text-sm text-stone-600 mb-6">
         {recipientName
-          ? `Show us ${recipientName} — we'll build the scene around them.`
-          : "Add a photo of the person this card is for — we'll build the scene around them."}
+          ? `We'll build the scene around ${recipientName}.`
+          : "We'll build the scene around them."}
       </p>
 
       <div className={`grid gap-3 ${hasLibrary ? 'sm:grid-cols-2' : 'sm:grid-cols-1'}`}>
@@ -251,11 +251,11 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
           <button
             type="button"
             onClick={() => setLibraryOpen(true)}
-            className="relative flex flex-col items-center justify-center gap-2 p-8 rounded-2xl border-2 border-accent-coral-light bg-surface-cream hover:border-accent-coral-dark transition-colors text-center"
+            className="relative flex flex-col items-center justify-center gap-2 p-8 rounded-2xl border-2 border-stone-200 bg-white hover:border-brand hover:bg-brand-muted/40 transition-colors text-center"
             data-testid="btn-pick-from-library"
           >
-            <div className="w-12 h-12 rounded-full bg-white border-2 border-accent-coral-light flex items-center justify-center shadow-sm">
-              <ImageIcon className="w-5 h-5 text-accent-coral-dark" strokeWidth={2.25} />
+            <div className="w-12 h-12 rounded-full bg-brand-muted border-2 border-brand-light flex items-center justify-center shadow-sm">
+              <ImageIcon className="w-5 h-5 text-brand" strokeWidth={2.25} />
             </div>
             <p className="text-sm font-semibold text-ink">From your library</p>
             <p className="text-xs text-stone-600">

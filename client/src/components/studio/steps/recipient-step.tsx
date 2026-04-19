@@ -12,7 +12,7 @@
 //   - "Other" surfaces a free-text field so custom occasions ("Retirement",
 //     "New home", "Divorce party") don't fall through a keyword gap.
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   Check,
@@ -67,9 +67,13 @@ export const OCCASION_ICON: Record<string, LucideIcon> = {
 interface RecipientStepProps {
   state: CardDraftState;
   onChange: (patch: Partial<CardDraftState>) => void;
+  /** Called when the step transitions from not-ready → ready (i.e.
+   *  both name + occasion are set for the first time this visit).
+   *  Parent decides whether to actually advance (frontier guard etc.). */
+  onAdvance?: () => void;
 }
 
-export function RecipientStep({ state, onChange }: RecipientStepProps) {
+export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps) {
   // Local copy for the name field so typing doesn't fire a save per
   // keystroke. Commits on blur.
   const [localName, setLocalName] = useState(state.recipient?.name ?? '');
@@ -100,6 +104,18 @@ export function RecipientStep({ state, onChange }: RecipientStepProps) {
     }
   };
 
+  // Auto-advance on the not-ready → ready transition. Initial ref value
+  // is the current readiness so a revisit to an already-complete step
+  // doesn't immediately bounce the user forward.
+  const prevReadyRef = useRef(isRecipientStepReady(state));
+  useEffect(() => {
+    const ready = isRecipientStepReady(state);
+    if (ready && !prevReadyRef.current) {
+      onAdvance?.();
+    }
+    prevReadyRef.current = ready;
+  }, [state, onAdvance]);
+
   const pickOccasion = (occasion: string) => {
     onChange({ recipient: { ...state.recipient, occasion } });
   };
@@ -123,14 +139,10 @@ export function RecipientStep({ state, onChange }: RecipientStepProps) {
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
-      <p className="text-sm text-stone-600">
-        Who's this card for, and what are you celebrating?
-      </p>
-
       {/* Name */}
       <div className="space-y-2">
         <Label htmlFor="recipient-name" className="text-sm text-ink">
-          Their name
+          Name
         </Label>
         <Input
           id="recipient-name"
@@ -138,7 +150,7 @@ export function RecipientStep({ state, onChange }: RecipientStepProps) {
           onChange={(e) => setLocalName(e.target.value)}
           onBlur={commitName}
           placeholder="e.g. Mum, Sarah, Dad"
-          className="text-base"
+          className="text-base border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
           data-testid="input-recipient-name"
           autoFocus
         />
@@ -146,7 +158,7 @@ export function RecipientStep({ state, onChange }: RecipientStepProps) {
 
       {/* Occasion */}
       <div className="space-y-2">
-        <Label className="text-sm text-ink">The occasion</Label>
+        <Label className="text-sm text-ink">What's the celebration?</Label>
         <div className="grid grid-cols-2 gap-2.5">
           {PRIMARY_OCCASIONS.map((o) => (
             <OccasionButton
@@ -207,7 +219,7 @@ export function RecipientStep({ state, onChange }: RecipientStepProps) {
                   onChange={(e) => setOtherText(e.target.value)}
                   onBlur={commitOther}
                   placeholder="Type the occasion… e.g. Retirement, New home"
-                  className="text-sm"
+                  className="text-sm border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
                   data-testid="input-other-occasion"
                   autoFocus
                 />

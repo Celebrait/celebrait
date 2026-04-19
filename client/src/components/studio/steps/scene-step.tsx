@@ -20,10 +20,9 @@ import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { CardDraftState } from '@shared/schema';
 import { OCCASION_PRESETS } from '../scene-presets';
-import { RecipientContextStrip } from '../recipient-context-strip';
+import { BrainstormChatDrawer } from '../brainstorm-chat-drawer';
 
 interface SceneStepProps {
   state: CardDraftState;
@@ -46,6 +45,7 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
   // from elsewhere.
   const [local, setLocal] = useState(state.scene?.description ?? '');
   const [focused, setFocused] = useState(false);
+  const [brainstormOpen, setBrainstormOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -142,17 +142,13 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      {/* Persistent context strip — re-grounds the user in who this
-          card is for once they've moved past Recipient+Photo. */}
-      <RecipientContextStrip state={state} />
-
       <div>
-        <Label htmlFor="scene-description" className="text-sm text-ink">
-          What's happening in the scene?
+        <Label htmlFor="scene-description" className="sr-only">
+          Scene description
         </Label>
-        <p className="text-xs text-stone-500 mt-1 mb-2">
-          Describe the moment — who, where, what they're doing. Specific beats
-          generic.
+        <p className="text-sm text-stone-600 mb-2">
+          Who's there, where they are, what they're doing. The more specific,
+          the better.
         </p>
         <Textarea
           ref={textareaRef}
@@ -166,7 +162,7 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
           }}
           placeholder={placeholderText}
           rows={5}
-          className="text-base resize-none"
+          className="text-base resize-none border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
           // aria-live=off so the animated placeholder doesn't spam
           // screen readers with every keystroke-of-text change.
           aria-live="off"
@@ -176,7 +172,7 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
           <p className="text-[11px] text-stone-400">
             {local.length > 0
               ? `${local.length} characters`
-              : 'Tap an example below to start from — fully editable.'}
+              : 'Tap an example to start — you can edit it.'}
           </p>
         </div>
       </div>
@@ -205,31 +201,35 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
         </div>
       )}
 
-      {/* Brainstorm with AI — the real helper once wired up in 3.7b.
-          Solid brand button; the 3-colour gradient read as AI-tool
-          aesthetic (what UX_STUDIO_TONE.md explicitly rejects). The
-          advertised-disabled "Coming soon" pill was also scrapped —
-          an advertised-disabled button feels broken, not anticipatory.
-          When wiring lands, flip `disabled` off; the button's style
-          is already correct. */}
+      {/* Brainstorm with AI — opens the BrainstormChatDrawer. Hook
+          + drawer own the conversation state; accepted scenes are
+          written back to the textarea via the onAccept callback. */}
       <div>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span>
-              <Button
-                type="button"
-                disabled
-                className="flex items-center gap-2 bg-brand hover:bg-brand-dark text-brand-foreground shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
-                data-testid="btn-scene-ai-help"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span className="font-semibold">Brainstorm with AI</span>
-              </Button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>Coming soon — chat through ideas with the AI</TooltipContent>
-        </Tooltip>
+        <Button
+          type="button"
+          onClick={() => setBrainstormOpen(true)}
+          className="flex items-center gap-2 bg-brand hover:bg-brand-dark text-brand-foreground shadow-sm hover:shadow-md"
+          data-testid="btn-scene-ai-help"
+        >
+          <Sparkles className="w-4 h-4" />
+          <span className="font-semibold">Brainstorm with AI</span>
+        </Button>
       </div>
+
+      <BrainstormChatDrawer
+        open={brainstormOpen}
+        onOpenChange={setBrainstormOpen}
+        recipientName={state.recipient?.name?.trim() ?? ''}
+        occasion={state.recipient?.occasion?.trim() ?? ''}
+        currentSceneText={local}
+        onAccept={(scene) => {
+          // Overwrite the Scene textarea with the accepted scene.
+          // Matches the established pattern: every input path ends up
+          // in the same textarea (locked product decision).
+          setLocal(scene);
+          onChange({ scene: { ...state.scene, description: scene } });
+        }}
+      />
     </div>
   );
 }

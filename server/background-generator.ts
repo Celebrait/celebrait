@@ -14,7 +14,7 @@ import {
 import { getProvider } from './providers/registry';
 import { logGeneration } from './prompts/generation-log';
 import { savePngFiles, loadStoredImageAsBase64, generatePrintResolutionFiles } from './pipeline/storage/LocalStorageAdapter';
-import { cards, photos, type CardDraftState } from '@shared/schema';
+import { cards, photos, type CardDraftState, deriveDefaultFrontText } from '@shared/schema';
 import { resolveStyleDescription } from '@shared/style-descriptions';
 
 // Fallback provider / quality used when the active prompt_active row has
@@ -409,19 +409,17 @@ export async function generateStudioCard(cardId: number): Promise<void> {
 }
 
 /** Build the short text rendered on the card front (customer greeting).
- *  e.g. "Happy Birthday Sarah". Returns empty string if we can't form a
- *  reasonable phrase — the front-scene prompt's `includeText` flag gates
- *  the "render text" instruction on non-empty output. */
+ *  Prefers the user-entered `state.front.text` (the Front step lets them
+ *  edit the default); falls back to the auto-derived phrase from recipient
+ *  + occasion when the user hasn't overridden.
+ *
+ *  Returns empty string if we can't form a reasonable phrase (or the user
+ *  deliberately blanked it) — the front-scene prompt's `includeText` flag
+ *  gates the "render text" instruction on non-empty output. */
 function buildCardText(state: CardDraftState): string {
-  const name = state.recipient?.name?.trim();
-  const occasion = state.recipient?.occasion?.trim();
-  if (!name || !occasion) return '';
-  // Occasion presets in the Studio are keys like 'birthday', 'wedding',
-  // 'anniversary'. Simple title-case works for the common English words.
-  // If the user picked 'other' we fall back to just the name.
-  if (occasion === 'other') return name;
-  const occasionTitle = occasion.charAt(0).toUpperCase() + occasion.slice(1);
-  return `Happy ${occasionTitle} ${name}`;
+  const userText = state.front?.text?.trim();
+  if (userText) return userText;
+  return deriveDefaultFrontText(state);
 }
 
 /** Concatenate the customer's Dear / Message / From fields into the

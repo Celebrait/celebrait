@@ -33,6 +33,13 @@ export interface CardDraftState {
     /** IDs from the user's photos library (see shared/models/photos.ts). */
     photoIds?: number[];
   };
+  front?: {
+    /** The short headline printed on the card front (e.g. "Happy Birthday Dad").
+     *  When empty/absent, the server falls back to an auto-derived phrase from
+     *  recipient name + occasion. Absence of the field is valid — the user
+     *  can leave the default. */
+    text?: string;
+  };
   inside?: {
     mode?: InsideMode;
     /** Only present when mode='write'. All three fields are optional —
@@ -51,18 +58,41 @@ export const EMPTY_CARD_DRAFT: CardDraftState = {
   step: 0,
 };
 
-/** The six customer-facing steps, in order. Photo moved to step 2 (was
+/** The seven customer-facing steps, in order. Photo moved to step 2 (was
  *  step 4) so users see their photo acknowledged early in the flow —
  *  the emotional click of "we've got Mum" happens before the blank
  *  scene description, not after. Analysis of the photo is deferred to
- *  a later sprint; this sprint just does upload + crop + confirmation. */
+ *  a later sprint; this sprint just does upload + crop + confirmation.
+ *
+ *  Front text step (added 2026-04-19) sits between Style and Inside so
+ *  the two sides of the card — front headline and interior message —
+ *  are decided in order. Server has always supported cardText; the
+ *  Studio now lets the user see and override the auto-derived default
+ *  instead of it silently rendering. */
 export const CARD_MAKER_STEPS = [
   { id: 'recipient', label: 'Recipient' },
   { id: 'photo', label: 'Photo' },
   { id: 'scene', label: 'Scene' },
   { id: 'style', label: 'Style' },
-  { id: 'inside', label: 'Inside' },
+  { id: 'front', label: 'Front text' },
+  { id: 'inside', label: 'Inside text' },
   { id: 'review', label: 'Review' },
 ] as const;
 
 export type StepId = (typeof CARD_MAKER_STEPS)[number]['id'];
+
+/** The fallback phrase printed on the card front when the user hasn't
+ *  typed their own. Client-side FrontStep pre-fills with this so the
+ *  user can confirm-and-continue; server uses the same helper as the
+ *  final fallback when state.front.text is absent.
+ *  e.g. "Happy Birthday Sarah". Returns '' if we can't form a reasonable
+ *  phrase — the front-scene prompt's `includeText` flag gates rendering
+ *  on non-empty output. */
+export function deriveDefaultFrontText(state: CardDraftState): string {
+  const name = state.recipient?.name?.trim();
+  const occasion = state.recipient?.occasion?.trim();
+  if (!name || !occasion) return '';
+  if (occasion === 'other') return name;
+  const occasionTitle = occasion.charAt(0).toUpperCase() + occasion.slice(1);
+  return `Happy ${occasionTitle} ${name}`;
+}

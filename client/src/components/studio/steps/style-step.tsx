@@ -59,7 +59,7 @@ const MODE_BUTTONS: ModeButton[] = [
   {
     mode: 'custom',
     label: 'Custom',
-    blurb: 'Describe your own — we\'ll use it verbatim',
+    blurb: "Describe your own — we'll follow it closely",
     icon: Sparkles,
   },
 ];
@@ -77,9 +77,13 @@ const STYLE_EXAMPLE_IMAGES: Record<StyleMode, string | null> = {
 interface StyleStepProps {
   state: CardDraftState;
   onChange: (patch: Partial<CardDraftState>) => void;
+  /** Called immediately after a commit-worthy pick: Animated/Realistic
+   *  direct-select, or Custom modal confirm. Parent decides whether
+   *  to actually advance. */
+  onAdvance?: () => void;
 }
 
-export function StyleStep({ state, onChange }: StyleStepProps) {
+export function StyleStep({ state, onChange, onAdvance }: StyleStepProps) {
   const [customOpen, setCustomOpen] = useState(false);
   const [previewMode, setPreviewMode] = useState<StyleMode | null>(null);
   const currentMode = state.style?.mode;
@@ -91,11 +95,15 @@ export function StyleStep({ state, onChange }: StyleStepProps) {
     }
     // Clear any stale custom text when switching away from custom
     onChange({ style: { mode } });
+    // Animated / Realistic → pick is the commit; auto-advance.
+    onAdvance?.();
   };
 
   const saveCustom = (text: string) => {
     onChange({ style: { mode: 'custom', custom: text.trim() } });
     setCustomOpen(false);
+    // Custom-confirm is the commit; auto-advance.
+    onAdvance?.();
   };
 
   const primaryModes = MODE_BUTTONS.filter((b) => b.mode !== 'custom');
@@ -103,14 +111,9 @@ export function StyleStep({ state, onChange }: StyleStepProps) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <p className="text-sm text-stone-600 mb-1">
-          How should your card look?
-        </p>
-        <p className="text-xs text-stone-500">
-          Pick one of our house styles, or describe your own.
-        </p>
-      </div>
+      <p className="text-sm text-stone-600">
+        Pick one of our house styles, or describe your own.
+      </p>
 
       {/* Primary styles — big featured cards. Top region shows the
           curated example image when available; falls back to a clean
@@ -260,10 +263,10 @@ function StyleExampleDialog({
               <div className="text-center px-6 py-12 text-stone-500">
                 <ImageOff className="w-10 h-10 mx-auto mb-3 text-accent-coral-dark/50" />
                 <p className="text-sm font-medium text-ink">
-                  Example coming soon
+                  Sample coming soon
                 </p>
                 <p className="text-xs mt-1">
-                  A curated {btn?.label} card will live here.
+                  We're adding a {btn?.label} example shortly.
                 </p>
               </div>
             )}
@@ -347,7 +350,7 @@ function PrimaryStyleCard({
         <div className="relative aspect-[4/3] w-full bg-surface-cream flex flex-col items-center justify-center gap-1.5 text-accent-coral-dark">
           <Icon className="w-10 h-10" strokeWidth={1.5} />
           <span className="text-[10px] font-medium uppercase tracking-wider text-stone-400">
-            Example coming soon
+            Sample coming soon
           </span>
           {active && (
             <span className="absolute top-3 right-3 w-6 h-6 rounded-full bg-brand text-brand-foreground flex items-center justify-center shadow-sm">
@@ -435,7 +438,7 @@ function CustomStyleDialog({
               onChange={(e) => setText(e.target.value)}
               placeholder="e.g. Watercolour painting, loose brushwork, warm pastel palette"
               rows={4}
-              className="mt-1 text-base resize-none"
+              className="mt-1 text-base resize-none border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
               data-testid="input-custom-style"
               autoFocus
             />
@@ -449,10 +452,10 @@ function CustomStyleDialog({
               }`}
             >
               {trimmed.length === 0
-                ? `At least ${CUSTOM_MIN_CHARS} characters`
+                ? `A few words — at least ${CUSTOM_MIN_CHARS} characters.`
                 : valid
                   ? `${trimmed.length} characters`
-                  : `${CUSTOM_MIN_CHARS - trimmed.length} more needed`}
+                  : `${CUSTOM_MIN_CHARS - trimmed.length} more to go.`}
             </p>
           </div>
 
