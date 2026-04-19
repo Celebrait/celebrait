@@ -256,11 +256,7 @@ function OccasionButton({
           <Icon className="w-4.5 h-4.5" strokeWidth={1.75} />
         </span>
       )}
-      <span
-        className={`text-sm font-medium truncate ${
-          selected ? 'text-brand-dark' : 'text-stone-800'
-        }`}
-      >
+      <span className="text-sm font-medium text-ink truncate">
         {label}
       </span>
       {selected && (

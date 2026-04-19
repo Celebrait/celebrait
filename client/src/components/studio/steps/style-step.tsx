@@ -151,11 +151,7 @@ export function StyleStep({ state, onChange }: StyleStepProps) {
           <customMode.icon className="w-4.5 h-4.5" strokeWidth={1.75} />
         </span>
         <span className="flex-1 min-w-0">
-          <span
-            className={`block text-sm font-semibold ${
-              currentMode === 'custom' ? 'text-brand-dark' : 'text-ink'
-            }`}
-          >
+          <span className="block text-sm font-semibold text-ink">
             Describe your own style
           </span>
           <span className="block text-xs text-stone-500 mt-0.5">
@@ -349,18 +345,10 @@ function PrimaryStyleCard({
           )}
         </div>
         <div className="p-4">
-          <div
-            className={`text-base font-semibold mb-1 ${
-              active ? 'text-brand-dark' : 'text-ink'
-            }`}
-          >
+          <div className="text-base font-semibold text-ink mb-1">
             {btn.label}
           </div>
-          <p
-            className={`text-xs ${active ? 'text-brand-dark/80' : 'text-stone-500'}`}
-          >
-            {btn.blurb}
-          </p>
+          <p className="text-xs text-stone-500">{btn.blurb}</p>
         </div>
       </button>
 

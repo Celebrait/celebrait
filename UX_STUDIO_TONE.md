@@ -148,6 +148,47 @@ Brand palette decision (separate track) is a prerequisite for the completion ani
 
 ---
 
+## Colour usage rules (locked 2026-04-19)
+
+Learned the hard way after a few feedback rounds where violet text felt
+"random." These are the rules; don't break them without a new brief.
+
+**Ticks + selection indicators:**
+- Within-step selection (picked an occasion / style / inside mode) →
+  **brand violet** tick.
+- Progression / "go" moments (completed stepper step, Generate button,
+  "card ready" success) → **cta green**.
+- Don't mix. Green on every selection tick dilutes the "confirmed /
+  go" signal.
+
+**Text colours:**
+- `text-ink` — all titles, headings, and selected-state labels.
+  Always. Selection doesn't flip title colour (the border + tick
+  already communicate that). Never use `text-brand-dark` on a
+  heading — that's a link colour.
+- `text-brand` (hover: `text-brand-dark`) — **only** interactive text
+  links (Edit, Change photo, More occasions, Actually I'll write a
+  message, etc.). Consistent signal = "tap this."
+- `text-stone-500` / `text-stone-600` — secondary / helper copy.
+- `text-cta-hover` — only on completed-stepper step label (progression).
+- `text-accent-coral-dark` — tiny uppercase section labels ("Need a
+  spark?" "Your custom style"). Decorative badge text, nothing larger.
+- `text-accent-amber-dark` — only paired with amber-light backgrounds
+  (the warning/"too vague" examples in the custom style modal).
+
+**Violet (`brand`) usage beyond ticks and links:**
+- Selected-state borders + rings (`border-brand`, `ring-brand/20`).
+- Primary-action button backgrounds (`bg-brand`, `hover:bg-brand-dark`).
+- The New Card tile default state (brand surface; flips to cta on hover).
+- Nothing else. If violet wants to appear somewhere, it's either a
+  selection indicator, a link, or a primary-action button.
+
+**Green (`cta`) usage beyond ticks and Generate:**
+- Completed stepper steps + their connector lines.
+- "Ready" status badge on completed cards in My Cards grid.
+- New Card tile hover state.
+- Nothing else.
+
 ## Open Questions
 
 - **Voice of brand** — warm-friend-at-your-shoulder or poised-premium-concierge? Both can work; they imply different copy weights. TBD with first copy pass.

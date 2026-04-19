@@ -306,7 +306,7 @@ function GeneratingView() {
       <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-muted text-brand mb-6">
         <Loader2 className="w-8 h-8 animate-spin" />
       </div>
-      <h2 className="text-lg font-semibold text-stone-900 mb-2">
+      <h2 className="text-lg font-semibold text-ink mb-2">
         Crafting your card…
       </h2>
       <p className="text-sm text-stone-600">
@@ -335,7 +335,7 @@ function CompletedView({
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-cta-light text-cta mb-3">
           <PartyPopper className="w-6 h-6" />
         </div>
-        <h2 className="text-lg font-semibold text-stone-900 mb-1">
+        <h2 className="text-lg font-semibold text-ink mb-1">
           Your card is ready
         </h2>
         <p className="text-sm text-stone-600">
@@ -398,7 +398,7 @@ function FailedView({ cardId }: { cardId: number }) {
       <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 text-amber-700 mb-4">
         <AlertTriangle className="w-6 h-6" />
       </div>
-      <h2 className="text-lg font-semibold text-stone-900 mb-2">
+      <h2 className="text-lg font-semibold text-ink mb-2">
         Something went wrong
       </h2>
       <p className="text-sm text-stone-600 mb-6">

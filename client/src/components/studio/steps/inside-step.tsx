@@ -261,10 +261,10 @@ function BlankPanel({ onUndo }: { onUndo: () => void }) {
           <Check className="w-4 h-4" strokeWidth={3} />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-brand-dark">
+          <p className="text-sm font-semibold text-ink">
             The inside will be blank
           </p>
-          <p className="text-xs text-brand-dark/80 mt-0.5">
+          <p className="text-xs text-stone-600 mt-0.5">
             We'll design a decorative border that matches your card's
             style. The centre stays clean for you to handwrite your
             message after it arrives.
@@ -274,7 +274,7 @@ function BlankPanel({ onUndo }: { onUndo: () => void }) {
       <button
         type="button"
         onClick={onUndo}
-        className="inline-flex items-center gap-1.5 text-xs text-brand-dark hover:text-brand underline underline-offset-2"
+        className="inline-flex items-center gap-1.5 text-xs text-brand hover:text-brand-dark underline underline-offset-2"
         data-testid="inside-back-to-writing"
       >
         <Pencil className="w-3 h-3" />
