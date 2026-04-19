@@ -47,7 +47,10 @@ const PRIMARY_OCCASIONS: readonly string[] = [
 // Vector icon per occasion. Consistent visual language (lucide) reads
 // as premium vs. emoji which skews casual/chat-bot. Each icon is the
 // simplest recognisable glyph for that occasion.
-const OCCASION_ICON: Record<string, LucideIcon> = {
+// Exported so other steps (Scene, Style, Inside) can surface the
+// occasion icon in their context strips without duplicating the
+// mapping.
+export const OCCASION_ICON: Record<string, LucideIcon> = {
   birthday: Cake,
   anniversary: HeartHandshake,
   wedding: Gem,

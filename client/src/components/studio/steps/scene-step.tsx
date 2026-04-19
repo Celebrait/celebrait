@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { CardDraftState } from '@shared/schema';
 import { OCCASION_PRESETS } from '../scene-presets';
+import { RecipientContextStrip } from '../recipient-context-strip';
 
 interface SceneStepProps {
   state: CardDraftState;
@@ -141,6 +142,10 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
+      {/* Persistent context strip — re-grounds the user in who this
+          card is for once they've moved past Recipient+Photo. */}
+      <RecipientContextStrip state={state} />
+
       <div>
         <Label htmlFor="scene-description" className="text-sm text-ink">
           What's happening in the scene?
