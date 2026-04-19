@@ -10,7 +10,7 @@
 // carry brand aesthetics.
 
 import { useState } from 'react';
-import { Sparkles, Camera, PenLine, Check } from 'lucide-react';
+import { Sparkles, Camera, PenLine, Check, Eye, ImageOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -38,26 +38,40 @@ interface ModeButton {
   icon: typeof Sparkles;
 }
 
+// Labels are the stylised customer-facing forms (brand wordplay — AI
+// highlighted in the middle). AILabel below splits on "AI" so these
+// must include it explicitly. The underlying enum stays plain (see
+// shared/models/card-draft.ts: 'animated' | 'realistic' | 'custom').
 const MODE_BUTTONS: ModeButton[] = [
   {
     mode: 'animated',
-    label: 'animated',
+    label: 'animAIted',
     blurb: 'Warm, illustrated, a little whimsical',
     icon: PenLine,
   },
   {
     mode: 'realistic',
-    label: 'realistic',
+    label: 'reAIlistic',
     blurb: 'Photoreal, cinematic, true-to-life',
     icon: Camera,
   },
   {
     mode: 'custom',
-    label: 'custom',
+    label: 'Custom',
     blurb: 'Describe your own — we\'ll use it verbatim',
     icon: Sparkles,
   },
 ];
+
+// File naming convention for curated style preview images. Drop a JPG
+// named after the mode (e.g. animated.jpg, realistic.jpg) into
+// client/public/style-examples/ to activate the "See example" preview.
+// Missing file gracefully degrades to a placeholder state.
+const STYLE_EXAMPLE_IMAGES: Record<StyleMode, string | null> = {
+  animated: '/style-examples/animated.jpg',
+  realistic: '/style-examples/realistic.jpg',
+  custom: null, // no canonical example — custom is whatever the user types
+};
 
 interface StyleStepProps {
   state: CardDraftState;
@@ -66,6 +80,7 @@ interface StyleStepProps {
 
 export function StyleStep({ state, onChange }: StyleStepProps) {
   const [customOpen, setCustomOpen] = useState(false);
+  const [previewMode, setPreviewMode] = useState<StyleMode | null>(null);
   const currentMode = state.style?.mode;
 
   const pickMode = (mode: StyleMode) => {
@@ -96,7 +111,9 @@ export function StyleStep({ state, onChange }: StyleStepProps) {
         </p>
       </div>
 
-      {/* Primary styles — big featured cards with gradient accents. */}
+      {/* Primary styles — big featured cards with gradient accents.
+          Main body selects the style; the eye-icon overlay opens an
+          example preview without triggering selection. */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {primaryModes.map((btn) => {
           const Icon = btn.icon;
@@ -108,49 +125,72 @@ export function StyleStep({ state, onChange }: StyleStepProps) {
               ? 'from-accent-coral-light via-brand-muted to-accent-amber-light'
               : 'from-ink/10 via-brand-muted to-accent-coral-light';
           return (
-            <button
-              key={btn.mode}
-              type="button"
-              onClick={() => pickMode(btn.mode)}
-              className={`relative text-left rounded-2xl border-2 transition-all overflow-hidden ${
-                active
-                  ? 'border-brand shadow-md ring-2 ring-brand/20'
-                  : 'border-stone-200 hover:border-brand/60 hover:shadow-sm bg-white'
-              }`}
-              data-testid={`style-${btn.mode}`}
-            >
-              {/* Decorative gradient band — subtle identity for each tile. */}
-              <div
-                className={`h-20 w-full bg-gradient-to-br ${accent} relative`}
-                aria-hidden="true"
+            <div key={btn.mode} className="relative group">
+              <button
+                type="button"
+                onClick={() => pickMode(btn.mode)}
+                className={`w-full text-left rounded-2xl border-2 transition-all overflow-hidden ${
+                  active
+                    ? 'border-brand shadow-md ring-2 ring-brand/20'
+                    : 'border-stone-200 hover:border-brand/60 hover:shadow-sm bg-white'
+                }`}
+                data-testid={`style-${btn.mode}`}
               >
-                <Icon
-                  className={`absolute bottom-3 left-4 w-6 h-6 ${
-                    active ? 'text-brand-dark' : 'text-brand/70'
-                  }`}
-                  strokeWidth={1.75}
-                />
-                {active && (
-                  <span className="absolute top-3 right-3 w-6 h-6 rounded-full bg-cta text-cta-foreground flex items-center justify-center shadow-sm">
-                    <Check className="w-3.5 h-3.5" strokeWidth={3} />
-                  </span>
-                )}
-              </div>
-              <div className="p-4">
+                {/* Decorative gradient band — subtle identity for each tile. */}
                 <div
-                  className={`text-base font-semibold mb-1 ${
-                    active ? 'text-brand-dark' : 'text-ink'
-                  }`}
+                  className={`h-20 w-full bg-gradient-to-br ${accent} relative`}
+                  aria-hidden="true"
                 >
-                  <AILabel text={btn.label} />
+                  <Icon
+                    className={`absolute bottom-3 left-4 w-6 h-6 ${
+                      active ? 'text-brand-dark' : 'text-brand/70'
+                    }`}
+                    strokeWidth={1.75}
+                  />
+                  {active && (
+                    <span className="absolute top-3 right-3 w-6 h-6 rounded-full bg-cta text-cta-foreground flex items-center justify-center shadow-sm">
+                      <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                    </span>
+                  )}
                 </div>
-                <p
-                  className={`text-xs ${active ? 'text-brand-dark/80' : 'text-stone-500'}`}
-                >
-                  {btn.blurb}
-                </p>
-              </div>
-            </button>
+                <div className="p-4">
+                  <div
+                    className={`text-base font-semibold mb-1 ${
+                      active ? 'text-brand-dark' : 'text-ink'
+                    }`}
+                  >
+                    <AILabel text={btn.label} />
+                  </div>
+                  <p
+                    className={`text-xs ${active ? 'text-brand-dark/80' : 'text-stone-500'}`}
+                  >
+                    {btn.blurb}
+                  </p>
+                </div>
+              </button>
+
+              {/* "See example" overlay — absolutely positioned so it's
+                  a sibling of the main button, not inside it. Clicking
+                  opens the preview modal without selecting the style. */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setPreviewMode(btn.mode);
+                }}
+                className={`absolute bottom-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium backdrop-blur transition-colors ${
+                  active
+                    ? 'bg-white/90 text-brand-dark hover:bg-white'
+                    : 'bg-white/80 text-ink-soft hover:bg-white opacity-0 group-hover:opacity-100 focus:opacity-100'
+                }`}
+                aria-label={`See example of ${btn.label}`}
+                data-testid={`style-${btn.mode}-preview`}
+              >
+                <Eye className="w-3 h-3" />
+                Example
+              </button>
+            </div>
           );
         })}
       </div>
@@ -227,21 +267,115 @@ export function StyleStep({ state, onChange }: StyleStepProps) {
         onClose={() => setCustomOpen(false)}
         onSave={saveCustom}
       />
+
+      <StyleExampleDialog
+        mode={previewMode}
+        onClose={() => setPreviewMode(null)}
+        onPick={(m) => {
+          pickMode(m);
+          setPreviewMode(null);
+        }}
+      />
     </div>
   );
 }
 
-// Renders a label like "animated" as "anim" + "AI" + "ted" with the
-// middle two letters capitalised. Purely presentational — the underlying
-// mode value stays lowercase.
+// Preview dialog for a primary style. Renders the curated example
+// image if the file exists at /style-examples/{mode}.jpg (drop in
+// client/public/style-examples/). Falls back to a placeholder state
+// so the UX works before the images are produced.
+function StyleExampleDialog({
+  mode,
+  onClose,
+  onPick,
+}: {
+  mode: StyleMode | null;
+  onClose: () => void;
+  onPick: (mode: StyleMode) => void;
+}) {
+  const [imageMissing, setImageMissing] = useState(false);
+
+  // Reset the missing-image flag whenever the mode changes so a second
+  // open re-tries the image. Simple and good enough — no ref gymnastics.
+  const effectiveMode = mode;
+  if (!effectiveMode) {
+    // Controlled via `open`; nothing to render when closed.
+    return (
+      <Dialog open={false} onOpenChange={() => onClose()}>
+        <DialogContent />
+      </Dialog>
+    );
+  }
+
+  const btn = MODE_BUTTONS.find((b) => b.mode === effectiveMode);
+  const imgSrc = STYLE_EXAMPLE_IMAGES[effectiveMode];
+
+  return (
+    <Dialog open={!!effectiveMode} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-ink">
+            <AILabel text={btn?.label ?? ''} />
+          </DialogTitle>
+          <DialogDescription>{btn?.blurb}</DialogDescription>
+        </DialogHeader>
+
+        <div className="py-2">
+          <div className="aspect-square w-full rounded-xl overflow-hidden border border-accent-coral-light bg-surface-cream flex items-center justify-center">
+            {imgSrc && !imageMissing ? (
+              <img
+                src={imgSrc}
+                alt={`${btn?.label} example card`}
+                className="w-full h-full object-cover"
+                onError={() => setImageMissing(true)}
+              />
+            ) : (
+              <div className="text-center px-6 py-12 text-stone-500">
+                <ImageOff className="w-10 h-10 mx-auto mb-3 text-accent-coral-dark/50" />
+                <p className="text-sm font-medium text-ink">
+                  Example coming soon
+                </p>
+                <p className="text-xs mt-1">
+                  A curated <AILabel text={btn?.label ?? ''} /> card will
+                  live here.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} data-testid="btn-close-style-example">
+            Close
+          </Button>
+          <Button
+            onClick={() => onPick(effectiveMode)}
+            className="bg-brand hover:bg-brand-dark text-brand-foreground"
+            data-testid="btn-use-style-from-example"
+          >
+            Use this style
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Renders the brand wordplay — e.g. "animAIted" → "anim" + **AI** + "ted"
+// with the AI in brand colour + bold. Input is expected to already be
+// stylised (containing 'AI' in uppercase, lowercase surround). Falls
+// back to the raw text with first-letter capitalisation for labels
+// that don't carry the wordplay (e.g. 'Custom').
 function AILabel({ text }: { text: string }) {
-  const idx = text.toLowerCase().indexOf('ai');
+  const idx = text.indexOf('AI');
   if (idx === -1) {
-    return <span className="capitalize">{text}</span>;
+    // No wordplay marker — render as-is, trusting the source to have
+    // already-appropriate casing.
+    return <span>{text}</span>;
   }
   return (
     <span>
-      <span className="capitalize">{text.slice(0, idx)}</span>
+      <span>{text.slice(0, idx)}</span>
       <span className="text-brand font-bold">AI</span>
       <span>{text.slice(idx + 2)}</span>
     </span>
