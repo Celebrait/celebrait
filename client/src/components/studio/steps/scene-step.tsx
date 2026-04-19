@@ -201,30 +201,29 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
       )}
 
       {/* Brainstorm with AI — the real helper once wired up in 3.7b.
-          Gets a gradient + sparkle treatment now so when it goes live
-          it reads as the standout "stuck?" affordance instead of a
-          timid outline button. Still disabled for now, with a clear
-          Coming Soon chip so the visual promise matches reality. */}
-      <div className="flex gap-2 items-center">
+          Solid brand button; the 3-colour gradient read as AI-tool
+          aesthetic (what UX_STUDIO_TONE.md explicitly rejects). The
+          advertised-disabled "Coming soon" pill was also scrapped —
+          an advertised-disabled button feels broken, not anticipatory.
+          When wiring lands, flip `disabled` off; the button's style
+          is already correct. */}
+      <div>
         <Tooltip>
           <TooltipTrigger asChild>
             <span>
               <Button
                 type="button"
                 disabled
-                className="flex items-center gap-2 bg-gradient-to-r from-brand via-brand-dark to-accent-coral-dark text-white shadow-sm hover:shadow-md disabled:opacity-90 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 bg-brand hover:bg-brand-dark text-brand-foreground shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
                 data-testid="btn-scene-ai-help"
               >
-                <Sparkles className="w-4 h-4 text-accent-amber-light" />
+                <Sparkles className="w-4 h-4" />
                 <span className="font-semibold">Brainstorm with AI</span>
               </Button>
             </span>
           </TooltipTrigger>
           <TooltipContent>Coming soon — chat through ideas with the AI</TooltipContent>
         </Tooltip>
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent-amber-light text-accent-amber-dark border border-accent-amber/40">
-          Coming soon
-        </span>
       </div>
     </div>
   );

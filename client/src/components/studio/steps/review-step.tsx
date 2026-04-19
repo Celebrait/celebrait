@@ -148,10 +148,9 @@ function SummaryPanel({
           : '—';
 
   return (
-    <div className="bg-white border border-accent-coral-light rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm">
+    <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm">
       <SummaryRow
         icon={User}
-        iconTint="coral"
         label="Recipient"
         onEdit={() => onJumpToStep(stepIndexById.recipient)}
         testId="summary-recipient"
@@ -168,7 +167,6 @@ function SummaryPanel({
 
       <SummaryRow
         icon={ImageIcon}
-        iconTint="brand"
         label="Photo"
         onEdit={() => onJumpToStep(stepIndexById.photo)}
         testId="summary-photo"
@@ -186,7 +184,6 @@ function SummaryPanel({
 
       <SummaryRow
         icon={MessageSquare}
-        iconTint="amber"
         label="Scene"
         onEdit={() => onJumpToStep(stepIndexById.scene)}
         testId="summary-scene"
@@ -200,7 +197,6 @@ function SummaryPanel({
 
       <SummaryRow
         icon={Palette}
-        iconTint="brand"
         label="Style"
         onEdit={() => onJumpToStep(stepIndexById.style)}
         testId="summary-style"
@@ -215,7 +211,6 @@ function SummaryPanel({
 
       <SummaryRow
         icon={FileText}
-        iconTint="coral"
         label="Inside"
         onEdit={() => onJumpToStep(stepIndexById.inside)}
         testId="summary-inside"
@@ -240,29 +235,19 @@ function SummaryPanel({
   );
 }
 
-// Tint mapping — each section gets a distinct accent so the summary
-// reads as a journey (different colours per step) rather than five
-// identical grey rows. Coral = emotion, brand = identity, amber =
-// scene/storytelling. Keeps the palette rules consistent with the
-// rest of the flow.
-type IconTint = 'coral' | 'brand' | 'amber';
-
-const ICON_TINT_STYLES: Record<IconTint, string> = {
-  coral: 'bg-accent-coral-light text-accent-coral-dark',
-  brand: 'bg-brand-muted text-brand',
-  amber: 'bg-accent-amber-light text-accent-amber-dark',
-};
-
+// Single-tint icon tile. Previous five-row per-tint system (coral /
+// brand / amber) was decorative pretending to be semantic and broke
+// the locked colour rules in UX_STUDIO_TONE.md. Unified to
+// brand-muted/brand so the icon glyph itself does the differentiation
+// (User vs Image vs Palette) — which is plenty of signal.
 function SummaryRow({
   icon: Icon,
-  iconTint,
   label,
   onEdit,
   children,
   testId,
 }: {
   icon: typeof User;
-  iconTint: IconTint;
   label: string;
   onEdit: () => void;
   children: React.ReactNode;
@@ -270,9 +255,7 @@ function SummaryRow({
 }) {
   return (
     <div className="flex items-start gap-3" data-testid={testId}>
-      <div
-        className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${ICON_TINT_STYLES[iconTint]}`}
-      >
+      <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 bg-brand-muted text-brand">
         <Icon className="w-4 h-4" strokeWidth={1.75} />
       </div>
       <div className="flex-1 min-w-0">

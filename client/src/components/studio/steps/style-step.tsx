@@ -10,7 +10,7 @@
 // carry brand aesthetics.
 
 import { useState } from 'react';
-import { Sparkles, Camera, PenLine, Check, Eye, ImageOff } from 'lucide-react';
+import { Sparkles, Camera, PenLine, Check, ImageOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -308,71 +308,62 @@ function PrimaryStyleCard({
   const [imageMissing, setImageMissing] = useState(false);
   const showImage = !!imgSrc && !imageMissing;
 
+  // Interaction model: the label row (title + blurb) selects the style;
+  // the image region itself opens the preview modal when there's a
+  // real image. Mobile-friendly — no hover-only reveal — and the
+  // tap target for "see bigger" is the thing you'd naturally want to
+  // zoom (the image). Fallback (icon-on-cream) is non-interactive for
+  // the image region since there's nothing to zoom to.
   return (
-    <div className="relative group">
-      <button
-        type="button"
-        onClick={onPick}
-        className={`w-full text-left rounded-2xl border-2 transition-all overflow-hidden ${
-          active
-            ? 'border-brand shadow-md ring-2 ring-brand/20'
-            : 'border-stone-200 hover:border-brand/60 hover:shadow-sm bg-white'
-        }`}
-        data-testid={`style-${btn.mode}`}
-      >
-        {/* Visual top — real image if available, icon-on-cream fallback
-            if not. No empty decorative gradients. */}
-        <div className="aspect-[4/3] w-full relative bg-surface-cream">
-          {showImage ? (
-            <img
-              src={imgSrc!}
-              alt={`${btn.label} style example`}
-              className="w-full h-full object-cover"
-              onError={() => setImageMissing(true)}
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 text-accent-coral-dark">
-              <Icon className="w-10 h-10" strokeWidth={1.5} />
-              <span className="text-[10px] font-medium uppercase tracking-wider text-stone-400">
-                Example coming soon
-              </span>
-            </div>
+    <div
+      className={`rounded-2xl border-2 transition-all overflow-hidden ${
+        active
+          ? 'border-brand shadow-md ring-2 ring-brand/20'
+          : 'border-stone-200 hover:border-brand/60 hover:shadow-sm bg-white'
+      }`}
+      data-testid={`style-${btn.mode}`}
+    >
+      {showImage ? (
+        <button
+          type="button"
+          onClick={onPreview}
+          className="relative block w-full aspect-[4/3] bg-surface-cream cursor-zoom-in"
+          aria-label={`See full example of ${btn.label}`}
+          data-testid={`style-${btn.mode}-preview`}
+        >
+          <img
+            src={imgSrc!}
+            alt={`${btn.label} style example`}
+            className="w-full h-full object-cover"
+            onError={() => setImageMissing(true)}
+          />
+          {active && (
+            <span className="absolute top-3 right-3 w-6 h-6 rounded-full bg-brand text-brand-foreground flex items-center justify-center shadow-sm">
+              <Check className="w-3.5 h-3.5" strokeWidth={3} />
+            </span>
           )}
+        </button>
+      ) : (
+        <div className="relative aspect-[4/3] w-full bg-surface-cream flex flex-col items-center justify-center gap-1.5 text-accent-coral-dark">
+          <Icon className="w-10 h-10" strokeWidth={1.5} />
+          <span className="text-[10px] font-medium uppercase tracking-wider text-stone-400">
+            Example coming soon
+          </span>
           {active && (
             <span className="absolute top-3 right-3 w-6 h-6 rounded-full bg-brand text-brand-foreground flex items-center justify-center shadow-sm">
               <Check className="w-3.5 h-3.5" strokeWidth={3} />
             </span>
           )}
         </div>
-        <div className="p-4">
-          <div className="text-base font-semibold text-ink mb-1">
-            {btn.label}
-          </div>
-          <p className="text-xs text-stone-500">{btn.blurb}</p>
-        </div>
-      </button>
-
-      {/* Expand button — only useful when there's a real image to zoom.
-          Stays hidden in the fallback state so we're not promising
-          a bigger view of the placeholder. */}
-      {showImage && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onPreview();
-          }}
-          className={`absolute top-3 left-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-white/90 backdrop-blur text-ink-soft hover:bg-white shadow-sm transition-opacity ${
-            active ? '' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
-          }`}
-          aria-label={`See full example of ${btn.label}`}
-          data-testid={`style-${btn.mode}-preview`}
-        >
-          <Eye className="w-3 h-3" />
-          Expand
-        </button>
       )}
+      <button
+        type="button"
+        onClick={onPick}
+        className="block w-full text-left p-4"
+      >
+        <div className="text-base font-semibold text-ink mb-1">{btn.label}</div>
+        <p className="text-xs text-stone-500">{btn.blurb}</p>
+      </button>
     </div>
   );
 }
@@ -474,9 +465,9 @@ function CustomStyleDialog({
                 <li>"Pixar 3D animation, warm cinematic lighting"</li>
               </ul>
             </div>
-            <div className="bg-accent-amber-light/60 rounded-lg p-3 border border-accent-amber/40">
-              <p className="font-semibold text-accent-amber-dark mb-1">Too vague</p>
-              <ul className="space-y-1 text-stone-700">
+            <div className="bg-stone-50 rounded-lg p-3 border border-stone-200">
+              <p className="font-semibold text-stone-500 mb-1">Too vague</p>
+              <ul className="space-y-1 text-stone-600">
                 <li>"Cool", "Modern", "Nice"</li>
                 <li>"Like that one Disney movie"</li>
                 <li>"Something pretty"</li>

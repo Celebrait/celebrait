@@ -198,16 +198,12 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
         className="max-w-md mx-auto flex flex-col items-center py-6"
         data-testid="photo-selected"
       >
-        <div className="relative">
-          <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden border-2 border-brand-muted shadow-sm">
-            <img
-              src={`/images/${selectedPhoto.thumbnailPath}`}
-              alt={selectedPhoto.label ?? 'Selected photo'}
-              className="w-full h-full object-cover"
-            />
-          </div>
-          {/* Tiny amber accent dot on top — a subtle "locked in" marker. */}
-          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-accent-amber border-2 border-white shadow-sm" />
+        <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden border-2 border-brand-muted shadow-sm">
+          <img
+            src={`/images/${selectedPhoto.thumbnailPath}`}
+            alt={selectedPhoto.label ?? 'Selected photo'}
+            className="w-full h-full object-cover"
+          />
         </div>
         <p className="text-base font-semibold text-ink mt-4">
           {recipientName ? `${recipientName} — ready to go` : 'Photo — ready to go'}
