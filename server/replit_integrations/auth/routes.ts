@@ -6,29 +6,39 @@ import { otpCodes, users } from "@shared/models/auth";
 import { eq, and, gt } from "drizzle-orm";
 import { sendOtpEmail, sendGenerationStartedEmail } from "../../email-service";
 
+// Local dev bypass: when DEV_AUTH_ACCEPT_ANY_CODE=1, the OTP verify endpoint
+// will accept any of these codes without the user needing to receive a real
+// email. Lets you log in as any email locally without Brevo configured.
+//
+// HARD GUARDED: the bypass is refused in production regardless of the env
+// var, so you can't accidentally ship it.
+const DEV_OTP_BYPASS_CODES = new Set(["000000", "123456"]);
+const IS_DEV_BYPASS_ENABLED =
+  process.env.NODE_ENV !== "production" &&
+  process.env.DEV_AUTH_ACCEPT_ANY_CODE === "1";
+
 function generateOtp(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 // Register auth-specific routes
 export function registerAuthRoutes(app: Express): void {
-  // Get current authenticated user - supports both Replit Auth and OTP sessions
+  if (IS_DEV_BYPASS_ENABLED) {
+    console.warn(
+      "[auth] DEV_AUTH_ACCEPT_ANY_CODE is ON — OTP verify will accept code '000000' or '123456' for any email. DO NOT SHIP.",
+    );
+  }
+
+  // Get current authenticated user. Single source of truth post-unification:
+  // only the OTP session matters. The old passport/Replit OIDC path has
+  // been removed.
   app.get("/api/auth/user", async (req: any, res) => {
     try {
-      // OTP session: user stored directly on session
-      if (req.session?.otpUserId) {
-        const user = await authStorage.getUser(req.session.otpUserId);
-        if (user) return res.json(user);
+      const otpUserId = req.session?.otpUserId;
+      if (!otpUserId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-
-      // Replit Auth: user stored via passport
-      if (!req.isAuthenticated || !req.isAuthenticated() || !req.user?.claims?.sub) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
-      const userId = req.user.claims.sub;
-      const user = await authStorage.getUser(userId);
+      const user = await authStorage.getUser(otpUserId);
       if (!user) return res.status(401).json({ message: "Unauthorized" });
       res.json(user);
     } catch (error) {
@@ -46,6 +56,21 @@ export function registerAuthRoutes(app: Express): void {
       }
 
       const normalizedEmail = email.toLowerCase().trim();
+
+      // Dev bypass: skip Brevo entirely. The verify endpoint accepts a
+      // hardcoded code so there's no need to actually generate/persist
+      // one. Tell the client so the UI can hint at the code.
+      if (IS_DEV_BYPASS_ENABLED) {
+        console.log(
+          `[auth] DEV_BYPASS: OTP send for ${normalizedEmail} — use code 000000 or 123456`,
+        );
+        return res.json({
+          success: true,
+          message: "Dev bypass active. Use code 000000 or 123456.",
+          devBypass: true,
+        });
+      }
+
       const code = generateOtp();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
@@ -83,26 +108,34 @@ export function registerAuthRoutes(app: Express): void {
       const normalizedEmail = email.toLowerCase().trim();
       const now = new Date();
 
-      // Find valid, unused OTP
-      const [otp] = await db
-        .select()
-        .from(otpCodes)
-        .where(
-          and(
-            eq(otpCodes.email, normalizedEmail),
-            eq(otpCodes.code, code),
-            eq(otpCodes.used, "false"),
-            gt(otpCodes.expiresAt, now)
+      // Dev bypass: accept a hardcoded code so local development doesn't
+      // need Brevo configured. Guarded by NODE_ENV !== 'production'.
+      const isBypassCode = IS_DEV_BYPASS_ENABLED && DEV_OTP_BYPASS_CODES.has(code);
+
+      if (!isBypassCode) {
+        // Find valid, unused OTP
+        const [otp] = await db
+          .select()
+          .from(otpCodes)
+          .where(
+            and(
+              eq(otpCodes.email, normalizedEmail),
+              eq(otpCodes.code, code),
+              eq(otpCodes.used, "false"),
+              gt(otpCodes.expiresAt, now)
+            )
           )
-        )
-        .limit(1);
+          .limit(1);
 
-      if (!otp) {
-        return res.status(400).json({ message: "Invalid or expired code. Please try again." });
+        if (!otp) {
+          return res.status(400).json({ message: "Invalid or expired code. Please try again." });
+        }
+
+        // Mark OTP as used
+        await db.update(otpCodes).set({ used: "true" }).where(eq(otpCodes.id, otp.id));
+      } else {
+        console.log(`[auth] DEV_BYPASS: accepting code for ${normalizedEmail}`);
       }
-
-      // Mark OTP as used
-      await db.update(otpCodes).set({ used: "true" }).where(eq(otpCodes.id, otp.id));
 
       // Upsert user - find by email first
       const [existingUser] = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);

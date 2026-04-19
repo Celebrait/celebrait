@@ -3,6 +3,9 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export * from "./models/auth";
+export * from "./models/prompts";
+export * from "./models/photos";
+export * from "./models/card-draft";
 
 import { users } from "./models/auth";
 
@@ -22,23 +25,6 @@ export const cards = pgTable("cards", {
   status: text("status").default('generating'),
   price: integer("price").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const prospects = pgTable("prospects", {
-  id: serial("id").primaryKey(),
-  email: text("email").notNull().unique(),
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  cardId: integer("card_id").references(() => cards.id),
-  recipientName: text("recipient_name"),
-  celebrationType: text("celebration_type"),
-  signupSource: text("signup_source").default("card_generation"),
-  brevoContactId: text("brevo_contact_id"),
-  marketingOptIn: boolean("marketing_opt_in").default(true),
-  cardPreviewSent: boolean("card_preview_sent").default(false),
-  convertedToCustomer: boolean("converted_to_customer").default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
 export const orders = pgTable("orders", {
@@ -71,17 +57,6 @@ export const insertCardSchema = createInsertSchema(cards).pick({
   price: true,
 });
 
-export const insertProspectSchema = createInsertSchema(prospects).pick({
-  email: true,
-  firstName: true,
-  lastName: true,
-  cardId: true,
-  recipientName: true,
-  celebrationType: true,
-  signupSource: true,
-  marketingOptIn: true,
-});
-
 export const insertOrderSchema = createInsertSchema(orders).pick({
   cardId: true,
   userId: true,
@@ -102,7 +77,22 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
 
 export type InsertCard = z.infer<typeof insertCardSchema>;
 export type Card = typeof cards.$inferSelect;
-export type InsertProspect = z.infer<typeof insertProspectSchema>;
-export type Prospect = typeof prospects.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type Order = typeof orders.$inferSelect;
+
+// Slim projection used by the Studio grid. Historical cards stored
+// multi-MB base64 blobs in frontImageUrl, insideImageUrl AND nested
+// inside conversationData (as photo_upload / frontImageUrl keys).
+// Pulling any of those for a full listing blew past Neon's 64MB
+// response cap. The grid query plucks only the scalar fields the tile
+// actually needs — no jsonb payloads, no image bytes.
+export type CardGridItem = {
+  id: number;
+  userId: string | null;
+  status: string | null;
+  cardType: string | null;
+  createdAt: Date | null;
+  recipientName: string | null;
+  occasion: string | null;
+  frontImageUrl: string | null;
+};

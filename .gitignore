@@ -7,7 +7,8 @@ dist
 .local/
 .replit
 replit.nix
-stored_images/
+stored_images
+stored_images.nosync/
 FOUNDER_BRAIN_DUMP.docx
 temp_images/
 
@@ -15,3 +16,10 @@ temp_images/
 .local/
 .replit
 replit.nix
+
+# Claude Code local state (plans, worktrees, projects — per-machine)
+.claude/
+
+# Office lock files
+~$*.docx
+~$*.xlsx

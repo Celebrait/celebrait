@@ -21,12 +21,16 @@ import { registerImagesRoutes } from "./routes/images";
 import { registerGenerationRoutes } from "./routes/generation";
 import { registerPaymentRoutes } from "./routes/payment";
 import { registerFulfillmentRoutes } from "./routes/fulfillment";
+import { registerPromptRoutes } from "./routes/prompts";
+import { registerPhotoRoutes } from "./routes/photos";
+import { registerStudioDraftRoutes } from "./routes/studio-drafts";
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
   // Setup auth BEFORE other routes.
-  // setupAuth handles both Replit OIDC (production) and DEV_AUTH (local) modes,
-  // and always mounts session middleware — which is required for OTP auth.
+  // Since 2026-04, the only auth system is the email OTP flow. setupAuth
+  // now just mounts PG-backed session middleware; registerAuthRoutes wires
+  // up /api/auth/otp/send, /verify, /logout and /api/auth/user.
   await setupAuth(app);
   registerAuthRoutes(app);
 
@@ -37,11 +41,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/user/cards", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.session?.otpUserId;
       if (!userId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
-      const cards = await storage.getUserCards(String(userId));
+      // Use the lightweight grid projection — see storage.getUserCardsForGrid
+      // for why (Neon 64MB response cap + legacy base64 columns).
+      const cards = await storage.getUserCardsForGrid(String(userId));
       res.json(cards);
     } catch (error: any) {
       res.status(500).json({ message: "Error fetching user cards: " + error.message });
@@ -50,7 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/user/orders", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.session?.otpUserId;
       if (!userId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
@@ -313,6 +319,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerGenerationRoutes(app);
   registerPaymentRoutes(app);
   registerFulfillmentRoutes(app);
+  registerPromptRoutes(app);
+  registerPhotoRoutes(app);
+  registerStudioDraftRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

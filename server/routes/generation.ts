@@ -2,7 +2,7 @@ import type { Express } from "express";
 import FormData from "form-data";
 import { storage } from "../storage";
 import { sendBackgroundEmail } from "../email-service";
-import { buildInsidePrompt } from "../../shared/prompts";
+import { resolveInsidePrompt } from "../prompts/resolver";
 import { generateCardInBackground } from "../background-generator";
 import {
   openai,
@@ -766,17 +766,19 @@ ${styleSection}`;
       const structuredData = parseInsideMessage(insideText);
       console.log('Parsed inside message structure:', structuredData);
       
-      // Use the enhanced buildInsidePrompt function for proper style matching
-      const { buildInsidePrompt } = await import('../../shared/prompts');
-      const insideCardPrompt = buildInsidePrompt(
-        insideText, 
-        artStyle || 'artistic', 
-        undefined, 
-        undefined, 
-        structuredData
-      );
+      // Resolve the active inside-card prompt from the Prompt Lab DB (with
+      // hardcoded fallback if DB isn't seeded yet). See PROMPT_LAB_PLAN.md §4.
+      const resolvedInside = await resolveInsidePrompt({
+        insideText,
+        artStyle: artStyle || 'artistic',
+        structuredData: structuredData ?? undefined,
+      });
+      const insideCardPrompt = resolvedInside.text;
 
-      console.log('Inside card prompt:', insideCardPrompt);
+      console.log(
+        `Inside card prompt (source=${resolvedInside.source}, templateId=${resolvedInside.templateId}, v=${resolvedInside.templateVersion}):`,
+        insideCardPrompt,
+      );
 
       // Use form-data approach with GPT-Image-1 edits API
       const formData = new FormData();
@@ -979,10 +981,8 @@ ${styleSection}`;
         return res.status(400).json({ message: "Invalid card ID" });
       }
 
-      // Resolve authenticated user from OTP session or Replit auth
-      const otpUserId = req.session?.otpUserId;
-      const replitUser = req.user;
-      const userId = otpUserId || replitUser?.id;
+      // Resolve authenticated user from the OTP session (the only auth path)
+      const userId = req.session?.otpUserId ?? null;
 
       const {
         userEmail,

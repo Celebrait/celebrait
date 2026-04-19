@@ -1,18 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { User, LogOut, LogIn, LayoutDashboard } from "lucide-react";
+import { User, LogOut, LogIn, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 import logoSrc from "../assets/Logo2.png";
 
 export default function Header() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
 
   const handleLogin = () => {
-    window.location.href = "/api/login";
+    window.location.href = "/login";
   };
 
   const handleLogout = () => {
-    window.location.href = "/api/logout";
+    logout();
   };
 
   return (
@@ -38,23 +38,25 @@ export default function Header() {
               <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
             ) : isAuthenticated && user ? (
               <div className="flex items-center space-x-2 sm:space-x-3">
-                <Link href="/dashboard">
+                <Link href="/studio">
                   <Button
                     variant="ghost"
                     size="sm"
                     className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 hidden sm:flex"
+                    data-testid="header-my-studio"
                   >
-                    <LayoutDashboard className="w-4 h-4 mr-1" />
-                    Dashboard
+                    <Sparkles className="w-4 h-4 mr-1" />
+                    My Studio
                   </Button>
                 </Link>
-                <Link href="/dashboard" className="sm:hidden">
+                <Link href="/studio" className="sm:hidden">
                   <Button
                     variant="ghost"
                     size="sm"
                     className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 p-2"
+                    data-testid="header-my-studio-mobile"
                   >
-                    <LayoutDashboard className="w-4 h-4" />
+                    <Sparkles className="w-4 h-4" />
                   </Button>
                 </Link>
                 

@@ -3,33 +3,33 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 20 14.3% 4.1%;
-  --muted: 60 4.8% 95.9%;
-  --muted-foreground: 25 5.3% 44.7%;
+  --background: 20 6% 98%;           /* stone-50: warm off-white */
+  --foreground: 24 10% 10%;          /* stone-900: warm near-black */
+  --muted: 20 6% 96%;               /* stone-100 */
+  --muted-foreground: 25 5% 45%;    /* stone-500 */
   --popover: 0 0% 100%;
-  --popover-foreground: 20 14.3% 4.1%;
+  --popover-foreground: 24 10% 10%;
   --card: 0 0% 100%;
-  --card-foreground: 20 14.3% 4.1%;
-  --border: 20 5.9% 90%;
-  --input: 20 5.9% 90%;
-  --primary: 207 90% 54%;
-  --primary-foreground: 211 100% 99%;
-  --secondary: 60 4.8% 95.9%;
-  --secondary-foreground: 24 9.8% 10%;
-  --accent: 60 4.8% 95.9%;
-  --accent-foreground: 24 9.8% 10%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 60 9.1% 97.8%;
-  --ring: 20 14.3% 4.1%;
+  --card-foreground: 24 10% 10%;
+  --border: 20 5% 90%;              /* stone-200 */
+  --input: 20 5% 90%;
+  --primary: 263 70% 58%;            /* warm violet #7c3aed */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 20 6% 96%;
+  --secondary-foreground: 24 10% 10%;
+  --accent: 20 6% 96%;
+  --accent-foreground: 24 10% 10%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --ring: 263 70% 58%;               /* matches primary */
   --radius: 0.5rem;
 
-  /* Celebrait Custom Colors */
-  --ethereal-purple: 255 102% 68%; /* #6366F1 */
-  --warm-pink: 329 86% 70%; /* #EC4899 */
-  --sa-gold: 45 93% 47%; /* #F59E0B */
-  --soft-white: 210 40% 98%; /* #F8FAFC */
-  --slate-gray: 215 16% 47%; /* #64748B */
+  /* Celebrait legacy custom colors (kept for existing components) */
+  --ethereal-purple: 263 70% 58%;
+  --warm-pink: 329 86% 70%;
+  --sa-gold: 45 93% 47%;
+  --soft-white: 20 6% 98%;
+  --slate-gray: 25 5% 45%;
 }
 
 /* Smooth page transitions for navigation */
@@ -81,7 +81,7 @@ body {
 
   body {
     @apply font-sans antialiased min-h-screen;
-    background: linear-gradient(135deg, hsl(var(--soft-white)) 0%, #faf5ff 50%, #fdf2f8 100%);
+    background-color: hsl(var(--background));
     font-family: 'Inter', sans-serif;
   }
 }

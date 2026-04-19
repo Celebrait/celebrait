@@ -78,17 +78,11 @@ class ImageStoreImpl {
     if (onProgress) onProgress(10);
     
     try {
-      // Process and compress the image during upload
+      // Process and compress the image during upload. compressImage now returns
+      // the original dimensions so we don't need a second image load here.
       const result = await this.compressImage(file, onProgress);
-      
+
       if (onProgress) onProgress(100);
-      
-      // Get original dimensions before storing
-      const img = new Image();
-      img.src = objectUrl;
-      await new Promise((resolve) => {
-        img.onload = resolve;
-      });
 
       this.store.set(id, {
         file,
@@ -96,8 +90,8 @@ class ImageStoreImpl {
         compressedBase64: result.base64,
         originalSize: file.size,
         compressedSize: result.base64.length,
-        wasCropped: shouldCropToSquare(img.width, img.height),
-        originalDimensions: { width: img.width, height: img.height },
+        wasCropped: shouldCropToSquare(result.originalWidth, result.originalHeight),
+        originalDimensions: { width: result.originalWidth, height: result.originalHeight },
         faceCount: result.faceCount
       });
       
@@ -109,14 +103,9 @@ class ImageStoreImpl {
       return id;
     } catch (error) {
       console.error('[IMAGE_STORE] Failed to process image:', error);
-      // Fallback: store without compression  
-      const img = new Image();
-      img.src = objectUrl;
-      await new Promise((resolve) => {
-        img.onload = resolve;
-        img.onerror = resolve; // Continue even if image load fails
-      });
-
+      // Fallback: store without compression. We don't know the original
+      // dimensions here (compressImage never got far enough) so record zeros —
+      // downstream code already tolerates this sentinel.
       this.store.set(id, {
         file,
         objectUrl,
@@ -124,17 +113,18 @@ class ImageStoreImpl {
         originalSize: file.size,
         compressedSize: 0,
         wasCropped: false,
-        originalDimensions: { width: img.width || 0, height: img.height || 0 },
+        originalDimensions: { width: 0, height: 0 },
         faceCount: 0
       });
-      
+
       if (onProgress) onProgress(100);
       return id;
     }
   }
 
-  // Compress and resize image to optimized base64 with smart cropping
-  private async compressImage(file: File, onProgress?: (progress: number) => void): Promise<{ base64: string; faceCount: number }> {
+  // Compress and resize image to optimized base64 with smart cropping.
+  // Also returns original dimensions so callers don't need a second image load.
+  private async compressImage(file: File, onProgress?: (progress: number) => void): Promise<{ base64: string; faceCount: number; originalWidth: number; originalHeight: number }> {
     return new Promise(async (resolve, reject) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -246,7 +236,12 @@ class ImageStoreImpl {
           // Clean up object URL to prevent memory leak
           URL.revokeObjectURL(img.src);
           
-          resolve({ base64: compressedBase64, faceCount: detectedFaceCount });
+          resolve({
+            base64: compressedBase64,
+            faceCount: detectedFaceCount,
+            originalWidth,
+            originalHeight,
+          });
         } catch (error) {
           // Clean up object URL even on error
           URL.revokeObjectURL(img.src);

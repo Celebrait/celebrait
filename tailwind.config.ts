@@ -14,6 +14,28 @@ export default {
         'handwriting': ['Caveat', 'cursive'],
       },
       colors: {
+        // ── Celebrait brand palette ──────────────────────────────────
+        // Warm violet primary, green CTAs, stone neutrals.
+        // Defined once here; use `brand`, `cta`, `surface` in components
+        // instead of raw `purple-600` or `gray-50`.
+        brand: {
+          DEFAULT: '#7a76e8',     // soft blue-violet — primary interactive
+          light: '#e5e4f9',       // pale lavender — selected backgrounds
+          dark: '#5c57d4',        // deeper violet — hover/pressed
+          muted: '#f2f1fb',       // near-white tint — subtle
+          foreground: '#ffffff',  // text on brand buttons
+        },
+        cta: {
+          DEFAULT: '#5fd94a',     // bright lime — primary action ("go")
+          hover: '#4ac437',       // slightly deeper — hover
+          light: '#e0f8db',       // pale green — success backgrounds
+          foreground: '#ffffff',
+        },
+        surface: {
+          DEFAULT: '#fafaf9',     // stone-50 — page background (warm)
+          card: '#ffffff',        // card backgrounds
+          muted: '#f5f5f4',       // stone-100 — subtle differentiation
+        },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {

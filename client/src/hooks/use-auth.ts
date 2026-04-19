@@ -19,15 +19,14 @@ async function fetchUser(): Promise<User | null> {
 }
 
 async function logout(): Promise<void> {
-  // Try OTP logout first (doesn't redirect), fall back to Replit OIDC logout
+  // OTP session is the only auth path; POST to destroy then hard-redirect
+  // to the landing page so React Query state is also cleared.
   try {
-    const res = await fetch("/api/auth/otp/logout", { method: "POST", credentials: "include" });
-    if (res.ok) {
-      window.location.href = "/";
-      return;
-    }
-  } catch {}
-  window.location.href = "/api/logout";
+    await fetch("/api/auth/otp/logout", { method: "POST", credentials: "include" });
+  } catch {
+    /* best-effort */
+  }
+  window.location.href = "/";
 }
 
 export function useAuth() {

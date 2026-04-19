@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -16,8 +16,14 @@ import CardPreviewPage from "@/pages/card-preview-page";
 import NotFound from "@/pages/not-found";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import TermsOfService from "@/pages/terms-of-service";
-import Dashboard from "@/pages/dashboard";
 import RegenPage from "@/pages/regen-page";
+import AdminPromptsPage from "@/pages/admin-prompts";
+import LoginPage from "@/pages/login";
+import StudioHome from "@/pages/studio";
+import { NewCardPage, CardMakerPage } from "@/pages/card-maker";
+import { RequireAuth, RequireAdmin } from "@/components/require-auth";
+import AdminLayout from "@/layouts/admin-layout";
+import StudioLayout from "@/layouts/studio-layout";
 
 
 function Router() {
@@ -26,6 +32,7 @@ function Router() {
       <ScrollToTop />
       <Switch>
         <Route path="/" component={Landing} />
+        <Route path="/login" component={LoginPage} />
         <Route path="/create-card" component={CreateCard} />
         <Route path="/payment-success/:reference" component={PaymentSuccess} />
         <Route path="/payment-cancelled/:reference" component={PaymentCancelled} />
@@ -34,8 +41,40 @@ function Router() {
         <Route path="/card-preview/:reference" component={CardPreviewPage} />
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms-of-service" component={TermsOfService} />
-        <Route path="/dashboard" component={Dashboard} />
+        <Route path="/studio">
+          <RequireAuth>
+            <StudioLayout>
+              <StudioHome />
+            </StudioLayout>
+          </RequireAuth>
+        </Route>
+        <Route path="/studio/new-card">
+          <RequireAuth>
+            <StudioLayout>
+              <NewCardPage />
+            </StudioLayout>
+          </RequireAuth>
+        </Route>
+        <Route path="/studio/card/:id/edit">
+          <RequireAuth>
+            <StudioLayout>
+              <CardMakerPage />
+            </StudioLayout>
+          </RequireAuth>
+        </Route>
+        {/* Legacy /dashboard — redirect to Studio. Kept so existing
+            bookmarks and any stale links survive the cutover. */}
+        <Route path="/dashboard">
+          <Redirect to="/studio" />
+        </Route>
         <Route path="/regen/:cardId" component={RegenPage} />
+        <Route path="/admin/prompts">
+          <RequireAdmin>
+            <AdminLayout>
+              <AdminPromptsPage />
+            </AdminLayout>
+          </RequireAdmin>
+        </Route>
 
         <Route component={NotFound} />
       </Switch>
