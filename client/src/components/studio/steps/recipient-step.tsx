@@ -13,7 +13,22 @@
 //     "New home", "Divorce party") don't fall through a keyword gap.
 
 import { useState } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  Check,
+  ChevronDown,
+  Cake,
+  HeartHandshake,
+  Gem,
+  GraduationCap,
+  Baby,
+  TreePine,
+  Heart,
+  Flower2,
+  Leaf,
+  PenLine,
+  Diamond,
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { CardDraftState } from '@shared/schema';
@@ -29,20 +44,21 @@ const PRIMARY_OCCASIONS: readonly string[] = [
   'graduation',
 ];
 
-// Optional decorative emoji per occasion — gentle celebratory signal
-// without leaning into cartoon territory. Null = no icon (clean label
-// is fine).
-const OCCASION_ICON: Record<string, string> = {
-  birthday: '🎂',
-  anniversary: '💞',
-  wedding: '💍',
-  graduation: '🎓',
-  engagement: '💐',
-  baby: '👶',
-  christmas: '🎄',
-  valentines: '💌',
-  thankyou: '🙏',
-  sympathy: '🤍',
+// Vector icon per occasion. Consistent visual language (lucide) reads
+// as premium vs. emoji which skews casual/chat-bot. Each icon is the
+// simplest recognisable glyph for that occasion.
+const OCCASION_ICON: Record<string, LucideIcon> = {
+  birthday: Cake,
+  anniversary: HeartHandshake,
+  wedding: Gem,
+  graduation: GraduationCap,
+  engagement: Diamond,
+  baby: Baby,
+  christmas: TreePine,
+  valentines: Heart,
+  thankyou: Flower2,
+  sympathy: Leaf,
+  other: PenLine,
 };
 
 interface RecipientStepProps {
@@ -133,7 +149,7 @@ export function RecipientStep({ state, onChange }: RecipientStepProps) {
             <OccasionButton
               key={o}
               occasion={o}
-              icon={OCCASION_ICON[o]}
+              Icon={OCCASION_ICON[o]}
               label={getOccasionLabel(o)}
               selected={selectedOccasion === o}
               onPick={() => pickOccasion(o)}
@@ -159,7 +175,7 @@ export function RecipientStep({ state, onChange }: RecipientStepProps) {
               <OccasionButton
                 key={o}
                 occasion={o}
-                icon={OCCASION_ICON[o]}
+                Icon={OCCASION_ICON[o]}
                 label={getOccasionLabel(o)}
                 selected={selectedOccasion === o}
                 onPick={() => pickOccasion(o)}
@@ -175,7 +191,7 @@ export function RecipientStep({ state, onChange }: RecipientStepProps) {
           <div className="pt-2">
             <OccasionButton
               occasion="other"
-              icon="✍️"
+              Icon={OCCASION_ICON.other}
               label={isOtherPicked && otherText ? `Custom: ${otherText}` : 'Something else'}
               selected={isOtherPicked}
               onPick={() => pickOccasion('other')}
@@ -202,17 +218,17 @@ export function RecipientStep({ state, onChange }: RecipientStepProps) {
 }
 
 // Tappable occasion card. Visual feedback is the whole point — big
-// target, obvious selected state, small icon for warmth.
+// target, obvious selected state, vector icon for warmth.
 function OccasionButton({
   occasion,
-  icon,
+  Icon,
   label,
   selected,
   onPick,
   wide = false,
 }: {
   occasion: string;
-  icon?: string;
+  Icon?: LucideIcon;
   label: string;
   selected: boolean;
   onPick: () => void;
@@ -222,14 +238,24 @@ function OccasionButton({
     <button
       type="button"
       onClick={onPick}
-      className={`relative flex items-center gap-2.5 text-left p-3 rounded-xl border-2 transition-all ${
+      className={`relative flex items-center gap-3 text-left p-3 rounded-xl border-2 transition-all ${
         selected
           ? 'border-brand bg-brand-muted shadow-sm'
-          : 'border-stone-200 hover:border-stone-300 bg-white'
+          : 'border-stone-200 hover:border-brand hover:bg-brand-muted/40 bg-white'
       } ${wide ? 'w-full' : ''}`}
       data-testid={`btn-occasion-${occasion}`}
     >
-      {icon && <span className="text-lg leading-none">{icon}</span>}
+      {Icon && (
+        <span
+          className={`flex items-center justify-center w-9 h-9 rounded-lg shrink-0 transition-colors ${
+            selected
+              ? 'bg-brand text-brand-foreground'
+              : 'bg-accent-coral-light text-accent-coral-dark'
+          }`}
+        >
+          <Icon className="w-4.5 h-4.5" strokeWidth={1.75} />
+        </span>
+      )}
       <span
         className={`text-sm font-medium truncate ${
           selected ? 'text-brand-dark' : 'text-stone-800'

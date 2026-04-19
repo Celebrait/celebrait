@@ -82,6 +82,9 @@ export function StyleStep({ state, onChange }: StyleStepProps) {
     setCustomOpen(false);
   };
 
+  const primaryModes = MODE_BUTTONS.filter((b) => b.mode !== 'custom');
+  const customMode = MODE_BUTTONS.find((b) => b.mode === 'custom')!;
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
@@ -89,59 +92,116 @@ export function StyleStep({ state, onChange }: StyleStepProps) {
           How should your card look?
         </p>
         <p className="text-xs text-stone-500">
-          You can always change this later.
+          Pick one of our house styles, or describe your own.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {MODE_BUTTONS.map((btn) => {
+      {/* Primary styles — big featured cards with gradient accents. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {primaryModes.map((btn) => {
           const Icon = btn.icon;
           const active = currentMode === btn.mode;
+          // Each primary style gets a distinct accent band so they feel
+          // like siblings but individual choices.
+          const accent =
+            btn.mode === 'animated'
+              ? 'from-accent-coral-light via-brand-muted to-accent-amber-light'
+              : 'from-ink/10 via-brand-muted to-accent-coral-light';
           return (
             <button
               key={btn.mode}
               type="button"
               onClick={() => pickMode(btn.mode)}
-              className={`relative text-left p-4 rounded-2xl border-2 transition-all ${
+              className={`relative text-left rounded-2xl border-2 transition-all overflow-hidden ${
                 active
-                  ? 'border-brand bg-brand-muted shadow-sm'
-                  : 'border-stone-200 hover:border-stone-300 bg-white'
+                  ? 'border-brand shadow-md ring-2 ring-brand/20'
+                  : 'border-stone-200 hover:border-brand/60 hover:shadow-sm bg-white'
               }`}
               data-testid={`style-${btn.mode}`}
             >
-              {active && (
-                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-brand text-brand-foreground flex items-center justify-center">
-                  <Check className="w-3 h-3" />
-                </div>
-              )}
-              <Icon
-                className={`w-5 h-5 mb-2 ${active ? 'text-brand' : 'text-stone-400'}`}
-              />
+              {/* Decorative gradient band — subtle identity for each tile. */}
               <div
-                className={`text-sm font-semibold mb-1 ${
-                  active ? 'text-brand-dark' : 'text-stone-900'
-                }`}
+                className={`h-20 w-full bg-gradient-to-br ${accent} relative`}
+                aria-hidden="true"
               >
-                <AILabel text={btn.label} />
+                <Icon
+                  className={`absolute bottom-3 left-4 w-6 h-6 ${
+                    active ? 'text-brand-dark' : 'text-brand/70'
+                  }`}
+                  strokeWidth={1.75}
+                />
+                {active && (
+                  <span className="absolute top-3 right-3 w-6 h-6 rounded-full bg-brand text-brand-foreground flex items-center justify-center shadow-sm">
+                    <Check className="w-3.5 h-3.5" />
+                  </span>
+                )}
               </div>
-              <p
-                className={`text-xs ${active ? 'text-brand-dark/80' : 'text-stone-500'}`}
-              >
-                {btn.blurb}
-              </p>
+              <div className="p-4">
+                <div
+                  className={`text-base font-semibold mb-1 ${
+                    active ? 'text-brand-dark' : 'text-ink'
+                  }`}
+                >
+                  <AILabel text={btn.label} />
+                </div>
+                <p
+                  className={`text-xs ${active ? 'text-brand-dark/80' : 'text-stone-500'}`}
+                >
+                  {btn.blurb}
+                </p>
+              </div>
             </button>
           );
         })}
       </div>
 
+      {/* Custom — demoted, inline row. Present but not competing with
+          the two featured house styles. If the user wants their own
+          style, they reach here. */}
+      <button
+        type="button"
+        onClick={() => pickMode(customMode.mode)}
+        className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
+          currentMode === 'custom'
+            ? 'border-brand bg-brand-muted'
+            : 'border-dashed border-stone-300 hover:border-brand hover:bg-brand-muted/40 bg-white'
+        }`}
+        data-testid="style-custom"
+      >
+        <span
+          className={`flex items-center justify-center w-9 h-9 rounded-lg shrink-0 ${
+            currentMode === 'custom'
+              ? 'bg-brand text-brand-foreground'
+              : 'bg-accent-coral-light text-accent-coral-dark'
+          }`}
+        >
+          <customMode.icon className="w-4.5 h-4.5" strokeWidth={1.75} />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span
+            className={`block text-sm font-semibold ${
+              currentMode === 'custom' ? 'text-brand-dark' : 'text-ink'
+            }`}
+          >
+            Describe your own style
+          </span>
+          <span className="block text-xs text-stone-500 mt-0.5">
+            Watercolour, 60s poster, vaporwave — your call.
+          </span>
+        </span>
+        {currentMode === 'custom' && (
+          <Check className="w-4 h-4 text-brand shrink-0" />
+        )}
+      </button>
+
       {currentMode === 'custom' && state.style?.custom && (
-        <div className="bg-stone-50 border border-stone-200 rounded-lg p-3">
+        <div className="bg-surface-cream border border-accent-coral-light rounded-xl p-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1">
+              <p className="text-[11px] font-semibold text-accent-coral-dark uppercase tracking-wider mb-1">
                 Your custom style
               </p>
-              <p className="text-sm text-stone-700 break-words">
+              <p className="text-sm text-ink break-words">
                 {state.style.custom}
               </p>
             </div>
@@ -150,7 +210,7 @@ export function StyleStep({ state, onChange }: StyleStepProps) {
               variant="ghost"
               size="sm"
               onClick={() => setCustomOpen(true)}
-              className="shrink-0 text-stone-500"
+              className="shrink-0 text-brand hover:text-brand-dark"
               data-testid="btn-edit-custom-style"
             >
               Edit
@@ -214,7 +274,7 @@ function CustomStyleDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Describe your style</DialogTitle>
+          <DialogTitle className="text-ink">Describe your style</DialogTitle>
           <DialogDescription>
             The more specific you are, the better the result. Mention the
             medium, era and feel.
@@ -223,7 +283,7 @@ function CustomStyleDialog({
 
         <div className="space-y-4 py-2">
           <div>
-            <Label htmlFor="custom-style-text" className="text-sm">
+            <Label htmlFor="custom-style-text" className="text-sm text-ink">
               Your style description
             </Label>
             <Textarea
@@ -242,7 +302,7 @@ function CustomStyleDialog({
                   ? 'text-stone-400'
                   : valid
                     ? 'text-stone-500'
-                    : 'text-amber-700'
+                    : 'text-accent-coral-dark'
               }`}
             >
               {trimmed.length === 0
@@ -254,16 +314,16 @@ function CustomStyleDialog({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div className="bg-cta-light/40 rounded-lg p-3 border border-green-100">
-              <p className="font-semibold text-green-800 mb-1">Good examples</p>
+            <div className="bg-cta-light/40 rounded-lg p-3 border border-cta/30">
+              <p className="font-semibold text-cta-hover mb-1">Good examples</p>
               <ul className="space-y-1 text-stone-700">
                 <li>"Watercolour with soft pastel washes, warm beige"</li>
                 <li>"1960s Saul Bass poster, flat shapes, mustard + teal"</li>
                 <li>"Pixar 3D animation, warm cinematic lighting"</li>
               </ul>
             </div>
-            <div className="bg-amber-50/60 rounded-lg p-3 border border-amber-100">
-              <p className="font-semibold text-amber-800 mb-1">Too vague</p>
+            <div className="bg-accent-amber-light/60 rounded-lg p-3 border border-accent-amber/40">
+              <p className="font-semibold text-accent-amber-dark mb-1">Too vague</p>
               <ul className="space-y-1 text-stone-700">
                 <li>"Cool", "Modern", "Nice"</li>
                 <li>"Like that one Disney movie"</li>

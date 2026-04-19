@@ -14,8 +14,7 @@
 
 import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Upload, Image as ImageIcon, Loader2, Check, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Upload, Image as ImageIcon, Loader2, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { queryClient } from '@/lib/queryClient';
@@ -47,11 +46,18 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
   // The first saved photoId on the draft — selected photo for this card.
   const selectedPhotoId = state.photos?.photoIds?.[0];
   const selectedPhoto = photos?.find((p) => p.id === selectedPhotoId);
+  const recipientName = state.recipient?.name?.trim() || '';
 
   // UI state for the pending upload.
   const [stagedSrc, setStagedSrc] = useState<string | null>(null);
   const [stagedFilename, setStagedFilename] = useState<string | null>(null);
   const [stagedBase64, setStagedBase64] = useState<string | null>(null);
+  // A cropped preview data URL shown during upload — what the user just
+  // confirmed in the crop dialog, so the uploading state feels like
+  // their photo landing, not a generic spinner.
+  const [uploadingPreviewSrc, setUploadingPreviewSrc] = useState<string | null>(
+    null,
+  );
   const [isUploading, setIsUploading] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
 
@@ -105,8 +111,12 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
     setStagedFilename(null);
   };
 
-  const confirmCrop = async (bounds: CropBounds) => {
+  const confirmCrop = async (bounds: CropBounds, croppedPreview?: string) => {
     if (!stagedBase64) return;
+    // Preserve the cropped preview data URL if the crop dialog supplied
+    // one; otherwise fall back to the staged original. Either way the
+    // user sees what they just picked while it uploads — no context gap.
+    setUploadingPreviewSrc(croppedPreview ?? stagedSrc);
     setIsUploading(true);
     try {
       const res = await apiRequest('POST', '/api/photos/upload', {
@@ -122,7 +132,6 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
       // array — if we add multi-photo later it's already shaped for it.
       onChange({ photos: { photoIds: [photo.id] } });
       cancelStaged();
-      toast({ title: 'Photo saved', description: 'Ready for the next step.' });
     } catch (err: any) {
       console.error('[PHOTO_STEP] upload failed:', err);
       toast({
@@ -132,6 +141,7 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
       });
     } finally {
       setIsUploading(false);
+      setUploadingPreviewSrc(null);
     }
   };
 
@@ -144,39 +154,72 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
     onChange({ photos: { photoIds: [] } });
   };
 
-  // ── Selected state: compact confirmation card ──────────────────
+  // ── Uploading state: show what they just cropped with a progress ring ──
+  // Rendered while POST /api/photos/upload is in flight. Uses the cropped
+  // preview so the user sees their chosen photo "landing," not a generic
+  // spinner. Replaces the picker so it's unmistakable that the upload is
+  // the current moment.
+  if (isUploading && uploadingPreviewSrc) {
+    return (
+      <div
+        className="max-w-md mx-auto flex flex-col items-center py-8"
+        data-testid="photo-uploading"
+      >
+        <div className="relative">
+          <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden border-2 border-brand-muted bg-stone-100">
+            <img
+              src={uploadingPreviewSrc}
+              alt="Uploading"
+              className="w-full h-full object-cover opacity-75"
+            />
+          </div>
+          {/* Subtle gradient shimmer + spinner overlay. */}
+          <div className="absolute inset-0 rounded-2xl ring-2 ring-brand/40 ring-offset-2 ring-offset-white animate-pulse pointer-events-none" />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-14 h-14 rounded-full bg-white/90 backdrop-blur shadow-md flex items-center justify-center">
+              <Loader2 className="w-7 h-7 animate-spin text-brand" />
+            </div>
+          </div>
+        </div>
+        <p className="text-sm font-semibold text-ink mt-5">
+          {recipientName ? `Saving ${recipientName}'s photo…` : 'Saving photo…'}
+        </p>
+        <p className="text-xs text-stone-500 mt-1">A second or two.</p>
+      </div>
+    );
+  }
+
+  // ── Selected state: hero photo, name, quiet "change" link ──────────
+  // No filename, no dimensions, no receipt feel. The photo is the
+  // confirmation; everything else is noise.
   if (selectedPhoto) {
     return (
-      <div className="max-w-md mx-auto space-y-4">
-        <div className="bg-white border border-stone-200 rounded-2xl p-4 flex items-center gap-4">
-          <img
-            src={`/images/${selectedPhoto.thumbnailPath}`}
-            alt={selectedPhoto.label ?? 'Selected photo'}
-            className="w-20 h-20 rounded-lg object-cover shrink-0"
-          />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-cta mb-1">
-              <Check className="w-4 h-4" />
-              <span className="text-xs font-semibold">Photo ready</span>
-            </div>
-            <p className="text-sm font-medium text-stone-900 truncate">
-              {selectedPhoto.label ?? selectedPhoto.originalFilename}
-            </p>
-            <p className="text-xs text-stone-500 mt-0.5">
-              {selectedPhoto.width}×{selectedPhoto.height}
-            </p>
+      <div
+        className="max-w-md mx-auto flex flex-col items-center py-6"
+        data-testid="photo-selected"
+      >
+        <div className="relative">
+          <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden border-2 border-brand-muted shadow-sm">
+            <img
+              src={`/images/${selectedPhoto.thumbnailPath}`}
+              alt={selectedPhoto.label ?? 'Selected photo'}
+              className="w-full h-full object-cover"
+            />
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={changePhoto}
-            className="text-stone-500 shrink-0"
-            data-testid="btn-change-photo"
-          >
-            Change
-          </Button>
+          {/* Tiny amber accent dot on top — a subtle "locked in" marker. */}
+          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-accent-amber border-2 border-white shadow-sm" />
         </div>
+        <p className="text-base font-semibold text-ink mt-4">
+          {recipientName ? `${recipientName} — ready to go` : 'Photo — ready to go'}
+        </p>
+        <button
+          type="button"
+          onClick={changePhoto}
+          className="text-xs text-brand hover:text-brand-dark underline underline-offset-2 mt-1"
+          data-testid="btn-change-photo"
+        >
+          Change photo
+        </button>
       </div>
     );
   }
@@ -185,24 +228,25 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
   return (
     <div className="max-w-2xl mx-auto">
       <p className="text-sm text-stone-600 mb-6">
-        Add a photo of the person this card is for. We'll use it to build the
-        scene.
+        {recipientName
+          ? `Show us ${recipientName} — we'll build the scene around them.`
+          : "Add a photo of the person this card is for — we'll build the scene around them."}
       </p>
 
       <div className={`grid gap-3 ${hasLibrary ? 'sm:grid-cols-2' : 'sm:grid-cols-1'}`}>
-        {/* Upload card */}
+        {/* Upload card — primary action, brand-accented */}
         <button
           type="button"
           onClick={triggerFilePicker}
           disabled={isUploading}
-          className="relative flex flex-col items-center justify-center gap-2 p-8 rounded-2xl border-2 border-dashed border-stone-300 hover:border-brand hover:bg-brand-muted/30 transition-colors text-center disabled:opacity-60"
+          className="relative flex flex-col items-center justify-center gap-2 p-8 rounded-2xl border-2 border-brand bg-brand-muted hover:bg-brand-muted/70 transition-colors text-center disabled:opacity-60"
           data-testid="btn-upload-photo"
         >
-          <div className="w-12 h-12 rounded-full bg-white border border-stone-200 flex items-center justify-center">
-            <Upload className="w-5 h-5 text-brand" strokeWidth={2.5} />
+          <div className="w-12 h-12 rounded-full bg-white border-2 border-brand flex items-center justify-center shadow-sm">
+            <Upload className="w-5 h-5 text-brand" strokeWidth={2.25} />
           </div>
-          <p className="text-sm font-semibold text-stone-900">Upload a photo</p>
-          <p className="text-xs text-stone-500 max-w-[220px]">
+          <p className="text-sm font-semibold text-ink">Upload a photo</p>
+          <p className="text-xs text-stone-600 max-w-[220px]">
             JPEG, PNG, WebP or HEIC up to 15 MB
           </p>
         </button>
@@ -211,26 +255,19 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
           <button
             type="button"
             onClick={() => setLibraryOpen(true)}
-            className="relative flex flex-col items-center justify-center gap-2 p-8 rounded-2xl border-2 border-stone-200 hover:border-brand hover:bg-brand-muted/30 transition-colors text-center"
+            className="relative flex flex-col items-center justify-center gap-2 p-8 rounded-2xl border-2 border-accent-coral-light bg-surface-cream hover:border-accent-coral-dark transition-colors text-center"
             data-testid="btn-pick-from-library"
           >
-            <div className="w-12 h-12 rounded-full bg-white border border-stone-200 flex items-center justify-center">
-              <ImageIcon className="w-5 h-5 text-brand" strokeWidth={2.5} />
+            <div className="w-12 h-12 rounded-full bg-white border-2 border-accent-coral-light flex items-center justify-center shadow-sm">
+              <ImageIcon className="w-5 h-5 text-accent-coral-dark" strokeWidth={2.25} />
             </div>
-            <p className="text-sm font-semibold text-stone-900">From your library</p>
-            <p className="text-xs text-stone-500">
+            <p className="text-sm font-semibold text-ink">From your library</p>
+            <p className="text-xs text-stone-600">
               {photos!.length} saved photo{photos!.length === 1 ? '' : 's'}
             </p>
           </button>
         )}
       </div>
-
-      {isUploading && (
-        <div className="mt-6 flex items-center justify-center gap-2 text-sm text-stone-500">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Saving photo…
-        </div>
-      )}
 
       {/* Hidden native file input driven by the Upload card */}
       <input
