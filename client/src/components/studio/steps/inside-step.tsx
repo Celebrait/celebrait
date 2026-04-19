@@ -25,11 +25,12 @@
 // Salutation + sign-off save on blur like every other field.
 
 import { useEffect, useRef, useState } from 'react';
-import { FileText, Pencil, Check } from 'lucide-react';
+import { FileText, Pencil, Check, MessageSquare } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { CardDraftState } from '@shared/schema';
+import { RecipientContextStrip } from '../recipient-context-strip';
 
 const MESSAGE_AUTOSAVE_MS = 1000;
 
@@ -65,11 +66,17 @@ export function InsideStep({ state, onChange, scheduleSave, flushSave }: InsideS
     });
   };
 
+  const recipientName = state.recipient?.name?.trim();
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-4">
+      {/* Persistent context strip — Scene has it, Inside gets it too
+          so the late-flow steps all feel anchored to the recipient. */}
+      <RecipientContextStrip state={state} />
+
       <div>
-        <p className="text-sm text-stone-600 mb-1">
-          Your message
+        <p className="text-sm text-ink font-semibold mb-0.5">
+          {recipientName ? `A message for ${recipientName}` : 'Your message'}
         </p>
         <p className="text-xs text-stone-500">
           We'll render this in a style that matches your card.
@@ -156,68 +163,91 @@ function WriteFields({
   };
 
   return (
-    <div className="space-y-5" data-testid="inside-write-form">
-      {/* Salutation */}
-      <div className="space-y-1.5">
-        <Label htmlFor="inside-salutation" className="text-xs text-stone-500">
-          Greeting
-          <span className="ml-2 text-stone-400 font-normal">optional</span>
-        </Label>
-        <Input
-          id="inside-salutation"
-          value={salutation}
-          onChange={(e) => setSalutation(e.target.value)}
-          onBlur={() => {
-            if (salutation !== (write.salutation ?? '')) {
-              commit({ salutation });
-            }
-          }}
-          placeholder="Dear Mum,"
-          className="bg-white"
-          data-testid="input-inside-salutation"
-        />
+    // Framed writing surface — cream background, brand-muted icon tile
+    // leading, mirrors the Review step's row grammar so Inside reads
+    // as part of the same family instead of a naked form. Icon + label
+    // at the top; the three fields flow below.
+    <div
+      className="bg-surface-cream border border-accent-coral-light rounded-2xl p-5 sm:p-6"
+      data-testid="inside-write-form"
+    >
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-brand-muted text-brand">
+          <MessageSquare className="w-4 h-4" strokeWidth={1.75} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
+            Write your own
+          </p>
+          <p className="text-xs text-stone-500">
+            Only the message is required.
+          </p>
+        </div>
       </div>
 
-      {/* Main message — the only field with keystroke autosave */}
-      <div className="space-y-1.5">
-        <Label htmlFor="inside-message" className="text-xs text-stone-500">
-          Message
-        </Label>
-        <Textarea
-          id="inside-message"
-          value={message}
-          onChange={(e) => onMessageChange(e.target.value)}
-          onBlur={() => {
-            // Flush any pending debounced save so the latest value is
-            // on the server before the user navigates away.
-            void flushSave();
-          }}
-          placeholder="Write whatever you'd like them to read…"
-          rows={6}
-          className="bg-white leading-relaxed resize-none"
-          data-testid="input-inside-message"
-        />
-      </div>
+      <div className="space-y-4">
+        {/* Salutation */}
+        <div className="space-y-1.5">
+          <Label htmlFor="inside-salutation" className="text-xs text-stone-500">
+            Greeting
+            <span className="ml-2 text-stone-400 font-normal">optional</span>
+          </Label>
+          <Input
+            id="inside-salutation"
+            value={salutation}
+            onChange={(e) => setSalutation(e.target.value)}
+            onBlur={() => {
+              if (salutation !== (write.salutation ?? '')) {
+                commit({ salutation });
+              }
+            }}
+            placeholder="Dear Mum,"
+            className="bg-white"
+            data-testid="input-inside-salutation"
+          />
+        </div>
 
-      {/* Sign-off */}
-      <div className="space-y-1.5">
-        <Label htmlFor="inside-signoff" className="text-xs text-stone-500">
-          Sign-off
-          <span className="ml-2 text-stone-400 font-normal">optional</span>
-        </Label>
-        <Input
-          id="inside-signoff"
-          value={signoff}
-          onChange={(e) => setSignoff(e.target.value)}
-          onBlur={() => {
-            if (signoff !== (write.signoff ?? '')) {
-              commit({ signoff });
-            }
-          }}
-          placeholder="Love, Sarah"
-          className="bg-white"
-          data-testid="input-inside-signoff"
-        />
+        {/* Main message — the only field with keystroke autosave */}
+        <div className="space-y-1.5">
+          <Label htmlFor="inside-message" className="text-xs text-stone-500">
+            Message
+          </Label>
+          <Textarea
+            id="inside-message"
+            value={message}
+            onChange={(e) => onMessageChange(e.target.value)}
+            onBlur={() => {
+              // Flush any pending debounced save so the latest value is
+              // on the server before the user navigates away.
+              void flushSave();
+            }}
+            placeholder="Write whatever you'd like them to read…"
+            rows={6}
+            className="bg-white leading-relaxed resize-none"
+            data-testid="input-inside-message"
+          />
+        </div>
+
+        {/* Sign-off */}
+        <div className="space-y-1.5">
+          <Label htmlFor="inside-signoff" className="text-xs text-stone-500">
+            Sign-off
+            <span className="ml-2 text-stone-400 font-normal">optional</span>
+          </Label>
+          <Input
+            id="inside-signoff"
+            value={signoff}
+            onChange={(e) => setSignoff(e.target.value)}
+            onBlur={() => {
+              if (signoff !== (write.signoff ?? '')) {
+                commit({ signoff });
+              }
+            }}
+            placeholder="Love, Sarah"
+            className="bg-white"
+            data-testid="input-inside-signoff"
+          />
+        </div>
       </div>
     </div>
   );
@@ -232,12 +262,14 @@ function LeaveBlankCard({ onPick }: { onPick: () => void }) {
     <button
       type="button"
       onClick={onPick}
-      className="w-full text-left p-4 rounded-xl border border-dashed border-stone-300 hover:border-stone-400 hover:bg-stone-50 transition-colors flex items-start gap-3"
+      className="w-full text-left p-4 rounded-xl border border-dashed border-stone-300 hover:border-brand hover:bg-brand-muted/40 transition-colors flex items-start gap-3"
       data-testid="inside-leave-blank"
     >
-      <FileText className="w-5 h-5 text-stone-400 shrink-0 mt-0.5" />
+      <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-accent-coral-light text-accent-coral-dark shrink-0">
+        <FileText className="w-4 h-4" strokeWidth={1.75} />
+      </span>
       <div>
-        <div className="text-sm font-medium text-stone-800">
+        <div className="text-sm font-medium text-ink">
           Leave blank instead
         </div>
         <p className="text-xs text-stone-500 mt-0.5">
