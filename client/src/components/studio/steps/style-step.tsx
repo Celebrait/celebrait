@@ -163,7 +163,7 @@ export function StyleStep({ state, onChange }: StyleStepProps) {
           </span>
         </span>
         {currentMode === 'custom' && (
-          <span className="w-5 h-5 rounded-full bg-cta text-cta-foreground flex items-center justify-center shrink-0 shadow-sm">
+          <span className="w-5 h-5 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0 shadow-sm">
             <Check className="w-3 h-3" strokeWidth={3} />
           </span>
         )}
@@ -343,7 +343,7 @@ function PrimaryStyleCard({
             </div>
           )}
           {active && (
-            <span className="absolute top-3 right-3 w-6 h-6 rounded-full bg-cta text-cta-foreground flex items-center justify-center shadow-sm">
+            <span className="absolute top-3 right-3 w-6 h-6 rounded-full bg-brand text-brand-foreground flex items-center justify-center shadow-sm">
               <Check className="w-3.5 h-3.5" strokeWidth={3} />
             </span>
           )}
