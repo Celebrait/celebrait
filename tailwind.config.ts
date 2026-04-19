@@ -19,16 +19,16 @@ export default {
         // Defined once here; use `brand`, `cta`, `surface` in components
         // instead of raw `purple-600` or `gray-50`.
         brand: {
-          DEFAULT: '#7c3aed',     // violet-600 — primary interactive
-          light: '#ede9fe',       // violet-100 — selected backgrounds
-          dark: '#5b21b6',        // violet-800 — hover/pressed
-          muted: '#f5f3ff',       // violet-50  — subtle tints
+          DEFAULT: '#7a76e8',     // soft blue-violet — primary interactive
+          light: '#e5e4f9',       // pale lavender — selected backgrounds
+          dark: '#5c57d4',        // deeper violet — hover/pressed
+          muted: '#f2f1fb',       // near-white tint — subtle
           foreground: '#ffffff',  // text on brand buttons
         },
         cta: {
-          DEFAULT: '#16a34a',     // green-600 — primary action ("go")
-          hover: '#15803d',       // green-700 — hover
-          light: '#dcfce7',       // green-100 — success backgrounds
+          DEFAULT: '#5fd94a',     // bright lime — primary action ("go")
+          hover: '#4ac437',       // slightly deeper — hover
+          light: '#e0f8db',       // pale green — success backgrounds
           foreground: '#ffffff',
         },
         surface: {
