@@ -152,20 +152,12 @@ export default function AdminPromptsPage() {
   return (
     <div className="p-6">
       <div className="max-w-[1600px] mx-auto">
-        <header className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-stone-900">Prompt Lab</h1>
-            <p className="text-sm text-stone-600 mt-1">
-              Edit a prompt, test it against a real input, see the image. Every
-              version is kept; the Production tab shows what customers actually get.
-            </p>
-          </div>
-          <a
-            href="/admin/costs"
-            className="text-xs text-stone-500 hover:text-stone-700 underline underline-offset-2 mt-1.5 shrink-0"
-          >
-            Cost Ledger →
-          </a>
+        <header className="mb-6">
+          <h1 className="text-2xl font-bold text-stone-900">Prompt Lab</h1>
+          <p className="text-sm text-stone-600 mt-1">
+            Edit a prompt, test it against a real input, see the image. Every
+            version is kept; the Production tab shows what customers actually get.
+          </p>
         </header>
 
         <div className="flex gap-2 mb-4 border-b border-stone-200">

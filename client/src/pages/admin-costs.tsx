@@ -11,7 +11,7 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import {
   Bar,
   BarChart,
@@ -97,13 +97,6 @@ export default function AdminCostsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <Link
-            href="/admin/prompts"
-            className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-700 mb-2"
-          >
-            <ArrowLeft className="w-3 h-3" />
-            Prompt Lab
-          </Link>
           <h1 className="text-2xl font-semibold text-ink">Cost Ledger</h1>
           <p className="text-sm text-stone-500 mt-1">
             What every card actually costs. Data informs Sprint 4 pricing.

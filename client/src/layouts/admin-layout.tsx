@@ -4,7 +4,7 @@
 // warm violet primary, stone neutrals, green CTAs.
 
 import { Link, useLocation } from 'wouter';
-import { LogOut, ExternalLink, Sparkles, type LucideIcon } from 'lucide-react';
+import { LogOut, ExternalLink, Sparkles, BarChart3, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
@@ -19,6 +19,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Prompt Lab', href: '/admin/prompts', icon: Sparkles },
+  { label: 'Cost Ledger', href: '/admin/costs', icon: BarChart3 },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
