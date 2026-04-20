@@ -151,13 +151,13 @@ export default function CardViewerPage() {
         </div>
 
         {/* UI — sits clearly below the stage with breathing room.
-            Outer wrapper is full-width bg-white at z-10 so any card
-            geometry rotating past the stage bottom is occluded
-            cleanly (no visible bleed into the UI area). Inner
-            container centres the actual content column.
-            min-h-[56px] on the hints slot so GestureHints exiting
-            doesn't reflow the rest. */}
-        <div className="relative z-10 bg-white">
+            Outer wrapper is a soft frosted layer (bg-white/80 +
+            backdrop-blur) rather than solid white: card geometry
+            rotating past the stage bottom reads as a hint of depth
+            through the UI instead of being clipped against a hard
+            white edge, while individual UI elements still stand
+            out clearly. */}
+        <div className="relative z-10 bg-white/80 backdrop-blur-sm">
         <div className="max-w-xl mx-auto px-4 pt-10 pb-16">
           <div className="min-h-[56px] flex justify-center items-start">
             <GestureHints open={open} />
