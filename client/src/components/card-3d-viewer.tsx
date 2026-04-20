@@ -40,6 +40,11 @@ interface Card3DViewerProps {
   insideImageUrl?: string | null;
   backCredit?: string;
   className?: string;
+  /** Optional controlled open state — lets a parent component wire an
+   *  external "Open card" button to the hinge. If omitted, the viewer
+   *  manages its own open state (click the card to toggle). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function Card3DViewer({
@@ -47,9 +52,16 @@ export function Card3DViewer({
   insideImageUrl,
   backCredit = 'Made with Celebrait',
   className,
+  open: openProp,
+  onOpenChange,
 }: Card3DViewerProps) {
   const insideUrl = insideImageUrl ?? frontImageUrl;
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = (next: boolean) => {
+    if (openProp === undefined) setOpenState(next);
+    onOpenChange?.(next);
+  };
 
   return (
     <div className={className}>

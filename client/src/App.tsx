@@ -72,14 +72,13 @@ function Router() {
         <Route path="/studio/card/:id">
           {(params) => <Redirect to={`/studio/card/${params.id}/edit`} />}
         </Route>
-        {/* Phase 1 proof-of-concept 3D viewer. Auth-gated today so the
-            sender can preview their own card; Phase 2 swaps for a
-            public tokenised /api/card/:id/view endpoint. */}
-        <Route path="/card/:id/view">
-          <RequireAuth>
-            <CardViewerPage />
-          </RequireAuth>
-        </Route>
+        {/* Digital card viewer. Public when `?t=TOKEN` is present
+            (recipient share link); the page itself uses the public
+            endpoint in that case. Without a token, the page falls
+            back to the auth-gated draft endpoint so the sender can
+            preview — that path requires the user's own cookie
+            session, which is enforced by the API not the route. */}
+        <Route path="/card/:id/view" component={CardViewerPage} />
         {/* Studio checkout — auth-gated. Static paths first; the
             parameterised route comes last so wouter doesn't greedily
             match `/checkout/success` as `:cardId='success'`. */}
