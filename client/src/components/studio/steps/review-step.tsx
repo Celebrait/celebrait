@@ -36,6 +36,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
 import type { CardDraftState, StepId } from '@shared/schema';
 import { deriveDefaultFrontText } from '@shared/schema';
+import { Card3DViewer } from '@/components/card-3d-viewer';
 
 // Approximate generation time for a front + inside pair. Used to size
 // the progress copy ("this usually takes ~45 seconds"). Not a hard
@@ -349,25 +350,32 @@ function CompletedView({
           Your card is ready ✨
         </h2>
         <p className="text-sm text-stone-600">
-          Front and inside — take a look.
+          Tap the card to open it.
         </p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-        <CardImage url={frontUrl} label="Front" />
-        {insideUrl && <CardImage url={insideUrl} label="Inside" />}
+
+      {/* Inline 3D preview — primary presentation. Pure white container;
+          the card's cover-back is slightly off-white so its edges still
+          read against the white. */}
+      <div className="rounded-2xl overflow-hidden mb-6 aspect-[4/3] bg-white">
+        <Card3DViewer
+          frontImageUrl={frontUrl}
+          insideImageUrl={insideUrl}
+          format="square"
+          className="w-full h-full"
+        />
       </div>
-      {/* Opens the Phase 1 3D viewer in a new tab so the Studio page
-          stays intact if Kevin wants to jump between them. */}
+
       <div className="flex justify-center">
         <a
           href={`/card/${cardId}/view`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-brand-foreground text-sm font-medium px-5 py-3 rounded-lg shadow-sm transition-shadow hover:shadow-md"
+          className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-brand-foreground text-base font-semibold px-7 py-3.5 rounded-lg shadow-md hover:shadow-lg transition-shadow"
           data-testid="btn-view-3d"
         >
           <Sparkles className="w-4 h-4" />
-          View in 3D
+          Open this card
         </a>
       </div>
     </div>
