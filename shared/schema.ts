@@ -25,6 +25,12 @@ export const cards = pgTable("cards", {
   status: text("status").default('generating'),
   price: integer("price").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
+  /** Public share token. Lazily generated when an order is placed
+   *  with the digital add-on, OR when the sender explicitly hits
+   *  Share. Used by recipients to view the card via the public
+   *  /api/card/:id/view?t=TOKEN endpoint without auth. Null = card
+   *  has never been shared. */
+  viewToken: text("view_token"),
 });
 
 export const orders = pgTable("orders", {

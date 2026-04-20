@@ -17,12 +17,19 @@ import { Button } from '@/components/ui/button';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import type { CardDraftState } from '@shared/schema';
 
+// One shape for both endpoints — the auth-gated /api/studio/drafts/:id
+// returns a `state.recipient.name` shape; the public /api/card/:id/view
+// returns top-level `recipientName`. Normalise to a single field below.
 interface CardData {
   id: number;
   status: string | null;
   frontImageUrl: string | null;
   insideImageUrl: string | null;
-  state: CardDraftState;
+  // From the auth-gated endpoint only.
+  state?: CardDraftState;
+  // From the public endpoint only.
+  recipientName?: string | null;
+  occasion?: string | null;
 }
 
 export default function CardViewerPage() {
@@ -30,8 +37,16 @@ export default function CardViewerPage() {
   const [, setLocation] = useLocation();
   const cardId = params ? parseInt(params.id, 10) : NaN;
 
+  // Token in the query string = recipient is viewing via a share link;
+  // hit the public endpoint. No token = sender previewing their own
+  // card; use the auth-gated draft endpoint.
+  const token = new URLSearchParams(window.location.search).get('t');
+  const endpoint = token
+    ? `/api/card/${cardId}/view?t=${encodeURIComponent(token)}`
+    : `/api/studio/drafts/${cardId}`;
+
   const { data, isLoading, error } = useQuery<CardData>({
-    queryKey: [`/api/studio/drafts/${cardId}`],
+    queryKey: [endpoint],
     enabled: Number.isFinite(cardId),
   });
 
@@ -70,7 +85,10 @@ export default function CardViewerPage() {
     );
   }
 
-  const recipientName = data.state.recipient?.name?.trim();
+  // Normalise across endpoints — public endpoint returns `recipientName`
+  // top-level; auth-gated endpoint nests under `state.recipient.name`.
+  const recipientName =
+    data.recipientName?.trim() || data.state?.recipient?.name?.trim() || undefined;
 
   return (
     <div

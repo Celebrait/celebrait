@@ -17,12 +17,20 @@
 import type { Express, Request, Response } from 'express';
 import path from 'path';
 import { promises as fs } from 'fs';
+import { randomBytes } from 'crypto';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../db';
 import { cards, EMPTY_CARD_DRAFT, type CardDraftState } from '@shared/schema';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import { generateStudioCard } from '../background-generator';
 import { checkDailyGenerationLimit } from '../rate-limits';
+
+// Generates a URL-safe random token for public card sharing. 16 bytes
+// of entropy → 22 base64url chars. That's ~128 bits of entropy — well
+// beyond brute-forceable for a card-id-keyed lookup.
+function generateShareToken(): string {
+  return randomBytes(16).toString('base64url');
+}
 
 function getUserId(req: Request): string | null {
   const id = (req as any).session?.otpUserId;
@@ -152,6 +160,124 @@ export function registerStudioDraftRoutes(app: Express): void {
     } catch (err: any) {
       console.error('[STUDIO] draft fetch error:', err);
       res.status(500).json({ message: 'Could not load draft' });
+    }
+  });
+
+  // ── POST /api/studio/cards/:id/share-token ───────────────────────
+  // Lazily generates (and stores) a public share token for the card.
+  // Idempotent — returns the existing token if one's already there.
+  // Auth-gated: only the sender can mint a token. The token is what
+  // the recipient uses to view the card via the public viewer
+  // endpoint without needing to log in.
+  app.post(
+    '/api/studio/cards/:id/share-token',
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+      const id = parseInt(req.params.id, 10);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+
+      try {
+        const rows = await db
+          .select({
+            id: cards.id,
+            userId: cards.userId,
+            viewToken: cards.viewToken,
+          })
+          .from(cards)
+          .where(eq(cards.id, id))
+          .limit(1);
+
+        const row = rows[0];
+        if (!row) return res.status(404).json({ message: 'Card not found' });
+        if (row.userId !== userId) {
+          return res.status(403).json({ message: 'Not your card' });
+        }
+
+        // Reuse existing token if there is one — mint a new one only
+        // if this is the first share.
+        let token = row.viewToken;
+        if (!token) {
+          token = generateShareToken();
+          await db.update(cards).set({ viewToken: token }).where(eq(cards.id, id));
+        }
+
+        res.json({
+          token,
+          // Convenience: client doesn't need to know the URL shape.
+          shareUrl: `/card/${id}/view?t=${encodeURIComponent(token)}`,
+        });
+      } catch (err: any) {
+        console.error('[STUDIO] share-token error:', err);
+        res.status(500).json({ message: 'Could not mint share token' });
+      }
+    },
+  );
+
+  // ── GET /api/card/:id/view ───────────────────────────────────────
+  // Public — no auth. Recipients hit this with a token in the query
+  // string to load the card for the 3D viewer. Validates the token
+  // matches the card's stored view_token; otherwise 404 (not 401, so
+  // we don't leak existence of the card to URL-guessers).
+  //
+  // Returns ONLY what the viewer needs — image URLs + recipient name +
+  // occasion (for the welcome screen). Never exposes user_id, the full
+  // conversationData (which contains the inside message + scene), or
+  // any other fields that would leak sender/recipient personal info
+  // beyond what's already on the card itself.
+  app.get('/api/card/:id/view', async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    const token = typeof req.query.t === 'string' ? req.query.t : '';
+    if (!Number.isFinite(id) || !token) {
+      return res.status(404).json({ message: 'Card not found' });
+    }
+
+    try {
+      const rows = await db
+        .select({
+          id: cards.id,
+          status: cards.status,
+          conversationData: cards.conversationData,
+          frontImageUrl: cards.frontImageUrl,
+          insideImageUrl: cards.insideImageUrl,
+          viewToken: cards.viewToken,
+        })
+        .from(cards)
+        .where(eq(cards.id, id))
+        .limit(1);
+
+      const row = rows[0];
+      // Treat token mismatch + missing card as the same response —
+      // don't reveal that the card exists.
+      if (!row || row.viewToken !== token) {
+        return res.status(404).json({ message: 'Card not found' });
+      }
+
+      // Pull just recipient name + occasion out of conversationData
+      // for the welcome screen. Don't return the rest of the state.
+      const stateRaw = (row.conversationData as any) ?? null;
+      const recipientName =
+        stateRaw?.recipient?.name && typeof stateRaw.recipient.name === 'string'
+          ? stateRaw.recipient.name.trim()
+          : null;
+      const occasion =
+        stateRaw?.recipient?.occasion && typeof stateRaw.recipient.occasion === 'string'
+          ? stateRaw.recipient.occasion.trim()
+          : null;
+
+      res.json({
+        id: row.id,
+        status: row.status,
+        frontImageUrl: row.frontImageUrl,
+        insideImageUrl: row.insideImageUrl,
+        recipientName,
+        occasion,
+      });
+    } catch (err: any) {
+      console.error('[STUDIO] public view error:', err);
+      res.status(500).json({ message: 'Could not load card' });
     }
   });
 
