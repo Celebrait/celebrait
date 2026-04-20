@@ -105,7 +105,6 @@ export default function CardViewerPage() {
       <Card3DViewer
         frontImageUrl={data.frontImageUrl}
         insideImageUrl={data.insideImageUrl}
-        format="portrait"
         className="absolute inset-0"
       />
 

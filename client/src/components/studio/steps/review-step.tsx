@@ -361,7 +361,6 @@ function CompletedView({
         <Card3DViewer
           frontImageUrl={frontUrl}
           insideImageUrl={insideUrl}
-          format="square"
           className="w-full h-full"
         />
       </div>
