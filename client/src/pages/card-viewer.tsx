@@ -125,28 +125,40 @@ export default function CardViewerPage() {
 
   return (
     <Shell>
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 sm:py-12">
-        {/* Stage — 3D card + gesture hints. White container matches
-            the Studio review step's framing; the slight warm tint on
-            the paper-back then reads as clean white stock against a
-            true-white stage, instead of disappearing into the page's
-            bg-surface. Wider than square so the cover can swing open
-            without clipping against the container edge. */}
-        <div className="relative">
-          <div className="aspect-[5/4] max-w-3xl mx-auto bg-white rounded-2xl border border-stone-200 overflow-hidden">
-            <Card3DViewer
-              frontImageUrl={data.frontImageUrl}
-              insideImageUrl={data.insideImageUrl}
-              open={open}
-              onOpenChange={setOpen}
-              className="w-full h-full"
-            />
-          </div>
+      {/* Full-viewport 3D canvas layer. Positioned fixed behind the
+          header and UI so the card can rotate past the top/bottom
+          bounds without clipping against a container. Pointer events
+          pass through to OrbitControls everywhere except where the
+          UI overlay marks `pointer-events-auto`. */}
+      <div className="fixed inset-0 z-0">
+        <Card3DViewer
+          frontImageUrl={data.frontImageUrl}
+          insideImageUrl={data.insideImageUrl}
+          open={open}
+          onOpenChange={setOpen}
+          className="w-full h-full"
+        />
+      </div>
+
+      {/* UI layer — flows below a viewport-sized spacer so the canvas
+          shows through at the top, then the bottom UI sits on white
+          that matches the page bg. pointer-events-none on the
+          container lets drags pass to the canvas; individual
+          controls re-enable pointer events. */}
+      <div className="relative z-10 pointer-events-none">
+        {/* Spacer pushes UI below the card's visual centre. Card
+            renders in the top ~65vh of the viewport; UI starts
+            around the 65vh mark. */}
+        <div className="h-[65vh]" />
+
+        {/* Gesture hints — float at the boundary between card area
+            and UI area. */}
+        <div className="relative pointer-events-none">
           <GestureHints open={open} />
         </div>
 
         {/* Actions */}
-        <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4">
+        <div className="mt-10 sm:mt-12 flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 px-4 pointer-events-auto">
           <Button
             onClick={() => setOpen(!open)}
             className="bg-cta hover:bg-cta/90 text-cta-foreground font-semibold px-7 py-3 rounded-lg w-full sm:w-auto"
@@ -158,7 +170,7 @@ export default function CardViewerPage() {
           <Button
             variant="outline"
             onClick={handleShare}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto bg-white"
             size="lg"
             data-testid="btn-viewer-share"
           >
@@ -174,12 +186,8 @@ export default function CardViewerPage() {
           </Button>
         </div>
 
-        {/* Create-your-own panel — acquisition funnel per ROADMAP. A
-            proper boxed card so it reads as a distinct moment (not an
-            afterthought link at the page foot). Anonymous recipients
-            land on /login?next= so sign-in funnels straight into the
-            card maker. */}
-        <div className="mt-10 sm:mt-16 max-w-md mx-auto">
+        {/* Create-your-own panel */}
+        <div className="mt-10 sm:mt-16 max-w-md mx-auto px-4 pb-12 pointer-events-auto">
           <div className="bg-white rounded-2xl border border-stone-200 p-6 sm:p-8 text-center">
             <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-muted text-brand mb-3">
               <Sparkles className="w-5 h-5" />
@@ -311,8 +319,11 @@ function WelcomeGate({
 function Shell({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
   return (
-    <div className="min-h-screen bg-surface flex flex-col">
-      <header className="h-16 bg-white border-b border-stone-200 flex items-center px-4 sm:px-6 gap-3 flex-shrink-0">
+    <div className="min-h-screen bg-white">
+      {/* Header floats above everything (z-20) so the 3D canvas can
+          sit underneath without clipping. bg-white matches the page
+          so there's no harsh edge when the card peeks under. */}
+      <header className="fixed top-0 inset-x-0 h-16 bg-white/90 backdrop-blur-sm border-b border-stone-200/80 flex items-center px-4 sm:px-6 gap-3 z-20">
         <Link href="/" className="flex items-center">
           <img src={logoSrc} alt="Celebrait" className="h-8 object-contain" />
         </Link>
@@ -333,7 +344,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           </Link>
         )}
       </header>
-      <main className="flex-1">{children}</main>
+      {children}
     </div>
   );
 }
@@ -361,7 +372,7 @@ function GestureHints({ open }: { open: boolean }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 8, transition: { duration: 0.3 } }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="pointer-events-none absolute inset-x-0 -bottom-4 flex justify-center"
+          className="flex justify-center"
         >
           <div className="flex items-center gap-6 sm:gap-10">
             <GestureHint label="Tap to open">

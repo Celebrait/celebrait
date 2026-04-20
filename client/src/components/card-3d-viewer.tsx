@@ -142,16 +142,16 @@ function Scene({
         onOpenChange={onOpenChange}
       />
 
-      {/* Ground shadow — grounds the card with a soft cast below.
-          far 1.4 keeps the shadow from stretching when the card
-          tilts via OrbitControls. */}
+      {/* Ground shadow — pushed a bit darker/larger than before so
+          the card holds its silhouette on a pure-white page. blur
+          kept moderate so the shadow reads as soft, not smudgy. */}
       <ContactShadows
         position={[0, -CARD_H / 2 - 0.06, 0]}
-        opacity={0.35}
-        scale={4}
-        blur={2.6}
-        far={1.4}
-        resolution={512}
+        opacity={0.55}
+        scale={5}
+        blur={2.4}
+        far={1.6}
+        resolution={768}
       />
 
       <OrbitControls
@@ -177,12 +177,16 @@ const CARD_H = 1.45;
 const CLOSED_REST = 0;
 const OPEN_REST = -2.1;
 
-// Paper tone for the back-of-cover + back-of-card faces. Near-white
-// with a tiny warm tint — reads as "clean white card stock" rather
-// than "cream aged paper", while keeping just enough warmth so the
-// paper doesn't fully disappear against any near-white background.
-const PAPER_BACK = '#fbf8ef';
-const CARD_BACK_PAPER = '#fbf8ef';
+// Paper tone for the back-of-cover + back-of-card faces. Pure white
+// card stock — silhouette is carried by the edge stroke drawn into
+// the canvas texture + the ContactShadow underneath, not by a tinted
+// paper colour, so the card reads cleanly on any white background.
+const PAPER_BACK = '#ffffff';
+const CARD_BACK_PAPER = '#ffffff';
+// Edge stroke colour drawn at the perimeter of every canvas-texture
+// paper face. Gives every card face a soft darker ring so the card
+// silhouette reads against white.
+const EDGE_STROKE = 'rgba(120, 110, 95, 0.22)';
 
 function Card({
   frontUrl,
@@ -374,6 +378,20 @@ function usePaperTexture(opts: {
     //    frame the centre content without crowding it.
     drawGroove(ctx, size, size * 0.22);
     drawGroove(ctx, size, size * 0.78);
+
+    // 4b. Edge stroke — thin ring just inside the perimeter so the
+    //     card has a visible silhouette against a white background.
+    //     Offset inside the edge (not at x=0) so mipmaps don't chew
+    //     it away at shallow angles. Layered with a soft inner
+    //     shadow to avoid a hard painted-line look.
+    ctx.strokeStyle = EDGE_STROKE;
+    ctx.lineWidth = 3;
+    const edgeInset = 3;
+    ctx.strokeRect(edgeInset, edgeInset, size - edgeInset * 2, size - edgeInset * 2);
+    // Softer inner shadow ring for depth.
+    ctx.strokeStyle = 'rgba(120, 110, 95, 0.08)';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(8, 8, size - 16, size - 16);
 
     // 5. Optional wordmark
     if (credit) {
