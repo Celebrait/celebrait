@@ -224,8 +224,9 @@ export default function CheckoutPage() {
             {/* Hero row: preview beside product choice. Both above the
                 fold on desktop; stacks on mobile (preview first). */}
             <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
-              {/* Preview — constrained so it doesn't dwarf the selector */}
-              <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
+              {/* Preview — capped on mobile so it doesn't dominate the
+                  viewport; fills its 2-col grid cell on desktop. */}
+              <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden max-w-[220px] mx-auto w-full sm:max-w-none">
                 <div className="aspect-square bg-stone-50 relative">
                   <AnimatePresence mode="wait">
                     <motion.img
