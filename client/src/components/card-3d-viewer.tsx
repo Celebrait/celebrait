@@ -1,41 +1,44 @@
 // client/src/components/card-3d-viewer.tsx
 //
 // Reusable 3D card component. Square format only — matches the
-// print product. Drives two contexts:
+// print product. Two integration contexts:
 //
-//   1. Digital card viewer (full-page) — via pages/card-viewer.tsx
+//   1. Digital card viewer (full-page) — pages/card-viewer.tsx
 //   2. Inline preview — Review step completion state
 //
-// Interaction model:
-//   - Click → toggles open/close along the spine hinge
-//   - Drag  → rotates the card via drei OrbitControls
-//   - Wheel/pinch → zooms in/out (clamped)
-//   - Back of card carries a "Made with Celebrait" wordmark as a
-//     canvas texture — visible when rotated 180°. Foundation for the
-//     viral credit (personalise with sender name later).
+// Interaction:
+//   - Click → toggle open/close along the spine hinge
+//   - Drag  → rotate the card (drei OrbitControls)
+//   - Wheel/pinch → zoom (clamped)
+//   - Back of card carries a "Made with Celebrait" wordmark, visible
+//     when rotated 180°. Viral-credit foundation.
 //
-// Realness pass (2026-04-20):
-//   - drei <Environment preset="apartment" /> for HDRI reflections
-//   - 3-point lighting rig (warm key + cool fill + cool rim)
-//   - MeshPhysicalMaterial with sheen so paper catches light
-//   - ContactShadows to ground the card with a soft cast below
-//   - Anisotropy from renderer.capabilities.getMaxAnisotropy()
+// Rendering approach:
+//   - Textures applied as `map` (not emissive). Texture response is
+//     driven by lighting so shadows are actually visible on the
+//     card surface. Lighting levels are balanced so the texture's
+//     full colour reads on lit regions (ambient + key ≈ 1.0) while
+//     shadowed regions drop to ambient-only (~0.6) — visibly darker
+//     without washing out.
+//   - MeshStandardMaterial, not Physical. Sheen / clearcoat /
+//     environment reflections desaturate the illustration; the
+//     "paper feel" has to come from lighting + shadows alone.
+//   - ContactShadows underneath for ground weight.
+//   - Cover meshes castShadow so they drop a shadow on the inside
+//     plane (receiveShadow) when the card is open.
 //
-// This is NOT the full CelebrationCard from celebrait-card-brief.md —
-// that's a Sprint 5+ rebuild (envelope, seal, state machine, audio).
+// This is NOT the full CelebrationCard from celebrait-card-brief.md.
+// That's a Sprint 5+ rebuild (envelope, seal, state machine, audio).
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { ContactShadows, Environment, OrbitControls, useTexture } from '@react-three/drei';
+import { ContactShadows, OrbitControls, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface Card3DViewerProps {
   frontImageUrl: string;
   insideImageUrl?: string | null;
-  /** Optional wordmark text for the back of the card. Defaults to
-   *  "Made with Celebrait" — the acquisition-funnel credit. */
   backCredit?: string;
-  /** Container className — parent controls sizing + positioning. */
   className?: string;
 }
 
@@ -88,35 +91,30 @@ function Scene({
 }) {
   return (
     <>
-      {/* HDRI environment — provides reflections for the sheen +
-          clearcoat layers on the card stock. background={false} so
-          the scene itself stays transparent and composites over the
-          host page's backdrop. */}
-      <Environment preset="apartment" background={false} />
+      {/* Ambient + one key light. Balanced so lit regions render the
+          texture at full saturation (ambient 0.6 + key ~0.45 at the
+          face's typical angle ≈ 1.0) while shadowed regions drop to
+          ambient only (~0.6). That 40% delta is what makes the
+          cover-cast shadow on the inside plane visibly read.
 
-      {/* 3-point lighting rig, brief §6. Keep intensities modest so
-          the emissive texture still reads as the primary colour
-          source — lighting adds the specular/sheen highlights on
-          top, not the base colour. */}
-      <ambientLight intensity={0.35} />
+          Key light positioned upper-LEFT-front so when the cover
+          swings open to the left, it sits between the key light and
+          the inside plane, casting the shadow onto the inside. */}
+      <ambientLight intensity={0.6} />
       <directionalLight
-        position={[3.5, 4, 3]}
-        intensity={0.9}
-        color="#fff4e4"                 // warm key (natural window)
+        position={[-2.5, 3, 3]}
+        intensity={0.5}
+        color="#ffffff"
         castShadow
         shadow-mapSize={[2048, 2048]}
-        shadow-bias={-0.0001}
+        shadow-bias={-0.0005}
         shadow-normalBias={0.02}
-      />
-      <directionalLight
-        position={[-3, 2.5, 1.5]}
-        intensity={0.35}
-        color="#e8f0ff"                 // cool fill
-      />
-      <directionalLight
-        position={[0, 1.5, -3]}
-        intensity={0.3}
-        color="#d8e4ff"                 // cool rim (back-light)
+        shadow-camera-near={0.1}
+        shadow-camera-far={12}
+        shadow-camera-left={-3}
+        shadow-camera-right={3}
+        shadow-camera-top={3}
+        shadow-camera-bottom={-3}
       />
 
       <Card
@@ -127,10 +125,9 @@ function Scene({
         onOpenChange={onOpenChange}
       />
 
-      {/* ContactShadows — soft cast underneath the card for weight.
-          Positioned just below the card's lowest edge; far clamp
-          keeps the shadow from stretching into infinity when the
-          card tilts. */}
+      {/* Ground shadow — grounds the card with a soft cast below.
+          far 1.4 keeps the shadow from stretching when the card
+          tilts via OrbitControls. */}
       <ContactShadows
         position={[0, -CARD_H / 2 - 0.06, 0]}
         opacity={0.35}
@@ -157,16 +154,12 @@ function Scene({
 }
 
 // ── Card ─────────────────────────────────────────────────────────────
-// Single-panel-door model: the cover flips open around the spine. The
-// inside plane carries the inside illustration on its front face and
-// the credit wordmark on its back face (visible when rotated 180°).
 const CARD_W = 1.45;
 const CARD_H = 1.45;
 
 const CLOSED_REST = 0;
 const OPEN_REST = -2.1;
 
-// Paper tones for the non-illustrated faces.
 const PAPER_BACK = '#f8f4e8';
 const CARD_BACK_PAPER = '#f8f4e8';
 
@@ -262,86 +255,36 @@ function Card({
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
-      {/* Inside front face — illustration. PaperFace wraps the
-          MeshPhysicalMaterial so every card face gets the same
-          sheen + clearcoat + roughness recipe. Only the emissive
-          texture changes. */}
-      <PaperFace position={[0, 0, -0.008]} emissiveMap={insideTex} receiveShadow castShadow />
+      {/* Inside face — receives the cover's shadow when open. */}
+      <mesh position={[0, 0, -0.008]} receiveShadow>
+        <planeGeometry args={[CARD_W, CARD_H]} />
+        <meshStandardMaterial map={insideTex} roughness={0.9} side={THREE.DoubleSide} />
+      </mesh>
 
       {/* Back of the card — credit wordmark, visible at 180°. */}
-      <PaperFace
-        position={[0, 0, -0.011]}
-        rotation={[0, Math.PI, 0]}
-        emissiveMap={backTex}
-        receiveShadow
-      />
+      <mesh position={[0, 0, -0.011]} rotation={[0, Math.PI, 0]} receiveShadow>
+        <planeGeometry args={[CARD_W, CARD_H]} />
+        <meshStandardMaterial map={backTex} roughness={0.95} side={THREE.DoubleSide} />
+      </mesh>
 
+      {/* Cover — pivoted at the spine edge. Casts shadows onto the
+          inside plane when swung open. DoubleSide so the shadow
+          casts regardless of which side faces the key light. */}
       <group
         ref={coverRef}
         position={[-CARD_W / 2, 0, 0]}
         rotation={[0, CLOSED_REST, 0]}
       >
-        <PaperFace
-          position={[CARD_W / 2, 0, 0]}
-          emissiveMap={frontTex}
-          receiveShadow
-          castShadow
-        />
-        <PaperFace
-          position={[CARD_W / 2, 0, -0.003]}
-          rotation={[0, Math.PI, 0]}
-          emissiveColor={PAPER_BACK}
-          receiveShadow
-        />
+        <mesh position={[CARD_W / 2, 0, 0]} castShadow receiveShadow>
+          <planeGeometry args={[CARD_W, CARD_H]} />
+          <meshStandardMaterial map={frontTex} roughness={0.9} side={THREE.DoubleSide} />
+        </mesh>
+        <mesh position={[CARD_W / 2, 0, -0.003]} rotation={[0, Math.PI, 0]} castShadow receiveShadow>
+          <planeGeometry args={[CARD_W, CARD_H]} />
+          <meshStandardMaterial color={PAPER_BACK} roughness={0.95} side={THREE.DoubleSide} />
+        </mesh>
       </group>
     </group>
-  );
-}
-
-// ── PaperFace ────────────────────────────────────────────────────────
-// One side of a card face. MeshPhysicalMaterial with emissive map for
-// colour fidelity + sheen/clearcoat for paper's subtle specular
-// response. Uses emissive (not map) so the illustration stays vivid
-// under any lighting — but sheen catches the 3-point rig, which is
-// what produces the "paper" quality.
-function PaperFace({
-  position,
-  rotation,
-  emissiveMap,
-  emissiveColor,
-  castShadow,
-  receiveShadow,
-}: {
-  position: [number, number, number];
-  rotation?: [number, number, number];
-  emissiveMap?: THREE.Texture;
-  emissiveColor?: string;
-  castShadow?: boolean;
-  receiveShadow?: boolean;
-}) {
-  return (
-    <mesh
-      position={position}
-      rotation={rotation}
-      castShadow={castShadow}
-      receiveShadow={receiveShadow}
-    >
-      <planeGeometry args={[CARD_W, CARD_H]} />
-      <meshPhysicalMaterial
-        color={0x000000}
-        emissive={emissiveMap ? 0xffffff : (emissiveColor ?? PAPER_BACK)}
-        emissiveMap={emissiveMap}
-        emissiveIntensity={1.0}
-        roughness={0.72}
-        metalness={0}
-        sheen={0.35}
-        sheenRoughness={0.55}
-        sheenColor={'#ffffff'}
-        clearcoat={0.08}
-        clearcoatRoughness={0.8}
-        side={THREE.FrontSide}
-      />
-    </mesh>
   );
 }
 
