@@ -197,7 +197,8 @@ function Card({
     });
   }, [frontTex, insideTex, maxAnisotropy]);
 
-  const backTex = useBackCreditTexture(backCredit, maxAnisotropy);
+  const backTex = usePaperTexture({ credit: backCredit, anisotropy: maxAnisotropy });
+  const coverBackTex = usePaperTexture({ anisotropy: maxAnisotropy });
 
   const rootRef = useRef<THREE.Group>(null);
   const coverRef = useRef<THREE.Group>(null);
@@ -286,15 +287,33 @@ function Card({
         </mesh>
         <mesh position={[CARD_W / 2, 0, -0.003]} rotation={[0, Math.PI, 0]} castShadow receiveShadow>
           <planeGeometry args={[CARD_W, CARD_H]} />
-          <meshStandardMaterial color={PAPER_BACK} roughness={0.95} side={THREE.DoubleSide} />
+          <meshStandardMaterial map={coverBackTex} roughness={0.95} side={THREE.DoubleSide} />
         </mesh>
       </group>
     </group>
   );
 }
 
-// ── useBackCreditTexture ─────────────────────────────────────────────
-function useBackCreditTexture(credit: string, anisotropy: number): THREE.CanvasTexture {
+// ── usePaperTexture ──────────────────────────────────────────────────
+// Generates a premium-card paper texture on an offscreen canvas and
+// returns it as a THREE.CanvasTexture. Used for both the back of the
+// card (with wordmark) and the back of the cover (no wordmark).
+//
+// Effects, layered bottom-up:
+//   1. Base paper tone
+//   2. Soft radial vignette — subtle edge darkening so the plane
+//      doesn't read as a flat solid fill at close zoom
+//   3. Fine grain noise — per-pixel ±5 RGB jitter, gives the eye
+//      something to bite into so the paper doesn't feel "rendered"
+//   4. Two horizontal embossed grooves at 22% + 78% of the height,
+//      drawn as a 2px shadow line with a 1px highlight above and
+//      below so they read as deboss, not paint
+//   5. Optional wordmark (credit + celebrait.com) centred
+function usePaperTexture(opts: {
+  credit?: string;
+  anisotropy: number;
+}): THREE.CanvasTexture {
+  const { credit, anisotropy } = opts;
   return useMemo(() => {
     const size = 1024;
     const canvas = document.createElement('canvas');
@@ -302,31 +321,56 @@ function useBackCreditTexture(credit: string, anisotropy: number): THREE.CanvasT
     canvas.height = size;
     const ctx = canvas.getContext('2d')!;
 
+    // 1. Base paper tone
     ctx.fillStyle = CARD_BACK_PAPER;
     ctx.fillRect(0, 0, size, size);
 
-    const gradient = ctx.createRadialGradient(
+    // 2. Radial vignette — corners slightly darker
+    const vignette = ctx.createRadialGradient(
       size / 2,
       size / 2,
-      size * 0.35,
+      size * 0.3,
       size / 2,
       size / 2,
       size * 0.75,
     );
-    gradient.addColorStop(0, 'rgba(0,0,0,0)');
-    gradient.addColorStop(1, 'rgba(0,0,0,0.04)');
-    ctx.fillStyle = gradient;
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, 'rgba(0,0,0,0.06)');
+    ctx.fillStyle = vignette;
     ctx.fillRect(0, 0, size, size);
 
-    ctx.fillStyle = '#3d3529';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = "300 42px 'Inter', system-ui, sans-serif";
-    ctx.fillText(credit.toUpperCase(), size / 2, size / 2);
+    // 3. Grain — jitter every pixel ± a few RGB steps. At 1024² this
+    //    is ~1M iterations; runs in well under a frame on warm CPUs
+    //    and only happens once per mount.
+    const imageData = ctx.getImageData(0, 0, size, size);
+    const pixels = imageData.data;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const jitter = (Math.random() - 0.5) * 10;
+      pixels[i] = clamp8(pixels[i] + jitter);
+      pixels[i + 1] = clamp8(pixels[i + 1] + jitter);
+      pixels[i + 2] = clamp8(pixels[i + 2] + jitter);
+    }
+    ctx.putImageData(imageData, 0, 0);
 
-    ctx.fillStyle = '#8a7f6f';
-    ctx.font = "300 22px 'Inter', system-ui, sans-serif";
-    ctx.fillText('celebrait.com', size / 2, size / 2 + 44);
+    // 4. Embossed grooves — a deboss line reads as a darker stroke
+    //    with a subtle highlight on one edge (catching the light)
+    //    and a softer shadow on the other. Two grooves at top + bottom
+    //    frame the centre content without crowding it.
+    drawGroove(ctx, size, size * 0.22);
+    drawGroove(ctx, size, size * 0.78);
+
+    // 5. Optional wordmark
+    if (credit) {
+      ctx.fillStyle = '#3d3529';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = "300 42px 'Inter', system-ui, sans-serif";
+      ctx.fillText(credit.toUpperCase(), size / 2, size / 2 - 10);
+
+      ctx.fillStyle = '#8a7f6f';
+      ctx.font = "300 22px 'Inter', system-ui, sans-serif";
+      ctx.fillText('celebrait.com', size / 2, size / 2 + 34);
+    }
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -335,4 +379,22 @@ function useBackCreditTexture(credit: string, anisotropy: number): THREE.CanvasT
     tex.generateMipmaps = true;
     return tex;
   }, [credit, anisotropy]);
+}
+
+function drawGroove(ctx: CanvasRenderingContext2D, size: number, y: number) {
+  const pad = size * 0.15;
+  const w = size - pad * 2;
+  // Highlight (light catches the lip above)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+  ctx.fillRect(pad, y - 1, w, 1);
+  // Groove shadow — deboss reads as darker
+  ctx.fillStyle = 'rgba(58, 46, 30, 0.18)';
+  ctx.fillRect(pad, y, w, 2);
+  // Soft highlight below
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.fillRect(pad, y + 2, w, 1);
+}
+
+function clamp8(v: number): number {
+  return v < 0 ? 0 : v > 255 ? 255 : v;
 }
