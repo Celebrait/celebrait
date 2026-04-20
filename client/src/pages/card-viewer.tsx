@@ -150,15 +150,14 @@ export default function CardViewerPage() {
           </div>
         </div>
 
-        {/* UI — sits clearly below the stage with breathing room.
-            Outer wrapper is a soft frosted layer (bg-white/80 +
-            backdrop-blur) rather than solid white: card geometry
-            rotating past the stage bottom reads as a hint of depth
-            through the UI instead of being clipped against a hard
-            white edge, while individual UI elements still stand
-            out clearly. */}
-        <div className="relative z-10 bg-white/80 backdrop-blur-sm">
-        <div className="max-w-xl mx-auto px-4 pt-10 pb-16">
+        {/* UI — flows below the stage with no background layer. Card
+            geometry rotating past the stage bottom passes directly
+            behind the UI elements (buttons + panel have their own
+            bg so they stand out on their own). z-10 keeps them
+            above the canvas in stacking order.
+            min-h-[56px] on the hints slot so GestureHints exiting
+            doesn't reflow the rest. */}
+        <div className="relative z-10 max-w-xl mx-auto px-4 pt-10 pb-16">
           <div className="min-h-[56px] flex justify-center items-start">
             <GestureHints open={open} />
           </div>
@@ -214,7 +213,6 @@ export default function CardViewerPage() {
               </span>
             </div>
           </Link>
-        </div>
         </div>
       </div>
 
