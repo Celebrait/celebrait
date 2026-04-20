@@ -53,6 +53,10 @@ export default function CardViewerPage() {
 
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Welcome gate — acts as the arrival moment. Shown until the user
+  // clicks "Open", at which point it slides away like a pair of doors
+  // opening to reveal the viewer behind.
+  const [gateOpen, setGateOpen] = useState(false);
 
   if (!Number.isFinite(cardId)) {
     return <Shell><Centered>Invalid card id.</Centered></Shell>;
@@ -122,19 +126,6 @@ export default function CardViewerPage() {
   return (
     <Shell>
       <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 sm:py-12">
-        {/* Headline */}
-        <div className="text-center mb-6 sm:mb-8">
-          <p className="text-xs uppercase tracking-[0.2em] text-stone-500 mb-2">
-            You've been sent a card
-          </p>
-          <h1 className="text-3xl sm:text-4xl font-semibold text-ink">
-            {recipientName ? `For ${recipientName}` : 'A card for you'}
-          </h1>
-          {occasion && (
-            <p className="text-sm text-stone-600 mt-2 capitalize">{occasion}</p>
-          )}
-        </div>
-
         {/* Stage — 3D card + gesture hints. Stage is wider than the
             square card so the cover can swing open without clipping
             against the container edge (cover rotates left when open,
@@ -207,7 +198,107 @@ export default function CardViewerPage() {
           </div>
         </div>
       </div>
+
+      <WelcomeGate
+        show={!gateOpen}
+        recipientName={recipientName ?? null}
+        occasion={occasion ?? null}
+        onOpen={() => setGateOpen(true)}
+      />
     </Shell>
+  );
+}
+
+// ── WelcomeGate ──────────────────────────────────────────────────────
+// Arrival moment. Two panels that meet in the centre of the viewport
+// and swing open like doors on the recipient's click. 3D rotateY on
+// each half with perspective on the parent gives the "going through
+// a door" metaphor Kevin asked for — rather than a straight slide.
+//
+// Structure: content sits above both doors and exits on its own short
+// fade/lift while the doors keep their longer swing. Doors are solid
+// bg-surface so the viewer behind is fully hidden until they start
+// to rotate.
+function WelcomeGate({
+  show,
+  recipientName,
+  occasion,
+  onOpen,
+}: {
+  show: boolean;
+  recipientName: string | null;
+  occasion: string | null;
+  onOpen: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {show && (
+        <div
+          className="fixed inset-0 z-40"
+          style={{ perspective: '1400px' }}
+          data-testid="viewer-welcome-gate"
+        >
+          {/* Left door — hinged on the viewport's left edge. Swings
+              back + away from the camera when it exits. */}
+          <motion.div
+            className="absolute inset-y-0 left-0 w-1/2 bg-surface border-r border-stone-200/60"
+            style={{ transformOrigin: 'left center', transformStyle: 'preserve-3d' }}
+            initial={{ rotateY: 0 }}
+            exit={{
+              rotateY: -98,
+              transition: { duration: 1.1, ease: [0.65, 0, 0.3, 1] },
+            }}
+          />
+          {/* Right door — mirror image. */}
+          <motion.div
+            className="absolute inset-y-0 right-0 w-1/2 bg-surface border-l border-stone-200/60"
+            style={{ transformOrigin: 'right center', transformStyle: 'preserve-3d' }}
+            initial={{ rotateY: 0 }}
+            exit={{
+              rotateY: 98,
+              transition: { duration: 1.1, ease: [0.65, 0, 0.3, 1] },
+            }}
+          />
+          {/* Content — floats centred over both doors. Exits quickly
+              so the doors aren't fighting the headline on the way out. */}
+          <motion.div
+            className="absolute inset-0 flex items-center justify-center px-6"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              transition: { duration: 0.7, ease: 'easeOut', delay: 0.15 },
+            }}
+            exit={{
+              opacity: 0,
+              y: -10,
+              transition: { duration: 0.35, ease: 'easeIn' },
+            }}
+          >
+            <div className="text-center">
+              <p className="text-xs uppercase tracking-[0.25em] text-stone-500 mb-3">
+                You've been sent a card
+              </p>
+              <h1 className="text-4xl sm:text-5xl font-semibold text-ink mb-2">
+                {recipientName ? `For ${recipientName}` : 'A card for you'}
+              </h1>
+              {occasion && (
+                <p className="text-sm text-stone-600 capitalize mb-8">{occasion}</p>
+              )}
+              {!occasion && <div className="mb-8" />}
+              <Button
+                onClick={onOpen}
+                size="lg"
+                className="bg-cta hover:bg-cta/90 text-cta-foreground font-semibold px-10 py-3.5 rounded-lg"
+                data-testid="btn-welcome-open"
+              >
+                Open
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }
 
