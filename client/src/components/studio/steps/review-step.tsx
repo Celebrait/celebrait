@@ -366,16 +366,23 @@ function CompletedView({
         />
       </div>
 
-      <div className="flex justify-center">
+      <div className="flex flex-col sm:flex-row justify-center items-center gap-3">
+        <a
+          href={`/checkout/${cardId}`}
+          className="inline-flex items-center justify-center gap-2 bg-cta hover:bg-cta/90 text-cta-foreground text-base font-semibold px-7 py-3.5 rounded-lg transition-colors w-full sm:w-auto"
+          data-testid="btn-send-card"
+        >
+          Send this card
+        </a>
         <a
           href={`/card/${cardId}/view`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-brand-foreground text-base font-semibold px-7 py-3.5 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+          className="inline-flex items-center justify-center gap-2 text-sm text-brand hover:text-brand-dark font-medium px-4 py-2"
           data-testid="btn-view-3d"
         >
           <Sparkles className="w-4 h-4" />
-          Open this card
+          Preview in 3D
         </a>
       </div>
     </div>

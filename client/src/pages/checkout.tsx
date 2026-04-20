@@ -22,6 +22,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import CheckoutLayout from '@/layouts/checkout-layout';
 
 interface CardSummary {
   id: number;
@@ -174,24 +175,34 @@ export default function CheckoutPage() {
     }
   };
 
+  const backHref = Number.isFinite(cardId) ? `/studio/card/${cardId}/edit` : '/studio';
+
   if (!Number.isFinite(cardId)) {
-    return <Centered>Invalid card id.</Centered>;
+    return (
+      <CheckoutLayout backHref="/studio" backLabel="Back to Studio">
+        <Centered>Invalid card id.</Centered>
+      </CheckoutLayout>
+    );
   }
   if (isLoading) {
     return (
-      <Centered>
-        <Loader2 className="w-6 h-6 animate-spin text-brand" />
-      </Centered>
+      <CheckoutLayout backHref={backHref}>
+        <Centered>
+          <Loader2 className="w-6 h-6 animate-spin text-brand" />
+        </Centered>
+      </CheckoutLayout>
     );
   }
   if (!card?.frontImageUrl) {
     return (
-      <Centered>
-        <p className="text-sm text-stone-600 mb-4">This card isn't ready to order yet.</p>
-        <Button onClick={() => setLocation(`/studio/card/${cardId}/edit`)}>
-          Back to editor
-        </Button>
-      </Centered>
+      <CheckoutLayout backHref={backHref}>
+        <Centered>
+          <p className="text-sm text-stone-600 mb-4">This card isn't ready to order yet.</p>
+          <Button onClick={() => setLocation(`/studio/card/${cardId}/edit`)}>
+            Back to editor
+          </Button>
+        </Centered>
+      </CheckoutLayout>
     );
   }
 
@@ -199,20 +210,19 @@ export default function CheckoutPage() {
     previewSide === 'inside' && card.insideImageUrl ? card.insideImageUrl : card.frontImageUrl;
 
   return (
-    <div className="min-h-screen bg-[#faf7f1]">
-      <div className="max-w-5xl mx-auto px-4 py-8 md:py-12">
-        <header className="mb-6 md:mb-8">
-          <p className="text-xs uppercase tracking-[0.2em] text-stone-500 mb-2">Checkout</p>
-          <h1 className="text-2xl md:text-3xl font-semibold text-ink">
-            {recipientName ? `Send ${recipientName}'s card` : 'Send your card'}
-          </h1>
-        </header>
+    <CheckoutLayout backHref={backHref}>
+      <header className="mb-6 sm:mb-8">
+        <p className="text-xs uppercase tracking-[0.2em] text-stone-500 mb-2">Checkout</p>
+        <h1 className="text-2xl sm:text-3xl font-semibold text-ink">
+          {recipientName ? `Send ${recipientName}'s card` : 'Send your card'}
+        </h1>
+      </header>
 
-        <div className="grid md:grid-cols-[1fr_360px] gap-8">
+      <div className="grid md:grid-cols-[1fr_360px] gap-8">
           {/* LEFT — preview, product choice, form */}
           <div className="space-y-6">
             {/* Preview */}
-            <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
               <div className="aspect-square bg-stone-50 relative">
                 <AnimatePresence mode="wait">
                   <motion.img
@@ -383,7 +393,7 @@ export default function CheckoutPage() {
 
           {/* RIGHT — sticky summary */}
           <aside className="md:sticky md:top-8 md:self-start">
-            <div className="bg-white rounded-xl border border-stone-200 p-5 space-y-4">
+            <div className="bg-white rounded-2xl border border-stone-200 p-5 space-y-4">
               {includesPrint && (
                 <LineItem
                   icon={<Package className="w-4 h-4" />}
@@ -434,15 +444,14 @@ export default function CheckoutPage() {
               </p>
             </div>
           </aside>
-        </div>
       </div>
-    </div>
+    </CheckoutLayout>
   );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="bg-white rounded-xl border border-stone-200 p-5 md:p-6 space-y-4">
+    <section className="bg-white rounded-2xl border border-stone-200 p-5 md:p-6 space-y-4">
       <h2 className="text-sm font-semibold text-ink">{title}</h2>
       {children}
     </section>
@@ -567,7 +576,7 @@ function LineItem({
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#faf7f1] text-center p-6">
+    <div className="flex flex-col items-center justify-center text-center py-24">
       {children}
     </div>
   );
