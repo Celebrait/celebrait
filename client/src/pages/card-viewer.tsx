@@ -183,20 +183,27 @@ export default function CardViewerPage() {
             </Button>
           </div>
 
-          {/* Slim acquisition strip — compact so the card keeps
-              breathing room. Full row is the click target. */}
+          {/* Acquisition panel — compact boxed card so it reads as a
+              distinct moment, not a footnote. Full row click target. */}
           <Link
             href={createHref}
-            className="mt-4 flex items-center justify-center gap-2 text-sm text-stone-600 hover:text-brand-dark pointer-events-auto"
+            className="mt-4 block bg-white rounded-xl border border-stone-200 p-4 sm:p-5 hover:border-brand/60 hover:shadow-sm transition-all pointer-events-auto group"
             data-testid="btn-viewer-create"
           >
-            <Sparkles className="w-4 h-4 text-brand" />
-            <span>
-              Like what you see?{' '}
-              <span className="text-brand hover:text-brand-dark font-medium underline-offset-2 hover:underline">
-                Make your own
+            <div className="flex items-center gap-3">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-muted text-brand flex-shrink-0">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-ink">Make one of your own</p>
+                <p className="text-xs text-stone-600 mt-0.5">
+                  A few minutes to craft a card worth sending.
+                </p>
+              </div>
+              <span className="text-brand group-hover:text-brand-dark text-sm font-medium whitespace-nowrap">
+                Start →
               </span>
-            </span>
+            </div>
           </Link>
         </div>
       </div>

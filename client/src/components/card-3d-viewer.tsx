@@ -134,6 +134,8 @@ function Scene({
         shadow-camera-bottom={-3}
       />
 
+      <InitialCameraFit />
+
       <Card
         frontUrl={frontUrl}
         insideUrl={insideUrl}
@@ -161,13 +163,43 @@ function Scene({
         enableZoom={true}
         enableDamping
         dampingFactor={0.08}
-        minDistance={1.5}
-        maxDistance={3.2}
+        minDistance={1.6}
+        maxDistance={6}
         minPolarAngle={Math.PI / 3}
         maxPolarAngle={Math.PI - Math.PI / 3}
       />
     </>
   );
+}
+
+// ── InitialCameraFit ─────────────────────────────────────────────────
+// Adapts the camera distance so the card renders at a comfortable
+// size with generous margin, on any viewport aspect. Runs once on
+// mount; subsequent zoom is under user control via OrbitControls.
+//
+// Without this, a static camera z lands the card at ~90% of a
+// landscape viewport height and clips horizontally on portrait
+// phones (card width > viewport width at narrow aspects). The
+// margin factor controls how much empty space surrounds the card.
+function InitialCameraFit() {
+  const { camera, size, invalidate } = useThree();
+  const didInit = useRef(false);
+  useEffect(() => {
+    if (didInit.current) return;
+    if (!(camera instanceof THREE.PerspectiveCamera)) return;
+    didInit.current = true;
+    const aspect = size.width / size.height;
+    const halfFovRad = (camera.fov / 2) * (Math.PI / 180);
+    // 70% margin around the card — reads as "the card is sitting
+    // in space", not "the card fills the stage".
+    const required = CARD_W * 1.7;
+    const distByHeight = required / (2 * Math.tan(halfFovRad));
+    const distByWidth = required / (2 * Math.tan(halfFovRad) * aspect);
+    camera.position.z = Math.max(distByHeight, distByWidth);
+    camera.updateProjectionMatrix();
+    invalidate();
+  }, [camera, size, invalidate]);
+  return null;
 }
 
 // ── Card ─────────────────────────────────────────────────────────────
