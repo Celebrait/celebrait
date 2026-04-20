@@ -100,10 +100,15 @@ function Scene({
           Key light positioned upper-LEFT-front so when the cover
           swings open to the left, it sits between the key light and
           the inside plane, casting the shadow onto the inside. */}
-      <ambientLight intensity={0.6} />
+      {/* Intensities tuned for three.js 0.170 physically-correct
+          lighting — each light's contribution is ~/PI vs. the legacy
+          model. 1.9 ambient + 1.5 key lands ≈ 1.0 texture response on
+          lit regions and ≈ 0.6 in shadow (a visible 40% delta for
+          the cover-cast shadow on the inside). */}
+      <ambientLight intensity={1.9} />
       <directionalLight
         position={[-2.5, 3, 3]}
-        intensity={0.5}
+        intensity={1.5}
         color="#ffffff"
         castShadow
         shadow-mapSize={[2048, 2048]}
