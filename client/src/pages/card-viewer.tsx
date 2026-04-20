@@ -131,21 +131,33 @@ export default function CardViewerPage() {
           flow below with generous vertical spacing — the page
           scrolls if the viewport is short, which is fine. */}
       <div className="pt-16">
-        {/* Stage — bounded 3D area */}
-        <div className="h-[60vh] sm:h-[68vh] w-full">
-          <Card3DViewer
-            frontImageUrl={data.frontImageUrl}
-            insideImageUrl={data.insideImageUrl}
-            open={open}
-            onOpenChange={setOpen}
-            className="w-full h-full"
-          />
+        {/* Stage — reserves the vertical space for the card in the
+            document flow. The actual 3D canvas inside extends past
+            the stage's visible bounds (above into header area,
+            below into UI area) so the card can rotate/open without
+            clipping at the stage edge. The UI below has its own
+            bg-white layer at z-10 to occlude any card geometry that
+            rotates down past the stage. */}
+        <div className="h-[60vh] sm:h-[68vh] w-full relative">
+          <div className="absolute inset-x-0 top-[-18vh] h-[calc(100%+36vh)] z-0">
+            <Card3DViewer
+              frontImageUrl={data.frontImageUrl}
+              insideImageUrl={data.insideImageUrl}
+              open={open}
+              onOpenChange={setOpen}
+              className="w-full h-full"
+            />
+          </div>
         </div>
 
         {/* UI — sits clearly below the stage with breathing room.
-            Fixed-min-height on the hints slot so GestureHints
-            exiting doesn't reflow the rest (prevents the snap-up
-            glitch). */}
+            Outer wrapper is full-width bg-white at z-10 so any card
+            geometry rotating past the stage bottom is occluded
+            cleanly (no visible bleed into the UI area). Inner
+            container centres the actual content column.
+            min-h-[56px] on the hints slot so GestureHints exiting
+            doesn't reflow the rest. */}
+        <div className="relative z-10 bg-white">
         <div className="max-w-xl mx-auto px-4 pt-10 pb-16">
           <div className="min-h-[56px] flex justify-center items-start">
             <GestureHints open={open} />
@@ -202,6 +214,7 @@ export default function CardViewerPage() {
               </span>
             </div>
           </Link>
+        </div>
         </div>
       </div>
 
