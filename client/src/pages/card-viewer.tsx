@@ -125,41 +125,34 @@ export default function CardViewerPage() {
 
   return (
     <Shell>
-      {/* Stage — bounded canvas that fills the viewport between the
-          header and the UI bar. Card fills this stage area at
-          default (not centered in the full viewport), so there's
-          clear vertical separation from the UI below.
+      {/* Document flows below the fixed header: stage first, then
+          UI. Stage has a fixed height so the card renders at a
+          consistent size regardless of viewport. UI sits in normal
+          flow below with generous vertical spacing — the page
+          scrolls if the viewport is short, which is fine. */}
+      <div className="pt-16">
+        {/* Stage — bounded 3D area */}
+        <div className="h-[60vh] sm:h-[68vh] w-full">
+          <Card3DViewer
+            frontImageUrl={data.frontImageUrl}
+            insideImageUrl={data.insideImageUrl}
+            open={open}
+            onOpenChange={setOpen}
+            className="w-full h-full"
+          />
+        </div>
 
-          Rotations that extend past the stage bounds can clip at
-          the canvas edges, but with the 1.15× card-to-stage margin
-          set in InitialCameraFit, normal rotation stays inside the
-          canvas. Extreme flips may clip — Kevin's accepted that
-          tradeoff in exchange for a cleanly-framed default. */}
-      <div className="fixed top-16 inset-x-0 bottom-[240px] sm:bottom-[190px] z-0">
-        <Card3DViewer
-          frontImageUrl={data.frontImageUrl}
-          insideImageUrl={data.insideImageUrl}
-          open={open}
-          onOpenChange={setOpen}
-          className="w-full h-full"
-        />
-      </div>
+        {/* UI — sits clearly below the stage with breathing room.
+            Fixed-min-height on the hints slot so GestureHints
+            exiting doesn't reflow the rest (prevents the snap-up
+            glitch). */}
+        <div className="max-w-xl mx-auto px-4 pt-10 pb-16">
+          <div className="min-h-[56px] flex justify-center items-start">
+            <GestureHints open={open} />
+          </div>
 
-      {/* Gesture hints — sit in their own absolute layer right above
-          the UI bar so their in/out animation never reflows the
-          buttons. Positioned at the same offset from bottom as the
-          UI bar's top edge, plus a small gap. */}
-      <div className="fixed bottom-[240px] sm:bottom-[190px] inset-x-0 z-10 flex justify-center pb-5 pointer-events-none">
-        <GestureHints open={open} />
-      </div>
-
-      {/* UI bar — dedicated bottom region with clear separation from
-          the canvas above. bg-white + top border reads as a distinct
-          strip. Generous internal padding and gaps between rows. */}
-      <div className="fixed bottom-0 inset-x-0 h-[240px] sm:h-[190px] z-10 bg-white">
-        <div className="max-w-2xl mx-auto h-full px-4 py-4 sm:py-5 flex flex-col gap-3 sm:gap-4">
           {/* Action row */}
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pointer-events-auto">
+          <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-3">
             <Button
               onClick={() => setOpen(!open)}
               className="bg-cta hover:bg-cta/90 text-cta-foreground font-semibold px-7 py-3 rounded-lg w-full sm:w-auto"
@@ -187,12 +180,11 @@ export default function CardViewerPage() {
             </Button>
           </div>
 
-          {/* Acquisition panel — compact boxed card with clear gap
-              above so it reads as a distinct moment below the
-              primary actions. */}
+          {/* Acquisition panel — boxed so it reads as a distinct
+              moment. */}
           <Link
             href={createHref}
-            className="block bg-white rounded-xl border border-stone-200 p-4 hover:border-brand/60 hover:shadow-sm transition-all pointer-events-auto group"
+            className="mt-8 block bg-white rounded-xl border border-stone-200 p-4 hover:border-brand/60 hover:shadow-sm transition-all group"
             data-testid="btn-viewer-create"
           >
             <div className="flex items-center gap-3">
