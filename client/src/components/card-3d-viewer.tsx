@@ -177,8 +177,12 @@ const CARD_H = 1.45;
 const CLOSED_REST = 0;
 const OPEN_REST = -2.1;
 
-const PAPER_BACK = '#f8f4e8';
-const CARD_BACK_PAPER = '#f8f4e8';
+// Paper tone for the back-of-cover + back-of-card faces. Near-white
+// with a tiny warm tint — reads as "clean white card stock" rather
+// than "cream aged paper", while keeping just enough warmth so the
+// paper doesn't fully disappear against any near-white background.
+const PAPER_BACK = '#fbf8ef';
+const CARD_BACK_PAPER = '#fbf8ef';
 
 function Card({
   frontUrl,

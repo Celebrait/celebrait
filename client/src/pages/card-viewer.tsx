@@ -126,12 +126,14 @@ export default function CardViewerPage() {
   return (
     <Shell>
       <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 sm:py-12">
-        {/* Stage — 3D card + gesture hints. Stage is wider than the
-            square card so the cover can swing open without clipping
-            against the container edge (cover rotates left when open,
-            extending the card's footprint past the closed bounds). */}
+        {/* Stage — 3D card + gesture hints. White container matches
+            the Studio review step's framing; the slight warm tint on
+            the paper-back then reads as clean white stock against a
+            true-white stage, instead of disappearing into the page's
+            bg-surface. Wider than square so the cover can swing open
+            without clipping against the container edge. */}
         <div className="relative">
-          <div className="aspect-[5/4] max-w-3xl mx-auto">
+          <div className="aspect-[5/4] max-w-3xl mx-auto bg-white rounded-2xl border border-stone-200 overflow-hidden">
             <Card3DViewer
               frontImageUrl={data.frontImageUrl}
               insideImageUrl={data.insideImageUrl}
