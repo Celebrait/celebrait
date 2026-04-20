@@ -25,6 +25,7 @@ import { registerPromptRoutes } from "./routes/prompts";
 import { registerPhotoRoutes } from "./routes/photos";
 import { registerStudioDraftRoutes } from "./routes/studio-drafts";
 import { registerStudioBrainstormRoutes } from "./routes/studio-brainstorm";
+import { registerAdminCostsRoutes } from "./routes/admin-costs";
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
@@ -324,6 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerPhotoRoutes(app);
   registerStudioDraftRoutes(app);
   registerStudioBrainstormRoutes(app);
+  registerAdminCostsRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

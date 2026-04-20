@@ -18,6 +18,7 @@ import PrivacyPolicy from "@/pages/privacy-policy";
 import TermsOfService from "@/pages/terms-of-service";
 import RegenPage from "@/pages/regen-page";
 import AdminPromptsPage from "@/pages/admin-prompts";
+import AdminCostsPage from "@/pages/admin-costs";
 import LoginPage from "@/pages/login";
 import StudioHome from "@/pages/studio";
 import { NewCardPage, CardMakerPage } from "@/pages/card-maker";
@@ -86,6 +87,13 @@ function Router() {
           <RequireAdmin>
             <AdminLayout>
               <AdminPromptsPage />
+            </AdminLayout>
+          </RequireAdmin>
+        </Route>
+        <Route path="/admin/costs">
+          <RequireAdmin>
+            <AdminLayout>
+              <AdminCostsPage />
             </AdminLayout>
           </RequireAdmin>
         </Route>
