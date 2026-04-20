@@ -23,6 +23,9 @@ import LoginPage from "@/pages/login";
 import StudioHome from "@/pages/studio";
 import { NewCardPage, CardMakerPage } from "@/pages/card-maker";
 import CardViewerPage from "@/pages/card-viewer";
+import CheckoutPage from "@/pages/checkout";
+import CheckoutDevConfirmPage from "@/pages/checkout-dev-confirm";
+import CheckoutSuccessPage from "@/pages/checkout-success";
 import { RequireAuth, RequireAdmin } from "@/components/require-auth";
 import AdminLayout from "@/layouts/admin-layout";
 import StudioLayout from "@/layouts/studio-layout";
@@ -76,6 +79,27 @@ function Router() {
           <RequireAuth>
             <CardViewerPage />
           </RequireAuth>
+        </Route>
+        {/* Studio checkout — auth-gated. Sender enters address, picks
+            ship-to and optional £0.99 digital add-on, pays via the
+            current PaymentProvider (stub until real gateway lands). */}
+        <Route path="/checkout/:cardId">
+          <RequireAuth>
+            <CheckoutPage />
+          </RequireAuth>
+        </Route>
+        <Route path="/checkout/dev-confirm">
+          <RequireAuth>
+            <CheckoutDevConfirmPage />
+          </RequireAuth>
+        </Route>
+        <Route path="/checkout/success">
+          <RequireAuth>
+            <CheckoutSuccessPage />
+          </RequireAuth>
+        </Route>
+        <Route path="/checkout/cancelled">
+          <Redirect to="/studio" />
         </Route>
         {/* Legacy /dashboard — redirect to Studio. Kept so existing
             bookmarks and any stale links survive the cutover. */}
