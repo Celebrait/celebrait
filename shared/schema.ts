@@ -6,6 +6,7 @@ export * from "./models/auth";
 export * from "./models/prompts";
 export * from "./models/photos";
 export * from "./models/card-draft";
+export * from "./models/studio-orders";
 
 import { users } from "./models/auth";
 
