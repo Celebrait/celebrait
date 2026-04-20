@@ -16,15 +16,7 @@ import { useEffect, useState } from 'react';
 import { Link, useRoute, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  Check,
-  Copy,
-  Loader2,
-  MousePointer2,
-  RotateCcw,
-  Sparkles,
-  ZoomIn,
-} from 'lucide-react';
+import { Check, Copy, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { useAuth } from '@/hooks/use-auth';
@@ -143,9 +135,12 @@ export default function CardViewerPage() {
           )}
         </div>
 
-        {/* Stage — 3D card + gesture hints */}
+        {/* Stage — 3D card + gesture hints. Stage is wider than the
+            square card so the cover can swing open without clipping
+            against the container edge (cover rotates left when open,
+            extending the card's footprint past the closed bounds). */}
         <div className="relative">
-          <div className="aspect-square max-w-xl mx-auto">
+          <div className="aspect-[5/4] max-w-3xl mx-auto">
             <Card3DViewer
               frontImageUrl={data.frontImageUrl}
               insideImageUrl={data.insideImageUrl}
@@ -186,21 +181,30 @@ export default function CardViewerPage() {
           </Button>
         </div>
 
-        {/* Create-your-own nudge — the acquisition funnel per ROADMAP.
-            Anonymous recipients land on /login?next= so the next step
-            after sign-in is building their own card. */}
-        <div className="mt-10 sm:mt-16 text-center">
-          <p className="text-sm text-stone-600 mb-3">
-            Like what you see? Make one for someone you care about.
-          </p>
-          <Link
-            href={createHref}
-            className="inline-flex items-center gap-2 text-brand hover:text-brand-dark font-medium text-sm"
-            data-testid="btn-viewer-create"
-          >
-            <Sparkles className="w-4 h-4" />
-            Make your own card
-          </Link>
+        {/* Create-your-own panel — acquisition funnel per ROADMAP. A
+            proper boxed card so it reads as a distinct moment (not an
+            afterthought link at the page foot). Anonymous recipients
+            land on /login?next= so sign-in funnels straight into the
+            card maker. */}
+        <div className="mt-10 sm:mt-16 max-w-md mx-auto">
+          <div className="bg-white rounded-2xl border border-stone-200 p-6 sm:p-8 text-center">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-muted text-brand mb-3">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <h2 className="text-lg font-semibold text-ink mb-1">
+              Make one of your own
+            </h2>
+            <p className="text-sm text-stone-600 mb-5">
+              A few minutes to craft a card worth sending.
+            </p>
+            <Link
+              href={createHref}
+              className="inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-6 py-3 rounded-lg w-full"
+              data-testid="btn-viewer-create"
+            >
+              Start a card
+            </Link>
+          </div>
         </div>
       </div>
     </Shell>
@@ -242,9 +246,12 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 // ── GestureHints ─────────────────────────────────────────────────────
-// Small animated hint row under the card. Fades in a few seconds after
-// mount so it reads as a whisper, not an instruction. Auto-hides once
-// the user opens the card (presumed engaged).
+// Animated pointer-SVG hints under the card. Each hint pairs a small
+// animated glyph with a short label. Fade in 900ms after mount so
+// they read as a whisper; auto-hide once the card opens.
+//
+// The animations are framer-motion loops on pure SVG — no external
+// lottie / assets. Keeps bundle cost to zero and the motion tunable.
 function GestureHints({ open }: { open: boolean }) {
   const [visible, setVisible] = useState(false);
 
@@ -257,22 +264,22 @@ function GestureHints({ open }: { open: boolean }) {
     <AnimatePresence>
       {visible && !open && (
         <motion.div
-          initial={{ opacity: 0, y: 6 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 6, transition: { duration: 0.3 } }}
+          exit={{ opacity: 0, y: 8, transition: { duration: 0.3 } }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="pointer-events-none absolute inset-x-0 -bottom-2 flex justify-center"
+          className="pointer-events-none absolute inset-x-0 -bottom-4 flex justify-center"
         >
-          <div className="flex items-center gap-4 text-[11px] uppercase tracking-[0.15em] text-stone-500">
-            <Hint icon={<MousePointer2 className="w-3.5 h-3.5" />} label="Tap to open" />
-            <span className="w-px h-3 bg-stone-300" />
-            <Hint icon={<RotateCcw className="w-3.5 h-3.5" />} label="Drag to rotate" />
-            <span className="hidden sm:inline w-px h-3 bg-stone-300" />
-            <Hint
-              icon={<ZoomIn className="w-3.5 h-3.5" />}
-              label="Scroll to zoom"
-              hideOnMobile
-            />
+          <div className="flex items-center gap-6 sm:gap-10">
+            <GestureHint label="Tap to open">
+              <TapGlyph />
+            </GestureHint>
+            <GestureHint label="Drag to rotate">
+              <DragGlyph />
+            </GestureHint>
+            <GestureHint label="Scroll to zoom" hideOnMobile>
+              <ZoomGlyph />
+            </GestureHint>
           </div>
         </motion.div>
       )}
@@ -280,20 +287,90 @@ function GestureHints({ open }: { open: boolean }) {
   );
 }
 
-function Hint({
-  icon,
+function GestureHint({
   label,
+  children,
   hideOnMobile,
 }: {
-  icon: React.ReactNode;
   label: string;
+  children: React.ReactNode;
   hideOnMobile?: boolean;
 }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 ${hideOnMobile ? 'hidden sm:inline-flex' : ''}`}>
-      {icon}
-      <span>{label}</span>
-    </span>
+    <div
+      className={`flex flex-col items-center gap-1.5 ${hideOnMobile ? 'hidden sm:flex' : ''}`}
+    >
+      <div className="w-9 h-9 flex items-center justify-center text-stone-500">
+        {children}
+      </div>
+      <span className="text-[10px] uppercase tracking-[0.15em] text-stone-500">{label}</span>
+    </div>
+  );
+}
+
+// ── Gesture glyphs (pure SVG + framer-motion loops) ──────────────────
+
+function TapGlyph() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      {/* Concentric ripple — two rings pulsing outward */}
+      {[0, 0.75].map((delay, i) => (
+        <motion.circle
+          key={i}
+          cx="16"
+          cy="16"
+          r="6"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          initial={{ scale: 1, opacity: 0 }}
+          animate={{ scale: [1, 2.2], opacity: [0.7, 0] }}
+          transition={{ duration: 1.5, delay, repeat: Infinity, ease: 'easeOut' }}
+          style={{ transformOrigin: '16px 16px' }}
+        />
+      ))}
+      <circle cx="16" cy="16" r="3.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function DragGlyph() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      {/* Dot orbits around a centre — signals "drag to rotate" */}
+      <circle
+        cx="16"
+        cy="16"
+        r="9"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeDasharray="2 3"
+        opacity="0.4"
+      />
+      <motion.g
+        animate={{ rotate: 360 }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+        style={{ transformOrigin: '16px 16px' }}
+      >
+        <circle cx="25" cy="16" r="2.5" fill="currentColor" />
+      </motion.g>
+    </svg>
+  );
+}
+
+function ZoomGlyph() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      {/* Magnifier with an inner plus that pulses — pulse reads as zoom-in */}
+      <circle cx="14" cy="14" r="7" stroke="currentColor" strokeWidth="1.6" />
+      <line x1="19.5" y1="19.5" x2="24" y2="24" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <motion.g
+        animate={{ opacity: [0.4, 1, 0.4] }}
+        transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        <line x1="11" y1="14" x2="17" y2="14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      </motion.g>
+    </svg>
   );
 }
 
