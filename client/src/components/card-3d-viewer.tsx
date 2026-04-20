@@ -43,13 +43,14 @@ export function Card3DViewer({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className={`${className ?? ''} relative`}>
+    <div className={className}>
       <Canvas
         shadows
-        // Closer than the previous framing so the card reads as
-        // "right in front of you" at default. FOV slightly wider so
-        // there's breathing room when the cover swings out.
-        camera={{ position: [0, 0, 2.4], fov: 38 }}
+        // Close framing so the card reads as "right in front of you"
+        // at default. FOV wide enough for breathing room when the
+        // cover swings out. Slightly above centre so the card's
+        // horizontal centreline isn't on the viewport midline.
+        camera={{ position: [0, 0.15, 2.2], fov: 40 }}
         dpr={[1, 2]}
         gl={{
           toneMapping: THREE.NoToneMapping,
@@ -102,17 +103,22 @@ function Scene({
         onOpenChange={onOpenChange}
       />
 
-      {/* Drag-to-rotate + wheel/pinch-to-zoom. Clamped so users can't
-          flip fully upside-down. Panning disabled (no reason to
-          translate the card off-centre). enableDamping smooths the
-          inertia after a drag release. */}
+      {/* Drag-to-rotate + wheel/pinch-to-zoom. target=[0,0,0] forces
+          the orbit focus onto the card — without it, drei infers the
+          target from the initial camera lookAt and can land far off
+          the card, which presents as "the card is tiny and drifting
+          at the edge of the viewport." Clamped so users can't flip
+          upside-down. Panning off — no reason to translate the card
+          off-centre. */}
       <OrbitControls
+        makeDefault
+        target={[0, 0, 0]}
         enablePan={false}
         enableZoom={true}
         enableDamping
         dampingFactor={0.08}
-        minDistance={1.6}
-        maxDistance={4.2}
+        minDistance={1.5}
+        maxDistance={3.2}
         minPolarAngle={Math.PI / 3}
         maxPolarAngle={Math.PI - Math.PI / 3}
       />
