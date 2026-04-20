@@ -72,6 +72,7 @@ export function ReviewStep({
   if (status === 'completed' && generatedFrontUrl) {
     return (
       <CompletedView
+        cardId={cardId}
         frontUrl={generatedFrontUrl}
         insideUrl={generatedInsideUrl}
       />
@@ -330,9 +331,11 @@ function GeneratingView() {
 
 // ── Completed view — show the rendered images ─────────────────────────
 function CompletedView({
+  cardId,
   frontUrl,
   insideUrl,
 }: {
+  cardId: number;
   frontUrl: string;
   insideUrl: string | null;
 }) {
@@ -349,9 +352,23 @@ function CompletedView({
           Front and inside — take a look.
         </p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
         <CardImage url={frontUrl} label="Front" />
         {insideUrl && <CardImage url={insideUrl} label="Inside" />}
+      </div>
+      {/* Opens the Phase 1 3D viewer in a new tab so the Studio page
+          stays intact if Kevin wants to jump between them. */}
+      <div className="flex justify-center">
+        <a
+          href={`/card/${cardId}/view`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-brand-foreground text-sm font-medium px-5 py-3 rounded-lg shadow-sm transition-shadow hover:shadow-md"
+          data-testid="btn-view-3d"
+        >
+          <Sparkles className="w-4 h-4" />
+          View in 3D
+        </a>
       </div>
     </div>
   );

@@ -21,6 +21,7 @@ import AdminPromptsPage from "@/pages/admin-prompts";
 import LoginPage from "@/pages/login";
 import StudioHome from "@/pages/studio";
 import { NewCardPage, CardMakerPage } from "@/pages/card-maker";
+import CardViewerPage from "@/pages/card-viewer";
 import { RequireAuth, RequireAdmin } from "@/components/require-auth";
 import AdminLayout from "@/layouts/admin-layout";
 import StudioLayout from "@/layouts/studio-layout";
@@ -60,6 +61,19 @@ function Router() {
             <StudioLayout>
               <CardMakerPage />
             </StudioLayout>
+          </RequireAuth>
+        </Route>
+        {/* Friendly short-URL redirect — /studio/card/:id → /edit.
+            Catches manually-typed URLs and any stale bookmarks. */}
+        <Route path="/studio/card/:id">
+          {(params) => <Redirect to={`/studio/card/${params.id}/edit`} />}
+        </Route>
+        {/* Phase 1 proof-of-concept 3D viewer. Auth-gated today so the
+            sender can preview their own card; Phase 2 swaps for a
+            public tokenised /api/card/:id/view endpoint. */}
+        <Route path="/card/:id/view">
+          <RequireAuth>
+            <CardViewerPage />
           </RequireAuth>
         </Route>
         {/* Legacy /dashboard — redirect to Studio. Kept so existing
