@@ -80,14 +80,9 @@ function Router() {
             <CardViewerPage />
           </RequireAuth>
         </Route>
-        {/* Studio checkout — auth-gated. Sender enters address, picks
-            ship-to and optional £0.99 digital add-on, pays via the
-            current PaymentProvider (stub until real gateway lands). */}
-        <Route path="/checkout/:cardId">
-          <RequireAuth>
-            <CheckoutPage />
-          </RequireAuth>
-        </Route>
+        {/* Studio checkout — auth-gated. Static paths first; the
+            parameterised route comes last so wouter doesn't greedily
+            match `/checkout/success` as `:cardId='success'`. */}
         <Route path="/checkout/dev-confirm">
           <RequireAuth>
             <CheckoutDevConfirmPage />
@@ -100,6 +95,11 @@ function Router() {
         </Route>
         <Route path="/checkout/cancelled">
           <Redirect to="/studio" />
+        </Route>
+        <Route path="/checkout/:cardId">
+          <RequireAuth>
+            <CheckoutPage />
+          </RequireAuth>
         </Route>
         {/* Legacy /dashboard — redirect to Studio. Kept so existing
             bookmarks and any stale links survive the cutover. */}
