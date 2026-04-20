@@ -219,72 +219,78 @@ export default function CheckoutPage() {
       </header>
 
       <div className="grid md:grid-cols-[1fr_360px] gap-8">
-          {/* LEFT — preview, product choice, form */}
+          {/* LEFT — hero (preview + selector side-by-side), then form */}
           <div className="space-y-6">
-            {/* Preview */}
-            <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
-              <div className="aspect-square bg-stone-50 relative">
-                <AnimatePresence mode="wait">
-                  <motion.img
-                    key={activeImage}
-                    src={activeImage ?? ''}
-                    alt=""
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute inset-0 w-full h-full object-contain"
-                  />
-                </AnimatePresence>
-              </div>
-              {card.insideImageUrl && (
-                <div className="px-5 py-3 border-t border-stone-100 flex items-center justify-center">
-                  <div className="inline-flex bg-stone-100 rounded-full p-1">
-                    <PreviewTab
-                      active={previewSide === 'front'}
-                      onClick={() => setPreviewSide('front')}
-                    >
-                      Front
-                    </PreviewTab>
-                    <PreviewTab
-                      active={previewSide === 'inside'}
-                      onClick={() => setPreviewSide('inside')}
-                    >
-                      Inside
-                    </PreviewTab>
-                  </div>
+            {/* Hero row: preview beside product choice. Both above the
+                fold on desktop; stacks on mobile (preview first). */}
+            <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
+              {/* Preview — constrained so it doesn't dwarf the selector */}
+              <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
+                <div className="aspect-square bg-stone-50 relative">
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={activeImage}
+                      src={activeImage ?? ''}
+                      alt=""
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute inset-0 w-full h-full object-contain"
+                    />
+                  </AnimatePresence>
                 </div>
-              )}
-            </div>
+                {card.insideImageUrl && (
+                  <div className="px-4 py-2.5 border-t border-stone-100 flex items-center justify-center">
+                    <div className="inline-flex bg-stone-100 rounded-full p-1">
+                      <PreviewTab
+                        active={previewSide === 'front'}
+                        onClick={() => setPreviewSide('front')}
+                      >
+                        Front
+                      </PreviewTab>
+                      <PreviewTab
+                        active={previewSide === 'inside'}
+                        onClick={() => setPreviewSide('inside')}
+                      >
+                        Inside
+                      </PreviewTab>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-            {/* Product choice */}
-            <Section title="How would you like to send it?">
-              <RadioGroup
-                value={choice}
-                onValueChange={(v) => setChoice(v as ProductChoice)}
-                className="grid grid-cols-1 md:grid-cols-3 gap-3"
-              >
-                <ProductOption
-                  value="digital"
-                  title="Digital"
-                  description="3D share link, sent instantly."
-                  price={totalsFor('digital').total}
-                />
-                <ProductOption
-                  value="print"
-                  title="Printed"
-                  description="Square card, posted in the UK."
-                  price={totalsFor('print').total}
-                />
-                <ProductOption
-                  value="both"
-                  title="Printed + digital"
-                  description="Instant share + the real thing in the post."
-                  price={totalsFor('both').total}
-                  badge="Recommended"
-                />
-              </RadioGroup>
-            </Section>
+              {/* Product choice — stacked so each option reads cleanly */}
+              <div className="bg-white rounded-2xl border border-stone-200 p-5 md:p-6 space-y-3">
+                <h2 className="text-sm font-semibold text-ink mb-1">
+                  How would you like to send it?
+                </h2>
+                <RadioGroup
+                  value={choice}
+                  onValueChange={(v) => setChoice(v as ProductChoice)}
+                  className="space-y-2.5"
+                >
+                  <ProductOption
+                    value="digital"
+                    title="Digital"
+                    description="3D share link, sent instantly."
+                    price={totalsFor('digital').total}
+                  />
+                  <ProductOption
+                    value="print"
+                    title="Printed"
+                    description="Square card, posted in the UK."
+                    price={totalsFor('print').total}
+                  />
+                  <ProductOption
+                    value="both"
+                    title="Printed + digital"
+                    description="Instant share + the real thing in the post."
+                    price={totalsFor('both').total}
+                  />
+                </RadioGroup>
+              </div>
+            </div>
 
             <Section title="Your details">
               <Field label="Your name">
@@ -494,28 +500,25 @@ function ProductOption({
   title,
   description,
   price,
-  badge,
 }: {
   value: string;
   title: string;
   description: string;
   price: number;
-  badge?: string;
 }) {
   return (
     <Label
       htmlFor={`product-${value}`}
-      className="relative flex flex-col gap-1 border border-stone-200 rounded-lg p-4 cursor-pointer hover:border-stone-400 has-[:checked]:border-brand has-[:checked]:bg-brand/5 transition-colors"
+      className="relative flex items-start gap-3 border border-stone-200 rounded-xl p-3.5 cursor-pointer hover:border-stone-400 has-[:checked]:border-brand has-[:checked]:bg-brand/5 transition-colors"
     >
-      {badge && (
-        <span className="absolute -top-2 right-3 text-[10px] uppercase tracking-wider bg-brand text-white px-2 py-0.5 rounded-full">
-          {badge}
-        </span>
-      )}
-      <RadioGroupItem value={value} id={`product-${value}`} className="absolute top-4 right-4" />
-      <p className="text-sm font-medium text-ink pr-6">{title}</p>
-      <p className="text-xs text-stone-500">{description}</p>
-      <p className="text-sm font-semibold text-ink mt-2">{formatGBP(price)}</p>
+      <RadioGroupItem value={value} id={`product-${value}`} className="mt-1 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="text-sm font-medium text-ink">{title}</p>
+          <p className="text-sm font-semibold text-ink">{formatGBP(price)}</p>
+        </div>
+        <p className="text-xs text-stone-500 mt-0.5">{description}</p>
+      </div>
     </Label>
   );
 }
