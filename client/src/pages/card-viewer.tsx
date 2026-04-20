@@ -140,72 +140,64 @@ export default function CardViewerPage() {
         />
       </div>
 
-      {/* UI layer — flows below a viewport-sized spacer so the canvas
-          shows through at the top, then the bottom UI sits on white
-          that matches the page bg. pointer-events-none on the
-          container lets drags pass to the canvas; individual
-          controls re-enable pointer events. */}
-      <div className="relative z-10 pointer-events-none">
-        {/* Spacer pushes UI below the card's visual centre. Card
-            renders in the top ~65vh of the viewport; UI starts
-            around the 65vh mark. */}
-        <div className="h-[65vh]" />
-
-        {/* Gesture hints — float at the boundary between card area
-            and UI area. */}
-        <div className="relative pointer-events-none">
-          <GestureHints open={open} />
-        </div>
-
-        {/* Actions */}
-        <div className="mt-10 sm:mt-12 flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 px-4 pointer-events-auto">
-          <Button
-            onClick={() => setOpen(!open)}
-            className="bg-cta hover:bg-cta/90 text-cta-foreground font-semibold px-7 py-3 rounded-lg w-full sm:w-auto"
-            size="lg"
-            data-testid="btn-viewer-open"
-          >
-            {open ? 'Close card' : 'Open card'}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleShare}
-            className="w-full sm:w-auto bg-white"
-            size="lg"
-            data-testid="btn-viewer-share"
-          >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4 mr-2" /> Copied
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4 mr-2" /> Share
-              </>
-            )}
-          </Button>
-        </div>
-
-        {/* Create-your-own panel */}
-        <div className="mt-10 sm:mt-16 max-w-md mx-auto px-4 pb-12 pointer-events-auto">
-          <div className="bg-white rounded-2xl border border-stone-200 p-6 sm:p-8 text-center">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-muted text-brand mb-3">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <h2 className="text-lg font-semibold text-ink mb-1">
-              Make one of your own
-            </h2>
-            <p className="text-sm text-stone-600 mb-5">
-              A few minutes to craft a card worth sending.
-            </p>
-            <Link
-              href={createHref}
-              className="inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-6 py-3 rounded-lg w-full"
-              data-testid="btn-viewer-create"
-            >
-              Start a card
-            </Link>
+      {/* Bottom UI — fixed at the viewport foot. Gesture hints sit
+          absolutely above the action row so their exit animation
+          can't shift the buttons (that was the "snap up" glitch).
+          pointer-events-none on the outer container lets drags pass
+          through to OrbitControls; each interactive child re-enables
+          pointer events. */}
+      <div className="fixed bottom-0 inset-x-0 z-10 pointer-events-none">
+        <div className="relative max-w-2xl mx-auto px-4 pb-6 sm:pb-8">
+          {/* Hints float above the action row in absolute space so
+              their in/out animation never reflows the buttons. */}
+          <div className="absolute bottom-full inset-x-0 flex justify-center pb-5">
+            <GestureHints open={open} />
           </div>
+
+          {/* Action row */}
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pointer-events-auto">
+            <Button
+              onClick={() => setOpen(!open)}
+              className="bg-cta hover:bg-cta/90 text-cta-foreground font-semibold px-7 py-3 rounded-lg w-full sm:w-auto"
+              size="lg"
+              data-testid="btn-viewer-open"
+            >
+              {open ? 'Close card' : 'Open card'}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleShare}
+              className="w-full sm:w-auto bg-white"
+              size="lg"
+              data-testid="btn-viewer-share"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-4 h-4 mr-2" /> Copied
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 mr-2" /> Share
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Slim acquisition strip — compact so the card keeps
+              breathing room. Full row is the click target. */}
+          <Link
+            href={createHref}
+            className="mt-4 flex items-center justify-center gap-2 text-sm text-stone-600 hover:text-brand-dark pointer-events-auto"
+            data-testid="btn-viewer-create"
+          >
+            <Sparkles className="w-4 h-4 text-brand" />
+            <span>
+              Like what you see?{' '}
+              <span className="text-brand hover:text-brand-dark font-medium underline-offset-2 hover:underline">
+                Make your own
+              </span>
+            </span>
+          </Link>
         </div>
       </div>
 

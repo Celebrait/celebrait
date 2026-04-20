@@ -325,9 +325,8 @@ function Card({
 //      doesn't read as a flat solid fill at close zoom
 //   3. Fine grain noise — per-pixel ±5 RGB jitter, gives the eye
 //      something to bite into so the paper doesn't feel "rendered"
-//   4. Two horizontal embossed grooves at 22% + 78% of the height,
-//      drawn as a 2px shadow line with a 1px highlight above and
-//      below so they read as deboss, not paint
+//   4. Thin perimeter edge stroke so the card has a silhouette on a
+//      pure-white background
 //   5. Optional wordmark (credit + celebrait.com) centred
 function usePaperTexture(opts: {
   credit?: string;
@@ -372,23 +371,15 @@ function usePaperTexture(opts: {
     }
     ctx.putImageData(imageData, 0, 0);
 
-    // 4. Embossed grooves — a deboss line reads as a darker stroke
-    //    with a subtle highlight on one edge (catching the light)
-    //    and a softer shadow on the other. Two grooves at top + bottom
-    //    frame the centre content without crowding it.
-    drawGroove(ctx, size, size * 0.22);
-    drawGroove(ctx, size, size * 0.78);
-
-    // 4b. Edge stroke — thin ring just inside the perimeter so the
-    //     card has a visible silhouette against a white background.
-    //     Offset inside the edge (not at x=0) so mipmaps don't chew
-    //     it away at shallow angles. Layered with a soft inner
-    //     shadow to avoid a hard painted-line look.
+    // 4. Edge stroke — thin ring just inside the perimeter so the
+    //    card has a visible silhouette against a white background.
+    //    Offset inside the edge (not at x=0) so mipmaps don't chew
+    //    it away at shallow angles. Layered with a soft inner shadow
+    //    to avoid a hard painted-line look.
     ctx.strokeStyle = EDGE_STROKE;
     ctx.lineWidth = 3;
     const edgeInset = 3;
     ctx.strokeRect(edgeInset, edgeInset, size - edgeInset * 2, size - edgeInset * 2);
-    // Softer inner shadow ring for depth.
     ctx.strokeStyle = 'rgba(120, 110, 95, 0.08)';
     ctx.lineWidth = 6;
     ctx.strokeRect(8, 8, size - 16, size - 16);
@@ -413,20 +404,6 @@ function usePaperTexture(opts: {
     tex.generateMipmaps = true;
     return tex;
   }, [credit, anisotropy]);
-}
-
-function drawGroove(ctx: CanvasRenderingContext2D, size: number, y: number) {
-  const pad = size * 0.15;
-  const w = size - pad * 2;
-  // Highlight (light catches the lip above)
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
-  ctx.fillRect(pad, y - 1, w, 1);
-  // Groove shadow — deboss reads as darker
-  ctx.fillStyle = 'rgba(58, 46, 30, 0.18)';
-  ctx.fillRect(pad, y, w, 2);
-  // Soft highlight below
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-  ctx.fillRect(pad, y + 2, w, 1);
 }
 
 function clamp8(v: number): number {
