@@ -190,9 +190,11 @@ function InitialCameraFit() {
     didInit.current = true;
     const aspect = size.width / size.height;
     const halfFovRad = (camera.fov / 2) * (Math.PI / 180);
-    // 70% margin around the card — reads as "the card is sitting
-    // in space", not "the card fills the stage".
-    const required = CARD_W * 1.7;
+    // Tight framing — card fills most of the stage at default with
+    // just enough margin to breathe. The bounded canvas on the
+    // viewer page is the container; this controls the card-to-
+    // stage ratio, not card-to-viewport.
+    const required = CARD_W * 1.15;
     const distByHeight = required / (2 * Math.tan(halfFovRad));
     const distByWidth = required / (2 * Math.tan(halfFovRad) * aspect);
     camera.position.z = Math.max(distByHeight, distByWidth);

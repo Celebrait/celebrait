@@ -125,12 +125,17 @@ export default function CardViewerPage() {
 
   return (
     <Shell>
-      {/* Full-viewport 3D canvas layer. Positioned fixed behind the
-          header and UI so the card can rotate past the top/bottom
-          bounds without clipping against a container. Pointer events
-          pass through to OrbitControls everywhere except where the
-          UI overlay marks `pointer-events-auto`. */}
-      <div className="fixed inset-0 z-0">
+      {/* Stage — bounded canvas that fills the viewport between the
+          header and the UI bar. Card fills this stage area at
+          default (not centered in the full viewport), so there's
+          clear vertical separation from the UI below.
+
+          Rotations that extend past the stage bounds can clip at
+          the canvas edges, but with the 1.15× card-to-stage margin
+          set in InitialCameraFit, normal rotation stays inside the
+          canvas. Extreme flips may clip — Kevin's accepted that
+          tradeoff in exchange for a cleanly-framed default. */}
+      <div className="fixed top-16 inset-x-0 bottom-[300px] sm:bottom-[220px] z-0">
         <Card3DViewer
           frontImageUrl={data.frontImageUrl}
           insideImageUrl={data.insideImageUrl}
@@ -140,20 +145,19 @@ export default function CardViewerPage() {
         />
       </div>
 
-      {/* Bottom UI — fixed at the viewport foot. Gesture hints sit
-          absolutely above the action row so their exit animation
-          can't shift the buttons (that was the "snap up" glitch).
-          pointer-events-none on the outer container lets drags pass
-          through to OrbitControls; each interactive child re-enables
-          pointer events. */}
-      <div className="fixed bottom-0 inset-x-0 z-10 pointer-events-none">
-        <div className="relative max-w-2xl mx-auto px-4 pb-6 sm:pb-8">
-          {/* Hints float above the action row in absolute space so
-              their in/out animation never reflows the buttons. */}
-          <div className="absolute bottom-full inset-x-0 flex justify-center pb-5">
-            <GestureHints open={open} />
-          </div>
+      {/* Gesture hints — sit in their own absolute layer right above
+          the UI bar so their in/out animation never reflows the
+          buttons. Positioned at the same offset from bottom as the
+          UI bar's top edge, plus a small gap. */}
+      <div className="fixed bottom-[300px] sm:bottom-[220px] inset-x-0 z-10 flex justify-center pb-5 pointer-events-none">
+        <GestureHints open={open} />
+      </div>
 
+      {/* UI bar — dedicated bottom region with clear separation from
+          the canvas above. bg-white + top border reads as a distinct
+          strip. Generous internal padding and gaps between rows. */}
+      <div className="fixed bottom-0 inset-x-0 h-[300px] sm:h-[220px] z-10 bg-white">
+        <div className="max-w-2xl mx-auto h-full px-4 py-5 sm:py-6 flex flex-col gap-4 sm:gap-5">
           {/* Action row */}
           <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pointer-events-auto">
             <Button
@@ -183,11 +187,12 @@ export default function CardViewerPage() {
             </Button>
           </div>
 
-          {/* Acquisition panel — compact boxed card so it reads as a
-              distinct moment, not a footnote. Full row click target. */}
+          {/* Acquisition panel — compact boxed card with clear gap
+              above so it reads as a distinct moment below the
+              primary actions. */}
           <Link
             href={createHref}
-            className="mt-4 block bg-white rounded-xl border border-stone-200 p-4 sm:p-5 hover:border-brand/60 hover:shadow-sm transition-all pointer-events-auto group"
+            className="block bg-white rounded-xl border border-stone-200 p-4 hover:border-brand/60 hover:shadow-sm transition-all pointer-events-auto group"
             data-testid="btn-viewer-create"
           >
             <div className="flex items-center gap-3">
