@@ -1,21 +1,24 @@
 // client/src/pages/checkout.tsx
 //
-// Studio checkout. One page, one form, one "Pay" button. Builds
-// against the stubbed PaymentProvider today — swapping to Peach/Stitch/
-// Stripe-via-UK is a provider-swap, not a UI rebuild.
+// Studio checkout. Product-first: pick Print / Digital / Both, then
+// fill in only the fields that product needs. The interactive front/
+// inside preview leads the page — it's what they're paying for.
 //
-// Order shape: print (£5.99) + optional digital add-on (£0.99) + UK
-// shipping (£1.50). Ship-to choice: sender or direct-to-recipient
-// with plain packaging + optional gift message.
+// Pricing (pence): print 599, digital 99, UK shipping 150. Both-tier
+// carries a 50p bundle discount as psychology — shown as a line item
+// so there's no hidden maths.
+//
+// Builds against the stubbed PaymentProvider today; swapping to
+// Peach / Stitch / Stripe-via-UK is a provider swap, not a rebuild.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2, Package, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -24,18 +27,12 @@ interface CardSummary {
   id: number;
   status: string | null;
   frontImageUrl: string | null;
+  insideImageUrl: string | null;
   state?: { recipient?: { name?: string | null } };
 }
 
 interface CheckoutResponse {
   orderId: string;
-  totals: {
-    printAmount: number;
-    digitalAmount: number;
-    shippingAmount: number;
-    totalAmount: number;
-    currency: string;
-  };
   payment: {
     paymentReference: string;
     mode: 'redirect' | 'embedded';
@@ -44,12 +41,29 @@ interface CheckoutResponse {
   };
 }
 
+type ProductChoice = 'digital' | 'print' | 'both';
+
 const PRINT_PRICE = 599;
 const DIGITAL_PRICE = 99;
 const UK_SHIPPING = 150;
+const BUNDLE_DISCOUNT = 50;
 
 function formatGBP(minor: number): string {
   return `£${(minor / 100).toFixed(2)}`;
+}
+
+function totalsFor(choice: ProductChoice) {
+  const printAmount = choice === 'digital' ? 0 : PRINT_PRICE;
+  const digitalAmount = choice === 'print' ? 0 : DIGITAL_PRICE;
+  const shippingAmount = choice === 'digital' ? 0 : UK_SHIPPING;
+  const discount = choice === 'both' ? BUNDLE_DISCOUNT : 0;
+  return {
+    printAmount,
+    digitalAmount,
+    shippingAmount,
+    discount,
+    total: printAmount + digitalAmount + shippingAmount - discount,
+  };
 }
 
 export default function CheckoutPage() {
@@ -65,10 +79,11 @@ export default function CheckoutPage() {
 
   const recipientName = card?.state?.recipient?.name?.trim() || '';
 
-  // Form state
+  const [choice, setChoice] = useState<ProductChoice>('both');
+  const [previewSide, setPreviewSide] = useState<'front' | 'inside'>('front');
+
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
-  const [includesDigital, setIncludesDigital] = useState(true);
   const [shipTo, setShipTo] = useState<'sender' | 'recipient'>('sender');
   const [line1, setLine1] = useState('');
   const [line2, setLine2] = useState('');
@@ -78,11 +93,13 @@ export default function CheckoutPage() {
   const [giftMessage, setGiftMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Postcode lookup via postcodes.io — free, no key, validates +
-  // returns the admin area (usually the town/city). Fires on blur when
-  // the postcode looks plausible. Doesn't return specific addresses,
-  // so line1 still needs manual entry. Paid lookup (getAddress.io /
-  // Loqate) can slot in later to autofill the full address.
+  const includesPrint = choice !== 'digital';
+  const includesDigital = choice !== 'print';
+  const totals = useMemo(() => totalsFor(choice), [choice]);
+
+  // Postcode lookup via postcodes.io — free, no key, fills city on
+  // blur. Full address autofill (getAddress.io / Loqate / Ideal
+  // Postcodes) is a paid upgrade for a future pass.
   const handlePostcodeLookup = async () => {
     const pc = postcode.trim();
     if (pc.length < 5) return;
@@ -93,56 +110,53 @@ export default function CheckoutPage() {
       const town = body?.result?.admin_district || body?.result?.parish;
       if (town && !city) setCity(town);
     } catch {
-      // Silent — postcode validation is nice-to-have.
+      // Silent — validation is nice-to-have.
     }
   };
-
-  const totals = useMemo(() => {
-    const printAmount = PRINT_PRICE;
-    const digitalAmount = includesDigital ? DIGITAL_PRICE : 0;
-    const shippingAmount = UK_SHIPPING;
-    return {
-      printAmount,
-      digitalAmount,
-      shippingAmount,
-      totalAmount: printAmount + digitalAmount + shippingAmount,
-    };
-  }, [includesDigital]);
 
   const addressComplete =
     line1.trim().length > 0 && city.trim().length > 0 && postcode.trim().length >= 5;
   const contactComplete =
     customerName.trim().length > 0 && /.+@.+\..+/.test(customerEmail);
   const recipientEmailValid =
-    shipTo !== 'recipient' || !includesDigital || /.+@.+\..+/.test(recipientEmail);
-  const canPay = addressComplete && contactComplete && recipientEmailValid && !submitting;
+    !(shipTo === 'recipient' && includesDigital) || /.+@.+\..+/.test(recipientEmail);
+  const canPay =
+    contactComplete &&
+    recipientEmailValid &&
+    (!includesPrint || addressComplete) &&
+    !submitting;
 
   const handlePay = async () => {
     if (!canPay || !Number.isFinite(cardId)) return;
     setSubmitting(true);
     try {
-      const res = await apiRequest('POST', `/api/studio/cards/${cardId}/checkout`, {
+      const payload: Record<string, unknown> = {
         customerEmail,
         customerName,
-        includesPrint: true,
+        includesPrint,
         includesDigital,
-        shipTo,
-        shippingAddress: {
+        recipientEmail: recipientEmail.trim() || undefined,
+      };
+      if (includesPrint) {
+        payload.shipTo = shipTo;
+        payload.shippingAddress = {
           line1: line1.trim(),
           line2: line2.trim() || undefined,
           city: city.trim(),
           postcode: postcode.trim().toUpperCase(),
           country: 'GB',
-        },
-        recipientEmail: recipientEmail.trim() || undefined,
-        giftMessage: giftMessage.trim() || undefined,
-      });
+        };
+        if (shipTo === 'recipient' && giftMessage.trim()) {
+          payload.giftMessage = giftMessage.trim();
+        }
+      }
+
+      const res = await apiRequest('POST', `/api/studio/cards/${cardId}/checkout`, payload);
       const body: CheckoutResponse = await res.json();
 
       if (body.payment.mode === 'redirect' && body.payment.redirectUrl) {
         setLocation(body.payment.redirectUrl);
       } else {
-        // Embedded mode — not implemented for stub. Surface clearly.
         toast({
           title: 'Payment provider not configured',
           description: 'Embedded mode needs a real provider.',
@@ -181,20 +195,86 @@ export default function CheckoutPage() {
     );
   }
 
+  const activeImage =
+    previewSide === 'inside' && card.insideImageUrl ? card.insideImageUrl : card.frontImageUrl;
+
   return (
     <div className="min-h-screen bg-[#faf7f1]">
       <div className="max-w-5xl mx-auto px-4 py-8 md:py-12">
+        <header className="mb-6 md:mb-8">
+          <p className="text-xs uppercase tracking-[0.2em] text-stone-500 mb-2">Checkout</p>
+          <h1 className="text-2xl md:text-3xl font-semibold text-ink">
+            {recipientName ? `Send ${recipientName}'s card` : 'Send your card'}
+          </h1>
+        </header>
+
         <div className="grid md:grid-cols-[1fr_360px] gap-8">
-          {/* LEFT — form */}
-          <div className="space-y-8">
-            <header>
-              <p className="text-xs uppercase tracking-[0.2em] text-stone-500 mb-2">
-                Checkout
-              </p>
-              <h1 className="text-2xl md:text-3xl font-semibold text-ink">
-                {recipientName ? `Send ${recipientName}'s card` : 'Send your card'}
-              </h1>
-            </header>
+          {/* LEFT — preview, product choice, form */}
+          <div className="space-y-6">
+            {/* Preview */}
+            <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+              <div className="aspect-square bg-stone-50 relative">
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={activeImage}
+                    src={activeImage ?? ''}
+                    alt=""
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute inset-0 w-full h-full object-contain"
+                  />
+                </AnimatePresence>
+              </div>
+              {card.insideImageUrl && (
+                <div className="px-5 py-3 border-t border-stone-100 flex items-center justify-center">
+                  <div className="inline-flex bg-stone-100 rounded-full p-1">
+                    <PreviewTab
+                      active={previewSide === 'front'}
+                      onClick={() => setPreviewSide('front')}
+                    >
+                      Front
+                    </PreviewTab>
+                    <PreviewTab
+                      active={previewSide === 'inside'}
+                      onClick={() => setPreviewSide('inside')}
+                    >
+                      Inside
+                    </PreviewTab>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Product choice */}
+            <Section title="How would you like to send it?">
+              <RadioGroup
+                value={choice}
+                onValueChange={(v) => setChoice(v as ProductChoice)}
+                className="grid grid-cols-1 md:grid-cols-3 gap-3"
+              >
+                <ProductOption
+                  value="digital"
+                  title="Digital"
+                  description="3D share link, sent instantly."
+                  price={totalsFor('digital').total}
+                />
+                <ProductOption
+                  value="print"
+                  title="Printed"
+                  description="Square card, posted in the UK."
+                  price={totalsFor('print').total}
+                />
+                <ProductOption
+                  value="both"
+                  title="Printed + digital"
+                  description="Instant share + the real thing in the post."
+                  price={totalsFor('both').total}
+                  badge="Recommended"
+                />
+              </RadioGroup>
+            </Section>
 
             <Section title="Your details">
               <Field label="Your name">
@@ -216,137 +296,142 @@ export default function CheckoutPage() {
               </Field>
             </Section>
 
-            <Section title="Who gets the card in the post?">
-              <RadioGroup
-                value={shipTo}
-                onValueChange={(v) => setShipTo(v as 'sender' | 'recipient')}
-                className="grid grid-cols-1 md:grid-cols-2 gap-3"
-              >
-                <ShipToOption
-                  value="sender"
-                  title="Send it to me"
-                  description="I'll give it to them in person."
-                />
-                <ShipToOption
-                  value="recipient"
-                  title="Ship direct to them"
-                  description="Plain packaging. Optional gift message."
-                />
-              </RadioGroup>
-
-              {shipTo === 'recipient' && (
-                <div className="space-y-4 mt-4 pt-4 border-t border-stone-200">
-                  <Field label="Gift message (printed inside the envelope)">
-                    <Input
-                      value={giftMessage}
-                      onChange={(e) => setGiftMessage(e.target.value)}
-                      placeholder="From…"
-                      maxLength={120}
+            {includesPrint && (
+              <>
+                <Section title="Who gets the card in the post?">
+                  <RadioGroup
+                    value={shipTo}
+                    onValueChange={(v) => setShipTo(v as 'sender' | 'recipient')}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-3"
+                  >
+                    <ShipToOption
+                      value="sender"
+                      title="Send it to me"
+                      description="I'll give it to them in person."
                     />
+                    <ShipToOption
+                      value="recipient"
+                      title="Ship direct to them"
+                      description="Plain packaging. Optional gift message."
+                    />
+                  </RadioGroup>
+
+                  {shipTo === 'recipient' && (
+                    <div className="space-y-4 mt-4 pt-4 border-t border-stone-200">
+                      <Field label="Gift message (printed inside the envelope)">
+                        <Input
+                          value={giftMessage}
+                          onChange={(e) => setGiftMessage(e.target.value)}
+                          placeholder="From…"
+                          maxLength={120}
+                        />
+                      </Field>
+                      {includesDigital && (
+                        <Field label="Their email (for the digital share link)">
+                          <Input
+                            type="email"
+                            value={recipientEmail}
+                            onChange={(e) => setRecipientEmail(e.target.value)}
+                            placeholder="them@example.com"
+                          />
+                        </Field>
+                      )}
+                    </div>
+                  )}
+                </Section>
+
+                <Section title={shipTo === 'sender' ? 'Your address' : 'Their address'}>
+                  <Field label="Address line 1">
+                    <Input value={line1} onChange={(e) => setLine1(e.target.value)} />
                   </Field>
-                  {includesDigital && (
-                    <Field label="Their email (for the digital version)">
+                  <Field label="Address line 2 (optional)">
+                    <Input value={line2} onChange={(e) => setLine2(e.target.value)} />
+                  </Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Town / city">
+                      <Input value={city} onChange={(e) => setCity(e.target.value)} />
+                    </Field>
+                    <Field label="Postcode">
                       <Input
-                        type="email"
-                        value={recipientEmail}
-                        onChange={(e) => setRecipientEmail(e.target.value)}
-                        placeholder="them@example.com"
+                        value={postcode}
+                        onChange={(e) => setPostcode(e.target.value.toUpperCase())}
+                        onBlur={handlePostcodeLookup}
+                        placeholder="SW1A 1AA"
                       />
                     </Field>
-                  )}
-                </div>
-              )}
-            </Section>
+                  </div>
+                </Section>
+              </>
+            )}
 
-            <Section title={shipTo === 'sender' ? 'Your address' : 'Their address'}>
-              <Field label="Address line 1">
-                <Input value={line1} onChange={(e) => setLine1(e.target.value)} />
-              </Field>
-              <Field label="Address line 2 (optional)">
-                <Input value={line2} onChange={(e) => setLine2(e.target.value)} />
-              </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Town / city">
-                  <Input value={city} onChange={(e) => setCity(e.target.value)} />
-                </Field>
-                <Field label="Postcode">
+            {choice === 'digital' && (
+              <Section title="Send it to them (optional)">
+                <Field label="Their email">
                   <Input
-                    value={postcode}
-                    onChange={(e) => setPostcode(e.target.value.toUpperCase())}
-                    onBlur={handlePostcodeLookup}
-                    placeholder="SW1A 1AA"
+                    type="email"
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                    placeholder="them@example.com"
                   />
                 </Field>
-              </div>
-            </Section>
+                <p className="text-xs text-stone-500">
+                  Leave blank and we'll send the share link to you instead.
+                </p>
+              </Section>
+            )}
           </div>
 
-          {/* RIGHT — summary */}
-          <aside className="space-y-4 md:sticky md:top-8 md:self-start">
-            <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-              <div className="aspect-square bg-stone-100">
-                <img
-                  src={card.frontImageUrl}
-                  alt=""
-                  className="w-full h-full object-contain"
-                />
-              </div>
-              <div className="p-5 space-y-4">
+          {/* RIGHT — sticky summary */}
+          <aside className="md:sticky md:top-8 md:self-start">
+            <div className="bg-white rounded-xl border border-stone-200 p-5 space-y-4">
+              {includesPrint && (
                 <LineItem
                   icon={<Package className="w-4 h-4" />}
                   label="Printed card"
-                  sub="Square, posted in the UK"
+                  sub="Square, Mohawk / premium stock"
                   amount={totals.printAmount}
                 />
-
-                <div className="flex items-start gap-3 py-3 border-t border-stone-100">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4 text-brand" />
-                      <p className="font-medium text-sm text-ink">Digital version</p>
-                    </div>
-                    <p className="text-xs text-stone-500 mt-0.5">
-                      Instant 3D share link they can open on their phone.
-                    </p>
-                    <p className="text-xs text-brand font-medium mt-1">
-                      Add for {formatGBP(DIGITAL_PRICE)}
-                    </p>
-                  </div>
-                  <Switch
-                    checked={includesDigital}
-                    onCheckedChange={setIncludesDigital}
-                    data-testid="checkout-digital-toggle"
-                  />
-                </div>
-
+              )}
+              {includesDigital && (
+                <LineItem
+                  icon={<Sparkles className="w-4 h-4 text-brand" />}
+                  label="Digital version"
+                  sub="Instant 3D share link"
+                  amount={totals.digitalAmount}
+                />
+              )}
+              {includesPrint && (
                 <LineItem label="UK shipping" amount={totals.shippingAmount} muted />
+              )}
+              {totals.discount > 0 && (
+                <LineItem label="Bundle discount" amount={-totals.discount} muted />
+              )}
 
-                <div className="border-t border-stone-200 pt-3 flex items-center justify-between">
-                  <span className="text-sm font-medium text-ink">Total</span>
-                  <span className="text-xl font-semibold text-ink">
-                    {formatGBP(totals.totalAmount)}
-                  </span>
-                </div>
-
-                <Button
-                  onClick={handlePay}
-                  disabled={!canPay}
-                  className="w-full"
-                  size="lg"
-                  data-testid="checkout-pay"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Starting…
-                    </>
-                  ) : (
-                    `Pay ${formatGBP(totals.totalAmount)}`
-                  )}
-                </Button>
-                <p className="text-[11px] text-stone-400 text-center">
-                  Payment is in dev stub mode.
-                </p>
+              <div className="border-t border-stone-200 pt-3 flex items-center justify-between">
+                <span className="text-sm font-medium text-ink">Total</span>
+                <span className="text-xl font-semibold text-ink">
+                  {formatGBP(totals.total)}
+                </span>
               </div>
+
+              <Button
+                onClick={handlePay}
+                disabled={!canPay}
+                className="w-full"
+                size="lg"
+                data-testid="checkout-pay"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Starting…
+                  </>
+                ) : (
+                  `Pay ${formatGBP(totals.total)}`
+                )}
+              </Button>
+              <p className="text-[11px] text-stone-400 text-center">
+                Payment is in dev stub mode.
+              </p>
             </div>
           </aside>
         </div>
@@ -370,6 +455,59 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <Label className="text-xs font-medium text-stone-600">{label}</Label>
       {children}
     </div>
+  );
+}
+
+function PreviewTab({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-4 py-1 text-xs font-medium rounded-full transition-colors ${
+        active ? 'bg-white text-ink shadow-sm' : 'text-stone-500 hover:text-ink'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ProductOption({
+  value,
+  title,
+  description,
+  price,
+  badge,
+}: {
+  value: string;
+  title: string;
+  description: string;
+  price: number;
+  badge?: string;
+}) {
+  return (
+    <Label
+      htmlFor={`product-${value}`}
+      className="relative flex flex-col gap-1 border border-stone-200 rounded-lg p-4 cursor-pointer hover:border-stone-400 has-[:checked]:border-brand has-[:checked]:bg-brand/5 transition-colors"
+    >
+      {badge && (
+        <span className="absolute -top-2 right-3 text-[10px] uppercase tracking-wider bg-brand text-white px-2 py-0.5 rounded-full">
+          {badge}
+        </span>
+      )}
+      <RadioGroupItem value={value} id={`product-${value}`} className="absolute top-4 right-4" />
+      <p className="text-sm font-medium text-ink pr-6">{title}</p>
+      <p className="text-xs text-stone-500">{description}</p>
+      <p className="text-sm font-semibold text-ink mt-2">{formatGBP(price)}</p>
+    </Label>
   );
 }
 
@@ -421,7 +559,7 @@ function LineItem({
         </div>
       </div>
       <span className={`text-sm ${muted ? 'text-stone-500' : 'font-medium text-ink'}`}>
-        {formatGBP(amount)}
+        {amount < 0 ? `−${formatGBP(-amount)}` : formatGBP(amount)}
       </span>
     </div>
   );
