@@ -135,7 +135,7 @@ export default function CardViewerPage() {
           set in InitialCameraFit, normal rotation stays inside the
           canvas. Extreme flips may clip — Kevin's accepted that
           tradeoff in exchange for a cleanly-framed default. */}
-      <div className="fixed top-16 inset-x-0 bottom-[300px] sm:bottom-[220px] z-0">
+      <div className="fixed top-16 inset-x-0 bottom-[240px] sm:bottom-[190px] z-0">
         <Card3DViewer
           frontImageUrl={data.frontImageUrl}
           insideImageUrl={data.insideImageUrl}
@@ -149,15 +149,15 @@ export default function CardViewerPage() {
           the UI bar so their in/out animation never reflows the
           buttons. Positioned at the same offset from bottom as the
           UI bar's top edge, plus a small gap. */}
-      <div className="fixed bottom-[300px] sm:bottom-[220px] inset-x-0 z-10 flex justify-center pb-5 pointer-events-none">
+      <div className="fixed bottom-[240px] sm:bottom-[190px] inset-x-0 z-10 flex justify-center pb-5 pointer-events-none">
         <GestureHints open={open} />
       </div>
 
       {/* UI bar — dedicated bottom region with clear separation from
           the canvas above. bg-white + top border reads as a distinct
           strip. Generous internal padding and gaps between rows. */}
-      <div className="fixed bottom-0 inset-x-0 h-[300px] sm:h-[220px] z-10 bg-white">
-        <div className="max-w-2xl mx-auto h-full px-4 py-5 sm:py-6 flex flex-col gap-4 sm:gap-5">
+      <div className="fixed bottom-0 inset-x-0 h-[240px] sm:h-[190px] z-10 bg-white">
+        <div className="max-w-2xl mx-auto h-full px-4 py-4 sm:py-5 flex flex-col gap-3 sm:gap-4">
           {/* Action row */}
           <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pointer-events-auto">
             <Button

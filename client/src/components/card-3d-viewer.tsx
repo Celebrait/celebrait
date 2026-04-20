@@ -144,15 +144,25 @@ function Scene({
         onOpenChange={onOpenChange}
       />
 
-      {/* Ground shadow — pushed a bit darker/larger than before so
-          the card holds its silhouette on a pure-white page. blur
-          kept moderate so the shadow reads as soft, not smudgy. */}
+      {/* Ground shadow — two layers. The soft broad layer reads as
+          ambient occlusion (card sits in a space). The tight inner
+          layer reads as contact with a surface. Together the card
+          feels grounded on a subtle floor without an explicit
+          floor plane. */}
       <ContactShadows
         position={[0, -CARD_H / 2 - 0.06, 0]}
+        opacity={0.35}
+        scale={6.5}
+        blur={3.2}
+        far={1.8}
+        resolution={512}
+      />
+      <ContactShadows
+        position={[0, -CARD_H / 2 - 0.05, 0]}
         opacity={0.55}
-        scale={5}
-        blur={2.4}
-        far={1.6}
+        scale={2.6}
+        blur={1.1}
+        far={1.0}
         resolution={768}
       />
 
