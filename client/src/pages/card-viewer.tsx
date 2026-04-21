@@ -443,9 +443,10 @@ function WhatsAppIcon() {
 }
 
 // ── WelcomeGate ──────────────────────────────────────────────────────
-// Arrival moment. Two panels that meet at the centre and swing open
-// like doors on the recipient's click. 3D rotateY on each half with
-// perspective on the parent.
+// Arrival moment. A single bg-surface panel with the intro content
+// centred on it. On click, the panel fades + lifts slightly while
+// the content drifts up and out, revealing the card viewer behind.
+// Smoother and less mechanical than the earlier door-split.
 //
 // If `welcomeMessage` is present (sender wrote a custom note when
 // they bought the digital add-on), it replaces the default
@@ -466,35 +467,18 @@ function WelcomeGate({
   return (
     <AnimatePresence>
       {show && (
-        <div
-          className="fixed inset-0 z-40"
-          style={{ perspective: '1400px' }}
+        <motion.div
+          className="fixed inset-0 z-40 bg-surface flex items-center justify-center px-6"
+          initial={{ opacity: 1 }}
+          exit={{
+            opacity: 0,
+            scale: 1.04,
+            transition: { duration: 0.9, ease: [0.4, 0, 0.2, 1] },
+          }}
           data-testid="viewer-welcome-gate"
         >
-          {/* Left door — hinged on the viewport's left edge. */}
           <motion.div
-            className="absolute inset-y-0 left-0 w-1/2 bg-surface border-r border-stone-200/60"
-            style={{ transformOrigin: 'left center', transformStyle: 'preserve-3d' }}
-            initial={{ rotateY: 0 }}
-            exit={{
-              rotateY: -98,
-              transition: { duration: 1.1, ease: [0.65, 0, 0.3, 1] },
-            }}
-          />
-          {/* Right door — mirror image. */}
-          <motion.div
-            className="absolute inset-y-0 right-0 w-1/2 bg-surface border-l border-stone-200/60"
-            style={{ transformOrigin: 'right center', transformStyle: 'preserve-3d' }}
-            initial={{ rotateY: 0 }}
-            exit={{
-              rotateY: 98,
-              transition: { duration: 1.1, ease: [0.65, 0, 0.3, 1] },
-            }}
-          />
-          {/* Content — floats centred over both doors. Exits fast so
-              it doesn't fight the door animation. */}
-          <motion.div
-            className="absolute inset-0 flex items-center justify-center px-6"
+            className="text-center max-w-md"
             initial={{ opacity: 0, y: 12 }}
             animate={{
               opacity: 1,
@@ -503,38 +487,36 @@ function WelcomeGate({
             }}
             exit={{
               opacity: 0,
-              y: -10,
-              transition: { duration: 0.35, ease: 'easeIn' },
+              y: -16,
+              transition: { duration: 0.5, ease: 'easeIn' },
             }}
           >
-            <div className="text-center max-w-md">
-              {welcomeMessage ? (
-                <p className="text-base sm:text-lg text-stone-700 leading-relaxed mb-5 whitespace-pre-line">
-                  {welcomeMessage}
-                </p>
-              ) : (
-                <p className="text-xs uppercase tracking-[0.25em] text-stone-500 mb-3">
-                  You've been sent a card
-                </p>
-              )}
-              <h1 className="text-4xl sm:text-5xl font-semibold text-ink mb-2">
-                {recipientName ? `For ${recipientName}` : 'A card for you'}
-              </h1>
-              {occasion && (
-                <p className="text-sm text-stone-600 capitalize mb-8">{occasion}</p>
-              )}
-              {!occasion && <div className="mb-8" />}
-              <Button
-                onClick={onOpen}
-                size="lg"
-                className="bg-cta hover:bg-cta/90 text-cta-foreground font-semibold px-10 py-3.5 rounded-lg"
-                data-testid="btn-welcome-open"
-              >
-                Open
-              </Button>
-            </div>
+            {welcomeMessage ? (
+              <p className="text-base sm:text-lg text-stone-700 leading-relaxed mb-5 whitespace-pre-line">
+                {welcomeMessage}
+              </p>
+            ) : (
+              <p className="text-xs uppercase tracking-[0.25em] text-stone-500 mb-3">
+                You've been sent a card
+              </p>
+            )}
+            <h1 className="text-4xl sm:text-5xl font-semibold text-ink mb-2">
+              {recipientName ? `For ${recipientName}` : 'A card for you'}
+            </h1>
+            {occasion && (
+              <p className="text-sm text-stone-600 capitalize mb-8">{occasion}</p>
+            )}
+            {!occasion && <div className="mb-8" />}
+            <Button
+              onClick={onOpen}
+              size="lg"
+              className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 py-3.5 rounded-lg"
+              data-testid="btn-welcome-open"
+            >
+              Open
+            </Button>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );
