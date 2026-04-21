@@ -318,13 +318,11 @@ export default function CardViewerPage() {
         recipientName={recipientName ?? null}
         occasion={occasion ?? null}
         welcomeMessage={data.welcomeMessage ?? null}
-        frontImageUrl={data.frontImageUrl}
         onOpen={() => {
           setGateOpen(true);
-          // Card auto-opens as the gate fades out — the click on
-          // the welcome card preview is felt through to the 3D
-          // card, so the user lands on an opening card rather than
-          // a closed one they have to tap again.
+          // Card auto-opens as the gate fades out — tapping the
+          // envelope feels like "cracking the seal"; by the time
+          // the gate's gone the 3D card is already swinging open.
           window.setTimeout(() => setOpen(true), 500);
         }}
       />
@@ -464,14 +462,12 @@ function WelcomeGate({
   recipientName,
   occasion,
   welcomeMessage,
-  frontImageUrl,
   onOpen,
 }: {
   show: boolean;
   recipientName: string | null;
   occasion: string | null;
   welcomeMessage: string | null;
-  frontImageUrl: string;
   onOpen: () => void;
 }) {
   return (
@@ -518,9 +514,9 @@ function WelcomeGate({
             )}
             {!occasion && <div className="mb-6" />}
 
-            {/* Card preview — the clickable CTA. Shows the actual
-                front of the card; clicking it signals the viewer to
-                auto-open the card as the gate fades. */}
+            {/* Square envelope CTA. Classic X-fold flap pattern with
+                a wax seal in the middle. Clicking it signals the
+                viewer to auto-open the card as the gate fades. */}
             <motion.button
               onClick={onOpen}
               whileHover={{ y: -4 }}
@@ -530,19 +526,7 @@ function WelcomeGate({
               data-testid="btn-welcome-open"
               aria-label="Open card"
             >
-              <div
-                className="w-52 h-52 sm:w-60 sm:h-60 rounded-xl overflow-hidden"
-                style={{
-                  filter: 'drop-shadow(0 18px 30px rgba(0,0,0,0.22))',
-                }}
-              >
-                <img
-                  src={frontImageUrl}
-                  alt=""
-                  className="w-full h-full object-cover"
-                  draggable={false}
-                />
-              </div>
+              <SquareEnvelope />
             </motion.button>
 
             <p className="mt-6 text-xs uppercase tracking-[0.25em] text-stone-500">
@@ -552,6 +536,64 @@ function WelcomeGate({
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+// ── SquareEnvelope ───────────────────────────────────────────────────
+// Classic square envelope front view: body rectangle, four triangular
+// flaps folding into the centre (X-pattern), wax seal at the meeting
+// point. Purely illustrative — clicking the wrapping button is what
+// drives the actual card open, not this svg.
+function SquareEnvelope() {
+  const PAPER = '#f9f1db';
+  const PAPER_SHADE = '#eadfbd';
+  const EDGE = '#c4a980';
+  return (
+    <div
+      className="w-52 h-52 sm:w-60 sm:h-60"
+      style={{ filter: 'drop-shadow(0 18px 30px rgba(0,0,0,0.22))' }}
+    >
+      <svg viewBox="0 0 200 200" className="w-full h-full">
+        {/* Envelope body */}
+        <rect
+          x="0"
+          y="0"
+          width="200"
+          height="200"
+          rx="4"
+          fill={PAPER}
+          stroke={EDGE}
+          strokeWidth="1.5"
+        />
+        {/* Bottom flap — tucked behind all others */}
+        <path d="M 0 200 L 100 100 L 200 200 Z" fill={PAPER_SHADE} opacity="0.35" />
+        {/* Left flap */}
+        <path d="M 0 0 L 100 100 L 0 200 Z" fill={PAPER_SHADE} opacity="0.25" />
+        {/* Right flap */}
+        <path d="M 200 0 L 100 100 L 200 200 Z" fill={PAPER_SHADE} opacity="0.25" />
+        {/* Top flap — sits on top, slightly lighter so it reads as
+            the outward-facing "sealed" flap */}
+        <path
+          d="M 0 0 L 200 0 L 100 100 Z"
+          fill={PAPER}
+          opacity="0.9"
+        />
+        {/* Fold-line creases from the four corners to centre */}
+        <line x1="0" y1="0" x2="100" y2="100" stroke={EDGE} strokeWidth="1" opacity="0.5" />
+        <line x1="200" y1="0" x2="100" y2="100" stroke={EDGE} strokeWidth="1" opacity="0.5" />
+        <line x1="0" y1="200" x2="100" y2="100" stroke={EDGE} strokeWidth="1" opacity="0.5" />
+        <line x1="200" y1="200" x2="100" y2="100" stroke={EDGE} strokeWidth="1" opacity="0.5" />
+        {/* Wax seal — small dark red disc at the centre point */}
+        <circle cx="100" cy="100" r="14" fill="#8b1a1a" />
+        <circle cx="100" cy="100" r="14" fill="url(#seal-highlight)" opacity="0.45" />
+        <defs>
+          <radialGradient id="seal-highlight" cx="0.35" cy="0.35">
+            <stop offset="0%" stopColor="#c4484a" />
+            <stop offset="100%" stopColor="#8b1a1a" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+      </svg>
+    </div>
   );
 }
 
