@@ -426,37 +426,45 @@ function CompletedView({
           </div>
         </div>
 
-        {/* UI below — fades during card interaction so rotations
-            over this area don't clip visually. z-30 > canvas z-25
-            so buttons stay above the card at rest. */}
-        <div
-          className="relative z-30 max-w-xl mx-auto px-4 pt-2 transition-opacity duration-500"
-          style={{
-            opacity: isInteracting ? 0 : 1,
-            pointerEvents: isInteracting ? 'none' : 'auto',
-          }}
-        >
-          {/* Gesture hints — collapse after first interaction so no
-              dead whitespace is left behind. */}
+        {/* UI container sits above canvas at z-30. Hints fade on
+            interact; the CTA group below stays fully visible at all
+            times — Buy this card is the step's primary job, it
+            shouldn't disappear just because the user is rotating. */}
+        <div className="relative z-30 max-w-xl mx-auto px-4 pt-2">
+          {/* Gesture hints — fade on active interaction AND collapse
+              permanently after the first touch. */}
           <div
-            className="flex justify-center items-start overflow-hidden transition-[max-height] duration-500 ease-out"
-            style={{ maxHeight: hasInteracted ? 0 : 72 }}
+            className="transition-opacity duration-500"
+            style={{
+              opacity: isInteracting ? 0 : 1,
+              pointerEvents: isInteracting ? 'none' : 'auto',
+            }}
           >
-            <GestureHints open={open || hasInteracted} />
+            <div
+              className="flex justify-center items-start overflow-hidden transition-[max-height] duration-500 ease-out"
+              style={{ maxHeight: hasInteracted ? 0 : 72 }}
+            >
+              <GestureHints open={open || hasInteracted} />
+            </div>
           </div>
 
-          {/* Single primary CTA + subtext. Opens the buy dialog. */}
-          <div className="mt-6 flex flex-col items-center gap-2">
+          {/* Always-visible primary CTA + stylised subtext. Sits
+              below the hint row with generous gap. */}
+          <div className="mt-8 flex flex-col items-center gap-7">
             <Button
               onClick={() => setBuyOpen(true)}
-              className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-8 py-3.5 rounded-lg w-full sm:w-auto"
+              className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 py-3.5 rounded-lg w-full sm:w-auto"
               size="lg"
               data-testid="btn-buy-card"
             >
               Buy this card
             </Button>
-            <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
-              Choose digital or print next
+            <p className="inline-flex items-center gap-2 text-sm font-medium text-ink">
+              <span className="text-base" aria-hidden>🎁</span>
+              <span>
+                Choose <span className="text-brand font-semibold">digital</span>{' '}
+                or <span className="text-brand font-semibold">print</span> next
+              </span>
             </p>
           </div>
         </div>
