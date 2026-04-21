@@ -196,13 +196,16 @@ export default function CardViewerPage() {
             exit animation doesn't reflow the layout below (fixes
             the snap-up glitch Kevin flagged). */}
         <div className="h-[56vh] sm:h-[62vh] w-full relative">
-          {/* Canvas extends ±40vh vertically and ±22vw horizontally
-              past the stage — card can rotate up behind the
-              (translucent bg) header and down past the buttons
-              without any canvas-edge crop. Symmetric so the card
-              stays centred at stage-centre at default. */}
+          {/* Canvas bleed: small ±6vh vertical (just enough to let
+              the card rotate slightly past the stage top/bottom
+              behind the translucent header + faded UI) and generous
+              ±22vw horizontal (for the cover swing on open). Going
+              taller — we tried ±40vh — blows up the default camera
+              distance calc so the card lands too big and crashes
+              into the hints below it at first entry. Small bleed +
+              UI fade on interact is the balance that works. */}
           <div
-            className="absolute top-[-40vh] bottom-[-40vh] left-[-22vw] right-[-22vw] z-0"
+            className="absolute top-[-6vh] bottom-[-6vh] left-[-22vw] right-[-22vw] z-0"
             onPointerDown={startInteract}
             onPointerUp={endInteract}
             onPointerCancel={endInteract}
