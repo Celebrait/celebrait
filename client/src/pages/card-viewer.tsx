@@ -593,8 +593,13 @@ function SquareEnvelope({ opening }: { opening: boolean }) {
   }, [opening]);
 
   return (
+    // Negative vertical margins (-my-12) visually pull surrounding
+    // content in through the Lottie canvas's transparent padding —
+    // the envelope illustration sits in the middle of the 640x720
+    // canvas, so without the collapse there's a large dead zone
+    // above and below it.
     <div
-      className="w-56 h-56 sm:w-64 sm:h-64"
+      className="w-56 h-56 sm:w-64 sm:h-64 -my-12"
       style={{ filter: 'drop-shadow(0 18px 30px rgba(0,0,0,0.18))' }}
     >
       <Lottie
