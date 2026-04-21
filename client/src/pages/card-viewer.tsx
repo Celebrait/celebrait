@@ -148,7 +148,7 @@ export default function CardViewerPage() {
   const createHref = isAuthenticated ? '/studio/new-card' : '/login?next=/studio/new-card';
 
   return (
-    <Shell>
+    <Shell dimHeader={isInteracting}>
       {/* Document flows below the fixed header: stage first, then
           UI. Stage has a fixed height so the card renders at a
           consistent size regardless of viewport. UI sits in normal
@@ -364,14 +364,26 @@ function WelcomeGate({
 // Slim top bar — same visual language as CheckoutLayout so the viewer
 // feels part of the same product. Shows a Sign in link for anonymous
 // viewers and a "My studio" link for logged-in ones.
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({
+  children,
+  dimHeader = false,
+}: {
+  children: React.ReactNode;
+  dimHeader?: boolean;
+}) {
   const { isAuthenticated } = useAuth();
   return (
     <div className="min-h-screen bg-white">
       {/* Header floats above everything (z-20) so the 3D canvas can
           sit underneath without clipping. bg-white matches the page
-          so there's no harsh edge when the card peeks under. */}
-      <header className="fixed top-0 inset-x-0 h-16 bg-white/90 backdrop-blur-sm border-b border-stone-200/80 flex items-center px-4 sm:px-6 gap-3 z-20">
+          so there's no harsh edge when the card peeks under. Fades
+          out when the viewer flags active card interaction, so the
+          card can rise past the header bounds on zoom/rotate without
+          visibly clipping against it. */}
+      <header
+        className="fixed top-0 inset-x-0 h-16 bg-white/90 backdrop-blur-sm border-b border-stone-200/80 flex items-center px-4 sm:px-6 gap-3 z-20 transition-opacity duration-500"
+        style={{ opacity: dimHeader ? 0 : 1, pointerEvents: dimHeader ? 'none' : 'auto' }}
+      >
         <Link href="/" className="flex items-center">
           <img src={logoSrc} alt="Celebrait" className="h-8 object-contain" />
         </Link>
