@@ -16,8 +16,14 @@ import { useRef, useState } from 'react';
 import { Link, useRoute, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Copy, Loader2, Sparkles } from 'lucide-react';
+import { Copy, Loader2, Mail, MessageSquare, Share2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { GestureHints } from '@/components/gesture-hints';
 import { useAuth } from '@/hooks/use-auth';
@@ -57,7 +63,11 @@ export default function CardViewerPage() {
   });
 
   const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  // Once the user has interacted with the card at all, we stop
+  // showing the gesture hints — they've found the controls. Persists
+  // for the session only (no localStorage); fresh visit = hints back.
+  const [hasInteracted, setHasInteracted] = useState(false);
   // Welcome gate — acts as the arrival moment. Shown until the user
   // clicks "Open", at which point it slides away like a pair of doors
   // opening to reveal the viewer behind.
@@ -72,6 +82,7 @@ export default function CardViewerPage() {
   const startInteract = () => {
     if (interactTimerRef.current) window.clearTimeout(interactTimerRef.current);
     setIsInteracting(true);
+    setHasInteracted(true);
   };
   const endInteract = () => {
     if (interactTimerRef.current) window.clearTimeout(interactTimerRef.current);
@@ -120,30 +131,50 @@ export default function CardViewerPage() {
     data.recipientName?.trim() || data.state?.recipient?.name?.trim() || undefined;
   const occasion = data.occasion?.trim() || data.state?.recipient?.occasion?.trim();
 
-  const handleShare = async () => {
-    const url = window.location.href;
-    // Native share sheet on mobile if available.
-    if (typeof navigator !== 'undefined' && 'share' in navigator) {
-      try {
-        await (navigator as any).share({
-          title: recipientName ? `A card for ${recipientName}` : 'A card made with Celebrait',
-          url,
-        });
-        return;
-      } catch {
-        // User cancelled — fall through to clipboard copy so they still
-        // have the link handy.
-      }
-    }
+  // Share text + URL used across the share sheet channels. Keep
+  // message short so it doesn't eat SMS character limits.
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const shareText = recipientName
+    ? `A card for ${recipientName} ✨`
+    : 'A card for you ✨';
+
+  const handleShareCopy = async () => {
     try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      await navigator.clipboard.writeText(shareUrl);
       toast({ title: 'Link copied' });
+      setShareOpen(false);
     } catch {
       toast({ title: "Couldn't copy link", variant: 'destructive' });
     }
   };
+
+  const handleShareNative = async () => {
+    if (typeof navigator === 'undefined' || !('share' in navigator)) {
+      toast({ title: 'Native share not available here' });
+      return;
+    }
+    try {
+      await (navigator as any).share({
+        title: recipientName ? `A card for ${recipientName}` : 'A card made with Celebrait',
+        text: shareText,
+        url: shareUrl,
+      });
+      setShareOpen(false);
+    } catch {
+      // user cancelled — keep the sheet open
+    }
+  };
+
+  const shareViaUrl = (href: string) => {
+    window.open(href, '_blank', 'noopener,noreferrer');
+    setShareOpen(false);
+  };
+
+  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`;
+  const smsHref = `sms:?&body=${encodeURIComponent(`${shareText} ${shareUrl}`)}`;
+  const emailHref = `mailto:?subject=${encodeURIComponent(
+    shareText,
+  )}&body=${encodeURIComponent(`${shareText}\n\n${shareUrl}`)}`;
 
   const createHref = isAuthenticated ? '/studio/new-card' : '/login?next=/studio/new-card';
 
@@ -181,9 +212,9 @@ export default function CardViewerPage() {
           </div>
           <div
             className="absolute bottom-0 inset-x-0 pb-4 flex justify-center z-10 pointer-events-none transition-opacity duration-500"
-            style={{ opacity: isInteracting ? 0 : 1 }}
+            style={{ opacity: isInteracting || hasInteracted ? 0 : 1 }}
           >
-            <GestureHints open={open} />
+            <GestureHints open={open || hasInteracted} />
           </div>
         </div>
 
@@ -201,7 +232,7 @@ export default function CardViewerPage() {
           <div className="flex flex-col sm:flex-row justify-center items-center gap-3">
             <Button
               onClick={() => setOpen(!open)}
-              className="bg-cta hover:bg-cta/90 text-cta-foreground font-semibold px-7 py-3 rounded-lg w-full sm:w-auto"
+              className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-7 py-3 rounded-lg w-full sm:w-auto"
               size="lg"
               data-testid="btn-viewer-open"
             >
@@ -209,20 +240,13 @@ export default function CardViewerPage() {
             </Button>
             <Button
               variant="outline"
-              onClick={handleShare}
+              onClick={() => setShareOpen(true)}
               className="w-full sm:w-auto bg-white"
               size="lg"
               data-testid="btn-viewer-share"
             >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 mr-2" /> Copied
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4 mr-2" /> Share
-                </>
-              )}
+              <Share2 className="w-4 h-4 mr-2" />
+              Share
             </Button>
           </div>
 
@@ -251,6 +275,18 @@ export default function CardViewerPage() {
         </div>
       </div>
 
+      <ShareDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        shareUrl={shareUrl}
+        whatsappHref={whatsappHref}
+        smsHref={smsHref}
+        emailHref={emailHref}
+        onNativeShare={handleShareNative}
+        onCopy={handleShareCopy}
+        onShareVia={shareViaUrl}
+      />
+
       <WelcomeGate
         show={!gateOpen}
         recipientName={recipientName ?? null}
@@ -259,6 +295,124 @@ export default function CardViewerPage() {
         onOpen={() => setGateOpen(true)}
       />
     </Shell>
+  );
+}
+
+// ── ShareDialog ──────────────────────────────────────────────────────
+// Proper share sheet with a row of platform options — more useful
+// than the old "Share = copy link" button. WhatsApp first (biggest
+// person-to-person share surface), then Messages (sms:), then Email
+// (mailto:), then Copy link. On devices that support navigator.share
+// a "More" option exposes the OS share sheet as a secondary path.
+function ShareDialog({
+  open,
+  onOpenChange,
+  shareUrl,
+  whatsappHref,
+  smsHref,
+  emailHref,
+  onNativeShare,
+  onCopy,
+  onShareVia,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  shareUrl: string;
+  whatsappHref: string;
+  smsHref: string;
+  emailHref: string;
+  onNativeShare: () => void;
+  onCopy: () => void;
+  onShareVia: (href: string) => void;
+}) {
+  const hasNativeShare =
+    typeof navigator !== 'undefined' && 'share' in navigator;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="text-left">Share this card</DialogTitle>
+        </DialogHeader>
+
+        <div className="grid grid-cols-4 gap-2 pt-2">
+          <ShareTile
+            label="WhatsApp"
+            color="bg-[#25D366]"
+            onClick={() => onShareVia(whatsappHref)}
+            icon={<WhatsAppIcon />}
+          />
+          <ShareTile
+            label="Messages"
+            color="bg-brand"
+            onClick={() => onShareVia(smsHref)}
+            icon={<MessageSquare className="w-5 h-5 text-white" />}
+          />
+          <ShareTile
+            label="Email"
+            color="bg-stone-700"
+            onClick={() => onShareVia(emailHref)}
+            icon={<Mail className="w-5 h-5 text-white" />}
+          />
+          <ShareTile
+            label="Copy link"
+            color="bg-stone-100"
+            onClick={onCopy}
+            icon={<Copy className="w-5 h-5 text-stone-700" />}
+            textColor="text-stone-700"
+          />
+        </div>
+
+        {hasNativeShare && (
+          <button
+            onClick={onNativeShare}
+            className="mt-4 w-full text-center text-sm text-stone-600 hover:text-brand-dark transition-colors"
+          >
+            More sharing options…
+          </button>
+        )}
+
+        <div className="mt-4 text-xs text-stone-500 text-center truncate px-2">
+          {shareUrl}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ShareTile({
+  label,
+  color,
+  onClick,
+  icon,
+  textColor,
+}: {
+  label: string;
+  color: string;
+  onClick: () => void;
+  icon: React.ReactNode;
+  textColor?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center gap-1.5 text-xs text-stone-600 hover:text-ink transition-colors"
+    >
+      <div
+        className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center shadow-sm`}
+      >
+        {icon}
+      </div>
+      <span className={textColor ?? 'text-stone-600'}>{label}</span>
+    </button>
+  );
+}
+
+function WhatsAppIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white" aria-hidden>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.304-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+    </svg>
   );
 }
 
