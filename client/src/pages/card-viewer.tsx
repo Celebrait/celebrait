@@ -12,12 +12,14 @@
 //   - No token → sender previewing their own card via the auth-gated
 //     draft endpoint.
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useRoute, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Copy, Loader2, Mail, MessageSquare, Share2, Sparkles } from 'lucide-react';
+import Lottie from 'lottie-react';
 import { Button } from '@/components/ui/button';
+import envelopeAnimation from '../assets/envelope-open.lottie.json';
 import {
   Dialog,
   DialogContent,
@@ -552,70 +554,31 @@ function WelcomeGate({
 }
 
 // ── SquareEnvelope ───────────────────────────────────────────────────
-// Square envelope front view: plain body rectangle + a single
-// triangular top flap (two diagonal lines from the top corners
-// meeting at the centre). No seal, no side/bottom fold lines.
-//
-// When `opening` flips to true the flap rotates -155° around its top
-// edge on a perspective'd parent so the lift reads as 3D depth,
-// revealing a darker "pocket" on the body behind.
+// Lottie-driven envelope. First frame shows the envelope closed;
+// when `opening` flips true, the animation plays forward to reveal
+// the open state. autoplay={false} + imperative .play() via ref so
+// the animation stays paused on frame 0 until Kevin's click.
 function SquareEnvelope({ opening }: { opening: boolean }) {
-  const PAPER = '#f9f1db';
-  const PAPER_SHADE = '#d8c898';
-  const EDGE = '#c4a980';
+  const lottieRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (opening && lottieRef.current) {
+      lottieRef.current.goToAndPlay(0, true);
+    }
+  }, [opening]);
 
   return (
     <div
-      className="relative w-52 h-52 sm:w-60 sm:h-60"
-      style={{
-        perspective: '900px',
-        filter: 'drop-shadow(0 18px 30px rgba(0,0,0,0.22))',
-      }}
+      className="w-56 h-56 sm:w-64 sm:h-64"
+      style={{ filter: 'drop-shadow(0 18px 30px rgba(0,0,0,0.18))' }}
     >
-      {/* Body + inside pocket (behind the flap) */}
-      <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full">
-        <rect
-          x="0"
-          y="0"
-          width="200"
-          height="200"
-          rx="4"
-          fill={PAPER}
-          stroke={EDGE}
-          strokeWidth="1.5"
-        />
-        {/* Inside pocket — darker triangle shown once the flap lifts.
-            Mirrors the flap shape so the lifted flap reveals a hollow. */}
-        <path
-          d="M 0 0 L 200 0 L 100 100 Z"
-          fill={PAPER_SHADE}
-          opacity="0.45"
-        />
-      </svg>
-
-      {/* Top flap — the animated element. Rotates on X around its
-          top edge; before animation it sits flat covering the upper
-          triangle of the body (including the two fold lines from
-          the top corners to the centre). */}
-      <motion.div
-        className="absolute inset-0"
-        style={{
-          transformOrigin: 'center top',
-          transformStyle: 'preserve-3d',
-        }}
-        initial={{ rotateX: 0 }}
-        animate={{ rotateX: opening ? -155 : 0 }}
-        transition={{ duration: 0.75, ease: [0.4, 0, 0.2, 1] }}
-      >
-        <svg viewBox="0 0 200 200" className="w-full h-full">
-          <path
-            d="M 0 0 L 200 0 L 100 100 Z"
-            fill={PAPER}
-            stroke={EDGE}
-            strokeWidth="1.5"
-          />
-        </svg>
-      </motion.div>
+      <Lottie
+        lottieRef={lottieRef}
+        animationData={envelopeAnimation}
+        autoplay={false}
+        loop={false}
+        className="w-full h-full"
+      />
     </div>
   );
 }
