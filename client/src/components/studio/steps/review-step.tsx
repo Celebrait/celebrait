@@ -18,6 +18,7 @@
 //   - failed       → error + retry button (flips status back to draft)
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import {
   Sparkles,
   Loader2,
@@ -29,14 +30,16 @@ import {
   FileText,
   Type,
   AlertTriangle,
-  PartyPopper,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
 import type { CardDraftState, StepId } from '@shared/schema';
 import { deriveDefaultFrontText } from '@shared/schema';
 import { Card3DViewer } from '@/components/card-3d-viewer';
+import { GestureHints } from '@/components/gesture-hints';
 
 // Approximate generation time for a front + inside pair. Used to size
 // the progress copy ("this usually takes ~45 seconds"). Not a hard
@@ -76,6 +79,7 @@ export function ReviewStep({
         cardId={cardId}
         frontUrl={generatedFrontUrl}
         insideUrl={generatedInsideUrl}
+        recipientName={state.recipient?.name?.trim() ?? null}
       />
     );
   }
@@ -330,48 +334,126 @@ function GeneratingView() {
   );
 }
 
-// ── Completed view — show the rendered images ─────────────────────────
+// ── Completed view — show the rendered card + product selection ───────
+// Mirrors the public viewer's experience on the sender's side:
+// interactive 3D stage with gesture hints + Open/Close, then the
+// product-choice selector (Digital / Printed / Both) right here
+// rather than making the sender wait until checkout to decide.
+// Clicking "Send this card" hands off to checkout with the choice
+// pre-filled via ?product=.
+
+type ProductChoice = 'digital' | 'print' | 'both';
+
+const PRINT_PRICE = 599;
+const DIGITAL_PRICE = 99;
+const UK_SHIPPING = 150;
+const BUNDLE_DISCOUNT = 50;
+
+function totalsFor(choice: ProductChoice): number {
+  const print = choice === 'digital' ? 0 : PRINT_PRICE;
+  const digital = choice === 'print' ? 0 : DIGITAL_PRICE;
+  const shipping = choice === 'digital' ? 0 : UK_SHIPPING;
+  const discount = choice === 'both' ? BUNDLE_DISCOUNT : 0;
+  return print + digital + shipping - discount;
+}
+
+function formatGBP(minor: number): string {
+  return `£${(minor / 100).toFixed(2)}`;
+}
+
 function CompletedView({
   cardId,
   frontUrl,
   insideUrl,
+  recipientName,
 }: {
   cardId: number;
   frontUrl: string;
   insideUrl: string | null;
+  recipientName: string | null;
 }) {
+  const [open, setOpen] = useState(false);
+  const [product, setProduct] = useState<ProductChoice>('both');
+
   return (
     <div className="max-w-3xl mx-auto" data-testid="review-completed">
-      <div className="text-center mb-6">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-cta-light text-cta mb-3">
-          <PartyPopper className="w-6 h-6" />
-        </div>
-        <h2 className="text-lg font-semibold text-ink mb-1">
-          Your card is ready ✨
-        </h2>
-        <p className="text-sm text-stone-600">
-          Tap the card to open it.
+      {/* Completion headline */}
+      <div className="text-center mb-2">
+        <p className="text-xs uppercase tracking-[0.2em] text-cta font-semibold">
+          Ready to send
         </p>
+        <h2 className="text-xl font-semibold text-ink mt-1">
+          {recipientName ? `${recipientName}'s card` : 'Your card'}
+        </h2>
       </div>
 
-      {/* Inline 3D preview — primary presentation. Pure white container;
-          the card's cover-back is slightly off-white so its edges still
-          read against the white. */}
-      <div className="rounded-2xl overflow-hidden mb-6 aspect-[4/3] bg-white">
+      {/* Stage — 3D viewer with hints overlay. Same experience as
+          the public viewer, scaled to fit inside the step panel. */}
+      <div className="relative h-[48vh] sm:h-[52vh] mb-3">
         <Card3DViewer
           frontImageUrl={frontUrl}
           insideImageUrl={insideUrl}
+          open={open}
+          onOpenChange={setOpen}
           className="w-full h-full"
         />
+        <div className="absolute top-0 inset-x-0 pt-2 flex justify-center z-10 pointer-events-none">
+          <GestureHints open={open} />
+        </div>
       </div>
 
+      {/* Open/close — secondary control; tap-on-card still works too */}
+      <div className="flex justify-center mb-8">
+        <Button
+          onClick={() => setOpen(!open)}
+          variant="outline"
+          size="sm"
+          data-testid="btn-review-open"
+        >
+          {open ? 'Close card' : 'Open card'}
+        </Button>
+      </div>
+
+      {/* Product selector — pick the tier here so checkout is just
+          the transaction. */}
+      <div className="mb-6">
+        <h3 className="text-sm font-semibold text-ink mb-3 text-center">
+          How would you like to send it?
+        </h3>
+        <RadioGroup
+          value={product}
+          onValueChange={(v) => setProduct(v as ProductChoice)}
+          className="grid grid-cols-1 sm:grid-cols-3 gap-3"
+        >
+          <ProductOption
+            value="digital"
+            title="Digital"
+            description="3D share link"
+            price={totalsFor('digital')}
+          />
+          <ProductOption
+            value="print"
+            title="Printed"
+            description="UK post"
+            price={totalsFor('print')}
+          />
+          <ProductOption
+            value="both"
+            title="Printed + digital"
+            description="Best of both"
+            price={totalsFor('both')}
+          />
+        </RadioGroup>
+      </div>
+
+      {/* Send + preview CTAs */}
       <div className="flex flex-col sm:flex-row justify-center items-center gap-3">
         <a
-          href={`/checkout/${cardId}`}
+          href={`/checkout/${cardId}?product=${product}`}
           className="inline-flex items-center justify-center gap-2 bg-cta hover:bg-cta/90 text-cta-foreground text-base font-semibold px-7 py-3.5 rounded-lg transition-colors w-full sm:w-auto"
           data-testid="btn-send-card"
         >
-          Send this card
+          Send this card →
         </a>
         <a
           href={`/card/${cardId}/view`}
@@ -381,10 +463,38 @@ function CompletedView({
           data-testid="btn-view-3d"
         >
           <Sparkles className="w-4 h-4" />
-          Preview in 3D
+          Preview as they'll see it
         </a>
       </div>
     </div>
+  );
+}
+
+function ProductOption({
+  value,
+  title,
+  description,
+  price,
+}: {
+  value: ProductChoice;
+  title: string;
+  description: string;
+  price: number;
+}) {
+  return (
+    <Label
+      htmlFor={`review-product-${value}`}
+      className="relative flex flex-col items-start gap-1 border border-stone-200 rounded-xl p-3.5 cursor-pointer hover:border-stone-400 has-[:checked]:border-brand has-[:checked]:bg-brand/5 transition-colors"
+    >
+      <RadioGroupItem
+        value={value}
+        id={`review-product-${value}`}
+        className="absolute top-3.5 right-3.5"
+      />
+      <p className="text-sm font-medium text-ink pr-6">{title}</p>
+      <p className="text-xs text-stone-500">{description}</p>
+      <p className="text-sm font-semibold text-ink mt-1">{formatGBP(price)}</p>
+    </Label>
   );
 }
 

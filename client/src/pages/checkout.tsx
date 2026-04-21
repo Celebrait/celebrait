@@ -80,7 +80,15 @@ export default function CheckoutPage() {
 
   const recipientName = card?.state?.recipient?.name?.trim() || '';
 
-  const [choice, setChoice] = useState<ProductChoice>('both');
+  // Pre-select from ?product= URL param when coming from the Studio
+  // review step (sender picks the tier there, checkout just confirms).
+  // Falls back to 'both' — the recommended default.
+  const initialChoice: ProductChoice = (() => {
+    if (typeof window === 'undefined') return 'both';
+    const p = new URLSearchParams(window.location.search).get('product');
+    return p === 'digital' || p === 'print' || p === 'both' ? p : 'both';
+  })();
+  const [choice, setChoice] = useState<ProductChoice>(initialChoice);
   const [previewSide, setPreviewSide] = useState<'front' | 'inside'>('front');
 
   const [customerName, setCustomerName] = useState('');

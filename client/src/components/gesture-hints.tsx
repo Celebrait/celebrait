@@ -1,0 +1,163 @@
+// client/src/components/gesture-hints.tsx
+//
+// Animated pointer-SVG hints overlaid on a 3D card stage. Tells the
+// user what they can do — tap to open, drag to rotate, scroll to
+// zoom. Fade in shortly after mount, fade out when the card opens.
+//
+// Shared between the public card viewer and the Studio review step
+// so both surfaces carry the same discovery affordance.
+
+import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+
+interface GestureHintsProps {
+  /** Hide the hints once the card opens — presumed engaged. */
+  open: boolean;
+  /** Delay (ms) before the hints fade in on mount. Defaults 900ms. */
+  mountDelayMs?: number;
+}
+
+export function GestureHints({ open, mountDelayMs = 900 }: GestureHintsProps) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), mountDelayMs);
+    return () => clearTimeout(t);
+  }, [mountDelayMs]);
+
+  return (
+    <AnimatePresence>
+      {visible && !open && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 8, transition: { duration: 0.3 } }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="flex justify-center"
+        >
+          <div className="flex items-center gap-6 sm:gap-10">
+            <Hint label="Tap to open">
+              <TapGlyph />
+            </Hint>
+            <Hint label="Drag to rotate">
+              <DragGlyph />
+            </Hint>
+            <Hint label="Scroll to zoom" hideOnMobile>
+              <ZoomGlyph />
+            </Hint>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function Hint({
+  label,
+  children,
+  hideOnMobile,
+}: {
+  label: string;
+  children: React.ReactNode;
+  hideOnMobile?: boolean;
+}) {
+  return (
+    <div
+      className={`flex flex-col items-center gap-1.5 ${hideOnMobile ? 'hidden sm:flex' : ''}`}
+    >
+      <div className="w-9 h-9 flex items-center justify-center text-stone-500">
+        {children}
+      </div>
+      <span className="text-[10px] uppercase tracking-[0.15em] text-stone-500">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// ── Glyphs ───────────────────────────────────────────────────────────
+
+function TapGlyph() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      {[0, 0.75].map((delay, i) => (
+        <motion.circle
+          key={i}
+          cx="16"
+          cy="16"
+          r="6"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          initial={{ scale: 1, opacity: 0 }}
+          animate={{ scale: [1, 2.2], opacity: [0.7, 0] }}
+          transition={{ duration: 1.5, delay, repeat: Infinity, ease: 'easeOut' }}
+          style={{ transformOrigin: '16px 16px' }}
+        />
+      ))}
+      <circle cx="16" cy="16" r="3.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function DragGlyph() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <circle
+        cx="16"
+        cy="16"
+        r="9"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeDasharray="2 3"
+        opacity="0.4"
+      />
+      <motion.g
+        animate={{ rotate: 360 }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+        style={{ transformOrigin: '16px 16px' }}
+      >
+        <circle cx="25" cy="16" r="2.5" fill="currentColor" />
+      </motion.g>
+    </svg>
+  );
+}
+
+function ZoomGlyph() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <circle cx="14" cy="14" r="7" stroke="currentColor" strokeWidth="1.6" />
+      <line
+        x1="19.5"
+        y1="19.5"
+        x2="24"
+        y2="24"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <motion.g
+        animate={{ opacity: [0.4, 1, 0.4] }}
+        transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <line
+          x1="14"
+          y1="11"
+          x2="14"
+          y2="17"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+        />
+        <line
+          x1="11"
+          y1="14"
+          x2="17"
+          y2="14"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+        />
+      </motion.g>
+    </svg>
+  );
+}

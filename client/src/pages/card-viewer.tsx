@@ -12,13 +12,14 @@
 //   - No token → sender previewing their own card via the auth-gated
 //     draft endpoint.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useRoute, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Copy, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card3DViewer } from '@/components/card-3d-viewer';
+import { GestureHints } from '@/components/gesture-hints';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import logoSrc from '../assets/Logo2.png';
@@ -360,135 +361,6 @@ function Shell({ children }: { children: React.ReactNode }) {
       </header>
       {children}
     </div>
-  );
-}
-
-// ── GestureHints ─────────────────────────────────────────────────────
-// Animated pointer-SVG hints under the card. Each hint pairs a small
-// animated glyph with a short label. Fade in 900ms after mount so
-// they read as a whisper; auto-hide once the card opens.
-//
-// The animations are framer-motion loops on pure SVG — no external
-// lottie / assets. Keeps bundle cost to zero and the motion tunable.
-function GestureHints({ open }: { open: boolean }) {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => setVisible(true), 900);
-    return () => clearTimeout(t);
-  }, []);
-
-  return (
-    <AnimatePresence>
-      {visible && !open && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 8, transition: { duration: 0.3 } }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="flex justify-center"
-        >
-          <div className="flex items-center gap-6 sm:gap-10">
-            <GestureHint label="Tap to open">
-              <TapGlyph />
-            </GestureHint>
-            <GestureHint label="Drag to rotate">
-              <DragGlyph />
-            </GestureHint>
-            <GestureHint label="Scroll to zoom" hideOnMobile>
-              <ZoomGlyph />
-            </GestureHint>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-}
-
-function GestureHint({
-  label,
-  children,
-  hideOnMobile,
-}: {
-  label: string;
-  children: React.ReactNode;
-  hideOnMobile?: boolean;
-}) {
-  return (
-    <div
-      className={`flex flex-col items-center gap-1.5 ${hideOnMobile ? 'hidden sm:flex' : ''}`}
-    >
-      <div className="w-9 h-9 flex items-center justify-center text-stone-500">
-        {children}
-      </div>
-      <span className="text-[10px] uppercase tracking-[0.15em] text-stone-500">{label}</span>
-    </div>
-  );
-}
-
-// ── Gesture glyphs (pure SVG + framer-motion loops) ──────────────────
-
-function TapGlyph() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-      {/* Concentric ripple — two rings pulsing outward */}
-      {[0, 0.75].map((delay, i) => (
-        <motion.circle
-          key={i}
-          cx="16"
-          cy="16"
-          r="6"
-          stroke="currentColor"
-          strokeWidth="1.4"
-          initial={{ scale: 1, opacity: 0 }}
-          animate={{ scale: [1, 2.2], opacity: [0.7, 0] }}
-          transition={{ duration: 1.5, delay, repeat: Infinity, ease: 'easeOut' }}
-          style={{ transformOrigin: '16px 16px' }}
-        />
-      ))}
-      <circle cx="16" cy="16" r="3.5" fill="currentColor" />
-    </svg>
-  );
-}
-
-function DragGlyph() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-      {/* Dot orbits around a centre — signals "drag to rotate" */}
-      <circle
-        cx="16"
-        cy="16"
-        r="9"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeDasharray="2 3"
-        opacity="0.4"
-      />
-      <motion.g
-        animate={{ rotate: 360 }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-        style={{ transformOrigin: '16px 16px' }}
-      >
-        <circle cx="25" cy="16" r="2.5" fill="currentColor" />
-      </motion.g>
-    </svg>
-  );
-}
-
-function ZoomGlyph() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-      {/* Magnifier with an inner plus that pulses — pulse reads as zoom-in */}
-      <circle cx="14" cy="14" r="7" stroke="currentColor" strokeWidth="1.6" />
-      <line x1="19.5" y1="19.5" x2="24" y2="24" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <motion.g
-        animate={{ opacity: [0.4, 1, 0.4] }}
-        transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-        <line x1="11" y1="14" x2="17" y2="14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      </motion.g>
-    </svg>
   );
 }
 
