@@ -153,7 +153,7 @@ export default function CardViewerPage() {
               className="w-full h-full"
             />
           </div>
-          <div className="absolute top-0 inset-x-0 pt-4 flex justify-center z-10 pointer-events-none">
+          <div className="absolute bottom-0 inset-x-0 pb-4 flex justify-center z-10 pointer-events-none">
             <GestureHints open={open} />
           </div>
         </div>
