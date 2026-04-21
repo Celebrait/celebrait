@@ -477,11 +477,10 @@ function WelcomeGate({
     <AnimatePresence>
       {show && (
         <motion.div
-          className="fixed inset-0 z-40 bg-surface flex items-center justify-center px-6"
+          className="fixed inset-0 z-40 bg-white flex items-center justify-center px-6"
           initial={{ opacity: 1 }}
           exit={{
             opacity: 0,
-            scale: 1.03,
             transition: { duration: 0.7, ease: [0.4, 0, 0.2, 1] },
           }}
           data-testid="viewer-welcome-gate"
