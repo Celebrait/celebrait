@@ -318,7 +318,15 @@ export default function CardViewerPage() {
         recipientName={recipientName ?? null}
         occasion={occasion ?? null}
         welcomeMessage={data.welcomeMessage ?? null}
-        onOpen={() => setGateOpen(true)}
+        frontImageUrl={data.frontImageUrl}
+        onOpen={() => {
+          setGateOpen(true);
+          // Card auto-opens as the gate fades out — the click on
+          // the welcome card preview is felt through to the 3D
+          // card, so the user lands on an opening card rather than
+          // a closed one they have to tap again.
+          window.setTimeout(() => setOpen(true), 500);
+        }}
       />
     </Shell>
   );
@@ -443,11 +451,11 @@ function WhatsAppIcon() {
 }
 
 // ── WelcomeGate ──────────────────────────────────────────────────────
-// Arrival moment. A single bg-surface panel with the intro content
-// centred on it. Click Open → the content morphs into a small
-// envelope with its flap opening, "Opening card…" label beneath.
-// After the flap finishes, the gate fades + scales out, revealing
-// the card viewer behind.
+// Arrival moment. The CTA IS the card itself — the sender's actual
+// front image, centred, with a soft shadow + subtle "Tap to open"
+// hint beneath. Clicking the card signals the parent (gateOpen +
+// auto-open the 3D card), and the gate fades out while the card
+// reveal plays out in the viewer behind.
 //
 // If `welcomeMessage` is present (sender wrote a custom note when
 // they bought the digital add-on), it replaces the default eyebrow.
@@ -456,23 +464,16 @@ function WelcomeGate({
   recipientName,
   occasion,
   welcomeMessage,
+  frontImageUrl,
   onOpen,
 }: {
   show: boolean;
   recipientName: string | null;
   occasion: string | null;
   welcomeMessage: string | null;
+  frontImageUrl: string;
   onOpen: () => void;
 }) {
-  const [opening, setOpening] = useState(false);
-
-  const handleOpen = () => {
-    setOpening(true);
-    // Matches the envelope animation length below — flap takes
-    // ~800ms; give it a beat to settle open before dismissing.
-    window.setTimeout(() => onOpen(), 1200);
-  };
-
   return (
     <AnimatePresence>
       {show && (
@@ -486,175 +487,71 @@ function WelcomeGate({
           }}
           data-testid="viewer-welcome-gate"
         >
-          <AnimatePresence mode="wait">
-            {!opening ? (
-              <motion.div
-                key="intro"
-                className="text-center max-w-md"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                  transition: { duration: 0.7, ease: 'easeOut', delay: 0.15 },
-                }}
-                exit={{
-                  opacity: 0,
-                  y: -14,
-                  transition: { duration: 0.35, ease: 'easeIn' },
-                }}
-              >
-                {welcomeMessage ? (
-                  <p className="text-base sm:text-lg text-stone-700 leading-relaxed mb-5 whitespace-pre-line">
-                    {welcomeMessage}
-                  </p>
-                ) : (
-                  <p className="text-xs uppercase tracking-[0.25em] text-stone-500 mb-3">
-                    You've been sent a card
-                  </p>
-                )}
-                <h1 className="text-4xl sm:text-5xl font-semibold text-ink mb-2">
-                  {recipientName ? `For ${recipientName}` : 'A card for you'}
-                </h1>
-                {occasion && (
-                  <p className="text-sm text-stone-600 capitalize mb-8">{occasion}</p>
-                )}
-                {!occasion && <div className="mb-8" />}
-                <Button
-                  onClick={handleOpen}
-                  size="lg"
-                  className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 py-3.5 rounded-lg"
-                  data-testid="btn-welcome-open"
-                >
-                  Open
-                </Button>
-              </motion.div>
+          <motion.div
+            className="text-center max-w-md flex flex-col items-center"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              transition: { duration: 0.7, ease: 'easeOut', delay: 0.15 },
+            }}
+            exit={{
+              opacity: 0,
+              y: -14,
+              transition: { duration: 0.4, ease: 'easeIn' },
+            }}
+          >
+            {welcomeMessage ? (
+              <p className="text-base sm:text-lg text-stone-700 leading-relaxed mb-5 whitespace-pre-line">
+                {welcomeMessage}
+              </p>
             ) : (
-              <motion.div
-                key="envelope"
-                className="flex flex-col items-center gap-6"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                  transition: { duration: 0.35, ease: 'easeOut' },
-                }}
-                exit={{ opacity: 0, transition: { duration: 0.3 } }}
-              >
-                <OpeningEnvelope />
-                <p className="text-xs uppercase tracking-[0.3em] text-stone-500">
-                  Opening card…
-                </p>
-              </motion.div>
+              <p className="text-xs uppercase tracking-[0.25em] text-stone-500 mb-3">
+                You've been sent a card
+              </p>
             )}
-          </AnimatePresence>
+            <h1 className="text-3xl sm:text-4xl font-semibold text-ink mb-1">
+              {recipientName ? `For ${recipientName}` : 'A card for you'}
+            </h1>
+            {occasion && (
+              <p className="text-sm text-stone-600 capitalize mb-6">{occasion}</p>
+            )}
+            {!occasion && <div className="mb-6" />}
+
+            {/* Card preview — the clickable CTA. Shows the actual
+                front of the card; clicking it signals the viewer to
+                auto-open the card as the gate fades. */}
+            <motion.button
+              onClick={onOpen}
+              whileHover={{ y: -4 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+              className="group relative focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded-xl"
+              data-testid="btn-welcome-open"
+              aria-label="Open card"
+            >
+              <div
+                className="w-52 h-52 sm:w-60 sm:h-60 rounded-xl overflow-hidden"
+                style={{
+                  filter: 'drop-shadow(0 18px 30px rgba(0,0,0,0.22))',
+                }}
+              >
+                <img
+                  src={frontImageUrl}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  draggable={false}
+                />
+              </div>
+            </motion.button>
+
+            <p className="mt-6 text-xs uppercase tracking-[0.25em] text-stone-500">
+              Tap to open
+            </p>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
-  );
-}
-
-// ── OpeningEnvelope ──────────────────────────────────────────────────
-// Small SVG envelope with an animated flap lifting up and away.
-// The flap wrapper uses a CSS 3D rotateX on a perspective'd parent so
-// the triangle reads as lifting in depth, not just flipping in 2D.
-// The body + flap match the cream paper tone used elsewhere in the
-// viewer so the moment feels of-a-piece with the card reveal that
-// follows.
-function OpeningEnvelope() {
-  const PAPER = '#f9f1db';
-  const PAPER_SHADE = '#eadfbd';
-  const PAPER_EDGE = '#c4a980';
-
-  return (
-    <div
-      className="relative"
-      style={{ perspective: '800px', width: 176, height: 112 }}
-    >
-      {/* Envelope body — visible behind/under the flap throughout */}
-      <svg
-        viewBox="0 0 240 160"
-        width="176"
-        height="112"
-        className="absolute inset-0"
-      >
-        {/* Body fill */}
-        <rect
-          x="30"
-          y="50"
-          width="180"
-          height="90"
-          rx="2"
-          fill={PAPER}
-          stroke={PAPER_EDGE}
-          strokeWidth="1.5"
-        />
-        {/* Darker "pocket" triangle revealed when the flap lifts.
-            Mirrors the flap shape on the body so the opening looks
-            like a hollow inside, not a flat cut-out. */}
-        <path
-          d="M 30 50 L 210 50 L 120 110 Z"
-          fill={PAPER_SHADE}
-          opacity="0.55"
-        />
-        {/* Side-fold creases going to the flap tip */}
-        <line
-          x1="30"
-          y1="140"
-          x2="120"
-          y2="100"
-          stroke={PAPER_EDGE}
-          strokeWidth="1"
-          opacity="0.4"
-        />
-        <line
-          x1="210"
-          y1="140"
-          x2="120"
-          y2="100"
-          stroke={PAPER_EDGE}
-          strokeWidth="1"
-          opacity="0.4"
-        />
-      </svg>
-
-      {/* Flap — rotates -155° around its top edge (y=50 in viewBox,
-          = 31% of the rendered 112px container). transformStyle
-          preserve-3d + perspective on parent makes the lift read as
-          depth rather than a 2D flip. */}
-      <motion.div
-        className="absolute inset-0"
-        style={{
-          transformOrigin: 'center 31%',
-          transformStyle: 'preserve-3d',
-        }}
-        initial={{ rotateX: 0 }}
-        animate={{ rotateX: -155 }}
-        transition={{ duration: 0.85, ease: [0.4, 0, 0.2, 1], delay: 0.2 }}
-      >
-        <svg viewBox="0 0 240 160" width="176" height="112">
-          <path
-            d="M 30 50 L 210 50 L 120 110 Z"
-            fill={PAPER}
-            stroke={PAPER_EDGE}
-            strokeWidth="1.5"
-          />
-        </svg>
-      </motion.div>
-
-      {/* Wax-seal speck at the flap tip — small brand accent that
-          fades as the flap breaks away, reading as the seal cracking. */}
-      <motion.div
-        className="absolute w-2.5 h-2.5 rounded-full bg-[#8b1a1a] shadow-sm"
-        style={{
-          left: '50%',
-          top: '68%',
-          transform: 'translate(-50%, -50%)',
-        }}
-        initial={{ opacity: 1, scale: 1 }}
-        animate={{ opacity: 0, scale: 0.6 }}
-        transition={{ duration: 0.3, delay: 0.2 }}
-      />
-    </div>
   );
 }
 
