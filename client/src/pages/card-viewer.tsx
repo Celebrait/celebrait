@@ -521,18 +521,19 @@ function WelcomeGate({
               {recipientName ? `For ${recipientName}` : 'A card for you'}
             </h1>
             {occasion && (
-              <p className="text-sm text-stone-600 capitalize mb-6">{occasion}</p>
+              <p className="text-sm text-stone-600 capitalize mb-4">{occasion}</p>
             )}
-            {!occasion && <div className="mb-6" />}
+            {!occasion && <div className="mb-4" />}
 
-            {/* Square envelope CTA — body rectangle with a single
-                triangular top flap. Clicking it lifts the flap via
-                a 3D rotateX, then the gate fades out. The card
-                viewer behind shows the card closed (not auto-opened);
-                recipient taps the card itself to open it. */}
+            {/* Lottie envelope CTA. The outer button handles the
+                hover/tap micro-interactions; the inner motion.div
+                drives a continuous gentle float (-6px ↔ +6px over
+                3.2s) while the envelope is idle. Floating stops
+                once `opening` flips so the flap animation plays
+                from a still position. */}
             <motion.button
               onClick={handleClick}
-              whileHover={opening ? undefined : { y: -4 }}
+              whileHover={opening ? undefined : { scale: 1.03 }}
               whileTap={opening ? undefined : { scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 300, damping: 24 }}
               disabled={opening}
@@ -540,7 +541,16 @@ function WelcomeGate({
               data-testid="btn-welcome-open"
               aria-label="Open card"
             >
-              <SquareEnvelope opening={opening} />
+              <motion.div
+                animate={opening ? { y: 0 } : { y: [-6, 6, -6] }}
+                transition={
+                  opening
+                    ? { duration: 0.25, ease: 'easeOut' }
+                    : { duration: 3.2, repeat: Infinity, ease: 'easeInOut' }
+                }
+              >
+                <SquareEnvelope opening={opening} />
+              </motion.div>
             </motion.button>
 
             <p className="mt-6 text-xs uppercase tracking-[0.25em] text-stone-500">
