@@ -387,9 +387,9 @@ function CompletedView({
         </h2>
       </div>
 
-      {/* Stage — 3D viewer with hints overlay. Same experience as
-          the public viewer, scaled to fit inside the step panel. */}
-      <div className="relative h-[48vh] sm:h-[52vh] mb-3">
+      {/* Stage — 3D viewer. Hints moved out to the flow below so
+          they get breathing room from both the card and the button. */}
+      <div className="relative h-[48vh] sm:h-[52vh] mb-2">
         <Card3DViewer
           frontImageUrl={frontUrl}
           insideImageUrl={insideUrl}
@@ -397,13 +397,16 @@ function CompletedView({
           onOpenChange={setOpen}
           className="w-full h-full"
         />
-        <div className="absolute top-0 inset-x-0 pt-2 flex justify-center z-10 pointer-events-none">
-          <GestureHints open={open} />
-        </div>
+      </div>
+
+      {/* Gesture hints — sit just under the card with generous gap
+          to the Open button below. */}
+      <div className="min-h-[64px] flex justify-center items-start">
+        <GestureHints open={open} />
       </div>
 
       {/* Open/close — secondary control; tap-on-card still works too */}
-      <div className="flex justify-center mb-8">
+      <div className="flex justify-center mt-6 mb-10">
         <Button
           onClick={() => setOpen(!open)}
           variant="outline"

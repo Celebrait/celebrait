@@ -196,21 +196,18 @@ export default function CardViewerPage() {
             exit animation doesn't reflow the layout below (fixes
             the snap-up glitch Kevin flagged). */}
         <div className="h-[56vh] sm:h-[62vh] w-full relative">
-          {/* Canvas bleed: ±20vh vertical + ±22vw horizontal. Large
+          {/* Canvas bleed: ±25vh vertical + ±22vw horizontal. Large
               enough that the card never hits the canvas edge when
-              rotating/tilting/zooming. Paired with margin 1.8 in
-              InitialCameraFit + minDistance 2.7 so the card lands
-              at ~55% of the canvas at default (clean above hints)
-              and fills 100% of the canvas at max zoom + max tilt
-              without overflowing.
+              rotating/tilting/zooming, even at max zoom. Paired with
+              margin 2.0 in InitialCameraFit + minDistance 2.7.
 
               CSS drop-shadow on this container adds a soft depth
               shadow beneath the card's silhouette — reads as the
-              card floating above the white page. The 3D scene's
-              own ContactShadows still handle the grounded-on-a-
-              surface feel during rotation. */}
+              card floating above the white page. The 3D scene's own
+              ContactShadows still handle the grounded-on-a-surface
+              feel during rotation. */}
           <div
-            className="absolute top-[-20vh] bottom-[-20vh] left-[-22vw] right-[-22vw] z-0"
+            className="absolute top-[-25vh] bottom-[-25vh] left-[-22vw] right-[-22vw] z-0"
             style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.1))' }}
             onPointerDown={startInteract}
             onPointerUp={endInteract}
@@ -235,22 +232,21 @@ export default function CardViewerPage() {
             so anything the card rotates over doesn't clip against
             the UI. Fade back in 1.2s after the last interaction. */}
         <div
-          className="relative z-10 max-w-xl mx-auto px-4 pt-6 pb-16 transition-opacity duration-500"
+          className="relative z-10 max-w-xl mx-auto px-4 pt-2 pb-16 transition-opacity duration-500"
           style={{
             opacity: isInteracting ? 0 : 1,
             pointerEvents: isInteracting ? 'none' : 'auto',
           }}
         >
-          {/* Gesture hints — sit in flow between stage and actions.
-              min-h reserves the row so their one-shot exit (fades
-              when the user first interacts, stays gone) doesn't
-              reflow the buttons below. */}
-          <div className="min-h-[64px] pb-4 flex justify-center items-start">
+          {/* Gesture hints — sit close to the card with generous gap
+              between them and the action row below. min-h reserves
+              the row so their one-shot exit doesn't reflow buttons. */}
+          <div className="min-h-[64px] flex justify-center items-start">
             <GestureHints open={open || hasInteracted} />
           </div>
 
           {/* Action row */}
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-3">
+          <div className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-3">
             <Button
               onClick={() => setOpen(!open)}
               className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-7 py-3 rounded-lg w-full sm:w-auto"

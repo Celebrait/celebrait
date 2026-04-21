@@ -200,13 +200,11 @@ function InitialCameraFit() {
     didInit.current = true;
     const aspect = size.width / size.height;
     const halfFovRad = (camera.fov / 2) * (Math.PI / 180);
-    // Landing framing — card sits at ~55% of the canvas with clear
-    // breathing room, so the card can rotate/tilt/zoom freely without
-    // clipping at the canvas edges. The larger margin (vs 1.45×) is
-    // paired with a bigger canvas vertical bleed on the viewer page,
-    // together yielding: card fits above hints at default + card
-    // doesn't crop during rotation/zoom.
-    const required = CARD_W * 1.8;
+    // Landing framing — card sits at ~50% of the canvas, comfortably
+    // above the hint row. Paired with the viewer's canvas bleed
+    // (±25vh × ±22vw) and minDistance 2.7 so the card has freedom to
+    // tilt/zoom without touching the canvas edges.
+    const required = CARD_W * 2.0;
     const distByHeight = required / (2 * Math.tan(halfFovRad));
     const distByWidth = required / (2 * Math.tan(halfFovRad) * aspect);
     camera.position.z = Math.max(distByHeight, distByWidth);
