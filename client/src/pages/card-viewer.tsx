@@ -318,13 +318,7 @@ export default function CardViewerPage() {
         recipientName={recipientName ?? null}
         occasion={occasion ?? null}
         welcomeMessage={data.welcomeMessage ?? null}
-        onOpen={() => {
-          setGateOpen(true);
-          // Card auto-opens as the gate fades out — tapping the
-          // envelope feels like "cracking the seal"; by the time
-          // the gate's gone the 3D card is already swinging open.
-          window.setTimeout(() => setOpen(true), 500);
-        }}
+        onOpen={() => setGateOpen(true)}
       />
     </Shell>
   );
@@ -470,6 +464,15 @@ function WelcomeGate({
   welcomeMessage: string | null;
   onOpen: () => void;
 }) {
+  const [opening, setOpening] = useState(false);
+
+  const handleClick = () => {
+    setOpening(true);
+    // Flap animation runs ~750ms; dismiss the gate just after the
+    // flap has fully lifted so the two moments read as one motion.
+    window.setTimeout(() => onOpen(), 850);
+  };
+
   return (
     <AnimatePresence>
       {show && (
@@ -514,19 +517,22 @@ function WelcomeGate({
             )}
             {!occasion && <div className="mb-6" />}
 
-            {/* Square envelope CTA. Classic X-fold flap pattern with
-                a wax seal in the middle. Clicking it signals the
-                viewer to auto-open the card as the gate fades. */}
+            {/* Square envelope CTA — body rectangle with a single
+                triangular top flap. Clicking it lifts the flap via
+                a 3D rotateX, then the gate fades out. The card
+                viewer behind shows the card closed (not auto-opened);
+                recipient taps the card itself to open it. */}
             <motion.button
-              onClick={onOpen}
-              whileHover={{ y: -4 }}
-              whileTap={{ scale: 0.97 }}
+              onClick={handleClick}
+              whileHover={opening ? undefined : { y: -4 }}
+              whileTap={opening ? undefined : { scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+              disabled={opening}
               className="group relative focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded-xl"
               data-testid="btn-welcome-open"
               aria-label="Open card"
             >
-              <SquareEnvelope />
+              <SquareEnvelope opening={opening} />
             </motion.button>
 
             <p className="mt-6 text-xs uppercase tracking-[0.25em] text-stone-500">
@@ -540,21 +546,28 @@ function WelcomeGate({
 }
 
 // ── SquareEnvelope ───────────────────────────────────────────────────
-// Classic square envelope front view: body rectangle, four triangular
-// flaps folding into the centre (X-pattern), wax seal at the meeting
-// point. Purely illustrative — clicking the wrapping button is what
-// drives the actual card open, not this svg.
-function SquareEnvelope() {
+// Square envelope front view: plain body rectangle + a single
+// triangular top flap (two diagonal lines from the top corners
+// meeting at the centre). No seal, no side/bottom fold lines.
+//
+// When `opening` flips to true the flap rotates -155° around its top
+// edge on a perspective'd parent so the lift reads as 3D depth,
+// revealing a darker "pocket" on the body behind.
+function SquareEnvelope({ opening }: { opening: boolean }) {
   const PAPER = '#f9f1db';
-  const PAPER_SHADE = '#eadfbd';
+  const PAPER_SHADE = '#d8c898';
   const EDGE = '#c4a980';
+
   return (
     <div
-      className="w-52 h-52 sm:w-60 sm:h-60"
-      style={{ filter: 'drop-shadow(0 18px 30px rgba(0,0,0,0.22))' }}
+      className="relative w-52 h-52 sm:w-60 sm:h-60"
+      style={{
+        perspective: '900px',
+        filter: 'drop-shadow(0 18px 30px rgba(0,0,0,0.22))',
+      }}
     >
-      <svg viewBox="0 0 200 200" className="w-full h-full">
-        {/* Envelope body */}
+      {/* Body + inside pocket (behind the flap) */}
+      <svg viewBox="0 0 200 200" className="absolute inset-0 w-full h-full">
         <rect
           x="0"
           y="0"
@@ -565,34 +578,38 @@ function SquareEnvelope() {
           stroke={EDGE}
           strokeWidth="1.5"
         />
-        {/* Bottom flap — tucked behind all others */}
-        <path d="M 0 200 L 100 100 L 200 200 Z" fill={PAPER_SHADE} opacity="0.35" />
-        {/* Left flap */}
-        <path d="M 0 0 L 100 100 L 0 200 Z" fill={PAPER_SHADE} opacity="0.25" />
-        {/* Right flap */}
-        <path d="M 200 0 L 100 100 L 200 200 Z" fill={PAPER_SHADE} opacity="0.25" />
-        {/* Top flap — sits on top, slightly lighter so it reads as
-            the outward-facing "sealed" flap */}
+        {/* Inside pocket — darker triangle shown once the flap lifts.
+            Mirrors the flap shape so the lifted flap reveals a hollow. */}
         <path
           d="M 0 0 L 200 0 L 100 100 Z"
-          fill={PAPER}
-          opacity="0.9"
+          fill={PAPER_SHADE}
+          opacity="0.45"
         />
-        {/* Fold-line creases from the four corners to centre */}
-        <line x1="0" y1="0" x2="100" y2="100" stroke={EDGE} strokeWidth="1" opacity="0.5" />
-        <line x1="200" y1="0" x2="100" y2="100" stroke={EDGE} strokeWidth="1" opacity="0.5" />
-        <line x1="0" y1="200" x2="100" y2="100" stroke={EDGE} strokeWidth="1" opacity="0.5" />
-        <line x1="200" y1="200" x2="100" y2="100" stroke={EDGE} strokeWidth="1" opacity="0.5" />
-        {/* Wax seal — small dark red disc at the centre point */}
-        <circle cx="100" cy="100" r="14" fill="#8b1a1a" />
-        <circle cx="100" cy="100" r="14" fill="url(#seal-highlight)" opacity="0.45" />
-        <defs>
-          <radialGradient id="seal-highlight" cx="0.35" cy="0.35">
-            <stop offset="0%" stopColor="#c4484a" />
-            <stop offset="100%" stopColor="#8b1a1a" stopOpacity="0" />
-          </radialGradient>
-        </defs>
       </svg>
+
+      {/* Top flap — the animated element. Rotates on X around its
+          top edge; before animation it sits flat covering the upper
+          triangle of the body (including the two fold lines from
+          the top corners to the centre). */}
+      <motion.div
+        className="absolute inset-0"
+        style={{
+          transformOrigin: 'center top',
+          transformStyle: 'preserve-3d',
+        }}
+        initial={{ rotateX: 0 }}
+        animate={{ rotateX: opening ? -155 : 0 }}
+        transition={{ duration: 0.75, ease: [0.4, 0, 0.2, 1] }}
+      >
+        <svg viewBox="0 0 200 200" className="w-full h-full">
+          <path
+            d="M 0 0 L 200 0 L 100 100 Z"
+            fill={PAPER}
+            stroke={EDGE}
+            strokeWidth="1.5"
+          />
+        </svg>
+      </motion.div>
     </div>
   );
 }
