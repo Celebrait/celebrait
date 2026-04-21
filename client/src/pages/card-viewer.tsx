@@ -201,13 +201,17 @@ export default function CardViewerPage() {
               rotating/tilting/zooming, even at max zoom. Paired with
               margin 2.0 in InitialCameraFit + minDistance 2.7.
 
-              CSS drop-shadow on this container adds a soft depth
-              shadow beneath the card's silhouette — reads as the
-              card floating above the white page. The 3D scene's own
-              ContactShadows still handle the grounded-on-a-surface
-              feel during rotation. */}
+              Canvas sits at z-25 — ABOVE the header (z-20). When the
+              card rotates up it renders on top of the header for
+              real depth (not just peeking through the translucent
+              bg). UI is bumped to z-30 so buttons + make-your-own
+              still receive pointer events at rest.
+
+              CSS drop-shadow adds a soft depth shadow beneath the
+              card's silhouette. The 3D scene's own ContactShadows
+              still handle grounded-on-surface during rotation. */}
           <div
-            className="absolute top-[-25vh] bottom-[-25vh] left-[-22vw] right-[-22vw] z-0"
+            className="absolute top-[-25vh] bottom-[-25vh] left-[-22vw] right-[-22vw] z-[25]"
             style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.1))' }}
             onPointerDown={startInteract}
             onPointerUp={endInteract}
@@ -232,7 +236,7 @@ export default function CardViewerPage() {
             so anything the card rotates over doesn't clip against
             the UI. Fade back in 1.2s after the last interaction. */}
         <div
-          className="relative z-10 max-w-xl mx-auto px-4 pt-2 pb-16 transition-opacity duration-500"
+          className="relative z-30 max-w-xl mx-auto px-4 pt-2 pb-16 transition-opacity duration-500"
           style={{
             opacity: isInteracting ? 0 : 1,
             pointerEvents: isInteracting ? 'none' : 'auto',
