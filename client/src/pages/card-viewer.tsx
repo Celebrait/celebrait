@@ -554,16 +554,31 @@ function WelcomeGate({
 }
 
 // ── SquareEnvelope ───────────────────────────────────────────────────
-// Lottie-driven envelope. First frame shows the envelope closed;
-// when `opening` flips true, the animation plays forward to reveal
-// the open state. autoplay={false} + imperative .play() via ref so
-// the animation stays paused on frame 0 until Kevin's click.
+// Lottie-driven envelope. The source animation runs 0-105 with the
+// envelope fading in over frames 0-34, flap opening 35-58, letter
+// revealing 51-77. We park at frame 34 (envelope fully visible +
+// closed) as the idle state. On `opening` flip, play forward to
+// the end.
+const ENVELOPE_IDLE_FRAME = 34;
+const ENVELOPE_END_FRAME = 105;
+
 function SquareEnvelope({ opening }: { opening: boolean }) {
   const lottieRef = useRef<any>(null);
 
+  // Seek to the "closed-but-visible" frame on mount. lottie-react's
+  // DOMLoaded callback fires once the animation is ready to control.
+  const handleDomLoaded = () => {
+    if (lottieRef.current) {
+      lottieRef.current.goToAndStop(ENVELOPE_IDLE_FRAME, true);
+    }
+  };
+
   useEffect(() => {
     if (opening && lottieRef.current) {
-      lottieRef.current.goToAndPlay(0, true);
+      lottieRef.current.playSegments(
+        [ENVELOPE_IDLE_FRAME, ENVELOPE_END_FRAME],
+        true,
+      );
     }
   }, [opening]);
 
@@ -577,6 +592,7 @@ function SquareEnvelope({ opening }: { opening: boolean }) {
         animationData={envelopeAnimation}
         autoplay={false}
         loop={false}
+        onDOMLoaded={handleDomLoaded}
         className="w-full h-full"
       />
     </div>
