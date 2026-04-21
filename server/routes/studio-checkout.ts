@@ -52,7 +52,6 @@ const checkoutSchema = z.object({
   recipientEmail: z.string().email().optional(),
   recipientPhone: z.string().optional(),
   giftMessage: z.string().max(500).optional(),
-  welcomeMessage: z.string().max(300).optional(),
 });
 
 export function registerStudioCheckoutRoutes(app: Express): void {
@@ -151,7 +150,6 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             shipTo: body.shipTo,
             shippingAddress: body.shippingAddress,
             giftMessage: body.giftMessage,
-            welcomeMessage: body.includesDigital ? body.welcomeMessage : undefined,
             currency: 'GBP',
             printAmount,
             digitalAmount,

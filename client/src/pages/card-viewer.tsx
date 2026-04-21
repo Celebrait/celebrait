@@ -41,10 +41,6 @@ interface CardData {
   state?: CardDraftState;
   recipientName?: string | null;
   occasion?: string | null;
-  /** Optional welcome message — only present on the public view
-   *  endpoint, pulled from the sender's most recent paid digital
-   *  order for this card. */
-  welcomeMessage?: string | null;
 }
 
 export default function CardViewerPage() {
@@ -315,13 +311,7 @@ export default function CardViewerPage() {
         onShareVia={shareViaUrl}
       />
 
-      <WelcomeGate
-        show={!gateOpen}
-        recipientName={recipientName ?? null}
-        occasion={occasion ?? null}
-        welcomeMessage={data.welcomeMessage ?? null}
-        onOpen={() => setGateOpen(true)}
-      />
+      <WelcomeGate show={!gateOpen} onOpen={() => setGateOpen(true)} />
     </Shell>
   );
 }
@@ -445,35 +435,18 @@ function WhatsAppIcon() {
 }
 
 // ── WelcomeGate ──────────────────────────────────────────────────────
-// Arrival moment. The CTA IS the card itself — the sender's actual
-// front image, centred, with a soft shadow + subtle "Tap to open"
-// hint beneath. Clicking the card signals the parent (gateOpen +
-// auto-open the 3D card), and the gate fades out while the card
-// reveal plays out in the viewer behind.
-//
-// If `welcomeMessage` is present (sender wrote a custom note when
-// they bought the digital add-on), it replaces the default eyebrow.
-function WelcomeGate({
-  show,
-  recipientName,
-  occasion,
-  welcomeMessage,
-  onOpen,
-}: {
-  show: boolean;
-  recipientName: string | null;
-  occasion: string | null;
-  welcomeMessage: string | null;
-  onOpen: () => void;
-}) {
+// Stripped-back arrival moment. Celebrait logo at the top of the
+// screen, Lottie envelope centred, "Tap to open" caption beneath.
+// No "For {Name}" / occasion / custom message — the recipient will
+// see all of that on the card itself once it opens.
+function WelcomeGate({ show, onOpen }: { show: boolean; onOpen: () => void }) {
   const [opening, setOpening] = useState(false);
 
   const handleClick = () => {
     setOpening(true);
     // Flap lifts ~750ms, then we hold on pure-white for ~300ms
     // before dismissing the gate. That hold reads as a camera-flash
-    // beat between envelope-open and card-reveal, rather than a
-    // continuous dissolve.
+    // beat between envelope-open and card-reveal.
     window.setTimeout(() => onOpen(), 1050);
   };
 
@@ -481,56 +454,42 @@ function WelcomeGate({
     <AnimatePresence>
       {show && (
         <motion.div
-          className="fixed inset-0 z-40 bg-white flex items-center justify-center px-6"
+          className="fixed inset-0 z-40 bg-white flex flex-col items-center px-6"
           initial={{ opacity: 1 }}
           exit={{
             opacity: 0,
-            // Snappy expo-out curve — fast start, soft settle. Reads
-            // like the white flash "releasing" to reveal the card
-            // rather than gradually dissolving.
             transition: { duration: 0.45, ease: [0.55, 0, 0.1, 1] },
           }}
           data-testid="viewer-welcome-gate"
         >
+          {/* Logo at top */}
           <motion.div
-            className="text-center max-w-md flex flex-col items-center"
-            initial={{ opacity: 0, y: 12 }}
+            className="pt-6 sm:pt-8"
+            initial={{ opacity: 0, y: -8 }}
             animate={{
               opacity: opening ? 0 : 1,
               y: 0,
               transition: opening
-                ? { opacity: { duration: 0.25, delay: 0.75, ease: 'easeIn' } }
-                : { duration: 0.7, ease: 'easeOut', delay: 0.15 },
-            }}
-            exit={{
-              opacity: 0,
-              y: -14,
-              transition: { duration: 0.3, ease: 'easeIn' },
+                ? { opacity: { duration: 0.25, delay: 0.6, ease: 'easeIn' } }
+                : { duration: 0.6, ease: 'easeOut' },
             }}
           >
-            {welcomeMessage ? (
-              <p className="text-base sm:text-lg text-stone-700 leading-relaxed mb-5 whitespace-pre-line">
-                {welcomeMessage}
-              </p>
-            ) : (
-              <p className="text-xs uppercase tracking-[0.25em] text-stone-500 mb-3">
-                You've been sent a card
-              </p>
-            )}
-            <h1 className="text-3xl sm:text-4xl font-semibold text-ink mb-1">
-              {recipientName ? `For ${recipientName}` : 'A card for you'}
-            </h1>
-            {occasion && (
-              <p className="text-sm text-stone-600 capitalize mb-4">{occasion}</p>
-            )}
-            {!occasion && <div className="mb-4" />}
+            <img src={logoSrc} alt="Celebrait" className="h-8 object-contain" />
+          </motion.div>
 
-            {/* Lottie envelope CTA. The outer button handles the
-                hover/tap micro-interactions; the inner motion.div
-                drives a continuous gentle float (-6px ↔ +6px over
-                3.2s) while the envelope is idle. Floating stops
-                once `opening` flips so the flap animation plays
-                from a still position. */}
+          {/* Envelope + caption, vertically centred in the remaining
+              space. Content fades in place once `opening` flips so
+              there's a clean white-flash beat before the gate exit. */}
+          <motion.div
+            className="flex-1 flex flex-col items-center justify-center gap-6"
+            initial={{ opacity: 0 }}
+            animate={{
+              opacity: opening ? 0 : 1,
+              transition: opening
+                ? { duration: 0.25, delay: 0.75, ease: 'easeIn' }
+                : { duration: 0.7, ease: 'easeOut', delay: 0.15 },
+            }}
+          >
             <motion.button
               onClick={handleClick}
               whileHover={opening ? undefined : { scale: 1.03 }}
@@ -553,7 +512,7 @@ function WelcomeGate({
               </motion.div>
             </motion.button>
 
-            <p className="mt-6 text-xs uppercase tracking-[0.25em] text-stone-500">
+            <p className="text-xs uppercase tracking-[0.25em] text-stone-500">
               Tap to open
             </p>
           </motion.div>
@@ -593,13 +552,8 @@ function SquareEnvelope({ opening }: { opening: boolean }) {
   }, [opening]);
 
   return (
-    // Negative vertical margins (-my-12) visually pull surrounding
-    // content in through the Lottie canvas's transparent padding —
-    // the envelope illustration sits in the middle of the 640x720
-    // canvas, so without the collapse there's a large dead zone
-    // above and below it.
     <div
-      className="w-56 h-56 sm:w-64 sm:h-64 -my-12"
+      className="w-56 h-56 sm:w-64 sm:h-64"
       style={{ filter: 'drop-shadow(0 18px 30px rgba(0,0,0,0.18))' }}
     >
       <Lottie

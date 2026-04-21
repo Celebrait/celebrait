@@ -39,11 +39,11 @@ export const studioOrders = pgTable(
     shipTo: text("ship_to"), // 'sender' | 'recipient' | null
     shippingAddress: jsonb("shipping_address"), // { line1, line2?, city, postcode, country }
     giftMessage: text("gift_message"),
-    // Welcome message — optional short note the sender writes to
-    // greet the recipient when they open the digital share link.
-    // Shown on the viewer's welcome gate in place of the default
-    // "You've been sent a card" eyebrow.
-    welcomeMessage: text("welcome_message"),
+    // `welcome_message` column still exists in the DB but is no
+    // longer referenced from the app — the welcome gate has no
+    // custom-message UI. Left as a no-op column to avoid a
+    // destructive migration; can be dropped later if we're sure
+    // no legacy data cares.
 
     // Money — integers, minor units (pence).
     currency: text("currency").notNull().default("GBP"),
@@ -92,7 +92,6 @@ export const insertStudioOrderSchema = createInsertSchema(studioOrders).pick({
   shipTo: true,
   shippingAddress: true,
   giftMessage: true,
-  welcomeMessage: true,
   currency: true,
   printAmount: true,
   digitalAmount: true,
