@@ -65,7 +65,7 @@ function Hint({
     <div
       className={`flex flex-col items-center gap-1.5 ${hideOnMobile ? 'hidden sm:flex' : ''}`}
     >
-      <div className="w-9 h-9 flex items-center justify-center text-stone-500">
+      <div className="w-9 h-9 flex items-center justify-center text-cta">
         {children}
       </div>
       <span className="text-[10px] uppercase tracking-[0.15em] text-stone-500">
@@ -102,22 +102,27 @@ function TapGlyph() {
 function DragGlyph() {
   return (
     <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      {/* Orbit track — dashed so it reads as a path, not a ring */}
       <circle
         cx="16"
         cy="16"
-        r="9"
+        r="10"
         stroke="currentColor"
-        strokeWidth="1.2"
+        strokeWidth="1.3"
         strokeDasharray="2 3"
-        opacity="0.4"
+        opacity="0.35"
       />
+      {/* Moving dot — larger + trailing ghost for readable motion */}
       <motion.g
         animate={{ rotate: 360 }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+        transition={{ duration: 2.2, repeat: Infinity, ease: 'linear' }}
         style={{ transformOrigin: '16px 16px' }}
       >
-        <circle cx="25" cy="16" r="2.5" fill="currentColor" />
+        <circle cx="26" cy="16" r="2" fill="currentColor" opacity="0.3" />
+        <circle cx="26" cy="16" r="3.5" fill="currentColor" />
       </motion.g>
+      {/* Fixed centre pip so the orbit has a subject to orbit around */}
+      <circle cx="16" cy="16" r="1.5" fill="currentColor" opacity="0.5" />
     </svg>
   );
 }

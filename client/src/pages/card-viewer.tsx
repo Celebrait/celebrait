@@ -210,12 +210,6 @@ export default function CardViewerPage() {
               className="w-full h-full"
             />
           </div>
-          <div
-            className="absolute bottom-0 inset-x-0 pb-4 flex justify-center z-10 pointer-events-none transition-opacity duration-500"
-            style={{ opacity: isInteracting || hasInteracted ? 0 : 1 }}
-          >
-            <GestureHints open={open || hasInteracted} />
-          </div>
         </div>
 
         {/* UI — flows below the stage with no background layer. Card
@@ -228,6 +222,14 @@ export default function CardViewerPage() {
           className="relative z-10 max-w-xl mx-auto px-4 pt-6 pb-16 transition-opacity duration-500"
           style={{ opacity: isInteracting ? 0 : 1, pointerEvents: isInteracting ? 'none' : 'auto' }}
         >
+          {/* Gesture hints — sit in flow between stage and actions.
+              min-h reserves the row so their one-shot exit (fades
+              when the user first interacts, stays gone) doesn't
+              reflow the buttons below. */}
+          <div className="min-h-[64px] pb-4 flex justify-center items-start">
+            <GestureHints open={open || hasInteracted} />
+          </div>
+
           {/* Action row */}
           <div className="flex flex-col sm:flex-row justify-center items-center gap-3">
             <Button
