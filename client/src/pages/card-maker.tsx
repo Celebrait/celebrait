@@ -270,10 +270,14 @@ function CardMakerInner({ cardId }: { cardId: number }) {
             {/* h1 uses the same max-w-2xl + mx-auto as the step body below
                 so it aligns with the form on desktop (Recipient is narrower
                 at max-w-xl — close enough; the h1 left edge matches the
-                wider form grid). */}
-            <h1 className="max-w-2xl mx-auto text-xl sm:text-2xl font-semibold text-stone-900 mb-5 sm:mb-6">
-              {stepHeadline}
-            </h1>
+                wider form grid). Suppressed entirely on the Review step's
+                completed state — the 3D card is the subject, we don't
+                want text above it. */}
+            {!(currentStep === 6 && status === 'completed') && (
+              <h1 className="max-w-2xl mx-auto text-xl sm:text-2xl font-semibold text-stone-900 mb-5 sm:mb-6">
+                {stepHeadline}
+              </h1>
+            )}
             {/* Step order: Recipient → Photo → Scene → Style → Front → Inside → Review.
                 Photo moved to position 2 (index 1) so the emotional "we've got
                 them" moment happens before the blank scene textarea. Front text

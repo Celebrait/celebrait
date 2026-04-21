@@ -18,7 +18,8 @@
 //   - failed       → error + retry button (flips status back to draft)
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useLocation } from 'wouter';
 import {
   Sparkles,
   Loader2,
@@ -30,10 +31,17 @@ import {
   FileText,
   Type,
   AlertTriangle,
+  Package,
+  ArrowRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
 import type { CardDraftState, StepId } from '@shared/schema';
@@ -334,13 +342,13 @@ function GeneratingView() {
   );
 }
 
-// ── Completed view — show the rendered card + product selection ───────
-// Mirrors the public viewer's experience on the sender's side:
-// interactive 3D stage with gesture hints + Open/Close, then the
-// product-choice selector (Digital / Printed / Both) right here
-// rather than making the sender wait until checkout to decide.
-// Clicking "Send this card" hands off to checkout with the choice
-// pre-filled via ?product=.
+// ── Completed view — full 3D viewer experience + single-CTA purchase ──
+// Matches the public viewer pattern: canvas bleeds past the stage in
+// all directions so the card can rotate/zoom freely (no cropping even
+// at max zoom), gesture hints that retire after first interaction,
+// the UI below fades out while the user is actively manipulating the
+// card. Single violet "Buy this card" CTA opens a modal for the
+// digital/print/both decision.
 
 type ProductChoice = 'digital' | 'print' | 'both';
 
@@ -365,7 +373,6 @@ function CompletedView({
   cardId,
   frontUrl,
   insideUrl,
-  recipientName,
 }: {
   cardId: number;
   frontUrl: string;
@@ -373,131 +380,202 @@ function CompletedView({
   recipientName: string | null;
 }) {
   const [open, setOpen] = useState(false);
-  const [product, setProduct] = useState<ProductChoice>('both');
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const [isInteracting, setIsInteracting] = useState(false);
+  const [buyOpen, setBuyOpen] = useState(false);
+  const interactTimerRef = useRef<number | null>(null);
+
+  const startInteract = () => {
+    if (interactTimerRef.current) window.clearTimeout(interactTimerRef.current);
+    setIsInteracting(true);
+    setHasInteracted(true);
+  };
+  const endInteract = () => {
+    if (interactTimerRef.current) window.clearTimeout(interactTimerRef.current);
+    interactTimerRef.current = window.setTimeout(() => setIsInteracting(false), 1200);
+  };
+  const bumpInteract = () => {
+    startInteract();
+    endInteract();
+  };
 
   return (
-    <div className="max-w-3xl mx-auto" data-testid="review-completed">
-      {/* Completion headline */}
-      <div className="text-center mb-2">
-        <p className="text-xs uppercase tracking-[0.2em] text-cta font-semibold">
-          Ready to send
-        </p>
-        <h2 className="text-xl font-semibold text-ink mt-1">
-          {recipientName ? `${recipientName}'s card` : 'Your card'}
-        </h2>
-      </div>
+    <>
+      <div className="max-w-3xl mx-auto" data-testid="review-completed">
+        {/* Stage — mirrors public viewer. Canvas absolutely positioned
+            inside with generous bleed so the card can rotate/zoom
+            past the step panel edges without clipping. Step panel's
+            overflow is visible by default so the bleed shows. */}
+        <div className="h-[50vh] sm:h-[56vh] w-full relative">
+          <div
+            className="absolute top-[-22vh] bottom-[-22vh] left-[-20vw] right-[-20vw] z-[25]"
+            style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.1))' }}
+            onPointerDown={startInteract}
+            onPointerUp={endInteract}
+            onPointerCancel={endInteract}
+            onPointerLeave={endInteract}
+            onWheel={bumpInteract}
+          >
+            <Card3DViewer
+              frontImageUrl={frontUrl}
+              insideImageUrl={insideUrl}
+              open={open}
+              onOpenChange={setOpen}
+              className="w-full h-full"
+            />
+          </div>
+        </div>
 
-      {/* Stage — 3D viewer. Hints moved out to the flow below so
-          they get breathing room from both the card and the button. */}
-      <div className="relative h-[48vh] sm:h-[52vh] mb-2">
-        <Card3DViewer
-          frontImageUrl={frontUrl}
-          insideImageUrl={insideUrl}
-          open={open}
-          onOpenChange={setOpen}
-          className="w-full h-full"
-        />
-      </div>
-
-      {/* Gesture hints — sit just under the card with generous gap
-          to the Open button below. */}
-      <div className="min-h-[64px] flex justify-center items-start">
-        <GestureHints open={open} />
-      </div>
-
-      {/* Open/close — secondary control; tap-on-card still works too */}
-      <div className="flex justify-center mt-6 mb-10">
-        <Button
-          onClick={() => setOpen(!open)}
-          variant="outline"
-          size="sm"
-          data-testid="btn-review-open"
+        {/* UI below — fades during card interaction so rotations
+            over this area don't clip visually. z-30 > canvas z-25
+            so buttons stay above the card at rest. */}
+        <div
+          className="relative z-30 max-w-xl mx-auto px-4 pt-2 transition-opacity duration-500"
+          style={{
+            opacity: isInteracting ? 0 : 1,
+            pointerEvents: isInteracting ? 'none' : 'auto',
+          }}
         >
-          {open ? 'Close card' : 'Open card'}
-        </Button>
+          {/* Gesture hints — collapse after first interaction so no
+              dead whitespace is left behind. */}
+          <div
+            className="flex justify-center items-start overflow-hidden transition-[max-height] duration-500 ease-out"
+            style={{ maxHeight: hasInteracted ? 0 : 72 }}
+          >
+            <GestureHints open={open || hasInteracted} />
+          </div>
+
+          {/* Single primary CTA + subtext. Opens the buy dialog. */}
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <Button
+              onClick={() => setBuyOpen(true)}
+              className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-8 py-3.5 rounded-lg w-full sm:w-auto"
+              size="lg"
+              data-testid="btn-buy-card"
+            >
+              Buy this card
+            </Button>
+            <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
+              Choose digital or print next
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Product selector — pick the tier here so checkout is just
-          the transaction. */}
-      <div className="mb-6">
-        <h3 className="text-sm font-semibold text-ink mb-3 text-center">
-          How would you like to send it?
-        </h3>
-        <RadioGroup
-          value={product}
-          onValueChange={(v) => setProduct(v as ProductChoice)}
-          className="grid grid-cols-1 sm:grid-cols-3 gap-3"
-        >
-          <ProductOption
-            value="digital"
-            title="Digital"
-            description="3D share link"
-            price={totalsFor('digital')}
-          />
-          <ProductOption
-            value="print"
-            title="Printed"
-            description="UK post"
-            price={totalsFor('print')}
-          />
-          <ProductOption
-            value="both"
-            title="Printed + digital"
-            description="Best of both"
-            price={totalsFor('both')}
-          />
-        </RadioGroup>
-      </div>
-
-      {/* Send + preview CTAs */}
-      <div className="flex flex-col sm:flex-row justify-center items-center gap-3">
-        <a
-          href={`/checkout/${cardId}?product=${product}`}
-          className="inline-flex items-center justify-center gap-2 bg-cta hover:bg-cta/90 text-cta-foreground text-base font-semibold px-7 py-3.5 rounded-lg transition-colors w-full sm:w-auto"
-          data-testid="btn-send-card"
-        >
-          Send this card →
-        </a>
-        <a
-          href={`/card/${cardId}/view`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-2 text-sm text-brand hover:text-brand-dark font-medium px-4 py-2"
-          data-testid="btn-view-3d"
-        >
-          <Sparkles className="w-4 h-4" />
-          Preview as they'll see it
-        </a>
-      </div>
-    </div>
+      <BuyDialog open={buyOpen} onOpenChange={setBuyOpen} cardId={cardId} />
+    </>
   );
 }
 
-function ProductOption({
-  value,
+// ── BuyDialog ─────────────────────────────────────────────────────────
+// The "digital / print / both" choice moment. Three clickable option
+// cards; each handoff navigates to /checkout/:id?product={choice}.
+// Digital's value prop is made explicit — they get a share link with
+// the exact 3D viewer the sender just played with.
+function BuyDialog({
+  open,
+  onOpenChange,
+  cardId,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  cardId: number;
+}) {
+  const [, setLocation] = useLocation();
+  const go = (choice: ProductChoice) => {
+    onOpenChange(false);
+    setLocation(`/checkout/${cardId}?product=${choice}`);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-left">How would you like to send it?</DialogTitle>
+          <DialogDescription className="text-left">
+            Pick one — you can change your mind at checkout.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="mt-1 space-y-3">
+          <BuyOption
+            icon={<Sparkles className="w-5 h-5 text-brand" />}
+            title="Digital"
+            description="A share link that opens with the same 3D viewer you're playing with now. Instant."
+            price={formatGBP(totalsFor('digital'))}
+            onClick={() => go('digital')}
+            testId="btn-buy-digital"
+          />
+          <BuyOption
+            icon={<Package className="w-5 h-5 text-stone-700" />}
+            title="Printed"
+            description="Premium square card, posted in the UK."
+            price={formatGBP(totalsFor('print'))}
+            onClick={() => go('print')}
+            testId="btn-buy-print"
+          />
+          <BuyOption
+            icon={
+              <div className="flex gap-1">
+                <Package className="w-5 h-5 text-stone-700" />
+                <Sparkles className="w-5 h-5 text-brand" />
+              </div>
+            }
+            title="Printed + digital"
+            description="The real thing in the post plus the instant 3D share link. Most popular."
+            price={formatGBP(totalsFor('both'))}
+            badge="Best value"
+            onClick={() => go('both')}
+            testId="btn-buy-both"
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function BuyOption({
+  icon,
   title,
   description,
   price,
+  badge,
+  onClick,
+  testId,
 }: {
-  value: ProductChoice;
+  icon: React.ReactNode;
   title: string;
   description: string;
-  price: number;
+  price: string;
+  badge?: string;
+  onClick: () => void;
+  testId?: string;
 }) {
   return (
-    <Label
-      htmlFor={`review-product-${value}`}
-      className="relative flex flex-col items-start gap-1 border border-stone-200 rounded-xl p-3.5 cursor-pointer hover:border-stone-400 has-[:checked]:border-brand has-[:checked]:bg-brand/5 transition-colors"
+    <button
+      onClick={onClick}
+      className="relative w-full text-left bg-white border border-stone-200 rounded-xl p-4 hover:border-brand/60 hover:shadow-sm transition-all group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+      data-testid={testId}
     >
-      <RadioGroupItem
-        value={value}
-        id={`review-product-${value}`}
-        className="absolute top-3.5 right-3.5"
-      />
-      <p className="text-sm font-medium text-ink pr-6">{title}</p>
-      <p className="text-xs text-stone-500">{description}</p>
-      <p className="text-sm font-semibold text-ink mt-1">{formatGBP(price)}</p>
-    </Label>
+      <div className="flex items-start gap-3">
+        <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-muted flex-shrink-0">
+          {icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-sm font-semibold text-ink">{title}</p>
+            <p className="text-sm font-semibold text-ink whitespace-nowrap">{price}</p>
+          </div>
+          <p className="text-xs text-stone-600 mt-1 leading-relaxed">{description}</p>
+          {badge && (
+            <span className="inline-block mt-2 text-[10px] uppercase tracking-wider font-medium text-brand">
+              {badge}
+            </span>
+          )}
+        </div>
+        <ArrowRight className="w-4 h-4 text-stone-400 group-hover:text-brand mt-2 flex-shrink-0" />
+      </div>
+    </button>
   );
 }
 

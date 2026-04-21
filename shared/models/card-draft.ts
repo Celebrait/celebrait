@@ -76,7 +76,7 @@ export const CARD_MAKER_STEPS = [
   { id: 'style', label: 'Style' },
   { id: 'front', label: 'Front text' },
   { id: 'inside', label: 'Inside text' },
-  { id: 'review', label: 'Review' },
+  { id: 'review', label: 'Review & Purchase' },
 ] as const;
 
 export type StepId = (typeof CARD_MAKER_STEPS)[number]['id'];
