@@ -32,6 +32,10 @@ interface CardData {
   state?: CardDraftState;
   recipientName?: string | null;
   occasion?: string | null;
+  /** Optional welcome message — only present on the public view
+   *  endpoint, pulled from the sender's most recent paid digital
+   *  order for this card. */
+  welcomeMessage?: string | null;
 }
 
 export default function CardViewerPage() {
@@ -131,18 +135,13 @@ export default function CardViewerPage() {
           flow below with generous vertical spacing — the page
           scrolls if the viewport is short, which is fine. */}
       <div className="pt-16">
-        {/* Gesture hints above the card — fade in on mount, fade out
-            on open. min-h reserves space so exit doesn't reflow. */}
-        <div className="min-h-[56px] flex justify-center items-center pt-4 pb-2">
-          <GestureHints open={open} />
-        </div>
-
         {/* Stage — reserves vertical space in the document flow. The
             actual 3D canvas inside extends past the stage on ALL
             sides (top/bottom/left/right) so the card can freely
-            rotate, open, and tilt without clipping. Individual UI
-            elements below have their own bg so they occlude card
-            geometry that rotates behind them. */}
+            rotate, open, and tilt without clipping. Gesture hints
+            sit as an absolute overlay inside the stage so their
+            exit animation doesn't reflow the layout below (fixes
+            the snap-up glitch Kevin flagged). */}
         <div className="h-[56vh] sm:h-[62vh] w-full relative">
           <div className="absolute top-[-16vh] bottom-[-16vh] left-[-22vw] right-[-22vw] z-0">
             <Card3DViewer
@@ -152,6 +151,9 @@ export default function CardViewerPage() {
               onOpenChange={setOpen}
               className="w-full h-full"
             />
+          </div>
+          <div className="absolute top-0 inset-x-0 pt-4 flex justify-center z-10 pointer-events-none">
+            <GestureHints open={open} />
           </div>
         </div>
 
@@ -219,6 +221,7 @@ export default function CardViewerPage() {
         show={!gateOpen}
         recipientName={recipientName ?? null}
         occasion={occasion ?? null}
+        welcomeMessage={data.welcomeMessage ?? null}
         onOpen={() => setGateOpen(true)}
       />
     </Shell>
@@ -226,134 +229,87 @@ export default function CardViewerPage() {
 }
 
 // ── WelcomeGate ──────────────────────────────────────────────────────
-// Arrival moment rendered as an envelope. A triangular top flap (the
-// traditional envelope seal shape) covers the upper ~45% of the
-// viewport, meeting the body below at a V-shaped seam. A small wax
-// seal sits at the V's lowest point. Content + CTA live on the body
-// below the seal.
+// Arrival moment. Two panels that meet at the centre and swing open
+// like doors on the recipient's click. 3D rotateY on each half with
+// perspective on the parent.
 //
-// On click: the flap rotates up-and-back on a perspective-3D hinge
-// (like lifting a real envelope flap), the body slides down, and
-// the card viewer is revealed behind.
+// If `welcomeMessage` is present (sender wrote a custom note when
+// they bought the digital add-on), it replaces the default
+// "You've been sent a card" eyebrow with a personal line.
 function WelcomeGate({
   show,
   recipientName,
   occasion,
+  welcomeMessage,
   onOpen,
 }: {
   show: boolean;
   recipientName: string | null;
   occasion: string | null;
+  welcomeMessage: string | null;
   onOpen: () => void;
 }) {
-  // Flap polygon — the top triangular shape of an envelope. Apex at
-  // the top-centre (0%), edges running down to the seam at 45% on
-  // left/right, dipping to the V-point at 55% centre.
-  const flapClip = 'polygon(0% 0%, 100% 0%, 100% 45%, 50% 55%, 0% 45%)';
-  // Body polygon — the rectangular bottom with the V notch cut into
-  // its top edge, mirroring the flap.
-  const bodyClip = 'polygon(0% 45%, 50% 55%, 100% 45%, 100% 100%, 0% 100%)';
-
   return (
     <AnimatePresence>
       {show && (
         <div
           className="fixed inset-0 z-40"
-          style={{ perspective: '1600px' }}
+          style={{ perspective: '1400px' }}
           data-testid="viewer-welcome-gate"
         >
-          {/* Flap — hinged at its top edge. Lifts back-and-up when
-              opening, like pulling up an envelope's seal. */}
+          {/* Left door — hinged on the viewport's left edge. */}
           <motion.div
-            className="absolute inset-0 bg-surface"
-            style={{
-              clipPath: flapClip,
-              transformOrigin: 'center top',
-              transformStyle: 'preserve-3d',
-            }}
-            initial={{ rotateX: 0 }}
+            className="absolute inset-y-0 left-0 w-1/2 bg-surface border-r border-stone-200/60"
+            style={{ transformOrigin: 'left center', transformStyle: 'preserve-3d' }}
+            initial={{ rotateY: 0 }}
             exit={{
-              rotateX: -105,
-              transition: { duration: 1.2, ease: [0.65, 0, 0.3, 1] },
+              rotateY: -98,
+              transition: { duration: 1.1, ease: [0.65, 0, 0.3, 1] },
             }}
           />
-
-          {/* Body — slides down on exit, revealing the viewer behind. */}
+          {/* Right door — mirror image. */}
           <motion.div
-            className="absolute inset-0 bg-surface"
-            style={{ clipPath: bodyClip }}
-            initial={{ y: 0 }}
+            className="absolute inset-y-0 right-0 w-1/2 bg-surface border-l border-stone-200/60"
+            style={{ transformOrigin: 'right center', transformStyle: 'preserve-3d' }}
+            initial={{ rotateY: 0 }}
             exit={{
-              y: '100%',
-              transition: { duration: 1.05, ease: [0.65, 0, 0.3, 1], delay: 0.2 },
+              rotateY: 98,
+              transition: { duration: 1.1, ease: [0.65, 0, 0.3, 1] },
             }}
           />
-
-          {/* Flap underside — a slightly darker band along the lower
-              edge of the flap, reading as the paper's back side when
-              lifted. Clipped to just the lowest 4% of the flap area
-              so it hugs the seam. */}
+          {/* Content — floats centred over both doors. Exits fast so
+              it doesn't fight the door animation. */}
           <motion.div
-            className="absolute inset-0 bg-stone-100"
-            style={{
-              clipPath: 'polygon(0% 41%, 100% 41%, 100% 45%, 50% 55%, 0% 45%)',
-              transformOrigin: 'center top',
-            }}
-            initial={{ rotateX: 0, opacity: 0.9 }}
-            exit={{
-              rotateX: -105,
-              transition: { duration: 1.2, ease: [0.65, 0, 0.3, 1] },
-            }}
-          />
-
-          {/* Wax seal — at the V-point (55% down, centred). Exits
-              first so the flap can lift cleanly. */}
-          <motion.div
-            className="absolute left-1/2 -translate-x-1/2 z-10"
-            style={{ top: '52%' }}
-            initial={{ scale: 0.85, opacity: 0 }}
-            animate={{
-              scale: 1,
-              opacity: 1,
-              transition: { duration: 0.6, delay: 0.3, ease: 'easeOut' },
-            }}
-            exit={{
-              opacity: 0,
-              scale: 0.6,
-              transition: { duration: 0.3 },
-            }}
-          >
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#a42c2c] to-[#6b1414] flex items-center justify-center text-white/85 text-sm font-serif tracking-[0.2em] shadow-[0_3px_10px_rgba(120,20,20,0.35)] ring-1 ring-red-950/40">
-              C
-            </div>
-          </motion.div>
-
-          {/* Content — positioned on the body (below the seal). */}
-          <motion.div
-            className="absolute inset-x-0 bottom-0 top-[60%] flex items-start justify-center px-6 pt-14"
-            initial={{ opacity: 0, y: 14 }}
+            className="absolute inset-0 flex items-center justify-center px-6"
+            initial={{ opacity: 0, y: 12 }}
             animate={{
               opacity: 1,
               y: 0,
-              transition: { duration: 0.7, ease: 'easeOut', delay: 0.35 },
+              transition: { duration: 0.7, ease: 'easeOut', delay: 0.15 },
             }}
             exit={{
               opacity: 0,
-              y: 12,
-              transition: { duration: 0.3, ease: 'easeIn' },
+              y: -10,
+              transition: { duration: 0.35, ease: 'easeIn' },
             }}
           >
-            <div className="text-center">
-              <p className="text-xs uppercase tracking-[0.25em] text-stone-500 mb-3">
-                You've been sent a card
-              </p>
-              <h1 className="text-3xl sm:text-4xl font-semibold text-ink mb-2">
+            <div className="text-center max-w-md">
+              {welcomeMessage ? (
+                <p className="text-base sm:text-lg text-stone-700 leading-relaxed mb-5 whitespace-pre-line">
+                  {welcomeMessage}
+                </p>
+              ) : (
+                <p className="text-xs uppercase tracking-[0.25em] text-stone-500 mb-3">
+                  You've been sent a card
+                </p>
+              )}
+              <h1 className="text-4xl sm:text-5xl font-semibold text-ink mb-2">
                 {recipientName ? `For ${recipientName}` : 'A card for you'}
               </h1>
               {occasion && (
-                <p className="text-sm text-stone-600 capitalize mb-7">{occasion}</p>
+                <p className="text-sm text-stone-600 capitalize mb-8">{occasion}</p>
               )}
-              {!occasion && <div className="mb-7" />}
+              {!occasion && <div className="mb-8" />}
               <Button
                 onClick={onOpen}
                 size="lg"

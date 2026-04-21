@@ -18,9 +18,14 @@ import type { Express, Request, Response } from 'express';
 import path from 'path';
 import { promises as fs } from 'fs';
 import { randomBytes } from 'crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { db } from '../db';
-import { cards, EMPTY_CARD_DRAFT, type CardDraftState } from '@shared/schema';
+import {
+  cards,
+  EMPTY_CARD_DRAFT,
+  studioOrders,
+  type CardDraftState,
+} from '@shared/schema';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import { generateStudioCard } from '../background-generator';
 import { checkDailyGenerationLimit } from '../rate-limits';
@@ -267,6 +272,25 @@ export function registerStudioDraftRoutes(app: Express): void {
           ? stateRaw.recipient.occasion.trim()
           : null;
 
+      // Welcome message — look up the most recent paid digital
+      // order for this card (if any). The sender may have written a
+      // custom note when they bought the digital add-on. Falls back
+      // to null if no paid digital order exists yet.
+      const orderRows = await db
+        .select({ welcomeMessage: studioOrders.welcomeMessage })
+        .from(studioOrders)
+        .where(
+          and(
+            eq(studioOrders.cardId, id),
+            eq(studioOrders.includesDigital, true),
+            eq(studioOrders.paymentStatus, 'paid'),
+          ),
+        )
+        .orderBy(desc(studioOrders.paidAt))
+        .limit(1);
+      const welcomeMessage =
+        orderRows[0]?.welcomeMessage?.trim() || null;
+
       res.json({
         id: row.id,
         status: row.status,
@@ -274,6 +298,7 @@ export function registerStudioDraftRoutes(app: Express): void {
         insideImageUrl: row.insideImageUrl,
         recipientName,
         occasion,
+        welcomeMessage,
       });
     } catch (err: any) {
       console.error('[STUDIO] public view error:', err);

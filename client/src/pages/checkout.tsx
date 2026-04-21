@@ -92,6 +92,7 @@ export default function CheckoutPage() {
   const [postcode, setPostcode] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
   const [giftMessage, setGiftMessage] = useState('');
+  const [welcomeMessage, setWelcomeMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const includesPrint = choice !== 'digital';
@@ -138,6 +139,9 @@ export default function CheckoutPage() {
         includesDigital,
         recipientEmail: recipientEmail.trim() || undefined,
       };
+      if (includesDigital && welcomeMessage.trim()) {
+        payload.welcomeMessage = welcomeMessage.trim();
+      }
       if (includesPrint) {
         payload.shipTo = shipTo;
         payload.shippingAddress = {
@@ -394,6 +398,30 @@ export default function CheckoutPage() {
                 <p className="text-xs text-stone-500">
                   Leave blank and we'll send the share link to you instead.
                 </p>
+              </Section>
+            )}
+
+            {includesDigital && (
+              <Section title="Welcome message (optional)">
+                <Field label="A little note they'll see when they open the link">
+                  <textarea
+                    value={welcomeMessage}
+                    onChange={(e) => setWelcomeMessage(e.target.value.slice(0, 240))}
+                    placeholder={
+                      recipientName
+                        ? `A little something for you, ${recipientName} ✨`
+                        : "A little something for you ✨"
+                    }
+                    rows={3}
+                    maxLength={240}
+                    className="w-full rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-ink placeholder:text-stone-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:border-brand resize-none"
+                    data-testid="checkout-welcome-message"
+                  />
+                </Field>
+                <div className="flex items-center justify-between text-xs text-stone-500">
+                  <span>Shown above "For {recipientName || 'them'}" on the opening screen.</span>
+                  <span>{welcomeMessage.length}/240</span>
+                </div>
               </Section>
             )}
           </div>
