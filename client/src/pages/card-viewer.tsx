@@ -12,7 +12,7 @@
 //   - No token → sender previewing their own card via the auth-gated
 //     draft endpoint.
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useRoute, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -62,6 +62,25 @@ export default function CardViewerPage() {
   // clicks "Open", at which point it slides away like a pair of doors
   // opening to reveal the viewer behind.
   const [gateOpen, setGateOpen] = useState(false);
+
+  // Fade UI elements while the user is actively interacting with the
+  // 3D card. Triggered on pointer down / wheel; 1.2s after the last
+  // interaction the UI fades back in. Lets the card rotate/zoom over
+  // buttons and panels without anything visibly clipping.
+  const [isInteracting, setIsInteracting] = useState(false);
+  const interactTimerRef = useRef<number | null>(null);
+  const startInteract = () => {
+    if (interactTimerRef.current) window.clearTimeout(interactTimerRef.current);
+    setIsInteracting(true);
+  };
+  const endInteract = () => {
+    if (interactTimerRef.current) window.clearTimeout(interactTimerRef.current);
+    interactTimerRef.current = window.setTimeout(() => setIsInteracting(false), 1200);
+  };
+  const bumpInteract = () => {
+    startInteract();
+    endInteract();
+  };
 
   if (!Number.isFinite(cardId)) {
     return <Shell><Centered>Invalid card id.</Centered></Shell>;
@@ -144,7 +163,14 @@ export default function CardViewerPage() {
             exit animation doesn't reflow the layout below (fixes
             the snap-up glitch Kevin flagged). */}
         <div className="h-[56vh] sm:h-[62vh] w-full relative">
-          <div className="absolute top-[-16vh] bottom-[-16vh] left-[-22vw] right-[-22vw] z-0">
+          <div
+            className="absolute top-[-16vh] bottom-[-16vh] left-[-22vw] right-[-22vw] z-0"
+            onPointerDown={startInteract}
+            onPointerUp={endInteract}
+            onPointerCancel={endInteract}
+            onPointerLeave={endInteract}
+            onWheel={bumpInteract}
+          >
             <Card3DViewer
               frontImageUrl={data.frontImageUrl}
               insideImageUrl={data.insideImageUrl}
@@ -153,7 +179,10 @@ export default function CardViewerPage() {
               className="w-full h-full"
             />
           </div>
-          <div className="absolute bottom-0 inset-x-0 pb-4 flex justify-center z-10 pointer-events-none">
+          <div
+            className="absolute bottom-0 inset-x-0 pb-4 flex justify-center z-10 pointer-events-none transition-opacity duration-500"
+            style={{ opacity: isInteracting ? 0 : 1 }}
+          >
             <GestureHints open={open} />
           </div>
         </div>
@@ -161,9 +190,13 @@ export default function CardViewerPage() {
         {/* UI — flows below the stage with no background layer. Card
             geometry rotating past the stage passes directly behind
             the UI elements (buttons + panel have their own bg so
-            they stand out on their own). z-10 keeps them above the
-            canvas in stacking order. */}
-        <div className="relative z-10 max-w-xl mx-auto px-4 pt-6 pb-16">
+            they stand out on their own). Fades out while the user
+            is actively interacting with the card so anything the
+            card rotates over doesn't clip against the UI. */}
+        <div
+          className="relative z-10 max-w-xl mx-auto px-4 pt-6 pb-16 transition-opacity duration-500"
+          style={{ opacity: isInteracting ? 0 : 1, pointerEvents: isInteracting ? 'none' : 'auto' }}
+        >
           {/* Action row */}
           <div className="flex flex-col sm:flex-row justify-center items-center gap-3">
             <Button
