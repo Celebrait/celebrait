@@ -12,7 +12,7 @@
 //   - No token → sender previewing their own card via the auth-gated
 //     draft endpoint.
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useRoute, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -73,12 +73,27 @@ export default function CardViewerPage() {
   // opening to reveal the viewer behind.
   const [gateOpen, setGateOpen] = useState(false);
 
-  // Track whether the user has interacted with the card yet (drag/
-  // zoom/tap). Used to retire the gesture hints after the first
-  // interaction. No UI fade — the card is meant to pass behind the
-  // header and buttons at z-index, reading as depth rather than
-  // occlusion.
-  const markInteracted = () => setHasInteracted(true);
+  // Fade the UI (buttons + make-your-own + hints) while the user
+  // is actively interacting with the card. Triggered on pointer
+  // down / wheel; 1.2s after the last interaction the UI fades back
+  // in. Lets the card rotate/zoom over the button area without
+  // clipping against the UI. Header is intentionally NOT faded —
+  // card passes behind it (translucent bg gives depth cue).
+  const [isInteracting, setIsInteracting] = useState(false);
+  const interactTimerRef = useRef<number | null>(null);
+  const startInteract = () => {
+    if (interactTimerRef.current) window.clearTimeout(interactTimerRef.current);
+    setIsInteracting(true);
+    setHasInteracted(true);
+  };
+  const endInteract = () => {
+    if (interactTimerRef.current) window.clearTimeout(interactTimerRef.current);
+    interactTimerRef.current = window.setTimeout(() => setIsInteracting(false), 1200);
+  };
+  const bumpInteract = () => {
+    startInteract();
+    endInteract();
+  };
 
   if (!Number.isFinite(cardId)) {
     return <Shell><Centered>Invalid card id.</Centered></Shell>;
@@ -181,16 +196,18 @@ export default function CardViewerPage() {
             exit animation doesn't reflow the layout below (fixes
             the snap-up glitch Kevin flagged). */}
         <div className="h-[56vh] sm:h-[62vh] w-full relative">
-          {/* Canvas extends generously past the stage in all
-              directions so the card can rotate up behind the header
-              and down behind the buttons without clipping at canvas
-              edges. Header (z-20) and UI (z-10) stay solid — card
-              renders at z-0 behind them, giving a nice sense of
-              depth as it passes under. */}
+          {/* Canvas extends ±40vh vertically and ±22vw horizontally
+              past the stage — card can rotate up behind the
+              (translucent bg) header and down past the buttons
+              without any canvas-edge crop. Symmetric so the card
+              stays centred at stage-centre at default. */}
           <div
-            className="absolute top-[-20vh] bottom-[-20vh] left-[-22vw] right-[-22vw] z-0"
-            onPointerDown={markInteracted}
-            onWheel={markInteracted}
+            className="absolute top-[-40vh] bottom-[-40vh] left-[-22vw] right-[-22vw] z-0"
+            onPointerDown={startInteract}
+            onPointerUp={endInteract}
+            onPointerCancel={endInteract}
+            onPointerLeave={endInteract}
+            onWheel={bumpInteract}
           >
             <Card3DViewer
               frontImageUrl={data.frontImageUrl}
@@ -203,10 +220,18 @@ export default function CardViewerPage() {
         </div>
 
         {/* UI — flows below the stage. The card canvas extends past
-            the stage into this zone at z-0; the UI sits at z-10 with
-            its own solid backgrounds so the card reads as passing
-            behind the buttons + panel (adds depth). No fade. */}
-        <div className="relative z-10 max-w-xl mx-auto px-4 pt-6 pb-16">
+            the stage into this zone at z-0; UI sits at z-10.
+            Buttons + hints + make-your-own panel fade out while the
+            user is actively interacting with the card (drag/zoom),
+            so anything the card rotates over doesn't clip against
+            the UI. Fade back in 1.2s after the last interaction. */}
+        <div
+          className="relative z-10 max-w-xl mx-auto px-4 pt-6 pb-16 transition-opacity duration-500"
+          style={{
+            opacity: isInteracting ? 0 : 1,
+            pointerEvents: isInteracting ? 'none' : 'auto',
+          }}
+        >
           {/* Gesture hints — sit in flow between stage and actions.
               min-h reserves the row so their one-shot exit (fades
               when the user first interacts, stays gone) doesn't
