@@ -243,9 +243,14 @@ export default function CardViewerPage() {
           }}
         >
           {/* Gesture hints — sit close to the card with generous gap
-              between them and the action row below. min-h reserves
-              the row so their one-shot exit doesn't reflow buttons. */}
-          <div className="min-h-[64px] flex justify-center items-start">
+              between them and the action row below. Container
+              collapses (max-height → 0) once hasInteracted fires,
+              smoothly pulling the action row upward as the hints
+              fade out so no dead whitespace is left behind. */}
+          <div
+            className="flex justify-center items-start overflow-hidden transition-[max-height] duration-500 ease-out"
+            style={{ maxHeight: hasInteracted ? 0 : 72 }}
+          >
             <GestureHints open={open || hasInteracted} />
           </div>
 
