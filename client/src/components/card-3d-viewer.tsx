@@ -173,7 +173,7 @@ function Scene({
         enableZoom={true}
         enableDamping
         dampingFactor={0.08}
-        minDistance={1.6}
+        minDistance={2.7}
         maxDistance={6}
         minPolarAngle={Math.PI / 3}
         maxPolarAngle={Math.PI - Math.PI / 3}
@@ -200,12 +200,13 @@ function InitialCameraFit() {
     didInit.current = true;
     const aspect = size.width / size.height;
     const halfFovRad = (camera.fov / 2) * (Math.PI / 180);
-    // Landing framing — card sits at ~70% of the stage with clear
-    // breathing room above and below. Lower values cram the card
-    // into the UI below (tested at 1.15×, Kevin flagged the overlap).
-    // Per the UX review: 1.45× gives the card "object received" feel
-    // rather than "product shot" feel.
-    const required = CARD_W * 1.45;
+    // Landing framing — card sits at ~55% of the canvas with clear
+    // breathing room, so the card can rotate/tilt/zoom freely without
+    // clipping at the canvas edges. The larger margin (vs 1.45×) is
+    // paired with a bigger canvas vertical bleed on the viewer page,
+    // together yielding: card fits above hints at default + card
+    // doesn't crop during rotation/zoom.
+    const required = CARD_W * 1.8;
     const distByHeight = required / (2 * Math.tan(halfFovRad));
     const distByWidth = required / (2 * Math.tan(halfFovRad) * aspect);
     camera.position.z = Math.max(distByHeight, distByWidth);

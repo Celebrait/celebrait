@@ -196,16 +196,22 @@ export default function CardViewerPage() {
             exit animation doesn't reflow the layout below (fixes
             the snap-up glitch Kevin flagged). */}
         <div className="h-[56vh] sm:h-[62vh] w-full relative">
-          {/* Canvas bleed: small ±6vh vertical (just enough to let
-              the card rotate slightly past the stage top/bottom
-              behind the translucent header + faded UI) and generous
-              ±22vw horizontal (for the cover swing on open). Going
-              taller — we tried ±40vh — blows up the default camera
-              distance calc so the card lands too big and crashes
-              into the hints below it at first entry. Small bleed +
-              UI fade on interact is the balance that works. */}
+          {/* Canvas bleed: ±20vh vertical + ±22vw horizontal. Large
+              enough that the card never hits the canvas edge when
+              rotating/tilting/zooming. Paired with margin 1.8 in
+              InitialCameraFit + minDistance 2.7 so the card lands
+              at ~55% of the canvas at default (clean above hints)
+              and fills 100% of the canvas at max zoom + max tilt
+              without overflowing.
+
+              CSS drop-shadow on this container adds a soft depth
+              shadow beneath the card's silhouette — reads as the
+              card floating above the white page. The 3D scene's
+              own ContactShadows still handle the grounded-on-a-
+              surface feel during rotation. */}
           <div
-            className="absolute top-[-6vh] bottom-[-6vh] left-[-22vw] right-[-22vw] z-0"
+            className="absolute top-[-20vh] bottom-[-20vh] left-[-22vw] right-[-22vw] z-0"
+            style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.1))' }}
             onPointerDown={startInteract}
             onPointerUp={endInteract}
             onPointerCancel={endInteract}
