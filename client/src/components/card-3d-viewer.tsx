@@ -217,9 +217,46 @@ function InitialCameraFit() {
 // ── Card ─────────────────────────────────────────────────────────────
 const CARD_W = 1.45;
 const CARD_H = 1.45;
+// Subtle corner rounding — ~1.8% of card width. Not enough to read
+// as "rounded card" at default zoom; just enough to take the hard
+// sharpness off the corner silhouettes.
+const CARD_CORNER = 0.025;
 
 const CLOSED_REST = 0;
 const OPEN_REST = -2.1;
+
+// Shape geometry with softly-rounded corners, UVs remapped to
+// cover the original rectangular bounds so textures map identically
+// to the equivalent PlaneGeometry. Created once, reused across all
+// four card faces.
+function buildCardGeometry(w: number, h: number, radius: number) {
+  const hw = w / 2;
+  const hh = h / 2;
+  const shape = new THREE.Shape();
+  shape.moveTo(-hw + radius, -hh);
+  shape.lineTo(hw - radius, -hh);
+  shape.quadraticCurveTo(hw, -hh, hw, -hh + radius);
+  shape.lineTo(hw, hh - radius);
+  shape.quadraticCurveTo(hw, hh, hw - radius, hh);
+  shape.lineTo(-hw + radius, hh);
+  shape.quadraticCurveTo(-hw, hh, -hw, hh - radius);
+  shape.lineTo(-hw, -hh + radius);
+  shape.quadraticCurveTo(-hw, -hh, -hw + radius, -hh);
+
+  const geom = new THREE.ShapeGeometry(shape);
+  // ShapeGeometry assigns UVs from vertex world-space positions by
+  // default. Remap to [0, 1] across the card's bounding box so the
+  // texture maps like a PlaneGeometry would.
+  const pos = geom.attributes.position;
+  const uvs = new Float32Array(pos.count * 2);
+  for (let i = 0; i < pos.count; i++) {
+    uvs[i * 2] = (pos.getX(i) + hw) / w;
+    uvs[i * 2 + 1] = (pos.getY(i) + hh) / h;
+  }
+  geom.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+  geom.computeVertexNormals();
+  return geom;
+}
 
 // Paper tone for the back-of-cover + back-of-card faces. Pure white
 // card stock — silhouette is carried by the edge stroke drawn into
@@ -263,6 +300,14 @@ function Card({
 
   const backTex = usePaperTexture({ credit: backCredit, anisotropy: maxAnisotropy });
   const coverBackTex = usePaperTexture({ anisotropy: maxAnisotropy });
+
+  // Rounded-corner card geometry, built once and reused across all
+  // four card faces. ShapeGeometry + remapped UVs so textures map
+  // identically to the equivalent PlaneGeometry.
+  const cardGeom = useMemo(
+    () => buildCardGeometry(CARD_W, CARD_H, CARD_CORNER),
+    [],
+  );
 
   const rootRef = useRef<THREE.Group>(null);
   const coverRef = useRef<THREE.Group>(null);
@@ -325,15 +370,21 @@ function Card({
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
-      {/* Inside face — receives the cover's shadow when open. */}
-      <mesh position={[0, 0, -0.008]} receiveShadow>
-        <planeGeometry args={[CARD_W, CARD_H]} />
+      {/* Inside face — receives the cover's shadow when open.
+          Uses the rounded card geometry so the silhouette carries
+          subtle corner softness. Note: inside + back mesh share the
+          same geometry instance — R3F handles disposal. */}
+      <mesh position={[0, 0, -0.008]} geometry={cardGeom} receiveShadow>
         <meshStandardMaterial map={insideTex} roughness={0.9} side={THREE.DoubleSide} />
       </mesh>
 
       {/* Back of the card — credit wordmark, visible at 180°. */}
-      <mesh position={[0, 0, -0.011]} rotation={[0, Math.PI, 0]} receiveShadow>
-        <planeGeometry args={[CARD_W, CARD_H]} />
+      <mesh
+        position={[0, 0, -0.011]}
+        rotation={[0, Math.PI, 0]}
+        geometry={cardGeom}
+        receiveShadow
+      >
         <meshStandardMaterial map={backTex} roughness={0.95} side={THREE.DoubleSide} />
       </mesh>
 
@@ -345,12 +396,16 @@ function Card({
         position={[-CARD_W / 2, 0, 0]}
         rotation={[0, CLOSED_REST, 0]}
       >
-        <mesh position={[CARD_W / 2, 0, 0]} castShadow receiveShadow>
-          <planeGeometry args={[CARD_W, CARD_H]} />
+        <mesh position={[CARD_W / 2, 0, 0]} geometry={cardGeom} castShadow receiveShadow>
           <meshStandardMaterial map={frontTex} roughness={0.9} side={THREE.DoubleSide} />
         </mesh>
-        <mesh position={[CARD_W / 2, 0, -0.003]} rotation={[0, Math.PI, 0]} castShadow receiveShadow>
-          <planeGeometry args={[CARD_W, CARD_H]} />
+        <mesh
+          position={[CARD_W / 2, 0, -0.003]}
+          rotation={[0, Math.PI, 0]}
+          geometry={cardGeom}
+          castShadow
+          receiveShadow
+        >
           <meshStandardMaterial map={coverBackTex} roughness={0.95} side={THREE.DoubleSide} />
         </mesh>
       </group>
