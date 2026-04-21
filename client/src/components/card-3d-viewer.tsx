@@ -200,11 +200,12 @@ function InitialCameraFit() {
     didInit.current = true;
     const aspect = size.width / size.height;
     const halfFovRad = (camera.fov / 2) * (Math.PI / 180);
-    // Tight framing — card fills most of the stage at default with
-    // just enough margin to breathe. The bounded canvas on the
-    // viewer page is the container; this controls the card-to-
-    // stage ratio, not card-to-viewport.
-    const required = CARD_W * 1.15;
+    // Landing framing — card sits at ~70% of the stage with clear
+    // breathing room above and below. Lower values cram the card
+    // into the UI below (tested at 1.15×, Kevin flagged the overlap).
+    // Per the UX review: 1.45× gives the card "object received" feel
+    // rather than "product shot" feel.
+    const required = CARD_W * 1.45;
     const distByHeight = required / (2 * Math.tan(halfFovRad));
     const distByWidth = required / (2 * Math.tan(halfFovRad) * aspect);
     camera.position.z = Math.max(distByHeight, distByWidth);

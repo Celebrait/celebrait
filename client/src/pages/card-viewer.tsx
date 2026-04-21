@@ -195,7 +195,7 @@ export default function CardViewerPage() {
             the snap-up glitch Kevin flagged). */}
         <div className="h-[56vh] sm:h-[62vh] w-full relative">
           <div
-            className="absolute top-[-16vh] bottom-[-16vh] left-[-22vw] right-[-22vw] z-0"
+            className="absolute top-[-6vh] bottom-[-6vh] left-[-22vw] right-[-22vw] z-0"
             onPointerDown={startInteract}
             onPointerUp={endInteract}
             onPointerCancel={endInteract}
