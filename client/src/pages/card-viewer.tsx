@@ -468,9 +468,11 @@ function WelcomeGate({
 
   const handleClick = () => {
     setOpening(true);
-    // Flap animation runs ~750ms; dismiss the gate just after the
-    // flap has fully lifted so the two moments read as one motion.
-    window.setTimeout(() => onOpen(), 850);
+    // Flap lifts ~750ms, then we hold on pure-white for ~300ms
+    // before dismissing the gate. That hold reads as a camera-flash
+    // beat between envelope-open and card-reveal, rather than a
+    // continuous dissolve.
+    window.setTimeout(() => onOpen(), 1050);
   };
 
   return (
@@ -481,7 +483,10 @@ function WelcomeGate({
           initial={{ opacity: 1 }}
           exit={{
             opacity: 0,
-            transition: { duration: 0.7, ease: [0.4, 0, 0.2, 1] },
+            // Snappy expo-out curve — fast start, soft settle. Reads
+            // like the white flash "releasing" to reveal the card
+            // rather than gradually dissolving.
+            transition: { duration: 0.45, ease: [0.55, 0, 0.1, 1] },
           }}
           data-testid="viewer-welcome-gate"
         >
@@ -489,14 +494,16 @@ function WelcomeGate({
             className="text-center max-w-md flex flex-col items-center"
             initial={{ opacity: 0, y: 12 }}
             animate={{
-              opacity: 1,
+              opacity: opening ? 0 : 1,
               y: 0,
-              transition: { duration: 0.7, ease: 'easeOut', delay: 0.15 },
+              transition: opening
+                ? { opacity: { duration: 0.25, delay: 0.75, ease: 'easeIn' } }
+                : { duration: 0.7, ease: 'easeOut', delay: 0.15 },
             }}
             exit={{
               opacity: 0,
               y: -14,
-              transition: { duration: 0.4, ease: 'easeIn' },
+              transition: { duration: 0.3, ease: 'easeIn' },
             }}
           >
             {welcomeMessage ? (
