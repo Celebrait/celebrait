@@ -1,7 +1,6 @@
 import type { Express } from "express";
 import FormData from "form-data";
 import { storage } from "../storage";
-import { sendBackgroundEmail } from "../email-service";
 import { resolveInsidePrompt } from "../prompts/resolver";
 import { generateCardInBackground } from "../background-generator";
 import {
@@ -329,30 +328,9 @@ export function registerGenerationRoutes(app: Express): void {
         status: 'completed'
       });
 
-      // 🚀 CRITICAL: Send email with card preview link after successful generation
-      try {
-        const user = updatedCard.userId ? await storage.getUser(updatedCard.userId) : null;
-        // Check both user.email AND conversationData.email_address
-        const conversationData = updatedCard.conversationData as any;
-        const userEmail = user?.email || conversationData?.email_address || conversationData?.email || conversationData?.user_email;
-        const userName = user?.firstName || conversationData?.name || userEmail;
-        
-        if (userEmail) {
-          console.log(`✅ Card ${cardId} completed - sending preview email to ${userEmail}`);
-          const emailSent = await sendBackgroundEmail(cardId, userEmail, userName);
-          if (emailSent) {
-            console.log(`🎉 Email sent successfully for card ${cardId}`);
-          } else {
-            console.log(`⚠️ Email failed for card ${cardId} - user still gets card but no notification`);
-          }
-        } else {
-          console.log(`⚠️ No email found for card ${cardId} (checked user.email and conversationData) - skipping email`);
-        }
-      } catch (emailError: any) {
-        console.error(`❌ Email error for card ${cardId}:`, emailError);
-        // Continue - don't fail the card generation due to email issues
-      }
-
+      // No auto-email on generation complete — the Studio flow
+      // sends recipient + sender emails on order-paid, not on
+      // card-ready. Legacy "card preview" path retired 2026-04-21.
       res.json(updatedCard);
     } catch (error: any) {
       res.status(500).json({ message: "Error generating images: " + error.message });

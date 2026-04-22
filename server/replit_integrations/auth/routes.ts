@@ -4,7 +4,7 @@ import { isAuthenticated } from "./replitAuth";
 import { db } from "../../db";
 import { otpCodes, users } from "@shared/models/auth";
 import { eq, and, gt } from "drizzle-orm";
-import { sendOtpEmail, sendGenerationStartedEmail } from "../../email-service";
+import { sendOtpEmail } from "../../email-service";
 
 // Local dev bypass: when DEV_AUTH_ACCEPT_ANY_CODE=1, the OTP verify endpoint
 // will accept any of these codes without the user needing to receive a real
@@ -157,11 +157,6 @@ export function registerAuthRoutes(app: Express): void {
         }).returning();
         user = newUser;
       }
-
-      // Send immediate confirmation email (fire-and-forget)
-      sendGenerationStartedEmail(normalizedEmail, user.firstName || null, !existingUser)
-        .then(sent => console.log(`[OTP] Confirmation email ${sent ? 'sent' : 'skipped'} to ${normalizedEmail}`))
-        .catch(err => console.error('[OTP] Confirmation email error:', err));
 
       // Establish session
       req.session.otpUserId = user.id;

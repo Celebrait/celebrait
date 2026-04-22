@@ -3,8 +3,9 @@ import Stripe from "stripe";
 import sharp from "sharp";
 import { createCanvas, loadImage } from "canvas";
 import { storage } from "../storage";
-import { sendEmail } from '../email-service';
-import { generateBusinessOrderEmail } from '../missing-email-functions';
+// Legacy supplier email import removed 2026-04-21 — new print
+// provider integration will handle its own dispatch via the
+// PrintProvider abstraction (server/studio/print-provider.ts).
 import { generateSeparatePDFs, generatePrintSpecs, packagePDFsForSupplier } from "../pdf-generator";
 
 // --- API Clients ---
@@ -284,37 +285,12 @@ export async function processSupplierOrder(orderId: number, cardId: number): Pro
       return;
     }
 
-    // Step 3: Send supplier email
-    console.log(`[SUPPLIER_PROCESSING] Step 3/3: Sending supplier email...`);
-
-    try {
-      const businessEmailParams = generateBusinessOrderEmail(
-        order,
-        { name: order.customerName, email: order.customerEmail, phone: order.customerPhone },
-        order.shippingAddress ? JSON.parse(order.shippingAddress as string) : null,
-        zipFileName
-      );
-
-      if (zipFilePath) {
-        const { promises: fsRead } = await import('fs');
-        const zipData = await fsRead.readFile(zipFilePath);
-        const base64Content = zipData.toString('base64');
-
-        businessEmailParams.attachments = [{
-          name: zipFileName!,
-          content: base64Content,
-          type: 'application/zip'
-        }];
-      }
-
-      await sendEmail(businessEmailParams);
-
-      const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
-      console.log(`[SUPPLIER_PROCESSING] ✅ SUCCESS: Supplier email sent (${elapsedTime}s)`);
-
-    } catch (emailError: any) {
-      console.error(`[SUPPLIER_PROCESSING] ❌ Email sending failed:`, emailError);
-    }
+    // Step 3: legacy supplier email removed 2026-04-21. The zip
+    // package lives at zipFilePath; future print-provider
+    // integration (Gelato/Prodigi via PrintProvider abstraction)
+    // consumes it directly.
+    const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[SUPPLIER_PROCESSING] ✅ Zip ready in ${elapsedTime}s: ${zipFilePath}`);
 
   } catch (error: any) {
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);

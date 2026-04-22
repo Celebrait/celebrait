@@ -23,6 +23,10 @@ import {
 } from '@shared/schema';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import { getPaymentProvider } from '../studio/payment-provider';
+import {
+  sendRecipientCardArrivedEmail,
+  sendSenderOrderConfirmedEmail,
+} from '../email-service';
 
 // Pricing (pence). Tweak here until we have something real to A/B.
 const PRINT_PRICE = 599;
@@ -279,6 +283,13 @@ export function registerStudioCheckoutRoutes(app: Express): void {
           })
           .where(eq(studioOrders.id, orderId));
 
+        // Fire comms now that the order is paid. Async — don't block
+        // the response on email send; any failure is logged inside
+        // the helper so the dev-confirm flow still completes.
+        fireOrderPaidEmails(order).catch((err) => {
+          console.error('[STUDIO-CHECKOUT] paid-email dispatch failed:', err);
+        });
+
         res.json({ ok: true });
       } catch (err: any) {
         console.error('[STUDIO-CHECKOUT] dev-confirm error:', err);
@@ -286,4 +297,79 @@ export function registerStudioCheckoutRoutes(app: Express): void {
       }
     },
   );
+}
+
+// ── Post-paid comms dispatch ─────────────────────────────────────────
+// Fires two emails when a Studio order transitions to paid:
+//   - Recipient (only if digital): "A card has arrived for you"
+//     with the tokenised share link.
+//   - Sender: order-confirmed receipt.
+// The sender "they've opened it" email is NOT fired here — that
+// fires on first valid token-view in studio-drafts.ts.
+async function fireOrderPaidEmails(
+  order: typeof studioOrders.$inferSelect,
+): Promise<void> {
+  // Need the card row for recipient name + occasion (from state)
+  // and the share token for the digital link.
+  const cardRows = await db
+    .select()
+    .from(cards)
+    .where(eq(cards.id, order.cardId))
+    .limit(1);
+  const card = cardRows[0];
+  if (!card) {
+    console.warn('[STUDIO-CHECKOUT] paid-email: card not found for order', order.id);
+    return;
+  }
+
+  const state = (card.conversationData as CardDraftState | null) ?? null;
+  const recipientNameOnCard = state?.recipient?.name?.trim() || null;
+  const occasion = state?.recipient?.occasion?.trim() || null;
+  const senderName = order.customerName?.split(' ')[0] || 'Someone';
+
+  // Digital → recipient email with the share link. Prefer the
+  // recipient email captured at checkout; fall back to the sender
+  // so the link reaches somewhere if they picked "send to me".
+  if (order.includesDigital && card.viewToken) {
+    const recipientEmail = order.recipientEmail?.trim() || order.customerEmail;
+    if (recipientEmail) {
+      const shareUrl = `${publicAppOrigin()}/card/${order.cardId}/view?t=${encodeURIComponent(card.viewToken)}`;
+      const sent = await sendRecipientCardArrivedEmail({
+        recipientEmail,
+        recipientName: recipientNameOnCard,
+        senderName,
+        occasion,
+        shareUrl,
+      });
+      console.log(
+        `[STUDIO-CHECKOUT] recipient email ${sent ? 'sent' : 'failed'} → ${recipientEmail} (order ${order.id})`,
+      );
+    }
+  }
+
+  // Sender → order confirmation / "it's on its way" receipt.
+  const sent = await sendSenderOrderConfirmedEmail({
+    senderEmail: order.customerEmail,
+    senderName,
+    recipientName: recipientNameOnCard,
+    occasion,
+    includesPrint: order.includesPrint,
+    includesDigital: order.includesDigital,
+    totalAmount: order.totalAmount,
+    currency: order.currency,
+    orderId: order.id,
+  });
+  console.log(
+    `[STUDIO-CHECKOUT] sender confirmation ${sent ? 'sent' : 'failed'} → ${order.customerEmail} (order ${order.id})`,
+  );
+}
+
+// Best-effort public origin for share URLs. In production, set
+// PUBLIC_APP_ORIGIN to the canonical https://celebrait.co.za URL.
+// Locally, we fall back to localhost at the current dev port.
+function publicAppOrigin(): string {
+  const configured = process.env.PUBLIC_APP_ORIGIN?.replace(/\/$/, '');
+  if (configured) return configured;
+  const port = process.env.PORT || 5050;
+  return `http://localhost:${port}`;
 }

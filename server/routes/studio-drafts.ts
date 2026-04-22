@@ -18,13 +18,15 @@ import type { Express, Request, Response } from 'express';
 import path from 'path';
 import { promises as fs } from 'fs';
 import { randomBytes } from 'crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '../db';
 import {
   cards,
   EMPTY_CARD_DRAFT,
+  studioOrders,
   type CardDraftState,
 } from '@shared/schema';
+import { sendSenderCardOpenedEmail } from '../email-service';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import { generateStudioCard } from '../background-generator';
 import { checkDailyGenerationLimit } from '../rate-limits';
@@ -279,6 +281,14 @@ export function registerStudioDraftRoutes(app: Express): void {
         recipientName,
         occasion,
       });
+
+      // Fire-and-forget: if this is the first valid token view for a
+      // paid digital order, mark first_opened_at and email the sender
+      // "they've opened it". Runs after response is sent so we don't
+      // block the recipient's viewer load on an email RTT.
+      fireFirstOpenedEmailIfNeeded(id, recipientName).catch((err) => {
+        console.error('[STUDIO] first-opened dispatch failed:', err);
+      });
     } catch (err: any) {
       console.error('[STUDIO] public view error:', err);
       res.status(500).json({ message: 'Could not load card' });
@@ -495,4 +505,62 @@ export function registerStudioDraftRoutes(app: Express): void {
       res.status(500).json({ message: 'Could not delete card: ' + (err?.message ?? String(err)) });
     }
   });
+}
+
+// ── First-opened email dispatcher ────────────────────────────────────
+// On a valid token hit of /api/card/:id/view, check whether there's
+// a paid digital order for the card that hasn't been flagged opened
+// yet. If so, flag it + fire one-shot "they've opened it" to the
+// sender. All best-effort — errors only go to logs.
+async function fireFirstOpenedEmailIfNeeded(
+  cardId: number,
+  recipientNameFromCard: string | null,
+): Promise<void> {
+  // Grab the oldest unopened paid digital order for this card. There's
+  // typically only one, but belt-and-braces.
+  const rows = await db
+    .select()
+    .from(studioOrders)
+    .where(
+      and(
+        eq(studioOrders.cardId, cardId),
+        eq(studioOrders.includesDigital, true),
+        eq(studioOrders.paymentStatus, 'paid'),
+        isNull(studioOrders.firstOpenedAt),
+      ),
+    )
+    .orderBy(desc(studioOrders.paidAt))
+    .limit(1);
+
+  const order = rows[0];
+  if (!order) return; // no paid digital, or already emailed
+
+  // Stamp first_opened_at FIRST so a burst of concurrent token hits
+  // can't send multiple emails. Guard the update with a WHERE that
+  // ensures it's still null — the first write wins.
+  const updated = await db
+    .update(studioOrders)
+    .set({ firstOpenedAt: new Date(), updatedAt: new Date() })
+    .where(
+      and(
+        eq(studioOrders.id, order.id),
+        isNull(studioOrders.firstOpenedAt),
+      ),
+    )
+    .returning({ id: studioOrders.id });
+
+  if (updated.length === 0) {
+    // Lost the race — another concurrent view already stamped it.
+    return;
+  }
+
+  const senderName = order.customerName?.split(' ')[0] || 'there';
+  const sent = await sendSenderCardOpenedEmail({
+    senderEmail: order.customerEmail,
+    senderName,
+    recipientName: recipientNameFromCard,
+  });
+  console.log(
+    `[STUDIO] first-opened email ${sent ? 'sent' : 'failed'} → ${order.customerEmail} (order ${order.id}, card ${cardId})`,
+  );
 }

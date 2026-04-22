@@ -6,7 +6,6 @@ import path from "path";
 import { storage } from "./storage";
 import { insertCardSchema } from "@shared/schema";
 import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
-import { addToMarketingList } from './email-service';
 import {
   getStorageStats,
   cleanupOldImages,
@@ -134,44 +133,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // --- Core routes ---
-
-  app.post("/api/prospects", async (req, res) => {
-    try {
-      const { email, firstName, lastName, signupSource, cardData } = req.body;
-
-      console.log('Creating prospect for marketing automation:', email);
-
-      if (!email || !firstName) {
-        return res.status(400).json({ message: "Email and first name are required" });
-      }
-
-      const metadata = {
-        recipientName: cardData?.recipientName || 'loved one',
-        celebrationType: cardData?.celebrationType || 'celebration',
-        signupSource: signupSource || 'signup_form'
-      };
-
-      const brevoContactId = await addToMarketingList(email, firstName, lastName, metadata);
-
-      if (brevoContactId) {
-        console.log('✅ Marketing automation: Prospect added to Brevo list:', brevoContactId);
-        res.json({
-          success: true,
-          message: "Successfully added to marketing list",
-          brevoContactId
-        });
-      } else {
-        console.log('❌ Marketing automation: Failed to add to Brevo list');
-        res.status(500).json({
-          success: false,
-          message: "Failed to add to marketing list"
-        });
-      }
-    } catch (error: any) {
-      console.error('Prospect creation error:', error);
-      res.status(500).json({ message: "Error creating prospect: " + error.message });
-    }
-  });
 
   app.post("/api/cards", async (req, res) => {
     try {

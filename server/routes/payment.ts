@@ -1,7 +1,10 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { sendEmail } from "../email-service";
-import { generateOrderConfirmationEmail, generateDigitalCardEmail } from "../missing-email-functions";
+// NOTE: legacy /api/cards + /api/orders routes below are pre-Studio and
+// no longer in the active flow. Email sends from these paths were
+// retired on 2026-04-21 — Studio has its own `studio_orders` table
+// and trigger points in server/routes/studio-checkout.ts +
+// server/routes/studio-drafts.ts.
 import { stripe, hasPaystack } from "../utils/shared";
 
 export function registerPaymentRoutes(app: Express): void {
@@ -178,15 +181,7 @@ export function registerPaymentRoutes(app: Express): void {
       const order = await storage.createOrder(orderData);
       console.log('Order created successfully:', order?.id, 'with reference:', order?.paymentReference);
 
-      // Send order confirmation email
-      try {
-        const emailParams = generateOrderConfirmationEmail(orderData);
-        await sendEmail(emailParams);
-        console.log('Order confirmation email sent successfully');
-      } catch (emailError) {
-        console.error('Failed to send order confirmation email:', emailError);
-        // Don't fail the entire request if email fails
-      }
+      // Legacy email path removed — Studio flow handles order emails.
 
       if (!order || !order.id) {
         console.error('Order creation failed - no order returned or missing ID');
@@ -286,17 +281,7 @@ export function registerPaymentRoutes(app: Express): void {
         if (card) {
           await storage.updateCard(card.id, { status: 'paid' });
 
-          // Send appropriate email based on order type
-          try {
-            if (isDigital && card.frontImageUrl) {
-              // Send digital card email with the card image
-              const emailParams = generateDigitalCardEmail(order, card.frontImageUrl);
-              await sendEmail(emailParams);
-              console.log('Digital card email sent successfully');
-            }
-          } catch (emailError) {
-            console.error('Failed to send digital card email:', emailError);
-          }
+          // Legacy digital-card email removed — Studio flow owns it now.
         }
 
         return res.json({
@@ -325,19 +310,7 @@ export function registerPaymentRoutes(app: Express): void {
 
         if (card) {
           await storage.updateCard(card.id, { status: 'paid' });
-
-          // Send appropriate email based on order type
-          try {
-            const isDigital = !order.shippingAddress;
-            if (isDigital && card.frontImageUrl) {
-              // Send digital card email with the card image
-              const emailParams = generateDigitalCardEmail(order, card.frontImageUrl);
-              await sendEmail(emailParams);
-              console.log('Digital card email sent successfully');
-            }
-          } catch (emailError) {
-            console.error('Failed to send digital card email:', emailError);
-          }
+          // Legacy digital-card email removed — Studio flow owns it.
         }
 
         res.json({

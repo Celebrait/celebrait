@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import { eq, inArray } from 'drizzle-orm';
 import { db } from './db';
 import { storage } from './storage';
-import { sendBackgroundEmail, sendGenerationFailedEmail } from './email-service';
+import { sendGenerationFailedEmail } from './email-service';
 import {
   resolveFrontScenePrompt,
   resolveInsidePrompt,
@@ -215,14 +215,9 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
     // --- GENERATE PRINT-RESOLUTION FILES (non-fatal) ---
     await generatePrintResolutionFiles(cardId);
 
-    // --- SEND EMAIL ---
-    try {
-      const sent = await sendBackgroundEmail(cardId, userEmail, userName);
-      console.log(`[BG_GEN] Email ${sent ? 'sent' : 'failed'} for card ${cardId} to ${userEmail}`);
-    } catch (emailErr) {
-      console.error(`[BG_GEN] Email error for card ${cardId}:`, emailErr);
-    }
-
+    // No auto-email on generation complete — the Studio flow sends
+    // the recipient / sender emails on order-paid, not card-ready.
+    // (Legacy sendBackgroundEmail path retired 2026-04-21.)
   } catch (err: any) {
     console.error(`[BG_GEN] Background generation FAILED for card ${cardId}:`, err.message);
     try {

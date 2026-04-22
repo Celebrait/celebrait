@@ -70,6 +70,11 @@ export const studioOrders = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
     paidAt: timestamp("paid_at"),
+    // First time the recipient actually opened the share link.
+    // Nulls until the public view endpoint records a valid-token hit.
+    // Used to (a) fire the "they've opened it" email to the sender
+    // once, and (b) potential future analytics.
+    firstOpenedAt: timestamp("first_opened_at"),
   },
   (table) => [
     index("studio_orders_card_id_idx").on(table.cardId),
