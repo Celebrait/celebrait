@@ -532,7 +532,10 @@ export function registerPromptRoutes(app: Express): void {
         slot === 'front_scene'
           ? deriveFrontSceneVars({
               ...(inputs as FrontSceneVars),
-              photoMode: photoMode === 'group' ? 'group' : photoMode === 'one_person' ? 'one_person' : undefined,
+              photoMode:
+                photoMode === 'group' || photoMode === 'one_person' || photoMode === 'multi_individual'
+                  ? photoMode
+                  : undefined,
               photoCount: totalPhotoCount,
               textLayout: textLayout === 'movie_poster' ? 'movie_poster' : 'scene_integrated',
               hasCharacterAnchor: !!characterAnchor,

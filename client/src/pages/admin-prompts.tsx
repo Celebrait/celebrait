@@ -571,7 +571,7 @@ interface PhotoEntry {
   name: string;
 }
 
-type PhotoMode = 'one_person' | 'group';
+type PhotoMode = 'one_person' | 'multi_individual' | 'group';
 type TextLayout = 'scene_integrated' | 'movie_poster';
 
 interface FrontSceneInputs {
@@ -1222,12 +1222,15 @@ function FrontInputsForm({
 
   const isGemini = selectedProvider === 'gemini';
   const isOnePerson = inputs.photoMode === 'one_person';
-  // One person + Gemini: up to 5 for multi-reference identity anchoring.
-  // One person + OpenAI: 1 only.
-  // Group: always 1 (one photo with everyone in it).
-  // Both providers support multiple images. Gemini up to 14, OpenAI
-  // via image[] array syntax. Cap at 5 for practical purposes.
-  const maxPhotos = !isOnePerson ? 1 : 5;
+  const isMultiIndividual = inputs.photoMode === 'multi_individual';
+  const isGroup = inputs.photoMode === 'group';
+  // Max-photo rules per mode:
+  //   one_person: 5 (multi-angle identity anchoring)
+  //   multi_individual: 5 (one photo per person, up to 5 people)
+  //   group: 1 (single photo that already contains everyone)
+  // Gemini supports up to 14 refs natively; 5 is the practical
+  // quality cliff. OpenAI handles multi-image via image[] array.
+  const maxPhotos = isGroup ? 1 : 5;
 
   // Clear excess photos when switching modes
   const setPhotoMode = (mode: PhotoMode) => {
@@ -1340,13 +1343,13 @@ function FrontInputsForm({
         )}
       </div>
 
-      {/* Photo mode toggle */}
+      {/* Photo mode toggle — three scenarios */}
       <div>
         <Label className="text-xs">Who's on the card?</Label>
         <div className="flex gap-2 mt-1">
           <button
             onClick={() => setPhotoMode('one_person')}
-            className={`flex-1 px-3 py-2 text-xs rounded border transition-colors ${
+            className={`flex-1 px-2 py-2 text-xs rounded border transition-colors text-left ${
               isOnePerson
                 ? 'border-violet-600 bg-violet-50 text-violet-700'
                 : 'border-stone-200 hover:bg-stone-50'
@@ -1354,21 +1357,37 @@ function FrontInputsForm({
             data-testid="mode-one-person"
           >
             <div className="font-semibold">One person</div>
-            <div className="text-[10px] text-stone-500">
-              Up to 5 photos for better likeness
+            <div className="text-[10px] text-stone-500 leading-tight mt-0.5">
+              1–5 photos, same individual (multi-angle anchoring)
+            </div>
+          </button>
+          <button
+            onClick={() => setPhotoMode('multi_individual')}
+            className={`flex-1 px-2 py-2 text-xs rounded border transition-colors text-left ${
+              isMultiIndividual
+                ? 'border-violet-600 bg-violet-50 text-violet-700'
+                : 'border-stone-200 hover:bg-stone-50'
+            }`}
+            data-testid="mode-multi-individual"
+          >
+            <div className="font-semibold">Different people</div>
+            <div className="text-[10px] text-stone-500 leading-tight mt-0.5">
+              Up to 5 photos, one per person, all in final scene
             </div>
           </button>
           <button
             onClick={() => setPhotoMode('group')}
-            className={`flex-1 px-3 py-2 text-xs rounded border transition-colors ${
-              !isOnePerson
+            className={`flex-1 px-2 py-2 text-xs rounded border transition-colors text-left ${
+              isGroup
                 ? 'border-violet-600 bg-violet-50 text-violet-700'
                 : 'border-stone-200 hover:bg-stone-50'
             }`}
             data-testid="mode-group"
           >
             <div className="font-semibold">Group photo</div>
-            <div className="text-[10px] text-stone-500">1 photo with everyone</div>
+            <div className="text-[10px] text-stone-500 leading-tight mt-0.5">
+              1 photo that already contains everyone
+            </div>
           </button>
         </div>
       </div>
@@ -1379,7 +1398,9 @@ function FrontInputsForm({
           <span>
             {isOnePerson
               ? 'Reference photos (up to 5 — more angles = better likeness)'
-              : 'Group photo (one photo with everyone in it)'}
+              : isMultiIndividual
+              ? 'Reference photos (one per person, up to 5 people)'
+              : 'Group photo (single photo with everyone in it)'}
           </span>
           {inputs.photos.length > 0 && (
             <button
@@ -1409,7 +1430,13 @@ function FrontInputsForm({
                   ×
                 </button>
                 <div className="text-[8px] text-stone-500 text-center truncate w-14 mt-0.5">
-                  {isOnePerson ? (i === 0 ? 'Primary' : `Angle ${i + 1}`) : 'Group'}
+                  {isOnePerson
+                    ? i === 0
+                      ? 'Primary'
+                      : `Angle ${i + 1}`
+                    : isMultiIndividual
+                    ? `Person ${i + 1}`
+                    : 'Group'}
                 </div>
               </div>
             ))}
@@ -1420,7 +1447,7 @@ function FrontInputsForm({
           <input
             type="file"
             accept="image/*"
-            multiple={isOnePerson}
+            multiple={isOnePerson || isMultiIndividual}
             onChange={(e) => onPhotosAdd(e.target.files)}
             className="text-xs mt-1 block w-full"
             data-testid="input-photo"
@@ -1430,6 +1457,8 @@ function FrontInputsForm({
         <p className="text-[10px] text-stone-400 mt-1">
           {isOnePerson
             ? 'Add front-facing, 3/4 angle, and smiling shots for best likeness.'
+            : isMultiIndividual
+            ? 'Upload one clean portrait per person. The model anchors each identity from its own photo and composites them into the scene.'
             : 'Upload one photo with all people visible. The model preserves each face from a single image.'}
         </p>
       </div>

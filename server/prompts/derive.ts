@@ -15,10 +15,14 @@ export interface FrontSceneVars {
   userClothing?: string;
   includeText?: boolean;
   cardText?: string;
-  /** 'one_person' = multiple photos are all the same person (multi-angle
-   *  identity anchoring). 'group' = one photo with multiple people. Absent
-   *  or undefined = legacy behaviour (no special preamble). */
-  photoMode?: 'one_person' | 'group';
+  /** Three photo scenarios the FRONT_SCENE prompt branches on:
+   *   - 'one_person'       = one or more photos, all the SAME individual
+   *                          (single portrait or multi-angle identity anchor).
+   *   - 'multi_individual' = N separate photos, each a DIFFERENT person;
+   *                          all should appear together in the output scene.
+   *   - 'group'            = ONE photo that contains multiple people.
+   *  Absent/undefined = legacy behaviour (no photo-mode preamble). */
+  photoMode?: 'one_person' | 'multi_individual' | 'group';
   /** How many reference photos were uploaded. */
   photoCount?: number;
   /** Typography layout: 'scene_integrated' = carved in sand, painted on
@@ -50,6 +54,7 @@ export function deriveFrontSceneVars(vars: FrontSceneVars): RenderVars {
     vars.userArtStyle !== 'ai_decide'
   );
   const isOnePerson = vars.photoMode === 'one_person';
+  const isMultiIndividual = vars.photoMode === 'multi_individual';
   const isGroup = vars.photoMode === 'group';
   const photoCount = vars.photoCount ?? 1;
   return {
@@ -62,9 +67,10 @@ export function deriveFrontSceneVars(vars: FrontSceneVars): RenderVars {
     cardText: vars.cardText ?? '',
     // Photo mode flags — used by {{#if}} blocks in the template to
     // give the model explicit context about what the reference images
-    // represent (same person from multiple angles vs multiple people
-    // in one group shot).
+    // represent (same person multi-angle vs multiple individual photos
+    // of different people vs one photo containing a group).
     isOnePerson,
+    isMultiIndividual,
     isGroup,
     hasMultiplePhotos: photoCount > 1,
     photoCount: String(photoCount),
