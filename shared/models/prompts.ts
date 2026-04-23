@@ -107,6 +107,7 @@ export type PromptProvider =
   | 'openai'
   | 'gemini'
   | 'gemini-flash'
+  | 'gemini-flash-2-5'
   | 'flux';
 export type PromptQuality = 'low' | 'medium' | 'high';
 
