@@ -44,6 +44,20 @@ export const PROMPT_SLOTS = {
 
 export type PromptSlot = typeof PROMPT_SLOTS[keyof typeof PROMPT_SLOTS];
 
+// Variant identifiers. A variant is a per-slot sub-category that needs a
+// genuinely different prompt (not just a conditional branch). Used for
+// front_scene's photo modes today; can be extended to other slots later.
+//
+// null variant = the default template for the slot — applies whenever no
+// variant-specific row exists (backwards compat with pre-split slots).
+export const PROMPT_VARIANTS = {
+  ONE_PERSON: 'one_person',
+  MULTI_INDIVIDUAL: 'multi_individual',
+  GROUP: 'group',
+} as const;
+
+export type PromptVariant = typeof PROMPT_VARIANTS[keyof typeof PROMPT_VARIANTS];
+
 // A single variable declaration on a template, used by the admin UI to
 // auto-generate test input forms and by the resolver for substitution.
 export interface PromptVariable {
@@ -63,6 +77,11 @@ export const promptTemplates = pgTable(
     // unless an explicit override exists). Specific values: 'birthday',
     // 'anniversary', 'sympathy', etc. See PROMPT_LAB_PLAN.md §3.4.
     cardType: text("card_type"),
+    // null = default template for this slot regardless of variant. Specific
+    // values (front_scene only today): 'one_person' | 'multi_individual' |
+    // 'group' — each is a genuinely different prompt, not a conditional
+    // branch. See PROMPT_VARIANTS.
+    variant: text("variant").$type<PromptVariant | null>(),
     name: text("name").notNull(),
     version: integer("version").notNull(),
     templateText: text("template_text").notNull(),
@@ -72,9 +91,10 @@ export const promptTemplates = pgTable(
     createdBy: text("created_by"),
   },
   (t) => [
-    uniqueIndex("prompt_templates_slot_cardtype_version_uniq").on(
+    uniqueIndex("prompt_templates_slot_cardtype_variant_version_uniq").on(
       t.slot,
       t.cardType,
+      t.variant,
       t.version,
     ),
   ],
@@ -83,7 +103,12 @@ export const promptTemplates = pgTable(
 // Provider + quality tier identifiers. Kept loose in the DB so we can add
 // new providers without a migration; these TS unions are the canonical
 // values — matches server/providers/registry.ts.
-export type PromptProvider = 'openai' | 'gemini' | 'flux';
+export type PromptProvider =
+  | 'openai'
+  | 'gemini'
+  | 'gemini-flash'
+  | 'gemini-flash-2-5'
+  | 'flux';
 export type PromptQuality = 'low' | 'medium' | 'high';
 
 // Pointer table: at most one active template per (slot, cardType).
@@ -101,6 +126,10 @@ export const promptActive = pgTable(
   {
     slot: text("slot").notNull(),
     cardType: text("card_type").notNull().default(""), // "" sentinel = default; PKs can't be null
+    // "" sentinel = default variant (applies whenever no variant-specific
+    // row exists); specific values mirror PROMPT_VARIANTS. Separate pointer
+    // per variant so activating `multi_individual` doesn't touch `one_person`.
+    variant: text("variant").notNull().default(""),
     activeTemplateId: integer("active_template_id")
       .notNull()
       .references(() => promptTemplates.id),
@@ -120,7 +149,11 @@ export const promptActive = pgTable(
     updatedBy: text("updated_by"),
   },
   (t) => [
-    uniqueIndex("prompt_active_slot_cardtype_uniq").on(t.slot, t.cardType),
+    uniqueIndex("prompt_active_slot_cardtype_variant_uniq").on(
+      t.slot,
+      t.cardType,
+      t.variant,
+    ),
   ],
 );
 
@@ -163,6 +196,7 @@ export const generationLog = pgTable(
 export const insertPromptTemplateSchema = createInsertSchema(promptTemplates).pick({
   slot: true,
   cardType: true,
+  variant: true,
   name: true,
   version: true,
   templateText: true,

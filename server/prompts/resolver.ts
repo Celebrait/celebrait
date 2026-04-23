@@ -19,6 +19,7 @@ import {
   type PromptTemplate,
   type PromptProvider,
   type PromptQuality,
+  type PromptVariant,
 } from '@shared/schema';
 import { buildScenePrompt, buildInsidePrompt } from '@shared/prompts';
 import {
@@ -45,32 +46,56 @@ const configCache = new Map<CacheKey, ActiveConfig>();
 const CACHE_TTL_MS = 60_000;
 const cacheTimestamps = new Map<CacheKey, number>();
 
-function cacheKey(slot: string, cardType: string | null): CacheKey {
-  return `${slot}::${cardType ?? ''}`;
+function cacheKey(
+  slot: string,
+  cardType: string | null,
+  variant: string | null,
+): CacheKey {
+  return `${slot}::${cardType ?? ''}::${variant ?? ''}`;
 }
 
-export function invalidatePromptCache(slot?: string, cardType?: string | null): void {
+export function invalidatePromptCache(
+  slot?: string,
+  cardType?: string | null,
+  variant?: string | null,
+): void {
   if (!slot) {
     configCache.clear();
     cacheTimestamps.clear();
     return;
   }
-  const key = cacheKey(slot, cardType ?? null);
+  // If variant unspecified, invalidate every cached entry matching (slot, cardType).
+  // This covers the common "activate" flow which only knows slot+cardType.
+  if (variant === undefined) {
+    const prefix = `${slot}::${cardType ?? ''}::`;
+    for (const key of Array.from(configCache.keys())) {
+      if (key.startsWith(prefix)) {
+        configCache.delete(key);
+        cacheTimestamps.delete(key);
+      }
+    }
+    return;
+  }
+  const key = cacheKey(slot, cardType ?? null, variant ?? null);
   configCache.delete(key);
   cacheTimestamps.delete(key);
 }
 
 /**
- * Loads the active *config* for (slot, cardType) — template + provider +
- * quality + vars — falling back to the default (cardType = "") row if no
- * card-type-specific override exists. Returns null if nothing is active yet;
- * callers use the hardcoded fallback in that case.
+ * Loads the active *config* for (slot, cardType, variant) — template +
+ * provider + quality + vars. Falls back in order:
+ *   1. (slot, cardType, variant) — exact match
+ *   2. (slot, cardType, null-variant) — card-type-specific default
+ *   3. (slot, "", variant) — slot+variant default, ignoring card-type
+ *   4. (slot, "", null-variant) — slot default
+ * Returns null if nothing is active; callers use the hardcoded fallback.
  */
 async function loadActiveConfig(
   slot: string,
   cardType: string | null,
+  variant: string | null = null,
 ): Promise<ActiveConfig | null> {
-  const key = cacheKey(slot, cardType);
+  const key = cacheKey(slot, cardType, variant);
   const cached = configCache.get(key);
   const cachedAt = cacheTimestamps.get(key) ?? 0;
   if (cached && Date.now() - cachedAt < CACHE_TTL_MS) {
@@ -87,37 +112,36 @@ async function loadActiveConfig(
     vars: (row.prompt_active.vars as Record<string, unknown> | null) ?? null,
   });
 
-  // 1. Try card-type-specific override
-  if (cardType) {
-    const specific = await db
+  // Try each fallback step in order.
+  // cardType sentinel: "" = default; variant sentinel: "" = default.
+  const steps: Array<{ ct: string; v: string }> = [];
+  if (cardType && variant) steps.push({ ct: cardType, v: variant });
+  if (cardType) steps.push({ ct: cardType, v: '' });
+  if (variant) steps.push({ ct: '', v: variant });
+  steps.push({ ct: '', v: '' });
+
+  for (const { ct, v } of steps) {
+    const row = await db
       .select()
       .from(promptTemplates)
       .innerJoin(
         promptActive,
         eq(promptActive.activeTemplateId, promptTemplates.id),
       )
-      .where(and(eq(promptActive.slot, slot), eq(promptActive.cardType, cardType)))
+      .where(
+        and(
+          eq(promptActive.slot, slot),
+          eq(promptActive.cardType, ct),
+          eq(promptActive.variant, v),
+        ),
+      )
       .limit(1);
-    if (specific.length > 0) {
-      const config = rowToConfig(specific[0]);
+    if (row.length > 0) {
+      const config = rowToConfig(row[0]);
       configCache.set(key, config);
       cacheTimestamps.set(key, Date.now());
       return config;
     }
-  }
-
-  // 2. Fall back to the default (cardType = "") row
-  const defaultRow = await db
-    .select()
-    .from(promptTemplates)
-    .innerJoin(promptActive, eq(promptActive.activeTemplateId, promptTemplates.id))
-    .where(and(eq(promptActive.slot, slot), eq(promptActive.cardType, '')))
-    .limit(1);
-  if (defaultRow.length > 0) {
-    const config = rowToConfig(defaultRow[0]);
-    configCache.set(key, config);
-    cacheTimestamps.set(key, Date.now());
-    return config;
   }
 
   return null;
@@ -185,6 +209,10 @@ export interface ResolvedPrompt {
   templateVersion: number | null;
   slot: PromptSlot;
   cardType: string | null;
+  /** Which variant of the slot's template was resolved. Null = variant-
+   *  agnostic template (the default for pre-split slots + slots that
+   *  don't use variants). For front_scene this mirrors photoMode. */
+  variant: PromptVariant | null;
   /** Provider the admin chose for this slot in production. Null = caller
    *  should use its runtime fallback (current behaviour: OpenAI). */
   provider: PromptProvider | null;
@@ -202,7 +230,22 @@ export async function resolveFrontScenePrompt(
   vars: FrontSceneVars,
   cardType: string | null = null,
 ): Promise<ResolvedPrompt> {
-  const config = await loadActiveConfig(PROMPT_SLOTS.FRONT_SCENE, cardType);
+  // Variant is derived directly from photoMode — the whole point of
+  // the split. When photoMode is missing (legacy callers that predate
+  // multi-photo UI), default to one_person since that's the overwhelming
+  // majority of cards. The loadActiveConfig fallback chain will still try
+  // the null-variant row if no one_person template is active.
+  const variant: PromptVariant =
+    vars.photoMode === 'one_person' ||
+    vars.photoMode === 'multi_individual' ||
+    vars.photoMode === 'group'
+      ? vars.photoMode
+      : 'one_person';
+  const config = await loadActiveConfig(
+    PROMPT_SLOTS.FRONT_SCENE,
+    cardType,
+    variant,
+  );
   if (config) {
     // Slot-level variable overrides win over caller-supplied vars — the
     // admin's production choice is the source of truth. Only known keys are
@@ -218,6 +261,7 @@ export async function resolveFrontScenePrompt(
       templateVersion: config.template.version,
       slot: PROMPT_SLOTS.FRONT_SCENE,
       cardType,
+      variant: (config.template.variant as PromptVariant | null) ?? null,
       provider: config.provider,
       quality: config.quality,
       vars: config.vars,
@@ -230,6 +274,7 @@ export async function resolveFrontScenePrompt(
     templateVersion: null,
     slot: PROMPT_SLOTS.FRONT_SCENE,
     cardType,
+    variant,
     provider: null,
     quality: null,
     vars: null,
@@ -281,7 +326,7 @@ async function resolveInsideByMode(
   cardType: string | null,
 ): Promise<ResolvedPrompt> {
   const slot = mode === 'blank' ? PROMPT_SLOTS.INSIDE_BLANK : PROMPT_SLOTS.INSIDE_WRITE;
-  const config = await loadActiveConfig(slot, cardType);
+  const config = await loadActiveConfig(slot, cardType, null);
   if (config) {
     return {
       text: renderTemplate(config.template.templateText, deriveInsideVars(vars)),
@@ -290,6 +335,7 @@ async function resolveInsideByMode(
       templateVersion: config.template.version,
       slot,
       cardType,
+      variant: (config.template.variant as PromptVariant | null) ?? null,
       provider: config.provider,
       quality: config.quality,
       vars: config.vars,
@@ -318,6 +364,7 @@ async function resolveInsideByMode(
     templateVersion: null,
     slot,
     cardType,
+    variant: null,
     provider: null,
     quality: null,
     vars: null,

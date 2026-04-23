@@ -105,19 +105,18 @@ export async function generateWithRetry(
  * a ProviderError. Routes to the appropriate per-provider classifier.
  */
 function classifyByProvider(err: unknown, providerId: string): ProviderError {
-  switch (providerId) {
-    case 'openai':
-      return classifyOpenAIError(err, providerId);
-    case 'gemini':
-      return classifyGeminiError(err, providerId);
-    default:
-      return new ProviderError({
-        kind: 'unknown',
-        code: 'unclassified',
-        message: (err as any)?.message ?? String(err),
-        retryable: false,
-        provider: providerId,
-        cause: err,
-      });
+  if (providerId === 'openai') {
+    return classifyOpenAIError(err, providerId);
   }
+  if (providerId === 'gemini' || providerId.startsWith('gemini-')) {
+    return classifyGeminiError(err, providerId);
+  }
+  return new ProviderError({
+    kind: 'unknown',
+    code: 'unclassified',
+    message: (err as any)?.message ?? String(err),
+    retryable: false,
+    provider: providerId,
+    cause: err,
+  });
 }

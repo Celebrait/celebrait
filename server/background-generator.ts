@@ -138,17 +138,23 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
     // --- FRONT CARD ---
     // ── ACTIVE PATH: scene generation (the only supported flow) ──
     if (generationType === 'scene' && params.imageDataArray?.length) {
+      // Legacy flow predates variant split — single-photo card, always
+      // one_person. If multi-photo ever reaches this code path the
+      // Studio flow above is the one to thread photoMode through instead.
       const resolvedFront = await resolveFrontScenePrompt({
         scenePrompt: params.scenePrompt || '',
         userArtStyle: params.userArtStyle,
         userClothing: params.userClothing,
         includeText: params.includeText,
         cardText: params.cardText,
+        photoMode: 'one_person',
+        photoCount: params.imageDataArray.length,
       });
 
       console.log(
         `[BG_GEN] Generating front for card ${cardId} via provider=${resolvedFront.provider ?? FALLBACK_PROVIDER} ` +
           `quality=${resolvedFront.quality ?? FALLBACK_QUALITY} ` +
+          `variant=${resolvedFront.variant ?? 'null'} ` +
           `(prompt source=${resolvedFront.source}, templateId=${resolvedFront.templateId}, v=${resolvedFront.templateVersion})`,
       );
       const sceneImageUrl = await generateViaActiveConfig({
@@ -316,12 +322,17 @@ export async function generateStudioCard(cardId: number): Promise<void> {
     const cardText = buildCardText(state);
     const includeText = cardText.length > 0;
 
+    // photoMode is read from the draft state — the user picked it on
+    // the Studio photo step. Legacy drafts predate the toggle, so we
+    // fall back to one_person (the overwhelmingly common case).
+    const photoMode = state.photos?.mode ?? 'one_person';
+
     const resolvedFront = await resolveFrontScenePrompt({
       scenePrompt: state.scene?.description ?? '',
       userArtStyle: artStyle,
       includeText,
       cardText,
-      photoMode: orderedPhotos.length > 1 ? 'group' : 'one_person',
+      photoMode,
       photoCount: orderedPhotos.length,
       // textLayout is NOT set here — the resolver pulls it from the
       // prompt_active row's vars (see Production View). Passing it
@@ -331,6 +342,7 @@ export async function generateStudioCard(cardId: number): Promise<void> {
     console.log(
       `[STUDIO_GEN] Front: provider=${resolvedFront.provider ?? 'openai(fallback)'} ` +
         `quality=${resolvedFront.quality ?? 'high(fallback)'} ` +
+        `variant=${resolvedFront.variant ?? 'null'} ` +
         `templateId=${resolvedFront.templateId} v=${resolvedFront.templateVersion}`,
     );
 

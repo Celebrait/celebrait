@@ -42,6 +42,7 @@ interface PromptTemplate {
   id: number;
   slot: string;
   cardType: string | null;
+  variant: FrontVariant | null;
   name: string;
   version: number;
   templateText: string;
@@ -54,6 +55,7 @@ interface PromptTemplate {
 
 interface SlotVersionsResponse {
   slot: string;
+  variant: FrontVariant | null;
   activeTemplateId: number | null;
   versions: PromptTemplate[];
 }
@@ -102,6 +104,30 @@ interface ProviderInfo {
 
 type SlotId = 'front_scene' | 'inside_write' | 'inside_blank';
 type TabId = SlotId | 'production';
+
+// Front-scene photo-mode variants. Each is a separate row in prompt_templates
+// + prompt_active, so each has its own editor + version list in the Prompt
+// Lab. Other slots don't use variants today (single template, variant=null
+// in the DB); extending is a matter of adding the slot + variant list here.
+type FrontVariant = 'one_person' | 'multi_individual' | 'group';
+
+const FRONT_VARIANTS: FrontVariant[] = [
+  'one_person',
+  'multi_individual',
+  'group',
+];
+
+const FRONT_VARIANT_LABELS: Record<FrontVariant, string> = {
+  one_person: 'One person',
+  multi_individual: 'Different people',
+  group: 'Group photo',
+};
+
+const FRONT_VARIANT_BLURBS: Record<FrontVariant, string> = {
+  one_person: 'Single subject, optionally multi-angle reference photos.',
+  multi_individual: 'Several people, one reference photo per person, all rendered together.',
+  group: 'One reference photo that already contains multiple people.',
+};
 
 const SLOT_LABELS: Record<SlotId, string> = {
   front_scene: 'Front — Scene (photo)',
@@ -184,17 +210,58 @@ export default function AdminPromptsPage() {
 
         {activeTab === 'production' ? (
           <ProductionView />
+        ) : activeTab === 'front_scene' ? (
+          <FrontSceneVariantSwitcher />
         ) : (
-          <SlotPanel slot={activeTab} />
+          <SlotPanel slot={activeTab} variant={null} />
         )}
       </div>
     </div>
   );
 }
 
+// ─── Front-scene variant switcher ────────────────────────────────────────────
+// The front_scene slot has three sibling templates (one_person /
+// multi_individual / group) — each its own row in prompt_templates and its
+// own prompt_active pointer. This wrapper adds a second-level tab row so
+// each variant can be edited and tested independently.
+function FrontSceneVariantSwitcher() {
+  const [variant, setVariant] = useState<FrontVariant>('one_person');
+  return (
+    <div>
+      <div className="flex gap-1 mb-4">
+        {FRONT_VARIANTS.map((v) => (
+          <button
+            key={v}
+            onClick={() => setVariant(v)}
+            className={`px-3 py-1.5 text-xs rounded border transition-colors ${
+              variant === v
+                ? 'border-violet-600 bg-violet-50 text-violet-700 font-medium'
+                : 'border-stone-200 bg-white text-stone-600 hover:bg-stone-50'
+            }`}
+            data-testid={`variant-tab-${v}`}
+          >
+            {FRONT_VARIANT_LABELS[v]}
+          </button>
+        ))}
+        <span className="ml-3 text-[11px] text-stone-500 self-center">
+          {FRONT_VARIANT_BLURBS[variant]}
+        </span>
+      </div>
+      <SlotPanel slot="front_scene" variant={variant} />
+    </div>
+  );
+}
+
 // ─── Slot panel ──────────────────────────────────────────────────────────────
 
-function SlotPanel({ slot }: { slot: SlotId }) {
+function SlotPanel({
+  slot,
+  variant,
+}: {
+  slot: SlotId;
+  variant: FrontVariant | null;
+}) {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
@@ -204,33 +271,40 @@ function SlotPanel({ slot }: { slot: SlotId }) {
   const [liveTemplateText, setLiveTemplateText] = useState<string>('');
   const [isDraft, setIsDraft] = useState(false);
 
-  // Recent runs. Keyed by slot so switching tabs preserves each slot's runs.
+  // Keyed by slot+variant so switching tabs preserves each surface's runs.
+  const runsKey = variant ? `${slot}::${variant}` : slot;
   const [runsBySlot, setRunsBySlot] = useState<Record<string, RunRecord[]>>({});
-  const recentRuns = runsBySlot[slot] ?? [];
+  const recentRuns = runsBySlot[runsKey] ?? [];
 
   const appendRun = (record: RunRecord) => {
     setRunsBySlot((prev) => ({
       ...prev,
-      [slot]: [record, ...(prev[slot] ?? [])].slice(0, 8),
+      [runsKey]: [record, ...(prev[runsKey] ?? [])].slice(0, 8),
     }));
   };
 
+  // Server contract: variant omitted = all variants; variant='' / 'null' =
+  // the variant-agnostic row only. We pass the specific variant when one
+  // is selected so each panel is scoped to exactly that sub-slot.
+  const slotPath = variant
+    ? `/api/admin/prompts/slot/${slot}?variant=${variant}`
+    : `/api/admin/prompts/slot/${slot}?variant=null`;
   const { data, isLoading, error } = useQuery<SlotVersionsResponse>({
-    queryKey: [`/api/admin/prompts/slot/${slot}`],
+    queryKey: [slotPath],
   });
 
-  // Default to the active version on first load (per slot).
+  // Default to the active version on first load (per slot+variant).
   useEffect(() => {
     if (data && selectedId === null) {
       setSelectedId(data.activeTemplateId ?? data.versions[0]?.id ?? null);
     }
   }, [data, selectedId]);
 
-  // Reset selection when slot changes
+  // Reset selection when slot OR variant changes
   useEffect(() => {
     setSelectedId(null);
     setIsDraft(false);
-  }, [slot]);
+  }, [slot, variant]);
 
   // Sync liveTemplateText with the selected version whenever selection
   // changes or draft mode is toggled off.
@@ -305,6 +379,7 @@ function SlotPanel({ slot }: { slot: SlotId }) {
           <>
             <VersionEditor
               slot={slot}
+              variant={variant}
               selected={selected}
               active={active}
               liveText={liveTemplateText}
@@ -316,18 +391,19 @@ function SlotPanel({ slot }: { slot: SlotId }) {
                 setLiveTemplateText(selected.templateText);
               }}
               onSaved={(newId) => {
-                queryClient.invalidateQueries({ queryKey: [`/api/admin/prompts/slot/${slot}`] });
+                queryClient.invalidateQueries({ queryKey: [slotPath] });
                 setSelectedId(newId);
                 setIsDraft(false);
               }}
               onActivated={() => {
-                queryClient.invalidateQueries({ queryKey: [`/api/admin/prompts/slot/${slot}`] });
+                queryClient.invalidateQueries({ queryKey: [slotPath] });
                 queryClient.invalidateQueries({ queryKey: ['/api/admin/prompts/slots'] });
               }}
             />
 
             <TestPanel
               slot={slot}
+              variant={variant}
               liveTemplateText={liveTemplateText}
               templateVersionLabel={isDraft ? 'draft' : selected.version}
               onRunComplete={appendRun}
@@ -351,6 +427,7 @@ function SlotPanel({ slot }: { slot: SlotId }) {
 
 interface VersionEditorProps {
   slot: SlotId;
+  variant: FrontVariant | null;
   selected: PromptTemplate;
   active: PromptTemplate | null;
   liveText: string;
@@ -364,6 +441,7 @@ interface VersionEditorProps {
 
 function VersionEditor({
   slot,
+  variant,
   selected,
   active,
   liveText,
@@ -391,6 +469,7 @@ function VersionEditor({
         templateText: liveText,
         variables: selected.variables,
         notes: draftNotes || null,
+        variant,
       });
       return res.json();
     },
@@ -410,6 +489,7 @@ function VersionEditor({
     mutationFn: async () => {
       const res = await apiRequest('POST', '/api/admin/prompts/activate', {
         slot,
+        variant,
         templateId: selected.id,
       });
       return res.json();
@@ -682,6 +762,11 @@ const DEFAULT_INSIDE_INPUTS: InsideInputs = {
 
 interface TestPanelProps {
   slot: SlotId;
+  /** Variant this test panel is bound to (front_scene only). Null on inside
+   *  slots. Locks the TestPanel's photoMode to this value — the user already
+   *  chose the variant at the tab level; offering a second, conflicting
+   *  picker inside the test form would be confusing. */
+  variant: FrontVariant | null;
   liveTemplateText: string;
   templateVersionLabel: number | string;
   onRunComplete: (run: RunRecord) => void;
@@ -695,13 +780,27 @@ interface TestPanelProps {
 
 function TestPanel({
   slot,
+  variant,
   liveTemplateText,
   templateVersionLabel,
   onRunComplete,
   frontRuns,
   versions,
 }: TestPanelProps) {
-  const [frontInputs, setFrontInputs] = useState<FrontSceneInputs>(DEFAULT_FRONT_INPUTS);
+  // Default front inputs track the bound variant so runs always match.
+  const defaultFrontInputs: FrontSceneInputs = variant
+    ? { ...DEFAULT_FRONT_INPUTS, photoMode: variant }
+    : DEFAULT_FRONT_INPUTS;
+  const [frontInputs, setFrontInputs] = useState<FrontSceneInputs>(defaultFrontInputs);
+
+  // Keep inputs.photoMode in sync if the variant tab changes without the
+  // whole TestPanel remounting.
+  useEffect(() => {
+    if (variant && frontInputs.photoMode !== variant) {
+      setFrontInputs((prev) => ({ ...prev, photoMode: variant }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variant]);
   const [insideInputs, setInsideInputs] = useState<InsideInputs>(DEFAULT_INSIDE_INPUTS);
   const [selectedProvider, setSelectedProvider] = useState<string>('openai');
   const [quality, setQuality] = useState<'low' | 'medium' | 'high'>('low');
@@ -951,6 +1050,7 @@ function TestPanel({
                 onPhotosAdd={handlePhotosAdd}
                 onPhotoRemove={handlePhotoRemove}
                 selectedProvider={selectedProvider}
+                lockedVariant={variant}
               />
             ) : (
               <InsideInputsForm
@@ -969,7 +1069,7 @@ function TestPanel({
                     {([
                       { id: 'off', label: 'Off' },
                       { id: 'openai', label: 'OpenAI (GPT-4o)' },
-                      { id: 'gemini', label: 'Gemini 3.1 Pro' },
+                      { id: 'gemini', label: 'Gemini 3 Pro' },
                     ] as const).map((opt) => (
                       <button
                         key={opt.id}
@@ -1210,17 +1310,21 @@ function FrontInputsForm({
   onPhotosAdd,
   onPhotoRemove,
   selectedProvider,
+  lockedVariant,
 }: {
   inputs: FrontSceneInputs;
   onChange: (next: FrontSceneInputs) => void;
   onPhotosAdd: (files: FileList | null) => void;
   onPhotoRemove: (index: number) => void;
   selectedProvider: string;
+  /** When set, photoMode is locked to this value (chosen at the tab above)
+   *  and the photo-mode toggle is hidden to avoid conflicting pickers. */
+  lockedVariant: FrontVariant | null;
 }) {
   const update = <K extends keyof FrontSceneInputs>(key: K, value: FrontSceneInputs[K]) =>
     onChange({ ...inputs, [key]: value });
 
-  const isGemini = selectedProvider === 'gemini';
+  const isGemini = selectedProvider === 'gemini' || selectedProvider.startsWith('gemini-');
   const isOnePerson = inputs.photoMode === 'one_person';
   const isMultiIndividual = inputs.photoMode === 'multi_individual';
   const isGroup = inputs.photoMode === 'group';
@@ -1343,54 +1447,58 @@ function FrontInputsForm({
         )}
       </div>
 
-      {/* Photo mode toggle — three scenarios */}
-      <div>
-        <Label className="text-xs">Who's on the card?</Label>
-        <div className="flex gap-2 mt-1">
-          <button
-            onClick={() => setPhotoMode('one_person')}
-            className={`flex-1 px-2 py-2 text-xs rounded border transition-colors text-left ${
-              isOnePerson
-                ? 'border-violet-600 bg-violet-50 text-violet-700'
-                : 'border-stone-200 hover:bg-stone-50'
-            }`}
-            data-testid="mode-one-person"
-          >
-            <div className="font-semibold">One person</div>
-            <div className="text-[10px] text-stone-500 leading-tight mt-0.5">
-              1–5 photos, same individual (multi-angle anchoring)
-            </div>
-          </button>
-          <button
-            onClick={() => setPhotoMode('multi_individual')}
-            className={`flex-1 px-2 py-2 text-xs rounded border transition-colors text-left ${
-              isMultiIndividual
-                ? 'border-violet-600 bg-violet-50 text-violet-700'
-                : 'border-stone-200 hover:bg-stone-50'
-            }`}
-            data-testid="mode-multi-individual"
-          >
-            <div className="font-semibold">Different people</div>
-            <div className="text-[10px] text-stone-500 leading-tight mt-0.5">
-              Up to 5 photos, one per person, all in final scene
-            </div>
-          </button>
-          <button
-            onClick={() => setPhotoMode('group')}
-            className={`flex-1 px-2 py-2 text-xs rounded border transition-colors text-left ${
-              isGroup
-                ? 'border-violet-600 bg-violet-50 text-violet-700'
-                : 'border-stone-200 hover:bg-stone-50'
-            }`}
-            data-testid="mode-group"
-          >
-            <div className="font-semibold">Group photo</div>
-            <div className="text-[10px] text-stone-500 leading-tight mt-0.5">
-              1 photo that already contains everyone
-            </div>
-          </button>
+      {/* Photo mode toggle — three scenarios. Hidden when the surrounding
+          tab has already chosen the variant; photoMode is locked to the
+          variant to keep test runs aligned with the prompt being edited. */}
+      {lockedVariant === null && (
+        <div>
+          <Label className="text-xs">Who's on the card?</Label>
+          <div className="flex gap-2 mt-1">
+            <button
+              onClick={() => setPhotoMode('one_person')}
+              className={`flex-1 px-2 py-2 text-xs rounded border transition-colors text-left ${
+                isOnePerson
+                  ? 'border-violet-600 bg-violet-50 text-violet-700'
+                  : 'border-stone-200 hover:bg-stone-50'
+              }`}
+              data-testid="mode-one-person"
+            >
+              <div className="font-semibold">One person</div>
+              <div className="text-[10px] text-stone-500 leading-tight mt-0.5">
+                1–5 photos, same individual (multi-angle anchoring)
+              </div>
+            </button>
+            <button
+              onClick={() => setPhotoMode('multi_individual')}
+              className={`flex-1 px-2 py-2 text-xs rounded border transition-colors text-left ${
+                isMultiIndividual
+                  ? 'border-violet-600 bg-violet-50 text-violet-700'
+                  : 'border-stone-200 hover:bg-stone-50'
+              }`}
+              data-testid="mode-multi-individual"
+            >
+              <div className="font-semibold">Different people</div>
+              <div className="text-[10px] text-stone-500 leading-tight mt-0.5">
+                Up to 5 photos, one per person, all in final scene
+              </div>
+            </button>
+            <button
+              onClick={() => setPhotoMode('group')}
+              className={`flex-1 px-2 py-2 text-xs rounded border transition-colors text-left ${
+                isGroup
+                  ? 'border-violet-600 bg-violet-50 text-violet-700'
+                  : 'border-stone-200 hover:bg-stone-50'
+              }`}
+              data-testid="mode-group"
+            >
+              <div className="font-semibold">Group photo</div>
+              <div className="text-[10px] text-stone-500 leading-tight mt-0.5">
+                1 photo that already contains everyone
+              </div>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Photo upload */}
       <div>
@@ -1987,6 +2095,7 @@ function buildLineDiff(
 interface ProductionConfig {
   slot: string;
   cardType: string;
+  variant: string;
   activeTemplateId: number;
   provider: string | null;
   quality: string | null;
@@ -2016,11 +2125,26 @@ function ProductionView() {
   }
 
   const configs = data?.configs ?? [];
-  // Group by slot, keeping only the default (cardType='') row for now.
-  // Per-card-type overrides can be surfaced later if/when they're used.
+  // Keep only the card-type default (cardType='') rows. Per-card-type
+  // overrides can be surfaced later if/when they're used. Keyed by
+  // slot+variant so front_scene's three variant pointers each render
+  // their own row.
   const defaults = new Map<string, ProductionConfig>();
   for (const c of configs) {
-    if (c.cardType === '') defaults.set(c.slot, c);
+    if (c.cardType === '') {
+      defaults.set(`${c.slot}::${c.variant}`, c);
+    }
+  }
+
+  // Slot → variant list. front_scene has three; other slots have a single
+  // variant-agnostic pointer ('').
+  const slotVariants: Array<{ slot: SlotId; variant: FrontVariant | null }> = [];
+  for (const slot of SLOT_IDS) {
+    if (slot === 'front_scene') {
+      for (const v of FRONT_VARIANTS) slotVariants.push({ slot, variant: v });
+    } else {
+      slotVariants.push({ slot, variant: null });
+    }
   }
 
   return (
@@ -2034,11 +2158,12 @@ function ProductionView() {
         </CardContent>
       </Card>
 
-      {SLOT_IDS.map((slot) => (
+      {slotVariants.map(({ slot, variant }) => (
         <ProductionSlotRow
-          key={slot}
+          key={`${slot}::${variant ?? ''}`}
           slot={slot}
-          config={defaults.get(slot) ?? null}
+          variant={variant}
+          config={defaults.get(`${slot}::${variant ?? ''}`) ?? null}
           providers={providers}
         />
       ))}
@@ -2048,17 +2173,21 @@ function ProductionView() {
 
 interface ProductionSlotRowProps {
   slot: SlotId;
+  variant: FrontVariant | null;
   config: ProductionConfig | null;
   providers: ProviderInfo[];
 }
 
-function ProductionSlotRow({ slot, config, providers }: ProductionSlotRowProps) {
+function ProductionSlotRow({ slot, variant, config, providers }: ProductionSlotRowProps) {
   const queryClient = useQueryClient();
 
-  // Fetch all versions of this slot so the admin can pick any saved one
-  // as the active template.
+  // Fetch versions scoped to this (slot, variant). When variant is null
+  // we pass '' to the server to mean "variant-agnostic row only".
+  const versionsPath = variant
+    ? `/api/admin/prompts/slot/${slot}?variant=${variant}`
+    : `/api/admin/prompts/slot/${slot}?variant=null`;
   const { data: slotData } = useQuery<SlotVersionsResponse>({
-    queryKey: [`/api/admin/prompts/slot/${slot}`],
+    queryKey: [versionsPath],
   });
   const versions = slotData?.versions ?? [];
 
@@ -2109,6 +2238,7 @@ function ProductionSlotRow({ slot, config, providers }: ProductionSlotRowProps) 
       const body = {
         slot,
         cardType: '',
+        variant,
         templateId,
         provider: provider ?? null,
         quality: quality ?? null,
@@ -2118,12 +2248,13 @@ function ProductionSlotRow({ slot, config, providers }: ProductionSlotRowProps) 
       return res.json();
     },
     onSuccess: () => {
+      const label = variant ? `${SLOT_LABELS[slot]} / ${variant}` : SLOT_LABELS[slot];
       toast({
         title: 'Production config saved',
-        description: `${SLOT_LABELS[slot]} updated. New generations will use it within ~60s.`,
+        description: `${label} updated. New generations will use it within ~60s.`,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/prompts/production'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/prompts/slot/${slot}`] });
+      queryClient.invalidateQueries({ queryKey: [versionsPath] });
     },
     onError: (err: Error) => {
       toast({
@@ -2142,6 +2273,11 @@ function ProductionSlotRow({ slot, config, providers }: ProductionSlotRowProps) 
         <div className="flex items-center justify-between gap-4">
           <CardTitle className="text-base font-semibold">
             {SLOT_LABELS[slot]}
+            {variant && (
+              <span className="ml-2 text-xs font-normal text-stone-500">
+                · {FRONT_VARIANT_LABELS[variant]}
+              </span>
+            )}
           </CardTitle>
           {config?.updatedAt && (
             <span className="text-[11px] text-stone-400">

@@ -39,11 +39,10 @@ export const studioOrders = pgTable(
     shipTo: text("ship_to"), // 'sender' | 'recipient' | null
     shippingAddress: jsonb("shipping_address"), // { line1, line2?, city, postcode, country }
     giftMessage: text("gift_message"),
-    // `welcome_message` column still exists in the DB but is no
-    // longer referenced from the app — the welcome gate has no
-    // custom-message UI. Left as a no-op column to avoid a
-    // destructive migration; can be dropped later if we're sure
-    // no legacy data cares.
+    // Legacy column: the welcome gate has no custom-message UI anymore,
+    // but the column is kept so `drizzle-kit push` doesn't flag it for
+    // deletion. Can be dropped later if we're sure no legacy data cares.
+    welcomeMessage: text("welcome_message"),
 
     // Money — integers, minor units (pence).
     currency: text("currency").notNull().default("GBP"),

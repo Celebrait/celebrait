@@ -1,7 +1,12 @@
 // server/providers/gemini-image.ts
 //
-// Google Gemini 3 Pro Image (Nano Banana Pro) adapter behind the
-// ImageProvider interface. Uses the @google/genai SDK.
+// Google Gemini image adapters behind the ImageProvider interface.
+// Uses the @google/genai SDK. Exposes three sibling variants so the
+// Prompt Lab can A/B test them side-by-side:
+//
+//   - gemini            Nano Banana Pro  (gemini-3-pro-image-preview)
+//   - gemini-flash      Nano Banana 2    (gemini-3.1-flash-image-preview)
+//   - gemini-flash-2-5  Legacy 2.5 Flash (gemini-2.5-flash-image-preview)
 //
 // Key differences from the OpenAI adapter:
 //   - Single API call (`generateContent`) for both text-only and
@@ -9,7 +14,7 @@
 //   - Reference images are passed as inline_data parts in the same
 //     content array as the text prompt.
 //   - No quality tiers — one price per resolution.
-//   - Supports up to 14 reference images (we currently use 1).
+//   - Supports up to 14 reference images.
 //   - personGeneration: 'ALLOW_ALL' is required for face generation.
 
 import { GoogleGenAI } from '@google/genai';
@@ -18,12 +23,8 @@ import type {
   ImageGenerationRequest,
   ImageGenerationResult,
 } from './image-provider';
-import { ProviderError, classifyGeminiError } from './errors';
+import { classifyGeminiError } from './errors';
 import { geminiAspect } from './size';
-
-// Single cost for 1K resolution (1024×1024). Gemini 3 Pro Image doesn't
-// have quality tiers like OpenAI — you get one quality level at $0.134.
-const COST_CENTS_1K = 13.4;
 
 let _client: GoogleGenAI | null = null;
 
@@ -36,16 +37,56 @@ function getClient(): GoogleGenAI {
   return _client;
 }
 
-// Nano Banana 2 (Flash) is faster and potentially better at likeness
-// for front cards. Nano Banana Pro handles image-to-image tasks
-// (inside cards, refine/edit) which Flash can't do reliably.
-const MODEL_FLASH = 'gemini-3.1-flash-image-preview'; // Nano Banana 2
-const MODEL_PRO = 'nano-banana-pro-preview';           // Nano Banana Pro
+export interface GeminiVariantConfig {
+  id: string;
+  displayName: string;
+  model: string;
+  /** Cost per 1K image in US cents. */
+  costCents: number;
+  /** Preformatted display price (e.g. "$0.134"). */
+  costDisplay: string;
+}
+
+export const GEMINI_VARIANTS = {
+  pro: {
+    id: 'gemini',
+    displayName: 'Gemini 3 Pro',
+    // `gemini-3-pro-image-preview` was deprecated (see commit 48f22ff).
+    // `nano-banana-pro-preview` is the working alias for Pro.
+    model: 'nano-banana-pro-preview',
+    costCents: 13.4,
+    costDisplay: '$0.134',
+  },
+  flash: {
+    id: 'gemini-flash',
+    displayName: 'Gemini 3.1 Flash',
+    model: 'gemini-3.1-flash-image-preview',
+    costCents: 6.7,
+    costDisplay: '$0.067',
+  },
+  flash25: {
+    id: 'gemini-flash-2-5',
+    displayName: 'Gemini 2.5 Flash',
+    model: 'gemini-2.5-flash-image-preview',
+    costCents: 3.9,
+    costDisplay: '$0.039',
+  },
+} satisfies Record<string, GeminiVariantConfig>;
 
 export class GeminiImageProvider implements ImageProvider {
-  id = 'gemini';
-  displayName = 'Gemini';
-  model = MODEL_PRO; // default shown in UI
+  readonly id: string;
+  readonly displayName: string;
+  readonly model: string;
+  private readonly costCents: number;
+  private readonly costDisplay: string;
+
+  constructor(variant: GeminiVariantConfig = GEMINI_VARIANTS.pro) {
+    this.id = variant.id;
+    this.displayName = variant.displayName;
+    this.model = variant.model;
+    this.costCents = variant.costCents;
+    this.costDisplay = variant.costDisplay;
+  }
 
   isAvailable(): boolean {
     return !!process.env.GEMINI_API_KEY;
@@ -57,7 +98,7 @@ export class GeminiImageProvider implements ImageProvider {
     // consistent (it expects one of low/medium/high). The actual API
     // call ignores the quality param.
     return [
-      { value: 'high' as const, label: 'Standard', costDisplay: '$0.134' },
+      { value: 'high' as const, label: 'Standard', costDisplay: this.costDisplay },
     ];
   }
 
@@ -65,10 +106,7 @@ export class GeminiImageProvider implements ImageProvider {
     const client = getClient();
     const startTime = Date.now();
 
-    // Use Pro for everything. Flash (Nano Banana 2) was tested but
-    // proved unreliable — response times swung from 14s to 196s with
-    // no pattern. Pro is consistent at 20-30s for all tasks.
-    const activeModel = MODEL_PRO;
+    const activeModel = this.model;
 
     // Build the content parts array. Text prompt first, then optional
     // reference image(s) as inline_data.
@@ -182,8 +220,8 @@ export class GeminiImageProvider implements ImageProvider {
     return {
       imageUrl,
       durationMs,
-      costCents: COST_CENTS_1K,
-      costUsd: `$${(COST_CENTS_1K / 100).toFixed(3)}`,
+      costCents: this.costCents,
+      costUsd: `$${(this.costCents / 100).toFixed(3)}`,
       provider: this.id,
       model: activeModel,
     };
@@ -288,8 +326,8 @@ export class GeminiImageProvider implements ImageProvider {
     return {
       imageUrl,
       durationMs: Date.now() - startTime,
-      costCents: COST_CENTS_1K,
-      costUsd: `$${(COST_CENTS_1K / 100).toFixed(3)}`,
+      costCents: this.costCents,
+      costUsd: `$${(this.costCents / 100).toFixed(3)}`,
       provider: this.id,
       model: this.model,
     };

@@ -6,15 +6,18 @@
 
 import type { ImageProvider, ProviderInfo } from './image-provider';
 import { OpenAIImageProvider } from './openai-image';
-import { GeminiImageProvider } from './gemini-image';
-import { FluxImageProvider } from './flux-image';
+import { GeminiImageProvider, GEMINI_VARIANTS } from './gemini-image';
 
 const providers = new Map<string, ImageProvider>();
 
 // Register adapters. Add new providers here as they're built.
 providers.set('openai', new OpenAIImageProvider());
-providers.set('gemini', new GeminiImageProvider());
-providers.set('flux', new FluxImageProvider());
+// Three Gemini model variants exposed side-by-side for A/B testing in
+// the Prompt Lab. The default `gemini` ID maps to Pro for backwards
+// compatibility with existing prompt_active rows and test-refine.
+providers.set(GEMINI_VARIANTS.pro.id, new GeminiImageProvider(GEMINI_VARIANTS.pro));
+providers.set(GEMINI_VARIANTS.flash.id, new GeminiImageProvider(GEMINI_VARIANTS.flash));
+providers.set(GEMINI_VARIANTS.flash25.id, new GeminiImageProvider(GEMINI_VARIANTS.flash25));
 
 /** Look up a provider by ID. Throws if unknown. */
 export function getProvider(id: string): ImageProvider {

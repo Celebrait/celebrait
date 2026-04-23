@@ -37,43 +37,13 @@ async function main(): Promise<void> {
   const cases: Case[] = [];
 
   // ── front_scene cases ──
-  const fs1 = {
-    scenePrompt: 'Sarah on a beach at sunset with a surfboard',
-    userArtStyle: 'watercolor painting',
-    userClothing: 'floral summer dress',
-    includeText: true,
-    cardText: 'Happy Birthday Sarah',
-  };
-  cases.push({
-    name: 'front_scene: all fields filled',
-    expected: buildScenePrompt(fs1),
-    actual: (await resolveFrontScenePrompt(fs1)).text,
-  });
-
-  const fs2 = {
-    scenePrompt: 'A quiet forest at dawn',
-    userArtStyle: 'ai_decide',
-    userClothing: '',
-    includeText: false,
-    cardText: '',
-  };
-  cases.push({
-    name: 'front_scene: ai_decide style, no clothing, no text',
-    expected: buildScenePrompt(fs2),
-    actual: (await resolveFrontScenePrompt(fs2)).text,
-  });
-
-  const fs3 = {
-    scenePrompt: 'Graduation day',
-    userArtStyle: 'oil painting',
-    includeText: true,
-    cardText: 'Congrats Tom',
-  };
-  cases.push({
-    name: 'front_scene: no clothing field',
-    expected: buildScenePrompt(fs3),
-    actual: (await resolveFrontScenePrompt(fs3)).text,
-  });
+  //
+  // Parity for front_scene is no longer meaningful. The template was
+  // deliberately split into three variants (one_person / multi_individual /
+  // group) — each now carries a photo-mode-specific preamble that the
+  // hardcoded buildScenePrompt() has no equivalent of. Keeping these
+  // cases here would fail by design. Inside-card parity is still a real
+  // safety net and is kept below.
 
   // ── inside cases ──
   const in1 = {

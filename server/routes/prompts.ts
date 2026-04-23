@@ -11,14 +11,16 @@
 // real — these endpoints control what prompts hit production.
 
 import type { Express, Request, Response } from 'express';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '../db';
 import {
   promptTemplates,
   promptActive,
   PROMPT_SLOTS,
+  PROMPT_VARIANTS,
   users,
   type PromptSlot,
+  type PromptVariant,
 } from '@shared/schema';
 import { invalidatePromptCache, renderTemplate } from '../prompts/resolver';
 import {
@@ -61,6 +63,17 @@ async function requireAdmin(req: Request, res: Response): Promise<boolean> {
 }
 
 const VALID_SLOTS = new Set<string>(Object.values(PROMPT_SLOTS));
+const VALID_VARIANTS = new Set<string>(Object.values(PROMPT_VARIANTS));
+
+/** Normalise a request's variant value. Accepts a PromptVariant or null/""
+ *  (both mean "variant-agnostic template"). Returns null for the variant-
+ *  agnostic case so downstream code can branch on null. Returns undefined
+ *  when the value is invalid — callers should 400. */
+function parseVariant(raw: unknown): PromptVariant | null | undefined {
+  if (raw === undefined || raw === null || raw === '') return null;
+  if (typeof raw !== 'string') return undefined;
+  return VALID_VARIANTS.has(raw) ? (raw as PromptVariant) : undefined;
+}
 
 export function registerPromptRoutes(app: Express): void {
   // GET /api/admin/prompts/slots
@@ -72,6 +85,7 @@ export function registerPromptRoutes(app: Express): void {
         .select({
           slot: promptActive.slot,
           cardType: promptActive.cardType,
+          variant: promptActive.variant,
           activeTemplateId: promptActive.activeTemplateId,
           templateName: promptTemplates.name,
           templateVersion: promptTemplates.version,
@@ -89,6 +103,7 @@ export function registerPromptRoutes(app: Express): void {
           .filter((a) => a.slot === slot)
           .map((a) => ({
             cardType: a.cardType || null,
+            variant: a.variant || null,
             templateId: a.activeTemplateId,
             templateName: a.templateName,
             templateVersion: a.templateVersion,
@@ -116,32 +131,64 @@ export function registerPromptRoutes(app: Express): void {
         return res.status(400).json({ message: `Unknown slot: ${slot}` });
       }
       const cardTypeFilter = req.query.cardType as string | undefined;
+      // Variant query param: omitted = all variants; '' / 'null' = the
+      // variant-agnostic row only; a specific variant = only that variant's rows.
+      const variantRaw = req.query.variant as string | undefined;
+      const variantFilter =
+        variantRaw === undefined
+          ? undefined
+          : variantRaw === '' || variantRaw === 'null'
+            ? null
+            : VALID_VARIANTS.has(variantRaw)
+              ? (variantRaw as PromptVariant)
+              : (undefined as never);
+      if (variantRaw !== undefined && variantFilter === (undefined as never)) {
+        return res.status(400).json({ message: `Unknown variant: ${variantRaw}` });
+      }
 
-      const whereClause = cardTypeFilter !== undefined
-        ? and(
-            eq(promptTemplates.slot, slot),
-            cardTypeFilter === ''
-              ? sql`${promptTemplates.cardType} IS NULL`
-              : eq(promptTemplates.cardType, cardTypeFilter),
-          )
-        : eq(promptTemplates.slot, slot);
+      const conditions = [eq(promptTemplates.slot, slot)];
+      if (cardTypeFilter !== undefined) {
+        conditions.push(
+          cardTypeFilter === ''
+            ? sql`${promptTemplates.cardType} IS NULL`
+            : eq(promptTemplates.cardType, cardTypeFilter),
+        );
+      }
+      if (variantFilter !== undefined) {
+        conditions.push(
+          variantFilter === null
+            ? isNull(promptTemplates.variant)
+            : eq(promptTemplates.variant, variantFilter),
+        );
+      }
 
       const rows = await db
         .select()
         .from(promptTemplates)
-        .where(whereClause)
+        .where(and(...conditions))
         .orderBy(desc(promptTemplates.version));
 
-      // Annotate which row is currently active (default pointer only)
+      // Annotate which row is currently active for the (slot, variant) default
+      // pointer. When variant is unspecified we show the null-variant pointer
+      // for backwards-compat with the pre-split UI.
+      const activeVariantSentinel =
+        variantFilter === undefined || variantFilter === null ? '' : variantFilter;
       const activeRow = await db
         .select()
         .from(promptActive)
-        .where(and(eq(promptActive.slot, slot), eq(promptActive.cardType, '')))
+        .where(
+          and(
+            eq(promptActive.slot, slot),
+            eq(promptActive.cardType, ''),
+            eq(promptActive.variant, activeVariantSentinel),
+          ),
+        )
         .limit(1);
       const activeId = activeRow[0]?.activeTemplateId ?? null;
 
       res.json({
         slot,
+        variant: variantFilter ?? null,
         activeTemplateId: activeId,
         versions: rows.map((r) => ({ ...r, isActive: r.id === activeId })),
       });
@@ -185,7 +232,7 @@ export function registerPromptRoutes(app: Express): void {
       if (!VALID_SLOTS.has(slot)) {
         return res.status(400).json({ message: `Unknown slot: ${slot}` });
       }
-      const { name, templateText, variables, notes, cardType } = req.body ?? {};
+      const { name, templateText, variables, notes, cardType, variant } = req.body ?? {};
       if (!name || typeof name !== 'string') {
         return res.status(400).json({ message: 'name is required' });
       }
@@ -193,9 +240,13 @@ export function registerPromptRoutes(app: Express): void {
         return res.status(400).json({ message: 'templateText is required' });
       }
 
-      // Compute next version number for this (slot, cardType)
+      // Compute next version number for this (slot, cardType, variant)
       const normalizedCardType: string | null =
         cardType === undefined || cardType === '' || cardType === null ? null : String(cardType);
+      const normalizedVariant = parseVariant(variant);
+      if (normalizedVariant === undefined) {
+        return res.status(400).json({ message: `Unknown variant: ${variant}` });
+      }
 
       const existing = await db
         .select({ version: promptTemplates.version })
@@ -206,6 +257,9 @@ export function registerPromptRoutes(app: Express): void {
             normalizedCardType === null
               ? sql`${promptTemplates.cardType} IS NULL`
               : eq(promptTemplates.cardType, normalizedCardType),
+            normalizedVariant === null
+              ? isNull(promptTemplates.variant)
+              : eq(promptTemplates.variant, normalizedVariant),
           ),
         )
         .orderBy(desc(promptTemplates.version))
@@ -222,6 +276,7 @@ export function registerPromptRoutes(app: Express): void {
         .values({
           slot,
           cardType: normalizedCardType,
+          variant: normalizedVariant,
           name,
           version: nextVersion,
           templateText,
@@ -254,7 +309,7 @@ export function registerPromptRoutes(app: Express): void {
   app.post('/api/admin/prompts/activate', async (req, res) => {
     if (!(await requireAdmin(req, res))) return;
     try {
-      const { slot, cardType, templateId, provider, quality, vars } = req.body ?? {};
+      const { slot, cardType, variant, templateId, provider, quality, vars } = req.body ?? {};
       if (!slot || typeof slot !== 'string' || !VALID_SLOTS.has(slot)) {
         return res.status(400).json({ message: 'Invalid slot' });
       }
@@ -263,12 +318,19 @@ export function registerPromptRoutes(app: Express): void {
         return res.status(400).json({ message: 'Invalid templateId' });
       }
       const ct: string = cardType && typeof cardType === 'string' ? cardType : '';
+      // Normalise variant → "" sentinel = default pointer.
+      const normalizedVariant = parseVariant(variant);
+      if (normalizedVariant === undefined) {
+        return res.status(400).json({ message: `Unknown variant: ${variant}` });
+      }
+      const vt: string = normalizedVariant ?? '';
 
       // Validate the optional production-config fields.
       const providerValid =
         provider === undefined ||
         provider === null ||
-        (typeof provider === 'string' && ['openai', 'gemini', 'flux'].includes(provider));
+        (typeof provider === 'string' &&
+          ['openai', 'gemini', 'gemini-flash', 'gemini-flash-2-5', 'flux'].includes(provider));
       if (!providerValid) {
         return res.status(400).json({ message: 'Invalid provider' });
       }
@@ -294,6 +356,17 @@ export function registerPromptRoutes(app: Express): void {
           .status(400)
           .json({ message: `Template ${id} belongs to slot ${tpl[0].slot}, not ${slot}` });
       }
+      // Refuse cross-variant activation: a template tagged variant=X can only
+      // be activated on the (slot, cardType, variant=X) pointer. Templates with
+      // variant=null activate on the variant-agnostic pointer.
+      const tplVariant: string | null = (tpl[0].variant as string | null) ?? null;
+      if ((tplVariant ?? '') !== vt) {
+        return res.status(400).json({
+          message:
+            `Template ${id} variant="${tplVariant ?? 'null'}" ` +
+            `does not match activation variant="${normalizedVariant ?? 'null'}".`,
+        });
+      }
 
       const user = (req as any).user;
       const updatedBy: string =
@@ -313,18 +386,31 @@ export function registerPromptRoutes(app: Express): void {
       const existing = await db
         .select()
         .from(promptActive)
-        .where(and(eq(promptActive.slot, slot), eq(promptActive.cardType, ct)))
+        .where(
+          and(
+            eq(promptActive.slot, slot),
+            eq(promptActive.cardType, ct),
+            eq(promptActive.variant, vt),
+          ),
+        )
         .limit(1);
 
       if (existing.length > 0) {
         await db
           .update(promptActive)
           .set(updates)
-          .where(and(eq(promptActive.slot, slot), eq(promptActive.cardType, ct)));
+          .where(
+            and(
+              eq(promptActive.slot, slot),
+              eq(promptActive.cardType, ct),
+              eq(promptActive.variant, vt),
+            ),
+          );
       } else {
         await db.insert(promptActive).values({
           slot,
           cardType: ct,
+          variant: vt,
           activeTemplateId: id,
           provider: provider ?? null,
           quality: quality ?? null,
@@ -333,12 +419,17 @@ export function registerPromptRoutes(app: Express): void {
         });
       }
 
-      invalidatePromptCache(slot, ct === '' ? null : ct);
+      invalidatePromptCache(
+        slot,
+        ct === '' ? null : ct,
+        normalizedVariant,
+      );
 
       res.json({
         success: true,
         slot,
         cardType: ct || null,
+        variant: normalizedVariant,
         activeTemplateId: id,
         provider: provider ?? null,
         quality: quality ?? null,
@@ -362,6 +453,7 @@ export function registerPromptRoutes(app: Express): void {
         .select({
           slot: promptActive.slot,
           cardType: promptActive.cardType,
+          variant: promptActive.variant,
           activeTemplateId: promptActive.activeTemplateId,
           provider: promptActive.provider,
           quality: promptActive.quality,
