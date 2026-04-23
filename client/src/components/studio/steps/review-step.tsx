@@ -18,11 +18,11 @@
 //   - failed       → error + retry button (flips status back to draft)
 
 import { useMutation } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation } from 'wouter';
 import {
   Sparkles,
-  Loader2,
   Pencil,
   User,
   Image as ImageIcon,
@@ -92,19 +92,26 @@ export function ReviewStep({
   generatedFrontUrl,
   generatedInsideUrl,
 }: ReviewStepProps) {
-  if (status === 'completed' && generatedFrontUrl) {
+  // Collapse the "generating" and "completed" screens into one
+  // continuous RevealView — same canvas from Stage 1 (silhouette)
+  // through Stage 2 (front arrived, inside pending) to Stage 3
+  // (both arrived, interactive). Avoids the hard-handoff flash
+  // where the old GeneratingView unmounts and CompletedView mounts
+  // cold.
+  const inReveal =
+    status === 'generating' || status === 'completed' || isGenerating;
+
+  if (inReveal) {
     return (
-      <CompletedView
+      <RevealView
         cardId={cardId}
         frontUrl={generatedFrontUrl}
         insideUrl={generatedInsideUrl}
+        status={status}
         recipientName={state.recipient?.name?.trim() ?? null}
+        state={state}
         insideMode={state.inside?.mode ?? null}
         onEditInside={() => {
-          // The user clicked the Buy dialog's "Add a message inside →"
-          // recovery link, so they want write mode. Flip the mode AS we
-          // navigate — they arrive in the write panel with the textarea
-          // ready, not re-selecting the blank they're trying to undo.
           onChange({
             inside: { ...state.inside, mode: 'write' },
           });
@@ -112,10 +119,6 @@ export function ReviewStep({
         }}
       />
     );
-  }
-
-  if (status === 'generating' || isGenerating) {
-    return <GeneratingView />;
   }
 
   if (status === 'failed') {
@@ -347,27 +350,125 @@ function SummaryRow({
   );
 }
 
-// ── In-progress view ──────────────────────────────────────────────────
-function GeneratingView() {
+// ── Build narration — Stage 1 of RevealView ───────────────────────────
+// A short, confident step-by-step script of what we're building, drawn
+// from the user's actual draft. No handwriting, no silhouettes, no AI
+// voice — one clean line at a time, large type, cycling every ~4s so
+// the user reads what we're doing for them, step by step.
+//
+// The script is built from `state` so every line reflects a real
+// choice the user made. Generic fallbacks kick in only if a field is
+// missing (legacy drafts).
+
+/** Turn the draft state into a narration script: five beats shown
+ *  pre-front (one per Studio step), plus a single line that runs
+ *  while the inside is being drafted. */
+function buildNarration(state: CardDraftState): {
+  preFront: string[];
+  duringInside: string;
+} {
+  const name = state.recipient?.name?.trim() || '';
+  const occasionRaw = state.recipient?.occasion?.trim();
+  const occasion = occasionRaw && occasionRaw !== 'other' ? occasionRaw : '';
+  const occasionPhrase = occasion ? `${occasion.toLowerCase()} card` : 'card';
+  const photoMode = state.photos?.mode ?? 'one_person';
+  const photoCount = state.photos?.photoIds?.length ?? 0;
+  const scene = state.scene?.description?.trim() || '';
+  const styleMode = state.style?.mode;
+  const customStyle = state.style?.custom?.trim() || '';
+  const frontText = state.front?.text?.trim() || '';
+  const insideMode = state.inside?.mode;
+  const insideMessage = state.inside?.write?.message?.trim() || '';
+
+  const styleLabel =
+    styleMode === 'animated'
+      ? 'warm, illustrated'
+      : styleMode === 'realistic'
+        ? 'cinematic, photoreal'
+        : customStyle
+          ? customStyle.toLowerCase()
+          : 'signature';
+
+  const preFront: string[] = [];
+
+  // Beat 1 — opening: who the card is for + occasion
+  preFront.push(
+    name ? `Making ${name}'s ${occasionPhrase}.` : 'Making your card.',
+  );
+
+  // Beat 2 — photo
+  if (photoMode === 'group') {
+    preFront.push(name ? `Everyone together with ${name}.` : 'Everyone in the photo.');
+  } else if (photoCount > 1) {
+    preFront.push(name ? `${name}, from every angle.` : 'Captured from every angle.');
+  } else {
+    preFront.push(name ? `${name}, from the photo you sent.` : 'Starting with your photo.');
+  }
+
+  // Beat 3 — scene. User's own words read beautifully back to them.
+  if (scene) {
+    const trimmed = scene.length > 90 ? scene.slice(0, 88).trim() + '…' : scene;
+    preFront.push(`Setting the scene — ${trimmed.toLowerCase()}.`);
+  } else {
+    preFront.push('Setting the scene.');
+  }
+
+  // Beat 4 — style
+  preFront.push(`Painting it in a ${styleLabel} style.`);
+
+  // Beat 5 — front text
+  if (frontText) {
+    preFront.push(`"${frontText}" across the front.`);
+  } else {
+    preFront.push('Letting the scene speak for itself.');
+  }
+
+  // During inside — runs while the front is on screen and the inside
+  // is still being drafted. Mode-aware so we're honest about what's
+  // actually happening.
+  let duringInside: string;
+  if (insideMode === 'blank') {
+    duringInside = 'Leaving the inside blank for your own words.';
+  } else if (insideMessage) {
+    duringInside = 'Writing your message on the inside.';
+  } else {
+    duringInside = 'Composing the inside.';
+  }
+
+  return { preFront, duringInside };
+}
+
+/**
+ * Cycling single-line narration. Auto-advances every ~4.2s, stops at
+ * the last beat (where it holds until the caller unmounts the component
+ * — typically when the front URL lands). Framer handles the line-change
+ * transitions (fade + 12px rise).
+ */
+function BuildNarration({ beats }: { beats: string[] }) {
+  const [index, setIndex] = useState(0);
+  const lastIndex = beats.length - 1;
+
+  useEffect(() => {
+    if (index >= lastIndex) return;
+    const t = window.setTimeout(() => setIndex((i) => i + 1), 4200);
+    return () => window.clearTimeout(t);
+  }, [index, lastIndex]);
+
   return (
-    <div
-      className="max-w-md mx-auto text-center py-12"
-      data-testid="review-generating"
-    >
-      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-muted text-brand mb-6">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-      <h2 className="text-lg font-semibold text-ink mb-2">
-        Crafting your card…
-      </h2>
-      <p className="text-sm text-stone-600">
-        We're drafting the front and inside. Usually about{' '}
-        {TYPICAL_GENERATION_SECONDS} seconds — hang tight.
-      </p>
-      <p className="text-xs text-stone-400 mt-4">
-        Closing this tab is fine — we'll keep drafting. Your card saves to
-        My Cards.
-      </p>
+    <div className="w-full h-full flex items-center justify-center px-6">
+      <AnimatePresence mode="wait">
+        <motion.p
+          key={index}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -12 }}
+          transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
+          className="text-3xl sm:text-4xl md:text-5xl font-semibold text-ink text-center leading-tight max-w-[720px]"
+          data-testid="build-narration-line"
+        >
+          {beats[index]}
+        </motion.p>
+      </AnimatePresence>
     </div>
   );
 }
@@ -399,26 +500,57 @@ function formatGBP(minor: number): string {
   return `£${(minor / 100).toFixed(2)}`;
 }
 
-function CompletedView({
+/**
+ * RevealView — one continuous canvas from the moment Generate is pressed
+ * through the final interactive 3D card. Three internal stages, but the
+ * outer frame never changes:
+ *
+ *   Stage 1 — no frontUrl yet (~0–25s):
+ *     Soft card-shaped silhouette + single framing line below.
+ *
+ *   Stage 2 — frontUrl arrived, status still 'generating' (~25–45s):
+ *     Card3DViewer mounts with the real front, inside locked to the front
+ *     for now (viewer fallback); card stays closed, non-interactive.
+ *     Subtitle softens to "front's in, writing the inside now".
+ *
+ *   Stage 3 — status 'completed':
+ *     Same viewer, now with the real inside, open controls wired.
+ *     Staggered entry choreography for the confirmation line → Buy CTA
+ *     → gesture hints. One emotional beat, three breaths.
+ *
+ * Why continuous canvas (vs separate GeneratingView / CompletedView):
+ * swapping views mid-render reads as "loading → loaded" (utility tool
+ * voice). Keeping the viewer mounted from Stage 2 onwards means the card
+ * just *arrives* — same frame, same lighting, lights come up. The tone
+ * bible calls this out as the moment that most betrays the "gift"
+ * illusion; continuous canvas is the fix.
+ */
+function RevealView({
   cardId,
   frontUrl,
   insideUrl,
+  status,
+  recipientName,
+  state,
   insideMode,
   onEditInside,
 }: {
   cardId: number;
-  frontUrl: string;
+  frontUrl: string | null;
   insideUrl: string | null;
+  status: string | null;
   recipientName: string | null;
-  /** Blank inside = digital version has no message — the Buy dialog
-   *  hides digital options and surfaces an "add a message" recovery
-   *  link when this is 'blank'. */
+  /** Full draft so Stage 1 narration can reflect the user's own
+   *  choices — name, occasion, photo mode, scene, style, card text,
+   *  inside mode. */
+  state: CardDraftState;
   insideMode: 'write' | 'blank' | null;
-  /** Jumps the stepper back to the Inside step (used by the Buy
-   *  dialog's recovery link when the user wants to switch from
-   *  blank to write). */
   onEditInside: () => void;
 }) {
+  const narration = buildNarration(state);
+  const hasFront = !!frontUrl;
+  const isComplete = status === 'completed' && hasFront;
+
   const [open, setOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
@@ -441,72 +573,148 @@ function CompletedView({
 
   return (
     <>
-      <div className="max-w-3xl mx-auto" data-testid="review-completed">
-        {/* Stage — mirrors public viewer. Canvas absolutely positioned
-            inside with generous bleed so the card can rotate/zoom
-            past the step panel edges without clipping. Step panel's
-            overflow is visible by default so the bleed shows. */}
+      <div
+        className="max-w-3xl mx-auto"
+        data-testid={isComplete ? 'review-completed' : 'review-generating'}
+      >
+        {/* Stage — dimensions constant across all three stages so the
+            silhouette → front → full reveal is a texture swap, not a
+            layout jump. */}
         <div className="h-[50vh] sm:h-[56vh] w-full relative">
           <div
             className="absolute top-[-22vh] bottom-[-22vh] left-[-20vw] right-[-20vw] z-[25]"
             style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.1))' }}
-            onPointerDown={startInteract}
-            onPointerUp={endInteract}
-            onPointerCancel={endInteract}
-            onPointerLeave={endInteract}
-            onWheel={bumpInteract}
+            onPointerDown={isComplete ? startInteract : undefined}
+            onPointerUp={isComplete ? endInteract : undefined}
+            onPointerCancel={isComplete ? endInteract : undefined}
+            onPointerLeave={isComplete ? endInteract : undefined}
+            onWheel={isComplete ? bumpInteract : undefined}
           >
-            <Card3DViewer
-              frontImageUrl={frontUrl}
-              insideImageUrl={insideUrl}
-              open={open}
-              onOpenChange={setOpen}
-              className="w-full h-full"
-            />
+            {/* Stage 1 (paper) → Stage 2 (card) crossfade. Synchronous
+                fade (mode="sync") so the paper and card overlap in the
+                same plane for ~300ms — reads as "the paper became a
+                card", not "paper gone, card appeared." */}
+            <AnimatePresence>
+              {hasFront ? (
+                <motion.div
+                  key="viewer"
+                  className="absolute inset-0"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                >
+                  <Card3DViewer
+                    frontImageUrl={frontUrl}
+                    // Stage 2: insideUrl hasn't arrived; Card3DViewer
+                    // falls back to the front texture for the inside
+                    // face. Card stays closed so the user never sees
+                    // that fallback.
+                    insideImageUrl={isComplete ? insideUrl : null}
+                    open={isComplete ? open : false}
+                    onOpenChange={isComplete ? setOpen : () => {}}
+                    className="w-full h-full"
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="narration"
+                  className="absolute inset-0"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                >
+                  <BuildNarration beats={narration.preFront} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
-        {/* UI container sits above canvas at z-30. Hints fade on
-            interact; the CTA group below stays fully visible at all
-            times — Buy this card is the step's primary job, it
-            shouldn't disappear just because the user is rotating. */}
-        <div className="relative z-30 max-w-xl mx-auto px-4 pt-2">
-          {/* Gesture hints — fade on active interaction AND collapse
-              permanently after the first touch. */}
-          <div
-            className="transition-opacity duration-500"
-            style={{
-              opacity: isInteracting ? 0 : 1,
-              pointerEvents: isInteracting ? 'none' : 'auto',
-            }}
-          >
-            <div
-              className="flex justify-center items-start overflow-hidden transition-[max-height] duration-500 ease-out"
-              style={{ maxHeight: hasInteracted ? 0 : 72 }}
-            >
-              <GestureHints open={open || hasInteracted} />
-            </div>
-          </div>
+        {/* Copy + actions stack below the stage. AnimatePresence swaps
+            the subtitle block as we progress through stages; the CTA
+            group (Stage 3 only) has its own staggered choreography so
+            the confirmation lands → Buy appears → hints fade in last. */}
+        <div className="relative z-30 max-w-xl mx-auto px-4 pt-2 text-center">
+          <AnimatePresence mode="wait">
+            {/* Stage 1 has no subtitle — the narration IS the message. */}
+            {hasFront && !isComplete && (
+              <motion.p
+                key="stage-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="text-sm text-stone-600 mt-2"
+              >
+                {narration.duringInside}
+              </motion.p>
+            )}
+            {isComplete && (
+              <motion.div
+                key="stage-3"
+                className="flex flex-col items-center"
+              >
+                {/* Confirmation line — first beat (~400ms in) */}
+                <motion.p
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  className="text-base font-medium text-ink mt-2"
+                >
+                  {recipientName
+                    ? `${recipientName}'s card is ready.`
+                    : 'Your card is ready.'}
+                </motion.p>
 
-          {/* Always-visible primary CTA + stylised subtext. Sits
-              below the hint row with generous gap. */}
-          <div className="mt-8 flex flex-col items-center gap-7">
-            <Button
-              onClick={() => setBuyOpen(true)}
-              className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 py-3.5 rounded-lg w-full sm:w-auto"
-              size="lg"
-              data-testid="btn-buy-card"
-            >
-              Buy this card
-            </Button>
-            <p className="inline-flex items-center gap-2 text-sm font-medium text-ink">
-              <span className="text-base" aria-hidden>🎁</span>
-              <span>
-                Choose <span className="text-brand font-semibold">digital</span>{' '}
-                or <span className="text-brand font-semibold">print</span> next
-              </span>
-            </p>
-          </div>
+                {/* Buy CTA + subtext — second beat (~900ms in) */}
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.9 }}
+                  className="mt-8 flex flex-col items-center gap-7"
+                >
+                  <Button
+                    onClick={() => setBuyOpen(true)}
+                    className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 py-3.5 rounded-lg w-full sm:w-auto"
+                    size="lg"
+                    data-testid="btn-buy-card"
+                  >
+                    Buy this card
+                  </Button>
+                  <p className="inline-flex items-center gap-2 text-sm font-medium text-ink">
+                    <span className="text-base" aria-hidden>🎁</span>
+                    <span>
+                      Choose <span className="text-brand font-semibold">digital</span>{' '}
+                      or <span className="text-brand font-semibold">print</span> next
+                    </span>
+                  </p>
+                </motion.div>
+
+                {/* Gesture hints — last beat (~1.4s in). Fade on active
+                    interaction and collapse permanently after the first
+                    touch. */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: isInteracting ? 0 : 1 }}
+                  transition={{
+                    duration: 0.5,
+                    delay: hasInteracted || isInteracting ? 0 : 1.4,
+                  }}
+                  style={{ pointerEvents: isInteracting ? 'none' : 'auto' }}
+                  className="mt-6"
+                >
+                  <div
+                    className="flex justify-center items-start overflow-hidden transition-[max-height] duration-500 ease-out"
+                    style={{ maxHeight: hasInteracted ? 0 : 72 }}
+                  >
+                    <GestureHints open={open || hasInteracted} />
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 

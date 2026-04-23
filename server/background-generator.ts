@@ -357,6 +357,16 @@ export async function generateStudioCard(cardId: number): Promise<void> {
       'front',
     );
 
+    // Persist the front URL immediately while the inside is still
+    // drafting. The client's polling loop can now reveal the rendered
+    // front mid-flight (Stage 2 of the GeneratingView) instead of
+    // waiting another ~20s for the whole card to complete. Status
+    // stays 'generating' — the final updateCard below flips it to
+    // 'completed' once the inside has landed (or if inside is skipped).
+    await storage.updateCard(cardId, {
+      frontImageUrl: frontWatermarked,
+    });
+
     // ── Build inside-mode vars + resolve the right template ───────
     const insideMode = state.inside?.mode;
     let resolvedInside: ResolvedPrompt | null = null;

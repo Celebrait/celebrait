@@ -217,18 +217,35 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     }, 250);
   };
 
+  // On the Review step, once Generate has been pressed we treat the
+  // whole page as "the moment of unveiling" — any chrome around the card
+  // is a distraction. Hide the h1, stepper, step-panel frame, and the
+  // Saving/Saved indicator until the user comes back to a non-reveal
+  // state (e.g. by clicking Close, or on a fresh load where we're not
+  // mid-render). `isRevealMode` gates all of these in one place so they
+  // stay in sync. Failed is included because its "That one didn't land"
+  // screen is its own full-page visual — stacking the step h1 above it
+  // is just two competing headlines.
+  const isRevealMode =
+    currentStep === 6 &&
+    (status === 'generating' ||
+      status === 'completed' ||
+      status === 'failed' ||
+      isStartingGeneration);
+
   return (
     <div>
       {/* ── Top bar: Saved + Close (page chrome) ───────────────── */}
       <div className="flex items-center justify-end gap-3 mb-3 text-xs text-stone-500">
-        {isSaving ? (
-          <span className="flex items-center gap-1.5">
-            <Loader2 className="w-3 h-3 animate-spin" />
-            Saving…
-          </span>
-        ) : (
-          <span className="text-stone-400">Saved</span>
-        )}
+        {!isRevealMode &&
+          (isSaving ? (
+            <span className="flex items-center gap-1.5">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Saving…
+            </span>
+          ) : (
+            <span className="text-stone-400">Saved</span>
+          ))}
         <button
           type="button"
           onClick={() => setLocation('/studio')}
@@ -239,17 +256,29 @@ function CardMakerInner({ cardId }: { cardId: number }) {
         </button>
       </div>
 
-      {/* ── Stepper (global nav) ──────────────────────────────── */}
-      <div className="mb-6 sm:mb-8">
-        <Stepper
-          currentStep={currentStep}
-          furthestStep={furthestStep}
-          onStepClick={setStep}
-        />
-      </div>
+      {/* ── Stepper (global nav) — hidden during the reveal so the
+          user isn't tempted to mid-render-rewind, and so nothing
+          competes with the card itself. */}
+      {!isRevealMode && (
+        <div className="mb-6 sm:mb-8">
+          <Stepper
+            currentStep={currentStep}
+            furthestStep={furthestStep}
+            onStepClick={setStep}
+          />
+        </div>
+      )}
 
-      {/* ── Step panel — conversational title lives inside ─────── */}
-      <div className="bg-white border border-stone-200 rounded-2xl p-6 sm:p-10 min-h-[380px]">
+      {/* ── Step panel — conversational title lives inside. During
+          reveal mode the white panel + border are dropped so the
+          canvas can bleed (Hero Card pattern). */}
+      <div
+        className={
+          isRevealMode
+            ? 'min-h-[380px]'
+            : 'bg-white border border-stone-200 rounded-2xl p-6 sm:p-10 min-h-[380px]'
+        }
+      >
         {/* Fade-up transition between steps. Outer panel stays put so
             the white card doesn't flicker; only the h1 + body animate.
             Key on currentStep so each advance remounts the motion div
@@ -271,10 +300,10 @@ function CardMakerInner({ cardId }: { cardId: number }) {
             {/* h1 uses the same max-w-2xl + mx-auto as the step body below
                 so it aligns with the form on desktop (Recipient is narrower
                 at max-w-xl — close enough; the h1 left edge matches the
-                wider form grid). Suppressed entirely on the Review step's
-                completed state — the 3D card is the subject, we don't
-                want text above it. */}
-            {!(currentStep === 6 && status === 'completed') && (
+                wider form grid). Suppressed entirely during reveal mode
+                (Review step, Generate pressed) — the 3D card is the
+                subject, we don't want text above it. */}
+            {!isRevealMode && (
               <h1 className="max-w-2xl mx-auto text-xl sm:text-2xl font-semibold text-stone-900 mb-5 sm:mb-6">
                 {stepHeadline}
               </h1>
