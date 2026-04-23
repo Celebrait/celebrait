@@ -147,8 +147,8 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
           Scene description
         </Label>
         <p className="text-sm text-stone-600 mb-2">
-          Who's there, where they are, what they're doing. The more specific,
-          the better.
+          The front of the card is a picture. Tell us what's in it — who's
+          there, where they are, what they're doing.
         </p>
         <Textarea
           ref={textareaRef}
@@ -172,32 +172,28 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
           <p className="text-[11px] text-stone-400">
             {local.length > 0
               ? `${local.length} characters`
-              : 'Tap an example to start — you can edit it.'}
+              : 'Not sure? Tap an example below, or brainstorm it out.'}
           </p>
         </div>
       </div>
 
       {/* Quick-start example chips — fill-and-edit, not a canonical
           picker. Only shown while the textarea is empty so they fade
-          out once the user has written their own scene. */}
+          out once the user has written their own scene. No section
+          header needed; the chips themselves read as suggestions. */}
       {local.length === 0 && exampleScenes.length > 0 && (
-        <div>
-          <p className="text-[11px] font-semibold text-accent-coral-dark uppercase tracking-wider mb-2">
-            Need a spark?
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {exampleScenes.map((ex, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => fillExample(ex)}
-                className="text-left text-xs leading-snug px-3 py-2 rounded-lg bg-surface-cream border border-accent-coral-light hover:border-accent-coral-dark hover:bg-accent-coral-light/60 text-stone-700 transition-colors max-w-full"
-                data-testid={`scene-example-${i}`}
-              >
-                {ex}
-              </button>
-            ))}
-          </div>
+        <div className="flex flex-wrap gap-2">
+          {exampleScenes.map((ex, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => fillExample(ex)}
+              className="text-left text-xs leading-snug px-3 py-2 rounded-lg bg-surface-cream border border-accent-coral-light hover:border-accent-coral-dark hover:bg-accent-coral-light/60 text-stone-700 transition-colors max-w-full"
+              data-testid={`scene-example-${i}`}
+            >
+              {ex}
+            </button>
+          ))}
         </div>
       )}
 
@@ -212,7 +208,7 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
           data-testid="btn-scene-ai-help"
         >
           <Sparkles className="w-4 h-4" />
-          <span className="font-semibold">Brainstorm with AI</span>
+          <span className="font-semibold">Brainstorm the scene</span>
         </Button>
       </div>
 

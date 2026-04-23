@@ -32,6 +32,7 @@ import { PhotoStep, isPhotoStepReady } from '@/components/studio/steps/photo-ste
 import { InsideStep, isInsideStepReady } from '@/components/studio/steps/inside-step';
 import { ReviewStep } from '@/components/studio/steps/review-step';
 import { CARD_MAKER_STEPS, type CardDraftState, type StepId } from '@shared/schema';
+import { getOccasionLabel } from '@/components/studio/scene-presets';
 
 // ── Entry: POST a new draft, then redirect to the edit URL ───────────
 // Keeping the "create draft" side-effect on the /studio/new-card route
@@ -315,6 +316,16 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 status={status}
                 stepIndexById={stepIndexById}
                 onJumpToStep={setStep}
+                onChange={update}
+                onRetry={async () => {
+                  // Two-step: server flips 'failed' → 'draft', then we
+                  // kick off a fresh generation. If we only did the
+                  // first, the UI would stay on FailedView forever;
+                  // if we only did the second, the server would reject
+                  // because the card is still in 'failed' state.
+                  await apiRequest('POST', `/api/studio/drafts/${cardId}/retry`, {});
+                  await startGeneration();
+                }}
                 onGenerate={() => {
                   void startGeneration().catch((err: Error & { used?: number; limit?: number }) => {
                     console.error('[CARD_MAKER] startGeneration failed:', err);
@@ -413,21 +424,34 @@ function isStepReady(stepIndex: number, state: CardDraftState): boolean {
 // scannability (those are navigation, not narrative).
 function getStepHeadline(stepId: StepId, state: CardDraftState): string {
   const name = state.recipient?.name?.trim();
+  const occasionKey = state.recipient?.occasion?.trim();
+  // Occasion label weaves into "Aidan's birthday card" format — lowercase
+  // because it's mid-sentence. 'other' means the preset didn't match, so
+  // we drop the label and fall back to just "card" to avoid awkward copy.
+  const occasionLabel =
+    occasionKey && occasionKey !== 'other'
+      ? getOccasionLabel(occasionKey).toLowerCase()
+      : '';
+  const cardNoun = occasionLabel ? `${occasionLabel} card` : 'card';
+  const ownedCard = name ? `${name}'s ${cardNoun}` : `the ${cardNoun}`;
+
   switch (stepId) {
     case 'recipient':
-      return "Who's this card for?";
+      return "Greetings, who's this card for?";
     case 'photo':
-      return name ? `Show us ${name}` : "Show us who it's for";
+      return 'Upload Photo(s)';
     case 'scene':
-      return name ? `What's the scene for ${name}'s card?` : "What's the scene?";
+      return `Set the scene for the front of ${ownedCard}`;
     case 'style':
-      return name ? `How should ${name}'s card look?` : 'How should the card look?';
+      return `Set the style for the front of ${ownedCard}`;
     case 'front':
-      return name ? `What should ${name}'s card say?` : 'What should it say on the front?';
+      return `What should it say on the front of ${ownedCard}`;
     case 'inside':
-      return name ? `What's the message for ${name}?` : "What's the message?";
+      return `What should it say inside ${ownedCard}`;
     case 'review':
-      return name ? `${name}'s card — ready to make` : 'Ready to make it';
+      return name
+        ? `${name}'s card — take one last look`
+        : 'Take one last look';
   }
 }
 

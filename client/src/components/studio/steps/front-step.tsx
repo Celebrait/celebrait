@@ -62,7 +62,9 @@ export function FrontStep({ state, onChange }: FrontStepProps) {
           Front text
         </Label>
         <p className="text-sm text-stone-600 mb-2">
-          The headline printed on the front. A few words work best.
+          These words are painted into the scene itself — carved into sand,
+          iced onto a cake, lit up in neon. Keep it short; a few words read
+          best.
         </p>
         <Input
           ref={inputRef}
@@ -78,9 +80,13 @@ export function FrontStep({ state, onChange }: FrontStepProps) {
           <p className="text-[11px] text-stone-400">
             {local.length > 0
               ? `${local.length} characters`
-              : "Leave it blank if you'd rather no text on the front."}
+              : "Leave it blank if you'd rather the scene speak for itself."}
           </p>
         </div>
+        <p className="text-[11px] text-stone-500 mt-2 italic">
+          e.g. <span className="text-stone-700">"Happy 40th, Dad"</span> —
+          written in fireworks over the ocean.
+        </p>
       </div>
     </div>
   );

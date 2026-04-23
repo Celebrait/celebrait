@@ -138,7 +138,13 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
     (!!selectedOccasion && !(OCCASION_OPTIONS as readonly string[]).includes(selectedOccasion));
 
   return (
-    <div className="max-w-xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
+      {/* Leading sub-copy — rhythm parity with the other steps (Scene,
+          Style, Front, Review all open with a one-line framing note). */}
+      <p className="text-sm text-stone-600">
+        A name and a reason — that's all we need to start.
+      </p>
+
       {/* Name */}
       <div className="space-y-2">
         <Label htmlFor="recipient-name" className="text-sm text-ink">
@@ -159,7 +165,7 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
       {/* Occasion */}
       <div className="space-y-2">
         <Label className="text-sm text-ink">What's the celebration?</Label>
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {PRIMARY_OCCASIONS.map((o) => (
             <OccasionButton
               key={o}
@@ -185,7 +191,7 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
           </button>
         )}
         {showMore && (
-          <div className="grid grid-cols-2 gap-2.5 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
             {moreOccasions.map((o) => (
               <OccasionButton
                 key={o}

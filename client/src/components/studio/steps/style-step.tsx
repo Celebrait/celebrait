@@ -47,19 +47,19 @@ const MODE_BUTTONS: ModeButton[] = [
   {
     mode: 'animated',
     label: 'Animated',
-    blurb: 'Warm, illustrated, a little whimsical',
+    blurb: 'An illustrated front — warm and a little whimsical.',
     icon: PenLine,
   },
   {
     mode: 'realistic',
     label: 'Realistic',
-    blurb: 'Photoreal, cinematic, true-to-life',
+    blurb: 'A photoreal front — cinematic and true-to-life.',
     icon: Camera,
   },
   {
     mode: 'custom',
     label: 'Custom',
-    blurb: "Describe your own — we'll follow it closely",
+    blurb: "Describe the look for the front — we'll follow it closely.",
     icon: Sparkles,
   },
 ];
@@ -112,7 +112,7 @@ export function StyleStep({ state, onChange, onAdvance }: StyleStepProps) {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <p className="text-sm text-stone-600">
-        Pick one of our house styles, or describe your own.
+        Pick how the front should look — or describe your own style.
       </p>
 
       {/* Primary styles — big featured cards. Top region shows the
@@ -422,8 +422,8 @@ function CustomStyleDialog({
         <DialogHeader>
           <DialogTitle className="text-ink">Describe your style</DialogTitle>
           <DialogDescription>
-            The more specific you are, the better the result. Mention the
-            medium, era and feel.
+            Tell us how the front should look. The more specific — medium,
+            era, feel — the closer we'll land.
           </DialogDescription>
         </DialogHeader>
 

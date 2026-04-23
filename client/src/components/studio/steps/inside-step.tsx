@@ -142,6 +142,10 @@ function BlankPanel({ onUndo }: { onUndo: () => void }) {
             style. The centre stays clean for you to handwrite your
             message after it arrives.
           </p>
+          <p className="text-[11px] text-stone-500 mt-2 italic">
+            Best for printed cards — there's no message for a digital
+            recipient to read.
+          </p>
         </div>
       </div>
       <button

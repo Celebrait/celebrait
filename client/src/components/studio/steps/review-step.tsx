@@ -17,7 +17,7 @@
 //   - completed    → show the rendered front + inside images
 //   - failed       → error + retry button (flips status back to draft)
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import {
@@ -42,7 +42,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
 import type { CardDraftState, StepId } from '@shared/schema';
 import { deriveDefaultFrontText } from '@shared/schema';
@@ -62,9 +61,19 @@ interface ReviewStepProps {
    *  back. Matches CARD_MAKER_STEPS order in the parent. */
   stepIndexById: Record<StepId, number>;
   onJumpToStep: (stepIndex: number) => void;
+  /** Patch the draft. Used by the Buy dialog's "add a message" recovery
+   *  link to flip inside mode from blank → write as the user navigates
+   *  back — so they land in the write panel with the textarea ready,
+   *  not re-staring at the blank selection they're trying to undo. */
+  onChange: (patch: Partial<CardDraftState>) => void;
   /** Called when the user hits Generate. Parent handles the POST and
    *  subsequent status polling. */
   onGenerate: () => void;
+  /** Called when the user hits "Try again" from the FailedView. Parent
+   *  does the two-step dance: POST /retry to flip status from failed →
+   *  draft, then call startGeneration so the draft actually runs again.
+   *  Without this the retry endpoint leaves the UI stuck on FailedView. */
+  onRetry: () => Promise<void>;
   isGenerating: boolean;
   generatedFrontUrl: string | null;
   generatedInsideUrl: string | null;
@@ -76,7 +85,9 @@ export function ReviewStep({
   status,
   stepIndexById,
   onJumpToStep,
+  onChange,
   onGenerate,
+  onRetry,
   isGenerating,
   generatedFrontUrl,
   generatedInsideUrl,
@@ -88,6 +99,17 @@ export function ReviewStep({
         frontUrl={generatedFrontUrl}
         insideUrl={generatedInsideUrl}
         recipientName={state.recipient?.name?.trim() ?? null}
+        insideMode={state.inside?.mode ?? null}
+        onEditInside={() => {
+          // The user clicked the Buy dialog's "Add a message inside →"
+          // recovery link, so they want write mode. Flip the mode AS we
+          // navigate — they arrive in the write panel with the textarea
+          // ready, not re-selecting the blank they're trying to undo.
+          onChange({
+            inside: { ...state.inside, mode: 'write' },
+          });
+          onJumpToStep(stepIndexById.inside);
+        }}
       />
     );
   }
@@ -97,15 +119,17 @@ export function ReviewStep({
   }
 
   if (status === 'failed') {
-    return <FailedView cardId={cardId} />;
+    return <FailedView onRetry={onRetry} />;
   }
 
   // Default: review + generate.
   const recipientName = state.recipient?.name?.trim();
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <p className="text-sm text-stone-600">
-        Here's what you've chosen. Tap any section to change it.
+      <p className="text-sm text-stone-600 leading-relaxed">
+        Everything below is still a draft. Tap any section to change it — you
+        can re-roll the result after, tweak the copy, or come back tomorrow.
+        Nothing gets sent until you say so.
       </p>
 
       <SummaryPanel
@@ -123,8 +147,9 @@ export function ReviewStep({
           <Sparkles className="w-5 h-5 mr-2" />
           {recipientName ? `Generate ${recipientName}'s card` : 'Generate my card'}
         </Button>
-        <p className="text-[11px] text-stone-400 text-center mt-2">
-          Usually about {TYPICAL_GENERATION_SECONDS} seconds.
+        <p className="text-[11px] text-stone-500 text-center mt-2 leading-relaxed">
+          About {TYPICAL_GENERATION_SECONDS} seconds to draft. If you don't
+          love it, re-roll it or edit any step — your card saves as you go.
         </p>
       </div>
     </div>
@@ -251,8 +276,13 @@ function SummaryPanel({
         testId="summary-inside"
       >
         {insideMode === 'blank' ? (
-          <div className="text-sm text-stone-700">
-            Blank centre with decorative border
+          <div>
+            <div className="text-sm text-stone-700">
+              Blank centre with decorative border
+            </div>
+            <div className="text-[11px] text-stone-500 mt-0.5">
+              Print only — digital needs a message inside.
+            </div>
           </div>
         ) : insideMode === 'write' ? (
           <div className="space-y-0.5 text-sm text-stone-700">
@@ -331,12 +361,12 @@ function GeneratingView() {
         Crafting your card…
       </h2>
       <p className="text-sm text-stone-600">
-        Our AI is painting the scene and composing the inside. This usually
-        takes about {TYPICAL_GENERATION_SECONDS} seconds.
+        We're drafting the front and inside. Usually about{' '}
+        {TYPICAL_GENERATION_SECONDS} seconds — hang tight.
       </p>
       <p className="text-xs text-stone-400 mt-4">
-        You can close this tab — we'll keep working. Come back any time to
-        see the result.
+        Closing this tab is fine — we'll keep drafting. Your card saves to
+        My Cards.
       </p>
     </div>
   );
@@ -373,11 +403,21 @@ function CompletedView({
   cardId,
   frontUrl,
   insideUrl,
+  insideMode,
+  onEditInside,
 }: {
   cardId: number;
   frontUrl: string;
   insideUrl: string | null;
   recipientName: string | null;
+  /** Blank inside = digital version has no message — the Buy dialog
+   *  hides digital options and surfaces an "add a message" recovery
+   *  link when this is 'blank'. */
+  insideMode: 'write' | 'blank' | null;
+  /** Jumps the stepper back to the Inside step (used by the Buy
+   *  dialog's recovery link when the user wants to switch from
+   *  blank to write). */
+  onEditInside: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
@@ -470,7 +510,13 @@ function CompletedView({
         </div>
       </div>
 
-      <BuyDialog open={buyOpen} onOpenChange={setBuyOpen} cardId={cardId} />
+      <BuyDialog
+        open={buyOpen}
+        onOpenChange={setBuyOpen}
+        cardId={cardId}
+        insideMode={insideMode}
+        onEditInside={onEditInside}
+      />
     </>
   );
 }
@@ -484,16 +530,27 @@ function BuyDialog({
   open,
   onOpenChange,
   cardId,
+  insideMode,
+  onEditInside,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   cardId: number;
+  /** When 'blank', hide the digital option — the recipient can't read
+   *  an empty inside — and offer a recovery link to the Inside step. */
+  insideMode: 'write' | 'blank' | null;
+  onEditInside: () => void;
 }) {
   const [, setLocation] = useLocation();
   const go = (choice: ProductChoice) => {
     onOpenChange(false);
     setLocation(`/checkout/${cardId}?product=${choice}`);
   };
+  const handleEditInside = () => {
+    onOpenChange(false);
+    onEditInside();
+  };
+  const isBlank = insideMode === 'blank';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -501,19 +558,23 @@ function BuyDialog({
         <DialogHeader>
           <DialogTitle className="text-left">How would you like to send it?</DialogTitle>
           <DialogDescription className="text-left">
-            Pick one — you can change your mind at checkout.
+            {isBlank
+              ? "You chose a blank inside, so this one's for the post."
+              : 'Pick one — you can change your mind at checkout.'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-1 space-y-3">
-          <BuyOption
-            icon={<Sparkles className="w-5 h-5 text-brand" />}
-            title="Digital"
-            description="A share link that opens with the same 3D viewer you're playing with now. Instant."
-            price={formatGBP(totalsFor('digital'))}
-            onClick={() => go('digital')}
-            testId="btn-buy-digital"
-          />
+          {!isBlank && (
+            <BuyOption
+              icon={<Sparkles className="w-5 h-5 text-brand" />}
+              title="Digital"
+              description="A share link that opens with the same 3D viewer you're playing with now. Instant."
+              price={formatGBP(totalsFor('digital'))}
+              onClick={() => go('digital')}
+              testId="btn-buy-digital"
+            />
+          )}
           <BuyOption
             icon={<Package className="w-5 h-5 text-stone-700" />}
             title="Printed"
@@ -522,21 +583,36 @@ function BuyDialog({
             onClick={() => go('print')}
             testId="btn-buy-print"
           />
-          <BuyOption
-            icon={
-              <div className="flex gap-1">
-                <Package className="w-5 h-5 text-stone-700" />
-                <Sparkles className="w-5 h-5 text-brand" />
-              </div>
-            }
-            title="Printed + digital"
-            description="The real thing in the post plus the instant 3D share link. Most popular."
-            price={formatGBP(totalsFor('both'))}
-            badge="Best value"
-            onClick={() => go('both')}
-            testId="btn-buy-both"
-          />
+          {!isBlank && (
+            <BuyOption
+              icon={
+                <div className="flex gap-1">
+                  <Package className="w-5 h-5 text-stone-700" />
+                  <Sparkles className="w-5 h-5 text-brand" />
+                </div>
+              }
+              title="Printed + digital"
+              description="The real thing in the post plus the instant 3D share link. Most popular."
+              price={formatGBP(totalsFor('both'))}
+              badge="Best value"
+              onClick={() => go('both')}
+              testId="btn-buy-both"
+            />
+          )}
         </div>
+
+        {isBlank && (
+          <div className="mt-3 text-center">
+            <button
+              type="button"
+              onClick={handleEditInside}
+              className="text-xs text-brand hover:text-brand-dark underline underline-offset-2"
+              data-testid="btn-buy-edit-inside"
+            >
+              Want to send digitally? Add a message inside →
+            </button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -605,22 +681,15 @@ function CardImage({ url, label }: { url: string; label: string }) {
 }
 
 // ── Failure view — offer a retry ──────────────────────────────────────
-function FailedView({ cardId }: { cardId: number }) {
-  const queryClient = useQueryClient();
-
-  // Retry: flip the draft's status back to 'draft' so the button can
-  // start a fresh generation. Done via PATCH since there's no dedicated
-  // retry endpoint — the draft state is still intact.
+function FailedView({ onRetry }: { onRetry: () => Promise<void> }) {
+  // Retry is a two-step operation orchestrated by the parent: first
+  // POST /retry to flip the draft's server-side status from 'failed'
+  // back to 'draft', then call startGeneration to kick off a fresh
+  // run. The parent owns both because it also owns the cardId +
+  // useCardMaker's status state. Mutation here just wraps it for the
+  // button's pending state.
   const retryMutation = useMutation({
-    mutationFn: async () => {
-      // Just re-fetch — simplest way to re-read the current state, which
-      // the parent's useCardMaker already re-loads when we invalidate.
-      // Status flip happens server-side when Generate is hit again.
-      await apiRequest('POST', `/api/studio/drafts/${cardId}/retry`, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/studio/drafts/${cardId}`] });
-    },
+    mutationFn: onRetry,
     onError: (err: Error) => {
       toast({
         title: 'Retry failed',
@@ -636,10 +705,11 @@ function FailedView({ cardId }: { cardId: number }) {
         <AlertTriangle className="w-6 h-6" />
       </div>
       <h2 className="text-lg font-semibold text-ink mb-2">
-        Something went wrong
+        That one didn't land
       </h2>
       <p className="text-sm text-stone-600 mb-6">
-        The AI couldn't make your card that time. Give it another go.
+        The draft fell over mid-paint. Nothing's lost — your choices are all
+        still here. Give it another go.
       </p>
       <Button
         onClick={() => retryMutation.mutate()}
