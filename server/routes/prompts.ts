@@ -330,7 +330,7 @@ export function registerPromptRoutes(app: Express): void {
         provider === undefined ||
         provider === null ||
         (typeof provider === 'string' &&
-          ['openai', 'gemini', 'gemini-flash', 'gemini-flash-2-5', 'flux'].includes(provider));
+          ['openai', 'gemini', 'gemini-flash', 'flux'].includes(provider));
       if (!providerValid) {
         return res.status(400).json({ message: 'Invalid provider' });
       }

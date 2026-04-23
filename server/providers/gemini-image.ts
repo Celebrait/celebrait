@@ -1,12 +1,16 @@
 // server/providers/gemini-image.ts
 //
 // Google Gemini image adapters behind the ImageProvider interface.
-// Uses the @google/genai SDK. Exposes three sibling variants so the
-// Prompt Lab can A/B test them side-by-side:
+// Uses the @google/genai SDK. Two sibling variants so the Prompt Lab
+// can A/B them side-by-side:
 //
-//   - gemini            Nano Banana Pro  (gemini-3-pro-image-preview)
+//   - gemini            Nano Banana Pro  (nano-banana-pro-preview)
 //   - gemini-flash      Nano Banana 2    (gemini-3.1-flash-image-preview)
-//   - gemini-flash-2-5  Legacy 2.5 Flash (gemini-2.5-flash-image-preview)
+//
+// A third "Gemini 2.5 Flash Image" entry was removed — Google never
+// shipped an image-generation variant of 2.5 Flash. The model ID I
+// guessed (gemini-2.5-flash-image-preview) 404s. 2.5 Flash is text /
+// vision-input only; image generation starts at the Nano Banana line.
 //
 // Key differences from the OpenAI adapter:
 //   - Single API call (`generateContent`) for both text-only and
@@ -63,13 +67,6 @@ export const GEMINI_VARIANTS = {
     model: 'gemini-3.1-flash-image-preview',
     costCents: 6.7,
     costDisplay: '$0.067',
-  },
-  flash25: {
-    id: 'gemini-flash-2-5',
-    displayName: 'Gemini 2.5 Flash',
-    model: 'gemini-2.5-flash-image-preview',
-    costCents: 3.9,
-    costDisplay: '$0.039',
   },
 } satisfies Record<string, GeminiVariantConfig>;
 
