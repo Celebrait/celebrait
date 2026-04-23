@@ -29,6 +29,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { CropBounds } from '@shared/models/photos';
+import { detectFaces } from '@/lib/face-count';
 
 interface CropDialogProps {
   /** Object URL or data URL of the image to crop. */
@@ -36,10 +37,14 @@ interface CropDialogProps {
   onCancel: () => void;
   /** Called with the crop rectangle in original-image pixel coordinates. */
   onConfirm: (bounds: CropBounds) => void;
+  /** When true (default), on image load we run face detection and snap
+   *  the initial crop box onto the primary face. Turn off for group
+   *  photos (no single hero face — centred default is better). */
+  autoFace?: boolean;
 }
 
-// Starts the crop at 80% of the shorter side, centred, 1:1 aspect.
-function buildInitialCrop(imageWidth: number, imageHeight: number): Crop {
+// Fallback when no face is detected: 80% of the shorter side, centred, 1:1.
+function buildCentredCrop(imageWidth: number, imageHeight: number): Crop {
   return centerCrop(
     makeAspectCrop(
       { unit: '%', width: 80 },
@@ -52,9 +57,71 @@ function buildInitialCrop(imageWidth: number, imageHeight: number): Crop {
   );
 }
 
-export function CropDialog({ src, onCancel, onConfirm }: CropDialogProps) {
+// Given a face bounding box in normalised (0..1) image coordinates,
+// compute a 1:1 crop that includes hair + shoulders. Padding of 1.8×
+// the larger face side gives a comfortable portrait framing without
+// clipping hair on top. Clamps to image bounds when the face is near
+// the edge (shifts the box in rather than shrinking it).
+function buildFaceCrop(
+  faceXNorm: number,
+  faceYNorm: number,
+  faceWNorm: number,
+  faceHNorm: number,
+  imageWidth: number,
+  imageHeight: number,
+): Crop {
+  // Work in percentages — that's the coord space ReactCrop wants.
+  const faceSidePct = Math.max(faceWNorm, faceHNorm) * 100;
+  const sidePct = Math.min(95, faceSidePct * 1.8);
+
+  // Aspect-correct the % side against the image's actual dimensions so
+  // the final crop is 1:1 in pixels. ReactCrop's % is relative to the
+  // image's natural width for the width axis and natural height for the
+  // height axis — so a square pixel box has different %s on each axis.
+  const widthPct = sidePct;
+  const heightPct = sidePct * (imageWidth / imageHeight);
+
+  const faceCxPct = (faceXNorm + faceWNorm / 2) * 100;
+  const faceCyPct = (faceYNorm + faceHNorm / 2) * 100;
+  let xPct = faceCxPct - widthPct / 2;
+  let yPct = faceCyPct - heightPct / 2;
+  // Clamp in-bounds
+  xPct = Math.max(0, Math.min(100 - widthPct, xPct));
+  yPct = Math.max(0, Math.min(100 - heightPct, yPct));
+
+  return {
+    unit: '%',
+    x: xPct,
+    y: yPct,
+    width: widthPct,
+    height: heightPct,
+  };
+}
+
+// Convert a %-unit Crop (what `buildCentredCrop` / `buildFaceCrop` return)
+// into the PixelCrop shape react-image-crop normally hands us via
+// onComplete — we need this because programmatic setCrop does NOT fire
+// onComplete, so without a manual conversion the completedCrop state
+// stays stale and handleConfirm sends the wrong bounds to the server.
+function percentCropToPixelCrop(
+  crop: Crop,
+  displayW: number,
+  displayH: number,
+): PixelCrop {
+  if (crop.unit === 'px') return crop as PixelCrop;
+  return {
+    unit: 'px',
+    x: ((crop.x ?? 0) / 100) * displayW,
+    y: ((crop.y ?? 0) / 100) * displayH,
+    width: ((crop.width ?? 0) / 100) * displayW,
+    height: ((crop.height ?? 0) / 100) * displayH,
+  };
+}
+
+export function CropDialog({ src, onCancel, onConfirm, autoFace = true }: CropDialogProps) {
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
+  const [detectingFace, setDetectingFace] = useState(false);
 
   // Natural (original) image dimensions, captured when the <img> loads.
   // react-image-crop's PixelCrop values are relative to the DISPLAYED
@@ -62,12 +129,49 @@ export function CropDialog({ src, onCancel, onConfirm }: CropDialogProps) {
   // server so Sharp extracts the correct region.
   const naturalRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
   const displayedRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
+  // Tracks which src we last ran face detection against, so the auto-
+  // crop only runs once per image (not on every re-render).
+  const detectedSrcRef = useRef<string | null>(null);
 
   const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight, width, height } = e.currentTarget;
     naturalRef.current = { w: naturalWidth, h: naturalHeight };
     displayedRef.current = { w: width, h: height };
-    setCrop(buildInitialCrop(width, height));
+    // Start with the centred fallback so the user sees *something*
+    // immediately — face detection (~200-1000ms on first call) will
+    // update the box once it lands. IMPORTANT: also set completedCrop
+    // manually — programmatic setCrop does NOT fire onComplete, so
+    // without this the crop bounds sent on confirm would stay null
+    // (disabled button) or, once detection fires, remain stale.
+    const centred = buildCentredCrop(width, height);
+    setCrop(centred);
+    setCompletedCrop(percentCropToPixelCrop(centred, width, height));
+
+    if (autoFace && src && detectedSrcRef.current !== src) {
+      detectedSrcRef.current = src;
+      setDetectingFace(true);
+      void detectFaces(src).then((result) => {
+        setDetectingFace(false);
+        if (!result || !result.primary) return;
+        const { xNorm, yNorm, widthNorm, heightNorm } = result.primary;
+        // Use NATURAL dimensions so the % maths match the image's real
+        // aspect ratio. The component re-renders with the new crop and
+        // react-image-crop's % → pixel conversion handles the rest.
+        const faceCrop = buildFaceCrop(
+          xNorm,
+          yNorm,
+          widthNorm,
+          heightNorm,
+          naturalWidth,
+          naturalHeight,
+        );
+        setCrop(faceCrop);
+        // Keep completedCrop in sync so the confirm sends the face box,
+        // not the stale centred default. Without this step the thumbnail
+        // shows whatever was 80% centred (often sky or background).
+        setCompletedCrop(percentCropToPixelCrop(faceCrop, width, height));
+      });
+    }
   };
 
   const handleConfirm = () => {
@@ -103,8 +207,11 @@ export function CropDialog({ src, onCancel, onConfirm }: CropDialogProps) {
         <DialogHeader>
           <DialogTitle>Crop your photo</DialogTitle>
           <DialogDescription>
-            Drag the corners of the crop box to frame up the face. Tight crops
-            give much better results.
+            {autoFace
+              ? detectingFace
+                ? 'Finding the face… you can still drag the corners to adjust.'
+                : 'We framed up the face for you. Drag the corners if you want to adjust.'
+              : 'Drag the corners of the crop box to frame up the photo. Tight crops give much better results.'}
           </DialogDescription>
         </DialogHeader>
 

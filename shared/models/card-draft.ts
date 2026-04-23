@@ -12,6 +12,12 @@
 export type StyleMode = 'animated' | 'realistic' | 'custom';
 export type InsideMode = 'write' | 'blank';
 
+// Photo-mode on the Studio photo step. Only two modes are exposed to
+// users today — `multi_individual` (N separate photos, one per person)
+// stays behind in the Prompt Lab until we're confident the output is
+// reliable. See front_scene variant templates for the prompt differences.
+export type PhotoMode = 'one_person' | 'group';
+
 export interface CardDraftState {
   /** Schema version. Bumps force-migrate older drafts on read. */
   version: 1;
@@ -30,8 +36,23 @@ export interface CardDraftState {
     custom?: string;
   };
   photos?: {
-    /** IDs from the user's photos library (see shared/models/photos.ts). */
+    /** Which photo-mode the user picked on the Studio photo step.
+     *  `one_person` = 1–5 photos of the same individual (different angles
+     *    for better likeness anchoring).
+     *  `group` = exactly 1 photo that already contains multiple people.
+     *  Absent/undefined = legacy draft that predates the toggle; callers
+     *  should default to `one_person`. */
+    mode?: PhotoMode;
+    /** IDs from the user's photos library (see shared/models/photos.ts).
+     *  `one_person` may hold up to 5; `group` exactly 1. */
     photoIds?: number[];
+    /** Set when client-side face detection disagrees with the chosen
+     *  mode — e.g. "Just them" selected but the uploaded photo has 2+
+     *  faces, or "Group photo" selected but only 1 face detected.
+     *  Cleared when the user either switches mode or explicitly keeps
+     *  the current mode. Gates advancing to the next step until the
+     *  user resolves it, so we never silently render a mismatched card. */
+    pendingModeReview?: 'too-many' | 'too-few';
   };
   front?: {
     /** The short headline printed on the card front (e.g. "Happy Birthday Dad").
