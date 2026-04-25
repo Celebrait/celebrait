@@ -45,6 +45,17 @@ interface Card3DViewerProps {
    *  manages its own open state (click the card to toggle). */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** How much empty space to leave around the card at mount. Lower =
+   *  tighter crop (more zoomed in). Default 2.0 frames the card at
+   *  ~50% of the canvas — matches the review-step reveal. Use ~1.1
+   *  for "nearly fills the frame" (Studio Home empty state). */
+  framingMargin?: number;
+  /** Closest the user can zoom in via OrbitControls. Default 2.7.
+   *  When `framingMargin` is tightened to bring the camera closer
+   *  than 2.7 at mount, OrbitControls would snap it back out unless
+   *  this is lowered accordingly. Pass ~1.5 alongside framingMargin
+   *  ≈ 1.1 for a zoomed-in landing. */
+  minDistance?: number;
 }
 
 export function Card3DViewer({
@@ -54,6 +65,8 @@ export function Card3DViewer({
   className,
   open: openProp,
   onOpenChange,
+  framingMargin = 2.0,
+  minDistance = 2.7,
 }: Card3DViewerProps) {
   const insideUrl = insideImageUrl ?? frontImageUrl;
   const [openState, setOpenState] = useState(false);
@@ -81,6 +94,8 @@ export function Card3DViewer({
           backCredit={backCredit}
           open={open}
           onOpenChange={setOpen}
+          framingMargin={framingMargin}
+          minDistance={minDistance}
         />
       </Canvas>
     </div>
@@ -94,12 +109,16 @@ function Scene({
   backCredit,
   open,
   onOpenChange,
+  framingMargin,
+  minDistance,
 }: {
   frontUrl: string;
   insideUrl: string;
   backCredit: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  framingMargin: number;
+  minDistance: number;
 }) {
   return (
     <>
@@ -134,7 +153,7 @@ function Scene({
         shadow-camera-bottom={-3}
       />
 
-      <InitialCameraFit />
+      <InitialCameraFit margin={framingMargin} />
 
       <Card
         frontUrl={frontUrl}
@@ -173,7 +192,7 @@ function Scene({
         enableZoom={true}
         enableDamping
         dampingFactor={0.08}
-        minDistance={2.7}
+        minDistance={minDistance}
         maxDistance={6}
         minPolarAngle={Math.PI / 3}
         maxPolarAngle={Math.PI - Math.PI / 3}
@@ -191,7 +210,7 @@ function Scene({
 // landscape viewport height and clips horizontally on portrait
 // phones (card width > viewport width at narrow aspects). The
 // margin factor controls how much empty space surrounds the card.
-function InitialCameraFit() {
+function InitialCameraFit({ margin }: { margin: number }) {
   const { camera, size, invalidate } = useThree();
   const didInit = useRef(false);
   useEffect(() => {
@@ -200,17 +219,19 @@ function InitialCameraFit() {
     didInit.current = true;
     const aspect = size.width / size.height;
     const halfFovRad = (camera.fov / 2) * (Math.PI / 180);
-    // Landing framing — card sits at ~50% of the canvas, comfortably
-    // above the hint row. Paired with the viewer's canvas bleed
-    // (±25vh × ±22vw) and minDistance 2.7 so the card has freedom to
-    // tilt/zoom without touching the canvas edges.
-    const required = CARD_W * 2.0;
+    // Landing framing — `margin` controls how much empty space surrounds
+    // the card. margin=2.0 → card at ~50% of the canvas (review-step
+    // reveal); margin=1.1 → card nearly fills the frame (Studio Home
+    // empty state). Paired with the viewer's canvas bleed and a
+    // matching `minDistance` so OrbitControls don't snap the camera
+    // back out after mount.
+    const required = CARD_W * margin;
     const distByHeight = required / (2 * Math.tan(halfFovRad));
     const distByWidth = required / (2 * Math.tan(halfFovRad) * aspect);
     camera.position.z = Math.max(distByHeight, distByWidth);
     camera.updateProjectionMatrix();
     invalidate();
-  }, [camera, size, invalidate]);
+  }, [camera, size, invalidate, margin]);
   return null;
 }
 

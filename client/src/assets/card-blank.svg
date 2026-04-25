@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Blank card-front texture for the Studio empty-state 3D hero. Cream
+       paper stock with a very soft radial warmth in the centre so the
+       surface catches light once lit by the 3D scene. Intentionally no
+       logo / wordmark / call-out — the blank-canvas metaphor IS the
+       point (see next_studio_dashboard_scope.md § "Three-state home"). -->
+  <defs>
+    <radialGradient id="paper" cx="50%" cy="45%" r="70%">
+      <stop offset="0%" stop-color="#fbf5ea" />
+      <stop offset="60%" stop-color="#f5ecd9" />
+      <stop offset="100%" stop-color="#ede1c8" />
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#paper)" />
+</svg>

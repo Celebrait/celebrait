@@ -47,6 +47,7 @@ import type { CardDraftState, StepId } from '@shared/schema';
 import { deriveDefaultFrontText } from '@shared/schema';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { GestureHints } from '@/components/gesture-hints';
+import { GenerationWaitStage } from '@/components/studio/generation-wait';
 
 // Approximate generation time for a front + inside pair. Used to size
 // the progress copy ("this usually takes ~45 seconds"). Not a hard
@@ -108,7 +109,6 @@ export function ReviewStep({
         frontUrl={generatedFrontUrl}
         insideUrl={generatedInsideUrl}
         status={status}
-        recipientName={state.recipient?.name?.trim() ?? null}
         state={state}
         insideMode={state.inside?.mode ?? null}
         onEditInside={() => {
@@ -350,20 +350,16 @@ function SummaryRow({
   );
 }
 
-// ── Build narration — Stage 1 of RevealView ───────────────────────────
-// A short, confident step-by-step script of what we're building, drawn
-// from the user's actual draft. No handwriting, no silhouettes, no AI
-// voice — one clean line at a time, large type, cycling every ~4s so
-// the user reads what we're doing for them, step by step.
+// Legacy state-driven narration script. No longer rendered by RevealView
+// — replaced by the three-layer NarrationStage (Apr 2026). Kept behind
+// a leading `_` name so it doesn't collide with the new narration
+// without making git history noisy. Safe to delete once the new flow
+// has soaked on prod.
 //
-// The script is built from `state` so every line reflects a real
-// choice the user made. Generic fallbacks kick in only if a field is
-// missing (legacy drafts).
-
-/** Turn the draft state into a narration script: five beats shown
- *  pre-front (one per Studio step), plus a single line that runs
- *  while the inside is being drafted. */
-function buildNarration(state: CardDraftState): {
+// Previously: Turn the draft state into a narration script — five
+// beats shown pre-front (one per Studio step), plus a single line that
+// runs while the inside is being drafted.
+function _legacyBuildNarration(state: CardDraftState): {
   preFront: string[];
   duringInside: string;
 } {
@@ -438,40 +434,8 @@ function buildNarration(state: CardDraftState): {
   return { preFront, duringInside };
 }
 
-/**
- * Cycling single-line narration. Auto-advances every ~4.2s, stops at
- * the last beat (where it holds until the caller unmounts the component
- * — typically when the front URL lands). Framer handles the line-change
- * transitions (fade + 12px rise).
- */
-function BuildNarration({ beats }: { beats: string[] }) {
-  const [index, setIndex] = useState(0);
-  const lastIndex = beats.length - 1;
-
-  useEffect(() => {
-    if (index >= lastIndex) return;
-    const t = window.setTimeout(() => setIndex((i) => i + 1), 4200);
-    return () => window.clearTimeout(t);
-  }, [index, lastIndex]);
-
-  return (
-    <div className="w-full h-full flex items-center justify-center px-6">
-      <AnimatePresence mode="wait">
-        <motion.p
-          key={index}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -12 }}
-          transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
-          className="text-3xl sm:text-4xl md:text-5xl font-semibold text-ink text-center leading-tight max-w-[720px]"
-          data-testid="build-narration-line"
-        >
-          {beats[index]}
-        </motion.p>
-      </AnimatePresence>
-    </div>
-  );
-}
+// (BuildNarration superseded by NarrationStage — see
+//  components/studio/narration-stage.tsx)
 
 // ── Completed view — full 3D viewer experience + single-CTA purchase ──
 // Matches the public viewer pattern: canvas bleeds past the stage in
@@ -501,36 +465,30 @@ function formatGBP(minor: number): string {
 }
 
 /**
- * RevealView — one continuous canvas from the moment Generate is pressed
- * through the final interactive 3D card. Three internal stages, but the
- * outer frame never changes:
+ * RevealView — the end-to-end generation experience.
  *
- *   Stage 1 — no frontUrl yet (~0–25s):
- *     Soft card-shaped silhouette + single framing line below.
+ *   Phase 1 — NARRATING (`status !== 'completed'` or URLs missing)
+ *     Single-line narration cycles through HEADLINE_BEATS. Server
+ *     runs in the background; client deliberately ignores mid-gen
+ *     frontUrl persists so nothing half-rendered leaks on screen.
  *
- *   Stage 2 — frontUrl arrived, status still 'generating' (~25–45s):
- *     Card3DViewer mounts with the real front, inside locked to the front
- *     for now (viewer fallback); card stays closed, non-interactive.
- *     Subtitle softens to "front's in, writing the inside now".
+ *   Phase 2 — READY (`status === 'completed'` + both URLs in)
+ *     Narration transitions to the READY_LINE, holds briefly, then
+ *     a slow crossfade into the 3D card viewer. No envelope gate on
+ *     this surface — Kevin reverted it 2026-04-24 as too much ceremony
+ *     for the creator side (the envelope is kept on the recipient-
+ *     facing viewer where it reads as a gift moment, not a loader).
  *
- *   Stage 3 — status 'completed':
- *     Same viewer, now with the real inside, open controls wired.
- *     Staggered entry choreography for the confirmation line → Buy CTA
- *     → gesture hints. One emotional beat, three breaths.
- *
- * Why continuous canvas (vs separate GeneratingView / CompletedView):
- * swapping views mid-render reads as "loading → loaded" (utility tool
- * voice). Keeping the viewer mounted from Stage 2 onwards means the card
- * just *arrives* — same frame, same lighting, lights come up. The tone
- * bible calls this out as the moment that most betrays the "gift"
- * illusion; continuous canvas is the fix.
+ * Key choice: no visible "loading" beat between narration and card —
+ * the narration IS the loader. The handoff is one continuous crossfade
+ * that lasts ~1.8s; by the time it settles the 3D card is ready to
+ * play with.
  */
 function RevealView({
   cardId,
   frontUrl,
   insideUrl,
   status,
-  recipientName,
   state,
   insideMode,
   onEditInside,
@@ -539,17 +497,27 @@ function RevealView({
   frontUrl: string | null;
   insideUrl: string | null;
   status: string | null;
-  recipientName: string | null;
-  /** Full draft so Stage 1 narration can reflect the user's own
-   *  choices — name, occasion, photo mode, scene, style, card text,
-   *  inside mode. */
+  /** Full draft — NarrationStage personalises every beat from it. */
   state: CardDraftState;
   insideMode: 'write' | 'blank' | null;
   onEditInside: () => void;
 }) {
-  const narration = buildNarration(state);
-  const hasFront = !!frontUrl;
-  const isComplete = status === 'completed' && hasFront;
+  // Ready = server says done and both image URLs have landed on the
+  // client. `frontUrl` alone isn't enough (server persists it mid-gen;
+  // client deliberately waits for the complete picture).
+  const isReady = status === 'completed' && !!frontUrl && !!insideUrl;
+
+  // Ceremony timing: once `isReady` flips, hold the READY_LINE on screen
+  // for ~1600ms, then crossfade into the 3D viewer over ~1200ms. Neither
+  // number is a loading bar — they're pacing dials. Tune with Kevin.
+  const READY_HOLD_MS = 1600;
+  const [showReveal, setShowReveal] = useState(false);
+
+  useEffect(() => {
+    if (!isReady) return;
+    const t = window.setTimeout(() => setShowReveal(true), READY_HOLD_MS);
+    return () => window.clearTimeout(t);
+  }, [isReady]);
 
   const [open, setOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
@@ -575,100 +543,95 @@ function RevealView({
     <>
       <div
         className="max-w-3xl mx-auto"
-        data-testid={isComplete ? 'review-completed' : 'review-generating'}
+        data-testid={showReveal ? 'review-completed' : 'review-generating'}
       >
-        {/* Stage — dimensions constant across all three stages so the
-            silhouette → front → full reveal is a texture swap, not a
-            layout jump. */}
-        <div className="h-[50vh] sm:h-[56vh] w-full relative">
-          <div
-            className="absolute top-[-22vh] bottom-[-22vh] left-[-20vw] right-[-20vw] z-[25]"
-            style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.1))' }}
-            onPointerDown={isComplete ? startInteract : undefined}
-            onPointerUp={isComplete ? endInteract : undefined}
-            onPointerCancel={isComplete ? endInteract : undefined}
-            onPointerLeave={isComplete ? endInteract : undefined}
-            onWheel={isComplete ? bumpInteract : undefined}
-          >
-            {/* Stage 1 (paper) → Stage 2 (card) crossfade. Synchronous
-                fade (mode="sync") so the paper and card overlap in the
-                same plane for ~300ms — reads as "the paper became a
-                card", not "paper gone, card appeared." */}
-            <AnimatePresence>
-              {hasFront ? (
-                <motion.div
-                  key="viewer"
-                  className="absolute inset-0"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.6, ease: 'easeOut' }}
+        {/* Stage — constant dimensions across both phases so
+            narration → card reveal reads as one continuous surface. */}
+        <div className="h-[60vh] sm:h-[68vh] w-full relative">
+          {/* mode="wait" so narration fully exits before the card enters.
+              Avoids the two layers animating in tandem — the card used
+              to appear to "snap in" because its mount + texture load
+              raced the narration's fade-out. Sequenced out-then-in reads
+              much calmer. */}
+          <AnimatePresence mode="wait">
+            {showReveal ? (
+              /* Phase 2b — 3D card reveal. Longer ease on both opacity
+                 and a gentle rise + scale. The card feels like it's
+                 arriving from a distance, not just popping visible. */
+              <motion.div
+                key="reveal"
+                className="absolute inset-0"
+                // NO scale animation here — react-three-fiber's Canvas
+                // measures its container on mount, so animating scale
+                // mid-mount produces a wrong-size camera fit that stays
+                // wrong after the animation settles (the card ends up
+                // off-centre until a window resize kicks it). Opacity
+                // + rise do the "arrival" work; the actual card texture
+                // load provides additional cinematic feel.
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  opacity: { duration: 1.6, ease: [0.25, 0.85, 0.25, 1] },
+                  y: { duration: 1.8, ease: [0.2, 0.8, 0.2, 1] },
+                }}
+              >
+                <div
+                  className="absolute top-[-22vh] bottom-[-22vh] left-[-20vw] right-[-20vw]"
+                  style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.1))' }}
+                  onPointerDown={startInteract}
+                  onPointerUp={endInteract}
+                  onPointerCancel={endInteract}
+                  onPointerLeave={endInteract}
+                  onWheel={bumpInteract}
                 >
                   <Card3DViewer
-                    frontImageUrl={frontUrl}
-                    // Stage 2: insideUrl hasn't arrived; Card3DViewer
-                    // falls back to the front texture for the inside
-                    // face. Card stays closed so the user never sees
-                    // that fallback.
-                    insideImageUrl={isComplete ? insideUrl : null}
-                    open={isComplete ? open : false}
-                    onOpenChange={isComplete ? setOpen : () => {}}
+                    frontImageUrl={frontUrl!}
+                    insideImageUrl={insideUrl}
+                    open={open}
+                    onOpenChange={setOpen}
                     className="w-full h-full"
                   />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="narration"
-                  className="absolute inset-0"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.6, ease: 'easeOut' }}
-                >
-                  <BuildNarration beats={narration.preFront} />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                </div>
+              </motion.div>
+            ) : (
+              /* Generation wait stage — spinner + "on this day" feed.
+                 Replaces the older NarrationStage (personalised
+                 typographic narration). Simpler read, still filled
+                 with interesting content during the 45s wait. Exits
+                 with a slow dissolve + gentle rise when showReveal
+                 flips so the handoff doesn't feel yanked. */
+              <motion.div
+                key="wait"
+                className="absolute inset-0 flex items-center justify-center"
+                initial={{ opacity: 1 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.9, ease: 'easeInOut' }}
+              >
+                <GenerationWaitStage
+                  occasion={state.recipient?.occasion ?? null}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Copy + actions stack below the stage. AnimatePresence swaps
-            the subtitle block as we progress through stages; the CTA
-            group (Stage 3 only) has its own staggered choreography so
-            the confirmation lands → Buy appears → hints fade in last. */}
+        {/* Post-reveal CTA stack — confirmation line, Buy, gesture
+            hints. Only fires once showReveal flips so the entry is
+            clean and doesn't race the card's materialise animation. */}
         <div className="relative z-30 max-w-xl mx-auto px-4 pt-2 text-center">
           <AnimatePresence mode="wait">
-            {/* Stage 1 has no subtitle — the narration IS the message. */}
-            {hasFront && !isComplete && (
-              <motion.p
-                key="stage-2"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.4 }}
-                className="text-sm text-stone-600 mt-2"
-              >
-                {narration.duringInside}
-              </motion.p>
-            )}
-            {isComplete && (
+            {showReveal && (
               <motion.div
-                key="stage-3"
+                key="post-reveal"
                 className="flex flex-col items-center"
               >
-                {/* Confirmation line — first beat (~400ms in) */}
-                <motion.p
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.4 }}
-                  className="text-base font-medium text-ink mt-2"
-                >
-                  {recipientName
-                    ? `${recipientName}'s card is ready.`
-                    : 'Your card is ready.'}
-                </motion.p>
+                {/* The "ready" confirmation line was removed 2026-04-24
+                    — the card itself is the confirmation, the sentence
+                    felt redundant once the viewer was visible. The
+                    narration's own ready line carries that beat
+                    pre-reveal. */}
 
-                {/* Buy CTA + subtext — second beat (~900ms in) */}
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -692,9 +655,6 @@ function RevealView({
                   </p>
                 </motion.div>
 
-                {/* Gesture hints — last beat (~1.4s in). Fade on active
-                    interaction and collapse permanently after the first
-                    touch. */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: isInteracting ? 0 : 1 }}
