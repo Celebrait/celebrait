@@ -24,27 +24,29 @@ export function FrontStep({ state, onChange }: FrontStepProps) {
   const defaultText = deriveDefaultFrontText(state);
 
   // Local value so typing doesn't fire a save per keystroke. Commits
-  // on blur. If the user hasn't typed anything yet, we seed the input
-  // with the derived default so they can confirm-and-continue.
+  // on blur. Input starts empty — the derived default (e.g. "Happy
+  // Birthday Mum") lives in the placeholder only, not seeded into the
+  // field. Kevin noted 2026-04-24 that seeding felt pushy; the user
+  // should feel they're writing, not editing.
   const stored = state.front?.text;
-  const seedValue = stored ?? defaultText;
-  const [local, setLocal] = useState(seedValue);
+  const [local, setLocal] = useState(stored ?? '');
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    // External change (recipient/occasion edited on an earlier step)
-    // should refresh the default until the user has typed their own.
-    if (stored === undefined && defaultText !== local) {
-      setLocal(defaultText);
+    // External stored value (e.g. revisiting the step after a typed
+    // override) should hydrate the field.
+    if (stored !== undefined && stored !== local) {
+      setLocal(stored);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultText]);
+  }, [stored]);
 
   const commit = () => {
     const trimmed = local.trim();
-    // Treat "same as default" as "no override" — keep state.front.text
-    // absent so future recipient/occasion edits flow through cleanly.
-    if (!trimmed || trimmed === defaultText) {
+    // Empty field = use default downstream (server falls back to
+    // deriveDefaultFrontText when state.front.text is absent), so we
+    // deliberately keep state.front.text undefined for empty input.
+    if (!trimmed) {
       if (state.front?.text !== undefined) {
         onChange({ front: { ...state.front, text: undefined } });
       }

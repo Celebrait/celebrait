@@ -474,9 +474,9 @@ function getStepHeadline(stepId: StepId, state: CardDraftState): string {
     case 'style':
       return `Set the style for the front of ${ownedCard}`;
     case 'front':
-      return `What should it say on the front of ${ownedCard}`;
+      return `What should it say on the front of ${ownedCard}?`;
     case 'inside':
-      return `What should it say inside ${ownedCard}`;
+      return `What should it say inside ${ownedCard}?`;
     case 'review':
       return name
         ? `${name}'s card — take one last look`

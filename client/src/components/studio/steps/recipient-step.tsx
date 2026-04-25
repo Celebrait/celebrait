@@ -12,7 +12,7 @@
 //   - "Other" surfaces a free-text field so custom occasions ("Retirement",
 //     "New home", "Divorce party") don't fall through a keyword gap.
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   Check,
@@ -104,17 +104,11 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
     }
   };
 
-  // Auto-advance on the not-ready → ready transition. Initial ref value
-  // is the current readiness so a revisit to an already-complete step
-  // doesn't immediately bounce the user forward.
-  const prevReadyRef = useRef(isRecipientStepReady(state));
-  useEffect(() => {
-    const ready = isRecipientStepReady(state);
-    if (ready && !prevReadyRef.current) {
-      onAdvance?.();
-    }
-    prevReadyRef.current = ready;
-  }, [state, onAdvance]);
+  // No auto-advance. Users pick an occasion and then click Next themselves
+  // — prevents accidental jump-forward when tapping an occasion tile to
+  // compare options. (Removed 2026-04-24 after Kevin noted it was
+  // surprising; `onAdvance` prop retained for back-compat but is no
+  // longer invoked from here.)
 
   const pickOccasion = (occasion: string) => {
     onChange({ recipient: { ...state.recipient, occasion } });

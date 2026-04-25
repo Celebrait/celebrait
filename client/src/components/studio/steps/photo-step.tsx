@@ -164,23 +164,28 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
   const [inFlightUploads, setInFlightUploads] = useState(0);
   const [libraryOpen, setLibraryOpen] = useState(false);
 
-  // Mirror selectedIds + pendingModeReview into refs so background
-  // upload resolvers can read the latest committed values without
-  // stale-closure issues. Without these, the closure's captured
-  // `state.photos` would be pre-onChange and writing it back would
-  // clobber the fresh photoIds committed by an earlier setState in
-  // the same resolver — the bug that made the mismatch banner
-  // invisible after multi-upload.
+  // Mirror selectedIds + pendingModeReview + mode into refs so callers
+  // that fire multiple onChange patches in a single tick read the latest
+  // committed values instead of their closure-captured React state.
+  //
+  // Without `modeRef` in particular, setMode's own setFaceWarning(null)
+  // call was overwriting the new mode with the old one in the same
+  // synchronous batch — which is why clicking between "Just them" and
+  // "A group photo" did nothing. (Caught 2026-04-24.)
   const selectedIdsRef = useRef<number[]>(selectedIds);
   const pendingModeReviewRef = useRef<'too-many' | 'too-few' | undefined>(
     state.photos?.pendingModeReview,
   );
+  const modeRef = useRef<PhotoMode>(mode);
   useEffect(() => {
     selectedIdsRef.current = selectedIds;
   }, [selectedIds]);
   useEffect(() => {
     pendingModeReviewRef.current = state.photos?.pendingModeReview;
   }, [state.photos?.pendingModeReview]);
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
 
   // Serialises async uploads so photoIds appends stay in the order the
   // user cropped them. Each confirmCrop chains onto this.
@@ -206,11 +211,12 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
   const setFaceWarning = (next: FaceWarning | null): void => {
     // Build the photos patch from REFS, not the closure's state.photos,
     // so we don't clobber photoIds committed by an in-flight upload
-    // that hasn't made it into our captured state yet.
+    // (or the mode committed by setMode one tick earlier). modeRef is
+    // advanced synchronously by setMode before it calls into here.
     pendingModeReviewRef.current = next?.kind;
     onChange({
       photos: {
-        mode,
+        mode: modeRef.current,
         photoIds: selectedIdsRef.current,
         ...(next ? { pendingModeReview: next.kind } : {}),
       },
@@ -265,6 +271,13 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
     // Trim to the new mode's max. Group caps at 1 — keep photo 1 to avoid
     // throwing away the user's work silently.
     const nextIds = selectedIds.slice(0, MAX_PHOTOS[next]);
+    // Advance refs SYNCHRONOUSLY. The useEffect-driven ref updates
+    // don't run until after this render, but the setFaceWarning call
+    // below fires inside this same sync tick and needs the new mode +
+    // trimmed ids. Without this, setFaceWarning would write back the
+    // OLD mode and the tile click would appear to do nothing.
+    modeRef.current = next;
+    selectedIdsRef.current = nextIds;
     onChange({
       photos: {
         mode: next,

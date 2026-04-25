@@ -11,7 +11,8 @@
 // those to the server; Sharp does the actual crop. Client stays light,
 // bounds stay server-authoritative.
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import ReactCrop, {
   type Crop,
   type PixelCrop,
@@ -122,6 +123,10 @@ export function CropDialog({ src, onCancel, onConfirm, autoFace = true }: CropDi
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   const [detectingFace, setDetectingFace] = useState(false);
+  // Controls the "image is ready to show" fade-in. Prevents the raw
+  // unframed <img> flashing under a not-yet-mounted crop overlay when
+  // the dialog opens — the mounting glitch Kevin flagged 2026-04-24.
+  const [imageReady, setImageReady] = useState(false);
 
   // Natural (original) image dimensions, captured when the <img> loads.
   // react-image-crop's PixelCrop values are relative to the DISPLAYED
@@ -132,6 +137,15 @@ export function CropDialog({ src, onCancel, onConfirm, autoFace = true }: CropDi
   // Tracks which src we last ran face detection against, so the auto-
   // crop only runs once per image (not on every re-render).
   const detectedSrcRef = useRef<string | null>(null);
+
+  // Reset the fade-in state every time src changes so the next photo in
+  // a multi-upload queue gets the same "hold, then fade in" treatment
+  // rather than reusing the previous image's ready flag.
+  useEffect(() => {
+    setImageReady(false);
+    setCrop(undefined);
+    setCompletedCrop(null);
+  }, [src]);
 
   const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight, width, height } = e.currentTarget;
@@ -146,6 +160,10 @@ export function CropDialog({ src, onCancel, onConfirm, autoFace = true }: CropDi
     const centred = buildCentredCrop(width, height);
     setCrop(centred);
     setCompletedCrop(percentCropToPixelCrop(centred, width, height));
+    // Image + crop box are both set up; flip the ready flag so the
+    // wrapper fades them in together (instead of the image flashing
+    // raw underneath a still-mounting overlay).
+    setImageReady(true);
 
     if (autoFace && src && detectedSrcRef.current !== src) {
       detectedSrcRef.current = src;
@@ -215,28 +233,45 @@ export function CropDialog({ src, onCancel, onConfirm, autoFace = true }: CropDi
           </DialogDescription>
         </DialogHeader>
 
-        <div className="bg-stone-900 rounded-lg overflow-hidden flex items-center justify-center min-h-[320px] max-h-[60vh]">
-          {src && (
-            <ReactCrop
-              crop={crop}
-              onChange={(_, percentCrop) => setCrop(percentCrop)}
-              onComplete={(c) => setCompletedCrop(c)}
-              aspect={1}
-              keepSelection
-              ruleOfThirds
-              minWidth={40}
-              className="max-h-[60vh]"
-            >
-              {/* react-image-crop renders the image as its child. Any
-                  sizing/object-fit we want goes on this <img>. */}
-              <img
-                src={src}
-                onLoad={onImageLoad}
-                alt="Crop source"
-                className="max-h-[60vh] w-auto select-none"
-                draggable={false}
+        <div className="bg-stone-900 rounded-lg overflow-hidden relative flex items-center justify-center min-h-[320px] max-h-[60vh]">
+          {/* Placeholder shimmer — visible until the image + crop box
+              are both ready. Prevents the "image flashes raw then crop
+              overlay catches up" glitch on dialog open. */}
+          {src && !imageReady && (
+            <div className="absolute inset-0 flex items-center justify-center bg-stone-900">
+              <Loader2
+                className="w-7 h-7 text-stone-500 animate-spin"
+                aria-label="Preparing photo"
               />
-            </ReactCrop>
+            </div>
+          )}
+          {src && (
+            <div
+              className={`w-full flex items-center justify-center transition-opacity duration-300 ${
+                imageReady ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <ReactCrop
+                crop={crop}
+                onChange={(_, percentCrop) => setCrop(percentCrop)}
+                onComplete={(c) => setCompletedCrop(c)}
+                aspect={1}
+                keepSelection
+                ruleOfThirds
+                minWidth={40}
+                className="max-h-[60vh]"
+              >
+                {/* react-image-crop renders the image as its child. Any
+                    sizing/object-fit we want goes on this <img>. */}
+                <img
+                  src={src}
+                  onLoad={onImageLoad}
+                  alt="Crop source"
+                  className="max-h-[60vh] w-auto select-none"
+                  draggable={false}
+                />
+              </ReactCrop>
+            </div>
           )}
         </div>
 

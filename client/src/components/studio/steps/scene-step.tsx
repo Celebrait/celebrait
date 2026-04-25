@@ -119,26 +119,9 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
     }
   };
 
-  const fillExample = (text: string) => {
-    setLocal(text);
-    onChange({ scene: { ...state.scene, description: text } });
-    // Focus the textarea with cursor at end so editing feels natural.
-    requestAnimationFrame(() => {
-      const el = textareaRef.current;
-      if (el) {
-        el.focus();
-        el.setSelectionRange(text.length, text.length);
-      }
-    });
-  };
-
-  // Flatten the first few scenes from the occasion's preset groups
-  // into a flat list. Lightweight quick-start chips — no drawer, no
-  // category nav. Brainstorm chat is the "real" helper; these are
-  // just a nudge for users who need a push off the blank page.
-  const exampleScenes: string[] = presetSet.presets
-    .flatMap((group) => group.scenes.slice(0, 2))
-    .slice(0, 4);
+  // Quick-start example chips were removed 2026-04-24 — the scene step
+  // is a creativity surface, and pills nudge users toward a template-y
+  // output. Free text + Brainstorm the scene are the two paths now.
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
@@ -172,30 +155,10 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
           <p className="text-[11px] text-stone-400">
             {local.length > 0
               ? `${local.length} characters`
-              : 'Not sure? Tap an example below, or brainstorm it out.'}
+              : "Not sure? Brainstorm it with us."}
           </p>
         </div>
       </div>
-
-      {/* Quick-start example chips — fill-and-edit, not a canonical
-          picker. Only shown while the textarea is empty so they fade
-          out once the user has written their own scene. No section
-          header needed; the chips themselves read as suggestions. */}
-      {local.length === 0 && exampleScenes.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {exampleScenes.map((ex, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => fillExample(ex)}
-              className="text-left text-xs leading-snug px-3 py-2 rounded-lg bg-surface-cream border border-accent-coral-light hover:border-accent-coral-dark hover:bg-accent-coral-light/60 text-stone-700 transition-colors max-w-full"
-              data-testid={`scene-example-${i}`}
-            >
-              {ex}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Brainstorm with AI — opens the BrainstormChatDrawer. Hook
           + drawer own the conversation state; accepted scenes are
