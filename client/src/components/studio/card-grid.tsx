@@ -1,18 +1,37 @@
 // client/src/components/studio/card-grid.tsx
 //
-// Renders the user's card library. The "New card" tile is always the
-// first cell so the CTA is prominent regardless of how many cards the
-// user has. Unified grid (no tabs by status) — decided in Sprint 2.
+// Renders a grid of the user's cards. Used by:
+//   - /studio (Home) — shows the NewCardTile first, unfiltered list
+//     (historical behaviour, kept as the default)
+//   - /studio/drafts — filtered to drafts, NewCardTile hidden
+//   - /studio/sent — filtered to paid/completed, NewCardTile hidden
+//
+// Week 1 dashboard rebuild (2026-04-24): added `showNewCardTile` and
+// `emptyHint` props so the same grid can power multiple surfaces with
+// surface-appropriate empty states. The unified-grid decision from
+// Sprint 2 ("no tabs by status") is superseded by the sidebar split.
 
+import type { ReactNode } from 'react';
 import { CardThumbnail } from './card-thumbnail';
 import { NewCardTile } from './new-card-tile';
 import type { CardGridItem } from '@shared/schema';
 
 interface CardGridProps {
   cards: CardGridItem[];
+  /** Render the dashed/violet "Start a card" tile as the first cell.
+   *  Default true — matches original Sprint 2 behaviour on /studio. */
+  showNewCardTile?: boolean;
+  /** Content shown when the grid has no cards AND no new-card tile.
+   *  Ignored when showNewCardTile is true (since the grid is never
+   *  truly empty in that mode). */
+  emptyHint?: ReactNode;
 }
 
-export function CardGrid({ cards }: CardGridProps) {
+export function CardGrid({
+  cards,
+  showNewCardTile = true,
+  emptyHint,
+}: CardGridProps) {
   // Newest first. The API already returns them unordered; sort
   // client-side so we don't depend on server ordering guarantees.
   const sorted = [...cards].sort((a, b) => {
@@ -21,9 +40,16 @@ export function CardGrid({ cards }: CardGridProps) {
     return bt - at;
   });
 
+  // Empty state for filtered surfaces (Drafts/Sent) — no new-card tile
+  // here by design; use the sidebar's pinned CTA for that. emptyHint
+  // is the caller's responsibility so the copy matches the surface.
+  if (!showNewCardTile && sorted.length === 0) {
+    return <>{emptyHint ?? null}</>;
+  }
+
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-      <NewCardTile />
+      {showNewCardTile && <NewCardTile />}
       {sorted.map((card) => (
         <CardThumbnail key={card.id} card={card} />
       ))}

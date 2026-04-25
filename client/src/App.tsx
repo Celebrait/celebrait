@@ -21,6 +21,11 @@ import AdminPromptsPage from "@/pages/admin-prompts";
 import AdminCostsPage from "@/pages/admin-costs";
 import LoginPage from "@/pages/login";
 import StudioHome from "@/pages/studio";
+import StudioDrafts from "@/pages/studio-drafts";
+import StudioReady from "@/pages/studio-ready";
+import StudioSent from "@/pages/studio-sent";
+import StudioOrders from "@/pages/studio-orders";
+import StudioCardViewPage from "@/pages/studio-card-view";
 import { NewCardPage, CardMakerPage } from "@/pages/card-maker";
 import CardViewerPage from "@/pages/card-viewer";
 import CheckoutPage from "@/pages/checkout";
@@ -53,6 +58,37 @@ function Router() {
             </StudioLayout>
           </RequireAuth>
         </Route>
+        {/* Week 1 dashboard rebuild: Drafts / Sent / Orders surfaces.
+            Each is a filtered view on existing `/api/user/cards` data
+            (drafts + sent) or the joined `/api/studio/orders` list. */}
+        <Route path="/studio/drafts">
+          <RequireAuth>
+            <StudioLayout>
+              <StudioDrafts />
+            </StudioLayout>
+          </RequireAuth>
+        </Route>
+        <Route path="/studio/ready">
+          <RequireAuth>
+            <StudioLayout>
+              <StudioReady />
+            </StudioLayout>
+          </RequireAuth>
+        </Route>
+        <Route path="/studio/sent">
+          <RequireAuth>
+            <StudioLayout>
+              <StudioSent />
+            </StudioLayout>
+          </RequireAuth>
+        </Route>
+        <Route path="/studio/orders">
+          <RequireAuth>
+            <StudioLayout>
+              <StudioOrders />
+            </StudioLayout>
+          </RequireAuth>
+        </Route>
         <Route path="/studio/new-card">
           <RequireAuth>
             <StudioLayout>
@@ -67,10 +103,15 @@ function Router() {
             </StudioLayout>
           </RequireAuth>
         </Route>
-        {/* Friendly short-URL redirect — /studio/card/:id → /edit.
-            Catches manually-typed URLs and any stale bookmarks. */}
+        {/* /studio/card/:id — dedicated view page for completed cards.
+            Drafts and in-progress generations are redirected back into
+            the maker from inside the component. */}
         <Route path="/studio/card/:id">
-          {(params) => <Redirect to={`/studio/card/${params.id}/edit`} />}
+          <RequireAuth>
+            <StudioLayout>
+              <StudioCardViewPage />
+            </StudioLayout>
+          </RequireAuth>
         </Route>
         {/* Digital card viewer. Public when `?t=TOKEN` is present
             (recipient share link); the page itself uses the public

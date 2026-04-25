@@ -86,26 +86,48 @@ export class DatabaseStorage implements IStorage {
   // typed query builder makes this awkward with jsonb operators so we
   // drop to execute() here; the result set is small and well-defined.
   async getUserCardsForGrid(userId: string): Promise<CardGridItem[]> {
+    // LEFT JOIN studio_orders so we can surface whether each card has
+    // been paid for — drives the Ready vs Sent bucket split in the
+    // dashboard. `cards.status` alone isn't enough: it stays at
+    // 'completed' forever regardless of purchase; the money state
+    // lives on studio_orders.payment_status. Cleaner to keep the
+    // two domains separate and derive display state here.
     const result = await db.execute(sql`
       SELECT
-        id,
-        user_id        AS "userId",
-        status,
-        card_type      AS "cardType",
-        created_at     AS "createdAt",
-        front_image_path AS "frontImagePath",
+        c.id,
+        c.user_id        AS "userId",
+        c.status,
+        c.card_type      AS "cardType",
+        c.created_at     AS "createdAt",
+        c.front_image_path AS "frontImagePath",
+        c.front_image_url  AS "frontImageUrl",
         COALESCE(
-          conversation_data->>'name',
-          conversation_data->>'recipientName'
+          c.conversation_data->'recipient'->>'name',
+          c.conversation_data->>'name',
+          c.conversation_data->>'recipientName'
         ) AS "recipientName",
         COALESCE(
-          conversation_data->>'celebration',
-          conversation_data->>'celebrationType',
-          conversation_data->>'occasion'
-        ) AS "occasion"
-      FROM cards
-      WHERE user_id = ${userId}
-      ORDER BY created_at DESC
+          c.conversation_data->'recipient'->>'occasion',
+          c.conversation_data->>'celebration',
+          c.conversation_data->>'celebrationType',
+          c.conversation_data->>'occasion'
+        ) AS "occasion",
+        -- Last step the user was on (0-indexed per CARD_MAKER_STEPS).
+        -- Drives the "Step X of 6 · Photos" progress label on draft
+        -- tiles in the dashboard activity column. Nullable on legacy
+        -- rows that predate the step field.
+        (c.conversation_data->>'step')::int AS "draftStep",
+        -- Boolean: does this card have at least one paid Studio order?
+        -- EXISTS keeps the grid one row per card even if a user has
+        -- multiple orders against the same card (reorder, etc.).
+        EXISTS (
+          SELECT 1 FROM studio_orders so
+          WHERE so.card_id = c.id
+            AND so.payment_status = 'paid'
+        ) AS "hasPaidOrder"
+      FROM cards c
+      WHERE c.user_id = ${userId}
+      ORDER BY c.created_at DESC
       LIMIT 200
     `);
 
@@ -121,7 +143,18 @@ export class DatabaseStorage implements IStorage {
       createdAt: r.createdAt ? new Date(r.createdAt) : null,
       recipientName: r.recipientName ?? null,
       occasion: r.occasion ?? null,
-      frontImageUrl: r.frontImagePath ? `/images/${r.frontImagePath}` : null,
+      // Prefer stored-file path when we have it (served under /images/
+      // with 1-year cache); fall back to the direct URL column for
+      // legacy rows. Some cards have only one populated; never assume
+      // both — that's why the dashboard was showing empty thumbnails.
+      frontImageUrl: r.frontImagePath
+        ? `/images/${r.frontImagePath}`
+        : (r.frontImageUrl ?? null),
+      hasPaidOrder: Boolean(r.hasPaidOrder),
+      draftStep:
+        typeof r.draftStep === 'number' && Number.isFinite(r.draftStep)
+          ? r.draftStep
+          : null,
     }));
   }
 

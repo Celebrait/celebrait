@@ -12,7 +12,7 @@
 
 import type { Express, Request, Response } from 'express';
 import { randomBytes } from 'crypto';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
 import {
@@ -240,6 +240,88 @@ export function registerStudioCheckoutRoutes(app: Express): void {
       } catch (err: any) {
         console.error('[STUDIO-CHECKOUT] fetch order error:', err);
         res.status(500).json({ message: 'Could not load order' });
+      }
+    },
+  );
+
+  // ── GET /api/studio/orders ───────────────────────────────────────
+  // List all orders for the current user, newest first. Joined with
+  // the card row so the dashboard can show recipient/occasion +
+  // front image thumbnail without a second round-trip.
+  //
+  // Powers /studio/orders (the Week 1 Orders & delivery list page).
+  // No pagination yet — a real user has tens of orders at most in
+  // the medium term; add limit/offset if that changes.
+  app.get(
+    '/api/studio/orders',
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+      try {
+        const rows = await db
+          .select({
+            id: studioOrders.id,
+            cardId: studioOrders.cardId,
+            createdAt: studioOrders.createdAt,
+            paidAt: studioOrders.paidAt,
+            includesPrint: studioOrders.includesPrint,
+            includesDigital: studioOrders.includesDigital,
+            totalAmount: studioOrders.totalAmount,
+            currency: studioOrders.currency,
+            paymentStatus: studioOrders.paymentStatus,
+            fulfillmentStatus: studioOrders.fulfillmentStatus,
+            trackingUrl: studioOrders.trackingUrl,
+            shipTo: studioOrders.shipTo,
+            // Card-side projection — no jsonb, no image bytes blown up
+            // into the response. conversationData is the one jsonb column
+            // we need, for recipient name + occasion derivation.
+            cardFrontImageUrl: cards.frontImageUrl,
+            cardConversationData: cards.conversationData,
+            cardViewToken: cards.viewToken,
+          })
+          .from(studioOrders)
+          .leftJoin(cards, eq(cards.id, studioOrders.cardId))
+          .where(eq(studioOrders.userId, userId))
+          .orderBy(desc(studioOrders.createdAt));
+
+        // Shape into a dashboard-friendly payload. Recipient name +
+        // occasion are derived server-side so the client doesn't need
+        // to re-derive per row.
+        const orders = rows.map((r) => {
+          const state =
+            (r.cardConversationData as CardDraftState | null) ?? null;
+          return {
+            id: r.id,
+            cardId: r.cardId,
+            createdAt: r.createdAt,
+            paidAt: r.paidAt,
+            includesPrint: r.includesPrint,
+            includesDigital: r.includesDigital,
+            totalAmount: r.totalAmount,
+            currency: r.currency,
+            paymentStatus: r.paymentStatus,
+            fulfillmentStatus: r.fulfillmentStatus,
+            trackingUrl: r.trackingUrl,
+            shipTo: r.shipTo,
+            recipientName: state?.recipient?.name?.trim() || null,
+            occasion: state?.recipient?.occasion?.trim() || null,
+            frontImageUrl: r.cardFrontImageUrl,
+            // Share URL for paid digital orders. Null otherwise.
+            shareUrl:
+              r.includesDigital &&
+              r.paymentStatus === 'paid' &&
+              r.cardViewToken
+                ? `/card/${r.cardId}/view?t=${encodeURIComponent(r.cardViewToken)}`
+                : null,
+          };
+        });
+
+        res.json(orders);
+      } catch (err: any) {
+        console.error('[STUDIO-CHECKOUT] list orders error:', err);
+        res.status(500).json({ message: 'Could not load orders' });
       }
     },
   );

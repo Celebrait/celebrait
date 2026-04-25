@@ -106,6 +106,29 @@ export const insertStudioOrderSchema = createInsertSchema(studioOrders).pick({
 export type InsertStudioOrder = z.infer<typeof insertStudioOrderSchema>;
 export type StudioOrder = typeof studioOrders.$inferSelect;
 
+// Dashboard list projection. Joined with cards + recipient/occasion
+// derived from conversationData. Returned by GET /api/studio/orders.
+// Keep the shape in sync with the handler in server/routes/studio-checkout.ts.
+export type StudioOrderListItem = {
+  id: string;
+  cardId: number;
+  createdAt: Date | null;
+  paidAt: Date | null;
+  includesPrint: boolean;
+  includesDigital: boolean;
+  totalAmount: number;
+  currency: string;
+  paymentStatus: string;       // 'pending' | 'paid' | 'failed' | 'refunded'
+  fulfillmentStatus: string;   // 'pending' | 'submitted' | 'printed' | 'shipped' | 'delivered' | 'failed'
+  trackingUrl: string | null;
+  shipTo: string | null;
+  recipientName: string | null;
+  occasion: string | null;
+  frontImageUrl: string | null;
+  /** Tokenised share URL for paid digital orders. Null otherwise. */
+  shareUrl: string | null;
+};
+
 export const shippingAddressSchema = z.object({
   line1: z.string().min(1),
   line2: z.string().optional(),

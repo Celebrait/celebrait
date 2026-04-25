@@ -10,13 +10,29 @@
 //   - Mobile collapses to a top bar + hamburger → Sheet drawer
 //   - FAB floats bottom-right on the home view
 //
-// Locked in Sprint 2:
-//   - Sidebar nav (switched from top-nav mid-sprint)
-//   - One item today: "My cards". Photos / Account / Help slots appear as built.
-//   - FAB visible on /studio home, hidden in the card maker flows
+// Sidebar IA (Week 1 dashboard rebuild, 2026-04-24):
+//   - Pinned "+ New card" primary CTA at the top
+//   - Cards section: Home / Drafts / Sent
+//   - People section: greyed placeholder (Address book + Reminders land Week 2)
+//   - Account section: Orders & delivery
+//   - Previous single "My cards" item is replaced by Home+Drafts+Sent.
+//
+// The per-page greeting h1 previously rendered inline here — removed as
+// part of the Week 1 rebuild so each page owns its own header.
 
 import { Link, useLocation } from 'wouter';
-import { LogOut, Menu, Sparkles, type LucideIcon } from 'lucide-react';
+import {
+  LogOut,
+  Menu,
+  Home as HomeIcon,
+  FileEdit,
+  Send,
+  Package,
+  Users,
+  Truck,
+  Plus,
+  type LucideIcon,
+} from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
@@ -28,45 +44,128 @@ interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
+  /** When true, rendered greyed-out and unclickable. Used for sections
+   *  that are scaffolded but not yet populated (People → Week 2). */
+  disabled?: boolean;
 }
 
-// Today's Studio has one section. Additional items (Photos library,
-// Account, Help) drop in here as they're built — no layout churn.
-const NAV_ITEMS: NavItem[] = [
-  { label: 'My cards', href: '/studio', icon: Sparkles },
+interface NavSection {
+  label: string;
+  items: NavItem[];
+  /** When true, the whole section is visible but its items are greyed
+   *  placeholders. Used for People until the Week 2 items ship. */
+  placeholder?: boolean;
+}
+
+// Primary sections. Order = visual top-to-bottom.
+const NAV_SECTIONS: NavSection[] = [
+  {
+    label: 'Cards',
+    items: [
+      { label: 'Home', href: '/studio', icon: HomeIcon },
+      { label: 'Drafts', href: '/studio/drafts', icon: FileEdit },
+      // Ready = generated but not purchased. Split out from Sent
+      // 2026-04-24 so "Sent" means the card's actually on its way.
+      { label: 'Ready', href: '/studio/ready', icon: Package },
+      { label: 'Sent', href: '/studio/sent', icon: Send },
+    ],
+  },
+  {
+    label: 'People',
+    placeholder: true,
+    items: [
+      // Week 2: Address book + Reminders land here. Keeping the section
+      // visible (greyed) documents the shape of the product in-nav —
+      // fine because we're pre-launch and there's no real user to confuse.
+      { label: 'Address book', href: '#', icon: Users, disabled: true },
+      { label: 'Reminders', href: '#', icon: Users, disabled: true },
+    ],
+  },
+  {
+    label: 'Account',
+    items: [
+      { label: 'Orders & delivery', href: '/studio/orders', icon: Truck },
+    ],
+  },
 ];
 
-// Route patterns where the FAB would be noise. The card maker already IS
-// the new-card flow; don't double up.
-const HIDE_FAB_ON: RegExp[] = [/^\/studio\/new-card(?:\/|$)/, /^\/studio\/card\/[^/]+\/edit$/];
+// Route patterns where the FAB would be noise. Either the page IS the
+// new-card flow (maker), or the page is actively pushing the user
+// toward another CTA (Buy on the card viewer — we don't want the
+// green "New card" competing for attention there).
+const HIDE_FAB_ON: RegExp[] = [
+  /^\/studio\/new-card(?:\/|$)/,
+  /^\/studio\/card\/[^/]+\/edit$/,
+  /^\/studio\/card\/[^/]+$/, // viewer — Buy is the primary action
+];
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const [location] = useLocation();
   return (
-    <nav className="flex-1 py-4">
-      <div className="px-3 text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">
-        Studio
+    <nav className="flex-1 py-4 overflow-y-auto">
+      {/* Pinned primary CTA. Links to the new-card flow — same target as
+          the FAB. Visual weight = solid violet pill so it reads as the
+          primary action regardless of which page the user is on. */}
+      <div className="px-3 mb-4">
+        <Link
+          href="/studio/new-card"
+          onClick={onNavigate}
+          className="flex items-center justify-center gap-2 w-full bg-brand hover:bg-brand-dark text-white rounded-full py-2.5 text-sm font-semibold transition-colors shadow-sm"
+          data-testid="nav-new-card-cta"
+        >
+          <Plus className="w-4 h-4" strokeWidth={2.5} />
+          New card
+        </Link>
       </div>
-      {NAV_ITEMS.map((item) => {
-        const Icon = item.icon;
-        const isActive = location === item.href || location.startsWith(item.href + '/');
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            className={`flex items-center gap-2 px-3 py-2 mx-2 rounded text-sm transition-colors ${
-              isActive
-                ? 'bg-brand-muted text-brand-dark font-medium'
-                : 'text-stone-700 hover:bg-stone-50'
+
+      {NAV_SECTIONS.map((section) => (
+        <div key={section.label} className="mb-4">
+          <div
+            className={`px-4 text-[10px] font-semibold uppercase tracking-wider mb-1 ${
+              section.placeholder ? 'text-stone-300' : 'text-stone-400'
             }`}
-            data-testid={`nav-${item.href}`}
           >
-            <Icon className="w-4 h-4" />
-            {item.label}
-          </Link>
-        );
-      })}
+            {section.label}
+          </div>
+          {section.items.map((item) => {
+            const Icon = item.icon;
+            const isActive =
+              !item.disabled &&
+              (location === item.href ||
+                (item.href !== '/studio' && location.startsWith(item.href + '/')));
+
+            if (item.disabled) {
+              return (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-2 px-3 py-2 mx-2 rounded text-sm text-stone-300 cursor-not-allowed select-none"
+                  data-testid={`nav-disabled-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {item.label}
+                </div>
+              );
+            }
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onNavigate}
+                className={`flex items-center gap-2 px-3 py-2 mx-2 rounded text-sm transition-colors ${
+                  isActive
+                    ? 'bg-brand-muted text-brand-dark font-medium'
+                    : 'text-stone-700 hover:bg-stone-50'
+                }`}
+                data-testid={`nav-${item.href}`}
+              >
+                <Icon className="w-4 h-4" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
     </nav>
   );
 }
@@ -95,9 +194,7 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const initials = user?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?';
-  const displayName = user?.firstName || user?.email?.split('@')[0] || 'there';
   const showFab = !HIDE_FAB_ON.some((rx) => rx.test(location));
-  const isOnHome = location === '/studio' || location === '/studio/';
 
   return (
     <div className="min-h-screen bg-surface flex">
@@ -157,19 +254,11 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
           </Button>
         </header>
 
-        {/* Main scroll area */}
+        {/* Main scroll area. Per-page headers live inside `children`
+            (Week 1 dashboard rebuild) — the layout no longer owns the
+            greeting h1, so each surface can tune its own copy. */}
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
-            {isOnHome && (
-              <div className="mb-6 sm:mb-8">
-                <h1 className="text-2xl sm:text-3xl font-semibold text-ink">
-                  Hi {displayName} <span className="text-accent-amber">✨</span>
-                </h1>
-                <p className="text-sm text-stone-600 mt-1">
-                  Your studio — every card you've crafted, all in one place.
-                </p>
-              </div>
-            )}
             {children}
           </div>
         </main>

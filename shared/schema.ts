@@ -102,4 +102,13 @@ export type CardGridItem = {
   recipientName: string | null;
   occasion: string | null;
   frontImageUrl: string | null;
+  /** True if the card has at least one paid Studio order. Drives the
+   *  Ready vs Sent bucket split in the dashboard — a completed card
+   *  without a paid order is "ready to send"; one with is "sent". */
+  hasPaidOrder: boolean;
+  /** Last step the user was on in the card maker (0-indexed per
+   *  CARD_MAKER_STEPS). Nullable on legacy rows. Used by the Home
+   *  Drafts column to show a "Step X of 6 · Label" progress cue on
+   *  draft rows. */
+  draftStep: number | null;
 };

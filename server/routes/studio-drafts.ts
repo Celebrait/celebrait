@@ -137,6 +137,8 @@ export function registerStudioDraftRoutes(app: Express): void {
           conversationData: cards.conversationData,
           frontImageUrl: cards.frontImageUrl,
           insideImageUrl: cards.insideImageUrl,
+          frontImagePath: cards.frontImagePath,
+          insideImagePath: cards.insideImagePath,
           createdAt: cards.createdAt,
         })
         .from(cards)
@@ -155,11 +157,23 @@ export function registerStudioDraftRoutes(app: Express): void {
           ? (stateRaw as CardDraftState)
           : EMPTY_CARD_DRAFT;
 
+      // Prefer the stored-file path (served under /images/) and fall
+      // back to the direct URL column for legacy rows where only one
+      // of the two is populated. Mirrors the logic in
+      // storage.getUserCardsForGrid — keep them aligned so all
+      // dashboard surfaces resolve the same.
+      const frontUrl = row.frontImagePath
+        ? `/images/${row.frontImagePath}`
+        : row.frontImageUrl;
+      const insideUrl = row.insideImagePath
+        ? `/images/${row.insideImagePath}`
+        : row.insideImageUrl;
+
       res.json({
         id: row.id,
         status: row.status,
-        frontImageUrl: row.frontImageUrl,
-        insideImageUrl: row.insideImageUrl,
+        frontImageUrl: frontUrl,
+        insideImageUrl: insideUrl,
         createdAt: row.createdAt,
         state,
       });
