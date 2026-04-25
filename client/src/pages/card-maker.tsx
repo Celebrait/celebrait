@@ -165,6 +165,24 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     return acc;
   }, {} as Record<StepId, number>);
 
+  // The saving indicator only renders if a save has been in flight long
+  // enough to be worth signalling — fast saves stay invisible. Below
+  // ~600ms we'd just flash "Saving…" then "Saved" for a beat, which
+  // reads SaaS-tic and undermines the gift framing. Mirrors the
+  // showBrandedWait pattern in NewCardPage. The "Saved" branch was
+  // dropped entirely (2026-04-25) — silent success is the default.
+  // MUST live above the isLoading / loadError early-returns: every
+  // hook on this component has to run on every render, full stop.
+  const [showSaving, setShowSaving] = useState(false);
+  useEffect(() => {
+    if (!isSaving) {
+      setShowSaving(false);
+      return;
+    }
+    const t = window.setTimeout(() => setShowSaving(true), 600);
+    return () => window.clearTimeout(t);
+  }, [isSaving]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -233,21 +251,8 @@ function CardMakerInner({ cardId }: { cardId: number }) {
       status === 'failed' ||
       isStartingGeneration);
 
-  // The saving indicator only renders if a save has been in flight long
-  // enough to be worth signalling — fast saves stay invisible. Below
-  // ~600ms we'd just flash "Saving…" then "Saved" for a beat, which
-  // reads SaaS-tic and undermines the gift framing. Mirrors the
-  // showBrandedWait pattern in NewCardPage. The "Saved" branch was
-  // dropped entirely (2026-04-25) — silent success is the default.
-  const [showSaving, setShowSaving] = useState(false);
-  useEffect(() => {
-    if (!isSaving) {
-      setShowSaving(false);
-      return;
-    }
-    const t = window.setTimeout(() => setShowSaving(true), 600);
-    return () => window.clearTimeout(t);
-  }, [isSaving]);
+  // (showSaving hook was here originally; moved above the early-returns
+  // so the hook order stays consistent every render — see top of fn.)
 
   return (
     <div>

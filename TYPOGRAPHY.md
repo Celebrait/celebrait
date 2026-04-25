@@ -1,12 +1,12 @@
 # Typography — Celebrait
 
-**Status 2026-04-24: PARKED. Inter everywhere.**
+**Status 2026-04-25: PARKED. Inter everywhere.**
 
-Fraunces, Instrument Serif, Recoleta, and Newsreader were all tried
-in the Studio + landing + checkout over the course of 2026-04-24.
-Kevin landed on "back to Inter" — a proper typography pass will
-happen later once brand direction is firmer. Keep this file as the
-reference for when we pick it back up.
+Fraunces, Instrument Serif, Recoleta, and Newsreader were each tried
+across the maker step h1s + dashboard greeting + landing hero +
+checkout success. Kevin reverted each time. A proper typography
+pass will happen later when brand direction is firmer. Keep this
+file as the reference for when we pick it back up.
 
 ## Today
 
@@ -19,8 +19,7 @@ Tailwind. To reintroduce a serif, add:
 
 1. `<link>` in `client/index.html` (Google Fonts or Fontshare)
 2. `fontFamily.serif: [...]` in `tailwind.config.ts`
-3. `font-serif` + `font-bold` (or similar weight) on the specific
-   element per the rule below.
+3. `font-serif` on the specific element per the rule below.
 
 ## When we revisit — the framework to apply
 
@@ -58,12 +57,12 @@ If you can't decide, the answer is sans.
 - **Never on H2 or deeper.** H1 earns the moment; subheads stay sans.
 - **Never on interactive elements.** Buttons, links, inputs — all sans.
 
-### Candidates evaluated 2026-04-24
+### Candidates evaluated 2026-04-24/25
 
-- **Fraunces** — warm + crafted; slightly decorative at display sizes.
-- **Instrument Serif** — modern editorial, cleaner; only ships weight 400 which limited hierarchy.
-- **Recoleta** (Fontshare) — warm contemporary, full weight range including 900. Closest to "bold classic with modern" brief. Strong candidate when we revisit.
-- **Newsreader** — editorial, clean optical-size axis; read too "newsy" vs Recoleta's warmth.
+- **Fraunces** — first pick + last pick. Warm, crafted, optical-size axis. Each round Kevin reverted as "a bit much" / "revisit later".
+- **Instrument Serif** — modern editorial; only ships weight 400 which limited hierarchy.
+- **Recoleta** (Fontshare) — warm contemporary, full weight range. Closest to "bold classic with modern" brief.
+- **Newsreader** — editorial, optical-size axis; read too "newsy".
 
 ### The failure mode to watch for
 
@@ -73,3 +72,11 @@ feeling like a wedding stationer's Shopify theme.
 
 If you're adding a serif class to a screen not on the allow-list,
 pause. Probably don't.
+
+### Why we keep parking it
+
+A serif drift is usually signalling that the *real* unresolved
+question is brand direction more broadly — palette, voice, visual
+references. Until those are firmer, picking the right serif is
+guessing. When the brand pass happens, do typography then; trying
+to land it in isolation isn't working.
