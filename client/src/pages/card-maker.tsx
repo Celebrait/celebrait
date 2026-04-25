@@ -220,8 +220,8 @@ function CardMakerInner({ cardId }: { cardId: number }) {
   // On the Review step, once Generate has been pressed we treat the
   // whole page as "the moment of unveiling" — any chrome around the card
   // is a distraction. Hide the h1, stepper, step-panel frame, and the
-  // Saving/Saved indicator until the user comes back to a non-reveal
-  // state (e.g. by clicking Close, or on a fresh load where we're not
+  // saving indicator until the user comes back to a non-reveal state
+  // (e.g. by clicking Close, or on a fresh load where we're not
   // mid-render). `isRevealMode` gates all of these in one place so they
   // stay in sync. Failed is included because its "That one didn't land"
   // screen is its own full-page visual — stacking the step h1 above it
@@ -233,19 +233,32 @@ function CardMakerInner({ cardId }: { cardId: number }) {
       status === 'failed' ||
       isStartingGeneration);
 
+  // The saving indicator only renders if a save has been in flight long
+  // enough to be worth signalling — fast saves stay invisible. Below
+  // ~600ms we'd just flash "Saving…" then "Saved" for a beat, which
+  // reads SaaS-tic and undermines the gift framing. Mirrors the
+  // showBrandedWait pattern in NewCardPage. The "Saved" branch was
+  // dropped entirely (2026-04-25) — silent success is the default.
+  const [showSaving, setShowSaving] = useState(false);
+  useEffect(() => {
+    if (!isSaving) {
+      setShowSaving(false);
+      return;
+    }
+    const t = window.setTimeout(() => setShowSaving(true), 600);
+    return () => window.clearTimeout(t);
+  }, [isSaving]);
+
   return (
     <div>
-      {/* ── Top bar: Saved + Close (page chrome) ───────────────── */}
+      {/* ── Top bar: optional Saving indicator + Close ─────────── */}
       <div className="flex items-center justify-end gap-3 mb-3 text-xs text-stone-500">
-        {!isRevealMode &&
-          (isSaving ? (
-            <span className="flex items-center gap-1.5">
-              <Loader2 className="w-3 h-3 animate-spin" />
-              Saving…
-            </span>
-          ) : (
-            <span className="text-stone-400">Saved</span>
-          ))}
+        {!isRevealMode && showSaving && (
+          <span className="flex items-center gap-1.5">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            Saving…
+          </span>
+        )}
         <button
           type="button"
           onClick={() => setLocation('/studio')}
@@ -321,7 +334,9 @@ function CardMakerInner({ cardId }: { cardId: number }) {
               />
             )}
             {currentStep === 1 && <PhotoStep state={state} onChange={update} />}
-            {currentStep === 2 && <SceneStep state={state} onChange={update} />}
+            {currentStep === 2 && (
+              <SceneStep state={state} onChange={update} cardId={cardId} />
+            )}
             {currentStep === 3 && (
               <StyleStep
                 state={state}
@@ -466,7 +481,7 @@ function getStepHeadline(stepId: StepId, state: CardDraftState): string {
 
   switch (stepId) {
     case 'recipient':
-      return "Greetings, who's this card for?";
+      return "Who's this card for?";
     case 'photo':
       return 'Upload Photo(s)';
     case 'scene':

@@ -125,7 +125,10 @@ function EmptyView({ name }: { name: string }) {
       </div>
 
       <HowItWorks />
-      <InvitationsTeaser />
+      {/* Invitations teaser intentionally OMITTED on the empty state
+          (audit 2026-04-25): a brand-new user's first visit shouldn't
+          have a "coming soon" block competing with the hero. Kept on
+          draft-pending and has-activity views below. */}
     </>
   );
 }

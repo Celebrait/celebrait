@@ -64,9 +64,8 @@ export function FrontStep({ state, onChange }: FrontStepProps) {
           Front text
         </Label>
         <p className="text-sm text-stone-600 mb-2">
-          These words are painted into the scene itself — carved into sand,
-          iced onto a cake, lit up in neon. Keep it short; a few words read
-          best.
+          A short line that sits with the scene — sometimes folded in,
+          sometimes set above. Keep it brief; a few words read best.
         </p>
         <Input
           ref={inputRef}
@@ -86,8 +85,7 @@ export function FrontStep({ state, onChange }: FrontStepProps) {
           </p>
         </div>
         <p className="text-[11px] text-stone-500 mt-2 italic">
-          e.g. <span className="text-stone-700">"Happy 40th, Dad"</span> —
-          written in fireworks over the ocean.
+          e.g. <span className="text-stone-700">"Happy 40th, Dad"</span>
         </p>
       </div>
     </div>

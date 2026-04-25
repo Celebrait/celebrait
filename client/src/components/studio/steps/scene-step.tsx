@@ -16,10 +16,21 @@
 // affordance once it's live.
 
 import { useEffect, useRef, useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Wand2, Loader2, RefreshCw, ArrowRight } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 import type { CardDraftState } from '@shared/schema';
 import { OCCASION_PRESETS } from '../scene-presets';
 import { BrainstormChatDrawer } from '../brainstorm-chat-drawer';
@@ -27,6 +38,15 @@ import { BrainstormChatDrawer } from '../brainstorm-chat-drawer';
 interface SceneStepProps {
   state: CardDraftState;
   onChange: (patch: Partial<CardDraftState>) => void;
+  /** Card ID — required for the Scene Helper to hit
+   *  /api/studio/scene-suggestions, which needs to validate ownership
+   *  + read recipient/occasion/photo context server-side. */
+  cardId?: number;
+}
+
+interface SceneSuggestion {
+  id: string;
+  text: string;
 }
 
 // How long between placeholder phrases (after one finishes typing).
@@ -36,7 +56,7 @@ const TYPE_CHAR_MS = 45;
 // Backspace speed — faster than typing so the loop doesn't drag.
 const BACKSPACE_CHAR_MS = 20;
 
-export function SceneStep({ state, onChange }: SceneStepProps) {
+export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   const occasion = state.recipient?.occasion ?? 'other';
   const presetSet = OCCASION_PRESETS[occasion] ?? OCCASION_PRESETS.other;
 
@@ -46,7 +66,60 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
   const [local, setLocal] = useState(state.scene?.description ?? '');
   const [focused, setFocused] = useState(false);
   const [brainstormOpen, setBrainstormOpen] = useState(false);
+  // Scene Helper modal — opens when user clicks "Suggest scenes". The
+  // modal takes a quick brief from the user (1-2 sentence idea) and
+  // shows three tile suggestions; tap a tile to fill the main textarea
+  // and close. Modal-based instead of inline because the prompt-and-pick
+  // pattern needs an explicit ask: clicking a button without any input
+  // field made it unclear that user input was the lever.
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [brief, setBrief] = useState('');
+  const [suggestions, setSuggestions] = useState<SceneSuggestion[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const { toast } = useToast();
+
+  // One-shot LLM call returning 3 tailored scene paragraphs. Posts to
+  // /api/studio/scene-suggestions which reads recipient + occasion +
+  // photos from the draft. The `brief` param is optional — empty input
+  // still works (server falls back to recipient/occasion alone) but
+  // the modal copy nudges the user to give us something.
+  const suggestMutation = useMutation({
+    mutationFn: async () => {
+      if (!cardId) throw new Error('Card not ready');
+      const r = await apiRequest('POST', '/api/studio/scene-suggestions', {
+        cardId,
+        brief: brief.trim() || undefined,
+      });
+      return (await r.json()) as { suggestions: SceneSuggestion[] };
+    },
+    onSuccess: (data) => {
+      setSuggestions(data.suggestions ?? []);
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Couldn't get suggestions",
+        description: err?.message ?? 'Try again, or use the Brainstorm chat.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const openSuggestModal = () => {
+    // Pre-fill the brief with whatever's in the textarea (if anything)
+    // so the user can tweak rather than retype. They can also blank it.
+    setBrief(local.trim());
+    setSuggestions([]);
+    setSuggestOpen(true);
+  };
+
+  const acceptSuggestion = (text: string) => {
+    setLocal(text);
+    onChange({ scene: { ...state.scene, description: text } });
+    setSuggestOpen(false);
+    // Reset for next open
+    setSuggestions([]);
+    setBrief('');
+  };
 
   useEffect(() => {
     // External changes (e.g. preset fill from future brainstorm-chat)
@@ -160,10 +233,22 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
         </div>
       </div>
 
-      {/* Brainstorm with AI — opens the BrainstormChatDrawer. Hook
-          + drawer own the conversation state; accepted scenes are
-          written back to the textarea via the onAccept callback. */}
-      <div>
+      {/* Two helpers — escalating depth.
+            Suggest scenes (left): one-shot modal — user types a quick
+            brief, gets three tile suggestions to pick from.
+            Brainstorm (right): multi-turn drawer for a real chat. */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          onClick={openSuggestModal}
+          disabled={!cardId}
+          variant="outline"
+          className="flex items-center gap-2 border-brand/40 bg-brand-muted/40 hover:bg-brand-muted text-brand-dark hover:text-brand-dark"
+          data-testid="btn-scene-suggest"
+        >
+          <Wand2 className="w-4 h-4" />
+          <span className="font-semibold">Suggest scenes</span>
+        </Button>
         <Button
           type="button"
           onClick={() => setBrainstormOpen(true)}
@@ -174,6 +259,116 @@ export function SceneStep({ state, onChange }: SceneStepProps) {
           <span className="font-semibold">Brainstorm the scene</span>
         </Button>
       </div>
+
+      {/* Scene Helper modal — brief input → tiles → pick → close.
+          Lives here (vs a sibling component) because the state it
+          manipulates (local + onChange) lives in this scope. */}
+      <Dialog
+        open={suggestOpen}
+        onOpenChange={(o) => {
+          setSuggestOpen(o);
+          if (!o) {
+            // Reset on close so reopening starts fresh
+            setSuggestions([]);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-left">
+              Suggest scenes
+            </DialogTitle>
+            <DialogDescription className="text-left">
+              Give us a quick idea — even two or three words is enough.
+              We'll spin up three scenes you can tap to use.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 mt-1">
+            <Textarea
+              value={brief}
+              onChange={(e) => setBrief(e.target.value)}
+              placeholder="e.g. Mum at the beach at sunset, or just 'something autumnal'"
+              rows={3}
+              className="text-base resize-none"
+              autoFocus
+              onKeyDown={(e) => {
+                // Cmd/Ctrl+Enter submits — saves a click for keyboard users
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                  e.preventDefault();
+                  if (!suggestMutation.isPending) suggestMutation.mutate();
+                }
+              }}
+              data-testid="input-scene-brief"
+            />
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-stone-400">
+                Optional — leave blank for surprise.
+              </p>
+              <Button
+                type="button"
+                onClick={() => suggestMutation.mutate()}
+                disabled={suggestMutation.isPending || !cardId}
+                className="flex items-center gap-1.5 bg-brand hover:bg-brand-dark text-brand-foreground"
+                data-testid="btn-scene-suggest-submit"
+              >
+                {suggestMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ArrowRight className="w-4 h-4" />
+                )}
+                {suggestMutation.isPending
+                  ? 'Thinking…'
+                  : suggestions.length > 0
+                    ? 'Try again'
+                    : 'Get suggestions'}
+              </Button>
+            </div>
+
+            {/* Tiles render inside the modal once we have results. Tap
+                a tile to fill the main textarea and close. */}
+            <AnimatePresence>
+              {suggestions.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
+                  className="space-y-2 pt-2 border-t border-stone-200"
+                  data-testid="scene-suggestions"
+                >
+                  <p className="text-xs uppercase tracking-wider text-stone-400 font-medium pt-3">
+                    Tap one to use it
+                  </p>
+                  {suggestions.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => acceptSuggestion(s.text)}
+                      className="block w-full text-left rounded-xl border border-stone-200 bg-white hover:border-brand hover:bg-brand-muted/30 transition-all p-4 text-sm text-ink leading-relaxed shadow-sm hover:shadow"
+                      data-testid={`scene-suggestion-${s.id}`}
+                    >
+                      {s.text}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => suggestMutation.mutate()}
+                    disabled={suggestMutation.isPending}
+                    className="inline-flex items-center gap-1.5 text-xs text-stone-600 hover:text-brand-dark underline-offset-4 hover:underline disabled:opacity-50 pt-1"
+                    data-testid="btn-scene-reroll"
+                  >
+                    <RefreshCw
+                      className={`w-3 h-3 ${suggestMutation.isPending ? 'animate-spin' : ''}`}
+                    />
+                    Try another three
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <BrainstormChatDrawer
         open={brainstormOpen}

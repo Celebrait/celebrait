@@ -646,13 +646,10 @@ function RevealView({
                   >
                     Buy this card
                   </Button>
-                  <p className="inline-flex items-center gap-2 text-sm font-medium text-ink">
-                    <span className="text-base" aria-hidden>🎁</span>
-                    <span>
-                      Choose <span className="text-brand font-semibold">digital</span>{' '}
-                      or <span className="text-brand font-semibold">print</span> next
-                    </span>
-                  </p>
+                  {/* Caption beneath ("Choose digital or print next") was
+                      removed 2026-04-25 — the 3D card has just appeared,
+                      meta-instructing the user about UI yet to come dilutes
+                      the moment. Buy button speaks for itself. */}
                 </motion.div>
 
                 <motion.div

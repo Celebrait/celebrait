@@ -24,6 +24,7 @@ import { registerPromptRoutes } from "./routes/prompts";
 import { registerPhotoRoutes } from "./routes/photos";
 import { registerStudioDraftRoutes } from "./routes/studio-drafts";
 import { registerStudioBrainstormRoutes } from "./routes/studio-brainstorm";
+import { registerStudioSceneSuggestRoutes } from "./routes/studio-scene-suggest";
 import { registerStudioCheckoutRoutes } from "./routes/studio-checkout";
 import { registerAdminCostsRoutes } from "./routes/admin-costs";
 
@@ -287,6 +288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerPhotoRoutes(app);
   registerStudioDraftRoutes(app);
   registerStudioBrainstormRoutes(app);
+  registerStudioSceneSuggestRoutes(app);
   registerStudioCheckoutRoutes(app);
   registerAdminCostsRoutes(app);
 
