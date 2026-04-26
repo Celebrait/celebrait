@@ -106,14 +106,45 @@ export type StepId = (typeof CARD_MAKER_STEPS)[number]['id'];
  *  typed their own. Client-side FrontStep pre-fills with this so the
  *  user can confirm-and-continue; server uses the same helper as the
  *  final fallback when state.front.text is absent.
- *  e.g. "Happy Birthday Sarah". Returns '' if we can't form a reasonable
- *  phrase — the front-scene prompt's `includeText` flag gates rendering
- *  on non-empty output. */
+ *
+ *  Occasion-aware: blindly prefixing "Happy " to every occasion produced
+ *  "Happy baby Kayla" (Kevin's test 2026-04-26). Each occasion gets a
+ *  phrase that reads like an actual card. Returns '' if we can't form
+ *  anything reasonable — the front-scene prompt's `includeText` flag
+ *  gates rendering on non-empty output.
+ *
+ *  Users can always edit on the Front step; this is just a sensible
+ *  default so the card isn't blank by default. */
 export function deriveDefaultFrontText(state: CardDraftState): string {
   const name = state.recipient?.name?.trim();
   const occasion = state.recipient?.occasion?.trim();
   if (!name || !occasion) return '';
-  if (occasion === 'other') return name;
-  const occasionTitle = occasion.charAt(0).toUpperCase() + occasion.slice(1);
-  return `Happy ${occasionTitle} ${name}`;
+
+  switch (occasion) {
+    case 'birthday':
+      return `Happy Birthday, ${name}`;
+    case 'anniversary':
+      return `Happy Anniversary, ${name}`;
+    case 'wedding':
+    case 'graduation':
+    case 'engagement':
+      return `Congratulations, ${name}`;
+    case 'baby':
+      return `Welcome, ${name}`;
+    case 'christmas':
+      return `Merry Christmas, ${name}`;
+    case 'valentines':
+      return `Happy Valentine's Day, ${name}`;
+    case 'thankyou':
+      return `Thank you, ${name}`;
+    case 'sympathy':
+      return `Thinking of you, ${name}`;
+    case 'other':
+      return name;
+    default:
+      // Future occasion that wasn't added here — fall back to just
+      // the name rather than risk producing "Happy ${unknown} ${name}"
+      // nonsense.
+      return name;
+  }
 }

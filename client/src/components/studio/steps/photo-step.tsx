@@ -989,8 +989,23 @@ function FaceWarningBanner({
  *               animation so revisiting the step doesn't flash everything
  *               back in (the compound fade with the step-level
  *               AnimatePresence was reading as glitchy).
- *   • `ghost` — in-flight upload. Shows the cropped preview (dim) with
- *               a centered spinner. Reads as "loading", not "broken".
+ *   • `ghost` — in-flight upload. Three sub-states:
+ *               1. src=null  — pulsing stone-100 surface (the cropped
+ *                              preview is being generated client-side;
+ *                              decoding a 15MB photo into a 128px crop
+ *                              can take a noticeable beat). The pulse
+ *                              signals "I'm working" — without it the
+ *                              tile reads as dead/broken.
+ *               2. src loaded — cropped preview fades in over 250ms,
+ *                              dimmed to 50%, spinner overlay holds
+ *                              while the upload itself completes.
+ *               3. upload done — tile transitions from ghost → real
+ *                              (handled at the parent level by the
+ *                              key change in the grid).
+ *
+ * Was reading as "slow and clunky" pre-2026-04-26 (Kevin's test):
+ * the empty-src grey square looked dead, and the image popped in
+ * abruptly. Both fixed here.
  */
 function PhotoTile({
   kind,
@@ -1017,13 +1032,16 @@ function PhotoTile({
         <img
           src={src}
           alt={alt}
-          className={`w-full h-full object-cover ${
+          className={`w-full h-full object-cover transition-opacity duration-300 ${
             isGhost ? 'opacity-50' : 'opacity-100'
-          }`}
+          } animate-in fade-in-0`}
           draggable={false}
         />
       ) : (
-        <div className="w-full h-full bg-stone-200" />
+        // Pulsing surface while the preview crop generates. The
+        // animate-pulse on an off-white tile reads as "working on it"
+        // rather than "broken / empty".
+        <div className="w-full h-full bg-stone-200 animate-pulse" />
       )}
       {isGhost && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

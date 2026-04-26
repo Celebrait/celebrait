@@ -87,11 +87,18 @@ export function Card3DViewer({
   //     passes through to page scroll. A central hit-zone div is
   //     pointer-events: auto and acts as the eventSource for r3f +
   //     the domElement for OrbitControls.
-  // Tuned at 70% × 70% — covers the card at the default framingMargin
-  // (2.0, card ≈ 50% of canvas) with rotation slack, and still mostly
-  // covers it at framingMargin 1.15 (card ≈ 85% — corners pass through
-  // but the body of the card is interactive). If the empty-state hero
-  // needs full coverage we'd add a `hitZoneSize` prop.
+  // Tuned at 56% × 56% (22% inset on each side). The card sits at
+  // ~50% of canvas at the default framingMargin (2.0), so this hit
+  // zone hugs it with only a ~3% buffer per side — close to "you
+  // have to actually be on the card" but with a small forgiving
+  // margin so corners stay grabbable.
+  //
+  // Was 70% × 70% pre-2026-04-26; Kevin's feedback was that the
+  // looser zone was interrupting page scroll on touch devices —
+  // touches starting just outside the visible card were eaten by
+  // OrbitControls instead of passing through to the page. Tighter
+  // makes the affordance more legible AND restores scroll outside
+  // the card's actual footprint.
   const [hitEl, setHitEl] = useState<HTMLDivElement | null>(null);
 
   return (
@@ -144,10 +151,10 @@ export function Card3DViewer({
         aria-hidden
         style={{
           position: 'absolute',
-          top: '15%',
-          left: '15%',
-          right: '15%',
-          bottom: '15%',
+          top: '22%',
+          left: '22%',
+          right: '22%',
+          bottom: '22%',
           pointerEvents: 'auto',
           touchAction: 'none', // inside the card area, intercept gestures
           cursor: 'grab',
