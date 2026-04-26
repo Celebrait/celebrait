@@ -45,10 +45,6 @@ export default function Footer() {
               <Link href="/terms-of-service" className="text-slate-gray hover:text-ethereal-purple transition-colors">
                 Terms of Service
               </Link>
-              <span className="text-slate-gray">•</span>
-              <Link href="/test-dashboard" className="text-slate-gray hover:text-ethereal-purple transition-colors">
-                Test Dashboard
-              </Link>
             </div>
           </div>
         </div>
