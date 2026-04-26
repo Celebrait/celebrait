@@ -7,16 +7,9 @@ import ScrollToTop from "@/components/scroll-to-top";
 import { handleQuotaError } from "./lib/queryClient";
 import { useEffect } from "react";
 import Landing from "@/pages/landing";
-import CreateCard from "@/pages/create-card";
-import PaymentSuccess from './pages/payment-success';
-import PaymentCancelled from './pages/payment-cancelled';
-import OrderSuccess from './pages/order-success';
-import CompleteOrder from './pages/complete-order';
-import CardPreviewPage from "@/pages/card-preview-page";
 import NotFound from "@/pages/not-found";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import TermsOfService from "@/pages/terms-of-service";
-import RegenPage from "@/pages/regen-page";
 import AdminPromptsPage from "@/pages/admin-prompts";
 import AdminCostsPage from "@/pages/admin-costs";
 import LoginPage from "@/pages/login";
@@ -43,12 +36,6 @@ function Router() {
       <Switch>
         <Route path="/" component={Landing} />
         <Route path="/login" component={LoginPage} />
-        <Route path="/create-card" component={CreateCard} />
-        <Route path="/payment-success/:reference" component={PaymentSuccess} />
-        <Route path="/payment-cancelled/:reference" component={PaymentCancelled} />
-        <Route path="/order-success" component={OrderSuccess} />
-        <Route path="/complete-order/:cardId" component={CompleteOrder} />
-        <Route path="/card-preview/:reference" component={CardPreviewPage} />
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms-of-service" component={TermsOfService} />
         <Route path="/studio">
@@ -141,12 +128,6 @@ function Router() {
             <CheckoutPage />
           </RequireAuth>
         </Route>
-        {/* Legacy /dashboard — redirect to Studio. Kept so existing
-            bookmarks and any stale links survive the cutover. */}
-        <Route path="/dashboard">
-          <Redirect to="/studio" />
-        </Route>
-        <Route path="/regen/:cardId" component={RegenPage} />
         <Route path="/admin/prompts">
           <RequireAdmin>
             <AdminLayout>
