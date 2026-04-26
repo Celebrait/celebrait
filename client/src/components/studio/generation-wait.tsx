@@ -40,7 +40,10 @@ interface GenerationWaitStageProps {
 }
 
 // Time each fact sits on screen before the next fades in.
-const CYCLE_MS = 7500;
+// Was 7500ms — Kevin's test 2026-04-26 read it as too slow. Dropped
+// to 5500ms so a ~45s gen cycles ~8 facts (was ~6) — more energy,
+// fewer "is anything happening?" moments without rushing the read.
+const CYCLE_MS = 5500;
 
 export function GenerationWaitStage({ occasion = null }: GenerationWaitStageProps) {
   const facts = useMemo(() => buildCelebrationFeed(occasion), [occasion]);
