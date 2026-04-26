@@ -12,24 +12,24 @@
 // Visual language matches the /checkout preview chassis (Kevin's
 // reference, 2026-04-26): white border, square aspect with
 // object-contain so the whole card shows, divider, label strip.
-// The pill switcher beneath single-side mode also mirrors checkout's
-// PreviewTab — see the parent component for that.
 //
 // Three render modes, controlled by `target`:
 //
 //   • 'front'  — single chassis showing the front, label strip = "Front"
 //   • 'inside' — single chassis showing the inside, label strip = "Inside"
-//   • 'both'   — two chassis stacked vertically (Front above, Inside
-//                below), each with its own label. No internal switcher.
+//   • 'both'   — two chassis side-by-side (Front left, Inside right) on
+//                desktop; stacked only at the very narrowest breakpoints
+//                where horizontal layout would crush both thumbs. Each
+//                chassis has its own label.
 //
-// During regen, the image is replaced by a NarrationStage scaled to
-// the chassis. One completion signal (the new image fading in) — no
-// separate "✓ done" beat fighting for attention.
+// During regen the chassis swaps to a clean spinner — no narration
+// text, no progress beats. Dropped 2026-04-26 per Kevin's feedback:
+// the in-thumb narration was reading as stale during the ~30s wait
+// and competing with the action elsewhere on the page. A spinner is
+// the honest "this is happening, hold on" signal.
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { ImageOff } from 'lucide-react';
-import { NarrationStage } from './narration-stage';
-import type { CardDraftState } from '@shared/schema';
+import { ImageOff, Loader2 } from 'lucide-react';
 
 export type ThumbTarget = 'front' | 'inside' | 'both';
 
@@ -42,13 +42,11 @@ interface CardThumbProps {
    *  When false, 'inside' and 'both' targets fall back to 'front'. */
   hasInside: boolean;
   /** Whether this side is currently being regenerated. The matching
-   *  half (or whole, for single-side targets) shows the narration
-   *  stage instead of the image. */
+   *  half (or whole, for single-side targets) shows a spinner instead
+   *  of the image. */
   regeneratingSide: 'front' | 'inside' | null;
-  /** Draft state for narration personalisation — same source of truth
-   *  the reveal-screen narration uses. */
-  state: CardDraftState;
-  /** Optional className for outer sizing. Default: max-w-[320px]. */
+  /** Optional className for outer sizing. Default: max-w-[320px]
+   *  (single side) / max-w-[560px] (both, side-by-side). */
   className?: string;
 }
 
@@ -58,28 +56,29 @@ export function CardThumb({
   target,
   hasInside,
   regeneratingSide,
-  state,
   className,
 }: CardThumbProps) {
   const resolvedTarget: ThumbTarget = !hasInside ? 'front' : target;
 
   if (resolvedTarget === 'both') {
+    // Side-by-side on most viewports — they're both small thumbs;
+    // horizontal lets the eye compare front + inside at a glance.
+    // Stacks only on the tightest mobile (<420px or so) where
+    // ~140px thumbs would feel cramped horizontally.
     return (
       <div
-        className={`flex flex-col gap-3 w-full max-w-[280px] sm:max-w-[320px] mx-auto ${className ?? ''}`}
+        className={`grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 w-full max-w-[560px] mx-auto ${className ?? ''}`}
         data-testid="card-thumb-both"
       >
         <ThumbChassis
           url={frontUrl}
           label="Front"
           isGenerating={regeneratingSide === 'front'}
-          state={state}
         />
         <ThumbChassis
           url={insideUrl}
           label="Inside"
           isGenerating={regeneratingSide === 'inside'}
-          state={state}
         />
       </div>
     );
@@ -96,12 +95,7 @@ export function CardThumb({
       className={`w-full max-w-[280px] sm:max-w-[320px] mx-auto ${className ?? ''}`}
       data-testid={`card-thumb-${resolvedTarget}`}
     >
-      <ThumbChassis
-        url={url}
-        label={label}
-        isGenerating={generating}
-        state={state}
-      />
+      <ThumbChassis url={url} label={label} isGenerating={generating} />
     </div>
   );
 }
@@ -116,12 +110,10 @@ function ThumbChassis({
   url,
   label,
   isGenerating,
-  state,
 }: {
   url: string | null;
   label: string;
   isGenerating: boolean;
-  state: CardDraftState;
 }) {
   return (
     <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
@@ -129,17 +121,18 @@ function ThumbChassis({
         <AnimatePresence mode="wait">
           {isGenerating ? (
             <motion.div
-              key="narration"
-              className="absolute inset-0 flex items-center justify-center bg-white"
+              key="spinner"
+              className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-              data-testid="thumb-narration"
+              transition={{ duration: 0.3 }}
+              data-testid="thumb-spinner"
             >
-              <div className="w-full h-full">
-                <NarrationStage mode="running" state={state} />
-              </div>
+              <Loader2 className="w-6 h-6 text-brand animate-spin" />
+              <p className="text-[10px] uppercase tracking-[0.2em] font-medium text-stone-400">
+                Regenerating
+              </p>
             </motion.div>
           ) : url ? (
             <motion.img

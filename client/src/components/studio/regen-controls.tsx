@@ -1,56 +1,46 @@
 // client/src/components/studio/regen-controls.tsx
 //
-// REGEN EDIT MODE — full-screen "workbench" surface for iterating
-// on a generated card. Replaces the inline-expand-panel approach
-// (audit 2026-04-26): trying to make one screen serve both "look at
-// the card → buy" and "iterate on the card" was the root cause of
-// every regen-feels-clunky symptom Kevin flagged.
-//
-// Mode is owned by the parent (review-step's RevealView and
-// studio-card-view), which switches between the reveal layout
-// (3D card + Buy CTA) and rendering this component. Entry is the
-// "Not 100% happy? Make a change." pill on the reveal screen;
-// exit is the Done button at the top of edit mode.
+// REGEN EDIT MODE — full-screen "workbench" surface for iterating on
+// a generated card. The reveal screen's "Make a change" pill flips
+// here; the Done button (or the new "Keep this and finish" CTA) flips
+// back.
 //
 //   ┌───────────────────────────────────────────────────────┐
 //   │  ← Mum's birthday card                          Done │  header
 //   ├───────────────────────────────────────────────────────┤
-//   │           [ Front | Inside | Both ]                   │  side picker
+//   │             ┌────────┐  ┌────────┐                    │
+//   │             │  Front │  │ Inside │  (Both: side-by-   │
+//   │             └────────┘  └────────┘   side, max-560)   │
+//   │              v1 ─ v2 ─ ●v3   versions rail (scoped)   │
 //   │                                                       │
-//   │           ┌───────────────┐                           │
-//   │           │     thumb     │  CardThumb (2D, ~280px)   │
-//   │           └───────────────┘                           │
-//   │           v1 ─ v2 ─ ●v3   versions rail (scoped)      │
+//   │   ┌────────────────────────────────────────────┐      │
+//   │   │ ✓ Keep this and finish · Try another change │ ← post-regen
+//   │   └────────────────────────────────────────────┘      │
 //   │                                                       │
 //   │  ┌──────────────────────────────────────┐            │
-//   │  │ What would you like to change?       │  textarea  │
-//   │  │ e.g. swap the dog for a cat          │  persists  │
+//   │  │ What would you like to change?       │            │
+//   │  │ (in Both mode: TWO labelled textareas)│           │
 //   │  └──────────────────────────────────────┘            │
-//   │                          [ Try with this change ]    │  submit
+//   │                          [ Try with this change ]    │
 //   └───────────────────────────────────────────────────────┘
 //
-// Loop semantics (the killer fix vs v1):
-//   • Textarea value PERSISTS across submits — most users tweak the
-//     tweak ("warmer light" → "warmer light, less orange"). Clearing
-//     was a v1 mistake.
-//   • Focus stays in the textarea after a submit lands — type-and-
-//     iterate without re-clicking.
-//   • No "panel open/closed" state, no expand/collapse, no
-//     just-completed confirmation strip. The thumb itself changing
-//     IS the completion signal.
-//
-// Submit flow:
-//   1. User types tweak (or leaves blank for clean re-roll)
-//   2. Hits "Try with this change" or Cmd/Ctrl+Enter
-//   3. Thumb swaps to NarrationStage; submit button shows spinner
-//   4. New attempt lands; thumb crossfades to new image; versions
-//      rail gets a new dot. Selected attempt = the new one (server
-//      promoted it). Textarea + focus preserved.
-//   5. User can immediately type the next tweak.
+// Loop semantics:
+//   • Single textareas per side (front / inside) — Both mode shows
+//     BOTH textareas, one per side. Audit-reverse 2026-04-26 from a
+//     shared single textarea; real-use feedback was that two boxes
+//     match user expectation.
+//   • Textarea values PERSIST across submits — most users tweak the
+//     tweak ("warmer light" → "warmer light, less orange").
+//   • Focus stays in the (last-edited) textarea after a submit lands.
+//   • After a successful regen, a small banner offers "Keep this and
+//     finish" (= exit edit mode) or "Try another change" (= dismiss).
+//     Without it the user couldn't tell the new image was committed.
+//   • The thumb shows a clean spinner during regen — no narration
+//     text inside the chassis (was reading as stale during ~30s wait).
 
 import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Loader2, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Check, Loader2, X } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -59,18 +49,15 @@ import type { CardAttemptDTO } from '@/hooks/use-card-maker';
 import type { CardSide, CardDraftState } from '@shared/schema';
 
 interface RegenEditModeProps {
-  /** Recipient + occasion drive the header title and the narration
-   *  beats inside the thumb. Parent threads the whole draft state. */
+  /** Recipient + occasion drive the header title. */
   state: CardDraftState;
   frontUrl: string | null;
   insideUrl: string | null;
-  /** All attempts (front + inside, completed + in-flight). The
-   *  versions rail is scoped to whichever target is active. */
+  /** All attempts (front + inside, completed + in-flight). */
   attempts: CardAttemptDTO[];
   /** Which side is regenerating right now, or null. */
   isRegenerating: CardSide | null;
-  /** True when the card has an inside (write or blank) — toggles
-   *  whether the Inside / Both segments appear. */
+  /** True when the card has an inside (write or blank). */
   hasInside: boolean;
   onRegenerate: (side: CardSide, tweak?: string) => Promise<void>;
   onSelectAttempt: (attemptId: number) => Promise<void>;
@@ -79,9 +66,13 @@ interface RegenEditModeProps {
 }
 
 /** Soft cap — show the "sometimes the first one was the one" nudge
- *  once a side has this many attempts. Not blocking; just a gentle
- *  reminder before the user burns more. */
+ *  once a side has this many completed attempts. */
 const SOFT_CAP_PER_SIDE = 3;
+
+/** How long the "Keep this and finish / Try another change" banner
+ *  stays up after a regen lands before fading. Long enough to read,
+ *  short enough that the textarea isn't covered for an active user. */
+const POST_REGEN_BANNER_MS = 30_000;
 
 export function RegenEditMode({
   state,
@@ -95,53 +86,69 @@ export function RegenEditMode({
   onExit,
 }: RegenEditModeProps) {
   const [target, setTarget] = useState<ThumbTarget>('front');
-  // Single shared textarea even for "Both" — the audit's call
-  // (2026-04-26): with provider.refine() doing image-edit per side,
-  // a tweak like "warmer tone" applies cleanly to both, and "swap
-  // the dog" naturally only matches the front. v1's per-side
-  // textareas were a hedge against LLM confusion that refine
-  // largely eliminates. Revisit if Cost Ledger data shows otherwise.
-  const [tweak, setTweak] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Per-side tweak state. Both mode renders BOTH textareas (one per
+  // side); single-side modes render one. Switching target preserves
+  // what the user typed in either box. Cleared only by Cancel or
+  // explicit "Try another change" on the post-regen banner.
+  const [tweakFront, setTweakFront] = useState('');
+  const [tweakInside, setTweakInside] = useState('');
+
+  const frontTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const insideTextareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
-  // Force target back to 'front' if hasInside flips off mid-flow
-  // (defensive — shouldn't happen in practice).
+  // Force target back to 'front' if hasInside flips off mid-flow.
   useEffect(() => {
     if (!hasInside && target !== 'front') setTarget('front');
   }, [hasInside, target]);
 
-  // Refocus the textarea after a regen lands, so the iterate loop
-  // stays warm (type → submit → see → type next without clicking).
+  // ── Post-regen banner state machine ────────────────────────────────
+  // When a regen completes (isRegenerating flips non-null → null),
+  // pop a banner offering "keep this" or "try another". Without this
+  // the user has no clear signal that the new image is committed —
+  // they're left wondering if they need to do something else.
+  const [showPostRegenBanner, setShowPostRegenBanner] = useState(false);
   const wasRegeneratingRef = useRef<CardSide | null>(null);
   useEffect(() => {
-    if (wasRegeneratingRef.current && !isRegenerating) {
-      // Just transitioned regenerating → done. Restore focus.
-      textareaRef.current?.focus();
+    const was = wasRegeneratingRef.current;
+    if (was && !isRegenerating) {
+      setShowPostRegenBanner(true);
+      // Refocus the most relevant textarea after a regen lands so
+      // the iterate loop stays warm. For Both mode, focus front
+      // (arbitrary default; user can tab/click to inside).
+      if (target === 'inside') {
+        insideTextareaRef.current?.focus();
+      } else {
+        frontTextareaRef.current?.focus();
+      }
+      const t = setTimeout(() => setShowPostRegenBanner(false), POST_REGEN_BANNER_MS);
+      wasRegeneratingRef.current = isRegenerating;
+      return () => clearTimeout(t);
     }
     wasRegeneratingRef.current = isRegenerating;
-  }, [isRegenerating]);
+  }, [isRegenerating, target]);
 
-  const front = attempts
-    .filter((a) => a.side === 'front')
-    .sort((a, b) => a.attemptNumber - b.attemptNumber);
-  const inside = attempts
-    .filter((a) => a.side === 'inside')
-    .sort((a, b) => a.attemptNumber - b.attemptNumber);
+  // Auto-dismiss the banner if the user starts typing — they're
+  // clearly opting into "another change" so the banner becomes noise.
+  useEffect(() => {
+    if (showPostRegenBanner && (tweakFront || tweakInside)) {
+      setShowPostRegenBanner(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tweakFront, tweakInside]);
+
+  const front = attempts.filter((a) => a.side === 'front').sort((a, b) => a.attemptNumber - b.attemptNumber);
+  const inside = attempts.filter((a) => a.side === 'inside').sort((a, b) => a.attemptNumber - b.attemptNumber);
 
   const completedFront = front.filter((a) => a.status === 'completed');
   const completedInside = inside.filter((a) => a.status === 'completed');
   const totalAttempts = completedFront.length + completedInside.length;
 
-  // Soft cap: fire once any side has 3+ completed attempts.
   const showSoftCap =
     completedFront.length >= SOFT_CAP_PER_SIDE ||
     completedInside.length >= SOFT_CAP_PER_SIDE;
 
-  // Versions rail content depends on target. For 'both' we show no
-  // rail — mixing front + inside thumbnails in one strip would be
-  // confusing, and the typical "Both" user is doing wholesale tweaks
-  // not flipping back to a specific past version of one side.
+  // Versions rail content depends on target. Hidden in Both mode.
   const railAttempts =
     target === 'front'
       ? completedFront
@@ -150,23 +157,22 @@ export function RegenEditMode({
         : [];
 
   const handleSubmit = async () => {
-    const value = tweak.trim() || undefined;
-    // Deliberately DO NOT clear `tweak` — persisting across submits
-    // is the whole point of the iterate loop redesign. User can
-    // edit-and-resubmit ("warmer" → "warmer, softer light") without
-    // retyping. They can clear it manually if they want a fresh
-    // tweak.
+    const front = tweakFront.trim() || undefined;
+    const inside = tweakInside.trim() || undefined;
+
+    // Banner clears immediately on submit — we're regenerating again.
+    setShowPostRegenBanner(false);
+
     try {
       if (target === 'both') {
-        // Sequenced: front first, then inside. Both refine calls
-        // get the same tweak; refine's image-edit semantics + each
-        // side's own base image mean atmospheric tweaks land on
-        // both, sided tweaks naturally only match where they
-        // apply. Server runs sequentially anyway.
-        await onRegenerate('front', value);
-        await onRegenerate('inside', value);
+        // Sequenced front-then-inside, each with its own tweak. Pure
+        // re-roll on either side if its box is empty. ~1 minute total.
+        await onRegenerate('front', front);
+        await onRegenerate('inside', inside);
+      } else if (target === 'front') {
+        await onRegenerate('front', front);
       } else {
-        await onRegenerate(target as CardSide, value);
+        await onRegenerate('inside', inside);
       }
     } catch (err: any) {
       toast({
@@ -189,8 +195,7 @@ export function RegenEditMode({
     }
   };
 
-  // Header title — derives from the draft. Falls back gracefully
-  // if a field is missing.
+  // Header title — derives from the draft.
   const recipient = state.recipient?.name?.trim();
   const occasion = state.recipient?.occasion?.trim();
   const title = recipient
@@ -198,6 +203,17 @@ export function RegenEditMode({
       ? `${recipient}'s ${occasion} card`
       : `${recipient}'s card`
     : 'Make a change';
+
+  // Submit button label — adapts to target + tweak content.
+  const submitLabel = (() => {
+    if (isRegenerating) return `Crafting your new ${isRegenerating}…`;
+    if (target === 'both') {
+      const has = !!(tweakFront.trim() || tweakInside.trim());
+      return has ? 'Try with these changes' : 'Try both again';
+    }
+    const text = target === 'front' ? tweakFront : tweakInside;
+    return text.trim() ? 'Try with this change' : 'Try again';
+  })();
 
   return (
     <motion.div
@@ -207,7 +223,7 @@ export function RegenEditMode({
       className="max-w-2xl mx-auto px-4 sm:px-6 pb-32 sm:pb-12"
       data-testid="regen-edit-mode"
     >
-      {/* Header — compact, with Done as the exit affordance. */}
+      {/* Header */}
       <div className="flex items-center justify-between gap-3 py-4 mb-2">
         <p className="text-sm text-stone-500 truncate">{title}</p>
         <button
@@ -221,9 +237,7 @@ export function RegenEditMode({
         </button>
       </div>
 
-      {/* Card thumb — 2D, swaps to narration during regen. Visual
-          chassis matched to /checkout (Kevin's reference 2026-04-26):
-          white border, aspect-square + object-contain, label strip. */}
+      {/* Card thumb */}
       <div className="mb-3">
         <CardThumb
           frontUrl={frontUrl}
@@ -231,16 +245,10 @@ export function RegenEditMode({
           target={target}
           hasInside={hasInside}
           regeneratingSide={isRegenerating}
-          state={state}
         />
       </div>
 
-      {/* Side switcher — checkout-style pill ("bg-stone-100 rounded-
-          full p-1" with PreviewTab children). Sits beneath the thumb
-          so it reads as a property of the thumb, not a separate
-          control. Only renders when there IS an inside to switch
-          to — single-side cards don't need it. Hidden in Both mode
-          (the two stacked thumbs already show what's what). */}
+      {/* Side switcher — checkout-style pill. Hidden in Both mode. */}
       {hasInside && target !== 'both' && (
         <div className="mb-3 flex items-center justify-center">
           <div className="inline-flex bg-stone-100 rounded-full p-1">
@@ -264,12 +272,7 @@ export function RegenEditMode({
         </div>
       )}
 
-      {/* Both-sides affordance — deliberately lower weight than the
-          Front/Inside pill above. A small text link rather than a
-          third equal tab, because hammering "Both" doubles the
-          regen cost and we don't want indecisive users defaulting
-          to it on every iteration. The "About a minute" subtitle
-          on activation makes the cost-of-time legible. */}
+      {/* Both-sides affordance */}
       {hasInside && (
         <div className="mb-5 text-center">
           {target === 'both' ? (
@@ -301,11 +304,9 @@ export function RegenEditMode({
         </div>
       )}
 
-      {/* Versions rail — scoped to current target. Hidden on Both
-          (no sensible mixed strip) and hidden when there's only
-          one attempt (nothing to switch between yet). */}
+      {/* Versions rail — scoped to current target. Hidden on Both. */}
       {railAttempts.length > 1 && (
-        <div className="mb-6">
+        <div className="mb-5">
           <p className="text-[10px] uppercase tracking-[0.2em] text-stone-400 text-center mb-2">
             Past versions
           </p>
@@ -342,32 +343,111 @@ export function RegenEditMode({
         </div>
       )}
 
-      {/* Tweak textarea — persistent, focused on mount. */}
-      <div className="mb-4">
-        <p className="text-[11px] text-stone-500 mb-1.5">
-          What would you like to change?{' '}
-          <span className="text-stone-400">(optional)</span>
-        </p>
-        <Textarea
-          ref={textareaRef}
-          value={tweak}
-          onChange={(e) => setTweak(e.target.value)}
-          placeholder={placeholderFor(target)}
-          rows={3}
-          className="text-sm resize-none"
-          autoFocus
-          onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-              e.preventDefault();
-              if (!isRegenerating) void handleSubmit();
-            }
-          }}
-          data-testid="input-regen-tweak"
-        />
-      </div>
+      {/* Post-regen banner — fades in after a successful regen.
+          Two clear actions: keep + exit, or stay for another tweak. */}
+      <AnimatePresence>
+        {showPostRegenBanner && !isRegenerating && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.3 }}
+            className="mb-4 rounded-xl border border-brand/30 bg-brand/5 p-3"
+            data-testid="regen-post-banner"
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+              <p className="text-sm text-ink flex items-center gap-1.5">
+                <Check className="w-4 h-4 text-brand-dark" />
+                New version ready — happy with it?
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPostRegenBanner(false)}
+                  className="text-xs text-stone-500 hover:text-ink px-2 py-1"
+                  data-testid="btn-post-regen-try-again"
+                >
+                  Try another change
+                </button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={onExit}
+                  className="bg-brand hover:bg-brand-dark text-brand-foreground"
+                  data-testid="btn-post-regen-keep"
+                >
+                  Keep this and finish
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Soft-cap nudge — italic, low-volume; aimed at slowing
-          slot-machine behaviour without scolding. */}
+      {/* Tweak input(s). Single textarea for front/inside; TWO labelled
+          textareas in Both mode (audit-reverse 2026-04-26). */}
+      {target === 'both' ? (
+        <div className="mb-4 space-y-3">
+          <p className="text-[11px] text-stone-500">
+            What to change for each side?{' '}
+            <span className="text-stone-400">(both optional)</span>
+          </p>
+          <SidedTweakInput
+            label="Front"
+            value={tweakFront}
+            onChange={setTweakFront}
+            placeholder='e.g. "swap the dog for a cat"'
+            onSubmit={handleSubmit}
+            inputRef={frontTextareaRef}
+            disabled={!!isRegenerating}
+            testId="input-regen-tweak-front"
+          />
+          <SidedTweakInput
+            label="Inside"
+            value={tweakInside}
+            onChange={setTweakInside}
+            placeholder='e.g. "tidier handwriting"'
+            onSubmit={handleSubmit}
+            inputRef={insideTextareaRef}
+            disabled={!!isRegenerating}
+            testId="input-regen-tweak-inside"
+          />
+        </div>
+      ) : (
+        <div className="mb-4">
+          <p className="text-[11px] text-stone-500 mb-1.5">
+            What would you like to change?{' '}
+            <span className="text-stone-400">(optional)</span>
+          </p>
+          <Textarea
+            ref={target === 'front' ? frontTextareaRef : insideTextareaRef}
+            value={target === 'front' ? tweakFront : tweakInside}
+            onChange={(e) =>
+              target === 'front'
+                ? setTweakFront(e.target.value)
+                : setTweakInside(e.target.value)
+            }
+            placeholder={
+              target === 'front'
+                ? 'e.g. "make it more autumnal" or "swap the dog for a cat"'
+                : 'e.g. "tidier handwriting" or "warmer tone"'
+            }
+            rows={3}
+            className="text-sm resize-none"
+            autoFocus
+            disabled={!!isRegenerating}
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                e.preventDefault();
+                if (!isRegenerating) void handleSubmit();
+              }
+            }}
+            data-testid="input-regen-tweak"
+          />
+        </div>
+      )}
+
+      {/* Soft-cap nudge */}
       {showSoftCap && !isRegenerating && (
         <p
           className="text-[11px] italic text-stone-500 text-center mb-4"
@@ -378,8 +458,7 @@ export function RegenEditMode({
         </p>
       )}
 
-      {/* Submit — sticky-bottom on mobile so it stays above the
-          on-screen keyboard. Inline-static on desktop. */}
+      {/* Submit — sticky-bottom on mobile so it stays above the keyboard */}
       <div className="fixed sm:static bottom-0 inset-x-0 px-4 sm:px-0 py-3 sm:py-0 bg-white/95 sm:bg-transparent backdrop-blur sm:backdrop-blur-0 border-t sm:border-0 border-stone-200">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <p className="text-[10px] uppercase tracking-[0.2em] text-stone-400 hidden sm:block">
@@ -395,14 +474,10 @@ export function RegenEditMode({
             className="bg-brand hover:bg-brand-dark text-brand-foreground w-full sm:w-auto"
             data-testid="btn-regen-submit"
           >
-            {isRegenerating ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Crafting your new {isRegenerating}…
-              </>
-            ) : (
-              submitLabel(target, tweak)
+            {isRegenerating && (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             )}
+            {submitLabel}
           </Button>
         </div>
       </div>
@@ -410,10 +485,7 @@ export function RegenEditMode({
   );
 }
 
-// ── PreviewTab — pill-switcher tab matching /checkout exactly ─────
-// Visual + interaction parity with checkout.tsx's PreviewTab so the
-// switcher feels like the same control across both surfaces. Active
-// state: white pill with shadow. Inactive: stone-500 hover-to-ink.
+// ── PreviewTab — checkout-style pill switcher ──────────────────────
 function PreviewTab({
   active,
   onClick,
@@ -442,19 +514,47 @@ function PreviewTab({
   );
 }
 
-// ── helpers ──────────────────────────────────────────────────────────
-function placeholderFor(target: ThumbTarget): string {
-  if (target === 'inside') {
-    return 'e.g. "tidier handwriting" or "warmer tone"';
-  }
-  if (target === 'both') {
-    return 'e.g. "warmer light throughout" or "more autumnal feel"';
-  }
-  return 'e.g. "make it more autumnal" or "swap the dog for a cat"';
-}
-
-function submitLabel(target: ThumbTarget, tweak: string): string {
-  const has = !!tweak.trim();
-  if (target === 'both') return has ? 'Try with these changes' : 'Try both again';
-  return has ? 'Try with this change' : 'Try again';
+// ── SidedTweakInput — labelled textarea row used inside Both mode ──
+function SidedTweakInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  onSubmit,
+  inputRef,
+  disabled,
+  testId,
+}: {
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+  placeholder: string;
+  onSubmit: () => void;
+  inputRef?: React.RefObject<HTMLTextAreaElement>;
+  disabled?: boolean;
+  testId?: string;
+}) {
+  return (
+    <div className="flex items-start gap-2">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-400 w-12 shrink-0 pt-2.5">
+        {label}
+      </p>
+      <Textarea
+        ref={inputRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={2}
+        disabled={disabled}
+        className="text-sm resize-none flex-1"
+        onKeyDown={(e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+            e.preventDefault();
+            if (!disabled) onSubmit();
+          }
+        }}
+        data-testid={testId}
+      />
+    </div>
+  );
 }
