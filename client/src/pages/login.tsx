@@ -9,7 +9,9 @@
 //      (or, in dev with DEV_AUTH_ACCEPT_ANY_CODE=1, the server skips Brevo
 //      and accepts hardcoded codes 000000 / 123456)
 //   3. Enters code → POST /api/auth/otp/verify → session cookie set
-//   4. Redirected to the `redirect` query param, or to '/' if none
+//   4. Redirected to the `redirect` query param, or to '/studio' if none —
+//      authenticated users belong in the Studio, not on the marketing
+//      landing page they've already moved past.
 //
 // If the user was already logged in when they landed here, they are
 // immediately bounced to their redirect destination.
@@ -35,10 +37,15 @@ export default function LoginPage() {
   const redirect = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     const r = params.get('redirect');
-    if (!r) return '/';
+    // Default to /studio for authenticated users — landing on the
+    // public marketing page after login feels backwards. Pages that
+    // bounce unauth'd users to /login still pass an explicit
+    // ?redirect=, so this default only kicks in for direct /login
+    // visits + already-authenticated users.
+    if (!r) return '/studio';
     // Only allow same-origin redirects; strip anything with a protocol.
     if (r.startsWith('/') && !r.startsWith('//')) return r;
-    return '/';
+    return '/studio';
   }, []);
 
   // Already logged in → bounce to redirect target
