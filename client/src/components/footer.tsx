@@ -16,7 +16,7 @@ export default function Footer() {
                 className="h-14 object-contain"
               />
             </div>
-            <p className="text-slate-gray text-sm">Creating magical moments through AI-powered greeting cards, one celebration at a time.</p>
+            <p className="text-slate-gray text-sm">Personalised greeting cards for the moments that matter, one celebration at a time.</p>
           </div>
           
           <div>

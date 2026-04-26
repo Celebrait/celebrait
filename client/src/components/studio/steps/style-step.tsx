@@ -38,11 +38,10 @@ interface ModeButton {
   icon: typeof Sparkles;
 }
 
-// Plain customer-facing labels. The AI-wordplay variant (animAIted /
-// reAIlistic) was tested and dropped in the Studio — too cute on the
-// card maker, better saved for hero moments (landing page, taglines).
-// AILabel is still exported so those moments can use it later.
-// Underlying enum stays plain (shared/models/card-draft.ts).
+// Plain customer-facing labels. Underlying enum stays plain
+// (shared/models/card-draft.ts). The "animAIted / reAIlistic"
+// wordplay was retired entirely 2026-04-25 — tone bible says we
+// don't name our production process to the buyer.
 const MODE_BUTTONS: ModeButton[] = [
   {
     mode: 'animated',
@@ -368,27 +367,6 @@ function PrimaryStyleCard({
         <p className="text-xs text-stone-500">{btn.blurb}</p>
       </button>
     </div>
-  );
-}
-
-// Renders the brand wordplay — e.g. "animAIted" → "anim" + **AI** + "ted"
-// with the AI in brand colour + bold. Input is expected to already be
-// stylised (containing 'AI' in uppercase, lowercase surround). Falls
-// back to the raw text with first-letter capitalisation for labels
-// that don't carry the wordplay (e.g. 'Custom').
-function AILabel({ text }: { text: string }) {
-  const idx = text.indexOf('AI');
-  if (idx === -1) {
-    // No wordplay marker — render as-is, trusting the source to have
-    // already-appropriate casing.
-    return <span>{text}</span>;
-  }
-  return (
-    <span>
-      <span>{text.slice(0, idx)}</span>
-      <span className="text-brand font-bold">AI</span>
-      <span>{text.slice(idx + 2)}</span>
-    </span>
   );
 }
 

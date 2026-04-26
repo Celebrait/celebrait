@@ -14,10 +14,10 @@
 // Everything else renders the 3D viewer + recipient/occasion header
 // + Buy (if unpaid) / Share (if paid digital) / Close actions.
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Redirect, useLocation, useParams } from 'wouter';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Loader2, Share2, Package } from 'lucide-react';
+import { ArrowLeft, Loader2, Share2, Package, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -28,7 +28,10 @@ import {
 } from '@/components/ui/dialog';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { GestureHints } from '@/components/gesture-hints';
-import type { CardDraftState } from '@shared/schema';
+import { RegenEditMode } from '@/components/studio/regen-controls';
+import { apiRequest } from '@/lib/queryClient';
+import type { CardAttemptDTO } from '@/hooks/use-card-maker';
+import type { CardDraftState, CardSide } from '@shared/schema';
 
 type CardViewData = {
   id: number;
@@ -37,6 +40,9 @@ type CardViewData = {
   insideImageUrl: string | null;
   createdAt: string | null;
   state: CardDraftState;
+  /** Regen attempts (per side) — same shape as the maker. Always
+   *  present in responses from /api/studio/drafts/:id since 2026-04-25. */
+  attempts?: CardAttemptDTO[];
 };
 
 type OrderSummary = {
@@ -55,6 +61,13 @@ export default function StudioCardViewPage() {
   const { data, isLoading, error } = useQuery<CardViewData>({
     queryKey: [`/api/studio/drafts/${cardId}`],
     enabled: Number.isFinite(cardId),
+    // Keep polling while any attempt is mid-flight so the versions
+    // strip + thumbnails update without a manual refresh.
+    refetchInterval: (q) => {
+      const d = q.state.data as CardViewData | undefined;
+      if (d?.attempts?.some((a) => a.status === 'generating')) return 2000;
+      return false;
+    },
   });
 
   // Orders list — we cross-reference to find a paid digital share link
@@ -100,8 +113,14 @@ function LoadedView({
   orders: OrderSummary[];
 }) {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const [buyOpen, setBuyOpen] = useState(false);
   const [open3D, setOpen3D] = useState(false);
+  // Edit mode flips the surface from "look at the card / buy" to a
+  // focused regen workbench. Same pattern as RevealView in the
+  // maker — both surfaces stay visually aligned. Only available to
+  // unpaid cards (paid cards hide the entry pill below).
+  const [editMode, setEditMode] = useState(false);
 
   const paidOrder = orders.find(
     (o) => o.cardId === card.id && o.paymentStatus === 'paid',
@@ -111,6 +130,88 @@ function LoadedView({
 
   const title = deriveTitle(card.state);
   const backHref = '/studio';
+
+  // ── Regen wiring ────────────────────────────────────────────────
+  // Same UX as the live maker reveal: per-side controls below the
+  // Buy button. Only shown for unpaid cards — once a card has been
+  // paid for, the gift's already on its way and regen would be
+  // pointless (and confusing). PATCH on success invalidates the
+  // draft query so the new attempt + selected pointer flow back.
+  const regenMutation = useMutation({
+    mutationFn: async (vars: { side: CardSide; tweak?: string }) => {
+      const r = await apiRequest('POST', `/api/studio/drafts/${card.id}/regenerate`, {
+        side: vars.side,
+        tweak: vars.tweak,
+      });
+      return r.json();
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: [`/api/studio/drafts/${card.id}`],
+      });
+      // Card grid (Drafts/Ready/Sent) shows thumbnails — invalidate
+      // so a new selected attempt's image lands on the dashboard too.
+      queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
+    },
+  });
+
+  const selectMutation = useMutation({
+    mutationFn: async (vars: { attemptId: number }) => {
+      await apiRequest('PATCH', `/api/studio/cards/${card.id}/select-attempt`, {
+        attemptId: vars.attemptId,
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: [`/api/studio/drafts/${card.id}`],
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
+    },
+  });
+
+  // Mutation.variables is set while pending, undefined otherwise —
+  // we read off it to know which side is currently regenerating.
+  const isRegenerating: CardSide | null = regenMutation.isPending
+    ? regenMutation.variables?.side ?? null
+    : null;
+
+  const handleRegenerate = async (side: CardSide, tweak?: string) => {
+    await regenMutation.mutateAsync({ side, tweak });
+  };
+  const handleSelectAttempt = async (attemptId: number) => {
+    await selectMutation.mutateAsync({ attemptId });
+  };
+
+  const insideMode = card.state.inside?.mode ?? null;
+  const hasInside = insideMode === 'write' || insideMode === 'blank';
+
+  // Edit mode takes the entire surface. BuyDialog stays mounted so
+  // a regen → exit → buy flow doesn't lose its state. Shown only
+  // for unpaid cards because the entry pill only renders below for
+  // unpaid (paid cards have nothing to regen for — gift's en route).
+  if (editMode && !hasPaid) {
+    return (
+      <>
+        <RegenEditMode
+          state={card.state}
+          frontUrl={card.frontImageUrl}
+          insideUrl={card.insideImageUrl}
+          attempts={card.attempts ?? []}
+          isRegenerating={isRegenerating}
+          hasInside={hasInside}
+          onRegenerate={handleRegenerate}
+          onSelectAttempt={handleSelectAttempt}
+          onExit={() => setEditMode(false)}
+        />
+        <BuyDialog
+          open={buyOpen}
+          onOpenChange={setBuyOpen}
+          cardId={card.id}
+          insideMode={card.state.inside?.mode ?? null}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto" data-testid="card-view">
@@ -185,9 +286,31 @@ function LoadedView({
             Buy this card
           </Button>
         )}
+
+        {/* Gesture hints first — keep them close to the Buy CTA above
+            (the hints are about the 3D card, so spatial proximity to
+            the card+CTA cluster reads better than burying them under
+            the regen panel). */}
         <div className="mt-2">
           <GestureHints open={open3D} />
         </div>
+
+        {/* Regen entry — small pill that flips the whole surface into
+            edit mode. Only for unpaid cards: once paid, the gift's
+            on its way and further regens are pointless chrome.
+            Subordinate to Buy by design — quiet safety net, not a
+            parallel CTA. */}
+        {!hasPaid && (
+          <button
+            type="button"
+            onClick={() => setEditMode(true)}
+            className="mt-2 inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white/60 hover:bg-white hover:border-brand/40 px-4 py-2 text-sm italic text-stone-600 hover:text-brand-dark transition-all"
+            data-testid="btn-regen-open"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-stone-400" />
+            Not 100% happy? Make a change.
+          </button>
+        )}
       </div>
 
       <BuyDialog

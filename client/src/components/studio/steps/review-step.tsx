@@ -33,6 +33,7 @@ import {
   AlertTriangle,
   Package,
   ArrowRight,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,6 +49,9 @@ import { deriveDefaultFrontText } from '@shared/schema';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { GestureHints } from '@/components/gesture-hints';
 import { GenerationWaitStage } from '@/components/studio/generation-wait';
+import { RegenEditMode } from '@/components/studio/regen-controls';
+import type { CardAttemptDTO } from '@/hooks/use-card-maker';
+import type { CardSide } from '@shared/schema';
 
 // Approximate generation time for a front + inside pair. Used to size
 // the progress copy ("this usually takes ~45 seconds"). Not a hard
@@ -78,6 +82,13 @@ interface ReviewStepProps {
   isGenerating: boolean;
   generatedFrontUrl: string | null;
   generatedInsideUrl: string | null;
+  /** Regen state + actions, threaded from useCardMaker. Undefined on
+   *  surfaces that don't support regen (none today, but the prop is
+   *  optional so future read-only viewers don't have to mock these). */
+  attempts?: CardAttemptDTO[];
+  isRegenerating?: CardSide | null;
+  onRegenerate?: (side: CardSide, tweak?: string) => Promise<void>;
+  onSelectAttempt?: (attemptId: number) => Promise<void>;
 }
 
 export function ReviewStep({
@@ -92,6 +103,10 @@ export function ReviewStep({
   isGenerating,
   generatedFrontUrl,
   generatedInsideUrl,
+  attempts,
+  isRegenerating,
+  onRegenerate,
+  onSelectAttempt,
 }: ReviewStepProps) {
   // Collapse the "generating" and "completed" screens into one
   // continuous RevealView — same canvas from Stage 1 (silhouette)
@@ -117,6 +132,10 @@ export function ReviewStep({
           });
           onJumpToStep(stepIndexById.inside);
         }}
+        attempts={attempts ?? []}
+        isRegenerating={isRegenerating ?? null}
+        onRegenerate={onRegenerate}
+        onSelectAttempt={onSelectAttempt}
       />
     );
   }
@@ -492,6 +511,10 @@ function RevealView({
   state,
   insideMode,
   onEditInside,
+  attempts,
+  isRegenerating,
+  onRegenerate,
+  onSelectAttempt,
 }: {
   cardId: number;
   frontUrl: string | null;
@@ -501,6 +524,10 @@ function RevealView({
   state: CardDraftState;
   insideMode: 'write' | 'blank' | null;
   onEditInside: () => void;
+  attempts: CardAttemptDTO[];
+  isRegenerating: CardSide | null;
+  onRegenerate?: (side: CardSide, tweak?: string) => Promise<void>;
+  onSelectAttempt?: (attemptId: number) => Promise<void>;
 }) {
   // Ready = server says done and both image URLs have landed on the
   // client. `frontUrl` alone isn't enough (server persists it mid-gen;
@@ -523,6 +550,12 @@ function RevealView({
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
   const [buyOpen, setBuyOpen] = useState(false);
+  // Edit mode — flips the whole surface from "look at the card / buy"
+  // (3D card + Buy CTA) to a focused regen workbench. Triggered by
+  // the "Make a change" pill on the reveal layout; exited via the
+  // Done button inside RegenEditMode. Keeps state local so leaving
+  // and re-entering edit mode resets the textarea + target.
+  const [editMode, setEditMode] = useState(false);
   const interactTimerRef = useRef<number | null>(null);
 
   const startInteract = () => {
@@ -539,6 +572,35 @@ function RevealView({
     endInteract();
   };
 
+  // Edit mode takes the entire surface — the 3D card + CTA stack
+  // are intentionally hidden so the user has a focused workbench.
+  // The Buy dialog sits outside this branch so a regen-then-buy
+  // flow doesn't lose its mount.
+  if (editMode && onRegenerate && onSelectAttempt) {
+    return (
+      <>
+        <RegenEditMode
+          state={state}
+          frontUrl={frontUrl}
+          insideUrl={insideUrl}
+          attempts={attempts}
+          isRegenerating={isRegenerating}
+          hasInside={insideMode === 'write' || insideMode === 'blank'}
+          onRegenerate={onRegenerate}
+          onSelectAttempt={onSelectAttempt}
+          onExit={() => setEditMode(false)}
+        />
+        <BuyDialog
+          open={buyOpen}
+          onOpenChange={setBuyOpen}
+          cardId={cardId}
+          insideMode={insideMode}
+          onEditInside={onEditInside}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <div
@@ -546,7 +608,10 @@ function RevealView({
         data-testid={showReveal ? 'review-completed' : 'review-generating'}
       >
         {/* Stage — constant dimensions across both phases so
-            narration → card reveal reads as one continuous surface. */}
+            narration → card reveal reads as one continuous surface.
+            Note: regen-in-flight no longer renders narration HERE —
+            it runs inside CardThumb in edit mode. The 3D viewer
+            stays mounted on the reveal surface throughout. */}
         <div className="h-[60vh] sm:h-[68vh] w-full relative">
           {/* mode="wait" so narration fully exits before the card enters.
               Avoids the two layers animating in tandem — the card used
@@ -652,23 +717,64 @@ function RevealView({
                       the moment. Buy button speaks for itself. */}
                 </motion.div>
 
+                {/* Gesture hints — sit close to the Buy CTA where they
+                    were before regen was inserted. Reads better up here:
+                    the hints are about the 3D card immediately above,
+                    so keeping them adjacent makes the spatial story
+                    obvious. They self-collapse once the user has played
+                    with the card. */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: isInteracting ? 0 : 1 }}
                   transition={{
                     duration: 0.5,
-                    delay: hasInteracted || isInteracting ? 0 : 1.4,
+                    delay: hasInteracted || isInteracting ? 0 : 1.2,
                   }}
                   style={{ pointerEvents: isInteracting ? 'none' : 'auto' }}
                   className="mt-6"
                 >
+                  {/* Reserved-height slot so the regen entry below
+                      doesn't get pushed when GestureHints fades in
+                      (~900ms after mount). Using `height` not
+                      `maxHeight` because hints render NOTHING until
+                      their internal mount-delay fires — maxHeight
+                      lets the wrapper shrink-to-fit during that gap,
+                      so the hints' eventual appearance grows the
+                      container from 0 → 72 and snaps everything
+                      below down. Reserving height up front keeps
+                      the layout still. */}
                   <div
-                    className="flex justify-center items-start overflow-hidden transition-[max-height] duration-500 ease-out"
-                    style={{ maxHeight: hasInteracted ? 0 : 72 }}
+                    className="flex justify-center items-start overflow-hidden transition-[height] duration-500 ease-out"
+                    style={{ height: hasInteracted ? 0 : 72 }}
                   >
                     <GestureHints open={open || hasInteracted} />
                   </div>
                 </motion.div>
+
+                {/* Regen entry — small pill that flips the whole surface
+                    into edit mode. Lives at the bottom of the post-reveal
+                    stack so it reads as a quiet safety net, not a
+                    parallel CTA. Audit warning (2026-04-26): don't
+                    promote this above the Buy CTA in any future polish
+                    pass — the hierarchy here is intentional. */}
+                {onRegenerate && onSelectAttempt && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 1.5 }}
+                    className="mt-8 flex justify-center"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setEditMode(true)}
+                      className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white/60 hover:bg-white hover:border-brand/40 px-4 py-2 text-sm italic text-stone-600 hover:text-brand-dark transition-all"
+                      data-testid="btn-regen-open"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-stone-400" />
+                      Not 100% happy? Make a change.
+                    </button>
+                  </motion.div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

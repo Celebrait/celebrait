@@ -7,6 +7,7 @@ export * from "./models/prompts";
 export * from "./models/photos";
 export * from "./models/card-draft";
 export * from "./models/studio-orders";
+export * from "./models/card-attempts";
 
 import { users } from "./models/auth";
 
@@ -32,6 +33,14 @@ export const cards = pgTable("cards", {
    *  /api/card/:id/view?t=TOKEN endpoint without auth. Null = card
    *  has never been shared. */
   viewToken: text("view_token"),
+  /** Pointer to the currently-displayed attempt for each side.
+   *  See models/card-attempts.ts. The frontImageUrl/insideImageUrl
+   *  columns above are kept in sync with the selected attempt's image
+   *  so that checkout / share / fulfilment continue to read from
+   *  cards directly (unaware of attempts). Null until first
+   *  generation completes; populated thereafter. */
+  selectedFrontAttemptId: integer("selected_front_attempt_id"),
+  selectedInsideAttemptId: integer("selected_inside_attempt_id"),
 });
 
 export const orders = pgTable("orders", {

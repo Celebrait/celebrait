@@ -97,7 +97,7 @@ function HeroSection() {
       </h2>
 
       <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
-        Turn your photos into mind-blowing greeting cards powered by AI
+        Turn your photos into greeting cards worth keeping
       </h1>
 
       <p className="text-gray-600 text-lg max-w-xl mx-auto">
@@ -113,7 +113,7 @@ function HeroSection() {
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Launching AI Studio...
+              Opening the Studio…
             </>
           ) : (
             'Get Started'

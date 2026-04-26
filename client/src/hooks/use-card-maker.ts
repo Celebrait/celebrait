@@ -16,7 +16,21 @@ import {
   EMPTY_CARD_DRAFT,
   CARD_MAKER_STEPS,
   type CardDraftState,
+  type CardSide,
 } from '@shared/schema';
+
+/** A single regen attempt, as projected by GET /api/studio/drafts/:id.
+ *  Failed attempts are filtered server-side. In-flight ('generating')
+ *  attempts are included so the UI can show a spinner thumbnail. */
+export interface CardAttemptDTO {
+  id: number;
+  side: CardSide;
+  attemptNumber: number;
+  status: 'generating' | 'completed';
+  imageUrl: string;
+  isSelected: boolean;
+  createdAt: string;
+}
 
 interface DraftResponse {
   id: number;
@@ -25,6 +39,7 @@ interface DraftResponse {
   insideImageUrl: string | null;
   createdAt: string | null;
   state: CardDraftState;
+  attempts?: CardAttemptDTO[];
 }
 
 interface UseCardMakerOptions {
@@ -72,6 +87,21 @@ interface UseCardMakerResult {
    *  the status field tracks the whole background job. */
   isStartingGeneration: boolean;
 
+  /** All non-failed attempts for this card (front + inside). Empty
+   *  on legacy cards that predate the table; the regen flow lazily
+   *  backfills attempt #1 on first regen. */
+  attempts: CardAttemptDTO[];
+  /** True while a regen request is in flight from this client (the
+   *  POST to /regenerate). Distinct from server-side attempt status. */
+  isRegenerating: CardSide | null;
+  /** Trigger a regen of one side. Resolves once the server completes
+   *  (regen runs synchronously inside the route — see studio-drafts.ts).
+   *  On success the new attempt becomes selected automatically. */
+  regenerate: (side: CardSide, tweak?: string) => Promise<void>;
+  /** Switch which attempt is the displayed version for a given side.
+   *  Pure pointer flip, no generation. */
+  selectAttempt: (attemptId: number) => Promise<void>;
+
   /** Number of the current step (0-indexed). */
   currentStep: number;
   /** Total step count. Useful for progress UI. */
@@ -92,6 +122,8 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
   const [frontImageUrl, setFrontImageUrl] = useState<string | null>(null);
   const [insideImageUrl, setInsideImageUrl] = useState<string | null>(null);
   const [isStartingGeneration, setIsStartingGeneration] = useState(false);
+  const [attempts, setAttempts] = useState<CardAttemptDTO[]>([]);
+  const [isRegenerating, setIsRegenerating] = useState<CardSide | null>(null);
 
   // Keep a live mirror of state so the debounced save can read the
   // latest value when its timer fires (avoids stale-closure bugs).
@@ -129,6 +161,7 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
           setStatus(data.status);
           setFrontImageUrl(data.frontImageUrl);
           setInsideImageUrl(data.insideImageUrl);
+          setAttempts(data.attempts ?? []);
           setIsLoading(false);
         }
       } catch (err: any) {
@@ -149,8 +182,14 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
   // the UI picks up the completion (or failure) without the user
   // having to refresh. Polling naturally stops once status leaves
   // 'generating' because the effect's dependency re-runs.
+  // Polls while either:
+  //   • the WHOLE card is generating (initial gen), OR
+  //   • a single attempt is still in 'generating' state (regen of one
+  //     side — card.status stays 'completed' for the other side).
+  const hasInflightAttempt = attempts.some((a) => a.status === 'generating');
+  const shouldPoll = status === 'generating' || hasInflightAttempt;
   useEffect(() => {
-    if (status !== 'generating') return;
+    if (!shouldPoll) return;
     let cancelled = false;
     const tick = async () => {
       try {
@@ -159,6 +198,7 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
         setStatus(data.status);
         setFrontImageUrl(data.frontImageUrl);
         setInsideImageUrl(data.insideImageUrl);
+        setAttempts(data.attempts ?? []);
         // Also refresh state so any server-side post-processing that
         // modified conversationData (future-proofing) is reflected.
         setState(data.state);
@@ -172,7 +212,7 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
       cancelled = true;
       clearInterval(interval);
     };
-  }, [status, loadDraft]);
+  }, [shouldPoll, loadDraft]);
 
   // ── Save primitives ──────────────────────────────────────────────
   const runSave = useCallback(
@@ -267,6 +307,52 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
     }
   }, [cardId, runSave]);
 
+  // ── Regen ────────────────────────────────────────────────────────
+  const regenerate = useCallback(
+    async (side: CardSide, tweak?: string): Promise<void> => {
+      setIsRegenerating(side);
+      try {
+        await apiRequest('POST', `/api/studio/drafts/${cardId}/regenerate`, {
+          side,
+          tweak: tweak?.trim() || undefined,
+        });
+        // Re-load: the new attempt is now the selected one and
+        // cards.{front|inside}ImageUrl points at it.
+        const data = await loadDraft();
+        if (data) {
+          setFrontImageUrl(data.frontImageUrl);
+          setInsideImageUrl(data.insideImageUrl);
+          setAttempts(data.attempts ?? []);
+          setStatus(data.status);
+        }
+        queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
+      } finally {
+        setIsRegenerating(null);
+      }
+    },
+    [cardId, loadDraft],
+  );
+
+  const selectAttempt = useCallback(
+    async (attemptId: number): Promise<void> => {
+      await apiRequest(
+        'PATCH',
+        `/api/studio/cards/${cardId}/select-attempt`,
+        { attemptId },
+      );
+      // Reload so frontImageUrl / insideImageUrl + attempts.isSelected
+      // pick up the change. Cheap (single DB read).
+      const data = await loadDraft();
+      if (data) {
+        setFrontImageUrl(data.frontImageUrl);
+        setInsideImageUrl(data.insideImageUrl);
+        setAttempts(data.attempts ?? []);
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
+    },
+    [cardId, loadDraft],
+  );
+
   // Cancel pending saves on unmount, but let any in-flight ones resolve.
   useEffect(() => {
     return () => {
@@ -294,6 +380,10 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
     flushSave,
     startGeneration,
     isStartingGeneration,
+    attempts,
+    isRegenerating,
+    regenerate,
+    selectAttempt,
     currentStep: state.step ?? 0,
     totalSteps,
   };

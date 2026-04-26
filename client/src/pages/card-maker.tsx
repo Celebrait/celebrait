@@ -142,6 +142,10 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     flushSave,
     startGeneration,
     isStartingGeneration,
+    attempts,
+    isRegenerating,
+    regenerate,
+    selectAttempt,
     currentStep,
     totalSteps,
   } = useCardMaker({ cardId });
@@ -400,6 +404,10 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 isGenerating={isStartingGeneration}
                 generatedFrontUrl={frontImageUrl}
                 generatedInsideUrl={insideImageUrl}
+                attempts={attempts}
+                isRegenerating={isRegenerating}
+                onRegenerate={regenerate}
+                onSelectAttempt={selectAttempt}
               />
             )}
           </motion.div>

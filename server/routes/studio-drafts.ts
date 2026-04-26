@@ -22,14 +22,25 @@ import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '../db';
 import {
   cards,
+  cardAttempts,
   EMPTY_CARD_DRAFT,
   studioOrders,
   type CardDraftState,
+  type CardSide,
+  type CardAttemptListItem,
 } from '@shared/schema';
 import { sendSenderCardOpenedEmail } from '../email-service';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
-import { generateStudioCard } from '../background-generator';
+import {
+  generateStudioCard,
+  regenerateStudioCardSide,
+  REGEN_HARD_CAP_PER_SIDE,
+} from '../background-generator';
 import { checkDailyGenerationLimit } from '../rate-limits';
+import {
+  promoteAttemptToCanonical,
+  generatePrintResolutionFiles,
+} from '../pipeline/storage/LocalStorageAdapter';
 
 // Generates a URL-safe random token for public card sharing. 16 bytes
 // of entropy → 22 base64url chars. That's ~128 bits of entropy — well
@@ -139,6 +150,8 @@ export function registerStudioDraftRoutes(app: Express): void {
           insideImageUrl: cards.insideImageUrl,
           frontImagePath: cards.frontImagePath,
           insideImagePath: cards.insideImagePath,
+          selectedFrontAttemptId: cards.selectedFrontAttemptId,
+          selectedInsideAttemptId: cards.selectedInsideAttemptId,
           createdAt: cards.createdAt,
         })
         .from(cards)
@@ -169,6 +182,40 @@ export function registerStudioDraftRoutes(app: Express): void {
         ? `/images/${row.insideImagePath}`
         : row.insideImageUrl;
 
+      // Attempts (regen history) — slim projection. Failed attempts
+      // are filtered out so the versions strip never shows broken
+      // tiles. In-flight ('generating') attempts are included so the
+      // client can render a spinner thumbnail while waiting.
+      const attemptRows = await db
+        .select({
+          id: cardAttempts.id,
+          side: cardAttempts.side,
+          attemptNumber: cardAttempts.attemptNumber,
+          status: cardAttempts.status,
+          imageUrl: cardAttempts.imageUrl,
+          imagePath: cardAttempts.imagePath,
+          createdAt: cardAttempts.createdAt,
+        })
+        .from(cardAttempts)
+        .where(eq(cardAttempts.cardId, id))
+        .orderBy(cardAttempts.side, cardAttempts.attemptNumber);
+
+      const attempts: (CardAttemptListItem & { status: string })[] = attemptRows
+        .filter((a) => a.status !== 'failed')
+        .map((a) => ({
+          id: a.id,
+          side: a.side as CardSide,
+          attemptNumber: a.attemptNumber,
+          status: a.status,
+          imageUrl: a.imagePath
+            ? `/images/${a.imagePath}`
+            : (a.imageUrl ?? ''),
+          isSelected:
+            (a.side === 'front' && a.id === row.selectedFrontAttemptId) ||
+            (a.side === 'inside' && a.id === row.selectedInsideAttemptId),
+          createdAt: a.createdAt,
+        }));
+
       res.json({
         id: row.id,
         status: row.status,
@@ -176,6 +223,7 @@ export function registerStudioDraftRoutes(app: Express): void {
         insideImageUrl: insideUrl,
         createdAt: row.createdAt,
         state,
+        attempts,
       });
     } catch (err: any) {
       console.error('[STUDIO] draft fetch error:', err);
@@ -471,6 +519,192 @@ export function registerStudioDraftRoutes(app: Express): void {
       res.status(500).json({ message: 'Could not reset draft' });
     }
   });
+
+  // ── POST /api/studio/drafts/:id/regenerate ────────────────────────
+  // Regenerate a single side (front or inside) as a new attempt.
+  // Body: { side: 'front' | 'inside', tweak?: string }
+  // Returns: { attemptId } — the client polls GET /api/studio/drafts/:id
+  // and looks for that attempt's status to flip from 'generating' →
+  // 'completed' (or 'failed').
+  app.post(
+    '/api/studio/drafts/:id/regenerate',
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+      const id = parseInt(req.params.id, 10);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+
+      const side = req.body?.side as unknown;
+      if (side !== 'front' && side !== 'inside') {
+        return res.status(400).json({ message: "side must be 'front' or 'inside'" });
+      }
+      const tweakRaw = req.body?.tweak;
+      const tweak =
+        typeof tweakRaw === 'string' && tweakRaw.trim().length > 0
+          ? tweakRaw.trim().slice(0, 500)
+          : undefined;
+
+      try {
+        // Ownership + status check.
+        const rows = await db
+          .select({ id: cards.id, userId: cards.userId, status: cards.status })
+          .from(cards)
+          .where(eq(cards.id, id))
+          .limit(1);
+        const row = rows[0];
+        if (!row) return res.status(404).json({ message: 'Card not found' });
+        if (row.userId !== userId) return res.status(403).json({ message: 'Not your card' });
+        if (row.status !== 'completed') {
+          return res
+            .status(409)
+            .json({ message: `Card is ${row.status}; only completed cards can regen` });
+        }
+
+        // Hard cap: count existing attempts on this side and reject
+        // if past cap. The +1 is because attempt #1 is the original
+        // generation; the cap counts regens.
+        const existing = await db
+          .select({ id: cardAttempts.id })
+          .from(cardAttempts)
+          .where(and(eq(cardAttempts.cardId, id), eq(cardAttempts.side, side)));
+        if (existing.length >= REGEN_HARD_CAP_PER_SIDE + 1) {
+          return res.status(429).json({
+            message: `You've reached the regen limit for the ${side}. Move on or start a new card.`,
+          });
+        }
+
+        // Daily cap (re-uses the same per-user limiter as initial gen).
+        const limit = await checkDailyGenerationLimit(userId);
+        if (!limit.allowed) {
+          return res.status(429).json({
+            message: `Daily generation limit reached (${limit.used} of ${limit.limit}).`,
+          });
+        }
+
+        // Fire-and-forget: regen runs in the background, route returns
+        // immediately with the new attemptId. We need the id NOW so the
+        // client can target its poll. regenerateStudioCardSide creates
+        // the attempt row synchronously then runs the gen — so we await
+        // the function but the gen itself happens inside it.
+        // (If we wanted true fire-and-forget, we'd refactor to split
+        // "create attempt" from "run gen" — for now the awaited call
+        // does both, ~30s total. The client's existing polling loop
+        // works either way.)
+        const attemptId = await regenerateStudioCardSide(id, side, { tweak });
+        res.json({ attemptId });
+      } catch (err: any) {
+        console.error('[STUDIO] regenerate error:', err);
+        res.status(500).json({
+          message:
+            err?.message ?? "Couldn't regenerate. Your previous version is still safe.",
+        });
+      }
+    },
+  );
+
+  // ── PATCH /api/studio/cards/:id/select-attempt ────────────────────
+  // Switch which attempt is the "displayed" one for a side without
+  // running a new generation. Updates cards.{front|inside}ImageUrl +
+  // selectedFrontAttemptId / selectedInsideAttemptId so checkout +
+  // share continue to read the right image. Body: { attemptId }.
+  app.patch(
+    '/api/studio/cards/:id/select-attempt',
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+      const id = parseInt(req.params.id, 10);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+
+      const attemptId = Number(req.body?.attemptId);
+      if (!Number.isFinite(attemptId)) {
+        return res.status(400).json({ message: 'attemptId is required' });
+      }
+
+      try {
+        // Ownership check + load attempt.
+        const cardRows = await db
+          .select({ id: cards.id, userId: cards.userId })
+          .from(cards)
+          .where(eq(cards.id, id))
+          .limit(1);
+        const card = cardRows[0];
+        if (!card) return res.status(404).json({ message: 'Card not found' });
+        if (card.userId !== userId) return res.status(403).json({ message: 'Not your card' });
+
+        const attemptRows = await db
+          .select({
+            id: cardAttempts.id,
+            cardId: cardAttempts.cardId,
+            side: cardAttempts.side,
+            status: cardAttempts.status,
+            imageUrl: cardAttempts.imageUrl,
+            imagePath: cardAttempts.imagePath,
+          })
+          .from(cardAttempts)
+          .where(eq(cardAttempts.id, attemptId))
+          .limit(1);
+        const attempt = attemptRows[0];
+        if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
+        if (attempt.cardId !== id) {
+          return res.status(400).json({ message: 'Attempt does not belong to this card' });
+        }
+        if (attempt.status !== 'completed') {
+          return res.status(409).json({
+            message: `Attempt is ${attempt.status}; can only select completed attempts`,
+          });
+        }
+        if (!attempt.imageUrl && !attempt.imagePath) {
+          return res
+            .status(409)
+            .json({ message: 'Attempt has no image to select' });
+        }
+
+        const url = attempt.imagePath
+          ? `/images/${attempt.imagePath}`
+          : attempt.imageUrl!;
+        const set =
+          attempt.side === 'front'
+            ? {
+                frontImageUrl: url,
+                frontImagePath: attempt.imagePath,
+                selectedFrontAttemptId: attempt.id,
+              }
+            : {
+                insideImageUrl: url,
+                insideImagePath: attempt.imagePath,
+                selectedInsideAttemptId: attempt.id,
+              };
+
+        await db.update(cards).set(set).where(eq(cards.id, id));
+
+        // Mirror the per-attempt PNG into the canonical filename
+        // (card_X_front.png). PDF, print-resolution upscale, and
+        // fulfillment all read by canonical name, so without this
+        // copy they'd keep using whichever attempt was last *generated*
+        // rather than the one the user picked.
+        await promoteAttemptToCanonical(id, attempt.side as CardSide, attempt.id);
+
+        // For front swaps, regenerate the 3000×3000 print-res file so
+        // it matches the newly-selected attempt. Non-fatal — checkout
+        // can still proceed if this hiccups (the watermarked display
+        // copy is already correct).
+        if (attempt.side === 'front') {
+          generatePrintResolutionFiles(id).catch((err) =>
+            console.warn(`[STUDIO] print-res after select-attempt failed:`, err),
+          );
+        }
+
+        res.json({ ok: true });
+      } catch (err: any) {
+        console.error('[STUDIO] select-attempt error:', err);
+        res.status(500).json({ message: 'Could not switch version' });
+      }
+    },
+  );
 
   // ── DELETE /api/studio/cards/:id ──────────────────────────────────
   // Hard-delete a card from the gallery. Nukes the row and any

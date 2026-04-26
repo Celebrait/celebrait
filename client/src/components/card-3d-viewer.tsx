@@ -76,8 +76,40 @@ export function Card3DViewer({
     onOpenChange?.(next);
   };
 
+  // Pointer events are funnelled through this hit-zone div instead of
+  // the full Canvas surface. Why:
+  //   • The Canvas often renders inside a "bleed" wrapper much larger
+  //     than the visible card (so rotation/zoom don't clip).
+  //   • If the Canvas catches pointer events on the entire bleed,
+  //     wheel-scroll on empty space gets eaten by OrbitControls and
+  //     interrupts page scroll.
+  //   • Solution: outer wrapper is pointer-events: none, so empty space
+  //     passes through to page scroll. A central hit-zone div is
+  //     pointer-events: auto and acts as the eventSource for r3f +
+  //     the domElement for OrbitControls.
+  // Tuned at 70% × 70% — covers the card at the default framingMargin
+  // (2.0, card ≈ 50% of canvas) with rotation slack, and still mostly
+  // covers it at framingMargin 1.15 (card ≈ 85% — corners pass through
+  // but the body of the card is interactive). If the empty-state hero
+  // needs full coverage we'd add a `hitZoneSize` prop.
+  const [hitEl, setHitEl] = useState<HTMLDivElement | null>(null);
+
   return (
-    <div className={className}>
+    <div
+      className={className}
+      style={{
+        position: 'relative',
+        // pointer-events: none on the wrapper means empty space (the
+        // bleed area where the canvas renders past the card) doesn't
+        // capture wheel/touch events — those pass through to the page.
+        // Children with pointer-events: auto still receive events
+        // normally and bubble up through this element.
+        pointerEvents: 'none',
+        // touch-action: pan-y so vertical page scroll is never blocked
+        // by a touch starting on the card area.
+        touchAction: 'pan-y',
+      }}
+    >
       <Canvas
         shadows
         camera={{ position: [0, 0.15, 2.2], fov: 40 }}
@@ -87,6 +119,10 @@ export function Card3DViewer({
           outputColorSpace: THREE.SRGBColorSpace,
           antialias: true,
         }}
+        // Funnel r3f pointer events (raycasting → mesh onClick handlers,
+        // e.g. the card's tap-to-open hinge) through the hit zone so
+        // they only fire when the user is actually over the card area.
+        eventSource={hitEl ?? undefined}
       >
         <Scene
           frontUrl={frontImageUrl}
@@ -96,8 +132,28 @@ export function Card3DViewer({
           onOpenChange={setOpen}
           framingMargin={framingMargin}
           minDistance={minDistance}
+          orbitDomElement={hitEl ?? undefined}
         />
       </Canvas>
+      {/* The hit zone — invisible, sits over roughly the card's visible
+          area. All pointer/wheel/touch events for OrbitControls + r3f
+          mesh raycasting come through this element. Outside it, events
+          pass through to whatever's underneath (page scroll, etc.). */}
+      <div
+        ref={setHitEl}
+        aria-hidden
+        style={{
+          position: 'absolute',
+          top: '15%',
+          left: '15%',
+          right: '15%',
+          bottom: '15%',
+          pointerEvents: 'auto',
+          touchAction: 'none', // inside the card area, intercept gestures
+          cursor: 'grab',
+        }}
+        data-testid="card-3d-hit-zone"
+      />
     </div>
   );
 }
@@ -111,6 +167,7 @@ function Scene({
   onOpenChange,
   framingMargin,
   minDistance,
+  orbitDomElement,
 }: {
   frontUrl: string;
   insideUrl: string;
@@ -119,6 +176,11 @@ function Scene({
   onOpenChange: (open: boolean) => void;
   framingMargin: number;
   minDistance: number;
+  /** When set, OrbitControls listens for wheel/drag/touch events on
+   *  this DOM element instead of the WebGL canvas. Used so events
+   *  only fire when the user is on the card hit-zone, not the empty
+   *  bleed around it. */
+  orbitDomElement?: HTMLElement;
 }) {
   return (
     <>
@@ -192,6 +254,11 @@ function Scene({
         enableZoom={true}
         enableDamping
         dampingFactor={0.08}
+        // domElement set to the parent's hit-zone div so wheel/drag
+        // events only register on the card area. Wheel events outside
+        // the hit zone pass through to page scroll instead of being
+        // captured for camera zoom.
+        domElement={orbitDomElement}
         minDistance={minDistance}
         maxDistance={6}
         minPolarAngle={Math.PI / 3}

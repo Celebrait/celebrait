@@ -14,7 +14,7 @@ export default function CardMockup({ frontImageUrl, insideImageUrl, deliveryType
         {frontImageUrl ? (
           <img 
             src={frontImageUrl} 
-            alt="AI generated greeting card front" 
+            alt="Greeting card front"
             style={{ 
               display: 'block',
               maxWidth: '100%',
@@ -47,7 +47,7 @@ export default function CardMockup({ frontImageUrl, insideImageUrl, deliveryType
           {insideImageUrl ? (
             <img 
               src={insideImageUrl} 
-              alt="AI generated greeting card inside" 
+              alt="Greeting card inside"
               className="w-full h-full object-cover"
               style={{ borderRadius: '0' }}
             />

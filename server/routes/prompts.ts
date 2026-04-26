@@ -33,6 +33,13 @@ import { getProvider, listProviders } from '../providers/registry';
 import { generateWithRetry } from '../providers/retry';
 import { isProviderError } from '../providers/errors';
 import { aspectLabel, isKnownSize } from '../providers/size';
+import { logGeneration } from '../prompts/generation-log';
+import {
+  buildRefineInstruction,
+  REFINE_SLOT,
+  VALID_REFINE_SIDES,
+  type RefineSide,
+} from '../prompts/refine-scaffolds';
 
 /**
  * Reads the caller's OTP session and checks the `users.is_admin` DB flag.
@@ -750,19 +757,32 @@ export function registerPromptRoutes(app: Express): void {
   });
 
   // POST /api/admin/prompts/test-refine
-  // Takes an existing generated image and a modification instruction.
-  // Passes both back to Gemini which modifies the image in-place.
-  // OpenAI cannot do this — Gemini only.
+  // Takes an existing generated image and a modification instruction;
+  // returns the edited image. Mirrors what Studio's `regenerateStudio
+  // CardSide` does for tweak'd regens — same provider.refine() call,
+  // same instruction wrapper (via buildRefineInstruction), same
+  // generation_log row. So the lab and production can't drift.
   //
   // Body:
   //   {
-  //     imageBase64: string,     // the existing generated image (data URL)
-  //     instruction: string,     // what to change: "make the shirt blue"
+  //     imageBase64: string,        // the existing generated image (data URL)
+  //     instruction: string,        // user tweak: "make the shirt blue"
+  //     side?: 'front' | 'inside',  // which scaffold to apply (default 'front')
+  //     useScaffold?: boolean,      // false = pass instruction RAW (debug);
+  //                                 // default true = wrap with side scaffold
+  //     referencePhotos?: string[], // optional likeness/style anchors
   //   }
   app.post('/api/admin/prompts/test-refine', async (req, res) => {
     if (!(await requireAdmin(req, res))) return;
+    const startTime = Date.now();
     try {
-      const { imageBase64, instruction, referencePhotos } = req.body ?? {};
+      const {
+        imageBase64,
+        instruction,
+        side: rawSide,
+        useScaffold: rawUseScaffold,
+        referencePhotos,
+      } = req.body ?? {};
 
       if (typeof imageBase64 !== 'string' || !imageBase64) {
         return res.status(400).json({ message: 'imageBase64 is required' });
@@ -771,42 +791,103 @@ export function registerPromptRoutes(app: Express): void {
         return res.status(400).json({ message: 'instruction is required' });
       }
 
+      // Side defaults to 'front' for backward compat with the original
+      // single-side PL refine. New callers should always specify it.
+      const side: RefineSide = VALID_REFINE_SIDES.includes(rawSide as RefineSide)
+        ? (rawSide as RefineSide)
+        : 'front';
+
+      // useScaffold defaults true — production behaviour. Set false
+      // for raw-instruction debugging, which is PL-only territory.
+      const useScaffold = rawUseScaffold !== false;
+
       const gemini = getProvider('gemini');
       if (!gemini.isAvailable()) {
         return res.status(503).json({ message: 'Gemini API key not configured' });
       }
-
-      if (!('refine' in gemini)) {
-        return res.status(501).json({ message: 'Refine is only supported on Gemini' });
+      if (!gemini.refine) {
+        return res
+          .status(501)
+          .json({ message: 'Refine is only supported on Gemini' });
       }
 
       const refPhotos: string[] = Array.isArray(referencePhotos)
         ? referencePhotos.filter((p: any) => typeof p === 'string' && p.length > 0)
         : [];
 
+      // Build the actual instruction sent to the model. With scaffold
+      // (default), the user's text is wrapped per-side — identical to
+      // what Studio sends. Without scaffold, raw — useful for the
+      // operator iterating on the wrapper itself or debugging the
+      // model's behaviour without the scaffold's constraints.
+      const finalInstruction = useScaffold
+        ? buildRefineInstruction(side, instruction)
+        : instruction;
+
       console.log(
-        `[PROMPT_LAB_TEST] REFINE instruction="${instruction.slice(0, 100)}" refPhotos=${refPhotos.length}`,
+        `[PROMPT_LAB_TEST] REFINE side=${side} useScaffold=${useScaffold} instruction="${instruction.slice(0, 100)}" refPhotos=${refPhotos.length}`,
       );
 
-      const result = await (gemini as any).refine(
-        imageBase64,
-        instruction,
-        refPhotos.length > 0 ? refPhotos : undefined,
-      );
+      try {
+        const result = await gemini.refine(
+          imageBase64,
+          finalInstruction,
+          refPhotos.length > 0 ? refPhotos : undefined,
+        );
 
-      console.log(
-        `[PROMPT_LAB_TEST] REFINE SUCCESS cost=${result.costUsd} duration=${result.durationMs}ms`,
-      );
+        // Log to generation_log so PL refine traffic shows up in
+        // Cost Ledger alongside Studio refine. cardId: null marks
+        // this as a lab call (Cost Ledger filters by joining to
+        // `cards` for customer-facing metrics — null cardId stays
+        // out of those aggregates by definition).
+        await logGeneration({
+          cardId: null,
+          slot: REFINE_SLOT[side],
+          templateId: null,
+          templateVersion: null,
+          provider: result.provider,
+          model: result.model,
+          quality: 'high',
+          costCents: result.costCents,
+          durationMs: result.durationMs,
+          success: true,
+        });
 
-      return res.json({
-        imageUrl: result.imageUrl,
-        costCents: result.costCents,
-        costUsd: result.costUsd,
-        durationMs: result.durationMs,
-        provider: result.provider,
-        model: result.model,
-        instruction,
-      });
+        console.log(
+          `[PROMPT_LAB_TEST] REFINE SUCCESS cost=${result.costUsd} duration=${result.durationMs}ms`,
+        );
+
+        return res.json({
+          imageUrl: result.imageUrl,
+          costCents: result.costCents,
+          costUsd: result.costUsd,
+          durationMs: result.durationMs,
+          provider: result.provider,
+          model: result.model,
+          instruction,
+          finalInstruction,
+          side,
+          useScaffold,
+        });
+      } catch (refineErr: any) {
+        // Log the failure too — Cost Ledger needs both successes and
+        // failures to compute success rate; otherwise PL "wasted" gen
+        // spend disappears from the ledger.
+        await logGeneration({
+          cardId: null,
+          slot: REFINE_SLOT[side],
+          templateId: null,
+          templateVersion: null,
+          provider: 'gemini',
+          model: gemini.model,
+          quality: 'high',
+          costCents: 0,
+          durationMs: Date.now() - startTime,
+          success: false,
+          errorCode: refineErr?.kind ?? refineErr?.code ?? 'unknown',
+        });
+        throw refineErr;
+      }
     } catch (err: any) {
       if (isProviderError(err)) {
         return res.status(err.httpStatus).json({

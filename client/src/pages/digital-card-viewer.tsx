@@ -445,7 +445,7 @@ export default function DigitalCardViewer() {
                   Love this card? Create your own!
                 </h3>
                 <p className="text-gray-600 mb-4">
-                  Design personalized greeting cards with AI in minutes
+                  Make a card of your own — personal, printed, posted in days.
                 </p>
                 <Button
                   onClick={() => setLocation('/')}

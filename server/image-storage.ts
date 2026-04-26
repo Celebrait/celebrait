@@ -452,6 +452,53 @@ export function getUnwatermarkedImageUrl(cardId: number, imageType: 'front' | 'i
 }
 
 /**
+ * Write a base64 PNG to an arbitrary filename in the stored_images dir.
+ * Used by the per-attempt save path so each card_attempts row can have
+ * its own file (e.g. card_123_front_a4.png) — keeps regen history,
+ * gives the browser a unique URL per attempt so cached images don't
+ * mask new ones, and lets selectAttempt switch by file copy.
+ */
+export async function storeImageToCustomFilename(
+  base64Data: string,
+  filename: string,
+): Promise<StoredImage> {
+  const cleanBase64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
+  const imageBuffer = Buffer.from(cleanBase64, 'base64');
+  const filepath = path.join(IMAGES_DIR, filename);
+  await fs.writeFile(filepath, imageBuffer);
+  const stats = await fs.stat(filepath);
+  console.log(`[STORAGE] Stored ${filename} (${stats.size} bytes)`);
+  return { filename, filepath, size: stats.size, format: 'png' };
+}
+
+/**
+ * Copy one stored image file to another filename. Used when promoting
+ * a per-attempt file to the canonical name on selectAttempt — the
+ * canonical name (card_X_front.png) is what print/PDF/fulfillment
+ * read, so it has to mirror whichever attempt the user picked.
+ *
+ * Silently no-ops if the source doesn't exist (legacy cards, partial
+ * state on bad rows). Logs but doesn't throw.
+ */
+export async function copyStoredFile(
+  srcFilename: string,
+  destFilename: string,
+): Promise<boolean> {
+  try {
+    const src = path.join(IMAGES_DIR, srcFilename);
+    const dest = path.join(IMAGES_DIR, destFilename);
+    await fs.copyFile(src, dest);
+    console.log(`[STORAGE] Copied ${srcFilename} → ${destFilename}`);
+    return true;
+  } catch (err: any) {
+    console.warn(
+      `[STORAGE] Could not copy ${srcFilename} → ${destFilename}: ${err?.message ?? err}`,
+    );
+    return false;
+  }
+}
+
+/**
  * Check if unwatermarked files exist for watermark removal
  */
 export async function hasUnwatermarkedFiles(cardId: number): Promise<{ front: boolean; inside: boolean }> {

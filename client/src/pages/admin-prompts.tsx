@@ -1760,6 +1760,14 @@ function EditPanel({
   const [isOpen, setIsOpen] = useState(false);
   const [instruction, setInstruction] = useState('');
   const [refPhotos, setRefPhotos] = useState<Array<{ base64: string; name: string }>>([]);
+  // Side selector — defaults to 'front' to mirror Studio's most
+  // common regen path. Inside refine uses a different scaffold (see
+  // server/prompts/refine-scaffolds.ts).
+  const [side, setSide] = useState<'front' | 'inside'>('front');
+  // Scaffold toggle — default ON because that's what Studio does.
+  // Turn OFF only to debug the wrapper itself or to test what raw
+  // instructions produce; this is PL-only territory.
+  const [useScaffold, setUseScaffold] = useState(true);
 
   const handleRefPhotoAdd = (files: FileList | null) => {
     const valid = filterToImageFiles(files);
@@ -1778,6 +1786,8 @@ function EditPanel({
       const res = await apiRequest('POST', '/api/admin/prompts/test-refine', {
         imageBase64: imageUrl,
         instruction,
+        side,
+        useScaffold,
         referencePhotos: refPhotos.length > 0 ? refPhotos.map((p) => p.base64) : undefined,
       });
       return res.json();
@@ -1810,12 +1820,66 @@ function EditPanel({
 
   return (
     <div className="mt-2 p-2 bg-stone-50 border border-stone-200 rounded space-y-2">
+      {/* Side + scaffold controls — match Studio's regen behaviour
+          when scaffold is ON (default); opt out to debug the wrapper
+          itself. See server/prompts/refine-scaffolds.ts for the
+          shared instruction text both Studio and PL use. */}
+      <div className="flex items-center gap-3 text-[11px]">
+        <div className="inline-flex bg-stone-200 rounded p-0.5">
+          <button
+            type="button"
+            onClick={() => setSide('front')}
+            className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+              side === 'front'
+                ? 'bg-white text-stone-900 shadow-sm'
+                : 'text-stone-500 hover:text-stone-700'
+            }`}
+          >
+            Front
+          </button>
+          <button
+            type="button"
+            onClick={() => setSide('inside')}
+            className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+              side === 'inside'
+                ? 'bg-white text-stone-900 shadow-sm'
+                : 'text-stone-500 hover:text-stone-700'
+            }`}
+          >
+            Inside
+          </button>
+        </div>
+        <label className="inline-flex items-center gap-1 text-stone-600 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={useScaffold}
+            onChange={(e) => setUseScaffold(e.target.checked)}
+            className="h-3 w-3"
+          />
+          <span>Use Studio scaffold</span>
+        </label>
+        <span
+          className="text-stone-400"
+          title={
+            useScaffold
+              ? `Instruction will be wrapped per-side, exactly as Studio does. Toggle off to send the raw instruction (debug mode).`
+              : `Raw instruction — bypasses the production wrapper. Use to debug the wrapper itself or test how the model behaves without it.`
+          }
+        >
+          {useScaffold ? '✓ matches Studio' : '⚠ raw / debug'}
+        </span>
+      </div>
+
       <div className="flex gap-2">
         <Input
           value={instruction}
           onChange={(e) => setInstruction(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !refineMutation.isPending && instruction.trim() && refineMutation.mutate()}
-          placeholder="e.g. Make the face more accurate, change the shirt to blue..."
+          placeholder={
+            side === 'front'
+              ? 'e.g. swap the dog for a cat, change to nighttime, santa outfit...'
+              : 'e.g. tidier handwriting, warmer tone...'
+          }
           className="h-8 text-xs flex-1"
           autoFocus
         />

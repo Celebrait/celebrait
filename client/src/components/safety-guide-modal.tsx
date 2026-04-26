@@ -32,7 +32,7 @@ interface SafetyGuideModalProps {
 const safetyCategories: SafetyIssue[] = [
   {
     category: "Children in Photos",
-    description: "Our AI safety system sometimes flags uploaded images containing children as a precautionary measure.",
+    description: "Our content checks sometimes flag uploaded images containing children as a precautionary measure.",
     solution: "Try uploading a different photo - you'll likely get through on the next attempt. This is a temporary safety check.",
     riskLevel: "low",
     examples: ["Family photos", "Kids at parties", "School events"]
@@ -60,7 +60,7 @@ const safetyCategories: SafetyIssue[] = [
   },
   {
     category: "Unclear Detection",
-    description: "Sometimes our AI safety system flags content for reasons that aren't immediately clear. This can happen with perfectly innocent content.",
+    description: "Sometimes our content checks flag things for reasons that aren't immediately clear. This can happen with perfectly innocent content.",
     solution: "Try slightly rewording your description or uploading a different photo. The detection can be inconsistent.",
     riskLevel: "low",
     examples: ["Technical glitches", "False positives", "Overly cautious filtering"]
@@ -107,11 +107,11 @@ export function SafetyGuideModal({
               <Shield className="h-6 w-6 text-white" />
             </div>
             <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              {errorTitle || "AI Safety Check Triggered"}
+              {errorTitle || "Hold on — something flagged"}
             </span>
           </DialogTitle>
           <DialogDescription className="text-base text-gray-700 ml-15">
-            {errorMessage || "Our AI safety system has flagged your content. Don't worry - this happens occasionally! Here's what might have caused it and how to fix it:"}
+            {errorMessage || "Something in your content was flagged by our safety checks. Don't worry — it happens. Here's what might have caused it and how to fix it:"}
           </DialogDescription>
         </DialogHeader>
 
@@ -214,13 +214,13 @@ export function SafetyGuideModal({
               </div>
               <div className="text-sm text-purple-800">
                 {errorKind === 'rate' && (
-                  <p>Wait a few moments and try again. The AI service is temporarily busy.</p>
+                  <p>Wait a few moments and try again. We're a bit busy right now.</p>
                 )}
                 {errorKind === 'auth' && (
-                  <p>There's an authentication issue with the AI service. Please contact support if this persists.</p>
+                  <p>There's an authentication issue on our side. Please contact support if it keeps happening.</p>
                 )}
                 {errorKind === 'server' && (
-                  <p>The AI service is experiencing technical difficulties. Please try again in a few moments.</p>
+                  <p>We're having technical difficulties. Please try again in a few moments.</p>
                 )}
                 {errorKind === 'invalid' && (
                   <p>Please check your input and try making small adjustments to your request.</p>

@@ -4,6 +4,8 @@
 import {
   storeImageFromBase64,
   storeUnwatermarkedImage,
+  storeImageToCustomFilename,
+  copyStoredFile,
   getImageUrl,
   getStoredImage,
   storeUnwatermarkedPngFile
@@ -31,6 +33,135 @@ export async function savePngFiles(
     console.error(`[BG_GEN] PNG save failed for ${prefix}, using base64 fallback:`, err);
     return { watermarked: imageUrl, original: imageUrl };
   }
+}
+
+/**
+ * Per-attempt filename helpers. Each card_attempts row gets its own
+ * file on disk so:
+ *   - the versions strip can show every attempt the user has tried
+ *   - selectAttempt can switch back to an old attempt without losing it
+ *   - the browser sees a unique URL per attempt and doesn't show a
+ *     stale cached image when a new regen lands
+ *
+ * The canonical filename (card_X_front.png) still exists — it mirrors
+ * whichever attempt is currently selected, so all the existing
+ * consumers (PDF, print-resolution upscale, fulfillment, watermarked
+ * download) keep working unchanged.
+ */
+export function attemptDisplayFilename(
+  cardId: number,
+  side: 'front' | 'inside',
+  attemptId: number,
+): string {
+  return `card_${cardId}_${side}_a${attemptId}.png`;
+}
+
+export function attemptUnwatermarkedFilename(
+  cardId: number,
+  side: 'front' | 'inside',
+  attemptId: number,
+): string {
+  return `card_${cardId}_${side}_a${attemptId}_unwatermarked.png`;
+}
+
+function canonicalDisplayFilename(cardId: number, side: 'front' | 'inside'): string {
+  return `card_${cardId}_${side}.png`;
+}
+
+function canonicalUnwatermarkedFilename(cardId: number, side: 'front' | 'inside'): string {
+  return `card_${cardId}_${side}_unwatermarked.png`;
+}
+
+/**
+ * Save a regen result with per-attempt filenames AND mirror to the
+ * canonical filename in one go (so on success this attempt is the
+ * displayed one without needing an extra file copy).
+ *
+ * Returns the per-attempt URL — that's what we want to write into
+ * cards.frontImagePath / cardAttempts.imagePath, since unique URLs
+ * defeat the browser cache that was making 3 regens look identical.
+ */
+export async function savePngFilesForAttempt(
+  imageUrl: string,
+  cardId: number,
+  side: 'front' | 'inside',
+  attemptId: number,
+): Promise<{ watermarked: string; original: string; attemptFilename: string }> {
+  const attemptFilename = attemptDisplayFilename(cardId, side, attemptId);
+  const attemptUnwatermarked = attemptUnwatermarkedFilename(cardId, side, attemptId);
+  const canonical = canonicalDisplayFilename(cardId, side);
+  const canonicalUnwatermarked = canonicalUnwatermarkedFilename(cardId, side);
+
+  try {
+    // Per-attempt files are the source of truth (they survive
+    // selectAttempt and aren't overwritten by future regens).
+    await Promise.all([
+      storeImageToCustomFilename(imageUrl, attemptFilename),
+      storeImageToCustomFilename(imageUrl, attemptUnwatermarked),
+      // Canonical files mirror the freshly-generated attempt because
+      // we promote on success. Print/PDF/fulfillment read by canonical
+      // name so they need to see the latest selected version.
+      storeImageToCustomFilename(imageUrl, canonical),
+      storeImageToCustomFilename(imageUrl, canonicalUnwatermarked),
+    ]);
+    const storedUrl = `/images/${attemptFilename}`;
+    return { watermarked: storedUrl, original: imageUrl, attemptFilename };
+  } catch (err) {
+    console.error(
+      `[BG_GEN] Per-attempt PNG save failed for ${side} a${attemptId}, falling back to base64:`,
+      err,
+    );
+    return { watermarked: imageUrl, original: imageUrl, attemptFilename };
+  }
+}
+
+/**
+ * Promote a per-attempt file to the canonical filename on selectAttempt.
+ * Copies the per-attempt watermarked + unwatermarked files over the
+ * canonical ones so PDF/print/fulfillment read the user's chosen
+ * version. No-op-friendly: returns false if the source files don't
+ * exist (legacy attempts that never had per-attempt files).
+ */
+export async function promoteAttemptToCanonical(
+  cardId: number,
+  side: 'front' | 'inside',
+  attemptId: number,
+): Promise<boolean> {
+  const attemptFilename = attemptDisplayFilename(cardId, side, attemptId);
+  const attemptUnwatermarked = attemptUnwatermarkedFilename(cardId, side, attemptId);
+  const canonical = canonicalDisplayFilename(cardId, side);
+  const canonicalUnwatermarked = canonicalUnwatermarkedFilename(cardId, side);
+
+  const [okDisplay] = await Promise.all([
+    copyStoredFile(attemptFilename, canonical),
+    copyStoredFile(attemptUnwatermarked, canonicalUnwatermarked),
+  ]);
+  return okDisplay;
+}
+
+/**
+ * Snapshot the current canonical files into per-attempt filenames.
+ * Used when we lazily synthesise attempt #1 on first regen — the
+ * pre-attempts initial generation only wrote canonical files, so we
+ * need to give attempt #1 its own copy or selecting back to it later
+ * would silently grab whatever the canonical points at right then
+ * (i.e. the wrong attempt).
+ */
+export async function snapshotCanonicalToAttempt(
+  cardId: number,
+  side: 'front' | 'inside',
+  attemptId: number,
+): Promise<string | null> {
+  const attemptFilename = attemptDisplayFilename(cardId, side, attemptId);
+  const attemptUnwatermarked = attemptUnwatermarkedFilename(cardId, side, attemptId);
+  const canonical = canonicalDisplayFilename(cardId, side);
+  const canonicalUnwatermarked = canonicalUnwatermarkedFilename(cardId, side);
+
+  const [okDisplay] = await Promise.all([
+    copyStoredFile(canonical, attemptFilename),
+    copyStoredFile(canonicalUnwatermarked, attemptUnwatermarked),
+  ]);
+  return okDisplay ? attemptFilename : null;
 }
 
 /**
