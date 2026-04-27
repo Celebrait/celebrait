@@ -20,9 +20,29 @@
 //   • Earlier drafts get the same row, no badge — quietly
 //     de-emphasised by being lower in the list, not by chrome.
 
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
-import { ArrowRight, Wand2, FileEdit, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  Wand2,
+  FileEdit,
+  Sparkles,
+  Trash2,
+  Loader2,
+} from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { bucketCards, deriveCardTitle } from '@/lib/studio-card-buckets';
 import { getOccasionIcon } from '@/lib/occasion-icon';
 import { CARD_MAKER_STEPS } from '@shared/schema';
@@ -105,6 +125,8 @@ function DraftListRow({ card }: { card: CardGridItem }) {
   const title = deriveCardTitle(card);
   const Icon = getOccasionIcon(card.occasion);
   const step = card.draftStep ?? 0;
+  const { toast } = useToast();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Step interpretation:
   //   step 0..5 = Recipient → Inside text (in-progress)
@@ -119,97 +141,173 @@ function DraftListRow({ card }: { card: CardGridItem }) {
   const metaLine =
     stepLabel && dateLabel ? `${stepLabel} · ${dateLabel}` : stepLabel || dateLabel || '';
 
+  // Same delete pattern card-thumbnail.tsx uses — DELETE
+  // /api/studio/cards/:id, invalidate the user-cards query, toast on
+  // success/failure. AlertDialog confirms before firing because
+  // accidental deletes are bad UX (no undo on the server).
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest('DELETE', `/api/studio/cards/${card.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
+      toast({ title: 'Draft deleted' });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Couldn't delete",
+        description: err?.message ?? 'Try again in a moment.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   return (
-    <Link
-      href={`/studio/card/${card.id}/edit`}
-      className={`group block rounded-2xl border transition-all hover:shadow-sm ${
-        isReadyToGenerate
-          ? 'bg-brand-muted/40 border-brand/40 hover:border-brand'
-          : 'bg-white border-stone-200 hover:border-stone-300'
-      }`}
-      data-testid={`draft-list-row-${card.id}`}
-    >
-      <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
-        {/* Icon — occasion-specific. Image thumbnail if the draft
-            already has one (rare for half-finished drafts but possible
-            for failed-then-restarted ones); icon otherwise.
-            Icon colour locked to brand violet across all rows so the
-            occasion glyph reads as a consistent visual anchor; the
-            background tint still differentiates 'ready' from the rest. */}
-        <div
-          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-brand-dark ${
-            isReadyToGenerate ? 'bg-brand/10' : 'bg-brand-muted'
-          }`}
-        >
-          {card.frontImageUrl ? (
-            <img
-              src={card.frontImageUrl}
-              alt={title}
-              className="w-full h-full object-cover rounded-xl"
-            />
-          ) : (
-            <Icon className="w-5 h-5" strokeWidth={1.75} />
-          )}
-        </div>
+    <div className="group relative">
+      <Link
+        href={`/studio/card/${card.id}/edit`}
+        className={`block rounded-2xl border transition-all hover:shadow-sm ${
+          isReadyToGenerate
+            ? 'bg-brand-muted/40 border-brand/40 hover:border-brand'
+            : 'bg-white border-stone-200 hover:border-stone-300'
+        }`}
+        data-testid={`draft-list-row-${card.id}`}
+      >
+        <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
+          {/* Icon — occasion-specific. Image thumbnail if the draft
+              already has one (rare for half-finished drafts but possible
+              for failed-then-restarted ones); icon otherwise.
+              Icon colour locked to brand violet across all rows so the
+              occasion glyph reads as a consistent visual anchor; the
+              background tint still differentiates 'ready' from the rest. */}
+          <div
+            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-brand-dark ${
+              isReadyToGenerate ? 'bg-brand/10' : 'bg-brand-muted'
+            }`}
+          >
+            {card.frontImageUrl ? (
+              <img
+                src={card.frontImageUrl}
+                alt={title}
+                className="w-full h-full object-cover rounded-xl"
+              />
+            ) : (
+              <Icon className="w-5 h-5" strokeWidth={1.75} />
+            )}
+          </div>
 
-        {/* Title + meta */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm sm:text-base font-semibold text-ink truncate">
-            {title}
-          </p>
-          {metaLine && (
-            <p className="text-[11px] sm:text-xs text-stone-500 truncate mt-0.5">
-              {metaLine}
+          {/* Title + meta */}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm sm:text-base font-semibold text-ink truncate">
+              {title}
             </p>
-          )}
+            {metaLine && (
+              <p className="text-[11px] sm:text-xs text-stone-500 truncate mt-0.5">
+                {metaLine}
+              </p>
+            )}
+          </div>
+
+          {/* Right side — progress + badge + arrow.
+              Hidden on mobile (the progress strip drops below). */}
+          <div className="hidden sm:flex flex-col items-end gap-1 flex-shrink-0">
+            <ProgressDots filled={filled} total={VISIBLE_STEP_COUNT} highlight={isReadyToGenerate} />
+            {isReadyToGenerate ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-cta-hover">
+                <Sparkles className="w-3 h-3" />
+                Ready to generate
+              </span>
+            ) : isOneStepAway ? (
+              <span className="text-[11px] text-stone-500 italic">
+                One step away
+              </span>
+            ) : null}
+          </div>
+
+          <ArrowRight
+            className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-colors ${
+              isReadyToGenerate
+                ? 'text-cta-hover'
+                : 'text-stone-400 group-hover:text-stone-600'
+            }`}
+          />
         </div>
 
-        {/* Right side — progress + badge + arrow.
-            Hidden on mobile (the progress strip drops below). */}
-        <div className="hidden sm:flex flex-col items-end gap-1 flex-shrink-0">
+        {/* Mobile-only progress strip — under the title row, since the
+            right-aligned cluster is hidden on small screens. Dropping
+            it here keeps the title line uncluttered on phones. */}
+        <div className="sm:hidden px-3 pb-3 -mt-1 flex items-center justify-between gap-3">
           <ProgressDots filled={filled} total={VISIBLE_STEP_COUNT} highlight={isReadyToGenerate} />
           {isReadyToGenerate ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-dark">
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-cta-hover">
               <Sparkles className="w-3 h-3" />
-              Ready to generate
+              Ready
             </span>
           ) : isOneStepAway ? (
-            <span className="text-[11px] text-stone-500 italic">
+            <span className="text-[10px] text-stone-500 italic">
               One step away
             </span>
           ) : null}
         </div>
+      </Link>
 
-        <ArrowRight
-          className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-colors ${
-            isReadyToGenerate
-              ? 'text-brand'
-              : 'text-stone-400 group-hover:text-stone-600'
-          }`}
-        />
-      </div>
+      {/* Delete — overlays the Link (which is the click target) without
+          becoming part of it. preventDefault + stopPropagation in the
+          handler stop the row click from firing. Always-visible on
+          mobile (no hover), hover-revealed on desktop. Same pattern
+          as card-thumbnail.tsx. */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setConfirmOpen(true);
+        }}
+        disabled={deleteMutation.isPending}
+        className="absolute top-2 right-2 sm:top-3 sm:right-3 flex items-center justify-center w-7 h-7 rounded-full bg-white/95 backdrop-blur text-stone-500 hover:text-red-600 hover:bg-white border border-stone-200 shadow-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-50"
+        aria-label={`Delete ${title}`}
+        data-testid={`btn-delete-draft-${card.id}`}
+      >
+        {deleteMutation.isPending ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : (
+          <Trash2 className="w-3.5 h-3.5" />
+        )}
+      </button>
 
-      {/* Mobile-only progress strip — under the title row, since the
-          right-aligned cluster is hidden on small screens. Dropping
-          it here keeps the title line uncluttered on phones. */}
-      <div className="sm:hidden px-3 pb-3 -mt-1 flex items-center justify-between gap-3">
-        <ProgressDots filled={filled} total={VISIBLE_STEP_COUNT} highlight={isReadyToGenerate} />
-        {isReadyToGenerate ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-brand-dark">
-            <Sparkles className="w-3 h-3" />
-            Ready
-          </span>
-        ) : isOneStepAway ? (
-          <span className="text-[10px] text-stone-500 italic">
-            One step away
-          </span>
-        ) : null}
-      </div>
-    </Link>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this draft?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{title}" will be removed from your drafts. Anything you've
+              entered so far is also deleted. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="btn-cancel-delete-draft">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate()}
+              className="bg-red-600 hover:bg-red-700"
+              data-testid="btn-confirm-delete-draft"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
 
 // ── ProgressDots — six tiny dots, filled left-to-right ───────────────
+// Green ("go" tone) for filled, stone for unfilled. Highlighted rows
+// (ready-to-generate) use the saturated cta-hover; in-progress rows
+// use the slightly softer cta. The green reads as "progress toward
+// the finish line" — Kevin's call 2026-04-26 (was brand violet,
+// which clashed with the violet icon + violet card chrome).
 function ProgressDots({
   filled,
   total,
@@ -229,8 +327,8 @@ function ProgressDots({
             className={`block w-1.5 h-1.5 rounded-full transition-colors ${
               isFilled
                 ? highlight
-                  ? 'bg-brand'
-                  : 'bg-brand/70'
+                  ? 'bg-cta-hover'
+                  : 'bg-cta'
                 : 'bg-stone-200'
             }`}
           />
