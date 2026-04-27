@@ -455,13 +455,27 @@ function Card({
 
   return (
     <group ref={rootRef} position={[0, 0, 0]}>
+      {/* Invisible tap-to-open proxy. Sits at z=0.05 (in front of the
+          cover) so raycasts hit it first, regardless of which face
+          the cover currently shows. Sized generously — CARD_W*2 ×
+          CARD_H*2 — so a click anywhere within the visual card (plus
+          a healthy buffer for camera perspective + drop-shadow) lands
+          on the proxy and fires handlePointerUp.
+
+          Was 1.3×1.15 (asymmetric, narrow) until 2026-04-27 — Kevin
+          caught it as "card only opens when I click on the right".
+          The proxy was just barely bigger than the card mesh on the
+          x-axis, so a click landing in the buffer between the card's
+          visual edge and the proxy's edge fell through to whatever
+          was behind (or to OrbitControls' drag start). Doubling it
+          gives a clean, symmetric tap target with margin. */}
       <mesh
         position={[0, 0, 0.05]}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
-        <planeGeometry args={[CARD_W * 1.3, CARD_H * 1.15]} />
+        <planeGeometry args={[CARD_W * 2, CARD_H * 2]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
