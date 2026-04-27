@@ -178,7 +178,14 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
           setConfirmOpen(true);
         }}
         disabled={deleteMutation.isPending}
-        className="absolute top-2 left-2 flex items-center justify-center w-7 h-7 rounded-full bg-white/90 backdrop-blur text-stone-600 hover:text-red-600 hover:bg-white shadow-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-50"
+        // pointer-events MUST track opacity. When the button is
+        // visible (mobile always, desktop on hover/focus) it should
+        // receive clicks; when invisible it must NOT, otherwise the
+        // top-left corner of every tile becomes a dead zone where
+        // taps trigger the (invisible) delete instead of the Link
+        // beneath. Kevin caught this 2026-04-27 — "cards only open
+        // when clicked on the right".
+        className="absolute top-2 left-2 flex items-center justify-center w-7 h-7 rounded-full bg-white/90 backdrop-blur text-stone-600 hover:text-red-600 hover:bg-white shadow-sm opacity-100 pointer-events-auto sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto focus:opacity-100 focus:pointer-events-auto transition-opacity disabled:opacity-50"
         aria-label={`Delete ${title}`}
         data-testid={`btn-delete-card-${card.id}`}
       >
