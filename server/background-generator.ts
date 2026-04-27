@@ -39,6 +39,56 @@ const FALLBACK_PROVIDER = 'openai';
 const FALLBACK_QUALITY = 'high' as const;
 const FALLBACK_SIZE = '1024x1024';
 
+// ── DEV: Stub AI mode ────────────────────────────────────────────────
+// When DEV_STUB_AI=1, ALL provider calls (initial card generation +
+// regen) are short-circuited. Used to test the entire studio flow
+// end-to-end without burning credits or waiting on the model — Kevin
+// asked for this 2026-04-27 because prompt iteration is moving and
+// real generations during UX testing are wasted spend.
+//
+// What gets stubbed:
+//   • generateStudioCard front gen → uses first uploaded photo as
+//     the "rendered" front
+//   • generateStudioCard inside gen → uses the front image as the
+//     "rendered" inside
+//   • regenerateStudioCardSide → reuses the prior selected image
+//     as the new attempt's image
+//
+// What does NOT get stubbed (intentionally):
+//   • Emails — the recipient-card-arrived email, share-link emails,
+//     etc. all fire normally so they can be tested for real
+//   • Payment / checkout — uses the existing stub PaymentProvider
+//     (separate concern; already a stub regardless of this flag)
+//   • Image storage, db writes, watermarking, print-resolution
+//     upscale — all run as normal, exercising the rest of the
+//     pipeline. The stub only replaces the model call.
+//
+// Each stub call still:
+//   • Writes a generation_log row (cost 0, slot suffixed _stub for
+//     telemetry separation)
+//   • Creates the card_attempts row (regen path)
+//   • Saves per-attempt files via savePngFilesForAttempt
+//   • Sleeps STUB_DELAY_MS so the spinner / narration is visible
+//
+// To enable: `DEV_STUB_AI=1 npm run dev` (or add to .env.local).
+// Restart to disable. Status logged at server boot.
+const STUB_AI_MODE = process.env.DEV_STUB_AI === '1';
+if (STUB_AI_MODE) {
+  console.warn(
+    '[STUDIO_GEN] ⚠ DEV_STUB_AI is ON — initial gens AND regens will skip ' +
+      'the provider and reuse the user photo / prior image. Emails still fire ' +
+      'normally. Unset DEV_STUB_AI to use real generations.',
+  );
+}
+
+/** Artificial delay per stubbed model call so the spinner / narration
+ *  is still observable — instant returns make the UX impossible to
+ *  test. 1.5s is long enough to read the state, short enough to iterate
+ *  fast. With both initial-gen sides stubbed (front + inside) the total
+ *  E2E "create a card" flow is ~3-4s rather than ~45s real. */
+const STUB_DELAY_MS = 1500;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export interface BackgroundGenerationParams {
   cardId: number;
   userId?: number;
@@ -361,11 +411,35 @@ export async function generateStudioCard(cardId: number): Promise<void> {
         `templateId=${resolvedFront.templateId} v=${resolvedFront.templateVersion}`,
     );
 
-    const frontImageUrl = await generateViaActiveConfig({
-      cardId,
-      resolved: resolvedFront,
-      referenceImages,
-    });
+    // ── DEV STUB or REAL ─────────────────────────────────────────────
+    // Stub mode (DEV_STUB_AI=1) reuses the first reference photo as the
+    // "rendered" front so the user's identity stays in the placeholder.
+    // Logs to generation_log with a _stub slot suffix and 0 cost so
+    // Cost Ledger / spend telemetry stays clean.
+    let frontImageUrl: string;
+    if (STUB_AI_MODE && referenceImages[0]) {
+      await sleep(STUB_DELAY_MS);
+      frontImageUrl = referenceImages[0];
+      await logGeneration({
+        cardId,
+        slot: 'front_scene_stub',
+        templateId: resolvedFront.templateId,
+        templateVersion: resolvedFront.templateVersion,
+        provider: `${resolvedFront.provider ?? FALLBACK_PROVIDER}-stub`,
+        model: 'stub',
+        quality: resolvedFront.quality ?? FALLBACK_QUALITY,
+        costCents: 0,
+        durationMs: STUB_DELAY_MS,
+        success: true,
+      });
+      console.log(`[STUDIO_GEN] STUB front for card ${cardId} (no provider call, $0)`);
+    } else {
+      frontImageUrl = await generateViaActiveConfig({
+        cardId,
+        resolved: resolvedFront,
+        referenceImages,
+      });
+    }
     const { watermarked: frontWatermarked } = await savePngFiles(
       frontImageUrl,
       cardId,
@@ -408,11 +482,30 @@ export async function generateStudioCard(cardId: number): Promise<void> {
 
       // Inside inherits style from the front via image-to-image edit.
       const frontForInside = await loadStoredImageAsBase64(frontWatermarked);
-      const insideImageUrl = await generateViaActiveConfig({
-        cardId,
-        resolved: resolvedInside,
-        referenceImages: [frontForInside],
-      });
+      let insideImageUrl: string;
+      if (STUB_AI_MODE) {
+        await sleep(STUB_DELAY_MS);
+        insideImageUrl = frontForInside; // reuse the front as the inside
+        await logGeneration({
+          cardId,
+          slot: `${insideMode === 'write' ? 'inside_write' : 'inside_blank'}_stub`,
+          templateId: resolvedInside.templateId,
+          templateVersion: resolvedInside.templateVersion,
+          provider: `${resolvedInside.provider ?? FALLBACK_PROVIDER}-stub`,
+          model: 'stub',
+          quality: resolvedInside.quality ?? FALLBACK_QUALITY,
+          costCents: 0,
+          durationMs: STUB_DELAY_MS,
+          success: true,
+        });
+        console.log(`[STUDIO_GEN] STUB inside for card ${cardId} (no provider call, $0)`);
+      } else {
+        insideImageUrl = await generateViaActiveConfig({
+          cardId,
+          resolved: resolvedInside,
+          referenceImages: [frontForInside],
+        });
+      }
       const saved = await savePngFiles(insideImageUrl, cardId, 'inside');
       insideWatermarked = saved.watermarked;
     }
@@ -783,6 +876,30 @@ export async function regenerateStudioCardSide(
           ? await loadStoredImageAsBase64(card.frontImageUrl)
           : null;
 
+      // ── DEV STUB PATH ──────────────────────────────────────────────
+      // Skip the provider call entirely when DEV_STUB_REGEN=1. Returns
+      // the prior front image as the "new" output — same image, new
+      // attempt row, new file URL, fast + free. Lets us iterate on the
+      // edit-mode UX without burning $0.13 + 30s per regen.
+      if (STUB_AI_MODE && priorFrontDataUrl) {
+        await sleep(STUB_DELAY_MS);
+        await logGeneration({
+          cardId,
+          slot: `${REFINE_SLOT.front}_stub`,
+          templateId: null,
+          templateVersion: null,
+          provider: providerId,
+          model: `${provider.model}-stub`,
+          quality: resolvedFront.quality ?? FALLBACK_QUALITY,
+          costCents: 0,
+          durationMs: STUB_DELAY_MS,
+          success: true,
+        });
+        generatedDataUrl = priorFrontDataUrl;
+        console.log(
+          `[STUDIO_GEN] STUB regen front for card ${cardId} (no provider call, $0)`,
+        );
+      } else if (options.tweak && provider.refine && priorFrontDataUrl) {
       // ── REFINE PATH ────────────────────────────────────────────────
       // When the user supplies a tweak AND the active provider supports
       // image editing (Gemini does via generateContent's multi-part
@@ -798,7 +915,6 @@ export async function regenerateStudioCardSide(
       // that's a "create a new card with this scene" prompt, which
       // pulls the model away from edit mode. The raw user tweak is
       // tighter and more reliably image-anchored.
-      if (options.tweak && provider.refine && priorFrontDataUrl) {
         // Wrapper text comes from the shared module (refine-scaffolds.ts)
         // so the Prompt Lab's /test-refine route uses the exact same
         // instruction. Iterate on the wrapper there, not here. Inline
@@ -898,7 +1014,29 @@ export async function regenerateStudioCardSide(
       // existing inside preserved with a focused edit — using refine
       // gives that. The front image rides along as a style anchor so
       // the two sides stay visually linked even mid-edit.
-      if (options.tweak && insideProvider.refine && priorInsideDataUrl) {
+      //
+      // DEV STUB: same short-circuit as the front regen — reuse the
+      // prior inside as the new attempt's image, log to generation_log
+      // with _stub slot suffix and 0 cost, sleep so the spinner shows.
+      if (STUB_AI_MODE && priorInsideDataUrl) {
+        await sleep(STUB_DELAY_MS);
+        await logGeneration({
+          cardId,
+          slot: `${REFINE_SLOT.inside}_stub`,
+          templateId: null,
+          templateVersion: null,
+          provider: insideProviderId,
+          model: `${insideProvider.model}-stub`,
+          quality: resolvedInside.quality ?? FALLBACK_QUALITY,
+          costCents: 0,
+          durationMs: STUB_DELAY_MS,
+          success: true,
+        });
+        generatedDataUrl = priorInsideDataUrl;
+        console.log(
+          `[STUDIO_GEN] STUB regen inside for card ${cardId} (no provider call, $0)`,
+        );
+      } else if (options.tweak && insideProvider.refine && priorInsideDataUrl) {
         // Same shared wrapper as the front path; sided semantics live
         // in buildRefineInstruction. See refine-scaffolds.ts.
         const editInstruction = buildRefineInstruction('inside', options.tweak);
