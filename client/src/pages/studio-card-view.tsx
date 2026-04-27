@@ -26,6 +26,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { motion } from 'framer-motion';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { GestureHints } from '@/components/gesture-hints';
 import { RegenEditMode } from '@/components/studio/regen-controls';
@@ -300,17 +301,26 @@ function LoadedView({
             edit mode. Only for unpaid cards: once paid, the gift's
             on its way and further regens are pointless chrome.
             Subordinate to Buy by design — quiet safety net, not a
-            parallel CTA. */}
+            parallel CTA. Fades out in lockstep with the gesture
+            hints when the card opens (Kevin 2026-04-26: chrome
+            shouldn't compete with the moment of opening the card). */}
         {!hasPaid && (
-          <button
-            type="button"
-            onClick={() => setEditMode(true)}
-            className="mt-2 inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white/60 hover:bg-white hover:border-brand/40 px-4 py-2 text-sm italic text-stone-600 hover:text-brand-dark transition-all"
-            data-testid="btn-regen-open"
+          <motion.div
+            animate={{ opacity: open3D ? 0 : 1 }}
+            transition={{ duration: 0.5 }}
+            style={{ pointerEvents: open3D ? 'none' : 'auto' }}
+            className="mt-2"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-stone-400" />
-            Not 100% happy? Make a change.
-          </button>
+            <button
+              type="button"
+              onClick={() => setEditMode(true)}
+              className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white/60 hover:bg-white hover:border-brand/40 px-4 py-2 text-sm italic text-stone-600 hover:text-brand-dark transition-all"
+              data-testid="btn-regen-open"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-stone-400" />
+              Not 100% happy? Make a change.
+            </button>
+          </motion.div>
         )}
       </div>
 

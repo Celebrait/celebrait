@@ -760,8 +760,12 @@ function RevealView({
                 {onRegenerate && onSelectAttempt && (
                   <motion.div
                     initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 1.5 }}
+                    animate={{ opacity: isInteracting ? 0 : 1 }}
+                    transition={{
+                      duration: 0.5,
+                      delay: hasInteracted || isInteracting ? 0 : 1.5,
+                    }}
+                    style={{ pointerEvents: isInteracting ? 'none' : 'auto' }}
                     className="mt-8 flex justify-center"
                   >
                     <button
