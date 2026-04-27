@@ -132,12 +132,13 @@ function DraftListRow({ card }: { card: CardGridItem }) {
       <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
         {/* Icon — occasion-specific. Image thumbnail if the draft
             already has one (rare for half-finished drafts but possible
-            for failed-then-restarted ones); icon otherwise. */}
+            for failed-then-restarted ones); icon otherwise.
+            Icon colour locked to brand violet across all rows so the
+            occasion glyph reads as a consistent visual anchor; the
+            background tint still differentiates 'ready' from the rest. */}
         <div
-          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-            isReadyToGenerate
-              ? 'bg-brand/10 text-brand-dark'
-              : 'bg-stone-100 text-stone-500'
+          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-brand-dark ${
+            isReadyToGenerate ? 'bg-brand/10' : 'bg-brand-muted'
           }`}
         >
           {card.frontImageUrl ? (
