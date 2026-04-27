@@ -12,6 +12,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
+import { getOccasionLabel } from '@/components/studio/scene-presets';
 import {
   Wand2,
   Truck,
@@ -250,9 +251,12 @@ function statusForDisplay(order: StudioOrderListItem): StatusView {
 function deriveTitle(order: StudioOrderListItem): string {
   const name = order.recipientName;
   const occasion = order.occasion;
-  if (name && occasion) return `${name}'s ${occasion} card`;
+  // Use getOccasionLabel so 'thankyou' \u2192 'Thank you', 'valentines'
+  // \u2192 "Valentine's Day" etc. — raw keys were leaking through.
+  const occasionLabel = occasion ? getOccasionLabel(occasion) : '';
+  if (name && occasionLabel) return `${name}'s ${occasionLabel.toLowerCase()} card`;
   if (name) return `Card for ${name}`;
-  if (occasion) return `${occasion.charAt(0).toUpperCase()}${occasion.slice(1)} card`;
+  if (occasionLabel) return `${occasionLabel} card`;
   return 'Celebrait card';
 }
 

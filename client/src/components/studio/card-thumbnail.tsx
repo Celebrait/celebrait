@@ -14,6 +14,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { getOccasionIcon } from '@/lib/occasion-icon';
+import { deriveCardTitle } from '@/lib/studio-card-buckets';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,17 +32,12 @@ interface CardThumbnailProps {
   card: CardGridItem;
 }
 
-function deriveTitle(card: CardGridItem): string {
-  const name = card.recipientName?.trim() || null;
-  const occasion = card.occasion?.trim() || null;
-  if (name && occasion) return `${name}'s ${occasion}`;
-  if (name) return `For ${name}`;
-  if (occasion) return `${occasion.charAt(0).toUpperCase()}${occasion.slice(1)} card`;
-  return 'Untitled card';
-}
-
+// Title derivation lives in @/lib/studio-card-buckets so the dashboard
+// + grid + drafts/ready/sent surfaces all read identically. Was
+// duplicated here pre-2026-04-26 — leaked "Mum's birthday" / "Mum's
+// thankyou" because this copy didn't get the suffix + label fixes.
 export function CardThumbnail({ card }: CardThumbnailProps) {
-  const title = deriveTitle(card);
+  const title = deriveCardTitle(card);
   const isGenerating = card.status === 'generating';
   const isDraft = card.status === 'draft';
   // "Ready to send" = generated card with no paid order against it.

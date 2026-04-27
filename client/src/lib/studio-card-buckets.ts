@@ -21,6 +21,7 @@
 // EXISTS on studio_orders.payment_status='paid'. Keep the client
 // logic pure-boolean so the buckets can evolve without an API change.
 
+import { getOccasionLabel } from '@/components/studio/scene-presets';
 import type { CardGridItem } from '@shared/schema';
 
 const DRAFT_STATUSES = new Set(['draft', 'generating', 'failed']);
@@ -70,12 +71,22 @@ export function bucketCards(cards: CardGridItem[]): {
 }
 
 /** Derive a warm title from a card row. Mirrors card-thumbnail.tsx's
- *  deriveTitle so the dashboard reads the same across surfaces. */
+ *  deriveTitle so the dashboard reads the same across surfaces.
+ *
+ *  Always ends with " card" when an occasion is present (Kevin's
+ *  feedback 2026-04-26: "Mum's birthday" reads as the day, not the
+ *  card — needs to be "Mum's birthday card" so the noun is explicit).
+ *
+ *  Uses getOccasionLabel rather than the raw `card.occasion` key so
+ *  display strings get the proper two-word forms ('thankyou' \u2192
+ *  'Thank you', 'valentines' \u2192 "Valentine's Day", etc.) — raw keys
+ *  were leaking through as "Thankyou" / "Valentines" in titles. */
 export function deriveCardTitle(card: CardGridItem): string {
   const name = card.recipientName?.trim() || null;
   const occasion = card.occasion?.trim() || null;
-  if (name && occasion) return `${name}'s ${occasion}`;
+  const occasionLabel = occasion ? getOccasionLabel(occasion) : '';
+  if (name && occasionLabel) return `${name}'s ${occasionLabel.toLowerCase()} card`;
   if (name) return `For ${name}`;
-  if (occasion) return `${occasion.charAt(0).toUpperCase()}${occasion.slice(1)} card`;
+  if (occasionLabel) return `${occasionLabel} card`;
   return 'Untitled card';
 }

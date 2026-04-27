@@ -29,6 +29,7 @@ import {
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { GestureHints } from '@/components/gesture-hints';
 import { RegenEditMode } from '@/components/studio/regen-controls';
+import { getOccasionLabel } from '@/components/studio/scene-presets';
 import { apiRequest } from '@/lib/queryClient';
 import type { CardAttemptDTO } from '@/hooks/use-card-maker';
 import type { CardDraftState, CardSide } from '@shared/schema';
@@ -508,12 +509,13 @@ function TitleSROnly({ title }: { title: string }) {
 function deriveTitle(state: CardDraftState): string {
   const name = state.recipient?.name?.trim();
   const occasion = state.recipient?.occasion?.trim();
+  // Use getOccasionLabel so 'thankyou' \u2192 'Thank you' etc. — raw key
+  // was leaking through as "Mum's thankyou card".
   const occasionLabel =
-    occasion && occasion !== 'other' ? occasion : '';
-  if (name && occasionLabel) return `${name}'s ${occasionLabel} card`;
+    occasion && occasion !== 'other' ? getOccasionLabel(occasion) : '';
+  if (name && occasionLabel) return `${name}'s ${occasionLabel.toLowerCase()} card`;
   if (name) return `Card for ${name}`;
-  if (occasionLabel)
-    return `${occasionLabel.charAt(0).toUpperCase()}${occasionLabel.slice(1)} card`;
+  if (occasionLabel) return `${occasionLabel} card`;
   return 'Your card';
 }
 

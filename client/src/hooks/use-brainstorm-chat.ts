@@ -16,6 +16,7 @@
 
 import { useCallback, useState } from 'react';
 import { apiRequest } from '@/lib/queryClient';
+import { getOccasionLabel } from '@/components/studio/scene-presets';
 
 export type Role = 'user' | 'assistant';
 
@@ -188,7 +189,11 @@ export function useBrainstormChat({
   const start = useCallback(async () => {
     if (hasStarted || isLoading) return;
     const nameDisplay = recipientName.trim() || 'your recipient';
-    const occasionDisplay = toTitleCase(occasion.trim()) || 'celebration';
+    // getOccasionLabel produces correct two-word forms ('Thank you',
+    // not 'Thankyou'; "Valentine's Day", not 'Valentines'). Was using
+    // a generic toTitleCase against the raw key — broken display copy.
+    const occasionDisplay =
+      getOccasionLabel(occasion.trim()) || 'celebration';
     const opener =
       `Greetings! ✨ I'm here to help you create an amazing scene for the front of ${nameDisplay}'s ${occasionDisplay} card.\n\n` +
       `For this first question, I'll need you to type your own creative input, but throughout the rest of our conversation you can either type your ideas or ask me for ideas anytime.\n\n` +
