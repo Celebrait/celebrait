@@ -32,10 +32,13 @@
   --slate-gray: 25 5% 45%;
 }
 
-/* Smooth page transitions for navigation */
-body {
-  transition: opacity 0.2s ease-in-out;
-}
+/* The body opacity transition that used to live here was removed
+   2026-04-27. No JS in the codebase actively flips body opacity, so
+   the rule was only ever triggered by ambient browser state changes
+   during route swaps — producing a faint, "clunky" 200ms fade on
+   every navigation. Removing it makes wouter route changes feel
+   instant. If a real cross-page fade is wanted later, scope it to
+   a specific element, not the body. */
 
 /* Infinite scrolling carousel animation */
 @keyframes scroll {
