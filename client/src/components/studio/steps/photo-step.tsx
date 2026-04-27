@@ -661,10 +661,22 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
           ? 'max-w-[320px]'
           : 'max-w-[384px]';
     const remainingSlots = MAX_PHOTOS.one_person - totalCount;
+    // Hint copy adapts to encourage multi-angle uploads — likeness is
+    // significantly better with 2-3 reference angles vs 1, but we
+    // don't gate (forcing a minimum bounces users with one good photo
+    // of someone they can't easily get more of). Soft nudge only.
+    // After 1 photo: explain the benefit. After 2: still room for one
+    // more. After 3: confirm they've hit the sweet spot.
     const hintCopy =
-      mode !== 'one_person' || remainingSlots <= 0
+      mode !== 'one_person'
         ? null
-        : `Room for ${remainingSlots} more if you've got ${remainingSlots === 1 ? 'one' : 'them'}.`;
+        : totalCount === 0
+          ? null // empty state has its own copy elsewhere
+          : totalCount === 1
+            ? "Two or three angles help the AI catch what makes them them. One photo's fine — but more = better likeness."
+            : remainingSlots > 0
+              ? `One more angle if you've got it — that's the sweet spot.`
+              : `That's the sweet spot — three angles is plenty.`;
 
     return (
       <div
@@ -699,11 +711,28 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
             <button
               type="button"
               onClick={triggerFilePicker}
-              className={`${tileSizeClass} rounded-xl border-2 border-dashed border-stone-300 bg-white flex items-center justify-center hover:border-brand hover:bg-brand-muted/40 transition-colors`}
-              aria-label="Add another photo"
+              className={`${tileSizeClass} rounded-xl border-2 border-dashed border-stone-300 bg-white flex flex-col items-center justify-center gap-1 hover:border-brand hover:bg-brand-muted/40 transition-colors ${
+                mode === 'one_person' && totalCount >= 1
+                  ? 'border-brand/40 bg-brand-muted/20'
+                  : ''
+              }`}
+              aria-label={
+                mode === 'one_person' && totalCount >= 1
+                  ? 'Add another angle'
+                  : 'Add another photo'
+              }
               data-testid="btn-add-another-photo"
             >
-              <Plus className="w-6 h-6 text-stone-400" strokeWidth={2} />
+              <Plus className="w-5 h-5 text-stone-400" strokeWidth={2} />
+              {/* When there's already a photo down, label the empty
+                  tile so the affordance is louder than just a Plus.
+                  In one_person mode only — multi_individual and
+                  group flows have their own pacing. */}
+              {mode === 'one_person' && totalCount >= 1 && (
+                <span className="text-[10px] font-medium text-brand-dark text-center px-1 leading-tight">
+                  Another angle
+                </span>
+              )}
             </button>
           )}
         </div>
