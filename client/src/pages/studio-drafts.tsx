@@ -22,9 +22,8 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import {
-  ArrowRight,
   Wand2,
   FileEdit,
   Sparkles,
@@ -126,7 +125,11 @@ function DraftListRow({ card }: { card: CardGridItem }) {
   const Icon = getOccasionIcon(card.occasion);
   const step = card.draftStep ?? 0;
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const editHref = `/studio/card/${card.id}/edit`;
+  const goEdit = () => setLocation(editHref);
 
   // Step interpretation:
   //   step 0..5 = Recipient → Inside text (in-progress)
@@ -163,17 +166,30 @@ function DraftListRow({ card }: { card: CardGridItem }) {
   });
 
   return (
-    <div className="group relative">
-      <Link
-        href={`/studio/card/${card.id}/edit`}
-        className={`block rounded-2xl border transition-all hover:shadow-sm ${
-          isReadyToGenerate
-            ? 'bg-brand-muted/40 border-brand/40 hover:border-brand'
-            : 'bg-white border-stone-200 hover:border-stone-300'
-        }`}
-        data-testid={`draft-list-row-${card.id}`}
-      >
-        <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
+    <div
+      // role + tabIndex + onKeyDown make the whole row keyboard-
+      // activatable. Using a div instead of <Link> because the trash
+      // button needs to live INSIDE the row (so the right-end cluster
+      // reads as one group); a <button> nested in an <a> is invalid
+      // HTML. preventDefault() on the trash click stops it from
+      // bubbling to the row's onClick.
+      role="link"
+      tabIndex={0}
+      onClick={goEdit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          goEdit();
+        }
+      }}
+      className={`group cursor-pointer rounded-2xl border transition-all hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
+        isReadyToGenerate
+          ? 'bg-brand-muted/40 border-brand/40 hover:border-brand'
+          : 'bg-white border-stone-200 hover:border-stone-300'
+      }`}
+      data-testid={`draft-list-row-${card.id}`}
+    >
+      <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
           {/* Icon — occasion-specific. Image thumbnail if the draft
               already has one (rare for half-finished drafts but possible
               for failed-then-restarted ones); icon otherwise.
@@ -224,13 +240,35 @@ function DraftListRow({ card }: { card: CardGridItem }) {
             ) : null}
           </div>
 
-          <ArrowRight
-            className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-colors ${
-              isReadyToGenerate
-                ? 'text-cta-hover'
-                : 'text-stone-400 group-hover:text-stone-600'
-            }`}
-          />
+          {/* Trash — inline at the right end. Always visible (delete is
+              a real affordance on a drafts page; hover-only hides the
+              action on mobile). preventDefault + stopPropagation stop
+              the row click from firing. The AlertDialog below catches
+              accidental clicks.
+
+              We dropped the Continue arrow that used to live here —
+              the row's hover state, cursor-pointer, and tinted
+              ready-to-generate background already signal "this is
+              clickable". An arrow alongside the trash was visually
+              cluttered (Kevin's feedback 2026-04-26). */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setConfirmOpen(true);
+            }}
+            disabled={deleteMutation.isPending}
+            className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full text-stone-400 hover:text-red-600 hover:bg-stone-50 transition-colors disabled:opacity-50 flex-shrink-0"
+            aria-label={`Delete ${title}`}
+            data-testid={`btn-delete-draft-${card.id}`}
+          >
+            {deleteMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+          </button>
         </div>
 
         {/* Mobile-only progress strip — under the title row, since the
@@ -249,31 +287,6 @@ function DraftListRow({ card }: { card: CardGridItem }) {
             </span>
           ) : null}
         </div>
-      </Link>
-
-      {/* Delete — overlays the Link (which is the click target) without
-          becoming part of it. preventDefault + stopPropagation in the
-          handler stop the row click from firing. Always-visible on
-          mobile (no hover), hover-revealed on desktop. Same pattern
-          as card-thumbnail.tsx. */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setConfirmOpen(true);
-        }}
-        disabled={deleteMutation.isPending}
-        className="absolute top-2 right-2 sm:top-3 sm:right-3 flex items-center justify-center w-7 h-7 rounded-full bg-white/95 backdrop-blur text-stone-500 hover:text-red-600 hover:bg-white border border-stone-200 shadow-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-50"
-        aria-label={`Delete ${title}`}
-        data-testid={`btn-delete-draft-${card.id}`}
-      >
-        {deleteMutation.isPending ? (
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-        ) : (
-          <Trash2 className="w-3.5 h-3.5" />
-        )}
-      </button>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
