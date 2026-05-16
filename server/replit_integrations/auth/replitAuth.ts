@@ -25,18 +25,36 @@ export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const isProd = process.env.NODE_ENV === "production";
 
-  // Use the PG-backed store in BOTH dev and prod. This means dev sessions
-  // survive server restarts (no more re-logging-in after every `npm run
-  // dev`) and there's one less axis of prod-vs-dev divergence.
-  const pgStore = connectPg(session);
-  const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    // The `sessions` table is in shared/models/auth.ts and is created via
-    // db:push. Don't let connect-pg-simple auto-create a competing copy.
-    createTableIfMissing: false,
-    ttl: sessionTtl,
-    tableName: "sessions",
-  });
+  // Session store strategy:
+  //   • PROD → PG-backed (sessions survive deploys, multi-instance ready)
+  //   • DEV  → in-memory (express-session default)
+  //
+  // The PG store costs a Neon round-trip on every authenticated request
+  // (200–400ms over the serverless WebSocket). In prod that's the price
+  // of a real auth system; in dev it was adding 5–10s to every Studio
+  // page load. The previous "same in both envs" comment listed
+  // "sessions survive restarts" as the benefit — but `tsx watch` only
+  // restarts on server-file saves, and the OTP bypass code in
+  // ./routes.ts makes re-login a 2-second paste. Not worth the tax.
+  //
+  // Trade-off accepted: editing server code in dev → log back in once.
+  // We get instant API responses everywhere else in return.
+  let sessionStore: session.Store | undefined;
+  if (isProd) {
+    const pgStore = connectPg(session);
+    sessionStore = new pgStore({
+      conString: process.env.DATABASE_URL,
+      // The `sessions` table is in shared/models/auth.ts and is created via
+      // db:push. Don't let connect-pg-simple auto-create a competing copy.
+      createTableIfMissing: false,
+      ttl: sessionTtl,
+      tableName: "sessions",
+    });
+  }
+  // dev: leave `store` undefined → express-session uses MemoryStore.
+  // It logs a warning on boot ("MemoryStore is not designed for a
+  // production environment") — that's the intended signal in dev and
+  // would be a red flag if it ever shows up in prod logs.
 
   return session({
     secret: process.env.SESSION_SECRET || "celebrait-dev-session-secret",

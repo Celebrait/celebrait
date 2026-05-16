@@ -36,7 +36,7 @@
 // fired, etc.) the migration is mechanical.
 
 import type { Express, Request, Response } from 'express';
-import { and, desc, eq, gte, inArray, isNull } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { cards } from '@shared/schema';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
@@ -85,10 +85,24 @@ export function registerStudioNotificationRoutes(app: Express) {
         // Only return cards completed within the TTL window — see the
         // UNREAD_TTL_HOURS comment for why.
         const cutoff = new Date(Date.now() - UNREAD_TTL_HOURS * 60 * 60 * 1000);
+
+        // CRITICAL: do NOT select cards.conversationData here. That JSONB
+        // column historically holds multi-MB base64 photo blobs on legacy
+        // rows (same trap the dashboard `CardGridItem` projection calls
+        // out in shared/schema.ts:145). Pulling it over the Neon
+        // WebSocket every 30s poll was the root cause of 3-second
+        // notification calls. Extract just the two scalar strings we
+        // actually need with Postgres JSON path operators so the wire
+        // payload stays tiny (~200 bytes/row instead of MBs).
+        //
+        // `->'recipient'->>'name'` returns NULL if `recipient` is
+        // missing or if `name` isn't a string — same graceful fallback
+        // the previous JS guards gave us.
         const rows = await db
           .select({
             cardId: cards.id,
-            conversationData: cards.conversationData,
+            recipientName: sql<string | null>`${cards.conversationData}->'recipient'->>'name'`,
+            occasion: sql<string | null>`${cards.conversationData}->'recipient'->>'occasion'`,
             frontImagePath: cards.frontImagePath,
             frontImageUrl: cards.frontImageUrl,
             createdAt: cards.createdAt,
@@ -105,30 +119,18 @@ export function registerStudioNotificationRoutes(app: Express) {
           .orderBy(desc(cards.createdAt))
           .limit(UNREAD_LIMIT);
 
-        // Surface just enough info for a useful toast: who's it for
-        // (recipient name from conversation state), front image URL
-        // for an optional thumbnail, and the cardId for the click-
-        // through link. Falls back gracefully when the conversation
-        // state is missing or malformed (legacy rows).
-        const unread = rows.map((r) => {
-          const conv = (r.conversationData as any) ?? null;
-          const recipientName: string | null =
-            (conv && typeof conv === 'object' && conv.recipient?.name?.trim()) ||
-            null;
-          const occasion: string | null =
-            (conv && typeof conv === 'object' && conv.recipient?.occasion) ||
-            null;
-          const frontImageUrl = r.frontImagePath
+        // Normalise: trim whitespace on the name (Postgres doesn't trim
+        // for us) and prefer the disk-served /images/ path over any
+        // legacy base64 data: URL stashed in frontImageUrl.
+        const unread = rows.map((r) => ({
+          cardId: r.cardId,
+          recipientName: r.recipientName?.trim() || null,
+          occasion: r.occasion || null,
+          frontImageUrl: r.frontImagePath
             ? `/images/${r.frontImagePath}`
-            : r.frontImageUrl;
-          return {
-            cardId: r.cardId,
-            recipientName,
-            occasion,
-            frontImageUrl,
-            createdAt: r.createdAt,
-          };
-        });
+            : r.frontImageUrl,
+          createdAt: r.createdAt,
+        }));
 
         res.json({ unread });
       } catch (err) {
