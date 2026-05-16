@@ -15,9 +15,17 @@ interface GestureHintsProps {
   open: boolean;
   /** Delay (ms) before the hints fade in on mount. Defaults 900ms. */
   mountDelayMs?: number;
+  /** Hide the "Scroll to zoom" hint. Use on surfaces where the
+   *  Card3DViewer has `enableZoom={false}` (e.g. the marketing
+   *  hero) so the hint copy isn't a lie. Default false. */
+  hideZoomHint?: boolean;
 }
 
-export function GestureHints({ open, mountDelayMs = 900 }: GestureHintsProps) {
+export function GestureHints({
+  open,
+  mountDelayMs = 900,
+  hideZoomHint = false,
+}: GestureHintsProps) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -42,9 +50,11 @@ export function GestureHints({ open, mountDelayMs = 900 }: GestureHintsProps) {
             <Hint label="Drag to rotate">
               <DragGlyph />
             </Hint>
-            <Hint label="Scroll to zoom" hideOnMobile>
-              <ZoomGlyph />
-            </Hint>
+            {!hideZoomHint && (
+              <Hint label="Scroll to zoom" hideOnMobile>
+                <ZoomGlyph />
+              </Hint>
+            )}
           </div>
         </motion.div>
       )}

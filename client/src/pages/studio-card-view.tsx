@@ -14,10 +14,10 @@
 // Everything else renders the 3D viewer + recipient/occasion header
 // + Buy (if unpaid) / Share (if paid digital) / Close actions.
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Redirect, useLocation, useParams } from 'wouter';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Loader2, Share2, Package } from 'lucide-react';
+import { ArrowLeft, Loader2, Share2, Package, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -26,9 +26,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { motion } from 'framer-motion';
 import { Card3DViewer } from '@/components/card-3d-viewer';
+import { useTexture } from '@react-three/drei';
 import { GestureHints } from '@/components/gesture-hints';
-import type { CardDraftState } from '@shared/schema';
+import { RegenEditMode } from '@/components/studio/regen-controls';
+import { getOccasionLabel } from '@/components/studio/scene-presets';
+import { apiRequest } from '@/lib/queryClient';
+import { useMarkCardSeen } from '@/hooks/use-card-ready-notifications';
+import type { CardAttemptDTO } from '@/hooks/use-card-maker';
+import type { CardDraftState, CardSide } from '@shared/schema';
 
 type CardViewData = {
   id: number;
@@ -37,6 +44,9 @@ type CardViewData = {
   insideImageUrl: string | null;
   createdAt: string | null;
   state: CardDraftState;
+  /** Regen attempts (per side) — same shape as the maker. Always
+   *  present in responses from /api/studio/drafts/:id since 2026-04-25. */
+  attempts?: CardAttemptDTO[];
 };
 
 type OrderSummary = {
@@ -52,9 +62,27 @@ export default function StudioCardViewPage() {
   const params = useParams();
   const cardId = Number(params.id);
 
+  // Mark the "your card is ready" in-app notification seen the moment
+  // the sender lands here — this IS the reveal moment we were
+  // notifying about, so any toast for it should not re-fire. Safe to
+  // call when notifiedAt is already set (server filter makes it a
+  // no-op) and when there was never a notification queued (the cache
+  // update is also a no-op when the cardId isn't in the unread list).
+  const markCardSeen = useMarkCardSeen();
+  useEffect(() => {
+    if (Number.isFinite(cardId)) markCardSeen(cardId);
+  }, [cardId, markCardSeen]);
+
   const { data, isLoading, error } = useQuery<CardViewData>({
     queryKey: [`/api/studio/drafts/${cardId}`],
     enabled: Number.isFinite(cardId),
+    // Keep polling while any attempt is mid-flight so the versions
+    // strip + thumbnails update without a manual refresh.
+    refetchInterval: (q) => {
+      const d = q.state.data as CardViewData | undefined;
+      if (d?.attempts?.some((a) => a.status === 'generating')) return 2000;
+      return false;
+    },
   });
 
   // Orders list — we cross-reference to find a paid digital share link
@@ -100,8 +128,14 @@ function LoadedView({
   orders: OrderSummary[];
 }) {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const [buyOpen, setBuyOpen] = useState(false);
   const [open3D, setOpen3D] = useState(false);
+  // Edit mode flips the surface from "look at the card / buy" to a
+  // focused regen workbench. Same pattern as RevealView in the
+  // maker — both surfaces stay visually aligned. Only available to
+  // unpaid cards (paid cards hide the entry pill below).
+  const [editMode, setEditMode] = useState(false);
 
   const paidOrder = orders.find(
     (o) => o.cardId === card.id && o.paymentStatus === 'paid',
@@ -111,6 +145,172 @@ function LoadedView({
 
   const title = deriveTitle(card.state);
   const backHref = '/studio';
+
+  // ── Texture preload ──────────────────────────────────────────────
+  // Same speedup as the in-Studio reveal (review-step.tsx) — the
+  // moment the URLs are available, fire a browser <link rel=preload>
+  // and drei's useTexture.preload so the 3D viewer's textures decode
+  // in parallel with React mounting the viewer chunk. Without this
+  // the card visibly pops in ~500ms-1s after the page renders.
+  useEffect(() => {
+    const urls = [card.frontImageUrl, card.insideImageUrl].filter(
+      (u): u is string => !!u && u.length > 0,
+    );
+    if (urls.length === 0) return;
+
+    const links = urls.map((url) => {
+      const el = document.createElement('link');
+      el.rel = 'preload';
+      el.as = 'image';
+      el.href = url;
+      document.head.appendChild(el);
+      return el;
+    });
+
+    try {
+      useTexture.preload(urls);
+    } catch (err) {
+      console.warn('[studio-card-view] texture preload failed', err);
+    }
+
+    return () => {
+      for (const el of links) {
+        if (el.parentNode) el.parentNode.removeChild(el);
+      }
+    };
+  }, [card.frontImageUrl, card.insideImageUrl]);
+
+  // ── Regen wiring ────────────────────────────────────────────────
+  // Same UX as the live maker reveal: per-side controls below the
+  // Buy button. Only shown for unpaid cards — once a card has been
+  // paid for, the gift's already on its way and regen would be
+  // pointless (and confusing). PATCH on success invalidates the
+  // draft query so the new attempt + selected pointer flow back.
+  const regenMutation = useMutation({
+    mutationFn: async (vars: { side: CardSide; tweak?: string }) => {
+      const r = await apiRequest('POST', `/api/studio/drafts/${card.id}/regenerate`, {
+        side: vars.side,
+        tweak: vars.tweak,
+      });
+      return r.json();
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: [`/api/studio/drafts/${card.id}`],
+      });
+      // Card grid (Drafts/Ready/Sent) shows thumbnails — invalidate
+      // so a new selected attempt's image lands on the dashboard too.
+      queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
+    },
+  });
+
+  const selectMutation = useMutation({
+    mutationFn: async (vars: { attemptId: number }) => {
+      await apiRequest('PATCH', `/api/studio/cards/${card.id}/select-attempt`, {
+        attemptId: vars.attemptId,
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: [`/api/studio/drafts/${card.id}`],
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
+    },
+  });
+
+  // Patch the draft's inputs while in regen edit mode. RegenEditMode
+  // exposes pill-style swap controls (photo / style) that need to
+  // persist into the draft before the user fires another regen — the
+  // server reads conversationData when building the regen prompt.
+  //
+  // The PATCH endpoint expects the FULL CardDraftState (it's small,
+  // and full-overwrite avoids merge-semantic edge cases). We merge
+  // the caller's partial patch with the current card state and send.
+  const updateInputsMutation = useMutation({
+    mutationFn: async (patch: Partial<CardDraftState>) => {
+      const nextState: CardDraftState = {
+        ...card.state,
+        ...patch,
+      };
+      await apiRequest('PATCH', `/api/studio/drafts/${card.id}`, {
+        state: nextState,
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: [`/api/studio/drafts/${card.id}`],
+      });
+    },
+  });
+  const handleUpdateInputs = async (patch: Partial<CardDraftState>) => {
+    await updateInputsMutation.mutateAsync(patch);
+  };
+
+  // `isRegenerating` is the UNION of two signals:
+  //
+  //   (a) regenMutation.isPending — true from click → API response
+  //       (~100ms after the route change). Disables the button
+  //       INSTANTLY on click, before the first poll completes.
+  //
+  //   (b) any attempt in polled data with status='generating' — true
+  //       for the long gen window (3-5min on gpt-image-2 high quality).
+  //       Self-clearing when the attempt completes/fails.
+  //
+  // Without (a), there's a ~2-second window between click and the
+  // first poll seeing the new attempt where the button stays
+  // clickable. Kevin caught this 2026-05-15: 6 rapid clicks fired
+  // 6 separate regens. Server-side guard added too as defence-in-depth.
+  //
+  // Without (b), the spinner would clear the instant the API
+  // returned — long before the gen actually finished. (The original
+  // bug we set out to fix.)
+  const generatingAttempt = card.attempts?.find(
+    (a) => a.status === 'generating',
+  );
+  const polledRegenSide: CardSide | null = generatingAttempt?.side ?? null;
+  const pendingRegenSide: CardSide | null = regenMutation.isPending
+    ? (regenMutation.variables?.side ?? null)
+    : null;
+  const isRegenerating: CardSide | null = pendingRegenSide ?? polledRegenSide;
+
+  const handleRegenerate = async (side: CardSide, tweak?: string) => {
+    await regenMutation.mutateAsync({ side, tweak });
+  };
+  const handleSelectAttempt = async (attemptId: number) => {
+    await selectMutation.mutateAsync({ attemptId });
+  };
+
+  const insideMode = card.state.inside?.mode ?? null;
+  const hasInside = insideMode === 'write' || insideMode === 'blank';
+
+  // Edit mode takes the entire surface. BuyDialog stays mounted so
+  // a regen → exit → buy flow doesn't lose its state. Shown only
+  // for unpaid cards because the entry pill only renders below for
+  // unpaid (paid cards have nothing to regen for — gift's en route).
+  if (editMode && !hasPaid) {
+    return (
+      <>
+        <RegenEditMode
+          state={card.state}
+          frontUrl={card.frontImageUrl}
+          insideUrl={card.insideImageUrl}
+          attempts={card.attempts ?? []}
+          isRegenerating={isRegenerating}
+          hasInside={hasInside}
+          onRegenerate={handleRegenerate}
+          onSelectAttempt={handleSelectAttempt}
+          onUpdateInputs={handleUpdateInputs}
+          onExit={() => setEditMode(false)}
+        />
+        <BuyDialog
+          open={buyOpen}
+          onOpenChange={setBuyOpen}
+          cardId={card.id}
+          insideMode={card.state.inside?.mode ?? null}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto" data-testid="card-view">
@@ -185,9 +385,40 @@ function LoadedView({
             Buy this card
           </Button>
         )}
+
+        {/* Gesture hints first — keep them close to the Buy CTA above
+            (the hints are about the 3D card, so spatial proximity to
+            the card+CTA cluster reads better than burying them under
+            the regen panel). */}
         <div className="mt-2">
           <GestureHints open={open3D} />
         </div>
+
+        {/* Regen entry — small pill that flips the whole surface into
+            edit mode. Only for unpaid cards: once paid, the gift's
+            on its way and further regens are pointless chrome.
+            Subordinate to Buy by design — quiet safety net, not a
+            parallel CTA. Fades out in lockstep with the gesture
+            hints when the card opens (Kevin 2026-04-26: chrome
+            shouldn't compete with the moment of opening the card). */}
+        {!hasPaid && (
+          <motion.div
+            animate={{ opacity: open3D ? 0 : 1 }}
+            transition={{ duration: 0.5 }}
+            style={{ pointerEvents: open3D ? 'none' : 'auto' }}
+            className="mt-2"
+          >
+            <button
+              type="button"
+              onClick={() => setEditMode(true)}
+              className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white/60 hover:bg-white hover:border-brand/40 px-4 py-2 text-sm italic text-stone-600 hover:text-brand-dark transition-all"
+              data-testid="btn-regen-open"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-stone-400" />
+              Not 100% happy? Make a change.
+            </button>
+          </motion.div>
+        )}
       </div>
 
       <BuyDialog
@@ -385,12 +616,13 @@ function TitleSROnly({ title }: { title: string }) {
 function deriveTitle(state: CardDraftState): string {
   const name = state.recipient?.name?.trim();
   const occasion = state.recipient?.occasion?.trim();
+  // Use getOccasionLabel so 'thankyou' \u2192 'Thank you' etc. — raw key
+  // was leaking through as "Mum's thankyou card".
   const occasionLabel =
-    occasion && occasion !== 'other' ? occasion : '';
-  if (name && occasionLabel) return `${name}'s ${occasionLabel} card`;
+    occasion && occasion !== 'other' ? getOccasionLabel(occasion) : '';
+  if (name && occasionLabel) return `${name}'s ${occasionLabel.toLowerCase()} card`;
   if (name) return `Card for ${name}`;
-  if (occasionLabel)
-    return `${occasionLabel.charAt(0).toUpperCase()}${occasionLabel.slice(1)} card`;
+  if (occasionLabel) return `${occasionLabel} card`;
   return 'Your card';
 }
 

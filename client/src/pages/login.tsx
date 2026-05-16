@@ -1,191 +1,216 @@
 // client/src/pages/login.tsx
 //
-// Unified login page. Used by both customers and admins — there is no
-// separate admin login flow.
+// Boxed split-pane sign-in. Auth + Landing sprint, Piece A1 (2026-05-01).
 //
-// Flow:
-//   1. User lands on /login?redirect=/some/path (redirect is optional)
-//   2. Enters email → POST /api/auth/otp/send → Brevo sends a 6-digit code
-//      (or, in dev with DEV_AUTH_ACCEPT_ANY_CODE=1, the server skips Brevo
-//      and accepts hardcoded codes 000000 / 123456)
-//   3. Enters code → POST /api/auth/otp/verify → session cookie set
-//   4. Redirected to the `redirect` query param, or to '/' if none
+// Structure (per the design spec):
 //
-// If the user was already logged in when they landed here, they are
-// immediately bounced to their redirect destination.
+//   ┌─────────────────────────────────────────────────────────┐
+//   │ ╔══════════════════════╤══════════════════════╗         │
+//   │ ║  [Logo]              │                      ║         │
+//   │ ║                      │   ┌──────────────┐   ║         │
+//   │ ║  Pick up where       │   │  Static card │   ║         │
+//   │ ║  you left off.       │   │   poster on  │   ║         │
+//   │ ║                      │   │  cream wash  │   ║         │
+//   │ ║  [Continue Google]   │   └──────────────┘   ║         │
+//   │ ║  ─── or ───          │                      ║         │
+//   │ ║  [Email]             │   "For the people    ║         │
+//   │ ║  [Send code (cta)]   │    who matter…"      ║         │
+//   │ ║                      │                      ║         │
+//   │ ║  Trust line          │                      ║         │
+//   │ ╚══════════════════════╧══════════════════════╝         │
+//   └─────────────────────────────────────────────────────────┘
+//   bg-surface canvas, centred container card.
+//
+// Mobile: hero pane hides; form pane fills the boxed card. The card
+// stays visible (rounded-2xl) — even on mobile, the boxed treatment is
+// the design language. Goes full-width with margin gutter.
+//
+// Login is an INFORMATION surface (per HERO_CARD.md), so the right
+// pane gets a STATIC card poster, not a Three.js viewer. Saves ~250kB
+// of JS, reads more dignified than an auto-rotating card on a sign-in
+// screen.
 
-import { useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'wouter';
-import { useAuth } from '@/hooks/use-auth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useEffect, useState } from 'react';
+import { AuthForm, authHeadingCopy, type AuthStep } from '@/components/auth/auth-form';
 import { toast } from '@/hooks/use-toast';
-import logoSrc from '../assets/Logo2.png';
+import logoSrc from '@/assets/Logo2.png';
+import fathersDayFront from '@/assets/fathers-day-front.png';
+
+// Maps the ?error=… code that the Google OAuth callback bounces with
+// onto a user-readable message. Keeps the failure path visible.
+const GOOGLE_ERROR_COPY: Record<string, { title: string; description: string }> = {
+  state_mismatch: {
+    title: 'Sign-in interrupted',
+    description: 'Your session expired before sign-in completed. Please try again.',
+  },
+  email_unverified: {
+    title: 'Email not verified',
+    description: 'Verify your email with Google first, then try again.',
+  },
+  no_email: {
+    title: "Couldn't read your email",
+    description: 'Google did not return an email address for this account.',
+  },
+  token_exchange: {
+    title: 'Sign-in failed',
+    description: 'Google rejected the sign-in. Please try again.',
+  },
+  userinfo: {
+    title: 'Sign-in failed',
+    description: "We couldn't fetch your Google profile. Please try again.",
+  },
+  callback: {
+    title: 'Sign-in failed',
+    description: 'Something went wrong on our end. Please try again.',
+  },
+  session: {
+    title: 'Sign-in failed',
+    description: "Your session couldn't be saved. Please try again.",
+  },
+  missing_code: {
+    title: 'Sign-in cancelled',
+    description: 'You cancelled before sign-in completed.',
+  },
+  access_denied: {
+    title: 'Sign-in cancelled',
+    description: 'You cancelled the Google permission prompt.',
+  },
+};
 
 export default function LoginPage() {
-  const [, setLocation] = useLocation();
-  const { user, isAuthenticated, isLoading, sendOtp, isSendingOtp, verifyOtp, isVerifyingOtp } = useAuth();
+  // Mirror the AuthForm's step so the headline above the form swaps
+  // copy in sync. The form owns the state machine; the page owns the
+  // typography. AuthForm fires onStepChange whenever it transitions.
+  const [step, setStep] = useState<AuthStep>('email');
+  const [email] = useState(''); // for "We sent a code to …" — not currently used; subline is generic until we hoist email up too. Keeping the slot for the future.
+  const { heading, subline } = authHeadingCopy(step, email);
 
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
-  const [step, setStep] = useState<'email' | 'code'>('email');
-  const [devBypassActive, setDevBypassActive] = useState(false);
-
-  const redirect = useMemo(() => {
+  // Surface Google OAuth callback errors as a toast on first paint.
+  // Strips the `?error=` from the URL so a refresh doesn't re-toast.
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const r = params.get('redirect');
-    if (!r) return '/';
-    // Only allow same-origin redirects; strip anything with a protocol.
-    if (r.startsWith('/') && !r.startsWith('//')) return r;
-    return '/';
+    const errorCode = params.get('error');
+    if (!errorCode) return;
+    const copy = GOOGLE_ERROR_COPY[errorCode] ?? {
+      title: 'Sign-in failed',
+      description: errorCode,
+    };
+    toast({ ...copy, variant: 'destructive' });
+    params.delete('error');
+    const newSearch = params.toString();
+    window.history.replaceState(
+      null,
+      '',
+      `${window.location.pathname}${newSearch ? `?${newSearch}` : ''}`,
+    );
   }, []);
 
-  // Already logged in → bounce to redirect target
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && user) {
-      setLocation(redirect);
-    }
-  }, [isLoading, isAuthenticated, user, redirect, setLocation]);
-
-  const handleSendCode = async () => {
-    const trimmed = email.trim().toLowerCase();
-    if (!trimmed || !trimmed.includes('@')) {
-      toast({ title: 'Enter a valid email', variant: 'destructive' });
-      return;
-    }
-    try {
-      const result = (await sendOtp(trimmed)) as any;
-      setDevBypassActive(!!result?.devBypass);
-      setStep('code');
-      toast({
-        title: 'Code sent',
-        description: result?.devBypass
-          ? 'Dev mode: use 000000 or 123456.'
-          : `Check your inbox at ${trimmed}.`,
-      });
-    } catch (err: any) {
-      toast({
-        title: 'Could not send code',
-        description: err?.message ?? 'Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleVerifyCode = async () => {
-    const trimmedCode = code.trim();
-    if (trimmedCode.length !== 6) {
-      toast({ title: 'Enter the 6-digit code', variant: 'destructive' });
-      return;
-    }
-    try {
-      await verifyOtp({ email: email.trim().toLowerCase(), code: trimmedCode });
-      toast({ title: 'Logged in' });
-      setLocation(redirect);
-    } catch (err: any) {
-      toast({
-        title: 'Invalid code',
-        description: err?.message ?? 'Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <img src={logoSrc} alt="Celebrait" className="h-16 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-stone-900">
-            {step === 'email' ? 'Sign in to Celebrait' : 'Check your email'}
-          </h1>
-          <p className="text-sm text-stone-600 mt-1">
-            {step === 'email'
-              ? "We'll email you a 6-digit code. No passwords, ever."
-              : `We sent a code to ${email}.`}
-          </p>
+    <div className="min-h-screen bg-surface flex items-center justify-center relative overflow-hidden">
+      {/* Whisper-quiet ambient blobs — coral top-left, amber bottom-
+          right. Brand warmth without competing with the boxed card. */}
+      <div
+        aria-hidden
+        className="absolute -top-40 -left-40 w-[520px] h-[520px] rounded-full blur-3xl opacity-25 pointer-events-none"
+        style={{ background: 'radial-gradient(closest-side, #ffe4ef, transparent 70%)' }}
+      />
+      <div
+        aria-hidden
+        className="absolute -bottom-40 -right-40 w-[520px] h-[520px] rounded-full blur-3xl opacity-25 pointer-events-none"
+        style={{ background: 'radial-gradient(closest-side, #fef3c7, transparent 70%)' }}
+      />
+
+      {/* The boxed container card — 50/50 split on desktop, form-only
+          on mobile. Big soft shadow, generous rounded corners. */}
+      <div
+        className="relative w-full max-w-[1040px] mx-4 my-8 md:mx-12 md:my-12 bg-surface-card rounded-2xl md:rounded-3xl border border-stone-200 overflow-hidden grid grid-cols-1 md:grid-cols-2"
+        style={{
+          boxShadow:
+            '0 30px 80px -30px rgba(15,23,42,0.18), 0 12px 24px -12px rgba(15,23,42,0.08)',
+          minHeight: '620px',
+        }}
+      >
+        {/* ── Form pane ───────────────────────────────────────────── */}
+        <div className="flex flex-col p-8 md:p-12 lg:p-14">
+          {/* Logo top-left */}
+          <img src={logoSrc} alt="Celebrait" className="h-8 self-start" />
+
+          {/* 64px gap → headline. Centred vertically within the
+              remaining height so the form sits comfortably regardless
+              of how tall the card ends up. */}
+          <div className="flex-1 flex flex-col justify-center mt-12 md:mt-14">
+            <div className="mb-8">
+              <h1 className="text-3xl md:text-4xl font-semibold text-ink tracking-tight leading-[1.1]">
+                {heading}
+              </h1>
+              <p className="text-sm text-ink-soft mt-3 max-w-[36ch]">{subline}</p>
+            </div>
+
+            <AuthForm onStepChange={setStep} />
+
+            <p className="text-[11px] text-stone-400 mt-6">
+              By continuing you agree to our{' '}
+              <a
+                href="/terms-of-service"
+                className="underline-offset-2 hover:underline hover:text-stone-600"
+              >
+                Terms
+              </a>{' '}
+              and{' '}
+              <a
+                href="/privacy-policy"
+                className="underline-offset-2 hover:underline hover:text-stone-600"
+              >
+                Privacy Policy
+              </a>
+              .
+            </p>
+          </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-6 space-y-4">
-          {step === 'email' ? (
-            <>
-              <div>
-                <Label htmlFor="email" className="text-xs">
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoFocus
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSendCode()}
-                  placeholder="you@example.com"
-                  className="mt-1"
-                  data-testid="input-login-email"
-                />
-              </div>
-              <Button
-                onClick={handleSendCode}
-                disabled={isSendingOtp}
-                className="w-full bg-green-600 hover:bg-green-700"
-                data-testid="btn-send-code"
-              >
-                {isSendingOtp ? 'Sending code…' : 'Send me a code'}
-              </Button>
-            </>
-          ) : (
-            <>
-              <div>
-                <Label htmlFor="code" className="text-xs">
-                  6-digit code
-                </Label>
-                <Input
-                  id="code"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  autoFocus
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                  onKeyDown={(e) => e.key === 'Enter' && handleVerifyCode()}
-                  placeholder="123456"
-                  className="mt-1 font-mono text-center text-lg tracking-widest"
-                  data-testid="input-login-code"
-                />
-                {devBypassActive && (
-                  <p className="text-[11px] text-amber-600 mt-1">
-                    Dev mode: enter <code className="font-mono">000000</code> or{' '}
-                    <code className="font-mono">123456</code>
-                  </p>
-                )}
-              </div>
-              <Button
-                onClick={handleVerifyCode}
-                disabled={isVerifyingOtp}
-                className="w-full bg-green-600 hover:bg-green-700"
-                data-testid="btn-verify-code"
-              >
-                {isVerifyingOtp ? 'Verifying…' : 'Sign in'}
-              </Button>
-              <button
-                onClick={() => {
-                  setStep('email');
-                  setCode('');
+        {/* ── Hero pane ───────────────────────────────────────────── */}
+        {/* Hidden on mobile per spec — the static card adds nothing
+            for a user who's already at /login on a phone. */}
+        <div
+          className="hidden md:flex relative items-center justify-center p-10 lg:p-14"
+          style={{
+            background:
+              'radial-gradient(900px 680px at 50% 40%, #fff8ec 0%, #fef7ed 50%, #fbeed5 100%)',
+          }}
+        >
+          {/* Card poster — framed, drop-shadowed, with a manufactured
+              contact shadow underneath so it feels grounded on the
+              cream surface. */}
+          <div className="relative flex flex-col items-center max-w-[440px] w-full">
+            <div className="relative w-[min(90%,360px)] aspect-square">
+              <img
+                src={fathersDayFront}
+                alt="A Celebrait greeting card"
+                className="absolute inset-0 w-full h-full object-cover rounded-2xl"
+                style={{
+                  boxShadow:
+                    '0 30px 60px -20px rgba(15,23,42,0.32), 0 12px 24px -12px rgba(15,23,42,0.16)',
                 }}
-                className="w-full text-xs text-stone-500 hover:text-gray-700"
-              >
-                ← Use a different email
-              </button>
-            </>
-          )}
-        </div>
+                // @ts-expect-error — fetchpriority is valid HTML, types lag
+                fetchpriority="high"
+              />
+              <div
+                aria-hidden
+                className="absolute left-1/2 -translate-x-1/2 -bottom-5 h-5 w-[78%] rounded-[50%] blur-2xl opacity-50"
+                style={{
+                  background:
+                    'radial-gradient(closest-side, rgba(15,23,42,0.45), transparent 70%)',
+                }}
+              />
+            </div>
 
-        <p className="text-center text-[11px] text-stone-400 mt-6">
-          By signing in you agree to our Terms of Service and Privacy Policy.
-        </p>
+            {/* Pull-quote — the only typographic moment on this side.
+                Italic body, ink-soft, kept narrow. */}
+            <p className="text-base md:text-lg text-ink-soft italic text-center mt-12 max-w-[28ch] leading-relaxed">
+              For the people who matter — in their hands by Friday.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

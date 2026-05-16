@@ -236,14 +236,19 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
       {/* Two helpers — escalating depth.
             Suggest scenes (left): one-shot modal — user types a quick
             brief, gets three tile suggestions to pick from.
-            Brainstorm (right): multi-turn drawer for a real chat. */}
-      <div className="flex flex-wrap gap-2">
+            Brainstorm (right): multi-turn drawer for a real chat.
+            Both buttons sized up + visually filled by default
+            (2026-04-27, Kevin: "make it look like the hover state") so
+            they read as real CTAs, not afterthoughts. The brainstorm
+            button is the headline action — bg-brand-dark by default
+            with a soft brand glow so it carries the eye. */}
+      <div className="flex flex-wrap gap-2.5">
         <Button
           type="button"
           onClick={openSuggestModal}
           disabled={!cardId}
-          variant="outline"
-          className="flex items-center gap-2 border-brand/40 bg-brand-muted/40 hover:bg-brand-muted text-brand-dark hover:text-brand-dark"
+          size="lg"
+          className="h-11 flex items-center gap-2 bg-brand-muted hover:bg-brand-muted/80 text-brand-dark border border-brand/40 shadow-sm hover:shadow"
           data-testid="btn-scene-suggest"
         >
           <Wand2 className="w-4 h-4" />
@@ -252,7 +257,8 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
         <Button
           type="button"
           onClick={() => setBrainstormOpen(true)}
-          className="flex items-center gap-2 bg-brand hover:bg-brand-dark text-brand-foreground shadow-sm hover:shadow-md"
+          size="lg"
+          className="h-11 flex items-center gap-2 bg-brand-dark hover:bg-brand text-brand-foreground shadow-md shadow-brand/20 hover:shadow-lg hover:shadow-brand/30 transition-shadow"
           data-testid="btn-scene-ai-help"
         >
           <Sparkles className="w-4 h-4" />

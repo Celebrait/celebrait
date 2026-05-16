@@ -1,8 +1,18 @@
 // server/providers/openai-image.ts
 //
-// OpenAI gpt-image-1.5 adapter behind the ImageProvider interface.
-// Extracted from the inline logic in server/routes/prompts.ts test-run
-// endpoint. Same behaviour, same API calls, just pluggable.
+// OpenAI image-generation adapter behind the ImageProvider interface.
+// Now variant-aware (2026-04-27): the same class drives both the
+// existing gpt-image-1.5 production path AND the new gpt-image-2
+// (announced 2026-04-21) for side-by-side A/B testing in the Prompt
+// Lab. API surface is identical between versions — same /v1/images/
+// generations + /v1/images/edits endpoints, same multipart pattern,
+// same low/medium/high quality tiers — only the `model` string and
+// the per-quality cost differ.
+//
+// PL-first: gpt-image-2 is registered in the provider registry and
+// exposed in the Prompt Lab. It is NOT wired into Studio production
+// until Kevin tests it in the lab and updates `prompt_active`.
+// See `project_prompt_lab_first.md` in memory.
 
 import FormData from 'form-data';
 import type {
@@ -14,16 +24,69 @@ import { ProviderError, classifyOpenAIError } from './errors';
 import { openaiSize } from './size';
 import { openai } from '../utils/shared';
 
-const COST_BY_QUALITY: Record<string, number> = {
-  low: 0.9,    // $0.009
-  medium: 3.4, // $0.034
-  high: 13.3,  // $0.133
-};
+export interface OpenAIVariantConfig {
+  id: string;
+  displayName: string;
+  model: string;
+  /** Cost per image in US cents at each quality tier. */
+  costByQuality: Record<'low' | 'medium' | 'high', number>;
+  /** Pre-formatted USD price string for the UI quality dropdown. */
+  qualityDisplay: Record<'low' | 'medium' | 'high', string>;
+}
+
+export const OPENAI_VARIANTS = {
+  /** gpt-image-1.5 — the legacy production model. Kept registered as
+   *  the `openai` ID for backwards compatibility with existing
+   *  prompt_active rows and the test-refine fallback. */
+  v1_5: {
+    id: 'openai',
+    displayName: 'OpenAI gpt-image-1.5',
+    model: 'gpt-image-1.5',
+    costByQuality: { low: 0.9, medium: 3.4, high: 13.3 },
+    qualityDisplay: {
+      low: '$0.009',
+      medium: '$0.034',
+      high: '$0.133',
+    },
+  },
+  /** gpt-image-2 — first OpenAI image model with native reasoning,
+   *  announced 2026-04-21. 2K resolution support, up to 8 batched
+   *  images per call (we use n=1), cleaner handling of complex
+   *  multi-instruction prompts. Snapshot pinned `gpt-image-2-2026-
+   *  04-21`; we use the rolling alias `gpt-image-2` so improvements
+   *  flow through automatically.
+   *
+   *  Pricing per image at 1024×1024 (per OpenAI announcement):
+   *    Low:    $0.006  (cheaper than v1.5 low)
+   *    Medium: $0.053
+   *    High:   $0.211  (~1.6× v1.5 high — premium tier) */
+  v2: {
+    id: 'openai-2',
+    displayName: 'OpenAI gpt-image-2',
+    model: 'gpt-image-2',
+    costByQuality: { low: 0.6, medium: 5.3, high: 21.1 },
+    qualityDisplay: {
+      low: '$0.006',
+      medium: '$0.053',
+      high: '$0.211',
+    },
+  },
+} satisfies Record<string, OpenAIVariantConfig>;
 
 export class OpenAIImageProvider implements ImageProvider {
-  id = 'openai';
-  displayName = 'OpenAI gpt-image-1.5';
-  model = 'gpt-image-1.5';
+  readonly id: string;
+  readonly displayName: string;
+  readonly model: string;
+  private readonly costByQuality: Record<'low' | 'medium' | 'high', number>;
+  private readonly qualityDisplay: Record<'low' | 'medium' | 'high', string>;
+
+  constructor(variant: OpenAIVariantConfig = OPENAI_VARIANTS.v1_5) {
+    this.id = variant.id;
+    this.displayName = variant.displayName;
+    this.model = variant.model;
+    this.costByQuality = variant.costByQuality;
+    this.qualityDisplay = variant.qualityDisplay;
+  }
 
   isAvailable(): boolean {
     return !!process.env.OPENAI_API_KEY;
@@ -31,9 +94,9 @@ export class OpenAIImageProvider implements ImageProvider {
 
   getQualityOptions() {
     return [
-      { value: 'low' as const, label: 'Low', costDisplay: '$0.009' },
-      { value: 'medium' as const, label: 'Medium', costDisplay: '$0.034' },
-      { value: 'high' as const, label: 'High', costDisplay: '$0.133' },
+      { value: 'low' as const, label: 'Low', costDisplay: this.qualityDisplay.low },
+      { value: 'medium' as const, label: 'Medium', costDisplay: this.qualityDisplay.medium },
+      { value: 'high' as const, label: 'High', costDisplay: this.qualityDisplay.high },
     ];
   }
 
@@ -181,7 +244,7 @@ export class OpenAIImageProvider implements ImageProvider {
     }
 
     const durationMs = Date.now() - startTime;
-    const costCents = COST_BY_QUALITY[q] ?? COST_BY_QUALITY.low;
+    const costCents = this.costByQuality[q] ?? this.costByQuality.low;
     return {
       imageUrl,
       durationMs,
@@ -190,6 +253,35 @@ export class OpenAIImageProvider implements ImageProvider {
       provider: this.id,
       model: this.model,
     };
+  }
+
+  /**
+   * Refine an existing image with a text instruction. OpenAI doesn't
+   * have a separate "edit-with-instruction" API like Gemini's
+   * generateContent — but /v1/images/edits accepts an image + prompt
+   * and produces a modified version, which is functionally equivalent.
+   *
+   * Implementation: delegate to generate() with the prior image as the
+   * primary reference. The existing /v1/images/edits plumbing handles
+   * the rest (multipart, multi-image array, error classification).
+   *
+   * NOTE: result quality vs Gemini is meaningfully different. Gemini's
+   * refine preserves composition and character likeness more reliably;
+   * OpenAI tends to re-roll more of the scene. Use as a fallback when
+   * Gemini is overloaded, not as an equal alternative.
+   */
+  async refine(
+    imageBase64: string,
+    instruction: string,
+    referencePhotos?: string[],
+  ): Promise<ImageGenerationResult> {
+    return this.generate({
+      prompt: instruction,
+      referenceImageBase64: imageBase64,
+      additionalReferenceImages: referencePhotos,
+      quality: 'high',
+      size: '1024x1024',
+    });
   }
 
   async analyzeReference(images: string[]): Promise<string | null> {

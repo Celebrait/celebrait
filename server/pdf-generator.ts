@@ -60,10 +60,13 @@ async function generateSingleCardPDF(
   format: string, 
   dpi: number
 ): Promise<string> {
-  // Prefer print-resolution file (3000×3000 Lanczos upscale) when available,
-  // otherwise fall back to unwatermarked file
+  // Prefer print-resolution file (3000×3000 Lanczos upscale) when
+  // available, otherwise fall back to the canonical display image.
+  // (Pre-2026-05-12 there was also a `_unwatermarked` fallback —
+  // dropped along with the legacy watermark pipeline, both files
+  // contained identical bytes.)
   const printImagePath = path.join(IMAGES_DIR, `card_${cardId}_${side}_print.png`);
-  const unwatermarkedImagePath = path.join(IMAGES_DIR, `card_${cardId}_${side}_unwatermarked.png`);
+  const canonicalImagePath = path.join(IMAGES_DIR, `card_${cardId}_${side}.png`);
 
   let imagePath: string;
   try {
@@ -71,7 +74,7 @@ async function generateSingleCardPDF(
     imagePath = printImagePath;
     console.log(`[PDF] Using print-resolution image for card ${cardId} ${side}`);
   } catch {
-    imagePath = unwatermarkedImagePath;
+    imagePath = canonicalImagePath;
   }
 
   // Check if chosen image exists

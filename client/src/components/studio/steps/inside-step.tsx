@@ -27,15 +27,20 @@
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { FileText, PenLine, Check, User, AlignLeft } from 'lucide-react';
+import { FileText, PenLine, Check, User, AlignLeft, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { InsideTextHelperDrawer } from '@/components/studio/inside-text-helper-drawer';
 import type { CardDraftState } from '@shared/schema';
 
 const MESSAGE_AUTOSAVE_MS = 1000;
 
 interface InsideStepProps {
+  /** Card ID — needed by the "Help me write this" drawer to fetch
+   *  context-grounded suggestions from /api/studio/inside-text/suggest. */
+  cardId: number;
   state: CardDraftState;
   onChange: (patch: Partial<CardDraftState>) => void;
   /** Hook-provided debounced save. Used only by the message textarea. */
@@ -45,7 +50,7 @@ interface InsideStepProps {
   flushSave: () => Promise<void>;
 }
 
-export function InsideStep({ state, onChange, scheduleSave, flushSave }: InsideStepProps) {
+export function InsideStep({ cardId, state, onChange, scheduleSave, flushSave }: InsideStepProps) {
   const mode = state.inside?.mode;
   // Write is the implicit default (~everyone types a message). Undefined
   // mode is treated as Write for display so the happy path is one click
@@ -82,6 +87,7 @@ export function InsideStep({ state, onChange, scheduleSave, flushSave }: InsideS
       ) : (
         <>
           <WriteFields
+            cardId={cardId}
             state={state}
             onChange={onChange}
             scheduleSave={scheduleSave}
@@ -163,11 +169,13 @@ function BlankPanel({ onUndo }: { onUndo: () => void }) {
 
 // ── Write-mode fields (default view) ─────────────────────────────────
 function WriteFields({
+  cardId,
   state,
   onChange,
   scheduleSave,
   flushSave,
 }: {
+  cardId: number;
   state: CardDraftState;
   onChange: (patch: Partial<CardDraftState>) => void;
   scheduleSave: (delayMs: number) => void;
@@ -190,6 +198,10 @@ function WriteFields({
   const [salutation, setSalutation] = useState(write.salutation ?? '');
   const [message, setMessage] = useState(write.message ?? '');
   const [signoff, setSignoff] = useState(write.signoff ?? '');
+
+  // "Help me write this" drawer — context-grounded message suggestions.
+  // Opens via the small CTA under the Message field.
+  const [helperOpen, setHelperOpen] = useState(false);
 
   // Keep the latest values in a ref so the debounced save can read them
   // without re-subscribing to state. (stateRef-style fresh-closure trick.)
@@ -270,6 +282,25 @@ function WriteFields({
           className="bg-white leading-relaxed resize-none border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
           data-testid="input-inside-message"
         />
+        {/* "Help me write this" — opens a drawer with three LLM
+            suggestions grounded in the card's full context (recipient,
+            occasion, scene, photo summaries, style). Sized as a quiet
+            secondary action — the message field is the hero, this is
+            the safety net for writer's block. */}
+        <div className="mt-2.5 flex items-center justify-between text-xs">
+          <button
+            type="button"
+            onClick={() => setHelperOpen(true)}
+            className="inline-flex items-center gap-1.5 text-brand hover:text-brand-dark transition-colors font-medium"
+            data-testid="btn-inside-helper-open"
+          >
+            <Sparkles className="w-3.5 h-3.5" strokeWidth={2} />
+            Help me write this
+          </button>
+          <span className="text-stone-400">
+            We'll use your scene + occasion to ground the suggestions.
+          </span>
+        </div>
       </FieldCard>
 
       <FieldCard icon={PenLine} label="Sign-off" htmlFor="inside-signoff" optional>
@@ -287,6 +318,25 @@ function WriteFields({
           data-testid="input-inside-signoff"
         />
       </FieldCard>
+
+      {/* Help-me-write drawer. Stays mounted at the WriteFields level so
+          its internal state (loaded suggestions, draft buffer, tone
+          narrowing) persists across opens within one editing session.
+          Picking a suggestion routes through the same onMessageChange
+          path as a keystroke — autosaves the same way. */}
+      <InsideTextHelperDrawer
+        open={helperOpen}
+        onOpenChange={setHelperOpen}
+        cardId={cardId}
+        currentText={message}
+        onAccept={(text) => {
+          onMessageChange(text);
+          // Also flush immediately — the user just made an explicit
+          // commit by picking the suggestion; no need to wait the
+          // debounce timer out.
+          void flushSave();
+        }}
+      />
     </div>
   );
 }

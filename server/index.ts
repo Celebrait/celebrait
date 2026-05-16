@@ -94,7 +94,12 @@ app.use((req, res, next) => {
   process.on("SIGTERM", () => shutdown("SIGTERM"));
   process.on("SIGINT", () => shutdown("SIGINT"));
 
-  server.listen(port, "0.0.0.0", () => {
-    log(`serving on port ${port}`);
+  // Bind host. Defaults to "0.0.0.0" (IPv4 all-interfaces) which is what
+  // Replit / Render / most deploy targets expect. Override locally with
+  // HOST=:: for dual-stack (IPv4 + IPv6) so http://localhost works on
+  // macOS systems that resolve `localhost` to ::1 first.
+  const host = process.env.HOST ?? "0.0.0.0";
+  server.listen(port, host, () => {
+    log(`serving on ${host}:${port}`);
   });
 })();

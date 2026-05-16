@@ -16,7 +16,7 @@ export default function Footer() {
                 className="h-14 object-contain"
               />
             </div>
-            <p className="text-slate-gray text-sm">Creating magical moments through AI-powered greeting cards, one celebration at a time.</p>
+            <p className="text-slate-gray text-sm">Personalised greeting cards for the moments that matter, one celebration at a time.</p>
           </div>
           
           <div>
@@ -44,10 +44,6 @@ export default function Footer() {
               <span className="text-slate-gray">•</span>
               <Link href="/terms-of-service" className="text-slate-gray hover:text-ethereal-purple transition-colors">
                 Terms of Service
-              </Link>
-              <span className="text-slate-gray">•</span>
-              <Link href="/test-dashboard" className="text-slate-gray hover:text-ethereal-purple transition-colors">
-                Test Dashboard
               </Link>
             </div>
           </div>

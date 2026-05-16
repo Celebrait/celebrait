@@ -32,10 +32,13 @@
   --slate-gray: 25 5% 45%;
 }
 
-/* Smooth page transitions for navigation */
-body {
-  transition: opacity 0.2s ease-in-out;
-}
+/* The body opacity transition that used to live here was removed
+   2026-04-27. No JS in the codebase actively flips body opacity, so
+   the rule was only ever triggered by ambient browser state changes
+   during route swaps — producing a faint, "clunky" 200ms fade on
+   every navigation. Removing it makes wouter route changes feel
+   instant. If a real cross-page fade is wanted later, scope it to
+   a specific element, not the body. */
 
 /* Infinite scrolling carousel animation */
 @keyframes scroll {
@@ -49,6 +52,23 @@ body {
 
 .animate-scroll {
   animation: scroll 20s linear infinite;
+}
+
+/* Diagonal shimmer sweep — used by the generation-wait card silhouette
+   so users have an unmistakable visual that "the card is being made"
+   while the (slower) celebration quotes cycle below. Sweeps a soft
+   bright band across a darker base every ~2.4s. */
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-150%);
+  }
+  100% {
+    transform: translateX(150%);
+  }
+}
+
+.animate-shimmer-sweep {
+  animation: shimmer-sweep 2.4s ease-in-out infinite;
 }
 
 .dark {

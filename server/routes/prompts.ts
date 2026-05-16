@@ -16,11 +16,16 @@ import { db } from '../db';
 import {
   promptTemplates,
   promptActive,
+  regenSettings,
+  REGEN_SIDES,
   PROMPT_SLOTS,
   PROMPT_VARIANTS,
   users,
   type PromptSlot,
   type PromptVariant,
+  type RegenSide,
+  type PromptProvider,
+  type PromptQuality,
 } from '@shared/schema';
 import { invalidatePromptCache, renderTemplate } from '../prompts/resolver';
 import {
@@ -33,6 +38,13 @@ import { getProvider, listProviders } from '../providers/registry';
 import { generateWithRetry } from '../providers/retry';
 import { isProviderError } from '../providers/errors';
 import { aspectLabel, isKnownSize } from '../providers/size';
+import { logGeneration } from '../prompts/generation-log';
+import {
+  buildRefineInstruction,
+  REFINE_SLOT,
+  VALID_REFINE_SIDES,
+  type RefineSide,
+} from '../prompts/refine-scaffolds';
 
 /**
  * Reads the caller's OTP session and checks the `users.is_admin` DB flag.
@@ -326,13 +338,21 @@ export function registerPromptRoutes(app: Express): void {
       const vt: string = normalizedVariant ?? '';
 
       // Validate the optional production-config fields.
+      // Provider whitelist is sourced from the registry so adding a
+      // new variant in registry.ts (e.g. `openai-2` 2026-04-21,
+      // `gemini-flash-2-5`) doesn't require a separate edit here.
+      // Bug Kevin caught 2026-04-30: `openai-2` was registered but the
+      // hardcoded whitelist didn't include it → "Invalid provider"
+      // when activating in the Prompt Lab production area.
+      const registeredIds = new Set(listProviders().map((p) => p.id));
       const providerValid =
         provider === undefined ||
         provider === null ||
-        (typeof provider === 'string' &&
-          ['openai', 'gemini', 'gemini-flash', 'gemini-flash-2-5', 'flux'].includes(provider));
+        (typeof provider === 'string' && registeredIds.has(provider));
       if (!providerValid) {
-        return res.status(400).json({ message: 'Invalid provider' });
+        return res.status(400).json({
+          message: `Invalid provider "${provider}". Available: ${Array.from(registeredIds).join(', ')}`,
+        });
       }
       const qualityValid =
         quality === undefined ||
@@ -507,6 +527,98 @@ export function registerPromptRoutes(app: Express): void {
     try {
       res.json({ providers: listProviders() });
     } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // GET /api/admin/prompts/regen-settings
+  // Returns all rows from regen_settings (typically 0–3 rows: global,
+  // front, inside). Empty list = no DB overrides; production falls back
+  // to env var → hardcoded default.
+  app.get('/api/admin/prompts/regen-settings', async (req, res) => {
+    if (!(await requireAdmin(req, res))) return;
+    try {
+      const rows = await db.select().from(regenSettings);
+      res.json({ rows });
+    } catch (err: any) {
+      console.error('[ADMIN_PROMPTS] regen-settings GET error:', err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // PUT /api/admin/prompts/regen-settings/:side
+  // Upserts a regen settings row. side ∈ {global, front, inside}.
+  // Body: { provider: string, quality: 'low'|'medium'|'high' }
+  // Pass an empty body to DELETE the row (revert to env/default fallback).
+  app.put('/api/admin/prompts/regen-settings/:side', async (req, res) => {
+    if (!(await requireAdmin(req, res))) return;
+    const sideRaw = req.params.side;
+    if (!REGEN_SIDES.includes(sideRaw as RegenSide)) {
+      return res
+        .status(400)
+        .json({ message: `Invalid side. Must be one of: ${REGEN_SIDES.join(', ')}` });
+    }
+    const side = sideRaw as RegenSide;
+
+    const { provider: rawProvider, quality: rawQuality } = req.body ?? {};
+
+    // Empty body or null provider → DELETE the row.
+    if (!rawProvider || !rawQuality) {
+      try {
+        await db.delete(regenSettings).where(eq(regenSettings.side, side));
+        return res.json({ deleted: true, side });
+      } catch (err: any) {
+        console.error('[ADMIN_PROMPTS] regen-settings DELETE error:', err);
+        return res.status(500).json({ message: err.message });
+      }
+    }
+
+    // Validate provider exists in registry.
+    try {
+      getProvider(rawProvider);
+    } catch {
+      return res.status(400).json({
+        message: `Unknown provider "${rawProvider}". See server/providers/registry.ts.`,
+      });
+    }
+
+    if (!['low', 'medium', 'high'].includes(rawQuality)) {
+      return res
+        .status(400)
+        .json({ message: `Invalid quality. Must be 'low' | 'medium' | 'high'.` });
+    }
+
+    try {
+      const session = (req as any).session;
+      const updatedBy = session?.userEmail ?? null;
+
+      // Upsert via INSERT ... ON CONFLICT (drizzle-orm syntax).
+      await db
+        .insert(regenSettings)
+        .values({
+          side,
+          provider: rawProvider as PromptProvider,
+          quality: rawQuality as PromptQuality,
+          updatedBy,
+        })
+        .onConflictDoUpdate({
+          target: regenSettings.side,
+          set: {
+            provider: rawProvider as PromptProvider,
+            quality: rawQuality as PromptQuality,
+            updatedAt: new Date(),
+            updatedBy,
+          },
+        });
+
+      const [row] = await db
+        .select()
+        .from(regenSettings)
+        .where(eq(regenSettings.side, side))
+        .limit(1);
+      res.json({ row });
+    } catch (err: any) {
+      console.error('[ADMIN_PROMPTS] regen-settings PUT error:', err);
       res.status(500).json({ message: err.message });
     }
   });
@@ -691,7 +803,9 @@ export function registerPromptRoutes(app: Express): void {
         `[PROMPT_LAB_TEST] RENDERED_PROMPT:\n${renderedPrompt}\n[END_PROMPT]`,
       );
 
-      // Delegate to the provider with automatic retry on safety errors.
+      // Delegate to the provider with automatic retry on transient errors
+      // (server). Safety errors are NOT retried — deterministic; would just
+      // burn attempts. See server/providers/retry.ts for the policy.
       const result = await generateWithRetry(
         provider,
         {
@@ -750,19 +864,33 @@ export function registerPromptRoutes(app: Express): void {
   });
 
   // POST /api/admin/prompts/test-refine
-  // Takes an existing generated image and a modification instruction.
-  // Passes both back to Gemini which modifies the image in-place.
-  // OpenAI cannot do this — Gemini only.
+  // Takes an existing generated image and a modification instruction;
+  // returns the edited image. Mirrors what Studio's `regenerateStudio
+  // CardSide` does for tweak'd regens — same provider.refine() call,
+  // same instruction wrapper (via buildRefineInstruction), same
+  // generation_log row. So the lab and production can't drift.
   //
   // Body:
   //   {
-  //     imageBase64: string,     // the existing generated image (data URL)
-  //     instruction: string,     // what to change: "make the shirt blue"
+  //     imageBase64: string,        // the existing generated image (data URL)
+  //     instruction: string,        // user tweak: "make the shirt blue"
+  //     side?: 'front' | 'inside',  // which scaffold to apply (default 'front')
+  //     useScaffold?: boolean,      // false = pass instruction RAW (debug);
+  //                                 // default true = wrap with side scaffold
+  //     referencePhotos?: string[], // optional likeness/style anchors
   //   }
   app.post('/api/admin/prompts/test-refine', async (req, res) => {
     if (!(await requireAdmin(req, res))) return;
+    const startTime = Date.now();
     try {
-      const { imageBase64, instruction, referencePhotos } = req.body ?? {};
+      const {
+        imageBase64,
+        instruction,
+        side: rawSide,
+        useScaffold: rawUseScaffold,
+        referencePhotos,
+        provider: rawProvider,
+      } = req.body ?? {};
 
       if (typeof imageBase64 !== 'string' || !imageBase64) {
         return res.status(400).json({ message: 'imageBase64 is required' });
@@ -771,42 +899,120 @@ export function registerPromptRoutes(app: Express): void {
         return res.status(400).json({ message: 'instruction is required' });
       }
 
-      const gemini = getProvider('gemini');
-      if (!gemini.isAvailable()) {
-        return res.status(503).json({ message: 'Gemini API key not configured' });
-      }
+      // Side defaults to 'front' for backward compat with the original
+      // single-side PL refine. New callers should always specify it.
+      const side: RefineSide = VALID_REFINE_SIDES.includes(rawSide as RefineSide)
+        ? (rawSide as RefineSide)
+        : 'front';
 
-      if (!('refine' in gemini)) {
-        return res.status(501).json({ message: 'Refine is only supported on Gemini' });
+      // useScaffold defaults true — production behaviour. Set false
+      // for raw-instruction debugging, which is PL-only territory.
+      const useScaffold = rawUseScaffold !== false;
+
+      // Provider defaults to 'gemini' for backward compat. Lab now
+      // exposes a toggle so callers can pick any registered provider
+      // — production parity stays with Gemini unless the production
+      // override below says otherwise.
+      const providerId =
+        typeof rawProvider === 'string' && rawProvider.length > 0
+          ? rawProvider
+          : 'gemini';
+      let provider;
+      try {
+        provider = getProvider(providerId);
+      } catch {
+        return res.status(400).json({
+          message: `Unknown provider "${providerId}". Pick a registered provider.`,
+        });
+      }
+      if (!provider.isAvailable()) {
+        return res.status(503).json({
+          message: `${provider.displayName} is not configured (missing API key).`,
+        });
+      }
+      if (!provider.refine) {
+        return res.status(501).json({
+          message: `${provider.displayName} doesn't support refine. Pick a different provider.`,
+        });
       }
 
       const refPhotos: string[] = Array.isArray(referencePhotos)
         ? referencePhotos.filter((p: any) => typeof p === 'string' && p.length > 0)
         : [];
 
+      // Build the actual instruction sent to the model. With scaffold
+      // (default), the user's text is wrapped per-side — identical to
+      // what Studio sends. Without scaffold, raw — useful for the
+      // operator iterating on the wrapper itself or debugging the
+      // model's behaviour without the scaffold's constraints.
+      const finalInstruction = useScaffold
+        ? buildRefineInstruction(side, instruction)
+        : instruction;
+
       console.log(
-        `[PROMPT_LAB_TEST] REFINE instruction="${instruction.slice(0, 100)}" refPhotos=${refPhotos.length}`,
+        `[PROMPT_LAB_TEST] REFINE provider=${provider.id} side=${side} useScaffold=${useScaffold} instruction="${instruction.slice(0, 100)}" refPhotos=${refPhotos.length}`,
       );
 
-      const result = await (gemini as any).refine(
-        imageBase64,
-        instruction,
-        refPhotos.length > 0 ? refPhotos : undefined,
-      );
+      try {
+        const result = await provider.refine!(
+          imageBase64,
+          finalInstruction,
+          refPhotos.length > 0 ? refPhotos : undefined,
+        );
 
-      console.log(
-        `[PROMPT_LAB_TEST] REFINE SUCCESS cost=${result.costUsd} duration=${result.durationMs}ms`,
-      );
+        // Log to generation_log so PL refine traffic shows up in
+        // Cost Ledger alongside Studio refine. cardId: null marks
+        // this as a lab call (Cost Ledger filters by joining to
+        // `cards` for customer-facing metrics — null cardId stays
+        // out of those aggregates by definition).
+        await logGeneration({
+          cardId: null,
+          slot: REFINE_SLOT[side],
+          templateId: null,
+          templateVersion: null,
+          provider: result.provider,
+          model: result.model,
+          quality: 'high',
+          costCents: result.costCents,
+          durationMs: result.durationMs,
+          success: true,
+        });
 
-      return res.json({
-        imageUrl: result.imageUrl,
-        costCents: result.costCents,
-        costUsd: result.costUsd,
-        durationMs: result.durationMs,
-        provider: result.provider,
-        model: result.model,
-        instruction,
-      });
+        console.log(
+          `[PROMPT_LAB_TEST] REFINE SUCCESS cost=${result.costUsd} duration=${result.durationMs}ms`,
+        );
+
+        return res.json({
+          imageUrl: result.imageUrl,
+          costCents: result.costCents,
+          costUsd: result.costUsd,
+          durationMs: result.durationMs,
+          provider: result.provider,
+          model: result.model,
+          instruction,
+          finalInstruction,
+          side,
+          useScaffold,
+        });
+      } catch (refineErr: any) {
+        // Log the failure too — Cost Ledger needs both successes and
+        // failures to compute success rate; otherwise PL "wasted" gen
+        // spend disappears from the ledger.
+        await logGeneration({
+          cardId: null,
+          slot: REFINE_SLOT[side],
+          templateId: null,
+          templateVersion: null,
+          provider: provider.id,
+          model: provider.model,
+          quality: 'high',
+          costCents: 0,
+          durationMs: Date.now() - startTime,
+          success: false,
+          errorCode: refineErr?.kind ?? refineErr?.code ?? 'unknown',
+        });
+        throw refineErr;
+      }
     } catch (err: any) {
       if (isProviderError(err)) {
         return res.status(err.httpStatus).json({

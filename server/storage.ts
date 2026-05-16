@@ -124,7 +124,13 @@ export class DatabaseStorage implements IStorage {
           SELECT 1 FROM studio_orders so
           WHERE so.card_id = c.id
             AND so.payment_status = 'paid'
-        ) AS "hasPaidOrder"
+        ) AS "hasPaidOrder",
+        -- "Just finished" — the card is completed but the sender
+        -- hasn't yet been shown the in-app reveal notification.
+        -- Drives the "Just finished" badge on the Ready dashboard.
+        -- Composite signal so the grid query stays self-sufficient
+        -- (no client-side derivation required).
+        (c.status = 'completed' AND c.notified_at IS NULL) AS "isJustFinished"
       FROM cards c
       WHERE c.user_id = ${userId}
       ORDER BY c.created_at DESC
@@ -155,6 +161,7 @@ export class DatabaseStorage implements IStorage {
         typeof r.draftStep === 'number' && Number.isFinite(r.draftStep)
           ? r.draftStep
           : null,
+      isJustFinished: Boolean(r.isJustFinished),
     }));
   }
 

@@ -4,7 +4,6 @@ import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
-import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
 
@@ -53,11 +52,13 @@ export async function setupVite(app: Express, server: Server) {
       );
 
       // always reload the index.html file from disk incase it changes
-      let template = await fs.promises.readFile(clientTemplate, "utf-8");
-      template = template.replace(
-        `src="/src/main.tsx"`,
-        `src="/src/main.tsx?v=${nanoid()}"`,
-      );
+      const template = await fs.promises.readFile(clientTemplate, "utf-8");
+      // NOTE: the previous version appended `?v=${nanoid()}` to the
+      // main.tsx src on every request — Replit-era cache-buster. It
+      // forced Vite to re-transform the entire module graph on every
+      // navigation, killing the in-memory module cache and adding
+      // seconds to every reload. Removed 2026-05-13. Vite handles
+      // HMR + ETag/304 invalidation correctly on its own.
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {

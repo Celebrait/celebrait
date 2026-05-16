@@ -12,7 +12,16 @@ export interface RetryOptions {
   maxAttempts: number;
   /** Delay in ms between retries. Default: 3000. */
   delayMs: number;
-  /** Which error kinds to retry on. Default: safety only. */
+  /**
+   * Which error kinds to retry on. Default: server only.
+   *
+   * Safety is INTENTIONALLY EXCLUDED — content-policy blocks are
+   * deterministic (same prompt, same answer). Retrying just wastes
+   * ~3s and a billed attempt per cycle. The classifier in errors.ts
+   * also flags safety errors `retryable: false`; this exclusion is a
+   * second guard so a future caller overriding `retryable` can't
+   * accidentally re-enable safety retries.
+   */
   retryOnKinds: Set<ProviderErrorKind>;
   /** Called on each retry (for logging). */
   onRetry?: (attempt: number, maxAttempts: number, error: ProviderError) => void;
@@ -21,7 +30,7 @@ export interface RetryOptions {
 const DEFAULT_OPTIONS: RetryOptions = {
   maxAttempts: 3,
   delayMs: 3000,
-  retryOnKinds: new Set<ProviderErrorKind>(['safety', 'server']),
+  retryOnKinds: new Set<ProviderErrorKind>(['server']),
   onRetry: undefined,
 };
 

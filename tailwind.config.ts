@@ -5,6 +5,17 @@ export default {
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      // Custom intermediate breakpoint for the awkward 1024–1279 zone
+      // (small laptops, smaller external monitors, non-fullscreen
+      // browser windows). Tailwind defaults: md=768, lg=1024, xl=1280.
+      // The 256px gap between lg and xl is too wide for the landing
+      // hero's absolute-positioning + bleed. `lg+` splits the zone:
+      //   1024–1139 → use `lg` (treat conservatively)
+      //   1140–1279 → use `lg+` (treat as small xl)
+      //   1280+     → use `xl`
+      screens: {
+        'lg+': '1140px',
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
@@ -31,15 +42,32 @@ export default {
         // Accent palette — semantic usage rules (see UX_STUDIO_TONE.md):
         //   coral = emotion / recipient moments (hearts, personal moments)
         //   amber = celebration / success / sparkle moments
+        //   red   = warning / failure (warm dusty brick — NOT SaaS error red)
         //   cream = warm neutral surfaces (step backgrounds, card frames)
         //   ink   = premium headings / deep text anchor (not for body)
         accent: {
+          // Merged with the shadcn DEFAULT/foreground further down in
+          // this same `colors` block to avoid the duplicate-key bug
+          // (last `accent:` would clobber the first per JS object
+          // semantics, killing the whole custom accent palette).
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
           coral: '#ff9ec7',      // soft coral — emotion, warmth
           'coral-dark': '#ec4899', // saturated coral — hover / emphasis
           'coral-light': '#ffe4ef', // pale coral wash — backgrounds
           amber: '#fbbf24',      // sunny amber — celebration, success
           'amber-dark': '#f59e0b', // deeper amber — hover
           'amber-light': '#fef3c7', // pale amber wash
+          // Warm dusty red — designed to live next to cream + amber
+          // without screaming SaaS error. Brick / terracotta family.
+          // Reference points: Hermès orange-red, Aesop earth tones,
+          // Rifle Paper Co botanical reds. Use sparingly: warning /
+          // failure / "wait, look at this" moments only. Never for
+          // destructive ("delete") confirmation — that's a different
+          // visual job and would dilute this signal.
+          red: '#b94a44',        // dusty red — primary warning
+          'red-dark': '#8f3530', // deep oxblood — text/icon glyph
+          'red-light': '#fbece9', // pale rose-cream wash — backgrounds
         },
         surface: {
           DEFAULT: '#fafaf9',     // stone-50 — page background (warm)
@@ -78,10 +106,12 @@ export default {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
         },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
+        // NOTE: shadcn-style `accent: { DEFAULT, foreground }` merged
+        // into the custom accent palette above (line ~48) to avoid a
+        // duplicate-key bug that silently dropped the entire custom
+        // palette. If you re-introduce a second `accent:` block here,
+        // every accent-coral / accent-amber / accent-red class will
+        // stop compiling.
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",

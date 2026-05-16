@@ -420,6 +420,10 @@ async function fireOrderPaidEmails(
         recipientEmail,
         recipientName: recipientNameOnCard,
         senderName,
+        // Sender's own email passes through as Reply-To so a recipient's
+        // reply lands with the sender, not Celebrait support. Audit-fix
+        // 2026-04-28 — was always greetings@celebrait.co.za.
+        senderEmail: order.customerEmail,
         occasion,
         shareUrl,
       });
@@ -444,6 +448,24 @@ async function fireOrderPaidEmails(
   console.log(
     `[STUDIO-CHECKOUT] sender confirmation ${sent ? 'sent' : 'failed'} → ${order.customerEmail} (order ${order.id})`,
   );
+
+  // ── Backfill the shipping address onto the recipient's address-book
+  // entry (printed orders only; digital has no postal address). The
+  // upsert from generation already created the entry; this fills in
+  // the address fields when we learn them at checkout. Non-blocking —
+  // on failure the receipt has gone out, the order is paid, only the
+  // book quality-of-life suffers. See routes/address-book.ts.
+  try {
+    if (order.includesPrint && order.shippingAddress) {
+      const { backfillAddressFromOrder } = await import('./address-book');
+      await backfillAddressFromOrder(order.id);
+    }
+  } catch (abErr) {
+    console.error(
+      `[STUDIO-CHECKOUT] address-book backfill failed for order ${order.id}:`,
+      abErr,
+    );
+  }
 }
 
 // Best-effort public origin for share URLs. In production, set

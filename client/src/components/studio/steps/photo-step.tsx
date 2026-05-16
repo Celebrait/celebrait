@@ -661,10 +661,22 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
           ? 'max-w-[320px]'
           : 'max-w-[384px]';
     const remainingSlots = MAX_PHOTOS.one_person - totalCount;
+    // Hint copy adapts to encourage multi-angle uploads — likeness is
+    // significantly better with 2-3 reference angles vs 1, but we
+    // don't gate (forcing a minimum bounces users with one good photo
+    // of someone they can't easily get more of). Soft nudge only.
+    // After 1 photo: explain the benefit. After 2: still room for one
+    // more. After 3: confirm they've hit the sweet spot.
     const hintCopy =
-      mode !== 'one_person' || remainingSlots <= 0
+      mode !== 'one_person'
         ? null
-        : `Room for ${remainingSlots} more if you've got ${remainingSlots === 1 ? 'one' : 'them'}.`;
+        : totalCount === 0
+          ? null // empty state has its own copy elsewhere
+          : totalCount === 1
+            ? "Two or three angles help the AI catch what makes them them. One photo's fine — but more = better likeness."
+            : remainingSlots > 0
+              ? `One more angle if you've got it — that's the sweet spot.`
+              : `That's the sweet spot — three angles is plenty.`;
 
     return (
       <div
@@ -699,11 +711,28 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
             <button
               type="button"
               onClick={triggerFilePicker}
-              className={`${tileSizeClass} rounded-xl border-2 border-dashed border-stone-300 bg-white flex items-center justify-center hover:border-brand hover:bg-brand-muted/40 transition-colors`}
-              aria-label="Add another photo"
+              className={`${tileSizeClass} rounded-xl border-2 border-dashed border-stone-300 bg-white flex flex-col items-center justify-center gap-1 hover:border-brand hover:bg-brand-muted/40 transition-colors ${
+                mode === 'one_person' && totalCount >= 1
+                  ? 'border-brand/40 bg-brand-muted/20'
+                  : ''
+              }`}
+              aria-label={
+                mode === 'one_person' && totalCount >= 1
+                  ? 'Add another angle'
+                  : 'Add another photo'
+              }
               data-testid="btn-add-another-photo"
             >
-              <Plus className="w-6 h-6 text-stone-400" strokeWidth={2} />
+              <Plus className="w-5 h-5 text-stone-400" strokeWidth={2} />
+              {/* When there's already a photo down, label the empty
+                  tile so the affordance is louder than just a Plus.
+                  In one_person mode only — multi_individual and
+                  group flows have their own pacing. */}
+              {mode === 'one_person' && totalCount >= 1 && (
+                <span className="text-[10px] font-medium text-brand-dark text-center px-1 leading-tight">
+                  Another angle
+                </span>
+              )}
             </button>
           )}
         </div>
@@ -806,6 +835,12 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
           onCancel={cancelStaged}
           onConfirm={confirmCrop}
           autoFace={mode === 'one_person'}
+          // Group photos: drop the square lock. They're almost always
+          // wider than tall, and forcing 1:1 either cuts people off
+          // at the edges or shrinks everyone to fit. Single-person
+          // crops stay 1:1 — tight face crops survive the provider's
+          // downscale better.
+          aspect={mode === 'one_person' ? 1 : undefined}
         />
       </div>
     );
@@ -914,6 +949,9 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
         onCancel={cancelStaged}
         onConfirm={confirmCrop}
         autoFace={mode === 'one_person'}
+        // Group photos: free aspect (see the other CropDialog mount
+        // above for the rationale).
+        aspect={mode === 'one_person' ? 1 : undefined}
       />
 
       <PhotoLibraryDrawer
@@ -989,8 +1027,23 @@ function FaceWarningBanner({
  *               animation so revisiting the step doesn't flash everything
  *               back in (the compound fade with the step-level
  *               AnimatePresence was reading as glitchy).
- *   • `ghost` — in-flight upload. Shows the cropped preview (dim) with
- *               a centered spinner. Reads as "loading", not "broken".
+ *   • `ghost` — in-flight upload. Three sub-states:
+ *               1. src=null  — pulsing stone-100 surface (the cropped
+ *                              preview is being generated client-side;
+ *                              decoding a 15MB photo into a 128px crop
+ *                              can take a noticeable beat). The pulse
+ *                              signals "I'm working" — without it the
+ *                              tile reads as dead/broken.
+ *               2. src loaded — cropped preview fades in over 250ms,
+ *                              dimmed to 50%, spinner overlay holds
+ *                              while the upload itself completes.
+ *               3. upload done — tile transitions from ghost → real
+ *                              (handled at the parent level by the
+ *                              key change in the grid).
+ *
+ * Was reading as "slow and clunky" pre-2026-04-26 (Kevin's test):
+ * the empty-src grey square looked dead, and the image popped in
+ * abruptly. Both fixed here.
  */
 function PhotoTile({
   kind,
@@ -1017,13 +1070,16 @@ function PhotoTile({
         <img
           src={src}
           alt={alt}
-          className={`w-full h-full object-cover ${
+          className={`w-full h-full object-cover transition-opacity duration-300 ${
             isGhost ? 'opacity-50' : 'opacity-100'
-          }`}
+          } animate-in fade-in-0`}
           draggable={false}
         />
       ) : (
-        <div className="w-full h-full bg-stone-200" />
+        // Pulsing surface while the preview crop generates. The
+        // animate-pulse on an off-white tile reads as "working on it"
+        // rather than "broken / empty".
+        <div className="w-full h-full bg-stone-200 animate-pulse" />
       )}
       {isGhost && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

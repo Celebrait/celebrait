@@ -12,7 +12,7 @@
 //   - No token → sender previewing their own card via the auth-gated
 //     draft endpoint.
 
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link, useRoute, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -26,12 +26,37 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Card3DViewer } from '@/components/card-3d-viewer';
 import { GestureHints } from '@/components/gesture-hints';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import logoSrc from '../assets/Logo2.png';
 import type { CardDraftState } from '@shared/schema';
+
+// Card3DViewer lazy-loaded to keep the recipient viewer's first paint
+// fast (Comms PR2 follow-up, 2026-04-30 — Kevin caught the slow load
+// during PR1 testing).
+//
+// Why: the eager import pulled three.js + @react-three/fiber +
+// @react-three/drei + lottie-react upfront — ~150-200KB of JS before
+// the user could see anything. On a fresh mobile device tapping a
+// link from email, that's a multi-second delay against the recipient's
+// FIRST IMPRESSION of Celebrait via a card from someone they know.
+//
+// With React.lazy(), Vite splits Three.js into its own chunk that
+// loads in the background while the user reads the welcome gate. By
+// the time they click "Open envelope", the chunk is loaded; if not,
+// Suspense renders the static <CardFrontPoster /> fallback so they
+// always see *something* (the actual card front, just flat instead of
+// 3D-interactive).
+//
+// The named-export-wrapper (.then(m => ({ default: m.Card3DViewer })))
+// is required because React.lazy expects a default export and
+// Card3DViewer is a named export.
+const Card3DViewer = lazy(() =>
+  import('@/components/card-3d-viewer').then((m) => ({
+    default: m.Card3DViewer,
+  })),
+);
 
 interface CardData {
   id: number;
@@ -217,13 +242,38 @@ export default function CardViewerPage() {
             onPointerLeave={endInteract}
             onWheel={bumpInteract}
           >
-            <Card3DViewer
-              frontImageUrl={data.frontImageUrl}
-              insideImageUrl={data.insideImageUrl}
-              open={open}
-              onOpenChange={setOpen}
-              className="w-full h-full"
-            />
+            {/* Suspense fallback = static poster while the lazy
+                Three.js chunk loads. Recipients always see their card
+                immediately — even on slow connections — and the chunk
+                upgrades to interactive 3D in the background. */}
+            <Suspense
+              fallback={
+                <CardFrontPoster
+                  frontImageUrl={data.frontImageUrl}
+                  recipientName={recipientName}
+                />
+              }
+            >
+              <Card3DViewer
+                frontImageUrl={data.frontImageUrl}
+                insideImageUrl={data.insideImageUrl}
+                open={open}
+                onOpenChange={setOpen}
+                className="w-full h-full"
+                // Card3DViewer auto-derives its hit zone from framingMargin,
+                // but our outer wrapper bleeds 25vh + 22vw past the visible
+                // card so the card can rotate/zoom without clipping. The
+                // auto-inset is calculated against this BLEED wrapper —
+                // resulting in a hit zone too narrow to cover the visible
+                // card on the outer edges. Force the hit zone to fill
+                // the bleed wrapper entirely (0% inset) so any tap on the
+                // visible card lands. The bleed wrapper itself is mostly
+                // off-screen anyway; the on-screen overlap is roughly
+                // the stage area + a small buffer (Kevin caught the bug
+                // 2026-04-28 — clicks only worked on the card's right edge).
+                hitZoneInsetPercent={0}
+              />
+            </Suspense>
           </div>
         </div>
 
@@ -246,8 +296,8 @@ export default function CardViewerPage() {
               smoothly pulling the action row upward as the hints
               fade out so no dead whitespace is left behind. */}
           <div
-            className="flex justify-center items-start overflow-hidden transition-[max-height] duration-500 ease-out"
-            style={{ maxHeight: hasInteracted ? 0 : 72 }}
+            className="flex justify-center items-start overflow-hidden transition-[height] duration-500 ease-out"
+            style={{ height: hasInteracted ? 0 : 72 }}
           >
             <GestureHints open={open || hasInteracted} />
           </div>
@@ -611,6 +661,54 @@ function Centered({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center text-center py-24">
       {children}
+    </div>
+  );
+}
+
+// CardFrontPoster — static fallback shown by Suspense while the
+// lazy-loaded Card3DViewer chunk is downloading. Recipients always
+// see their card front immediately, even on a slow first paint;
+// the chunk upgrades to interactive 3D in the background.
+//
+// Visual budget is intentionally low: we want it to look like the
+// 3D card paused (centred, soft drop-shadow, gentle border) rather
+// than a separate "loading" screen. Once the chunk lands, Suspense
+// swaps it out — ideally before the user has clicked "Open envelope".
+//
+// The fallback only renders inside the bleed wrapper, so it inherits
+// the same z-index + drop-shadow filter from the parent. We just need
+// to centre the image and clamp it to a sensible card-aspect.
+function CardFrontPoster({
+  frontImageUrl,
+  recipientName,
+}: {
+  frontImageUrl: string | null;
+  recipientName: string | undefined;
+}) {
+  return (
+    <div
+      className="absolute inset-0 flex items-center justify-center pointer-events-none"
+      aria-label={
+        recipientName ? `Card for ${recipientName}` : 'Card preview'
+      }
+    >
+      {frontImageUrl ? (
+        <img
+          src={frontImageUrl}
+          alt=""
+          className="max-w-[min(75vw,55vh)] max-h-[55vh] aspect-square object-cover rounded-lg shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]"
+          // Hint to the browser: front asset is the highest-priority
+          // resource on this page. Modern browsers respect fetchpriority
+          // for image preload; older ones ignore the attribute.
+          // @ts-expect-error — `fetchpriority` not yet in React's typing
+          fetchpriority="high"
+          decoding="async"
+        />
+      ) : (
+        <div className="w-[min(60vw,40vh)] aspect-square rounded-lg bg-stone-100 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-stone-400" />
+        </div>
+      )}
     </div>
   );
 }

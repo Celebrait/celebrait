@@ -1,8 +1,19 @@
 // client/src/components/studio/crop-dialog.tsx
 //
-// Forced-crop step for uploaded photos. Every reference gets a 1:1
-// square crop before being saved — tight face crops materially
-// improve likeness after the provider's 1024× downscale.
+// Crop step for uploaded photos. Two flavours, picked by the caller
+// via the `aspect` prop:
+//
+//   • aspect=1 (default) — locked 1:1 square crop. Used for one-person
+//     uploads where tight face crops materially improve likeness after
+//     the provider's 1024× downscale. Pairs with autoFace=true so the
+//     initial box snaps to the detected face.
+//
+//   • aspect=undefined — free aspect, user drags any rectangle.
+//     Used for group photos where the natural framing is almost always
+//     wider than tall — forcing a square either cut people off at the
+//     edges or shrank everyone to fit. Kevin flagged 2026-05-14:
+//     "group photo cropping asks for square which does not work."
+//     Pairs with autoFace=false (no single hero face to snap to).
 //
 // Uses react-image-crop for the familiar draggable-corner-handle UX
 // over a fixed image (what users expect from iPhone crop, Instagram,
@@ -15,6 +26,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import ReactCrop, {
   type Crop,
+  type PercentCrop,
   type PixelCrop,
   centerCrop,
   makeAspectCrop,
@@ -42,20 +54,45 @@ interface CropDialogProps {
    *  the initial crop box onto the primary face. Turn off for group
    *  photos (no single hero face — centred default is better). */
   autoFace?: boolean;
+  /** Aspect ratio to lock the crop box to. Default `1` (square, suits
+   *  one-person face crops). Pass `undefined` for free aspect (user
+   *  drags any rectangle) — the right choice for group photos which
+   *  are almost always wider than tall. */
+  aspect?: number | undefined;
 }
 
-// Fallback when no face is detected: 80% of the shorter side, centred, 1:1.
-function buildCentredCrop(imageWidth: number, imageHeight: number): Crop {
-  return centerCrop(
-    makeAspectCrop(
-      { unit: '%', width: 80 },
-      1,
+// Fallback centred crop when no face is detected. With a locked aspect
+// (one_person flow), the box is 80%-wide and snaps to the ratio. With
+// no aspect lock (group flow), the box is 90% wide × 90% tall — the
+// image's natural framing is preserved and the user tightens from
+// there if they want to.
+function buildCentredCrop(
+  imageWidth: number,
+  imageHeight: number,
+  aspect: number | undefined,
+): Crop {
+  if (aspect !== undefined) {
+    return centerCrop(
+      makeAspectCrop(
+        { unit: '%', width: 80 },
+        aspect,
+        imageWidth,
+        imageHeight,
+      ),
       imageWidth,
       imageHeight,
-    ),
-    imageWidth,
-    imageHeight,
-  );
+    );
+  }
+  // Free-aspect default: a generous centred rectangle that follows the
+  // image's natural shape. The user can drag corners to tighten.
+  const startBox: PercentCrop = {
+    unit: '%',
+    width: 90,
+    height: 90,
+    x: 0,
+    y: 0,
+  };
+  return centerCrop(startBox, imageWidth, imageHeight);
 }
 
 // Given a face bounding box in normalised (0..1) image coordinates,
@@ -119,7 +156,20 @@ function percentCropToPixelCrop(
   };
 }
 
-export function CropDialog({ src, onCancel, onConfirm, autoFace = true }: CropDialogProps) {
+export function CropDialog({
+  src,
+  onCancel,
+  onConfirm,
+  autoFace = true,
+  // NOTE: do NOT default `aspect` here. ES destructuring defaults kick
+  // in whenever a prop is `undefined` — including when a caller
+  // explicitly writes `aspect={undefined}` to mean "free aspect"
+  // (the group-photo path). A `= 1` default would silently re-lock
+  // the crop to square. If a caller wants 1:1, they must pass
+  // `aspect={1}` explicitly (the one_person path does). Omitting the
+  // prop, or passing undefined, means free aspect.
+  aspect,
+}: CropDialogProps) {
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   const [detectingFace, setDetectingFace] = useState(false);
@@ -157,7 +207,7 @@ export function CropDialog({ src, onCancel, onConfirm, autoFace = true }: CropDi
     // manually — programmatic setCrop does NOT fire onComplete, so
     // without this the crop bounds sent on confirm would stay null
     // (disabled button) or, once detection fires, remain stale.
-    const centred = buildCentredCrop(width, height);
+    const centred = buildCentredCrop(width, height, aspect);
     setCrop(centred);
     setCompletedCrop(percentCropToPixelCrop(centred, width, height));
     // Image + crop box are both set up; flip the ready flag so the
@@ -229,7 +279,9 @@ export function CropDialog({ src, onCancel, onConfirm, autoFace = true }: CropDi
               ? detectingFace
                 ? 'Finding the face… you can still drag the corners to adjust.'
                 : 'We framed up the face for you. Drag the corners if you want to adjust.'
-              : 'Drag the corners of the crop box to frame up the photo. Tight crops give much better results.'}
+              : aspect === undefined
+                ? 'Drag the corners to frame the people in the photo. Keep everyone you want in the card inside the box.'
+                : 'Drag the corners of the crop box to frame up the photo. Tight crops give much better results.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -255,7 +307,7 @@ export function CropDialog({ src, onCancel, onConfirm, autoFace = true }: CropDi
                 crop={crop}
                 onChange={(_, percentCrop) => setCrop(percentCrop)}
                 onComplete={(c) => setCompletedCrop(c)}
-                aspect={1}
+                aspect={aspect}
                 keepSelection
                 ruleOfThirds
                 minWidth={40}

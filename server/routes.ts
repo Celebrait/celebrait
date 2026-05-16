@@ -1,32 +1,36 @@
 import type { Express } from "express";
-import express from "express";
 import { createServer, type Server } from "http";
-import fs, { promises as fsPromises } from "fs";
 import path from "path";
 import { storage } from "./storage";
-import { insertCardSchema } from "@shared/schema";
-import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
+import { setupAuth, registerAuthRoutes, registerGoogleAuthRoutes } from "./replit_integrations/auth";
 import {
   getStorageStats,
   cleanupOldImages,
   scheduleAutomaticCleanup,
   type CleanupConfig
 } from "./image-storage";
-import { processSupplierOrder } from "./utils/shared";
 
-// Route modules
-import { registerAiRoutes } from "./routes/ai";
-import { registerImagesRoutes } from "./routes/images";
-import { registerGenerationRoutes } from "./routes/generation";
-import { registerPaymentRoutes } from "./routes/payment";
-import { registerFulfillmentRoutes } from "./routes/fulfillment";
+// Route modules — Studio + Prompt Lab + admin only. Old MVP modules
+// (ai, payment, generation, fulfillment, images) deleted 2026-04-26
+// as part of pre-launch cleanup. Studio uses studio-* modules; image
+// serving is the /images static handler below; PDF generation lives
+// in utils/shared.processSupplierOrder for when print fulfilment is
+// wired up post-launch.
 import { registerPromptRoutes } from "./routes/prompts";
 import { registerPhotoRoutes } from "./routes/photos";
 import { registerStudioDraftRoutes } from "./routes/studio-drafts";
 import { registerStudioBrainstormRoutes } from "./routes/studio-brainstorm";
 import { registerStudioSceneSuggestRoutes } from "./routes/studio-scene-suggest";
 import { registerStudioCheckoutRoutes } from "./routes/studio-checkout";
+import { registerStudioNotificationRoutes } from "./routes/studio-notifications";
+import { registerStudioInsideTextRoutes } from "./routes/studio-inside-text";
 import { registerAdminCostsRoutes } from "./routes/admin-costs";
+import { registerAdminTestEmailRoutes } from "./routes/admin-test-emails";
+import { registerAddressBookRoutes } from "./routes/address-book";
+import { registerRemindersRoutes } from "./routes/reminders";
+import { registerDevTestFailureRoutes } from "./routes/dev-test-failures";
+import { scheduleReminderDispatch } from "./reminders/dispatcher";
+import { scheduleDropOffRecoveryDispatch, runDropOffRecoveryDispatch } from "./recovery/dispatcher";
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
@@ -36,6 +40,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // up /api/auth/otp/send, /verify, /logout and /api/auth/user.
   await setupAuth(app);
   registerAuthRoutes(app);
+  registerGoogleAuthRoutes(app);
 
   // Import isAuthenticated middleware for user-specific routes
   const { isAuthenticated } = await import("./replit_integrations/auth/replitAuth");
@@ -67,6 +72,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(orders);
     } catch (error: any) {
       res.status(500).json({ message: "Error fetching user orders: " + error.message });
+    }
+  });
+
+  // PATCH /api/user/profile — update the signed-in user's firstName +
+  // optional portrait photo. Powers Phase C of PR1 (the welcome capture
+  // step on first signup) and the future Settings → Profile editor.
+  // Both fields are individually optional in the body — send only what
+  // you want to change. Returns the updated user row.
+  app.patch("/api/user/profile", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session?.otpUserId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { firstName, lastName, portraitPhotoId } = req.body ?? {};
+      const updates: Record<string, any> = { updatedAt: new Date() };
+
+      // firstName: trim + reject empty strings; null clears the field
+      if (firstName !== undefined) {
+        if (firstName === null) {
+          updates.firstName = null;
+        } else if (typeof firstName === 'string') {
+          const trimmed = firstName.trim();
+          if (!trimmed) {
+            return res.status(400).json({ message: "First name cannot be empty. Send null to clear." });
+          }
+          if (trimmed.length > 60) {
+            return res.status(400).json({ message: "First name too long (max 60 chars)." });
+          }
+          updates.firstName = trimmed;
+        } else {
+          return res.status(400).json({ message: "firstName must be a string or null." });
+        }
+      }
+
+      if (lastName !== undefined) {
+        if (lastName === null) {
+          updates.lastName = null;
+        } else if (typeof lastName === 'string') {
+          updates.lastName = lastName.trim() || null;
+        }
+      }
+
+      // portraitPhotoId: integer FK to photos.id. Validate ownership
+      // — user can only attach their own photos as a portrait, never
+      // someone else's. Null clears the portrait.
+      if (portraitPhotoId !== undefined) {
+        if (portraitPhotoId === null) {
+          updates.portraitPhotoId = null;
+        } else if (typeof portraitPhotoId === 'number' && Number.isInteger(portraitPhotoId)) {
+          const { db } = await import('./db');
+          const { photos } = await import('@shared/schema');
+          const { and, eq } = await import('drizzle-orm');
+          const owned = await db
+            .select({ id: photos.id })
+            .from(photos)
+            .where(and(eq(photos.id, portraitPhotoId), eq(photos.userId, String(userId))))
+            .limit(1);
+          if (owned.length === 0) {
+            return res.status(403).json({ message: "Cannot attach a photo you don't own as a portrait." });
+          }
+          updates.portraitPhotoId = portraitPhotoId;
+        } else {
+          return res.status(400).json({ message: "portraitPhotoId must be an integer or null." });
+        }
+      }
+
+      if (Object.keys(updates).length === 1) {
+        // Only updatedAt would be set — caller sent nothing useful.
+        return res.status(400).json({ message: "No profile fields provided." });
+      }
+
+      const { db } = await import('./db');
+      const { users } = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
+      const [updated] = await db
+        .update(users)
+        .set(updates)
+        .where(eq(users.id, String(userId)))
+        .returning();
+      res.json({ success: true, user: updated });
+    } catch (error: any) {
+      console.error("[USER_PROFILE] update error:", error);
+      res.status(500).json({ message: "Error updating profile: " + error.message });
     }
   });
 
@@ -133,164 +223,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // --- Core routes ---
-
-  app.post("/api/cards", async (req, res) => {
-    try {
-      const { userId, ...cardData } = req.body;
-
-      console.log('Card creation request body:', req.body);
-
-      if (!userId) {
-        return res.status(401).json({ message: "Please sign in to create a card" });
-      }
-
-      const sanitizedCardData = {
-        cardType: cardData.cardType || 'printed',
-        printOption: cardData.printOption || 'front-only',
-        sceneType: cardData.sceneType || 'with-person',
-        conversationData: cardData.conversationData || {},
-        price: cardData.price || 12900
-      };
-
-      const validatedCardData = insertCardSchema.parse(sanitizedCardData);
-
-      const card = await storage.createCard({
-        ...validatedCardData,
-        userId: String(userId)
-      });
-
-      res.json(card);
-    } catch (error: any) {
-      console.error('Card creation error:', error);
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // --- PDF download routes ---
-
-  app.get("/api/download-pdf/:cardId/:side/:format/:dpi", async (req, res) => {
-    try {
-      const { cardId, side, format, dpi } = req.params;
-
-      if (!['front', 'inside'].includes(side)) {
-        return res.status(400).json({ message: "Invalid side. Must be 'front' or 'inside'" });
-      }
-
-      if (!['5x5', 'A4', 'Letter'].includes(format)) {
-        return res.status(400).json({ message: "Invalid format. Must be '5x5', 'A4', or 'Letter'" });
-      }
-
-      if (!['150', '300', '600'].includes(dpi)) {
-        return res.status(400).json({ message: "Invalid DPI. Must be 150, 300, or 600" });
-      }
-
-      const filename = `card_${cardId}_${side}_${format}_${dpi}dpi.pdf`;
-      const filepath = path.join(process.cwd(), 'print_files', filename);
-
-      try {
-        await fsPromises.access(filepath);
-      } catch (error) {
-        return res.status(404).json({ message: "PDF not found. Generate PDFs first by completing payment." });
-      }
-
-      const stats = await fsPromises.stat(filepath);
-
-      res.set({
-        'Content-Type': 'application/pdf',
-        'Content-Length': stats.size.toString(),
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'private, no-cache'
-      });
-
-      const readStream = fs.createReadStream(filepath);
-      readStream.pipe(res);
-
-      console.log(`[PDF-DOWNLOAD] Served ${filename} (${stats.size} bytes)`);
-
-    } catch (error: any) {
-      console.error('PDF download error:', error);
-      res.status(500).json({ message: "Error downloading PDF: " + error.message });
-    }
-  });
-
-  app.get("/api/download-pdf/:cardId/specs", async (req, res) => {
-    try {
-      const { cardId } = req.params;
-
-      const filename = `card_${cardId}_print_specs.json`;
-      const filepath = path.join(process.cwd(), 'print_files', filename);
-
-      try {
-        await fsPromises.access(filepath);
-      } catch (error) {
-        return res.status(404).json({ message: "Print specs not found" });
-      }
-
-      const specsData = await fsPromises.readFile(filepath, 'utf8');
-      const specs = JSON.parse(specsData);
-
-      res.json(specs);
-
-    } catch (error: any) {
-      console.error('Print specs download error:', error);
-      res.status(500).json({ message: "Error downloading print specs: " + error.message });
-    }
-  });
-
-  // --- Test endpoint: Background supplier processing ---
-
-  app.post("/api/test-background-supplier-processing", async (req, res) => {
-    try {
-      console.log('🧪 Testing background supplier processing workflow...');
-
-      const order = await storage.getOrder(98);
-      if (!order) {
-        return res.status(404).json({ error: 'Test order not found - use order ID 98' });
-      }
-
-      const card = await storage.getCard(order.cardId);
-      if (!card) {
-        return res.status(404).json({ error: 'Card not found for order' });
-      }
-
-      console.log(`📋 Testing background processing with order #${order.id}, card #${card.id}`);
-
-      processSupplierOrder(order.id, card.id).catch(err => {
-        console.error('Background processing test failed:', err);
-      });
-
-      res.json({
-        success: true,
-        message: 'Background supplier processing triggered successfully',
-        details: {
-          orderId: order.id,
-          cardId: card.id,
-          customerName: order.customerName,
-          note: 'Check logs for [SUPPLIER_PROCESSING] messages to track progress (1-2 minutes)'
-        }
-      });
-
-    } catch (error: any) {
-      console.error('❌ Test background supplier processing failed:', error);
-      res.status(500).json({ error: 'Failed to trigger test: ' + error.message });
-    }
-  });
-
   // --- Register domain route modules ---
 
-  registerAiRoutes(app);
-  registerImagesRoutes(app);
-  registerGenerationRoutes(app);
-  registerPaymentRoutes(app);
-  registerFulfillmentRoutes(app);
   registerPromptRoutes(app);
   registerPhotoRoutes(app);
   registerStudioDraftRoutes(app);
   registerStudioBrainstormRoutes(app);
   registerStudioSceneSuggestRoutes(app);
   registerStudioCheckoutRoutes(app);
+  registerStudioNotificationRoutes(app);
+  registerStudioInsideTextRoutes(app);
   registerAdminCostsRoutes(app);
+  registerAdminTestEmailRoutes(app);
+  registerAddressBookRoutes(app);
+  registerRemindersRoutes(app);
+  registerDevTestFailureRoutes(app);
+
+  // Schedule the daily reminder dispatch cron (8am UTC daily).
+  // First run fires at the next 8am UTC; subsequent runs 24h later.
+  // See server/reminders/dispatcher.ts for the dispatch logic.
+  scheduleReminderDispatch();
+
+  // Schedule the daily drop-off recovery dispatch cron (9am UTC).
+  // 1h offset from reminders avoids competing Brevo send-volume bursts.
+  // See server/recovery/dispatcher.ts for the dispatch logic.
+  scheduleDropOffRecoveryDispatch();
+
+  // Admin manual trigger for drop-off recovery — same shape as the
+  // reminders admin endpoint (dryRun + asOfDate query params for
+  // testing). Auth gate same as other admin endpoints.
+  app.post('/api/admin/recovery/dispatch', async (req, res) => {
+    try {
+      const otpUserId = (req as any).session?.otpUserId;
+      if (typeof otpUserId !== 'string' || otpUserId.length === 0) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+      const { db: dbInst } = await import('./db');
+      const { users: usersTbl } = await import('@shared/schema');
+      const { eq: eqOp } = await import('drizzle-orm');
+      const adminCheck = await dbInst
+        .select({ isAdmin: usersTbl.isAdmin })
+        .from(usersTbl)
+        .where(eqOp(usersTbl.id, otpUserId))
+        .limit(1);
+      if (adminCheck[0]?.isAdmin !== true) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const dryRun = req.body?.dryRun === true;
+      const asOfDateStr = typeof req.body?.asOfDate === 'string' ? req.body.asOfDate : null;
+      const asOfDate = asOfDateStr ? new Date(asOfDateStr + 'T00:00:00Z') : undefined;
+
+      const result = await runDropOffRecoveryDispatch({ dryRun, asOfDate });
+      res.json(result);
+    } catch (err: any) {
+      console.error('[DROPOFF] manual dispatch failed:', err);
+      res.status(500).json({ message: err?.message ?? 'Dispatch failed' });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

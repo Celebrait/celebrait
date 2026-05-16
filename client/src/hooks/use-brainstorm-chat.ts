@@ -16,6 +16,7 @@
 
 import { useCallback, useState } from 'react';
 import { apiRequest } from '@/lib/queryClient';
+import { getOccasionLabel } from '@/components/studio/scene-presets';
 
 export type Role = 'user' | 'assistant';
 
@@ -63,6 +64,9 @@ interface UseBrainstormChatOptions {
   /** Current Scene textarea content. Passed to the server each turn so
    *  the opener can offer to refine existing text vs start fresh. */
   currentSceneText: string;
+  // photoMode removed 2026-05-14 — scenes describe the world, not the
+  // people, so person-mode framing has nothing to influence in the
+  // chat. The photo carries who's there; the chat carries where.
 }
 
 export interface BrainstormChatState {
@@ -99,6 +103,37 @@ export interface BrainstormChatActions {
   tweak: (text: string) => Promise<void>;
   /** Reset the entire conversation. */
   reset: () => void;
+}
+
+// ── Skip-acknowledgement helpers ─────────────────────────────────────
+// The system prompt requires the model to start its reply with a
+// "Got it — I'll pick X" line when the user skipped. Models drift,
+// so we stitch one in client-side as a safety net. These helpers are
+// the per-phase ack copy and a startsWith-style detector that
+// recognises any plausible ack so we don't double up.
+const SKIP_ACK_BY_PHASE: Record<string, string> = {
+  scene_specifics: "Got it — I'll fill in the specifics.",
+  activity: "Got it — I'll pick the moment.",
+  clothing: "Got it — I'll pick the dress code.",
+};
+function buildSkipAck(phase: string): string | null {
+  return SKIP_ACK_BY_PHASE[phase] ?? null;
+}
+function startsWithAck(reply: string): boolean {
+  // Accept any plausible "got it" / "okay" / "sure" / "no problem"
+  // opener within the first ~10 words. Generous on purpose — the
+  // intent is to dedupe, not to enforce exact wording.
+  const head = reply.slice(0, 80).toLowerCase();
+  return (
+    head.startsWith('got it') ||
+    head.startsWith('ok') ||
+    head.startsWith('okay') ||
+    head.startsWith('sure') ||
+    head.startsWith('no problem') ||
+    head.startsWith('understood') ||
+    head.startsWith("i'll pick") ||
+    head.startsWith('alright')
+  );
 }
 
 export function useBrainstormChat({
@@ -144,6 +179,10 @@ export function useBrainstormChat({
           role: m.role,
           content: m.content,
         }));
+        // Remember what phase the user was on when they hit skip — used
+        // by the defensive ack prepend below.
+        const phaseBefore = opts.phaseOverride ?? phase;
+
         const res = await apiRequest('POST', '/api/studio/brainstorm', {
           recipientName,
           occasion,
@@ -151,15 +190,27 @@ export function useBrainstormChat({
           history,
           action,
           userInput: opts.userInput,
-          currentPhase: opts.phaseOverride ?? phase,
+          currentPhase: phaseBefore,
           collectedInfo,
         });
         const data = (await res.json()) as ServerResponse;
 
+        // Defensive ack prepend — the system prompt now REQUIRES the
+        // model to start the reply with a "Got it — I'll pick the
+        // dress code" / etc. acknowledgement when the user skipped.
+        // Belt-and-braces: if the model drops it anyway, stitch one
+        // in client-side so the user always sees confirmation that
+        // their skip was registered + what we'll choose for them.
+        const ack = action === 'skip' ? buildSkipAck(phaseBefore) : null;
+        const replyText =
+          ack && !startsWithAck(data.reply ?? '')
+            ? `${ack} ${data.reply ?? ''}`.trim()
+            : data.reply ?? '';
+
         const assistantMessage: BrainstormMessage = {
           id: `a-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           role: 'assistant',
-          content: data.reply,
+          content: replyText,
         };
         setMessages((prev) => [...prev, assistantMessage]);
         setPhase(data.phase);
@@ -180,19 +231,27 @@ export function useBrainstormChat({
     [messages, recipientName, occasion, currentSceneText, phase, collectedInfo],
   );
 
-  // Opener is a fixed client-side greeting — no API call. Always the
-  // same wording, name/occasion woven in, regardless of whether the
-  // Scene textarea has existing content. Keeps the flow recognisable
-  // and saves a round-trip. Matches the MVP's canned-greeting pattern
-  // (minus the gradient mascot aesthetic).
+  // Opener is a fixed client-side greeting — no API call. Saves a
+  // round-trip + keeps the entry experience instant.
+  //
+  // Scene-not-people framing (2026-05-14): the opener intentionally
+  // does NOT name the recipient or count people in the photo. The
+  // chat's job is to settle the SCENE (where, when, what's
+  // happening); the photo handles WHO. Naming the recipient in the
+  // opener primed the rest of the conversation to over-index on
+  // "Troy this, Troy that" when the photo was actually Troy + his
+  // fiancée — felt strange because the photo and the prose were
+  // talking about different casts.
   const start = useCallback(async () => {
     if (hasStarted || isLoading) return;
-    const nameDisplay = recipientName.trim() || 'your recipient';
-    const occasionDisplay = toTitleCase(occasion.trim()) || 'celebration';
+    // getOccasionLabel produces correct two-word forms ('Thank you',
+    // not 'Thankyou'; "Valentine's Day", not 'Valentines').
+    const occasionDisplay =
+      getOccasionLabel(occasion.trim()) || 'celebration';
+
     const opener =
-      `Greetings! ✨ I'm here to help you create an amazing scene for the front of ${nameDisplay}'s ${occasionDisplay} card.\n\n` +
-      `For this first question, I'll need you to type your own creative input, but throughout the rest of our conversation you can either type your ideas or ask me for ideas anytime.\n\n` +
-      `To get us started, where would you like the scene to take place?`;
+      `Hello! ✨ Let's design the scene for the front of this ${occasionDisplay} card. We'll keep it scene-led — where it is, what's happening, the atmosphere. The people in your photos handle themselves.\n\n` +
+      `Where would you like the scene to take place?`;
     const openerMessage: BrainstormMessage = {
       id: `a-opener-${Date.now()}`,
       role: 'assistant',
@@ -203,7 +262,7 @@ export function useBrainstormChat({
     setSuggestions(null);
     setProposedScene(null);
     setHasStarted(true);
-  }, [hasStarted, isLoading, recipientName, occasion]);
+  }, [hasStarted, isLoading, occasion]);
 
   const pushUserMessage = useCallback((text: string): BrainstormMessage[] => {
     const userMessage: BrainstormMessage = {

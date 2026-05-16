@@ -33,6 +33,7 @@ import {
   AlertTriangle,
   Package,
   ArrowRight,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,8 +47,16 @@ import { toast } from '@/hooks/use-toast';
 import type { CardDraftState, StepId } from '@shared/schema';
 import { deriveDefaultFrontText } from '@shared/schema';
 import { Card3DViewer } from '@/components/card-3d-viewer';
+import { useTexture } from '@react-three/drei';
 import { GestureHints } from '@/components/gesture-hints';
-import { GenerationWaitStage } from '@/components/studio/generation-wait';
+import {
+  GenerationWaitStage,
+  type GenerationStage,
+} from '@/components/studio/generation-wait';
+import { RegenEditMode } from '@/components/studio/regen-controls';
+import { GenerationErrorPanel } from '@/components/studio/generation-error-panel';
+import type { CardAttemptDTO } from '@/hooks/use-card-maker';
+import type { CardSide } from '@shared/schema';
 
 // Approximate generation time for a front + inside pair. Used to size
 // the progress copy ("this usually takes ~45 seconds"). Not a hard
@@ -62,6 +71,21 @@ interface ReviewStepProps {
    *  back. Matches CARD_MAKER_STEPS order in the parent. */
   stepIndexById: Record<StepId, number>;
   onJumpToStep: (stepIndex: number) => void;
+  /** Variant of onJumpToStep used by the INITIAL-gen failure panel's
+   *  action chips. Opens the fix-and-retry dialog in initial-gen mode.
+   *  Optional — falls back to onJumpToStep when not provided. */
+  onJumpToStepFromFailure?: (stepId: 'scene' | 'photo' | 'style') => void;
+  /** Variant of the above used by the REGEN failure panel's action
+   *  chips (rendered inside RegenEditMode). Opens the dialog in regen
+   *  mode and remembers which side failed so the right regen fires. */
+  onJumpToStepFromRegenFailure?: (
+    stepId: 'scene' | 'photo' | 'style',
+    side: CardSide,
+  ) => void;
+  /** Patch + flush the draft. Used by the photo / style pill controls
+   *  inside RegenEditMode so a swap persists before the next regen
+   *  picks up the saved state. */
+  onUpdateInputs?: (patch: Partial<CardDraftState>) => Promise<void>;
   /** Patch the draft. Used by the Buy dialog's "add a message" recovery
    *  link to flip inside mode from blank → write as the user navigates
    *  back — so they land in the write panel with the textarea ready,
@@ -78,6 +102,17 @@ interface ReviewStepProps {
   isGenerating: boolean;
   generatedFrontUrl: string | null;
   generatedInsideUrl: string | null;
+  /** Regen state + actions, threaded from useCardMaker. Undefined on
+   *  surfaces that don't support regen (none today, but the prop is
+   *  optional so future read-only viewers don't have to mock these). */
+  attempts?: CardAttemptDTO[];
+  isRegenerating?: CardSide | null;
+  onRegenerate?: (side: CardSide, tweak?: string) => Promise<void>;
+  onSelectAttempt?: (attemptId: number) => Promise<void>;
+  /** Failure metadata when status === 'failed'. Drives the
+   *  <GenerationErrorPanel>'s kind-specific copy + chips. Null on
+   *  success / generating / draft. */
+  failure?: import('@/hooks/use-card-maker').DraftFailureDTO | null;
 }
 
 export function ReviewStep({
@@ -86,12 +121,20 @@ export function ReviewStep({
   status,
   stepIndexById,
   onJumpToStep,
+  onJumpToStepFromFailure,
+  onJumpToStepFromRegenFailure,
   onChange,
   onGenerate,
   onRetry,
   isGenerating,
   generatedFrontUrl,
   generatedInsideUrl,
+  attempts,
+  isRegenerating,
+  onRegenerate,
+  onSelectAttempt,
+  failure,
+  onUpdateInputs,
 }: ReviewStepProps) {
   // Collapse the "generating" and "completed" screens into one
   // continuous RevealView — same canvas from Stage 1 (silhouette)
@@ -117,12 +160,26 @@ export function ReviewStep({
           });
           onJumpToStep(stepIndexById.inside);
         }}
+        attempts={attempts ?? []}
+        isRegenerating={isRegenerating ?? null}
+        onRegenerate={onRegenerate}
+        onSelectAttempt={onSelectAttempt}
+        onJumpToStepFromRegenFailure={onJumpToStepFromRegenFailure}
+        onUpdateInputs={onUpdateInputs}
       />
     );
   }
 
   if (status === 'failed') {
-    return <FailedView onRetry={onRetry} />;
+    return (
+      <FailedView
+        onRetry={onRetry}
+        failure={failure ?? null}
+        stepIndexById={stepIndexById}
+        onJumpToStep={onJumpToStep}
+        onJumpToStepFromFailure={onJumpToStepFromFailure}
+      />
+    );
   }
 
   // Default: review + generate.
@@ -178,8 +235,16 @@ function SummaryPanel({
   const photoCount = state.photos?.photoIds?.length ?? 0;
   // Resolved front text for display — mirrors server's buildCardText()
   // precedence so what we show matches what'll render.
-  const frontText = state.front?.text?.trim() || deriveDefaultFrontText(state);
-  const frontTextIsDefault = !state.front?.text?.trim();
+  // mode='none' is the explicit opt-out (added 2026-04-27); takes
+  // priority over text + default so the row reads "No text on front"
+  // even if there's a stale `text` value lingering in the draft.
+  const frontMode = state.front?.mode;
+  const frontText =
+    frontMode === 'none'
+      ? ''
+      : state.front?.text?.trim() || deriveDefaultFrontText(state);
+  const frontTextIsDefault = frontMode !== 'none' && !state.front?.text?.trim();
+  const frontExplicitlySkipped = frontMode === 'none';
 
   const styleLabel =
     styleMode === 'animated'
@@ -267,6 +332,13 @@ function SummaryPanel({
               </div>
             )}
           </>
+        ) : frontExplicitlySkipped ? (
+          <div>
+            <div className="text-sm text-stone-700">No headline on the front</div>
+            <div className="text-[11px] text-stone-500 mt-0.5">
+              The scene stands alone.
+            </div>
+          </div>
         ) : (
           <span className="text-sm text-stone-400">No text on front</span>
         )}
@@ -492,6 +564,12 @@ function RevealView({
   state,
   insideMode,
   onEditInside,
+  attempts,
+  isRegenerating,
+  onRegenerate,
+  onSelectAttempt,
+  onJumpToStepFromRegenFailure,
+  onUpdateInputs,
 }: {
   cardId: number;
   frontUrl: string | null;
@@ -501,11 +579,104 @@ function RevealView({
   state: CardDraftState;
   insideMode: 'write' | 'blank' | null;
   onEditInside: () => void;
+  attempts: CardAttemptDTO[];
+  isRegenerating: CardSide | null;
+  onRegenerate?: (side: CardSide, tweak?: string) => Promise<void>;
+  onSelectAttempt?: (attemptId: number) => Promise<void>;
+  /** Threaded down to RegenEditMode. When a regen fails on safety,
+   *  the inline panel's chips call this to open the fix-and-retry
+   *  dialog in regen mode. */
+  onJumpToStepFromRegenFailure?: (
+    stepId: 'scene' | 'photo' | 'style',
+    side: CardSide,
+  ) => void;
+  /** Patch + flush draft. Powers the photo/style pill swap controls
+   *  inside RegenEditMode. */
+  onUpdateInputs?: (patch: Partial<CardDraftState>) => Promise<void>;
 }) {
   // Ready = server says done and both image URLs have landed on the
   // client. `frontUrl` alone isn't enough (server persists it mid-gen;
   // client deliberately waits for the complete picture).
   const isReady = status === 'completed' && !!frontUrl && !!insideUrl;
+
+  // Generation stage — drives the GenerationWaitStage status copy so
+  // the user sees actual progress ("Drawing the front" → "Now writing
+  // the inside" → "Final touches") instead of an elapsed-time fiction.
+  // Derived from the same poll data that flips `isReady` above:
+  //   • frontUrl appears as soon as the front image is stored on disk
+  //   • insideUrl appears once the inside lands
+  //   • status flips to 'completed' once both attempts are saved and
+  //     the selected attempt is finalised on the card row
+  // When `insideMode === 'blank'`, no inside image is generated and the
+  // pipeline runs front → finishing → ready (skipping the 'inside'
+  // beat). `expectsInsideImage` captures that distinction.
+  const expectsInsideImage = insideMode === 'write';
+  const generationStage: GenerationStage =
+    status === 'completed'
+      ? 'ready'
+      : !frontUrl
+        ? 'front'
+        : expectsInsideImage && !insideUrl
+          ? 'inside'
+          : 'finishing';
+
+  // ── Texture preload ──────────────────────────────────────────────
+  // Card reveal speedup (2026-05-14). Without this, the Canvas mounts
+  // → useTexture suspends → 2MB PNG downloads + decodes synchronously
+  // before the card materialises, adding ~500ms-1s of dead air on top
+  // of the 1600ms intentional hold and the 1200-1800ms entrance.
+  //
+  // Two preload paths fired the instant a URL appears in the poll
+  // response (typically minutes BEFORE the 3D viewer mounts):
+  //
+  //   1. <link rel="preload" as="image"> — warms the browser HTTP
+  //      cache. When Canvas later requests the image, it's already
+  //      bytes-in-RAM. Decode still happens, but the network leg is
+  //      gone.
+  //
+  //   2. useTexture.preload(url) — drei's static method that drives
+  //      its own texture cache. When useTexture inside the Canvas
+  //      resolves, it sees the cached entry and doesn't Suspense-wait.
+  //
+  // Combined, the reveal feels noticeably snappier — texture decode
+  // overlaps with the 1600ms hold instead of running after it.
+  useEffect(() => {
+    const urls = [frontUrl, insideUrl].filter(
+      (u): u is string => !!u && u.length > 0,
+    );
+    if (urls.length === 0) return;
+
+    // 1. Browser-level preload via <link>.
+    const links = urls.map((url) => {
+      const el = document.createElement('link');
+      el.rel = 'preload';
+      el.as = 'image';
+      el.href = url;
+      document.head.appendChild(el);
+      return el;
+    });
+
+    // 2. drei texture cache preload. Static method — safe to call
+    //    outside any Canvas. Idempotent for repeated calls on the
+    //    same URL.
+    try {
+      useTexture.preload(urls);
+    } catch (err) {
+      // Defensive — drei's preload occasionally throws on dev HMR
+      // re-runs when the same URL is in flight. Not worth crashing
+      // the reveal over.
+      console.warn('[review-step] texture preload failed', err);
+    }
+
+    return () => {
+      // Clean up the preload links on URL change / unmount so they
+      // don't accumulate. (They've already served their purpose by
+      // now anyway.)
+      for (const el of links) {
+        if (el.parentNode) el.parentNode.removeChild(el);
+      }
+    };
+  }, [frontUrl, insideUrl]);
 
   // Ceremony timing: once `isReady` flips, hold the READY_LINE on screen
   // for ~1600ms, then crossfade into the 3D viewer over ~1200ms. Neither
@@ -523,6 +694,12 @@ function RevealView({
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
   const [buyOpen, setBuyOpen] = useState(false);
+  // Edit mode — flips the whole surface from "look at the card / buy"
+  // (3D card + Buy CTA) to a focused regen workbench. Triggered by
+  // the "Make a change" pill on the reveal layout; exited via the
+  // Done button inside RegenEditMode. Keeps state local so leaving
+  // and re-entering edit mode resets the textarea + target.
+  const [editMode, setEditMode] = useState(false);
   const interactTimerRef = useRef<number | null>(null);
 
   const startInteract = () => {
@@ -534,10 +711,46 @@ function RevealView({
     if (interactTimerRef.current) window.clearTimeout(interactTimerRef.current);
     interactTimerRef.current = window.setTimeout(() => setIsInteracting(false), 1200);
   };
-  const bumpInteract = () => {
-    startInteract();
-    endInteract();
-  };
+  // bumpInteract was used to treat wheel-scroll as card interaction
+  // (start + end in one tick). Removed 2026-05-10 along with the
+  // onWheel handler — wheel = page scroll, not card play. See comment
+  // on the interaction wrapper below.
+
+  // Edit mode takes the entire surface — the 3D card + CTA stack
+  // are intentionally hidden so the user has a focused workbench.
+  // The Buy dialog sits outside this branch so a regen-then-buy
+  // flow doesn't lose its mount.
+  if (editMode && onRegenerate && onSelectAttempt) {
+    return (
+      <>
+        <RegenEditMode
+          state={state}
+          frontUrl={frontUrl}
+          insideUrl={insideUrl}
+          attempts={attempts}
+          isRegenerating={isRegenerating}
+          hasInside={insideMode === 'write' || insideMode === 'blank'}
+          onRegenerate={onRegenerate}
+          onSelectAttempt={onSelectAttempt}
+          onExit={() => setEditMode(false)}
+          onJumpToStepFromRegenFailure={onJumpToStepFromRegenFailure}
+          onUpdateInputs={
+            onUpdateInputs ??
+            (async () => {
+              /* no-op fallback when not wired (defensive) */
+            })
+          }
+        />
+        <BuyDialog
+          open={buyOpen}
+          onOpenChange={setBuyOpen}
+          cardId={cardId}
+          insideMode={insideMode}
+          onEditInside={onEditInside}
+        />
+      </>
+    );
+  }
 
   return (
     <>
@@ -546,7 +759,10 @@ function RevealView({
         data-testid={showReveal ? 'review-completed' : 'review-generating'}
       >
         {/* Stage — constant dimensions across both phases so
-            narration → card reveal reads as one continuous surface. */}
+            narration → card reveal reads as one continuous surface.
+            Note: regen-in-flight no longer renders narration HERE —
+            it runs inside CardThumb in edit mode. The 3D viewer
+            stays mounted on the reveal surface throughout. */}
         <div className="h-[60vh] sm:h-[68vh] w-full relative">
           {/* mode="wait" so narration fully exits before the card enters.
               Avoids the two layers animating in tandem — the card used
@@ -582,7 +798,6 @@ function RevealView({
                   onPointerUp={endInteract}
                   onPointerCancel={endInteract}
                   onPointerLeave={endInteract}
-                  onWheel={bumpInteract}
                 >
                   <Card3DViewer
                     frontImageUrl={frontUrl!}
@@ -610,6 +825,8 @@ function RevealView({
               >
                 <GenerationWaitStage
                   occasion={state.recipient?.occasion ?? null}
+                  stage={generationStage}
+                  hasInside={expectsInsideImage}
                 />
               </motion.div>
             )}
@@ -652,23 +869,68 @@ function RevealView({
                       the moment. Buy button speaks for itself. */}
                 </motion.div>
 
+                {/* Gesture hints — sit close to the Buy CTA where they
+                    were before regen was inserted. Reads better up here:
+                    the hints are about the 3D card immediately above,
+                    so keeping them adjacent makes the spatial story
+                    obvious. They self-collapse once the user has played
+                    with the card. */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: isInteracting ? 0 : 1 }}
                   transition={{
                     duration: 0.5,
-                    delay: hasInteracted || isInteracting ? 0 : 1.4,
+                    delay: hasInteracted || isInteracting ? 0 : 1.2,
                   }}
                   style={{ pointerEvents: isInteracting ? 'none' : 'auto' }}
                   className="mt-6"
                 >
+                  {/* Reserved-height slot so the regen entry below
+                      doesn't get pushed when GestureHints fades in
+                      (~900ms after mount). Using `height` not
+                      `maxHeight` because hints render NOTHING until
+                      their internal mount-delay fires — maxHeight
+                      lets the wrapper shrink-to-fit during that gap,
+                      so the hints' eventual appearance grows the
+                      container from 0 → 72 and snaps everything
+                      below down. Reserving height up front keeps
+                      the layout still. */}
                   <div
-                    className="flex justify-center items-start overflow-hidden transition-[max-height] duration-500 ease-out"
-                    style={{ maxHeight: hasInteracted ? 0 : 72 }}
+                    className="flex justify-center items-start overflow-hidden transition-[height] duration-500 ease-out"
+                    style={{ height: hasInteracted ? 0 : 72 }}
                   >
                     <GestureHints open={open || hasInteracted} />
                   </div>
                 </motion.div>
+
+                {/* Regen entry — small pill that flips the whole surface
+                    into edit mode. Lives at the bottom of the post-reveal
+                    stack so it reads as a quiet safety net, not a
+                    parallel CTA. Audit warning (2026-04-26): don't
+                    promote this above the Buy CTA in any future polish
+                    pass — the hierarchy here is intentional. */}
+                {onRegenerate && onSelectAttempt && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: isInteracting ? 0 : 1 }}
+                    transition={{
+                      duration: 0.5,
+                      delay: hasInteracted || isInteracting ? 0 : 1.5,
+                    }}
+                    style={{ pointerEvents: isInteracting ? 'none' : 'auto' }}
+                    className="mt-8 flex justify-center"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setEditMode(true)}
+                      className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white/60 hover:bg-white hover:border-brand/40 px-4 py-2 text-sm text-ink-soft hover:text-brand-dark transition-all"
+                      data-testid="btn-regen-open"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-stone-400" />
+                      Think this could be better? Tweak it.
+                    </button>
+                  </motion.div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -845,14 +1107,30 @@ function CardImage({ url, label }: { url: string; label: string }) {
   );
 }
 
-// ── Failure view — offer a retry ──────────────────────────────────────
-function FailedView({ onRetry }: { onRetry: () => Promise<void> }) {
+// ── Failure view ──────────────────────────────────────────────────────
+//
+// Delegates to <GenerationErrorPanel> which is the single source of
+// truth for failure UX (also used by regen failures in a follow-on
+// step). Translates the kind string from the server into the panel's
+// typed enum, owns the retry mutation, and routes step-jump chips
+// through the parent's onJumpToStep + stepIndexById mapping.
+function FailedView({
+  onRetry,
+  failure,
+  stepIndexById,
+  onJumpToStep,
+  onJumpToStepFromFailure,
+}: {
+  onRetry: () => Promise<void>;
+  failure: import('@/hooks/use-card-maker').DraftFailureDTO | null;
+  stepIndexById: Record<StepId, number>;
+  onJumpToStep: (stepIndex: number) => void;
+  onJumpToStepFromFailure?: (stepId: 'scene' | 'photo' | 'style') => void;
+}) {
   // Retry is a two-step operation orchestrated by the parent: first
   // POST /retry to flip the draft's server-side status from 'failed'
   // back to 'draft', then call startGeneration to kick off a fresh
-  // run. The parent owns both because it also owns the cardId +
-  // useCardMaker's status state. Mutation here just wraps it for the
-  // button's pending state.
+  // run. Mutation here just wraps it for the button's pending state.
   const retryMutation = useMutation({
     mutationFn: onRetry,
     onError: (err: Error) => {
@@ -864,26 +1142,37 @@ function FailedView({ onRetry }: { onRetry: () => Promise<void> }) {
     },
   });
 
+  // Server returns kind as string (could be null if the failure pre-dated
+  // the metadata schema, or if it was a plain Error not a ProviderError).
+  // The panel's `kind` prop accepts null → falls back to 'unknown'.
+  const kind = (failure?.kind ?? null) as
+    | 'safety'
+    | 'rate'
+    | 'server'
+    | 'auth'
+    | 'unknown'
+    | null;
+
   return (
-    <div className="max-w-md mx-auto text-center py-12" data-testid="review-failed">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 text-amber-700 mb-4">
-        <AlertTriangle className="w-6 h-6" />
-      </div>
-      <h2 className="text-lg font-semibold text-ink mb-2">
-        That one didn't land
-      </h2>
-      <p className="text-sm text-stone-600 mb-6">
-        The draft fell over mid-paint. Nothing's lost — your choices are all
-        still here. Give it another go.
-      </p>
-      <Button
-        onClick={() => retryMutation.mutate()}
-        disabled={retryMutation.isPending}
-        className="bg-brand hover:bg-brand-dark text-brand-foreground"
-        data-testid="btn-retry-generation"
-      >
-        {retryMutation.isPending ? 'Resetting…' : 'Try again'}
-      </Button>
+    <div data-testid="review-failed">
+      <GenerationErrorPanel
+        kind={kind}
+        modelExplanation={failure?.modelExplanation ?? null}
+        suggestions={failure?.suggestions ?? null}
+        provider={failure?.provider ?? null}
+        code={failure?.code ?? null}
+        context="initial"
+        onRetry={() => retryMutation.mutate()}
+        // Prefer the failure-specific handler from the parent (sets
+        // retry-pending mode AND navigates), falling back to plain
+        // navigation when the parent didn't supply it.
+        onJumpToStep={(stepId) =>
+          onJumpToStepFromFailure
+            ? onJumpToStepFromFailure(stepId)
+            : onJumpToStep(stepIndexById[stepId])
+        }
+        isRetrying={retryMutation.isPending}
+      />
     </div>
   );
 }

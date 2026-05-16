@@ -59,6 +59,23 @@ export interface ImageProvider {
   }>;
   /** Generate an image from a prompt and optional reference image. */
   generate(req: ImageGenerationRequest): Promise<ImageGenerationResult>;
+  /** Image-to-image edit: take an existing generated image and modify
+   *  it per a short text instruction. Used by the regen flow when the
+   *  user supplies a tweak — the existing card is the base and the
+   *  tweak becomes the instruction, so composition/character/text are
+   *  preserved and only the requested change is applied.
+   *
+   *  Providers that don't support native image editing (e.g. older
+   *  OpenAI fallback) leave this undefined; the caller falls back to
+   *  the regular `generate()` path.
+   *
+   *  `referencePhotos` are extra likeness anchors (the original user
+   *  photos), passed alongside the base image for identity grounding. */
+  refine?(
+    imageBase64: string,
+    instruction: string,
+    referencePhotos?: string[],
+  ): Promise<ImageGenerationResult>;
   /** Analyse reference photo(s) and return a detailed face description
    *  ("character anchor") that can be prepended to the generation prompt
    *  to improve identity preservation. Uses the provider's vision model.
@@ -72,6 +89,10 @@ export interface ProviderInfo {
   displayName: string;
   model: string;
   available: boolean;
+  /** True when this provider implements `refine` — i.e. it can edit
+   *  an existing image with a text instruction. UI uses this to grey
+   *  out provider buttons in the refine/regen toggle. */
+  supportsRefine: boolean;
   qualityOptions: Array<{
     value: string;
     label: string;

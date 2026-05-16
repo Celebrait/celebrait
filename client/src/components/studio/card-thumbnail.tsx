@@ -14,6 +14,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { getOccasionIcon } from '@/lib/occasion-icon';
+import { deriveCardTitle } from '@/lib/studio-card-buckets';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,17 +32,12 @@ interface CardThumbnailProps {
   card: CardGridItem;
 }
 
-function deriveTitle(card: CardGridItem): string {
-  const name = card.recipientName?.trim() || null;
-  const occasion = card.occasion?.trim() || null;
-  if (name && occasion) return `${name}'s ${occasion}`;
-  if (name) return `For ${name}`;
-  if (occasion) return `${occasion.charAt(0).toUpperCase()}${occasion.slice(1)} card`;
-  return 'Untitled card';
-}
-
+// Title derivation lives in @/lib/studio-card-buckets so the dashboard
+// + grid + drafts/ready/sent surfaces all read identically. Was
+// duplicated here pre-2026-04-26 — leaked "Mum's birthday" / "Mum's
+// thankyou" because this copy didn't get the suffix + label fixes.
 export function CardThumbnail({ card }: CardThumbnailProps) {
-  const title = deriveTitle(card);
+  const title = deriveCardTitle(card);
   const isGenerating = card.status === 'generating';
   const isDraft = card.status === 'draft';
   // "Ready to send" = generated card with no paid order against it.
@@ -52,6 +48,15 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
     !isGenerating &&
     card.status !== 'failed' &&
     !card.hasPaidOrder;
+  // "Just finished" — completed card the sender hasn't yet opened or
+  // dismissed the toast for. Layered on TOP of the Ready/Sent split so
+  // a freshly-finished unpaid card shows the violet "Just finished"
+  // chip + glow instead of the standard green "Ready to send"; a
+  // freshly-finished PAID card (rare, but possible if the user paid
+  // before viewing) just gets the glow. The flag flips server-side
+  // the moment the user views the card or dismisses the toast, so
+  // this treatment naturally fades out after engagement.
+  const isJustFinished = card.isJustFinished === true;
   const [imageFailed, setImageFailed] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const { toast } = useToast();
@@ -144,12 +149,21 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
             <StatusBadge status={effectiveStatus} />
           </div>
         )}
-        {isReadyToSend && (
+        {isReadyToSend && !isJustFinished && (
           <div
             className="absolute bottom-2 right-2 inline-flex items-center gap-1 bg-cta text-white text-[10px] font-semibold uppercase tracking-wider rounded-full px-2.5 py-1 shadow-sm"
             data-testid={`chip-ready-to-send-${card.id}`}
           >
             Ready to send
+          </div>
+        )}
+        {isJustFinished && (
+          <div
+            className="absolute bottom-2 right-2 inline-flex items-center gap-1 bg-brand text-brand-foreground text-[10px] font-semibold uppercase tracking-wider rounded-full px-2.5 py-1 shadow-sm"
+            data-testid={`chip-just-finished-${card.id}`}
+          >
+            <span aria-hidden>✨</span>
+            Just finished
           </div>
         )}
       </div>
@@ -163,8 +177,17 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
     <div className="group relative">
       <Link
         href={href}
-        className="block bg-white rounded-2xl border border-stone-200 overflow-hidden hover:border-brand hover:shadow-lg transition-all"
+        className={`block bg-white rounded-2xl border overflow-hidden hover:shadow-lg transition-all ${
+          isJustFinished
+            ? // Violet ring + glow on "Just finished" tiles. Subtle —
+              // visible enough to draw the eye, not so loud it overwhelms
+              // the rest of the grid. Fades to normal once notifiedAt
+              // is stamped (user opens it or dismisses the toast).
+              'border-brand ring-2 ring-brand/20 shadow-[0_4px_20px_-4px_rgba(122,118,232,0.35)] hover:border-brand-dark'
+            : 'border-stone-200 hover:border-brand'
+        }`}
         data-testid={`card-tile-${card.id}`}
+        data-just-finished={isJustFinished ? 'true' : undefined}
       >
         {tileBody}
       </Link>
@@ -182,7 +205,14 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
           setConfirmOpen(true);
         }}
         disabled={deleteMutation.isPending}
-        className="absolute top-2 left-2 flex items-center justify-center w-7 h-7 rounded-full bg-white/90 backdrop-blur text-stone-600 hover:text-red-600 hover:bg-white shadow-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-50"
+        // pointer-events MUST track opacity. When the button is
+        // visible (mobile always, desktop on hover/focus) it should
+        // receive clicks; when invisible it must NOT, otherwise the
+        // top-left corner of every tile becomes a dead zone where
+        // taps trigger the (invisible) delete instead of the Link
+        // beneath. Kevin caught this 2026-04-27 — "cards only open
+        // when clicked on the right".
+        className="absolute top-2 left-2 flex items-center justify-center w-7 h-7 rounded-full bg-white/90 backdrop-blur text-stone-600 hover:text-red-600 hover:bg-white shadow-sm opacity-100 pointer-events-auto sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto focus:opacity-100 focus:pointer-events-auto transition-opacity disabled:opacity-50"
         aria-label={`Delete ${title}`}
         data-testid={`btn-delete-card-${card.id}`}
       >
