@@ -54,6 +54,23 @@
   animation: scroll 20s linear infinite;
 }
 
+/* Diagonal shimmer sweep — used by the generation-wait card silhouette
+   so users have an unmistakable visual that "the card is being made"
+   while the (slower) celebration quotes cycle below. Sweeps a soft
+   bright band across a darker base every ~2.4s. */
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-150%);
+  }
+  100% {
+    transform: translateX(150%);
+  }
+}
+
+.animate-shimmer-sweep {
+  animation: shimmer-sweep 2.4s ease-in-out infinite;
+}
+
 .dark {
   --background: 240 10% 3.9%;
   --foreground: 0 0% 98%;

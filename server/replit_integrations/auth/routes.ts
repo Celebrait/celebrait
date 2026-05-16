@@ -137,8 +137,14 @@ export function registerAuthRoutes(app: Express): void {
         console.log(`[auth] DEV_BYPASS: accepting code for ${normalizedEmail}`);
       }
 
-      // Upsert user - find by email first
+      // Upsert user - find by email first.
+      // `isNewUser` flag (added 2026-04-28 for PR1 Phase C) tells the
+      // client whether to show the welcome capture step (name + portrait)
+      // after this verify completes. True only on the first-ever sign-in
+      // for this email — returning users skip the step regardless of
+      // whether their firstName is populated.
       const [existingUser] = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);
+      const isNewUser = !existingUser;
 
       let user;
       if (existingUser) {
@@ -165,7 +171,7 @@ export function registerAuthRoutes(app: Express): void {
           console.error("Session save error:", err);
           return res.status(500).json({ message: "Session error" });
         }
-        res.json({ success: true, user });
+        res.json({ success: true, user, isNewUser });
       });
     } catch (error) {
       console.error("Error verifying OTP:", error);

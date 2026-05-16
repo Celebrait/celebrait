@@ -28,10 +28,12 @@ import {
 } from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
 import { Card3DViewer } from '@/components/card-3d-viewer';
+import { useTexture } from '@react-three/drei';
 import { GestureHints } from '@/components/gesture-hints';
 import { RegenEditMode } from '@/components/studio/regen-controls';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
 import { apiRequest } from '@/lib/queryClient';
+import { useMarkCardSeen } from '@/hooks/use-card-ready-notifications';
 import type { CardAttemptDTO } from '@/hooks/use-card-maker';
 import type { CardDraftState, CardSide } from '@shared/schema';
 
@@ -59,6 +61,17 @@ type OrderSummary = {
 export default function StudioCardViewPage() {
   const params = useParams();
   const cardId = Number(params.id);
+
+  // Mark the "your card is ready" in-app notification seen the moment
+  // the sender lands here — this IS the reveal moment we were
+  // notifying about, so any toast for it should not re-fire. Safe to
+  // call when notifiedAt is already set (server filter makes it a
+  // no-op) and when there was never a notification queued (the cache
+  // update is also a no-op when the cardId isn't in the unread list).
+  const markCardSeen = useMarkCardSeen();
+  useEffect(() => {
+    if (Number.isFinite(cardId)) markCardSeen(cardId);
+  }, [cardId, markCardSeen]);
 
   const { data, isLoading, error } = useQuery<CardViewData>({
     queryKey: [`/api/studio/drafts/${cardId}`],
@@ -133,6 +146,40 @@ function LoadedView({
   const title = deriveTitle(card.state);
   const backHref = '/studio';
 
+  // ── Texture preload ──────────────────────────────────────────────
+  // Same speedup as the in-Studio reveal (review-step.tsx) — the
+  // moment the URLs are available, fire a browser <link rel=preload>
+  // and drei's useTexture.preload so the 3D viewer's textures decode
+  // in parallel with React mounting the viewer chunk. Without this
+  // the card visibly pops in ~500ms-1s after the page renders.
+  useEffect(() => {
+    const urls = [card.frontImageUrl, card.insideImageUrl].filter(
+      (u): u is string => !!u && u.length > 0,
+    );
+    if (urls.length === 0) return;
+
+    const links = urls.map((url) => {
+      const el = document.createElement('link');
+      el.rel = 'preload';
+      el.as = 'image';
+      el.href = url;
+      document.head.appendChild(el);
+      return el;
+    });
+
+    try {
+      useTexture.preload(urls);
+    } catch (err) {
+      console.warn('[studio-card-view] texture preload failed', err);
+    }
+
+    return () => {
+      for (const el of links) {
+        if (el.parentNode) el.parentNode.removeChild(el);
+      }
+    };
+  }, [card.frontImageUrl, card.insideImageUrl]);
+
   // ── Regen wiring ────────────────────────────────────────────────
   // Same UX as the live maker reveal: per-side controls below the
   // Buy button. Only shown for unpaid cards — once a card has been
@@ -171,11 +218,60 @@ function LoadedView({
     },
   });
 
-  // Mutation.variables is set while pending, undefined otherwise —
-  // we read off it to know which side is currently regenerating.
-  const isRegenerating: CardSide | null = regenMutation.isPending
-    ? regenMutation.variables?.side ?? null
+  // Patch the draft's inputs while in regen edit mode. RegenEditMode
+  // exposes pill-style swap controls (photo / style) that need to
+  // persist into the draft before the user fires another regen — the
+  // server reads conversationData when building the regen prompt.
+  //
+  // The PATCH endpoint expects the FULL CardDraftState (it's small,
+  // and full-overwrite avoids merge-semantic edge cases). We merge
+  // the caller's partial patch with the current card state and send.
+  const updateInputsMutation = useMutation({
+    mutationFn: async (patch: Partial<CardDraftState>) => {
+      const nextState: CardDraftState = {
+        ...card.state,
+        ...patch,
+      };
+      await apiRequest('PATCH', `/api/studio/drafts/${card.id}`, {
+        state: nextState,
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: [`/api/studio/drafts/${card.id}`],
+      });
+    },
+  });
+  const handleUpdateInputs = async (patch: Partial<CardDraftState>) => {
+    await updateInputsMutation.mutateAsync(patch);
+  };
+
+  // `isRegenerating` is the UNION of two signals:
+  //
+  //   (a) regenMutation.isPending — true from click → API response
+  //       (~100ms after the route change). Disables the button
+  //       INSTANTLY on click, before the first poll completes.
+  //
+  //   (b) any attempt in polled data with status='generating' — true
+  //       for the long gen window (3-5min on gpt-image-2 high quality).
+  //       Self-clearing when the attempt completes/fails.
+  //
+  // Without (a), there's a ~2-second window between click and the
+  // first poll seeing the new attempt where the button stays
+  // clickable. Kevin caught this 2026-05-15: 6 rapid clicks fired
+  // 6 separate regens. Server-side guard added too as defence-in-depth.
+  //
+  // Without (b), the spinner would clear the instant the API
+  // returned — long before the gen actually finished. (The original
+  // bug we set out to fix.)
+  const generatingAttempt = card.attempts?.find(
+    (a) => a.status === 'generating',
+  );
+  const polledRegenSide: CardSide | null = generatingAttempt?.side ?? null;
+  const pendingRegenSide: CardSide | null = regenMutation.isPending
+    ? (regenMutation.variables?.side ?? null)
     : null;
+  const isRegenerating: CardSide | null = pendingRegenSide ?? polledRegenSide;
 
   const handleRegenerate = async (side: CardSide, tweak?: string) => {
     await regenMutation.mutateAsync({ side, tweak });
@@ -203,6 +299,7 @@ function LoadedView({
           hasInside={hasInside}
           onRegenerate={handleRegenerate}
           onSelectAttempt={handleSelectAttempt}
+          onUpdateInputs={handleUpdateInputs}
           onExit={() => setEditMode(false)}
         />
         <BuyDialog

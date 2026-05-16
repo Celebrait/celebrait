@@ -31,7 +31,16 @@ import { FrontStep, isFrontStepReady } from '@/components/studio/steps/front-ste
 import { PhotoStep, isPhotoStepReady } from '@/components/studio/steps/photo-step';
 import { InsideStep, isInsideStepReady } from '@/components/studio/steps/inside-step';
 import { ReviewStep } from '@/components/studio/steps/review-step';
-import { CARD_MAKER_STEPS, type CardDraftState, type StepId } from '@shared/schema';
+import {
+  FixAndRetryDialog,
+  type FixAndRetryEditor,
+} from '@/components/studio/fix-and-retry-dialog';
+import {
+  CARD_MAKER_STEPS,
+  type CardDraftState,
+  type CardSide,
+  type StepId,
+} from '@shared/schema';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
 
 // ── Entry: POST a new draft, then redirect to the edit URL ───────────
@@ -146,6 +155,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     isRegenerating,
     regenerate,
     selectAttempt,
+    failure,
     currentStep,
     totalSteps,
   } = useCardMaker({ cardId });
@@ -157,6 +167,97 @@ function CardMakerInner({ cardId }: { cardId: number }) {
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  // ── Fix-and-retry dialog ───────────────────────────────────────────
+  // Opens when the user clicks an action chip on the
+  // <GenerationErrorPanel>. Lets them fix one input (scene / photo /
+  // style) without leaving the failure context, with the OTHER inputs
+  // visible as "Also using" reminders.
+  //
+  // Earlier design (now scrapped): set "retry-pending" mode on the
+  // maker stepper, render a banner across every step, let user re-walk.
+  // Kevin's call 2026-05-09: "feels weird to go back into the flow
+  // again — way more sense for this to be a separate UI". The dialog
+  // IS that separate UI.
+  //
+  // The dialog can be opened from two places:
+  //   - INITIAL-gen failure on Review step → uses /retry + startGeneration
+  //   - REGEN failure inside RegenEditMode → uses regenerate(side)
+  // The `fixDialogContext` flag tracks which path opened it so the
+  // right retry handler fires when the user clicks "Try again with these".
+  const [fixDialogOpen, setFixDialogOpen] = useState(false);
+  const [fixDialogEditor, setFixDialogEditor] = useState<FixAndRetryEditor>('scene');
+  type FixDialogContext = { mode: 'initial' } | { mode: 'regen'; side: CardSide };
+  const [fixDialogContext, setFixDialogContext] = useState<FixDialogContext>({
+    mode: 'initial',
+  });
+
+  // Shared retry handler. Two-step server dance: flip 'failed' →
+  // 'draft', then kick off generation. Then navigate back to Review
+  // so the user sees the reveal happening. Used by both the
+  // <GenerationErrorPanel>'s "Try again" button and the
+  // <FixAndRetryDialog>'s "Try again with these" button on the
+  // INITIAL-gen path.
+  const handleRetryGeneration = async () => {
+    await apiRequest('POST', `/api/studio/drafts/${cardId}/retry`, {});
+    await startGeneration();
+    setStep(stepIndexById.review);
+  };
+
+  // Save patch + retry — INITIAL-gen variant. Applies the patch via
+  // useCardMaker's update() (which handles autosave), flushes so the
+  // server has it before /retry runs, then fires retry.
+  const handleSaveAndRetry = async (patch: Partial<CardDraftState>) => {
+    if (Object.keys(patch).length > 0) {
+      update(patch);
+      await flushSave();
+    }
+    await handleRetryGeneration();
+    setFixDialogOpen(false);
+  };
+
+  // Save patch + retry — REGEN variant. Same patch+flush pattern, but
+  // fires regenerate(side) instead of /retry + startGeneration.
+  // No setStep — the user is already on Review (regen only happens
+  // there), so we don't need to navigate.
+  const handleSaveAndRetryRegen = async (
+    patch: Partial<CardDraftState>,
+    side: CardSide,
+  ) => {
+    if (Object.keys(patch).length > 0) {
+      update(patch);
+      await flushSave();
+    }
+    await regenerate(side);
+    setFixDialogOpen(false);
+  };
+
+  // Chip click from the INITIAL-gen failure panel → open dialog,
+  // initial mode.
+  const handleOpenFixDialog = (editor: 'scene' | 'photo' | 'style') => {
+    setFixDialogEditor(editor);
+    setFixDialogContext({ mode: 'initial' });
+    setFixDialogOpen(true);
+  };
+
+  // Chip click from a REGEN failure panel → open dialog, regen mode,
+  // remember which side failed so the retry fires the right regen.
+  const handleOpenFixDialogRegen = (
+    editor: 'scene' | 'photo' | 'style',
+    side: CardSide,
+  ) => {
+    setFixDialogEditor(editor);
+    setFixDialogContext({ mode: 'regen', side });
+    setFixDialogOpen(true);
+  };
+
+  // Computed save handler — pulled by the dialog. Switches based on
+  // which path opened the dialog; the dialog itself stays opaque to
+  // the distinction (just calls onSaveAndRetry(patch)).
+  const dialogSaveHandler = (patch: Partial<CardDraftState>) =>
+    fixDialogContext.mode === 'initial'
+      ? handleSaveAndRetry(patch)
+      : handleSaveAndRetryRegen(patch, fixDialogContext.side);
 
   // Respect prefers-reduced-motion. When true, step transitions swap
   // instantly with no fade-up (accessibility baseline).
@@ -330,6 +431,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 {stepHeadline}
               </h1>
             )}
+
             {/* Step order: Recipient → Photo → Scene → Style → Front → Inside → Review.
                 Photo moved to position 2 (index 1) so the emotional "we've got
                 them" moment happens before the blank scene textarea. Front text
@@ -356,6 +458,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
             {currentStep === 4 && <FrontStep state={state} onChange={update} />}
             {currentStep === 5 && (
               <InsideStep
+                cardId={cardId}
                 state={state}
                 onChange={update}
                 scheduleSave={scheduleSave}
@@ -369,16 +472,17 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 status={status}
                 stepIndexById={stepIndexById}
                 onJumpToStep={setStep}
+                onJumpToStepFromFailure={handleOpenFixDialog}
+                onJumpToStepFromRegenFailure={handleOpenFixDialogRegen}
                 onChange={update}
-                onRetry={async () => {
-                  // Two-step: server flips 'failed' → 'draft', then we
-                  // kick off a fresh generation. If we only did the
-                  // first, the UI would stay on FailedView forever;
-                  // if we only did the second, the server would reject
-                  // because the card is still in 'failed' state.
-                  await apiRequest('POST', `/api/studio/drafts/${cardId}/retry`, {});
-                  await startGeneration();
+                onUpdateInputs={async (patch) => {
+                  // Combined patch + flush — used by the photo/style
+                  // pill controls in RegenEditMode so a swap persists
+                  // before the next regen reads the saved state.
+                  update(patch);
+                  await flushSave();
                 }}
+                onRetry={handleRetryGeneration}
                 onGenerate={() => {
                   void startGeneration().catch((err: Error & { used?: number; limit?: number }) => {
                     console.error('[CARD_MAKER] startGeneration failed:', err);
@@ -408,6 +512,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 isRegenerating={isRegenerating}
                 onRegenerate={regenerate}
                 onSelectAttempt={selectAttempt}
+                failure={failure}
               />
             )}
           </motion.div>
@@ -456,6 +561,27 @@ function CardMakerInner({ cardId }: { cardId: number }) {
           </Button>
         </div>
       )}
+
+      {/* ── Fix-and-retry dialog ────────────────────────────────────
+          Opens from the GenerationErrorPanel's action chips when the
+          card is in 'failed' status. Contained edit-and-retry surface
+          — the user fixes one input + sees the others as reminders +
+          retries, all without leaving the failure context. */}
+      <FixAndRetryDialog
+        open={fixDialogOpen}
+        onOpenChange={setFixDialogOpen}
+        initialEditor={fixDialogEditor}
+        state={state}
+        onSaveAndRetry={dialogSaveHandler}
+        isRetrying={
+          // For initial-gen retries, parent's startGeneration is what
+          // tracks "in flight"; for regen retries, isRegenerating != null.
+          // Either signal means the dialog's CTA should reflect pending.
+          fixDialogContext.mode === 'initial'
+            ? isStartingGeneration
+            : isRegenerating !== null
+        }
+      />
     </div>
   );
 }

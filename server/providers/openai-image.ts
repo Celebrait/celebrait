@@ -255,6 +255,35 @@ export class OpenAIImageProvider implements ImageProvider {
     };
   }
 
+  /**
+   * Refine an existing image with a text instruction. OpenAI doesn't
+   * have a separate "edit-with-instruction" API like Gemini's
+   * generateContent — but /v1/images/edits accepts an image + prompt
+   * and produces a modified version, which is functionally equivalent.
+   *
+   * Implementation: delegate to generate() with the prior image as the
+   * primary reference. The existing /v1/images/edits plumbing handles
+   * the rest (multipart, multi-image array, error classification).
+   *
+   * NOTE: result quality vs Gemini is meaningfully different. Gemini's
+   * refine preserves composition and character likeness more reliably;
+   * OpenAI tends to re-roll more of the scene. Use as a fallback when
+   * Gemini is overloaded, not as an equal alternative.
+   */
+  async refine(
+    imageBase64: string,
+    instruction: string,
+    referencePhotos?: string[],
+  ): Promise<ImageGenerationResult> {
+    return this.generate({
+      prompt: instruction,
+      referenceImageBase64: imageBase64,
+      additionalReferenceImages: referencePhotos,
+      quality: 'high',
+      size: '1024x1024',
+    });
+  }
+
   async analyzeReference(images: string[]): Promise<string | null> {
     if (images.length === 0 || !openai) return null;
 

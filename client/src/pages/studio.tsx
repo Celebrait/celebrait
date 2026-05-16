@@ -36,6 +36,14 @@ import {
 import { CardGridSkeleton } from '@/components/studio/card-grid';
 import { NewCardTile } from '@/components/studio/new-card-tile';
 import { DemoVideoBlock } from '@/components/studio/demo-video-block';
+import { Card3DViewer } from '@/components/card-3d-viewer';
+// Hero asset for the empty-state. Real Celebrait-rendered example
+// (Father's Day occasion) — chosen to demonstrate the photoreal output
+// to a brand-new user immediately, rather than showing a blank
+// metaphor card. Swap if Kevin curates a different "first impression"
+// occasion later.
+import heroFrontSrc from '@/assets/fathers-day-front.png';
+import heroInsideSrc from '@/assets/fathers-day-inside-new.png';
 import { useAuth } from '@/hooks/use-auth';
 import { bucketCards, deriveCardTitle } from '@/lib/studio-card-buckets';
 import { getOccasionIcon } from '@/lib/occasion-icon';
@@ -94,10 +102,29 @@ export default function StudioHome() {
 // ─────────────────────────────────────────────────────────────────────
 // State 1 — zero cards
 //
-// Demo video IS the hero — more motivating than a blank-canvas 3D for
-// a brand-new user (Kevin's call 2026-04-24 — first-time users respond
-// to seeing the output, not holding an empty one). How-it-works strip
-// sits directly below for the ones who watch and want the recipe.
+// Hero Card pattern per HERO_CARD.md + next_studio_dashboard_scope.md
+// §1. Iterations:
+//   • 2026-04-24 first pass: demo video block as hero. Reverted —
+//     `VIDEO_SRC` was null (stub), the empty state was hollow.
+//   • 2026-04-28 first attempt: 3D card with card-blank.svg + side
+//     copy. Mobile was poor (card swallowed the screen, CTA below the
+//     fold) and showed metaphor not product.
+//   • 2026-04-28 SECOND attempt (this one): real photoreal example
+//     card (Father's Day) in the 3D viewer. Mobile-first responsive:
+//     copy + CTA above the fold; card sits below as the proof beat.
+//     On lg+ desktop, classic split layout — copy left, card right at
+//     the same vertical level so eye lands on the product.
+//
+// Mobile-first is non-negotiable here — this is a brand-new user's
+// FIRST authenticated screen. CTA must be above the fold. Three.js on
+// mobile is fine for a slow autoRotate (low frame budget); we cap card
+// height at 36vh on phones so it sits as a proof beat below the CTA,
+// not the dominant visual.
+//
+// The "Watch how it works (30s)" secondary link is gated on a real
+// VIDEO_SRC being set in DemoVideoBlock. Today VIDEO_SRC is null, so
+// the link is hidden. When Kevin wires a real video, set the export
+// in demo-video-block.tsx and the link appears here automatically.
 // ─────────────────────────────────────────────────────────────────────
 
 function EmptyView({ name }: { name: string }) {
@@ -105,24 +132,63 @@ function EmptyView({ name }: { name: string }) {
     <>
       <DashboardHeader name={name} subtitle="Let's make something lovely." />
 
-      <DemoVideoBlock
-        variant="hero"
-        caption="See how a Celebrait card comes together"
-      />
+      {/* Hero — split on lg+, stacked on smaller. lg breakpoint chosen
+          deliberately: at md (768px) the card is too narrow for the 3D
+          viewer to read. Stack until 1024px. */}
+      <section className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center mb-14 lg:mb-20">
+        {/* Copy column.
+            On mobile (default): text-center, full-width, comes FIRST
+            (order-1) so headline + CTA land above the fold.
+            On lg+: text-left, card sits to the right at the same
+            vertical level. */}
+        <div className="order-1 lg:order-1 text-center lg:text-left max-w-md mx-auto lg:mx-0 lg:max-w-none">
+          <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.25em] font-semibold text-brand-dark bg-brand-muted/60 rounded-full px-2.5 py-1 mb-5">
+            <Sparkles className="w-3 h-3" />
+            Your first card
+          </p>
+          <h2 className="text-[2.25rem] leading-[1.05] sm:text-5xl lg:text-6xl font-semibold text-ink tracking-tight mb-4 lg:mb-5">
+            Made-by-heart
+            <br />
+            <em className="italic text-brand-dark font-normal">cards.</em>
+          </h2>
+          <p className="text-base sm:text-lg text-stone-600 leading-relaxed mb-7">
+            Like the one below — built around someone you love. Upload a photo, tell us the moment, and we'll render a card with them in it. Print it, send it digitally, or both.
+          </p>
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-center lg:items-start gap-3 sm:gap-4 justify-center lg:justify-start">
+            <Link
+              href="/studio/new-card"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-full px-7 py-3.5 text-base font-semibold transition-colors shadow-sm"
+              data-testid="empty-start-card"
+            >
+              <Wand2 className="w-4 h-4" />
+              Start your first card
+            </Link>
+            <WatchHowItWorksLink />
+          </div>
+        </div>
 
-      {/* Primary CTA under the hero so "start" is always one tap away
-          even if the user doesn't watch the video. Centred on desktop,
-          full-width on mobile. */}
-      <div className="flex justify-center mb-16">
-        <Link
-          href="/studio/new-card"
-          className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-full px-7 py-3.5 text-base font-semibold transition-colors shadow-sm"
-          data-testid="empty-start-card"
-        >
-          <Wand2 className="w-4 h-4" />
-          Start your first card
-        </Link>
-      </div>
+        {/* 3D card column.
+            Sits BELOW the copy on mobile (order-2). Height capped to
+            36vh on phones (proof beat, not dominant visual) and
+            allowed to grow into 50–58vh on larger viewports.
+            Wrapped in a brand-tinted soft gradient backdrop so the
+            card has somewhere to "sit" instead of floating against
+            page background — picks up the same warm tone the
+            invitations teaser uses for visual coherence with the rest
+            of the studio. */}
+        <div className="order-2 relative w-full h-[36vh] min-h-[280px] sm:h-[44vh] lg:h-[58vh] rounded-3xl bg-gradient-to-br from-brand-muted/40 via-white to-brand-muted/20 border border-stone-200/80 overflow-hidden">
+          <Card3DViewer
+            frontImageUrl={heroFrontSrc}
+            insideImageUrl={heroInsideSrc}
+            backCredit="Made with Celebrait"
+            framingMargin={1.5}
+            minDistance={2.1}
+            autoRotate
+            autoRotateSpeed={0.55}
+            className="w-full h-full"
+          />
+        </div>
+      </section>
 
       <HowItWorks />
       {/* Invitations teaser intentionally OMITTED on the empty state
@@ -131,6 +197,25 @@ function EmptyView({ name }: { name: string }) {
           draft-pending and has-activity views below. */}
     </>
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// WatchHowItWorksLink — secondary affordance under the empty-state
+// CTA. Renders only when DemoVideoBlock has a real VIDEO_SRC set
+// (today: hidden, since VIDEO_SRC is null). When Kevin lands a real
+// video, exporting VIDEO_SRC from demo-video-block makes the link
+// appear automatically.
+//
+// Implementation note: the actual modal lives in DemoVideoBlock. This
+// component renders the Block in its compact "link" variant.
+// ─────────────────────────────────────────────────────────────────────
+function WatchHowItWorksLink() {
+  // Today the link is hidden — DemoVideoBlock has VIDEO_SRC = null
+  // (no production video shot yet). Re-enable by exporting VIDEO_SRC
+  // from demo-video-block.tsx + branching here on its truthiness.
+  // Leaving the slot here so the moment a video lands, the link is
+  // a one-line change.
+  return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────

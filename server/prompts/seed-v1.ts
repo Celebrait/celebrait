@@ -87,7 +87,53 @@ MULTI-PERSON RULES (apply strictly):
 
 `;
 
-const GROUP_PREAMBLE = `REFERENCE PHOTO CONTEXT: The reference photo contains MULTIPLE DIFFERENT PEOPLE. You MUST preserve each person's DISTINCT facial identity — do NOT blend or average facial features between subjects. Each person must remain individually recognisable in the output. Pay special attention to distinguishing features that differentiate each person (skin tone differences, face shapes, hair styles, facial hair, etc.).
+// ── GROUP_PREAMBLE rewrite (2026-05-15) ──────────────────────────────
+// Third pass on this preamble. After the May-14 rewrite (identity-signal
+// framing + IDENTITY≠EXPRESSION callout + scene energy), group cards
+// were STILL coming back with the people locked in their source's
+// side-by-side posed pairing — even with v2's GAZE block in the
+// scaffold telling the model to engage with action.
+//
+// The missing piece: nothing in the prompt explicitly addressed that
+// group source photos are almost always POSED PORTRAITS (side-by-side,
+// facing camera, formal positioning), and that this composition is
+// the wrong template for almost every action scene. The model reads
+// the source's "two people side-by-side" as relationship information
+// to preserve, not as a portrait composition to discard.
+//
+// This pass adds an explicit BREAK-THE-PAIRING rule with concrete
+// directives: animate each person independently, distribute through
+// scene depth, mix gaze directions, mix postures. Reframes the source
+// from "the relationship template" to "two face references that
+// happen to be in the same image".
+const GROUP_PREAMBLE = `REFERENCE PHOTO CONTEXT: The reference photo contains multiple people. Use the photo as IDENTITY SIGNAL — read each person's distinct facial structure, features, complexion, and hair so you can render each individual recognisably in the new scene. Do NOT blend, average, or merge features between subjects; each person must remain a separate, individually-recognisable identity in the output. Pay special attention to distinguishing features (skin tone differences, face shapes, hair styles, facial hair, etc.).
+
+CRITICAL — IDENTITY ≠ EXPRESSION: The photo provides the IDENTITY of each face (bone structure, eye/nose/mouth shapes, skin tone, hair). It does NOT prescribe their EXPRESSIONS. Every face in the new scene must wear a brand NEW expression that fits the mood and energy of the scene — not the expression they happened to be making in the reference photo. Identity stays; expressions are reborn for the scene.
+
+CRITICAL — BREAK THE SOURCE'S POSED PAIRING (this is the most-common group failure mode):
+The reference photo is almost certainly a posed portrait — the people standing side-by-side, similar postures, both facing the camera, paired together as a unit. THIS COMPOSITION IS THE WRONG TEMPLATE for almost every scene. Treat the reference as TWO INDEPENDENT FACE REFERENCES that happen to be in the same image — NOT as a relationship blueprint to copy.
+
+For EVERY scene (Celebrait is action-only — see GAZE & FRAMING block in the scaffold):
+  - Animate each person INDEPENDENTLY. They are NOT a side-by-side matched pair.
+  - Distribute through scene depth and angle: one closer to camera, one further; one leaning into the moment, one upright; one in three-quarter view, one in profile. Variety in positioning is what sells the candid feel.
+  - Each person engages with the activity from their own angle: one looking at the cards, one looking at their partner; one stirring the pot, one chopping; one mid-laugh facing right, one tipping their head back. They are NOT both staring forward in unison.
+  - Each face wears a scene-appropriate expression independently — if one is mid-laugh with mouth open, the other might be mid-smile, or grinning at them, or focused on the activity. NOT identical expressions in lockstep.
+  - The source's side-by-side pose is to be DISCARDED for every scene. If you find yourself rendering two people standing or sitting paired-up facing the viewer, you have failed this rule.
+  - Even for "posed" sounding scene descriptions (couple at a landmark, anniversary balcony shot, family portrait): break the pairing, render as the captured action moment described in the GAZE & FRAMING block. There is no PHOTOGRAPH carve-out — Celebrait does not produce posed-portrait outputs.
+
+SCENE ENERGY (decide per scene — PUBLIC vs PRIVATE):
+
+First, classify the scene from the SCENE DESCRIPTION below.
+
+PUBLIC scenes — places where strangers are naturally present:
+  Examples: beach, bar, restaurant, marathon, concert, festival, park, market, gallery, club, gym, station, conference, wedding venue, holiday destination, sports stadium, street.
+  Behaviour: fill the environment with life — background figures enjoying the setting, ambient activity (other beachgoers, passing boats, street performers, fellow diners), warm atmospheric details (string lights, floating lanterns, drifting confetti, flying birds). Never empty or sterile.
+
+PRIVATE scenes — places where ONLY the people from the reference photo would naturally be present:
+  Examples: at home (kitchen, living room, bedroom, garden), an intimate dinner for two, blowing out birthday candles at home, opening Christmas presents on the sofa, reading by the fireplace, a quiet picnic for two in a remote spot, a hot tub at a private cabin, a candlelit bath, watching a film together at home, breakfast in bed.
+  Behaviour: ONLY render the people from the reference photo. NO background figures. NO ambient strangers, NO "fellow diners", NO "passers-by", NO "family in the background" who weren't in the photo. Atmospheric details (candles, fairy lights, fireplace glow, garden lanterns, plants, decor, presents under the tree) are still welcome — but no people who aren't the subjects.
+
+When the scene description is ambiguous, lean PRIVATE. Strangers showing up uninvited in an intimate moment ruins the card; an empty background in a public scene only feels muted.
 
 `;
 

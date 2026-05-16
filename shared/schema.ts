@@ -8,6 +8,7 @@ export * from "./models/photos";
 export * from "./models/card-draft";
 export * from "./models/studio-orders";
 export * from "./models/card-attempts";
+export * from "./models/address-book";
 
 import { users } from "./models/auth";
 
@@ -41,6 +42,51 @@ export const cards = pgTable("cards", {
    *  generation completes; populated thereafter. */
   selectedFrontAttemptId: integer("selected_front_attempt_id"),
   selectedInsideAttemptId: integer("selected_inside_attempt_id"),
+  /** Drop-off recovery email cadence (Comms PR2 → expanded 2026-05-10
+   *  to 3-touch sequence). Each stamp gates its own email — once set,
+   *  that email never fires again. Independent gates so the cron can
+   *  catch up if it missed days.
+   *
+   *  Cadence (per `recovery/dispatcher.ts`):
+   *    T+24h  → dropoffEmailSentAt    — gentle "still waiting" reminder
+   *    T+4d   → tweakEmailSentAt      — "want to tweak it?" — invites
+   *                                      iteration, takes pressure off
+   *                                      the buy
+   *    T+10d  → lastCallEmailSentAt   — soft urgency, "after this we'll
+   *                                      stop emailing about it"
+   *
+   *  After the last-call email, silence — the card stays in the user's
+   *  gallery but we don't keep nudging. Self-terminating cadence. */
+  dropoffEmailSentAt: timestamp("dropoff_email_sent_at"),
+  tweakEmailSentAt: timestamp("tweak_email_sent_at"),
+  lastCallEmailSentAt: timestamp("last_call_email_sent_at"),
+
+  /** Stamped the first time we surface a "your card is ready"
+   *  in-app notification to the sender — toast on a non-Studio page,
+   *  sidebar badge on dashboard, or the card-view mount itself.
+   *  NULL = still unseen / unread.
+   *
+   *  Independent of `dropoffEmailSentAt` & co: the email cadence is
+   *  about re-engaging a user who hasn't bought yet; this is about
+   *  the one-shot "your generation finished, here's the reveal"
+   *  moment. Both can fire for the same card.
+   *
+   *  Added 2026-05-13 alongside `/api/studio/notifications/*`. */
+  notifiedAt: timestamp("notified_at"),
+
+  // ── Failure metadata (Studio Safety UX, 2026-05-09) ──────────────
+  // Populated when generateStudioCard catches a ProviderError. Lets
+  // <GenerationErrorPanel> render kind-specific copy + suggestions
+  // instead of the old generic "didn't land" view. All null when
+  // status != 'failed'; cleared on retry (status → 'draft').
+  // See server/providers/errors.ts for the kind/code semantics.
+  failureKind: text("failure_kind"), // 'safety' | 'rate' | 'server' | 'auth' | 'unknown'
+  failureMessage: text("failure_message"), // human-friendly summary
+  failureModelExplanation: text("failure_model_explanation"), // raw from provider
+  failureProvider: text("failure_provider"), // e.g. 'openai', 'gemini-flash-2-5'
+  failureCode: text("failure_code"), // e.g. 'moderation_blocked'
+  failureSuggestions: jsonb("failure_suggestions").$type<string[]>(), // static per kind
+  failureAt: timestamp("failure_at"), // when the failure was persisted
 });
 
 export const orders = pgTable("orders", {
@@ -120,4 +166,11 @@ export type CardGridItem = {
    *  Drafts column to show a "Step X of 6 · Label" progress cue on
    *  draft rows. */
   draftStep: number | null;
+  /** True when the card is completed and the sender hasn't yet
+   *  acknowledged the "your card is ready" in-app notification.
+   *  Drives the subtle "Just finished" treatment on the Ready
+   *  dashboard tile. Flips to false once the user opens the card
+   *  view or dismisses the toast. Always false on drafts, sent
+   *  cards, or anything with a non-null notifiedAt. */
+  isJustFinished: boolean;
 };

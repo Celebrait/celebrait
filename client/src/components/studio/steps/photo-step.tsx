@@ -835,6 +835,12 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
           onCancel={cancelStaged}
           onConfirm={confirmCrop}
           autoFace={mode === 'one_person'}
+          // Group photos: drop the square lock. They're almost always
+          // wider than tall, and forcing 1:1 either cuts people off
+          // at the edges or shrinks everyone to fit. Single-person
+          // crops stay 1:1 — tight face crops survive the provider's
+          // downscale better.
+          aspect={mode === 'one_person' ? 1 : undefined}
         />
       </div>
     );
@@ -943,6 +949,9 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
         onCancel={cancelStaged}
         onConfirm={confirmCrop}
         autoFace={mode === 'one_person'}
+        // Group photos: free aspect (see the other CropDialog mount
+        // above for the rationale).
+        aspect={mode === 'one_person' ? 1 : undefined}
       />
 
       <PhotoLibraryDrawer

@@ -95,6 +95,9 @@ interface ProviderInfo {
   displayName: string;
   model: string;
   available: boolean;
+  /** True when this provider implements refine — used by EditPanel to
+   *  grey out providers that can't refine. */
+  supportsRefine: boolean;
   qualityOptions: Array<{
     value: string;
     label: string;
@@ -407,7 +410,16 @@ function SlotPanel({
               liveTemplateText={liveTemplateText}
               templateVersionLabel={isDraft ? 'draft' : selected.version}
               onRunComplete={appendRun}
-              frontRuns={runsBySlot['front_scene'] ?? []}
+              /* Aggregate front_scene runs across ALL variants. Front
+                 runs are stored under `front_scene::one_person`,
+                 `front_scene::multi_individual`, etc. — never under
+                 the bare slot key — so a hardcoded `runsBySlot['front_scene']`
+                 lookup was always empty, breaking the inside-card
+                 reference picker. Bug fix 2026-05-05. */
+              frontRuns={Object.entries(runsBySlot)
+                .filter(([key]) => key === 'front_scene' || key.startsWith('front_scene::'))
+                .flatMap(([, runs]) => runs)
+                .slice(0, 8)}
               versions={data.versions}
             />
 
@@ -1768,6 +1780,22 @@ function EditPanel({
   // Turn OFF only to debug the wrapper itself or to test what raw
   // instructions produce; this is PL-only territory.
   const [useScaffold, setUseScaffold] = useState(true);
+  // Provider selector for the refine call. Defaults to 'gemini' (Pro)
+  // since that's what Studio uses in production. The toggle exposes
+  // every registered provider that implements `refine` — currently
+  // both Gemini variants (Pro / Flash / Flash-2.5) and both OpenAI
+  // variants (gpt-image-1.5 / gpt-image-2). OpenAI's refine is a thin
+  // wrapper over /v1/images/edits so its quality vs Gemini differs;
+  // useful for A/B testing.
+  const [provider, setProvider] = useState<string>('gemini');
+
+  // Fetch the same provider list TestPanel uses so the refine toggle
+  // stays in sync with what's registered.
+  const { data: providersData } = useQuery<{ providers: ProviderInfo[] }>({
+    queryKey: ['/api/admin/prompts/providers'],
+  });
+  const providers = providersData?.providers ?? [];
+  const refineCapableProviders = providers.filter((p) => p.supportsRefine);
 
   const handleRefPhotoAdd = (files: FileList | null) => {
     const valid = filterToImageFiles(files);
@@ -1788,6 +1816,7 @@ function EditPanel({
         instruction,
         side,
         useScaffold,
+        provider,
         referencePhotos: refPhotos.length > 0 ? refPhotos.map((p) => p.base64) : undefined,
       });
       return res.json();
@@ -1813,13 +1842,48 @@ function EditPanel({
         onClick={() => setIsOpen(true)}
         className="text-[11px] text-violet-700 hover:underline mt-1"
       >
-        Edit this image (Gemini only)
+        Edit this image
       </button>
     );
   }
 
   return (
     <div className="mt-2 p-2 bg-stone-50 border border-stone-200 rounded space-y-2">
+      {/* Provider toggle — pick which engine runs the refine. All
+          registered providers with `supportsRefine` are listed; ones
+          that don't support refine are omitted entirely (rather than
+          disabled — saves UI noise). */}
+      {refineCapableProviders.length > 1 && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold mr-1">
+            Engine
+          </span>
+          {refineCapableProviders.map((p) => {
+            const isActive = provider === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => p.available && setProvider(p.id)}
+                disabled={!p.available}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${
+                  isActive
+                    ? 'bg-violet-600 text-white border-violet-600'
+                    : p.available
+                      ? 'bg-white text-stone-600 border-stone-200 hover:border-violet-400'
+                      : 'bg-stone-100 text-stone-400 border-stone-100 cursor-not-allowed'
+                }`}
+                data-testid={`refine-provider-${p.id}`}
+                title={p.available ? p.displayName : `${p.displayName} — no API key`}
+              >
+                {p.displayName}
+                {!p.available && ' (no key)'}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Side + scaffold controls — match Studio's regen behaviour
           when scaffold is ON (default); opt out to debug the wrapper
           itself. See server/prompts/refine-scaffolds.ts for the
@@ -2222,6 +2286,12 @@ function ProductionView() {
         </CardContent>
       </Card>
 
+      {/* Regen settings — controls the LIVE regen engine, separate from
+          per-slot generation config. Resolution chain in
+          background-generator.ts: side row → global row → env var →
+          'gemini' default. */}
+      <RegenSettingsCard providers={providers} />
+
       {slotVariants.map(({ slot, variant }) => (
         <ProductionSlotRow
           key={`${slot}::${variant ?? ''}`}
@@ -2231,6 +2301,246 @@ function ProductionView() {
           providers={providers}
         />
       ))}
+    </div>
+  );
+}
+
+// ─── Regen Settings Card ─────────────────────────────────────────────────────
+
+interface RegenSettingsRowDTO {
+  side: 'global' | 'front' | 'inside';
+  provider: string;
+  quality: string;
+  updatedAt: string;
+  updatedBy: string | null;
+}
+
+const REGEN_SIDE_LABELS: Record<RegenSettingsRowDTO['side'], string> = {
+  global: 'Global default',
+  front: 'Front override',
+  inside: 'Inside override',
+};
+
+const REGEN_SIDE_BLURBS: Record<RegenSettingsRowDTO['side'], string> = {
+  global: 'Applied to both front and inside regens unless overridden.',
+  front: 'Front-card regens use this engine. Falls back to global if blank.',
+  inside: 'Inside-card regens use this engine. Falls back to global if blank.',
+};
+
+function RegenSettingsCard({ providers }: { providers: ProviderInfo[] }) {
+  const { data, isLoading } = useQuery<{ rows: RegenSettingsRowDTO[] }>({
+    queryKey: ['/api/admin/prompts/regen-settings'],
+  });
+
+  const rows = data?.rows ?? [];
+  const refineCapable = providers.filter((p) => p.supportsRefine);
+
+  return (
+    <Card className="border-violet-200 bg-violet-50/30">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base font-semibold">
+            Regen settings
+          </CardTitle>
+          <span className="text-[11px] text-stone-500">
+            Resolution: side override → global → env var → default (gemini)
+          </span>
+        </div>
+        <p className="text-xs text-stone-600 mt-1">
+          Which engine handles live regen / refine on the Studio. Set
+          a Global default for both sides, or override Front / Inside
+          individually. Leave a side blank to inherit from Global.
+        </p>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="text-xs text-stone-500 py-2">Loading…</div>
+        ) : (
+          <div className="space-y-2">
+            {(['global', 'front', 'inside'] as const).map((side) => (
+              <RegenSettingsSideRow
+                key={side}
+                side={side}
+                row={rows.find((r) => r.side === side) ?? null}
+                providers={refineCapable}
+              />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function RegenSettingsSideRow({
+  side,
+  row,
+  providers,
+}: {
+  side: RegenSettingsRowDTO['side'];
+  row: RegenSettingsRowDTO | null;
+  providers: ProviderInfo[];
+}) {
+  const queryClient = useQueryClient();
+
+  const [provider, setProvider] = useState<string>(row?.provider ?? '');
+  const [quality, setQuality] = useState<string>(row?.quality ?? '');
+
+  // Re-sync when the server row changes (after save / clear).
+  useEffect(() => {
+    setProvider(row?.provider ?? '');
+    setQuality(row?.quality ?? '');
+  }, [row?.provider, row?.quality]);
+
+  const isSet = !!row;
+  const dirty = (provider || '') !== (row?.provider ?? '')
+    || (quality || '') !== (row?.quality ?? '');
+
+  const currentProvider = providers.find((p) => p.id === provider);
+  const qualityOptions = currentProvider?.qualityOptions ?? [];
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest(
+        'PUT',
+        `/api/admin/prompts/regen-settings/${side}`,
+        { provider, quality },
+      );
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['/api/admin/prompts/regen-settings'],
+      });
+      toast({
+        title: 'Regen settings saved',
+        description: `${REGEN_SIDE_LABELS[side]} → ${provider} (${quality})`,
+      });
+    },
+    onError: (err: Error) => {
+      toast({
+        title: 'Save failed',
+        description: err.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const clearMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest(
+        'PUT',
+        `/api/admin/prompts/regen-settings/${side}`,
+        {},
+      );
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['/api/admin/prompts/regen-settings'],
+      });
+      toast({
+        title: 'Regen override cleared',
+        description: `${REGEN_SIDE_LABELS[side]} reverted to fallback`,
+      });
+    },
+    onError: (err: Error) => {
+      toast({
+        title: 'Clear failed',
+        description: err.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  return (
+    <div className="bg-white border border-stone-200 rounded p-3">
+      <div className="flex items-baseline gap-2 mb-2">
+        <span className="text-xs font-semibold text-stone-700">
+          {REGEN_SIDE_LABELS[side]}
+        </span>
+        {isSet ? (
+          <span className="inline-flex items-center gap-1 text-[10px] text-violet-700 bg-violet-100 px-1.5 py-0.5 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+            Active
+          </span>
+        ) : side !== 'global' ? (
+          <span className="text-[10px] text-stone-400">
+            inherits from Global
+          </span>
+        ) : (
+          <span className="text-[10px] text-stone-400">unset → env / default</span>
+        )}
+        <span className="ml-auto text-[10px] text-stone-400">
+          {REGEN_SIDE_BLURBS[side]}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <div>
+          <Label className="text-[10px] text-stone-600">Provider</Label>
+          <select
+            value={provider}
+            onChange={(e) => {
+              setProvider(e.target.value);
+              // Reset quality when provider changes — quality options vary.
+              setQuality('');
+            }}
+            className="mt-0.5 w-full h-8 px-2 text-xs rounded border border-stone-300 bg-white"
+            data-testid={`regen-${side}-provider`}
+          >
+            <option value="">— pick a provider —</option>
+            {providers.map((p) => (
+              <option key={p.id} value={p.id} disabled={!p.available}>
+                {p.displayName}
+                {!p.available ? ' (no API key)' : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <Label className="text-[10px] text-stone-600">Quality</Label>
+          <select
+            value={quality}
+            onChange={(e) => setQuality(e.target.value)}
+            disabled={!provider}
+            className="mt-0.5 w-full h-8 px-2 text-xs rounded border border-stone-300 bg-white disabled:bg-stone-50"
+            data-testid={`regen-${side}-quality`}
+          >
+            <option value="">— pick quality —</option>
+            {qualityOptions.map((q) => (
+              <option key={q.value} value={q.value}>
+                {q.label} ({q.costDisplay})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-end gap-1.5">
+          <Button
+            size="sm"
+            disabled={!provider || !quality || !dirty || saveMutation.isPending}
+            onClick={() => saveMutation.mutate()}
+            className="text-xs h-8 flex-1"
+            data-testid={`regen-${side}-save`}
+          >
+            {saveMutation.isPending ? 'Saving…' : 'Save'}
+          </Button>
+          {isSet && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={clearMutation.isPending}
+              onClick={() => clearMutation.mutate()}
+              className="text-xs h-8"
+              data-testid={`regen-${side}-clear`}
+            >
+              {clearMutation.isPending ? '…' : 'Clear'}
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -33,6 +33,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { ContactShadows, OrbitControls, useTexture } from '@react-three/drei';
+import type { MotionValue } from 'framer-motion';
 import * as THREE from 'three';
 
 interface Card3DViewerProps {
@@ -56,6 +57,81 @@ interface Card3DViewerProps {
    *  this is lowered accordingly. Pass ~1.5 alongside framingMargin
    *  ≈ 1.1 for a zoomed-in landing. */
   minDistance?: number;
+  /** Slow auto-rotation around the card's vertical axis. Used by
+   *  ambient/decorative renderings (e.g. Studio empty-state hero,
+   *  marketing hero) where the card should feel alive without
+   *  demanding interaction. Default false. User drag still works
+   *  (drei OrbitControls pauses rotation while dragging and resumes
+   *  on release). */
+  autoRotate?: boolean;
+  /** Auto-rotation speed (drei OrbitControls units). Lower = slower.
+   *  Default 0.6, which is a gentle ~2 RPM. Only applies when
+   *  autoRotate is true. */
+  autoRotateSpeed?: number;
+  /** Override the auto-derived DOM hit-zone inset (in %).
+   *
+   *  By default the inset is derived from `framingMargin` so the hit
+   *  zone hugs the card with a small buffer. That works when the
+   *  outer wrapper's bounds match the card's visible footprint.
+   *
+   *  Some surfaces (e.g. recipient viewer card-viewer.tsx) wrap
+   *  Card3DViewer in a "bleed" container that extends way past the
+   *  visible card (so the card can rotate/zoom without clipping).
+   *  In that case the auto-derivation produces a hit zone too small
+   *  to cover the visible card — clicks on the card's edges miss.
+   *  Pass an explicit value to opt out: 0 = fill the wrapper entirely,
+   *  >0 = inset by that percentage.
+   *
+   *  This is the CLOSED-state hit zone size. When `open` is true, the
+   *  hit zone optionally expands per `openHitZoneInsetPercent` (below)
+   *  so clicks on the swung-out cover and inside spread also register. */
+  hitZoneInsetPercent?: number;
+  /** Hit zone inset (%) used when the card is OPEN. Defaults to the
+   *  same value as `hitZoneInsetPercent` (no change between states).
+   *  Set lower than the closed value when the card visibly grows
+   *  on opening — typically the marketing hero, where the cover
+   *  swings out and the inside spread occupies ~2× the closed
+   *  card's horizontal extent. The hit zone CSS-transitions
+   *  smoothly between the two states. */
+  openHitZoneInsetPercent?: number;
+  /** Disable mouse-wheel / pinch zoom. Default true (zoom enabled).
+   *  Used by static-display surfaces (e.g. marketing hero where the
+   *  card should sit at its mount framing without user re-zoom). */
+  enableZoom?: boolean;
+  /** Disable click-drag rotate. Default true (rotation enabled).
+   *  Pair with `enableZoom={false}` for a fully static display where
+   *  the only user gesture is the click-to-open hinge. */
+  enableRotate?: boolean;
+  /** Disable ALL pointer interaction with the card. Default true.
+   *  When `false`, the hit zone becomes `pointer-events: none` so:
+   *    - Click-to-open hinge no longer fires
+   *    - Drag/wheel/touch never capture (so vertical page scroll is
+   *      never hijacked by the card area)
+   *    - Cursor stays default (no `grab` affordance)
+   *  Used by surfaces that drive `open` externally (e.g. marketing
+   *  hero scroll-driven reveal). */
+  interactive?: boolean;
+  /** Continuous open progress as a framer-motion `MotionValue<number>`,
+   *  expected in [0, 1]. When provided, OVERRIDES the binary `open`
+   *  prop and drives the cover rotation directly with no spring
+   *  smoothing — the rotation tracks the motion value 1:1 each frame.
+   *  Useful for scroll-driven choreography where the cover should hug
+   *  scroll position without lag. The MotionValue is read inside
+   *  `useFrame` via `.get()` so React doesn't re-render per frame. */
+  openProgress?: MotionValue<number>;
+  /** Cover rotation when `open` is false. Default 0 (cover flush with
+   *  the card body). Set to a negative value (e.g. -0.5) to leave the
+   *  cover slightly ajar at rest so the inside is partially visible —
+   *  used on the marketing hero so first-time visitors get a hint of
+   *  what's inside without having to interact. Spring physics still
+   *  animate to/from this rest position when `open` toggles. */
+  closedAngle?: number;
+  /** Subtle floating hover on the card body — sine oscillation in y,
+   *  driven inside `useFrame` so it composes with cover rotation
+   *  cleanly. ContactShadows stay world-fixed (they're scene-level,
+   *  not parented to the card group), so the card visibly lifts off
+   *  its shadow as it bobs. Default false. */
+  hover?: boolean;
 }
 
 export function Card3DViewer({
@@ -67,6 +143,16 @@ export function Card3DViewer({
   onOpenChange,
   framingMargin = 2.0,
   minDistance = 2.7,
+  autoRotate = false,
+  autoRotateSpeed = 0.6,
+  hitZoneInsetPercent,
+  openHitZoneInsetPercent,
+  enableZoom = true,
+  enableRotate = true,
+  interactive = true,
+  openProgress,
+  closedAngle = 0,
+  hover = false,
 }: Card3DViewerProps) {
   const insideUrl = insideImageUrl ?? frontImageUrl;
   const [openState, setOpenState] = useState(false);
@@ -74,6 +160,38 @@ export function Card3DViewer({
   const setOpen = (next: boolean) => {
     if (openProp === undefined) setOpenState(next);
     onOpenChange?.(next);
+  };
+
+  // DOM-level tap-to-open detection on the hit zone div (Kevin call
+  // 2026-05-06: "It does not allow clicking all over the front and
+  // inside to open and close freely like it used to"). The R3F-based
+  // bubble-from-mesh path was unreliable — pointer events from the
+  // canvas synthetic-event system weren't always firing the group's
+  // onPointerDown/Up handlers. DOM events on the hit zone are simple
+  // and reliable. Drag detection: if pointer moves >4px between
+  // down and up, treat as drag (OrbitControls handles rotation), else
+  // treat as tap and toggle open. OrbitControls listens directly on
+  // the hit zone too (its domElement) so it still gets the events
+  // for rotation drag — these don't conflict.
+  const tapRef = useRef({ down: false, moved: false, x: 0, y: 0 });
+  const handleHitPointerDown = (e: React.PointerEvent) => {
+    tapRef.current = {
+      down: true,
+      moved: false,
+      x: e.clientX,
+      y: e.clientY,
+    };
+  };
+  const handleHitPointerMove = (e: React.PointerEvent) => {
+    if (!tapRef.current.down) return;
+    const dx = e.clientX - tapRef.current.x;
+    const dy = e.clientY - tapRef.current.y;
+    if (dx * dx + dy * dy > 16) tapRef.current.moved = true;
+  };
+  const handleHitPointerUp = () => {
+    const wasTap = tapRef.current.down && !tapRef.current.moved;
+    tapRef.current.down = false;
+    if (wasTap && interactive) setOpen(!open);
   };
 
   // Pointer events are funnelled through this hit-zone div instead of
@@ -87,18 +205,53 @@ export function Card3DViewer({
   //     passes through to page scroll. A central hit-zone div is
   //     pointer-events: auto and acts as the eventSource for r3f +
   //     the domElement for OrbitControls.
-  // Tuned at 56% × 56% (22% inset on each side). The card sits at
-  // ~50% of canvas at the default framingMargin (2.0), so this hit
-  // zone hugs it with only a ~3% buffer per side — close to "you
-  // have to actually be on the card" but with a small forgiving
-  // margin so corners stay grabbable.
   //
-  // Was 70% × 70% pre-2026-04-26; Kevin's feedback was that the
-  // looser zone was interrupting page scroll on touch devices —
-  // touches starting just outside the visible card were eaten by
-  // OrbitControls instead of passing through to the page. Tighter
-  // makes the affordance more legible AND restores scroll outside
-  // the card's actual footprint.
+  // Inset auto-derives from framingMargin (2026-04-28 fix — Kevin
+  // caught the empty-state hero bug "card only opens when clicked on
+  // the right"). Previous hardcoded 22% inset assumed margin=2.0; a
+  // tighter framing (e.g. margin=1.5 on the studio empty-state hero)
+  // makes the card visually larger than the 22% hit zone, so clicks
+  // on the card's outer edges fell outside the hit zone and the
+  // tap-to-open never fired.
+  //
+  // Formula:
+  //   cardFraction      = 1 / framingMargin   (approximate)
+  //   emptySpaceEachSide = (1 - cardFraction) / 2
+  //   insetPct          = max(2, (emptySpaceEachSide - 0.03) * 100)
+  //
+  // The 0.03 = 3% buffer trims into the card a touch so the hit zone
+  // doesn't extend past the card's silhouette + risk capturing page
+  // scroll on touch devices (the original 2026-04-26 fix). The
+  // max(2, …) clamps a hard floor — even at very tight framing
+  // (margin ≈ 1.0), keep at least 2% inset so the hit zone can't go
+  // edge-to-edge.
+  //
+  // Worked examples:
+  //   margin=2.0 → 22% inset (matches the original tuning)
+  //   margin=1.5 → 13.7% inset (used by studio empty-state hero)
+  //   margin=1.1 → 2% inset (zoomed-in landings)
+  const cardFraction = 1 / framingMargin;
+  const emptySpaceEachSide = (1 - cardFraction) / 2;
+  const autoInsetPct = Math.max(2, (emptySpaceEachSide - 0.03) * 100);
+  // Caller can override the auto-derived inset for surfaces where the
+  // outer wrapper extends past the visible card (e.g. card-viewer's
+  // bleed container). hitZoneInsetPercent={0} = full coverage.
+  const closedInsetPct =
+    typeof hitZoneInsetPercent === 'number'
+      ? Math.max(0, Math.min(45, hitZoneInsetPercent))
+      : autoInsetPct;
+  // Open-state inset — defaults to closed value (no change between
+  // states). Callers that need a wider hit zone when the card opens
+  // (because the cover swings out and the inside spread occupies more
+  // horizontal space) pass a smaller value here.
+  const openInsetPct =
+    typeof openHitZoneInsetPercent === 'number'
+      ? Math.max(0, Math.min(45, openHitZoneInsetPercent))
+      : closedInsetPct;
+  // Active inset switches with `open` state. Width transitions
+  // smoothly via CSS so the hit-zone bounds animate alongside the
+  // cover's spring rotation rather than snapping.
+  const hitZoneInsetPct = open ? openInsetPct : closedInsetPct;
   const [hitEl, setHitEl] = useState<HTMLDivElement | null>(null);
 
   return (
@@ -140,6 +293,13 @@ export function Card3DViewer({
           framingMargin={framingMargin}
           minDistance={minDistance}
           orbitDomElement={hitEl ?? undefined}
+          autoRotate={autoRotate}
+          autoRotateSpeed={autoRotateSpeed}
+          enableZoom={enableZoom}
+          enableRotate={enableRotate}
+          openProgress={openProgress}
+          closedAngle={closedAngle}
+          hover={hover}
         />
       </Canvas>
       {/* The hit zone — invisible, sits over roughly the card's visible
@@ -149,15 +309,56 @@ export function Card3DViewer({
       <div
         ref={setHitEl}
         aria-hidden
+        onPointerDown={handleHitPointerDown}
+        onPointerMove={handleHitPointerMove}
+        onPointerUp={handleHitPointerUp}
         style={{
+          // Hit zone is a CENTRED SQUARE inside the bleed wrapper.
+          //
+          // Was previously inset by `hitZoneInsetPercent` on each
+          // edge, which produced a rectangle when the bleed wrapper
+          // wasn't square (which it almost never is — the marketing
+          // hero's bleed extends ±35vw horizontally and ±30vh
+          // vertically, giving a ~1.6:1 wrapper aspect). That
+          // rectangle covered the card's left/right edges but missed
+          // the top/bottom — clicks there fell through to page scroll
+          // and the card didn't open. The "tap zone is super right"
+          // bug.
+          //
+          // Now the hit zone is sized as a percentage of the wrapper
+          // WIDTH and locked to a 1:1 aspect ratio via `aspectRatio`,
+          // centred via top/left 50% + translate. The size is derived
+          // from the existing `hitZoneInsetPercent` to preserve the
+          // tuning surface: inset=30% → size 40% of wrapper width.
+          //
+          // Interaction-mode rules (unchanged) still apply:
+          //   - interactive=false → inert (no events captured)
+          //   - tap-only (rotate=false && zoom=false) → pointer-events
+          //     on but touch-action: pan-y so vertical page scroll
+          //     started on the card area still works on touch
+          //   - full interactive → events on, touch-action: none for
+          //     OrbitControls drag/wheel/pinch
           position: 'absolute',
-          top: '22%',
-          left: '22%',
-          right: '22%',
-          bottom: '22%',
-          pointerEvents: 'auto',
-          touchAction: 'none', // inside the card area, intercept gestures
-          cursor: 'grab',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: `${(100 - 2 * hitZoneInsetPct).toFixed(2)}%`,
+          aspectRatio: '1 / 1',
+          // Smooth width transition between closed/open hit zones.
+          // ~500ms tracks the cover spring rotation roughly so the
+          // hit-zone bounds grow alongside the visible open spread.
+          transition: 'width 0.5s ease-out',
+          pointerEvents: interactive ? 'auto' : 'none',
+          touchAction: !interactive
+            ? 'auto'
+            : !enableRotate && !enableZoom
+              ? 'pan-y'
+              : 'none',
+          cursor: !interactive
+            ? 'default'
+            : !enableRotate && !enableZoom
+              ? 'pointer'
+              : 'grab',
         }}
         data-testid="card-3d-hit-zone"
       />
@@ -175,6 +376,13 @@ function Scene({
   framingMargin,
   minDistance,
   orbitDomElement,
+  autoRotate,
+  autoRotateSpeed,
+  enableZoom,
+  enableRotate,
+  openProgress,
+  closedAngle,
+  hover,
 }: {
   frontUrl: string;
   insideUrl: string;
@@ -183,11 +391,18 @@ function Scene({
   onOpenChange: (open: boolean) => void;
   framingMargin: number;
   minDistance: number;
+  enableZoom: boolean;
+  enableRotate: boolean;
   /** When set, OrbitControls listens for wheel/drag/touch events on
    *  this DOM element instead of the WebGL canvas. Used so events
    *  only fire when the user is on the card hit-zone, not the empty
    *  bleed around it. */
   orbitDomElement?: HTMLElement;
+  autoRotate: boolean;
+  autoRotateSpeed: number;
+  openProgress?: MotionValue<number>;
+  closedAngle: number;
+  hover: boolean;
 }) {
   return (
     <>
@@ -230,6 +445,9 @@ function Scene({
         backCredit={backCredit}
         open={open}
         onOpenChange={onOpenChange}
+        openProgress={openProgress}
+        closedAngle={closedAngle}
+        hover={hover}
       />
 
       {/* Ground shadow — two layers. The soft broad layer reads as
@@ -258,7 +476,8 @@ function Scene({
         makeDefault
         target={[0, 0, 0]}
         enablePan={false}
-        enableZoom={true}
+        enableZoom={enableZoom}
+        enableRotate={enableRotate}
         enableDamping
         dampingFactor={0.08}
         // domElement set to the parent's hit-zone div so wheel/drag
@@ -270,6 +489,12 @@ function Scene({
         maxDistance={6}
         minPolarAngle={Math.PI / 3}
         maxPolarAngle={Math.PI - Math.PI / 3}
+        // Auto-rotation for ambient/decorative renderings (e.g. empty-state
+        // hero). drei pauses rotation while the user actively drags and
+        // resumes shortly after release — feels alive without fighting
+        // user intent.
+        autoRotate={autoRotate}
+        autoRotateSpeed={autoRotateSpeed}
       />
     </>
   );
@@ -370,12 +595,18 @@ function Card({
   backCredit,
   open,
   onOpenChange,
+  openProgress,
+  closedAngle,
+  hover,
 }: {
   frontUrl: string;
   insideUrl: string;
   backCredit: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  openProgress?: MotionValue<number>;
+  closedAngle: number;
+  hover: boolean;
 }) {
   const { gl } = useThree();
   const maxAnisotropy = useMemo(() => gl.capabilities.getMaxAnisotropy(), [gl]);
@@ -415,19 +646,57 @@ function Card({
     y: 0,
   });
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     if (!rootRef.current || !coverRef.current) return;
-
-    const targetRotY = open ? OPEN_REST : CLOSED_REST;
     const cover = coverRef.current;
+    const root = rootRef.current;
+
+    // Hover bob — sine oscillation in y, applied to the card's root
+    // group. ContactShadows live at scene level (not parented to this
+    // group), so the card visibly lifts off its shadow as it bobs,
+    // which sells the "floating above the surface" feel without
+    // animating the shadow itself. Amplitude/frequency tuned subtle
+    // (~3% of card width over a ~7s loop) so it reads as "alive" not
+    // "fidgeting".
+    if (hover) {
+      const t = state.clock.getElapsedTime();
+      root.position.y = Math.sin(t * 0.9) * 0.04;
+    } else if (root.position.y !== 0) {
+      root.position.y = 0;
+    }
+
+    // Continuous-progress branch (e.g. scroll-driven choreography).
+    // When an `openProgress` MotionValue is provided, drive the cover
+    // rotation directly with no spring smoothing — the cover hugs the
+    // motion value 1:1 each frame so it responds to scroll without lag.
+    // `.get()` reads the current value WITHOUT subscribing this
+    // component to per-frame React re-renders.
+    if (openProgress) {
+      const raw = openProgress.get();
+      const p = raw < 0 ? 0 : raw > 1 ? 1 : raw;
+      cover.rotation.y = p * OPEN_REST;
+      coverVelocity.current = 0;
+      return;
+    }
+
+    // Binary open/close branch — spring physics for the click-to-open
+    // surfaces (studio review, public viewer). Stiff + slightly damped
+    // so the open feels theatrical without overshooting too far.
+    //
+    // Rest target is `closedAngle` (default 0 = flush) so callers can
+    // park the cover slightly ajar for a "peek inside" preview without
+    // changing how `open=true` is interpreted.
+    const targetRotY = open ? OPEN_REST : closedAngle;
     const stiffness = 70;
     const damping = 14;
     const accel = (targetRotY - cover.rotation.y) * stiffness - coverVelocity.current * damping;
     const dt = Math.min(delta, 1 / 30);
     coverVelocity.current += accel * dt;
     let nextRotY = cover.rotation.y + coverVelocity.current * dt;
-    if (nextRotY > CLOSED_REST) {
-      nextRotY = CLOSED_REST;
+    // Clamp on the closed side so the cover never tries to swing past
+    // its rest angle in the wrong direction.
+    if (nextRotY > closedAngle) {
+      nextRotY = closedAngle;
       coverVelocity.current = 0;
     }
     cover.rotation.y = nextRotY;
@@ -454,28 +723,19 @@ function Card({
   };
 
   return (
+    // Pointer handlers REMOVED from this group 2026-05-06 (Kevin
+    // call: tap-to-open wasn't firing reliably). Click detection
+    // moved up to the parent's hit-zone DIV via DOM PointerEvents
+    // — simpler, more reliable, no R3F synthetic-event bubble
+    // chain to fail. OrbitControls (still on `domElement={hitEl}`)
+    // continues to handle drag-to-rotate independently.
     <group ref={rootRef} position={[0, 0, 0]}>
-      {/* Invisible tap-to-open proxy. Sits at z=0.05 (in front of the
-          cover) so raycasts hit it first, regardless of which face
-          the cover currently shows. Sized generously — CARD_W*2 ×
-          CARD_H*2 — so a click anywhere within the visual card (plus
-          a healthy buffer for camera perspective + drop-shadow) lands
-          on the proxy and fires handlePointerUp.
-
-          Was 1.3×1.15 (asymmetric, narrow) until 2026-04-27 — Kevin
-          caught it as "card only opens when I click on the right".
-          The proxy was just barely bigger than the card mesh on the
-          x-axis, so a click landing in the buffer between the card's
-          visual edge and the proxy's edge fell through to whatever
-          was behind (or to OrbitControls' drag start). Doubling it
-          gives a clean, symmetric tap target with margin. */}
-      <mesh
-        position={[0, 0, 0.05]}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-      >
-        <planeGeometry args={[CARD_W * 2, CARD_H * 2]} />
+      {/* Invisible tap-to-open BACKUP. The mesh stays for autoRotate
+          / orbit angles where the visible card faces become edge-on
+          and stop receiving raycasts (Kevin's 2026-04-28 fix).
+          Pointer handlers removed — events bubble to the group above. */}
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[CARD_W * 2, CARD_H * 2, 0.4]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
@@ -503,7 +763,9 @@ function Card({
       <group
         ref={coverRef}
         position={[-CARD_W / 2, 0, 0]}
-        rotation={[0, CLOSED_REST, 0]}
+        /* Start at the caller's `closedAngle` rest so the cover
+           doesn't briefly animate from 0 → closedAngle on mount. */
+        rotation={[0, closedAngle, 0]}
       >
         <mesh position={[CARD_W / 2, 0, 0]} geometry={cardGeom} castShadow receiveShadow>
           <meshStandardMaterial map={frontTex} roughness={0.9} side={THREE.DoubleSide} />

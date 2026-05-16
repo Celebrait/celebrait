@@ -18,12 +18,28 @@ export const sessions = pgTable(
 // supported login path is the OTP (email code) flow in
 // server/replit_integrations/auth/routes.ts. The `is_admin` column drives
 // back-office access — flip it via scripts/make-admin.ts.
+//
+// `portraitPhotoId` (added 2026-04-28) points at the user's portrait
+// photo in the photos library. Captured at first Studio visit alongside
+// firstName per `next_sender_photo_on_signup.md`. Used in:
+//   • the From: line + signed credit on the back of every card the
+//     user makes
+//   • the "From me to you" photo mode (sender-in-photo) once that ships
+// Nullable: legacy users + users who skip the capture flow fall back to
+// the plain "Made with Celebrait" wordmark on card backs.
+//
+// NB: deliberately a plain integer column (not a Drizzle .references())
+// to avoid a circular import with photos.ts — photos already references
+// users, so the inverse FK has to be plain. Application-level integrity
+// check is sufficient since this column is set/cleared only via the
+// capture flow.
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  portraitPhotoId: integer("portrait_photo_id"),
   isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

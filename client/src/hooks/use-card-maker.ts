@@ -32,6 +32,19 @@ export interface CardAttemptDTO {
   createdAt: string;
 }
 
+/** Failure metadata returned by GET /api/studio/drafts/:id when
+ *  status === 'failed'. Mirrors the columns persisted by
+ *  generateStudioCard's catch block. Null when not failed.
+ *  Drives <GenerationErrorPanel>'s kind-specific copy. */
+export interface DraftFailureDTO {
+  kind: string | null; // 'safety' | 'rate' | 'server' | 'auth' | 'unknown'
+  message: string | null;
+  modelExplanation: string | null;
+  provider: string | null;
+  code: string | null;
+  suggestions: string[] | null;
+}
+
 interface DraftResponse {
   id: number;
   status: string | null;
@@ -40,6 +53,7 @@ interface DraftResponse {
   createdAt: string | null;
   state: CardDraftState;
   attempts?: CardAttemptDTO[];
+  failure?: DraftFailureDTO | null;
 }
 
 interface UseCardMakerOptions {
@@ -102,6 +116,11 @@ interface UseCardMakerResult {
    *  Pure pointer flip, no generation. */
   selectAttempt: (attemptId: number) => Promise<void>;
 
+  /** Failure metadata when status === 'failed'. Null otherwise.
+   *  Drives <GenerationErrorPanel>'s kind-specific copy + suggestions
+   *  on the initial-gen failure path. Cleared on retry. */
+  failure: DraftFailureDTO | null;
+
   /** Number of the current step (0-indexed). */
   currentStep: number;
   /** Total step count. Useful for progress UI. */
@@ -124,6 +143,7 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
   const [isStartingGeneration, setIsStartingGeneration] = useState(false);
   const [attempts, setAttempts] = useState<CardAttemptDTO[]>([]);
   const [isRegenerating, setIsRegenerating] = useState<CardSide | null>(null);
+  const [failure, setFailure] = useState<DraftFailureDTO | null>(null);
 
   // Keep a live mirror of state so the debounced save can read the
   // latest value when its timer fires (avoids stale-closure bugs).
@@ -162,6 +182,7 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
           setFrontImageUrl(data.frontImageUrl);
           setInsideImageUrl(data.insideImageUrl);
           setAttempts(data.attempts ?? []);
+          setFailure(data.failure ?? null);
           setIsLoading(false);
         }
       } catch (err: any) {
@@ -199,6 +220,7 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
         setFrontImageUrl(data.frontImageUrl);
         setInsideImageUrl(data.insideImageUrl);
         setAttempts(data.attempts ?? []);
+        setFailure(data.failure ?? null);
         // Also refresh state so any server-side post-processing that
         // modified conversationData (future-proofing) is reflected.
         setState(data.state);
@@ -308,22 +330,55 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
   }, [cardId, runSave]);
 
   // ── Regen ────────────────────────────────────────────────────────
+  // The server-side regen route changed 2026-05-15 to return the new
+  // attemptId IMMEDIATELY (after creating the row in 'generating'
+  // state), with the actual generation running in a background promise
+  // on the server. So we can't await the POST and assume "done" —
+  // we have to poll the draft until the new attempt's status flips
+  // off 'generating'.
+  //
+  // Spinner state (`isRegenerating`) stays true for the whole poll
+  // loop, naturally bracketing the real gen duration rather than the
+  // (now-fast) API request lifetime.
+  const REGEN_POLL_INTERVAL_MS = 2000;
+  const REGEN_POLL_TIMEOUT_MS = 8 * 60 * 1000; // hard ceiling — gpt-image-2 high quality is ~5 min worst case
   const regenerate = useCallback(
     async (side: CardSide, tweak?: string): Promise<void> => {
       setIsRegenerating(side);
+      const startedAt = Date.now();
       try {
         await apiRequest('POST', `/api/studio/drafts/${cardId}/regenerate`, {
           side,
           tweak: tweak?.trim() || undefined,
         });
-        // Re-load: the new attempt is now the selected one and
-        // cards.{front|inside}ImageUrl points at it.
-        const data = await loadDraft();
-        if (data) {
-          setFrontImageUrl(data.frontImageUrl);
-          setInsideImageUrl(data.insideImageUrl);
-          setAttempts(data.attempts ?? []);
-          setStatus(data.status);
+
+        // Poll until no attempt is in 'generating' state. The new
+        // attempt was created server-side BEFORE the route returned,
+        // so the very next loadDraft() call should see it as
+        // 'generating'. We continue until it flips to 'completed' or
+        // 'failed' (both terminal states).
+        while (true) {
+          const data = await loadDraft();
+          if (data) {
+            setFrontImageUrl(data.frontImageUrl);
+            setInsideImageUrl(data.insideImageUrl);
+            setAttempts(data.attempts ?? []);
+            setFailure(data.failure ?? null);
+            setStatus(data.status);
+          }
+          const stillGenerating =
+            data?.attempts?.some((a) => a.status === 'generating') ?? false;
+          if (!stillGenerating) break;
+          if (Date.now() - startedAt > REGEN_POLL_TIMEOUT_MS) {
+            // Defensive cap — if we get here something has gone
+            // seriously sideways server-side. Stop spinning forever;
+            // the user can refresh / try again.
+            console.warn(
+              `[use-card-maker] regen poll timed out after ${REGEN_POLL_TIMEOUT_MS}ms — bailing.`,
+            );
+            break;
+          }
+          await new Promise((r) => setTimeout(r, REGEN_POLL_INTERVAL_MS));
         }
         queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
       } finally {
@@ -347,6 +402,7 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
         setFrontImageUrl(data.frontImageUrl);
         setInsideImageUrl(data.insideImageUrl);
         setAttempts(data.attempts ?? []);
+        setFailure(data.failure ?? null);
       }
       queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
     },
@@ -384,6 +440,7 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
     isRegenerating,
     regenerate,
     selectAttempt,
+    failure,
     currentStep: state.step ?? 0,
     totalSteps,
   };

@@ -2,20 +2,70 @@
 //
 // Email transport + all Studio-era templates.
 //
-// Phase 1 (Sprint 4) flow:
-//   - Recipient: gets a "card has arrived" email when a sender's
-//     digital order is marked paid.
-//   - Sender: gets an order-confirmation email at the same moment.
-//   - Sender: gets a "they've opened it" email the first time the
-//     recipient opens the tokenised share link.
+// Studio comms PR1 (2026-04-28) — full sweep of every email the
+// Studio sends. See memory note `next_studio_comms_plan.md` for the
+// product reasoning behind each template's tone and trigger.
 //
-// Plus auth OTP + a generation-failed error notification.
-// Everything else from the pre-Studio era (marketing list, signup
-// welcome, card-preview, abandonment recovery, shipping updates) was
-// wiped on 2026-04-21 when the Studio flow became the only path.
+// Templates currently wired:
+//   • sendOtpEmail                    — auth (login code)
+//   • sendCardReadyEmail              — sender, card finished generating
+//   • sendGenerationFailedEmail       — sender, gen errored
+//   • sendRecipientCardArrivedEmail   — recipient, paid digital order
+//   • sendSenderOrderConfirmedEmail   — sender, payment confirmed
+//   • sendSenderCardOpenedEmail       — sender, recipient opened the card
+//   • sendSenderPrintShippedEmail     — sender, printer dispatched
+//   • sendSenderPrintDeliveredEmail   — sender, courier delivered
+//
+// Conventions across all sender/recipient templates:
+//   • Subject lines name the recipient where we have it. No emojis.
+//   • The recipient email is "delivery, not marketing" — short body,
+//     one CTA. From-name is personalised ("{Sender} via Celebrait").
+//     Reply-To is the SENDER'S email so a reply lands with them, not us.
+//   • Sender emails feel warm but practical.
+//   • Single chassis (logo header · body · CTA · footer). Hand-written
+//     HTML kept inline so we don't fight Brevo's template editor —
+//     transport is plain SMTP via Brevo relay.
 
 import * as brevo from '@getbrevo/brevo';
 import nodemailer from 'nodemailer';
+import { AsyncLocalStorage } from 'node:async_hooks';
+
+// ── Preview capture (admin email tester) ──────────────────────────────
+// Lets `/admin/emails` render any template's HTML without sending it
+// to Brevo. AsyncLocalStorage gives us a request-scoped capture cell —
+// when a preview request runs a template inside renderEmailForPreview(),
+// the inner sendEmail() call drops its parts into the cell instead of
+// firing SMTP. No template signature changes needed; the existing
+// send*Email() functions work unmodified for both real sends and
+// previews.
+//
+// Race-safe: each request gets its own AsyncLocalStorage context, so
+// concurrent previews don't see each other's captures.
+
+interface PreviewCapture {
+  subject: string;
+  html: string;
+  text: string;
+  to: string;
+}
+
+interface PreviewCell {
+  captured: PreviewCapture | null;
+}
+
+const previewStorage = new AsyncLocalStorage<PreviewCell>();
+
+/** Run a template inside a preview context — sendEmail() will skip
+ *  SMTP and stash the rendered parts in the cell instead. Returns
+ *  whatever the template captured (or null if the template never
+ *  reached sendEmail). */
+export async function renderEmailForPreview(
+  fn: () => Promise<unknown>,
+): Promise<PreviewCapture | null> {
+  const cell: PreviewCell = { captured: null };
+  await previewStorage.run(cell, fn);
+  return cell.captured;
+}
 
 // Transport — SMTP preferred (bypasses Brevo API IP restrictions on
 // some hosts), falls back to the Brevo API.
@@ -43,10 +93,19 @@ apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, brevoApiKey);
 
 const FROM_EMAIL = 'greetings@celebrait.co.za';
 const FROM_NAME = 'Celebrait';
+const PUBLIC_ORIGIN = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.za';
 
 interface EmailParams {
   to: string;
+  /** Override the From: address (rare — defaults to FROM_EMAIL). */
   from?: string;
+  /** Override the From: display name. Used for the recipient email so
+   *  the inbox shows "{Sender} via Celebrait" rather than just
+   *  "Celebrait". Falls back to FROM_NAME. */
+  fromName?: string;
+  /** Override the Reply-To header. Used for the recipient email so
+   *  Mum's reply lands in her son's inbox, not Celebrait support. */
+  replyTo?: string;
   subject: string;
   text?: string;
   html?: string;
@@ -54,18 +113,35 @@ interface EmailParams {
 }
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
+  // Preview short-circuit — when running inside renderEmailForPreview(),
+  // capture the rendered parts into the request-scoped cell and skip
+  // SMTP entirely. Returns true so the caller's existing happy-path
+  // logic still runs (e.g. column stamps, log lines).
+  const cell = previewStorage.getStore();
+  if (cell) {
+    cell.captured = {
+      subject: params.subject,
+      html: params.html ?? '',
+      text: params.text ?? '',
+      to: params.to,
+    };
+    return true;
+  }
+
   const from = params.from ?? FROM_EMAIL;
+  const fromName = params.fromName ?? FROM_NAME;
   try {
     const transporter = createSmtpTransporter();
     if (!transporter) {
-      return sendEmailViaBrevoApi({ ...params, from });
+      return sendEmailViaBrevoApi({ ...params, from, fromName });
     }
     const mailOptions: any = {
-      from: `"${FROM_NAME}" <${from}>`,
+      from: `"${fromName}" <${from}>`,
       to: params.to,
       subject: params.subject,
       text: params.text || 'Email content is available in HTML format.',
     };
+    if (params.replyTo) mailOptions.replyTo = params.replyTo;
     if (params.html) mailOptions.html = params.html;
     if (params.attachments?.length) {
       mailOptions.attachments = params.attachments.map((a) => ({
@@ -87,7 +163,13 @@ async function sendEmailViaBrevoApi(params: EmailParams): Promise<boolean> {
   try {
     const msg = new brevo.SendSmtpEmail();
     msg.to = [{ email: params.to }];
-    msg.sender = { email: params.from ?? FROM_EMAIL, name: FROM_NAME };
+    msg.sender = {
+      email: params.from ?? FROM_EMAIL,
+      name: params.fromName ?? FROM_NAME,
+    };
+    if (params.replyTo) {
+      msg.replyTo = { email: params.replyTo };
+    }
     msg.subject = params.subject;
     msg.textContent = params.text || 'Email content is available in HTML format.';
     if (params.html) msg.htmlContent = params.html;
@@ -105,6 +187,74 @@ async function sendEmailViaBrevoApi(params: EmailParams): Promise<boolean> {
     console.error('[EMAIL] Brevo API error:', error?.message || error);
     return false;
   }
+}
+
+// ── Shared chassis ──────────────────────────────────────────────────
+// All sender/recipient templates use the same outer table layout so
+// they read as one product. Pass the inner block via `bodyHtml`.
+function chassis(opts: {
+  preheader: string;
+  bodyHtml: string;
+  /** Optional CTA button rendered after bodyHtml. */
+  cta?: { label: string; href: string };
+  /** Optional secondary line under the CTA (e.g. tracking ref). */
+  postCtaHtml?: string;
+}): string {
+  const ctaHtml = opts.cta
+    ? `
+        <tr>
+          <td style="padding: 8px 40px 8px 40px;" align="center">
+            <a href="${escape(opts.cta.href)}" style="display: inline-block; background: #7a76e8; color: #ffffff; font-weight: 600; font-size: 15px; text-decoration: none; padding: 14px 36px; border-radius: 10px;">
+              ${escape(opts.cta.label)} &rarr;
+            </a>
+          </td>
+        </tr>`
+    : '';
+  const postCtaBlock = opts.postCtaHtml
+    ? `
+        <tr>
+          <td style="padding: 16px 40px 0 40px; color: #475569; font-size: 14px; line-height: 1.6;">
+            ${opts.postCtaHtml}
+          </td>
+        </tr>`
+    : '';
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+      </head>
+      <body style="margin: 0; padding: 0; background: #fafaf9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;">
+        <span style="display: none !important; visibility: hidden; opacity: 0; color: transparent; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; overflow: hidden;">${escape(opts.preheader)}</span>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #fafaf9;">
+          <tr>
+            <td align="center" style="padding: 48px 24px;">
+              <table role="presentation" width="520" cellspacing="0" cellpadding="0" border="0" style="max-width: 520px; background: #ffffff; border-radius: 20px; box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);">
+                <tr>
+                  <td style="padding: 40px 40px 0 40px; text-align: center;">
+                    <span style="font-size: 22px; font-weight: 700; color: #7a76e8; letter-spacing: -0.01em;">Celebrait</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 32px 40px 16px 40px; color: #0f172a; font-size: 16px; line-height: 1.7;">
+                    ${opts.bodyHtml}
+                  </td>
+                </tr>
+                ${ctaHtml}
+                ${postCtaBlock}
+                <tr>
+                  <td style="padding: 32px 40px 40px 40px; color: #94a3b8; font-size: 13px;">
+                    — Celebrait
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
 }
 
 // ── OTP (auth) ───────────────────────────────────────────────────────
@@ -145,32 +295,84 @@ function otpHtml(code: string): string {
   `;
 }
 
+// ── Card ready (sender) ─────────────────────────────────────────────
+// Fired when generation completes successfully. Plugs the "user
+// navigated away during the ~45s wait" gap — without this email, the
+// success path was silent. Biggest single conversion lever in the
+// Studio funnel.
+export async function sendCardReadyEmail(params: {
+  senderEmail: string;
+  senderName: string | null;
+  recipientName: string | null;
+  occasion: string | null;
+  cardId: number;
+}): Promise<boolean> {
+  const { senderEmail, senderName, recipientName, occasion, cardId } = params;
+
+  const subjectSubject = recipientName
+    ? `${recipientName}'s ${occasion ?? ''} card is ready`.replace(/\s+/g, ' ').trim()
+    : 'Your card is ready';
+
+  const greeting = senderName ? `Hi ${escape(senderName)},` : 'Hi there,';
+  const recipientClause = recipientName
+    ? `${escape(recipientName)}'s ${escape(occasion ?? '')} card`.replace(/\s+/g, ' ').trim()
+    : 'Your card';
+
+  const body = `
+    <p style="margin: 0 0 16px;">${greeting}</p>
+    <p style="margin: 0 0 16px;">
+      ${recipientClause} just finished rendering. Have a look — if it's right, it's ready to send. If something's a touch off, you can tweak any part of it without starting over.
+    </p>
+    <p style="margin: 0 0 8px;">
+      Take your time. Cards are kept in your gallery.
+    </p>
+  `;
+
+  const cardUrl = `${PUBLIC_ORIGIN}/studio/card/${cardId}`;
+  const html = chassis({
+    preheader: 'Have a look — buy it as is, or tweak before you send.',
+    bodyHtml: body,
+    cta: { label: 'View your card', href: cardUrl },
+  });
+
+  const text =
+    `${senderName ? `Hi ${senderName},\n\n` : ''}` +
+    `${recipientClause} just finished rendering. Have a look — if it's right, it's ready to send. If something's a touch off, you can tweak any part of it without starting over.\n\n` +
+    `View your card: ${cardUrl}\n\n` +
+    `Take your time. Cards are kept in your gallery.\n\n— Celebrait`;
+
+  return sendEmail({ to: senderEmail, subject: subjectSubject, html, text });
+}
+
 // ── Generation failure (error notification to sender) ────────────────
+// Polished 2026-04-28 — was overly transparent ("AI provider's safety
+// system"); reframed as a warmer, less technical "it happens".
 export async function sendGenerationFailedEmail(
   userEmail: string,
   userName: string,
   cardId: number,
 ): Promise<void> {
   try {
+    const greeting = userName ? `Hi ${escape(userName)},` : 'Hi there,';
+    const body = `
+      <p style="margin: 0 0 16px;">${greeting}</p>
+      <p style="margin: 0 0 16px;">
+        Something tripped up the render mid-flow. It happens occasionally — usually a photo it wasn't sure how to read.
+      </p>
+      <p style="margin: 0 0 16px;">
+        A different shot, or just retrying the same one, almost always clears it. You weren't charged.
+      </p>
+    `;
+    const retryUrl = `${PUBLIC_ORIGIN}/studio/card/${cardId}/edit`;
+    const html = chassis({
+      preheader: "It happens. A different photo usually clears it.",
+      bodyHtml: body,
+      cta: { label: 'Try again', href: retryUrl },
+    });
     await sendEmail({
       to: userEmail,
-      subject: 'We hit a snag with your Celebrait card',
-      html: `
-        <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background: #fff;">
-          <h2 style="color: #5c57d4; margin: 0 0 16px;">Hi ${escape(userName) || 'there'},</h2>
-          <p style="color: #374151; line-height: 1.6;">
-            We ran into a problem generating your card (#${cardId}). This sometimes
-            happens when our AI provider's safety system is overly cautious about
-            an uploaded photo.
-          </p>
-          <p style="color: #374151; line-height: 1.6;">
-            <strong>What to do:</strong> head back to Celebrait and try again — a
-            different photo usually clears it.
-          </p>
-          <a href="https://celebrait.co.za" style="display: inline-block; margin-top: 20px; padding: 12px 28px; background: #7a76e8; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 600;">Try again</a>
-          <p style="color: #9ca3af; font-size: 13px; margin-top: 24px;">You weren't charged.</p>
-        </div>
-      `,
+      subject: 'Your card hit a snag — your spot is held',
+      html,
     });
   } catch (err) {
     console.error('[EMAIL] generation-failed notification failed:', err);
@@ -179,95 +381,83 @@ export async function sendGenerationFailedEmail(
 
 // ── Recipient: "A card has arrived for you" ──────────────────────────
 // Sent the moment a sender's digital order is marked paid. This is
-// the recipient's FIRST contact with the Celebrait brand — the
-// copy has to land emotionally, not read as a SaaS notification.
-// See HERO_CARD.md for the brand positioning we're carrying through.
+// the recipient's FIRST contact with the Celebrait brand — copy lands
+// emotionally, not as a SaaS notification.
+//
+// 2026-04-28 polish:
+//   • From-name: "{Sender} via Celebrait" (was just "Celebrait")
+//   • Reply-To: SENDER'S email (was greetings@celebrait.co.za) so a
+//     reply lands with the sender, not us
+//   • Body trimmed; the precious "made by hand — well, by heart" line
+//     stays in the pre-header where it earns its keep
 export async function sendRecipientCardArrivedEmail(params: {
   recipientEmail: string;
   recipientName: string | null;
   senderName: string;
+  /** Sender's own email — used as Reply-To so a reply lands with them. */
+  senderEmail: string;
   occasion: string | null;
   shareUrl: string;
 }): Promise<boolean> {
-  const { recipientEmail, recipientName, senderName, occasion, shareUrl } = params;
+  const {
+    recipientEmail,
+    recipientName,
+    senderName,
+    senderEmail,
+    occasion,
+    shareUrl,
+  } = params;
 
-  const subject = `A card for you, from ${senderName}`;
-  const preheader =
-    `${senderName} made something by hand — well, by heart. It's waiting inside.`;
+  const subject = `${escape(senderName)} sent you a card`;
+  const preheader = `${senderName} made something by hand — well, by heart. It's waiting inside.`;
 
   const greeting = recipientName ? `Hi ${escape(recipientName)},` : 'Hello,';
   const occasionClause = occasion ? ` for your ${escape(occasion)}` : '';
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>${escape(subject)}</title>
-      </head>
-      <body style="margin: 0; padding: 0; background: #fafaf9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;">
-        <span style="display: none !important; visibility: hidden; opacity: 0; color: transparent; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; overflow: hidden;">${escape(preheader)}</span>
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #fafaf9;">
-          <tr>
-            <td align="center" style="padding: 48px 24px;">
-              <table role="presentation" width="520" cellspacing="0" cellpadding="0" border="0" style="max-width: 520px; background: #ffffff; border-radius: 20px; box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);">
-                <tr>
-                  <td style="padding: 40px 40px 0 40px; text-align: center;">
-                    <span style="font-size: 22px; font-weight: 700; color: #7a76e8; letter-spacing: -0.01em;">Celebrait</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 32px 40px 8px 40px; color: #0f172a; font-size: 16px; line-height: 1.7;">
-                    <p style="margin: 0 0 16px;">${greeting}</p>
-                    <p style="margin: 0 0 16px;">
-                      <strong>${escape(senderName)}</strong> has sent you a card${occasionClause}.
-                      Not a forwarded link or a last-minute text — an actual card,
-                      designed around you, waiting to be opened.
-                    </p>
-                    <p style="margin: 0 0 28px;">
-                      It lives here, whenever you're ready:
-                    </p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 0 40px 8px 40px;" align="center">
-                    <a href="${escape(shareUrl)}" style="display: inline-block; background: #7a76e8; color: #ffffff; font-weight: 600; font-size: 15px; text-decoration: none; padding: 14px 36px; border-radius: 10px;">
-                      Open your card &rarr;
-                    </a>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 32px 40px 40px 40px; color: #475569; font-size: 15px; line-height: 1.7;">
-                    <p style="margin: 0 0 8px;">
-                      Take your time with it. It was made to be lingered over.
-                    </p>
-                    <p style="margin: 0; color: #94a3b8; font-size: 14px;">— Celebrait</p>
-                  </td>
-                </tr>
-              </table>
-              <p style="color: #94a3b8; font-size: 12px; margin: 24px 0 0; max-width: 480px;">
-                If the button above doesn't work, copy and paste this link into your browser:<br>
-                <span style="word-break: break-all;">${escape(shareUrl)}</span>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </body>
-    </html>
+  const body = `
+    <p style="margin: 0 0 16px;">${greeting}</p>
+    <p style="margin: 0 0 16px;">
+      <strong>${escape(senderName)}</strong> made you a card${occasionClause}. It's quietly waiting, ready when you are.
+    </p>
+    <p style="margin: 0 0 8px; color: #475569; font-size: 15px;">
+      Take your time with it. It was made to be lingered over.
+    </p>
   `;
+
+  const html = chassis({
+    preheader,
+    bodyHtml: body,
+    cta: { label: 'Open your card', href: shareUrl },
+    postCtaHtml: `
+      <p style="margin: 0; color: #94a3b8; font-size: 12px;">
+        If the button doesn't work, paste this into your browser:<br>
+        <span style="word-break: break-all;">${escape(shareUrl)}</span>
+      </p>
+    `,
+  });
 
   const text =
     `${recipientName ? `Hi ${recipientName},\n\n` : ''}` +
-    `${senderName} has sent you a card${occasion ? ` for your ${occasion}` : ''}.\n\n` +
+    `${senderName} made you a card${occasion ? ` for your ${occasion}` : ''}. It's quietly waiting, ready when you are.\n\n` +
     `Open it here: ${shareUrl}\n\n` +
-    `Take your time with it. It was made to be lingered over.\n\n` +
-    `— Celebrait`;
+    `Take your time with it. It was made to be lingered over.\n\n— Celebrait`;
 
-  return sendEmail({ to: recipientEmail, subject, html, text });
+  return sendEmail({
+    to: recipientEmail,
+    fromName: `${senderName} via Celebrait`,
+    replyTo: senderEmail,
+    subject,
+    html,
+    text,
+  });
 }
 
-// ── Sender: "Your card has been sent" (order confirmation) ───────────
+// ── Sender: "Your card is on its way" (order confirmation) ───────────
+// 2026-04-28 polish: schedule-aware copy ready (the function takes
+// `scheduledSendAt` even though PR3's actual scheduling UI ships later;
+// today this is always null = immediate send). Adds expected-delivery
+// window for the print bullet so we keep the promise the previous
+// version made ("we'll email again when it ships").
 export async function sendSenderOrderConfirmedEmail(params: {
   senderEmail: string;
   senderName: string;
@@ -278,6 +468,10 @@ export async function sendSenderOrderConfirmedEmail(params: {
   totalAmount: number;
   currency: string;
   orderId: string;
+  /** Null = immediate send (V1 default). Date = scheduled-delivery
+   *  case (PR3). When non-null, the digital line says "will be sent
+   *  on {date} at 8am" instead of "sent just now". */
+  scheduledSendAt?: Date | null;
 }): Promise<boolean> {
   const {
     senderEmail,
@@ -289,75 +483,74 @@ export async function sendSenderOrderConfirmedEmail(params: {
     totalAmount,
     currency,
     orderId,
+    scheduledSendAt,
   } = params;
 
-  const forWhom = recipientName ? ` for ${escape(recipientName)}` : '';
-  const occasionSuffix = occasion ? ` — ${escape(occasion)}` : '';
-  const subject = `Your card is on its way${forWhom}`;
+  const forWhom = recipientName ? ` to ${escape(recipientName)}` : '';
+  const occasionPart = occasion ? ` — ${escape(occasion)}` : '';
+  const subject = recipientName
+    ? `Your card's on its way to ${recipientName}`
+    : `Your card's on its way`;
 
   const items: string[] = [];
   if (includesDigital) {
-    items.push(
-      `<li style="margin: 0 0 6px;">Digital — a 3D share link we've just sent to the recipient.</li>`,
-    );
+    if (scheduledSendAt) {
+      const dateLabel = formatScheduledDate(scheduledSendAt);
+      items.push(
+        `<li style="margin: 0 0 6px;">Digital — we'll send it to ${escape(recipientName ?? 'them')} on <strong>${dateLabel}</strong> at 8am. We'll ping you the moment they open it.</li>`,
+      );
+    } else {
+      items.push(
+        `<li style="margin: 0 0 6px;">Digital — sent to ${escape(recipientName ?? 'them')}'s inbox just now. We'll ping you the moment they open it.</li>`,
+      );
+    }
   }
   if (includesPrint) {
     items.push(
-      `<li style="margin: 0 0 6px;">Printed — queued for print; we'll email again when it ships.</li>`,
+      `<li style="margin: 0 0 6px;">Printed — queued for print today. Typically arrives in <strong>5–7 working days</strong>. Tracking lands in your inbox the moment it ships.</li>`,
     );
   }
 
   const amount = formatMoney(totalAmount, currency);
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head><meta charset="utf-8"></head>
-      <body style="margin: 0; padding: 0; background: #fafaf9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-          <tr>
-            <td align="center" style="padding: 48px 24px;">
-              <table role="presentation" width="520" cellspacing="0" cellpadding="0" border="0" style="max-width: 520px; background: #ffffff; border-radius: 20px;">
-                <tr>
-                  <td style="padding: 40px 40px 0 40px; text-align: center;">
-                    <span style="font-size: 22px; font-weight: 700; color: #7a76e8;">Celebrait</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 32px 40px 8px 40px; color: #0f172a; font-size: 16px; line-height: 1.7;">
-                    <p style="margin: 0 0 16px;">Hi ${escape(senderName)},</p>
-                    <p style="margin: 0 0 16px;">
-                      Your card${forWhom}${occasionSuffix} is on its way. Here's what you picked:
-                    </p>
-                    <ul style="padding-left: 20px; color: #334155; margin: 0 0 24px;">
-                      ${items.join('\n')}
-                    </ul>
-                    <p style="margin: 0 0 24px;">
-                      Total: <strong>${amount}</strong><br>
-                      Order reference: <span style="color: #64748b; font-family: monospace;">${escape(orderId)}</span>
-                    </p>
-                    <p style="margin: 0; color: #475569; font-size: 14px;">
-                      We'll let you know the moment they open it.
-                    </p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 32px 40px 40px 40px; color: #94a3b8; font-size: 13px;">
-                    Thanks for choosing Celebrait.
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
-      </body>
-    </html>
+  const preheader = includesDigital && !scheduledSendAt
+    ? "We've just emailed it to them. We'll let you know when they open it."
+    : `Order #${orderId}.`;
+
+  const body = `
+    <p style="margin: 0 0 16px;">Hi ${escape(senderName)},</p>
+    <p style="margin: 0 0 16px;">
+      Your card${forWhom}${occasionPart} is sorted.
+    </p>
+    <p style="margin: 0 0 8px; font-weight: 600;">What you got:</p>
+    <ul style="padding-left: 20px; color: #334155; margin: 0 0 24px;">
+      ${items.join('\n')}
+    </ul>
+    <p style="margin: 0 0 4px;">
+      Total: <strong>${amount}</strong>
+    </p>
+    <p style="margin: 0; color: #64748b; font-size: 14px;">
+      Order: <span style="font-family: monospace;">${escape(orderId)}</span>
+    </p>
   `;
+
+  const ctaHref = includesDigital
+    ? `${PUBLIC_ORIGIN}/studio/card/${orderId.replace(/^order_?/, '')}`
+    : `${PUBLIC_ORIGIN}/studio/orders`;
+  const ctaLabel = includesDigital ? 'View their share link' : 'View your order';
+  const html = chassis({
+    preheader,
+    bodyHtml: body,
+    cta: { label: ctaLabel, href: ctaHref },
+  });
 
   return sendEmail({ to: senderEmail, subject, html });
 }
 
 // ── Sender: "They've opened it" (first-view notification) ────────────
+// 2026-04-28 polish: added a soft cross-sell line + secondary CTA.
+// Not pushy — just acknowledges the moment and offers a re-entry path
+// for the highest-LTV user (the one who just sent a card someone opened).
 export async function sendSenderCardOpenedEmail(params: {
   senderEmail: string;
   senderName: string;
@@ -370,41 +563,442 @@ export async function sendSenderCardOpenedEmail(params: {
     ? `${recipientName} just opened your card`
     : `They just opened your card`;
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head><meta charset="utf-8"></head>
-      <body style="margin: 0; padding: 0; background: #fafaf9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-          <tr>
-            <td align="center" style="padding: 48px 24px;">
-              <table role="presentation" width="520" cellspacing="0" cellpadding="0" border="0" style="max-width: 520px; background: #ffffff; border-radius: 20px;">
-                <tr>
-                  <td style="padding: 40px 40px 0 40px; text-align: center;">
-                    <span style="font-size: 22px; font-weight: 700; color: #7a76e8;">Celebrait</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 32px 40px 40px 40px; color: #0f172a; font-size: 16px; line-height: 1.7;">
-                    <p style="margin: 0 0 16px;">Hi ${escape(senderName)},</p>
-                    <p style="margin: 0 0 16px;">
-                      ${who} just opened the card you made.
-                    </p>
-                    <p style="margin: 0; color: #475569; font-size: 15px;">
-                      Hope they love it.
-                    </p>
-                    <p style="margin: 24px 0 0; color: #94a3b8; font-size: 13px;">— Celebrait</p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
-      </body>
-    </html>
+  const body = `
+    <p style="margin: 0 0 16px;">Hi ${escape(senderName)},</p>
+    <p style="margin: 0 0 16px;">
+      ${who} just opened the card you made${recipientName ? ' for them' : ''}.
+    </p>
+    <p style="margin: 0 0 24px; color: #475569; font-size: 15px;">
+      Hope it landed.
+    </p>
+    <p style="margin: 0 0 8px; color: #64748b; font-size: 14px;">
+      Got someone else coming up? Cards stay in your gallery — duplicate one as a starting point any time.
+    </p>
   `;
 
+  const html = chassis({
+    preheader: 'Hope they love it.',
+    bodyHtml: body,
+    cta: { label: 'Make another', href: `${PUBLIC_ORIGIN}/studio` },
+  });
+
   return sendEmail({ to: senderEmail, subject, html });
+}
+
+// ── Sender: "Your printed card just shipped" ─────────────────────────
+// NEW 2026-04-28. Fired from the printer/courier webhook (Prodigi) —
+// or the manual admin endpoint until that webhook is wired. Closes
+// the loop the order-confirmed email opens ("tracking lands in your
+// inbox the moment it ships").
+export async function sendSenderPrintShippedEmail(params: {
+  senderEmail: string;
+  senderName: string;
+  recipientName: string | null;
+  trackingNumber: string;
+  trackingUrl: string;
+  courier: string;
+  /** Free-form ETA window, e.g. "Tue–Thu" or "by Friday". */
+  etaWindow: string;
+}): Promise<boolean> {
+  const {
+    senderEmail,
+    senderName,
+    recipientName,
+    trackingNumber,
+    trackingUrl,
+    courier,
+    etaWindow,
+  } = params;
+
+  const who = recipientName ? `${escape(recipientName)}'s` : 'Your';
+  const subject = recipientName
+    ? `${recipientName}'s card is in the post`
+    : `Your printed card is in the post`;
+
+  const body = `
+    <p style="margin: 0 0 16px;">Hi ${escape(senderName)},</p>
+    <p style="margin: 0 0 16px;">
+      ${who} card just shipped. <strong>${escape(courier)}</strong> have it now — should be with ${recipientName ? escape(recipientName) : 'them'} <strong>${escape(etaWindow)}</strong>.
+    </p>
+  `;
+
+  const html = chassis({
+    preheader: `${courier} · expected ${etaWindow}`,
+    bodyHtml: body,
+    cta: { label: 'Track delivery', href: trackingUrl },
+    postCtaHtml: `
+      <p style="margin: 0; color: #64748b; font-size: 13px;">
+        Tracking ref: <span style="font-family: monospace;">${escape(trackingNumber)}</span>
+      </p>
+    `,
+  });
+
+  return sendEmail({ to: senderEmail, subject, html });
+}
+
+// ── Sender: "Your printed card was delivered" ────────────────────────
+// NEW 2026-04-28. The emotional beat email — courier usually emails
+// delivery confirmation themselves, but we send our own to own the
+// brand moment. Intentionally short. No CTA by default; soft cross-sell
+// optional via secondary link, mirroring sendSenderCardOpenedEmail.
+export async function sendSenderPrintDeliveredEmail(params: {
+  senderEmail: string;
+  senderName: string;
+  recipientName: string | null;
+}): Promise<boolean> {
+  const { senderEmail, senderName, recipientName } = params;
+
+  const who = recipientName ? escape(recipientName) : 'Your recipient';
+  const subject = recipientName
+    ? `${recipientName}'s card just arrived`
+    : `Your printed card just arrived`;
+
+  const body = `
+    <p style="margin: 0 0 16px;">Hi ${escape(senderName)},</p>
+    <p style="margin: 0 0 16px;">
+      ${who}${recipientName ? "'s" : ''} card was delivered today.
+    </p>
+    <p style="margin: 0 0 24px; color: #475569; font-size: 15px;">
+      The good bit's coming.
+    </p>
+    <p style="margin: 0; color: #64748b; font-size: 14px;">
+      Got someone else coming up? Cards stay in your gallery — duplicate one as a starting point any time.
+    </p>
+  `;
+
+  const html = chassis({
+    preheader: 'Hope it lands well.',
+    bodyHtml: body,
+    cta: { label: 'Make another', href: `${PUBLIC_ORIGIN}/studio` },
+  });
+
+  return sendEmail({ to: senderEmail, subject, html });
+}
+
+// ── Drop-off recovery (sender) — card finished, never bought ─────────
+// Comms PR2 (2026-04-30). Fires once per card, ~24h after generation
+// completes if the sender hasn't placed a paid order. Industry recovery
+// rate for "you forgot something" emails is 5-10% — small but real
+// revenue lever, especially in a category where the moment can pass
+// (you generated for Mum's birthday, then it slipped your mind).
+//
+// Tone: gentle. Never "you abandoned your cart" e-commerce-y. The card
+// IS theirs already — we're just nudging them back to it.
+
+export async function sendDropOffRecoveryEmail(params: {
+  senderEmail: string;
+  senderName: string | null;
+  recipientName: string | null;
+  occasion: string | null;
+  cardId: number;
+}): Promise<boolean> {
+  const { senderEmail, senderName, recipientName, occasion, cardId } = params;
+
+  const subject = recipientName
+    ? `${recipientName}'s card is still waiting`
+    : `Your card is still waiting`;
+
+  const greeting = senderName ? `Hi ${escape(senderName)},` : 'Hi there,';
+  const recipientClause = recipientName
+    ? `${escape(recipientName)}'s ${escape(occasion ?? '')} card`.replace(/\s+/g, ' ').trim()
+    : 'Your card';
+
+  const body = `
+    <p style="margin: 0 0 16px;">${greeting}</p>
+    <p style="margin: 0 0 16px;">
+      ${recipientClause} is still in your gallery. We didn't want it to slip your mind.
+    </p>
+    <p style="margin: 0 0 16px;">
+      Take another look — buy it as is, or tweak something before you send.
+    </p>
+    <p style="margin: 0; color: #475569; font-size: 15px;">
+      No rush. Cards stay in your gallery.
+    </p>
+  `;
+
+  const cardUrl = `${PUBLIC_ORIGIN}/studio/card/${cardId}`;
+  const html = chassis({
+    preheader: 'Ready when you are — no rush.',
+    bodyHtml: body,
+    cta: { label: 'View your card', href: cardUrl },
+  });
+
+  const text =
+    `${senderName ? `Hi ${senderName},\n\n` : ''}` +
+    `${recipientClause} is still in your gallery. We didn't want it to slip your mind.\n\n` +
+    `Take another look: ${cardUrl}\n\n` +
+    `No rush. Cards stay in your gallery.\n\n— Celebrait`;
+
+  return sendEmail({ to: senderEmail, subject, html, text });
+}
+
+// ── Drop-off tweak (sender) — Day 4, iteration framing ──────────────
+// Second touch in the 3-email drop-off cadence (added 2026-05-10).
+// Different audience than the Day 1 dropoff: people who DID see the
+// card and weren't quite sure about it — wrong vibe, slightly off
+// likeness, want a different style. The Day 1 email assumes "you
+// forgot" — this one assumes "you weren't sure." Different framing,
+// different copy, different CTA.
+//
+// Tone: invites engagement, doesn't push the buy. The whole point is
+// to lower the threshold for users who'd iterate but feel locked in.
+// Explicitly mentions photo / scene / style swaps as concrete options.
+
+export async function sendDropOffTweakEmail(params: {
+  senderEmail: string;
+  senderName: string | null;
+  recipientName: string | null;
+  occasion: string | null;
+  cardId: number;
+}): Promise<boolean> {
+  const { senderEmail, senderName, recipientName, occasion, cardId } = params;
+
+  const subject = recipientName
+    ? `Want to tweak ${recipientName}'s card?`
+    : `Want to tweak your card?`;
+
+  const greeting = senderName ? `Hi ${escape(senderName)},` : 'Hi there,';
+  const recipientClause = recipientName
+    ? `${escape(recipientName)}'s ${escape(occasion ?? '')} card`.replace(/\s+/g, ' ').trim()
+    : 'Your card';
+
+  const body = `
+    <p style="margin: 0 0 16px;">${greeting}</p>
+    <p style="margin: 0 0 16px;">
+      Just checking — if ${recipientClause} didn't quite land, you can
+      tweak it without losing what we made.
+    </p>
+    <p style="margin: 0 0 16px;">
+      Try a different scene description, swap the reference photo, or
+      pick a new style. Each tweak makes a fresh version — your originals
+      stay in your gallery.
+    </p>
+    <p style="margin: 0; color: #475569; font-size: 15px;">
+      Or if it's already exactly right, you know where the buy button is.
+    </p>
+  `;
+
+  const cardUrl = `${PUBLIC_ORIGIN}/studio/card/${cardId}`;
+  const html = chassis({
+    preheader: "Tweak the scene, swap the photo, try a different style.",
+    bodyHtml: body,
+    cta: { label: 'Tweak your card', href: cardUrl },
+  });
+
+  const text =
+    `${senderName ? `Hi ${senderName},\n\n` : ''}` +
+    `Just checking — if ${recipientClause} didn't quite land, you can tweak it without losing what we made.\n\n` +
+    `Try a different scene description, swap the reference photo, or pick a new style. Each tweak makes a fresh version — your originals stay in your gallery.\n\n` +
+    `Tweak it: ${cardUrl}\n\n` +
+    `Or if it's already exactly right, you know where the buy button is.\n\n— Celebrait`;
+
+  return sendEmail({ to: senderEmail, subject, html, text });
+}
+
+// ── Drop-off last call (sender) — Day 10, soft urgency ──────────────
+// Third and final touch in the drop-off cadence (added 2026-05-10).
+// Polite stop signal — for both the user (we'll stop emailing about
+// this card) AND for our own ToS/sender-rep hygiene. The card stays
+// in their gallery; we just stop pushing.
+//
+// Tone: low-pressure, terminal. "After this we'll stop emailing about
+// it" is the explicit promise — both a signal and a self-imposed
+// constraint. Better the user knows we're not going to chase forever.
+
+export async function sendDropOffLastCallEmail(params: {
+  senderEmail: string;
+  senderName: string | null;
+  recipientName: string | null;
+  occasion: string | null;
+  cardId: number;
+}): Promise<boolean> {
+  const { senderEmail, senderName, recipientName, occasion, cardId } = params;
+
+  const subject = recipientName
+    ? `Last note about ${recipientName}'s card`
+    : `Last note about your card`;
+
+  const greeting = senderName ? `Hi ${escape(senderName)},` : 'Hi there,';
+  const recipientClause = recipientName
+    ? `${escape(recipientName)}'s ${escape(occasion ?? '')} card`.replace(/\s+/g, ' ').trim()
+    : 'Your card';
+
+  const body = `
+    <p style="margin: 0 0 16px;">${greeting}</p>
+    <p style="margin: 0 0 16px;">
+      ${recipientClause} is still in your gallery, ready when you are.
+    </p>
+    <p style="margin: 0 0 16px;">
+      This is the last we'll email you about this one — we don't want to
+      keep nudging if it's not the right time. You can always come back
+      to it from your gallery, no email needed.
+    </p>
+    <p style="margin: 0; color: #475569; font-size: 15px;">
+      Buy it, tweak it, or leave it for later. Up to you.
+    </p>
+  `;
+
+  const cardUrl = `${PUBLIC_ORIGIN}/studio/card/${cardId}`;
+  const html = chassis({
+    preheader: "We'll stop emailing about this card after today.",
+    bodyHtml: body,
+    cta: { label: 'View your card', href: cardUrl },
+  });
+
+  const text =
+    `${senderName ? `Hi ${senderName},\n\n` : ''}` +
+    `${recipientClause} is still in your gallery, ready when you are.\n\n` +
+    `This is the last we'll email you about this one — we don't want to keep nudging if it's not the right time. You can always come back to it from your gallery, no email needed.\n\n` +
+    `View your card: ${cardUrl}\n\n` +
+    `Buy it, tweak it, or leave it for later. Up to you.\n\n— Celebrait`;
+
+  return sendEmail({ to: senderEmail, subject, html, text });
+}
+
+// ── Reminder (sender) — occasion is approaching ──────────────────────
+// Three-tier cadence (Reminders V1, 2026-04-29):
+//   T-21 (warm prompt) — "in 3 weeks. Want to get started?"
+//   T-7  (nudge)       — "one week to go. Time to start."
+//   T-3  (digital pivot) — "cutting it fine for print. Send digital
+//                          today and they'll have it on the day."
+//
+// Smart-skip happens upstream in the cron — this function just renders
+// the right copy for the requested tier. Subject lines name the
+// recipient + occasion; pre-headers give the time horizon.
+//
+// CTA deep-links to the new-card maker with recipient + occasion
+// pre-filled where possible (server passes these as query params on
+// the URL). If the user has the recipient saved with a portrait /
+// other context, that all loads in via the address-book typeahead.
+
+export type ReminderTier = 't_21' | 't_7' | 't_3';
+
+export async function sendReminderEmail(params: {
+  senderEmail: string;
+  senderName: string | null;
+  recipientName: string;
+  occasion: string;
+  /** Days until the occasion. Fed into the copy explicitly. */
+  daysUntil: number;
+  tier: ReminderTier;
+  /** Deep link to start the card. Should pre-fill recipient + occasion
+   *  via query string. Generated upstream by the cron. */
+  startCardUrl: string;
+}): Promise<boolean> {
+  const {
+    senderEmail,
+    senderName,
+    recipientName,
+    occasion,
+    daysUntil,
+    tier,
+    startCardUrl,
+  } = params;
+
+  const greeting = senderName ? `Hi ${escape(senderName)},` : 'Hi there,';
+  const occasionLabel = humaniseOccasion(occasion);
+
+  // Tier-specific copy. Subject + pre-header + body each adapt.
+  let subject: string;
+  let preheader: string;
+  let body: string;
+  let ctaLabel: string;
+
+  if (tier === 't_21') {
+    subject = `${recipientName}'s ${occasionLabel} is in 3 weeks`;
+    preheader = `Plenty of time to make them something lovely.`;
+    body = `
+      <p style="margin: 0 0 16px;">${greeting}</p>
+      <p style="margin: 0 0 16px;">
+        ${escape(recipientName)}'s ${escape(occasionLabel)} is in <strong>3 weeks</strong> — plenty of time to make them something lovely.
+      </p>
+      <p style="margin: 0 0 8px; color: #475569;">
+        Start now and there's room to tweak the scene, the message, the lot.
+      </p>
+    `;
+    ctaLabel = `Start ${recipientName}'s card`;
+  } else if (tier === 't_7') {
+    subject = `One week to ${recipientName}'s ${occasionLabel}`;
+    preheader = `Time to start their card.`;
+    body = `
+      <p style="margin: 0 0 16px;">${greeting}</p>
+      <p style="margin: 0 0 16px;">
+        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>a week away</strong>. If you start now, there's still time to print and post in time for the day.
+      </p>
+      <p style="margin: 0 0 8px; color: #475569;">
+        Or send them a digital one — that lands instantly.
+      </p>
+    `;
+    ctaLabel = `Start ${recipientName}'s card`;
+  } else {
+    // t_3 — digital pivot
+    subject = `${recipientName}'s ${occasionLabel} is in ${daysUntil} days`;
+    preheader = `Cutting it fine for print — but a digital card lands instantly.`;
+    body = `
+      <p style="margin: 0 0 16px;">${greeting}</p>
+      <p style="margin: 0 0 16px;">
+        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}</strong>. Print won't make it now — but a digital card lands instantly, with their face on it, and they can open it on the day.
+      </p>
+      <p style="margin: 0 0 8px; color: #475569;">
+        About 5 minutes to make. Sent the moment it's ready, or scheduled for the day.
+      </p>
+    `;
+    ctaLabel = `Make a digital card for ${recipientName}`;
+  }
+
+  const html = chassis({
+    preheader,
+    bodyHtml: body,
+    cta: { label: ctaLabel, href: startCardUrl },
+  });
+
+  const text =
+    `${senderName ? `Hi ${senderName},\n\n` : ''}` +
+    (tier === 't_21'
+      ? `${recipientName}'s ${occasionLabel} is in 3 weeks — plenty of time to make them something lovely.`
+      : tier === 't_7'
+        ? `${recipientName}'s ${occasionLabel} is a week away. If you start now there's time to print and post.`
+        : `${recipientName}'s ${occasionLabel} is in ${daysUntil} days. Print won't make it — but a digital card lands instantly.`) +
+    `\n\nStart here: ${startCardUrl}\n\n— Celebrait`;
+
+  return sendEmail({ to: senderEmail, subject, html, text });
+}
+
+/** Convert an occasion key (e.g. "birthday", "valentines") into the
+ *  human label used in subjects + body. Mirrors the OCCASION_OPTIONS
+ *  list in studio-address-book-form.tsx; kept in sync manually. */
+function humaniseOccasion(occasion: string): string {
+  const lower = occasion.toLowerCase().trim();
+  switch (lower) {
+    case 'birthday':
+      return 'birthday';
+    case 'anniversary':
+      return 'anniversary';
+    case 'wedding':
+      return 'wedding';
+    case 'engagement':
+      return 'engagement';
+    case 'baby':
+      return 'new baby';
+    case 'graduation':
+      return 'graduation';
+    case 'christmas':
+      return 'Christmas';
+    case 'valentines':
+      return "Valentine's Day";
+    case 'mothers_day':
+      return "Mother's Day";
+    case 'fathers_day':
+      return "Father's Day";
+    case 'thankyou':
+      return 'thank you';
+    case 'sympathy':
+      return 'sympathy';
+    default:
+      // Custom / unknown — pass through with first letter lowered so
+      // it slots into "their X" naturally
+      return lower;
+  }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -420,6 +1014,17 @@ function escape(s: string | null | undefined): string {
 
 function formatMoney(minor: number, currency: string): string {
   const major = (minor / 100).toFixed(2);
-  const symbol = currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'USD' ? '$' : '';
+  const symbol = currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency === 'ZAR' ? 'R' : '';
   return `${symbol}${major}`;
+}
+
+/** Format a scheduled-delivery date for the order-confirmed email's
+ *  digital line. Default locale = en-GB ("15 May 2026"); can be
+ *  parameterised later if we localise. */
+function formatScheduledDate(d: Date): string {
+  return d.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 }

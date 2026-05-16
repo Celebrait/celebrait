@@ -47,6 +47,7 @@ export function listProviders(): ProviderInfo[] {
     displayName: p.displayName,
     model: p.model,
     available: p.isAvailable(),
+    supportsRefine: typeof p.refine === 'function',
     qualityOptions: p.getQualityOptions(),
   }));
 }

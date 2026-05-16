@@ -33,9 +33,12 @@ import { sendSenderCardOpenedEmail } from '../email-service';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import {
   generateStudioCard,
+  createRegenAttemptRow,
+  runRegenAttempt,
   regenerateStudioCardSide,
   REGEN_HARD_CAP_PER_SIDE,
 } from '../background-generator';
+import { isProviderError } from '../providers/errors';
 import { checkDailyGenerationLimit } from '../rate-limits';
 import {
   promoteAttemptToCanonical,
@@ -153,6 +156,15 @@ export function registerStudioDraftRoutes(app: Express): void {
           selectedFrontAttemptId: cards.selectedFrontAttemptId,
           selectedInsideAttemptId: cards.selectedInsideAttemptId,
           createdAt: cards.createdAt,
+          // Failure metadata — populated when status='failed' and the
+          // generator caught a typed ProviderError. Drives the
+          // <GenerationErrorPanel>'s kind-specific copy + suggestions.
+          failureKind: cards.failureKind,
+          failureMessage: cards.failureMessage,
+          failureModelExplanation: cards.failureModelExplanation,
+          failureProvider: cards.failureProvider,
+          failureCode: cards.failureCode,
+          failureSuggestions: cards.failureSuggestions,
         })
         .from(cards)
         .where(eq(cards.id, id))
@@ -216,6 +228,21 @@ export function registerStudioDraftRoutes(app: Express): void {
           createdAt: a.createdAt,
         }));
 
+      // Failure block — only included when the card actually failed.
+      // Lets the client cleanly switch on `failure ? <Panel> : ...`
+      // without picking through individual nullable fields.
+      const failure =
+        row.status === 'failed'
+          ? {
+              kind: row.failureKind,
+              message: row.failureMessage,
+              modelExplanation: row.failureModelExplanation,
+              provider: row.failureProvider,
+              code: row.failureCode,
+              suggestions: row.failureSuggestions,
+            }
+          : null;
+
       res.json({
         id: row.id,
         status: row.status,
@@ -224,6 +251,7 @@ export function registerStudioDraftRoutes(app: Express): void {
         createdAt: row.createdAt,
         state,
         attempts,
+        failure,
       });
     } catch (err: any) {
       console.error('[STUDIO] draft fetch error:', err);
@@ -508,9 +536,21 @@ export function registerStudioDraftRoutes(app: Express): void {
           .json({ message: `Draft is ${row.status}, only 'failed' can retry` });
       }
 
+      // Clear failure metadata on retry — next attempt gets a fresh
+      // slate. If it fails again, generateStudioCard's catch block
+      // re-populates these fields with the new failure.
       await db
         .update(cards)
-        .set({ status: 'draft' })
+        .set({
+          status: 'draft',
+          failureKind: null,
+          failureMessage: null,
+          failureModelExplanation: null,
+          failureProvider: null,
+          failureCode: null,
+          failureSuggestions: null,
+          failureAt: null,
+        })
         .where(and(eq(cards.id, id), eq(cards.userId, userId)));
 
       res.json({ ok: true, status: 'draft' });
@@ -565,13 +605,25 @@ export function registerStudioDraftRoutes(app: Express): void {
         // Hard cap: count existing attempts on this side and reject
         // if past cap. The +1 is because attempt #1 is the original
         // generation; the cap counts regens.
+        // Also defence-in-depth concurrent-regen guard (added
+        // 2026-05-15): if there's already a 'generating' attempt for
+        // this side, reject the new one. The client SHOULD prevent
+        // double-clicks via its disabled state, but Kevin saw 6
+        // concurrent regens fire from rapid clicks before the disable
+        // logic kicked in. Belt + braces.
         const existing = await db
-          .select({ id: cardAttempts.id })
+          .select({ id: cardAttempts.id, status: cardAttempts.status })
           .from(cardAttempts)
           .where(and(eq(cardAttempts.cardId, id), eq(cardAttempts.side, side)));
         if (existing.length >= REGEN_HARD_CAP_PER_SIDE + 1) {
           return res.status(429).json({
             message: `You've reached the regen limit for the ${side}. Move on or start a new card.`,
+          });
+        }
+        const inFlight = existing.find((a) => a.status === 'generating');
+        if (inFlight) {
+          return res.status(409).json({
+            message: `A regeneration of the ${side} is already in progress (attempt id ${inFlight.id}). Wait for it to finish before starting another.`,
           });
         }
 
@@ -583,19 +635,65 @@ export function registerStudioDraftRoutes(app: Express): void {
           });
         }
 
-        // Fire-and-forget: regen runs in the background, route returns
-        // immediately with the new attemptId. We need the id NOW so the
-        // client can target its poll. regenerateStudioCardSide creates
-        // the attempt row synchronously then runs the gen — so we await
-        // the function but the gen itself happens inside it.
-        // (If we wanted true fire-and-forget, we'd refactor to split
-        // "create attempt" from "run gen" — for now the awaited call
-        // does both, ~30s total. The client's existing polling loop
-        // works either way.)
-        const attemptId = await regenerateStudioCardSide(id, side, { tweak });
+        // True fire-and-forget (refactored 2026-05-15 — fixes the
+        // regen "spinner stalls" UX bug). createRegenAttemptRow is
+        // cheap (~few DB ops, <100ms): it allocates the attempt
+        // number and inserts a row in 'generating' state. We return
+        // that attemptId immediately so the client's POST resolves
+        // right away. runRegenAttempt then does the heavy lifting
+        // (provider call, file save, attempt-state update) in a
+        // background promise — its result is observable purely via
+        // the attempt row's status flipping completed/failed, which
+        // the client's existing polling loop already watches.
+        //
+        // Errors during runRegenAttempt do NOT surface as HTTP
+        // errors (the response has already been sent). They're
+        // logged here AND persisted to the attempt row as
+        // status='failed' so the client sees them via polling.
+        const { attemptId, attemptNumber } = await createRegenAttemptRow(
+          id,
+          side,
+          { tweak },
+        );
         res.json({ attemptId });
+
+        // Background gen — must NOT throw uncaught (would crash the
+        // process). The function's own try/catch updates the attempt
+        // row to failed; we just need to swallow the re-throw.
+        void runRegenAttempt(attemptId, attemptNumber, id, side, { tweak }).catch(
+          (err: any) => {
+            if (isProviderError(err)) {
+              console.error(
+                `[STUDIO] background regenerate FAILED kind=${err.kind} code=${err.code} ` +
+                  `retries=${err.retryAttempts} provider=${err.provider}`,
+              );
+            } else {
+              console.error('[STUDIO] background regenerate error:', err);
+            }
+          },
+        );
+        return;
       } catch (err: any) {
-        console.error('[STUDIO] regenerate error:', err);
+        // Errors that fire BEFORE we send the response — i.e. from
+        // ownership/cap checks above or from createRegenAttemptRow.
+        // Background-gen errors are handled inside the void block
+        // above and never reach here.
+        if (isProviderError(err)) {
+          console.error(
+            `[STUDIO] regenerate setup FAILED kind=${err.kind} code=${err.code} ` +
+              `retries=${err.retryAttempts} provider=${err.provider}`,
+          );
+          return res.status(err.httpStatus).json({
+            message: err.message,
+            kind: err.kind,
+            code: err.code,
+            modelExplanation: err.modelExplanation,
+            retryAttempts: err.retryAttempts,
+            suggestions: err.suggestions,
+            provider: err.provider,
+          });
+        }
+        console.error('[STUDIO] regenerate setup error:', err);
         res.status(500).json({
           message:
             err?.message ?? "Couldn't regenerate. Your previous version is still safe.",
@@ -690,7 +788,7 @@ export function registerStudioDraftRoutes(app: Express): void {
 
         // For front swaps, regenerate the 3000×3000 print-res file so
         // it matches the newly-selected attempt. Non-fatal — checkout
-        // can still proceed if this hiccups (the watermarked display
+        // can still proceed if this hiccups (the canonical display
         // copy is already correct).
         if (attempt.side === 'front') {
           generatePrintResolutionFiles(id).catch((err) =>

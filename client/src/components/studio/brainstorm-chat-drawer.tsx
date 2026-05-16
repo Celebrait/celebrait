@@ -33,6 +33,7 @@ interface BrainstormChatDrawerProps {
   /** Current Scene textarea content. Passed to the hook so the opener
    *  can offer to refine existing text vs start fresh. */
   currentSceneText: string;
+  // photoMode prop dropped 2026-05-14 — see use-brainstorm-chat.ts.
   /** Called when the user taps "Use this scene". The accepted scene
    *  paragraph should overwrite the Scene textarea and close the drawer. */
   onAccept: (scene: string) => void;
@@ -117,9 +118,20 @@ export function BrainstormChatDrawer({
           {chat.messages.map((msg, i) => (
             <div key={msg.id}>
               <MessageBubble message={msg} />
-              {/* Action buttons render under the latest assistant message only. */}
+              {/* Under the latest assistant message:
+                  • If we're in summary phase with a proposedScene, show the
+                    scene paragraph as a styled "Proposed scene" card BEFORE
+                    the action buttons. Without this the user is asked to
+                    approve a scene they can't see (the only on-screen text
+                    is the assistant's intro reply like "Here's the full
+                    scene:"). The textarea on the page behind the drawer
+                    populates, but that's not where the user is looking.
+                  • Then render the inline action buttons. */}
               {msg.role === 'assistant' && i === lastAssistantIndex && !chat.isLoading && (
-                <div className="mt-3">
+                <div className="mt-3 space-y-3">
+                  {chat.phase === 'summary' && chat.proposedScene && (
+                    <ProposedSceneCard scene={chat.proposedScene} />
+                  )}
                   <ActionButtons
                     phase={chat.phase}
                     suggestions={chat.suggestions}
@@ -182,6 +194,31 @@ export function BrainstormChatDrawer({
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+// ── Proposed-scene card ──────────────────────────────────────────────
+// Rendered in the chat stream when phase=summary and proposedScene is
+// non-null. Without this, the assistant's reply ("Here's the full
+// scene:") sits over a Sounds-great button with no visible scene
+// between them — the user is asked to commit blind. Styling
+// deliberately distinct from chat bubbles so it reads as "the
+// proposal" rather than another message.
+function ProposedSceneCard({ scene }: { scene: string }) {
+  return (
+    <div
+      className="flex justify-start"
+      data-testid="brainstorm-proposed-scene"
+    >
+      <div className="max-w-[95%] w-full bg-brand-muted/50 border border-brand-light rounded-2xl px-4 py-3.5">
+        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-brand-dark mb-1.5">
+          Proposed scene
+        </p>
+        <p className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
+          {scene}
+        </p>
+      </div>
+    </div>
   );
 }
 

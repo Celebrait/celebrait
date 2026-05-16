@@ -16,11 +16,16 @@ import { db } from '../db';
 import {
   promptTemplates,
   promptActive,
+  regenSettings,
+  REGEN_SIDES,
   PROMPT_SLOTS,
   PROMPT_VARIANTS,
   users,
   type PromptSlot,
   type PromptVariant,
+  type RegenSide,
+  type PromptProvider,
+  type PromptQuality,
 } from '@shared/schema';
 import { invalidatePromptCache, renderTemplate } from '../prompts/resolver';
 import {
@@ -333,13 +338,21 @@ export function registerPromptRoutes(app: Express): void {
       const vt: string = normalizedVariant ?? '';
 
       // Validate the optional production-config fields.
+      // Provider whitelist is sourced from the registry so adding a
+      // new variant in registry.ts (e.g. `openai-2` 2026-04-21,
+      // `gemini-flash-2-5`) doesn't require a separate edit here.
+      // Bug Kevin caught 2026-04-30: `openai-2` was registered but the
+      // hardcoded whitelist didn't include it → "Invalid provider"
+      // when activating in the Prompt Lab production area.
+      const registeredIds = new Set(listProviders().map((p) => p.id));
       const providerValid =
         provider === undefined ||
         provider === null ||
-        (typeof provider === 'string' &&
-          ['openai', 'gemini', 'gemini-flash', 'gemini-flash-2-5', 'flux'].includes(provider));
+        (typeof provider === 'string' && registeredIds.has(provider));
       if (!providerValid) {
-        return res.status(400).json({ message: 'Invalid provider' });
+        return res.status(400).json({
+          message: `Invalid provider "${provider}". Available: ${Array.from(registeredIds).join(', ')}`,
+        });
       }
       const qualityValid =
         quality === undefined ||
@@ -514,6 +527,98 @@ export function registerPromptRoutes(app: Express): void {
     try {
       res.json({ providers: listProviders() });
     } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // GET /api/admin/prompts/regen-settings
+  // Returns all rows from regen_settings (typically 0–3 rows: global,
+  // front, inside). Empty list = no DB overrides; production falls back
+  // to env var → hardcoded default.
+  app.get('/api/admin/prompts/regen-settings', async (req, res) => {
+    if (!(await requireAdmin(req, res))) return;
+    try {
+      const rows = await db.select().from(regenSettings);
+      res.json({ rows });
+    } catch (err: any) {
+      console.error('[ADMIN_PROMPTS] regen-settings GET error:', err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // PUT /api/admin/prompts/regen-settings/:side
+  // Upserts a regen settings row. side ∈ {global, front, inside}.
+  // Body: { provider: string, quality: 'low'|'medium'|'high' }
+  // Pass an empty body to DELETE the row (revert to env/default fallback).
+  app.put('/api/admin/prompts/regen-settings/:side', async (req, res) => {
+    if (!(await requireAdmin(req, res))) return;
+    const sideRaw = req.params.side;
+    if (!REGEN_SIDES.includes(sideRaw as RegenSide)) {
+      return res
+        .status(400)
+        .json({ message: `Invalid side. Must be one of: ${REGEN_SIDES.join(', ')}` });
+    }
+    const side = sideRaw as RegenSide;
+
+    const { provider: rawProvider, quality: rawQuality } = req.body ?? {};
+
+    // Empty body or null provider → DELETE the row.
+    if (!rawProvider || !rawQuality) {
+      try {
+        await db.delete(regenSettings).where(eq(regenSettings.side, side));
+        return res.json({ deleted: true, side });
+      } catch (err: any) {
+        console.error('[ADMIN_PROMPTS] regen-settings DELETE error:', err);
+        return res.status(500).json({ message: err.message });
+      }
+    }
+
+    // Validate provider exists in registry.
+    try {
+      getProvider(rawProvider);
+    } catch {
+      return res.status(400).json({
+        message: `Unknown provider "${rawProvider}". See server/providers/registry.ts.`,
+      });
+    }
+
+    if (!['low', 'medium', 'high'].includes(rawQuality)) {
+      return res
+        .status(400)
+        .json({ message: `Invalid quality. Must be 'low' | 'medium' | 'high'.` });
+    }
+
+    try {
+      const session = (req as any).session;
+      const updatedBy = session?.userEmail ?? null;
+
+      // Upsert via INSERT ... ON CONFLICT (drizzle-orm syntax).
+      await db
+        .insert(regenSettings)
+        .values({
+          side,
+          provider: rawProvider as PromptProvider,
+          quality: rawQuality as PromptQuality,
+          updatedBy,
+        })
+        .onConflictDoUpdate({
+          target: regenSettings.side,
+          set: {
+            provider: rawProvider as PromptProvider,
+            quality: rawQuality as PromptQuality,
+            updatedAt: new Date(),
+            updatedBy,
+          },
+        });
+
+      const [row] = await db
+        .select()
+        .from(regenSettings)
+        .where(eq(regenSettings.side, side))
+        .limit(1);
+      res.json({ row });
+    } catch (err: any) {
+      console.error('[ADMIN_PROMPTS] regen-settings PUT error:', err);
       res.status(500).json({ message: err.message });
     }
   });
@@ -698,7 +803,9 @@ export function registerPromptRoutes(app: Express): void {
         `[PROMPT_LAB_TEST] RENDERED_PROMPT:\n${renderedPrompt}\n[END_PROMPT]`,
       );
 
-      // Delegate to the provider with automatic retry on safety errors.
+      // Delegate to the provider with automatic retry on transient errors
+      // (server). Safety errors are NOT retried — deterministic; would just
+      // burn attempts. See server/providers/retry.ts for the policy.
       const result = await generateWithRetry(
         provider,
         {
@@ -782,6 +889,7 @@ export function registerPromptRoutes(app: Express): void {
         side: rawSide,
         useScaffold: rawUseScaffold,
         referencePhotos,
+        provider: rawProvider,
       } = req.body ?? {};
 
       if (typeof imageBase64 !== 'string' || !imageBase64) {
@@ -801,14 +909,31 @@ export function registerPromptRoutes(app: Express): void {
       // for raw-instruction debugging, which is PL-only territory.
       const useScaffold = rawUseScaffold !== false;
 
-      const gemini = getProvider('gemini');
-      if (!gemini.isAvailable()) {
-        return res.status(503).json({ message: 'Gemini API key not configured' });
+      // Provider defaults to 'gemini' for backward compat. Lab now
+      // exposes a toggle so callers can pick any registered provider
+      // — production parity stays with Gemini unless the production
+      // override below says otherwise.
+      const providerId =
+        typeof rawProvider === 'string' && rawProvider.length > 0
+          ? rawProvider
+          : 'gemini';
+      let provider;
+      try {
+        provider = getProvider(providerId);
+      } catch {
+        return res.status(400).json({
+          message: `Unknown provider "${providerId}". Pick a registered provider.`,
+        });
       }
-      if (!gemini.refine) {
-        return res
-          .status(501)
-          .json({ message: 'Refine is only supported on Gemini' });
+      if (!provider.isAvailable()) {
+        return res.status(503).json({
+          message: `${provider.displayName} is not configured (missing API key).`,
+        });
+      }
+      if (!provider.refine) {
+        return res.status(501).json({
+          message: `${provider.displayName} doesn't support refine. Pick a different provider.`,
+        });
       }
 
       const refPhotos: string[] = Array.isArray(referencePhotos)
@@ -825,11 +950,11 @@ export function registerPromptRoutes(app: Express): void {
         : instruction;
 
       console.log(
-        `[PROMPT_LAB_TEST] REFINE side=${side} useScaffold=${useScaffold} instruction="${instruction.slice(0, 100)}" refPhotos=${refPhotos.length}`,
+        `[PROMPT_LAB_TEST] REFINE provider=${provider.id} side=${side} useScaffold=${useScaffold} instruction="${instruction.slice(0, 100)}" refPhotos=${refPhotos.length}`,
       );
 
       try {
-        const result = await gemini.refine(
+        const result = await provider.refine!(
           imageBase64,
           finalInstruction,
           refPhotos.length > 0 ? refPhotos : undefined,
@@ -878,8 +1003,8 @@ export function registerPromptRoutes(app: Express): void {
           slot: REFINE_SLOT[side],
           templateId: null,
           templateVersion: null,
-          provider: 'gemini',
-          model: gemini.model,
+          provider: provider.id,
+          model: provider.model,
           quality: 'high',
           costCents: 0,
           durationMs: Date.now() - startTime,

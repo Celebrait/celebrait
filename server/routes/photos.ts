@@ -19,6 +19,7 @@ import sharp from 'sharp';
 import { storage } from '../storage';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import type { CropBounds } from '@shared/models/photos';
+import { analyzePhoto } from '../photos/analyze';
 
 const PHOTOS_ROOT = path.join(process.cwd(), 'stored_images', 'photos');
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024; // 15 MB of raw image data
@@ -188,6 +189,22 @@ export function registerPhotoRoutes(app: Express): void {
         thumbnailPath: thumbRel,
         croppedStoragePath: croppedRel,
         cropBounds: validCrop,
+      });
+
+      // Fire-and-forget vision analysis. Runs in the background after
+      // we've already sent the response — the upload feels instant and
+      // the inside-text helper picks up the summary by the time the
+      // user reaches the inside step (typically a minute or two later).
+      // Failure is logged inside analyzePhoto and doesn't affect the
+      // upload outcome.
+      const analyzeAbsPath = croppedRel
+        ? path.join(process.cwd(), 'stored_images', croppedRel)
+        : originalAbs;
+      const analyzeMime = croppedRel ? 'image/jpeg' : resolvedMime;
+      void analyzePhoto({
+        photoId,
+        imageAbsPath: analyzeAbsPath,
+        mimeType: analyzeMime,
       });
 
       res.json(updated);

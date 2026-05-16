@@ -29,6 +29,7 @@ import {
   Send,
   Package,
   Users,
+  Bell,
   Truck,
   Plus,
   type LucideIcon,
@@ -39,6 +40,8 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 import { useAuth } from '@/hooks/use-auth';
 import logoSrc from '../assets/Logo2.png';
 import { FabNewCard } from '@/components/studio/fab-new-card';
+import { DevTestFailurePanel } from '@/components/dev/dev-test-failure-panel';
+import { useCardReadyNotifications } from '@/hooks/use-card-ready-notifications';
 
 interface NavItem {
   label: string;
@@ -72,13 +75,10 @@ const NAV_SECTIONS: NavSection[] = [
   },
   {
     label: 'People',
-    placeholder: true,
     items: [
-      // Week 2: Address book + Reminders land here. Keeping the section
-      // visible (greyed) documents the shape of the product in-nav —
-      // fine because we're pre-launch and there's no real user to confuse.
-      { label: 'Address book', href: '#', icon: Users, disabled: true },
-      { label: 'Reminders', href: '#', icon: Users, disabled: true },
+      // Week 2 (2026-04-29): Address book + Reminders both live.
+      { label: 'Address book', href: '/studio/people/address-book', icon: Users },
+      { label: 'Reminders', href: '/studio/people/reminders', icon: Bell },
     ],
   },
   {
@@ -193,6 +193,13 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Layout-level driver for "your card is ready" in-app notifications.
+  // Polls /api/studio/notifications/unread every 30s, toasts on new
+  // unread, flickers the tab title when backgrounded. Mounted once
+  // here so it runs across every Studio surface (dashboard, address
+  // book, drafts, sent, etc.) without per-page setup.
+  useCardReadyNotifications();
+
   const initials = user?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?';
   const showFab = !HIDE_FAB_ON.some((rx) => rx.test(location));
 
@@ -266,6 +273,13 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
 
       {/* ─── FAB (conditional, outside the column so it's always relative to the viewport) ─── */}
       {showFab && <FabNewCard />}
+
+      {/* ─── Dev-only test failure panel ─────────────────────────────
+          Lets Kevin inject synthetic ProviderErrors into the next
+          stub-mode gen for iterating on the GenerationErrorPanel UI.
+          Tree-shaken from prod bundles via import.meta.env.DEV check
+          inside the component. */}
+      <DevTestFailurePanel />
     </div>
   );
 }

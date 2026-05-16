@@ -1,37 +1,37 @@
 // Local file-system storage operations extracted from background-generator.ts (Phase 1, Step 4).
 // Wraps image-storage.ts functions. No orchestration, prompts, DB, or email logic lives here.
+//
+// History: until 2026-05-12 every save wrote two identical files per
+// image (`card_X_front.png` and `card_X_front_unwatermarked.png`) —
+// vestigial from a watermarking system that never shipped. The
+// duplicate writes were removed; the public `savePngFiles` return type
+// was simplified from `{ watermarked, original }` to a plain string.
 
 import {
   storeImageFromBase64,
-  storeUnwatermarkedImage,
   storeImageToCustomFilename,
   copyStoredFile,
   getImageUrl,
   getStoredImage,
-  storeUnwatermarkedPngFile
+  storePngWithSharp,
 } from '../../image-storage';
 
 /**
- * Save a generated image as both display and unwatermarked copy.
- * Returns the stored URL for display and the original base64/URL.
- * Falls back to the raw imageUrl on failure (non-fatal).
+ * Save a generated image to the canonical filename. Returns the
+ * stored URL on success; falls back to the raw imageUrl on failure
+ * (non-fatal).
  */
 export async function savePngFiles(
   imageUrl: string,
   cardId: number,
   prefix: 'front' | 'inside'
-): Promise<{ watermarked: string; original: string }> {
+): Promise<string> {
   try {
-    // Save clean image as both display and unwatermarked — no watermarking, digital cards are free
-    await Promise.all([
-      storeImageFromBase64(imageUrl, cardId, prefix),
-      storeUnwatermarkedImage(imageUrl, cardId, prefix)
-    ]);
-    const storedUrl = getImageUrl(cardId, prefix);
-    return { watermarked: storedUrl, original: imageUrl };
+    await storeImageFromBase64(imageUrl, cardId, prefix);
+    return getImageUrl(cardId, prefix);
   } catch (err) {
     console.error(`[BG_GEN] PNG save failed for ${prefix}, using base64 fallback:`, err);
-    return { watermarked: imageUrl, original: imageUrl };
+    return imageUrl;
   }
 }
 
@@ -44,9 +44,8 @@ export async function savePngFiles(
  *     stale cached image when a new regen lands
  *
  * The canonical filename (card_X_front.png) still exists — it mirrors
- * whichever attempt is currently selected, so all the existing
- * consumers (PDF, print-resolution upscale, fulfillment, watermarked
- * download) keep working unchanged.
+ * whichever attempt is currently selected, so PDF / print-resolution
+ * upscale / fulfilment consumers keep working unchanged.
  */
 export function attemptDisplayFilename(
   cardId: number,
@@ -56,20 +55,8 @@ export function attemptDisplayFilename(
   return `card_${cardId}_${side}_a${attemptId}.png`;
 }
 
-export function attemptUnwatermarkedFilename(
-  cardId: number,
-  side: 'front' | 'inside',
-  attemptId: number,
-): string {
-  return `card_${cardId}_${side}_a${attemptId}_unwatermarked.png`;
-}
-
 function canonicalDisplayFilename(cardId: number, side: 'front' | 'inside'): string {
   return `card_${cardId}_${side}.png`;
-}
-
-function canonicalUnwatermarkedFilename(cardId: number, side: 'front' | 'inside'): string {
-  return `card_${cardId}_${side}_unwatermarked.png`;
 }
 
 /**
@@ -86,41 +73,33 @@ export async function savePngFilesForAttempt(
   cardId: number,
   side: 'front' | 'inside',
   attemptId: number,
-): Promise<{ watermarked: string; original: string; attemptFilename: string }> {
+): Promise<{ url: string; attemptFilename: string }> {
   const attemptFilename = attemptDisplayFilename(cardId, side, attemptId);
-  const attemptUnwatermarked = attemptUnwatermarkedFilename(cardId, side, attemptId);
   const canonical = canonicalDisplayFilename(cardId, side);
-  const canonicalUnwatermarked = canonicalUnwatermarkedFilename(cardId, side);
 
   try {
     // Per-attempt files are the source of truth (they survive
-    // selectAttempt and aren't overwritten by future regens).
+    // selectAttempt and aren't overwritten by future regens). The
+    // canonical mirror keeps PDF / print / fulfilment readers working
+    // by a stable name.
     await Promise.all([
       storeImageToCustomFilename(imageUrl, attemptFilename),
-      storeImageToCustomFilename(imageUrl, attemptUnwatermarked),
-      // Canonical files mirror the freshly-generated attempt because
-      // we promote on success. Print/PDF/fulfillment read by canonical
-      // name so they need to see the latest selected version.
       storeImageToCustomFilename(imageUrl, canonical),
-      storeImageToCustomFilename(imageUrl, canonicalUnwatermarked),
     ]);
-    const storedUrl = `/images/${attemptFilename}`;
-    return { watermarked: storedUrl, original: imageUrl, attemptFilename };
+    return { url: `/images/${attemptFilename}`, attemptFilename };
   } catch (err) {
     console.error(
       `[BG_GEN] Per-attempt PNG save failed for ${side} a${attemptId}, falling back to base64:`,
       err,
     );
-    return { watermarked: imageUrl, original: imageUrl, attemptFilename };
+    return { url: imageUrl, attemptFilename };
   }
 }
 
 /**
  * Promote a per-attempt file to the canonical filename on selectAttempt.
- * Copies the per-attempt watermarked + unwatermarked files over the
- * canonical ones so PDF/print/fulfillment read the user's chosen
- * version. No-op-friendly: returns false if the source files don't
- * exist (legacy attempts that never had per-attempt files).
+ * No-op-friendly: returns false if the source file doesn't exist
+ * (legacy attempts that never had per-attempt files).
  */
 export async function promoteAttemptToCanonical(
   cardId: number,
@@ -128,21 +107,14 @@ export async function promoteAttemptToCanonical(
   attemptId: number,
 ): Promise<boolean> {
   const attemptFilename = attemptDisplayFilename(cardId, side, attemptId);
-  const attemptUnwatermarked = attemptUnwatermarkedFilename(cardId, side, attemptId);
   const canonical = canonicalDisplayFilename(cardId, side);
-  const canonicalUnwatermarked = canonicalUnwatermarkedFilename(cardId, side);
-
-  const [okDisplay] = await Promise.all([
-    copyStoredFile(attemptFilename, canonical),
-    copyStoredFile(attemptUnwatermarked, canonicalUnwatermarked),
-  ]);
-  return okDisplay;
+  return copyStoredFile(attemptFilename, canonical);
 }
 
 /**
- * Snapshot the current canonical files into per-attempt filenames.
+ * Snapshot the current canonical file into a per-attempt filename.
  * Used when we lazily synthesise attempt #1 on first regen — the
- * pre-attempts initial generation only wrote canonical files, so we
+ * pre-attempts initial generation only wrote a canonical file, so we
  * need to give attempt #1 its own copy or selecting back to it later
  * would silently grab whatever the canonical points at right then
  * (i.e. the wrong attempt).
@@ -153,15 +125,9 @@ export async function snapshotCanonicalToAttempt(
   attemptId: number,
 ): Promise<string | null> {
   const attemptFilename = attemptDisplayFilename(cardId, side, attemptId);
-  const attemptUnwatermarked = attemptUnwatermarkedFilename(cardId, side, attemptId);
   const canonical = canonicalDisplayFilename(cardId, side);
-  const canonicalUnwatermarked = canonicalUnwatermarkedFilename(cardId, side);
-
-  const [okDisplay] = await Promise.all([
-    copyStoredFile(canonical, attemptFilename),
-    copyStoredFile(canonicalUnwatermarked, attemptUnwatermarked),
-  ]);
-  return okDisplay ? attemptFilename : null;
+  const ok = await copyStoredFile(canonical, attemptFilename);
+  return ok ? attemptFilename : null;
 }
 
 /**
@@ -195,7 +161,7 @@ export async function generatePrintResolutionFiles(cardId: number): Promise<void
         .png({ compressionLevel: 6 })
         .toBuffer();
       const frontPrintBase64 = `data:image/png;base64,${frontPrintBuffer.toString('base64')}`;
-      await storeUnwatermarkedPngFile(frontPrintBase64, cardId, 'front_print');
+      await storePngWithSharp(frontPrintBase64, cardId, 'front_print');
       console.log(`[BG_GEN] Print-resolution front image saved for card ${cardId} (${frontPrintBuffer.length} bytes)`);
     }
 
@@ -206,7 +172,7 @@ export async function generatePrintResolutionFiles(cardId: number): Promise<void
         .png({ compressionLevel: 6 })
         .toBuffer();
       const insidePrintBase64 = `data:image/png;base64,${insidePrintBuffer.toString('base64')}`;
-      await storeUnwatermarkedPngFile(insidePrintBase64, cardId, 'inside_print');
+      await storePngWithSharp(insidePrintBase64, cardId, 'inside_print');
       console.log(`[BG_GEN] Print-resolution inside image saved for card ${cardId} (${insidePrintBuffer.length} bytes)`);
     }
   } catch (printErr: any) {

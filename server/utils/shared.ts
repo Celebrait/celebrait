@@ -1,7 +1,6 @@
 import OpenAI from "openai";
 import Stripe from "stripe";
 import sharp from "sharp";
-import { createCanvas, loadImage } from "canvas";
 import { storage } from "../storage";
 // Legacy supplier email import removed 2026-04-21 — new print
 // provider integration will handle its own dispatch via the
@@ -116,79 +115,11 @@ export async function convertBase64ToPngFile(base64Data: string, cardId: number,
   }
 }
 
-export async function applyWatermark(imageData: string, opacity: number = 0.65): Promise<string> {
-  // Watermarking removed — digital cards are free to download
-  return imageData;
-}
-
-export async function applyWatermarkToPngFile(
-  cardId: number,
-  sourceImageType: string,
-  targetImageType: string,
-  opacity: number = 0.65
-): Promise<string> {
-  try {
-    const fs = await import('fs');
-    const path = await import('path');
-
-    const sourceFilename = `card_${cardId}_${sourceImageType}.png`;
-    const sourceFilepath = path.join(process.cwd(), 'stored_images', sourceFilename);
-    const imageBuffer = await fs.promises.readFile(sourceFilepath);
-
-    console.log(`[PNG_WATERMARK] Reading source PNG: ${sourceFilename} (${imageBuffer.length} bytes)`);
-
-    const originalImage = await loadImage(imageBuffer);
-    const canvas = createCanvas(originalImage.width, originalImage.height);
-    const ctx = canvas.getContext('2d');
-
-    ctx.drawImage(originalImage, 0, 0);
-    ctx.save();
-
-    const text = 'CELEBRAIT PREVIEW';
-    const fontSize = Math.min(originalImage.width, originalImage.height) * 0.08;
-    ctx.font = `bold ${fontSize}px Arial`;
-    ctx.fillStyle = `rgba(255, 255, 255, 0.3)`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    ctx.translate(originalImage.width / 2, originalImage.height / 2);
-    ctx.rotate(-Math.PI / 8);
-
-    const textWidth = ctx.measureText(text).width;
-    const textHeight = fontSize;
-
-    const spacingX = textWidth * 1.5;
-    const spacingY = textHeight * 3;
-    const numCols = Math.ceil((originalImage.width * 1.5) / spacingX);
-    const numRows = Math.ceil((originalImage.height * 1.5) / spacingY);
-
-    const startX = -(numCols * spacingX) / 2;
-    const startY = -(numRows * spacingY) / 2;
-
-    for (let col = 0; col < numCols; col++) {
-      for (let row = 0; row < numRows; row++) {
-        const x = startX + col * spacingX;
-        const y = startY + row * spacingY;
-        ctx.fillText(text, x, y);
-      }
-    }
-
-    ctx.restore();
-
-    const watermarkedBuffer = canvas.toBuffer('image/png');
-    const targetFilename = `card_${cardId}_${targetImageType}.png`;
-    const targetFilepath = path.join(process.cwd(), 'stored_images', targetFilename);
-
-    await fs.promises.writeFile(targetFilepath, watermarkedBuffer);
-
-    console.log(`[PNG_WATERMARK] Created watermarked PNG: ${targetFilename} (${watermarkedBuffer.length} bytes)`);
-
-    return `/images/${targetFilename}`;
-  } catch (error) {
-    console.error(`[PNG_WATERMARK] Failed to apply watermark to PNG file for card ${cardId}:`, error);
-    throw error;
-  }
-}
+// applyWatermark + applyWatermarkToPngFile removed 2026-05-12.
+// Both were unused dead code. Watermarking is not a Celebrait feature —
+// digital cards are free, users can download/screenshot their work.
+// The diagonal-text "CELEBRAIT PREVIEW" canvas overlay function lived
+// here for a while but was never wired into any send/download path.
 
 export async function compressImageForDigital(imageBuffer: Buffer): Promise<Buffer> {
   try {

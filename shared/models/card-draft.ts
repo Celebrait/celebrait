@@ -11,6 +11,12 @@
 
 export type StyleMode = 'animated' | 'realistic' | 'custom';
 export type InsideMode = 'write' | 'blank';
+// Front-text mode mirrors InsideMode: either the user wants a headline
+// rendered on the front of the card ('write' — the default and ~99% of
+// cases) or they explicitly want NO text at all so the scene speaks for
+// itself ('none'). Absence of `mode` is treated as 'write' for back-compat
+// with drafts created before this field existed (2026-04-27).
+export type FrontMode = 'write' | 'none';
 
 // Photo-mode on the Studio photo step. Only two modes are exposed to
 // users today — `multi_individual` (N separate photos, one per person)
@@ -55,10 +61,16 @@ export interface CardDraftState {
     pendingModeReview?: 'too-many' | 'too-few';
   };
   front?: {
+    /** Whether the user wants a front headline at all.
+     *  - 'write' (or absent): render either the user's text, or — if blank —
+     *    the auto-derived default (e.g. "Happy Birthday Dad").
+     *  - 'none': explicit opt-out. Server skips text rendering entirely so
+     *    the scene image stands alone. Mirrors `inside.mode = 'blank'`. */
+    mode?: FrontMode;
     /** The short headline printed on the card front (e.g. "Happy Birthday Dad").
-     *  When empty/absent, the server falls back to an auto-derived phrase from
-     *  recipient name + occasion. Absence of the field is valid — the user
-     *  can leave the default. */
+     *  When empty/absent (and mode !== 'none'), the server falls back to an
+     *  auto-derived phrase from recipient name + occasion. Ignored when
+     *  mode === 'none'. */
     text?: string;
   };
   inside?: {

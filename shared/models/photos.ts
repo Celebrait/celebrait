@@ -58,6 +58,30 @@ export const photos = pgTable(
     // library browsable when a user has many photos.
     label: text("label"),
 
+    // ── Vision analysis (added 2026-05-14) ─────────────────────────────
+    // A minimal LLM-derived summary of what's in the photo. Captured in
+    // the background after upload so the inside-text helper can ground
+    // its message suggestions in what the photos actually show (rather
+    // than relying on the recipient name alone).
+    //
+    // Deliberately narrow: ONE downstream consumer today (the inside-
+    // text helper). Brainstorm + scene flows do not read these fields
+    // pre-launch — they use the photoMode hint we already pass through.
+    //
+    // Privacy note: descriptions are generic visual ("two adults
+    // smiling in a kitchen"), never identifying ("Sarah Smith and
+    // her husband"). The prompt for analyzePhoto enforces this.
+    //
+    /** How many people the vision model counted (0 = no people,
+     *  1 = solo, 2+ = group). Null = analysis pending or failed. */
+    personCount: integer("person_count"),
+    /** Short visual summary (~25–60 words). Composition + mood + setting.
+     *  Generic only, no identifying language. */
+    visualSummary: text("visual_summary"),
+    /** When the analysis ran (null = pending; non-null = done, whether
+     *  successful or not — we don't retry to avoid LLM cost loops). */
+    analyzedAt: timestamp("analyzed_at"),
+
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => [

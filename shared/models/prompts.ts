@@ -157,6 +157,48 @@ export const promptActive = pgTable(
   ],
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Regen settings — production override for the live regen engine.
+//
+// `prompt_active` covers per-slot generation config, but regen / refine is a
+// different code path with no template (it edits an existing image, not
+// a fresh generation). This table holds the provider+quality choice for
+// regens, with up to three rows:
+//
+//   side='global'  → applied to BOTH front and inside regens (default)
+//   side='front'   → optional override, applies only to front regens
+//   side='inside'  → optional override, applies only to inside regens
+//
+// Resolution chain in server/background-generator.ts:
+//   1. Specific side row (front or inside) if present
+//   2. Global row if present
+//   3. REGEN_PROVIDER_ID env var
+//   4. Hardcoded 'gemini' default
+//
+// Why a separate table instead of overloading prompt_active: regens have
+// no `templateId` (they don't render a prompt; they pass an instruction to
+// provider.refine). prompt_active.activeTemplateId is NOT NULL, so a
+// "virtual slot" hack would force us to point at a fake template. Cleaner
+// to have a tiny dedicated table.
+// ─────────────────────────────────────────────────────────────────────────────
+export const regenSettings = pgTable("regen_settings", {
+  side: text("side")
+    .primaryKey()
+    .$type<'global' | 'front' | 'inside'>(),
+  provider: text("provider")
+    .$type<PromptProvider>()
+    .notNull(),
+  quality: text("quality")
+    .$type<PromptQuality>()
+    .notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedBy: text("updated_by"),
+});
+
+export type RegenSettingsRow = typeof regenSettings.$inferSelect;
+export type RegenSide = 'global' | 'front' | 'inside';
+export const REGEN_SIDES: readonly RegenSide[] = ['global', 'front', 'inside'] as const;
+
 // Per-generation audit log. Every call to a provider — production or lab —
 // writes one row here. Minimal v1: enough to answer "which template
 // generated card X?" and "what did we spend today?". Richer columns

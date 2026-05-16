@@ -5,7 +5,9 @@
 // can make decisions based on the error kind without string-matching.
 
 export type ProviderErrorKind =
-  | 'safety'   // content policy / moderation block — retryable (nondeterministic)
+  | 'safety'   // content policy / moderation block — NOT retryable (deterministic;
+               //   retrying the same prompt won't change the model's mind, just
+               //   wastes ~3s of user wait + a billed attempt per retry)
   | 'auth'     // bad or missing API key — NOT retryable
   | 'rate'     // rate limit / quota — retryable after backoff
   | 'server'   // provider-side 5xx or empty response — retryable
@@ -90,7 +92,9 @@ export function classifyOpenAIError(
       kind: 'safety',
       code: code || 'safety_unknown',
       message: `Safety filter: ${message}`,
-      retryable: true,
+      // Deterministic — same prompt, same answer. Don't retry. Surface
+      // the friendly panel immediately and let the user edit the input.
+      retryable: false,
       modelExplanation: message,
       httpStatus: 400,
       provider: providerId,
@@ -179,7 +183,9 @@ export function classifyGeminiError(
       kind: 'safety',
       code: finishReason || 'safety_blocked',
       message: `Safety filter: ${modelText?.slice(0, 200) || message}`,
-      retryable: true,
+      // Deterministic — same prompt, same answer. Don't retry. Surface
+      // the friendly panel immediately and let the user edit the input.
+      retryable: false,
       modelExplanation: modelText?.slice(0, 500) || null,
       httpStatus: 400,
       provider: providerId,

@@ -89,6 +89,10 @@ export interface ProviderInfo {
   displayName: string;
   model: string;
   available: boolean;
+  /** True when this provider implements `refine` — i.e. it can edit
+   *  an existing image with a text instruction. UI uses this to grey
+   *  out provider buttons in the refine/regen toggle. */
+  supportsRefine: boolean;
   qualityOptions: Array<{
     value: string;
     label: string;

@@ -3,7 +3,8 @@ import { promises as fs } from 'fs';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { db } from './db';
 import { storage } from './storage';
-import { sendGenerationFailedEmail } from './email-service';
+import { sendCardReadyEmail, sendGenerationFailedEmail } from './email-service';
+import { upsertAddressBookFromCard } from './routes/address-book';
 import {
   resolveFrontScenePrompt,
   resolveInsidePrompt,
@@ -12,6 +13,7 @@ import {
   type ResolvedPrompt,
 } from './prompts/resolver';
 import { getProvider } from './providers/registry';
+import { ProviderError, isProviderError, type ProviderErrorKind } from './providers/errors';
 import { logGeneration } from './prompts/generation-log';
 import { buildRefineInstruction, REFINE_SLOT } from './prompts/refine-scaffolds';
 import {
@@ -25,8 +27,12 @@ import {
   cards,
   cardAttempts,
   photos,
+  users,
+  regenSettings,
   type CardDraftState,
   type CardSide,
+  type PromptProvider,
+  type PromptQuality,
   deriveDefaultFrontText,
 } from '@shared/schema';
 import { resolveStyleDescription } from '@shared/style-descriptions';
@@ -38,6 +44,80 @@ import { openai } from './utils/shared';
 const FALLBACK_PROVIDER = 'openai';
 const FALLBACK_QUALITY = 'high' as const;
 const FALLBACK_SIZE = '1024x1024';
+
+// Regens are pinned to Gemini regardless of what the prompt_active
+// row says for the slot's INITIAL gen provider (Kevin's call
+// 2026-04-30, after openai-2 + openai v1.5 regens both produced full
+// re-renders rather than surgical edits).
+//
+// Reasoning: Gemini Pro's refine path is genuinely better at "change
+// THIS thing, keep everything else". OpenAI's /v1/images/edits is a
+// fresh-render-conditioned-on-the-input — preserves nothing reliably.
+// Different model strengths for different jobs:
+//   - Initial gen: whatever prompt_active says (gemini, openai-2,
+//     etc. — currently a mix while testing)
+//   - Regen / refine / reroll: resolved per-side via the resolution
+//     chain below. Studio admins can edit the active engine at
+//     /admin/prompts in the "Regen Settings" card.
+//
+// Resolution chain in resolveRegenConfig():
+//   1. regen_settings DB row for the specific side (front / inside)
+//   2. regen_settings DB row for 'global' (applies to both sides)
+//   3. REGEN_PROVIDER_ID env var (operator escape hatch)
+//   4. Hardcoded 'gemini' default (Pro)
+const REGEN_PROVIDER_ID_DEFAULT = 'gemini';
+
+interface RegenConfig {
+  providerId: string;
+  quality: PromptQuality;
+  /** Where the value came from — useful for log lines. */
+  source: 'db-side' | 'db-global' | 'env' | 'default';
+}
+
+/**
+ * Resolves which provider + quality to use for a regen of the given side.
+ * See the resolution chain above. Always returns something usable; callers
+ * never need to handle a null return.
+ */
+async function resolveRegenConfig(side: CardSide): Promise<RegenConfig> {
+  try {
+    const rows = await db.select().from(regenSettings);
+    const sideRow = rows.find((r) => r.side === side);
+    if (sideRow) {
+      return {
+        providerId: sideRow.provider as string,
+        quality: sideRow.quality as PromptQuality,
+        source: 'db-side',
+      };
+    }
+    const globalRow = rows.find((r) => r.side === 'global');
+    if (globalRow) {
+      return {
+        providerId: globalRow.provider as string,
+        quality: globalRow.quality as PromptQuality,
+        source: 'db-global',
+      };
+    }
+  } catch (err) {
+    // DB read failed — log and fall through to env / default. Don't fail
+    // the regen because the settings table is unreachable.
+    console.warn('[STUDIO_GEN] regen_settings read failed, using env/default:', err);
+  }
+
+  if (process.env.REGEN_PROVIDER_ID) {
+    return {
+      providerId: process.env.REGEN_PROVIDER_ID,
+      quality: 'high',
+      source: 'env',
+    };
+  }
+
+  return {
+    providerId: REGEN_PROVIDER_ID_DEFAULT,
+    quality: 'high',
+    source: 'default',
+  };
+}
 
 // ── DEV: Stub AI mode ────────────────────────────────────────────────
 // When DEV_STUB_AI=1, ALL provider calls (initial card generation +
@@ -72,13 +152,95 @@ const FALLBACK_SIZE = '1024x1024';
 //
 // To enable: `DEV_STUB_AI=1 npm run dev` (or add to .env.local).
 // Restart to disable. Status logged at server boot.
-const STUB_AI_MODE = process.env.DEV_STUB_AI === '1';
-if (STUB_AI_MODE) {
+// Stub-mode state — initialised from env at boot, toggleable at runtime
+// via the dev panel. Restart reverts to env. Call sites use isStubMode()
+// instead of reading process.env directly so the toggle can flip without
+// a restart.
+let stubModeOn = process.env.DEV_STUB_AI === '1';
+
+if (stubModeOn) {
   console.warn(
     '[STUDIO_GEN] ⚠ DEV_STUB_AI is ON — initial gens AND regens will skip ' +
       'the provider and reuse the user photo / prior image. Emails still fire ' +
-      'normally. Unset DEV_STUB_AI to use real generations.',
+      'normally. Toggle off via the dev panel or unset DEV_STUB_AI.',
   );
+}
+
+/** True when stub mode is on (env or runtime override). Use at every
+ *  stub branch instead of capturing the env value at module load. */
+export function isStubMode(): boolean {
+  return stubModeOn;
+}
+
+/** Runtime toggle for stub mode. Used by the dev panel. No-op in
+ *  production. Doesn't persist across restarts (boot reads env again). */
+export function setStubMode(on: boolean): void {
+  if (process.env.NODE_ENV === 'production') {
+    console.warn('[STUDIO_GEN] Ignored stub-mode toggle attempt in production');
+    return;
+  }
+  stubModeOn = on;
+  console.log(`[STUDIO_GEN] Stub mode ${on ? 'ENABLED' : 'DISABLED'} via runtime toggle`);
+}
+
+// ── DEV: Test-failure injection ──────────────────────────────────────
+// When DEV_STUB_AI=1, the dev test panel can call injectNextTestFailure()
+// to force the next stub-mode gen call to throw a synthetic ProviderError
+// of the chosen kind instead of returning the happy stub result. Used to
+// iterate on the GenerationErrorPanel UI without burning real tokens or
+// crafting prompts that actually trip the safety filter.
+//
+// Auto-clears after one consumption so the next gen succeeds normally
+// (lets Kevin test "fail then retry" in one session).
+//
+// Production guard: injectNextTestFailure is a no-op outside dev. Calls
+// from a non-dev context get logged + ignored.
+let nextTestFailureKind: ProviderErrorKind | null = null;
+
+export function injectNextTestFailure(kind: ProviderErrorKind | null): void {
+  if (process.env.NODE_ENV === 'production') {
+    console.warn('[TEST_FAILURE] Ignored injection attempt in production');
+    return;
+  }
+  nextTestFailureKind = kind;
+  if (kind) {
+    console.log(`[TEST_FAILURE] Next stub gen will fail with kind=${kind}`);
+  } else {
+    console.log('[TEST_FAILURE] Cleared');
+  }
+}
+
+/** Throw a synthetic ProviderError if a test-failure has been injected.
+ *  Auto-clears the injection after one consumption. Called at the top of
+ *  each stub branch in the generator. No-op when no failure is queued. */
+function maybeThrowTestFailure(providerId: string): void {
+  if (!nextTestFailureKind) return;
+  const kind = nextTestFailureKind;
+  nextTestFailureKind = null; // consume
+
+  const httpStatus =
+    kind === 'safety' ? 400
+    : kind === 'rate' ? 429
+    : kind === 'auth' ? 401
+    : kind === 'server' ? 503
+    : 500;
+
+  const modelExplanation =
+    kind === 'safety'
+      ? '[DEV TEST] Pretending this is OpenAI: "Your request was rejected by the safety system. If you believe this is an error, contact us at help.openai.com and include the request ID req_test_synthetic."'
+      : null;
+
+  console.log(`[TEST_FAILURE] Throwing synthetic ${kind} ProviderError`);
+
+  throw new ProviderError({
+    kind,
+    code: `test_${kind}`,
+    message: `[DEV TEST] Synthetic ${kind} failure — injected via dev test panel`,
+    retryable: kind === 'server',
+    modelExplanation,
+    httpStatus,
+    provider: `${providerId}-test`,
+  });
 }
 
 /** Artificial delay per stubbed model call so the spinner / narration
@@ -195,9 +357,9 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
   try {
     await storage.updateCard(cardId, { status: 'generating' });
 
-    let frontWatermarked: string | null = null;
+    let frontUrl: string | null = null;
     let frontOriginal: string | null = null;
-    let insideWatermarked: string | null = null;
+    let insideUrl: string | null = null;
     let insideOriginal: string | null = null;
 
     // --- FRONT CARD ---
@@ -227,9 +389,8 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
         resolved: resolvedFront,
         referenceImages: params.imageDataArray,
       });
-      const { watermarked: sw, original: so } = await savePngFiles(sceneImageUrl, cardId, 'front');
-      frontWatermarked = sw;
-      frontOriginal = so;
+      frontUrl = await savePngFiles(sceneImageUrl, cardId, 'front');
+      frontOriginal = sceneImageUrl;
 
     } else {
       console.error(`[BG_GEN] Unsupported generation type or missing images: ${generationType}`);
@@ -240,7 +401,7 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
 
     // --- INSIDE CARD ---
     const insideText = params.insideText || answers.inside_message;
-    if (insideText && frontWatermarked) {
+    if (insideText && frontUrl) {
       const artStyle = params.artStyle || params.userArtStyle || 'artistic';
       const resolvedInside = await resolveInsidePrompt({ insideText, artStyle });
 
@@ -252,31 +413,32 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
 
       // Read the front PNG file for use as reference — the inside card
       // inherits the front's style via the image-to-image edit path.
-      const frontImageForInside = await loadStoredImageAsBase64(frontWatermarked);
+      const frontImageForInside = await loadStoredImageAsBase64(frontUrl);
 
       const insideImageUrl = await generateViaActiveConfig({
         cardId,
         resolved: resolvedInside,
         referenceImages: [frontImageForInside],
       });
-      const { watermarked: iw, original: io } = await savePngFiles(insideImageUrl, cardId, 'inside');
-      insideWatermarked = iw;
-      insideOriginal = io;
+      insideUrl = await savePngFiles(insideImageUrl, cardId, 'inside');
+      insideOriginal = insideImageUrl;
     }
 
     // --- UPDATE CARD IN DB ---
+    // Note: `originalFront/InsideImageUrl` retained for any legacy
+    // conversationData consumers; the `watermarked*ImageUrl` keys are
+    // gone since there's no longer a watermarked variant. Modern reads
+    // should use `frontImageUrl` / `insideImageUrl` on the cards row.
     const conversationData = {
       ...answers,
       uploadedPhotoIds: uploadedPhotoIds || [],
       originalFrontImageUrl: frontOriginal,
       originalInsideImageUrl: insideOriginal,
-      watermarkedFrontImageUrl: frontWatermarked,
-      watermarkedInsideImageUrl: insideWatermarked
     };
 
     await storage.updateCard(cardId, {
-      frontImageUrl: frontWatermarked,
-      insideImageUrl: insideWatermarked,
+      frontImageUrl: frontUrl,
+      insideImageUrl: insideUrl,
       status: 'completed',
       conversationData
     });
@@ -417,7 +579,8 @@ export async function generateStudioCard(cardId: number): Promise<void> {
     // Logs to generation_log with a _stub slot suffix and 0 cost so
     // Cost Ledger / spend telemetry stays clean.
     let frontImageUrl: string;
-    if (STUB_AI_MODE && referenceImages[0]) {
+    if (isStubMode() && referenceImages[0]) {
+      maybeThrowTestFailure(resolvedFront.provider ?? FALLBACK_PROVIDER);
       await sleep(STUB_DELAY_MS);
       frontImageUrl = referenceImages[0];
       await logGeneration({
@@ -440,11 +603,7 @@ export async function generateStudioCard(cardId: number): Promise<void> {
         referenceImages,
       });
     }
-    const { watermarked: frontWatermarked } = await savePngFiles(
-      frontImageUrl,
-      cardId,
-      'front',
-    );
+    const frontStoredUrl = await savePngFiles(frontImageUrl, cardId, 'front');
 
     // Persist the front URL immediately while the inside is still
     // drafting. The client's polling loop can now reveal the rendered
@@ -453,7 +612,7 @@ export async function generateStudioCard(cardId: number): Promise<void> {
     // stays 'generating' — the final updateCard below flips it to
     // 'completed' once the inside has landed (or if inside is skipped).
     await storage.updateCard(cardId, {
-      frontImageUrl: frontWatermarked,
+      frontImageUrl: frontStoredUrl,
     });
 
     // ── Build inside-mode vars + resolve the right template ───────
@@ -472,7 +631,7 @@ export async function generateStudioCard(cardId: number): Promise<void> {
       });
     }
 
-    let insideWatermarked: string | null = null;
+    let insideStoredUrl: string | null = null;
     if (resolvedInside) {
       console.log(
         `[STUDIO_GEN] Inside (${insideMode}): provider=${resolvedInside.provider ?? 'openai(fallback)'} ` +
@@ -481,9 +640,10 @@ export async function generateStudioCard(cardId: number): Promise<void> {
       );
 
       // Inside inherits style from the front via image-to-image edit.
-      const frontForInside = await loadStoredImageAsBase64(frontWatermarked);
+      const frontForInside = await loadStoredImageAsBase64(frontStoredUrl);
       let insideImageUrl: string;
-      if (STUB_AI_MODE) {
+      if (isStubMode()) {
+        maybeThrowTestFailure(resolvedInside.provider ?? FALLBACK_PROVIDER);
         await sleep(STUB_DELAY_MS);
         insideImageUrl = frontForInside; // reuse the front as the inside
         await logGeneration({
@@ -506,14 +666,13 @@ export async function generateStudioCard(cardId: number): Promise<void> {
           referenceImages: [frontForInside],
         });
       }
-      const saved = await savePngFiles(insideImageUrl, cardId, 'inside');
-      insideWatermarked = saved.watermarked;
+      insideStoredUrl = await savePngFiles(insideImageUrl, cardId, 'inside');
     }
 
     // ── Persist + finalise ───────────────────────────────────────
     await storage.updateCard(cardId, {
-      frontImageUrl: frontWatermarked,
-      insideImageUrl: insideWatermarked,
+      frontImageUrl: frontStoredUrl,
+      insideImageUrl: insideStoredUrl,
       status: 'completed',
     });
 
@@ -521,10 +680,53 @@ export async function generateStudioCard(cardId: number): Promise<void> {
 
     // Print-resolution upscale — non-fatal, same as the legacy flow.
     await generatePrintResolutionFiles(cardId);
+
+    // ── Notify the sender that their card is ready ─────────────────
+    // Studio's biggest funnel-recovery email: the user kicked off a
+    // ~45s generation and may have navigated away. Without this,
+    // the success path was silent (Comms PR1 audit, 2026-04-28).
+    // Non-fatal — generation succeeded, the email is icing.
+    try {
+      await sendCardReadyEmailForCard(cardId, state, row.userId);
+    } catch (mailErr) {
+      console.error(`[STUDIO_GEN] card-ready email failed for ${cardId}:`, mailErr);
+    }
+
+    // ── Auto-save the recipient into the address book ──────────────
+    // First-card-for-Mum lands her in /studio/people/address-book
+    // automatically. Future cards typeahead-suggest her name. Fire-
+    // and-forget — failure is a quality-of-life dip, not a card-
+    // generation failure. See routes/address-book.ts for the dedup
+    // logic (case-insensitive name match, no-op if entry exists).
+    try {
+      await upsertAddressBookFromCard(cardId);
+    } catch (abErr) {
+      console.error(`[STUDIO_GEN] address-book upsert failed for ${cardId}:`, abErr);
+    }
   } catch (err: any) {
     console.error(`[STUDIO_GEN] Card ${cardId} FAILED:`, err?.message ?? err);
     try {
-      await storage.updateCard(cardId, { status: 'failed' });
+      // Persist failure metadata when we have a typed ProviderError so
+      // <GenerationErrorPanel> can render kind-specific copy + suggestions
+      // instead of the generic "didn't land" view. Plain Errors fall
+      // through to status='failed' with metadata null — the panel's
+      // generic fallback handles those.
+      const failurePayload = isProviderError(err)
+        ? {
+            status: 'failed' as const,
+            failureKind: err.kind,
+            failureMessage: err.message,
+            failureModelExplanation: err.modelExplanation,
+            failureProvider: err.provider,
+            failureCode: err.code,
+            failureSuggestions: err.suggestions,
+            failureAt: new Date(),
+          }
+        : { status: 'failed' as const };
+      await db
+        .update(cards)
+        .set(failurePayload)
+        .where(eq(cards.id, cardId));
     } catch (dbErr) {
       console.error(`[STUDIO_GEN] Failed to update status:`, dbErr);
     }
@@ -533,15 +735,59 @@ export async function generateStudioCard(cardId: number): Promise<void> {
   }
 }
 
+/** Look up the sender + fire the card-ready email. Tolerant of
+ *  missing data (anonymous draft, user without firstName) — fall back
+ *  to email-prefix as the greeting name so we never address a real
+ *  email "Hi kevin@adc.business,". Returns silently on any miss; the
+ *  caller logs failures.
+ *
+ *  Pulled out of the success branch for readability; lives here rather
+ *  than in email-service.ts because the lookup is Studio-specific. */
+async function sendCardReadyEmailForCard(
+  cardId: number,
+  state: CardDraftState,
+  userId: string | null,
+): Promise<void> {
+  if (!userId) return; // anonymous / orphaned draft; nothing to email
+
+  const userRows = await db
+    .select({ email: users.email, firstName: users.firstName })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  const user = userRows[0];
+  if (!user?.email) return;
+
+  // displayName fallback: user.firstName → email-local-part. Beats
+  // "Hi kevin@adc.business," in the inbox if the capture flow hasn't
+  // populated firstName yet.
+  const senderName =
+    user.firstName?.trim() ||
+    user.email.split('@')[0]?.replace(/[._-]+/g, ' ').trim() ||
+    null;
+
+  await sendCardReadyEmail({
+    senderEmail: user.email,
+    senderName,
+    recipientName: state.recipient?.name?.trim() || null,
+    occasion: state.recipient?.occasion?.trim() || null,
+    cardId,
+  });
+}
+
 /** Build the short text rendered on the card front (customer greeting).
  *  Prefers the user-entered `state.front.text` (the Front step lets them
  *  edit the default); falls back to the auto-derived phrase from recipient
  *  + occasion when the user hasn't overridden.
  *
- *  Returns empty string if we can't form a reasonable phrase (or the user
- *  deliberately blanked it) — the front-scene prompt's `includeText` flag
- *  gates the "render text" instruction on non-empty output. */
+ *  Returns empty string if:
+ *    - The user explicitly opted out via `state.front.mode === 'none'`
+ *      (added 2026-04-27 — mirrors inside.mode='blank'). Front-scene prompt's
+ *      `includeText` flag gates the "render text" instruction on non-empty
+ *      output, so empty here = scene rendered with no headline.
+ *    - We can't form any reasonable phrase from recipient + occasion. */
 function buildCardText(state: CardDraftState): string {
+  if (state.front?.mode === 'none') return '';
   const userText = state.front?.text?.trim();
   if (userText) return userText;
   return deriveDefaultFrontText(state);
@@ -652,10 +898,21 @@ async function applyInsideStyleTweak(
   }
 }
 
-/** Soft + hard caps on regens per (card, side). Kept here rather than
- *  in the route so the limit lives next to the gen path that enforces
- *  it. The route can also pre-check + return a friendly 429. */
-export const REGEN_HARD_CAP_PER_SIDE = 10;
+/** Hard cap on regens per (card, side). Effectively lifted for now
+ *  (Kevin's call 2026-05-05) — set to 999 so iteration during the
+ *  pre-launch testing window isn't blocked. Real strategy + tier
+ *  thresholds revisit pre-launch as part of the pricing/regen-economics
+ *  work (see memory: next_pricing_and_regen_economics.md).
+ *
+ *  Override at runtime via the REGEN_CAP_PER_SIDE env var; default 999
+ *  is "unbounded for testing." Production launch should drop this
+ *  back to a sane value (10–20) once paid usage is in.
+ *
+ *  Kept here rather than in the route so the limit lives next to the
+ *  gen path that enforces it. The route also pre-checks and returns a
+ *  friendly 429 when hit. */
+export const REGEN_HARD_CAP_PER_SIDE: number =
+  parseInt(process.env.REGEN_CAP_PER_SIDE ?? '999', 10) || 999;
 
 /** Look up the next attempt number for (card, side). Used both by the
  *  regen entry point AND by the lazy backfill of attempt #1 on first
@@ -763,19 +1020,29 @@ export interface RegenerateOptions {
 }
 
 /**
- * Regenerate one side of a card. Writes a new card_attempts row,
- * runs the provider, and promotes the new attempt to `selected` on
- * success. The other side is untouched.
+ * Synchronous setup phase of a regen — backfills attempt #1 if needed,
+ * allocates the next attempt number, inserts a new row in 'generating'
+ * state, and returns the new attemptId + attemptNumber. Cheap (a few
+ * DB operations); intended to be awaited by the route so the response
+ * can return immediately with the attemptId for the client to poll.
  *
- * Returns the new attempt id so the route can return it and the
- * client can poll for status flip.
+ * The actual generation work (provider call, file save, attempt-state
+ * update) lives in {@link runRegenAttempt} and runs separately — fire-
+ * and-forget from the route, polling-driven from the client.
+ *
+ * Split out 2026-05-15 to fix the regen "spinner stalls" UX bug. The
+ * old monolithic regenerateStudioCardSide() awaited the entire 3–5min
+ * gen, which kept the API request — and the client mutation's
+ * `isPending` — alive for the full duration. Splitting separates the
+ * API duration from the gen duration; the client now derives spinner
+ * state from polled attempt status, not from the request lifecycle.
  */
-export async function regenerateStudioCardSide(
+export async function createRegenAttemptRow(
   cardId: number,
   side: CardSide,
   options: RegenerateOptions = {},
-): Promise<number> {
-  console.log(`[STUDIO_GEN] Regenerate ${side} for card ${cardId}`, {
+): Promise<{ attemptId: number; attemptNumber: number }> {
+  console.log(`[STUDIO_GEN] Create regen attempt row: ${side} for card ${cardId}`, {
     hasTweak: !!options.tweak,
   });
 
@@ -802,8 +1069,30 @@ export async function regenerateStudioCardSide(
     })
     .returning({ id: cardAttempts.id });
   if (!attempt) throw new Error('Failed to create attempt row');
-  const attemptId = attempt.id;
+  return { attemptId: attempt.id, attemptNumber };
+}
 
+/**
+ * Async work phase of a regen — does the heavy lifting: load draft +
+ * photos, build prompt, call provider (3-5min on high-quality gpt-
+ * image-2), save image files, update the attempt row to 'completed'
+ * or 'failed', and promote the new attempt as the card's selected
+ * version on success.
+ *
+ * Caller must already have created the attempt row via
+ * {@link createRegenAttemptRow} (which returns the attemptId).
+ *
+ * On error: attempt row is updated to status='failed' with errorCode
+ * before re-throwing. The throw lets fire-and-forget callers catch +
+ * log; client polling will see status='failed' regardless.
+ */
+export async function runRegenAttempt(
+  attemptId: number,
+  attemptNumber: number,
+  cardId: number,
+  side: CardSide,
+  options: RegenerateOptions = {},
+): Promise<void> {
   try {
     // ── Load draft state + photos ────────────────────────────────────
     const cardRows = await db
@@ -867,7 +1156,14 @@ export async function regenerateStudioCardSide(
         photoCount: orderedPhotos.length,
       });
 
-      const providerId = resolvedFront.provider ?? FALLBACK_PROVIDER;
+      // REGEN provider override — resolved through DB → env → default
+      // chain. See resolveRegenConfig() at the top of this file.
+      const regenCfg = await resolveRegenConfig('front');
+      const providerId = regenCfg.providerId;
+      console.log(
+        `[STUDIO_GEN] regen front using provider=${providerId} ` +
+          `quality=${regenCfg.quality} (source=${regenCfg.source})`,
+      );
       const provider = getProvider(providerId);
 
       const priorFrontDataUrl = card.frontImagePath
@@ -881,7 +1177,8 @@ export async function regenerateStudioCardSide(
       // the prior front image as the "new" output — same image, new
       // attempt row, new file URL, fast + free. Lets us iterate on the
       // edit-mode UX without burning $0.13 + 30s per regen.
-      if (STUB_AI_MODE && priorFrontDataUrl) {
+      if (isStubMode() && priorFrontDataUrl) {
+        maybeThrowTestFailure(providerId);
         await sleep(STUB_DELAY_MS);
         await logGeneration({
           cardId,
@@ -1000,7 +1297,14 @@ export async function regenerateStudioCardSide(
         ? await loadStoredImageAsBase64(`/images/${card.frontImagePath}`)
         : await loadStoredImageAsBase64(card.frontImageUrl!);
 
-      const insideProviderId = resolvedInside.provider ?? FALLBACK_PROVIDER;
+      // REGEN provider override — resolved per-side through DB → env
+      // → default chain. See resolveRegenConfig() at top of file.
+      const insideRegenCfg = await resolveRegenConfig('inside');
+      const insideProviderId = insideRegenCfg.providerId;
+      console.log(
+        `[STUDIO_GEN] regen inside using provider=${insideProviderId} ` +
+          `quality=${insideRegenCfg.quality} (source=${insideRegenCfg.source})`,
+      );
       const insideProvider = getProvider(insideProviderId);
 
       const priorInsideDataUrl = card.insideImagePath
@@ -1018,7 +1322,8 @@ export async function regenerateStudioCardSide(
       // DEV STUB: same short-circuit as the front regen — reuse the
       // prior inside as the new attempt's image, log to generation_log
       // with _stub slot suffix and 0 cost, sleep so the spinner shows.
-      if (STUB_AI_MODE && priorInsideDataUrl) {
+      if (isStubMode() && priorInsideDataUrl) {
+        maybeThrowTestFailure(insideProviderId);
         await sleep(STUB_DELAY_MS);
         await logGeneration({
           cardId,
@@ -1101,7 +1406,7 @@ export async function regenerateStudioCardSide(
     // savePngFilesForAttempt writes card_X_side_a{id}.png (unique
     // URL → no cache hit) AND mirrors to canonical (so PDF/print
     // /fulfillment, which read by canonical name, see the new version).
-    const { watermarked: watermarkedUrl, attemptFilename } = await savePngFilesForAttempt(
+    const { url: attemptUrl, attemptFilename } = await savePngFilesForAttempt(
       generatedDataUrl,
       cardId,
       side,
@@ -1113,7 +1418,7 @@ export async function regenerateStudioCardSide(
       .update(cardAttempts)
       .set({
         status: 'completed',
-        imageUrl: watermarkedUrl,
+        imageUrl: attemptUrl,
         imagePath: imagePathRel,
       })
       .where(eq(cardAttempts.id, attemptId));
@@ -1123,7 +1428,7 @@ export async function regenerateStudioCardSide(
       await db
         .update(cards)
         .set({
-          frontImageUrl: watermarkedUrl,
+          frontImageUrl: attemptUrl,
           frontImagePath: imagePathRel,
           selectedFrontAttemptId: attemptId,
         })
@@ -1136,7 +1441,7 @@ export async function regenerateStudioCardSide(
       await db
         .update(cards)
         .set({
-          insideImageUrl: watermarkedUrl,
+          insideImageUrl: attemptUrl,
           insideImagePath: imagePathRel,
           selectedInsideAttemptId: attemptId,
         })
@@ -1144,7 +1449,6 @@ export async function regenerateStudioCardSide(
     }
 
     console.log(`[STUDIO_GEN] Regen ${side} #${attemptNumber} for card ${cardId} OK`);
-    return attemptId;
   } catch (err: any) {
     console.error(
       `[STUDIO_GEN] Regen ${side} #${attemptNumber} for card ${cardId} FAILED:`,
@@ -1160,4 +1464,27 @@ export async function regenerateStudioCardSide(
       .catch(() => {});
     throw err;
   }
+}
+
+/**
+ * Backward-compatible wrapper around {@link createRegenAttemptRow} +
+ * {@link runRegenAttempt}. Awaits the full sequence and returns the
+ * attemptId — same signature as the pre-split version. Existing
+ * callers that wanted "kick off + wait until done" still work, but
+ * the recommended pattern for any new caller is to use the two
+ * functions directly so the API request can return without blocking
+ * on the gen.
+ */
+export async function regenerateStudioCardSide(
+  cardId: number,
+  side: CardSide,
+  options: RegenerateOptions = {},
+): Promise<number> {
+  const { attemptId, attemptNumber } = await createRegenAttemptRow(
+    cardId,
+    side,
+    options,
+  );
+  await runRegenAttempt(attemptId, attemptNumber, cardId, side, options);
+  return attemptId;
 }

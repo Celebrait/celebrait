@@ -48,6 +48,15 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
     !isGenerating &&
     card.status !== 'failed' &&
     !card.hasPaidOrder;
+  // "Just finished" — completed card the sender hasn't yet opened or
+  // dismissed the toast for. Layered on TOP of the Ready/Sent split so
+  // a freshly-finished unpaid card shows the violet "Just finished"
+  // chip + glow instead of the standard green "Ready to send"; a
+  // freshly-finished PAID card (rare, but possible if the user paid
+  // before viewing) just gets the glow. The flag flips server-side
+  // the moment the user views the card or dismisses the toast, so
+  // this treatment naturally fades out after engagement.
+  const isJustFinished = card.isJustFinished === true;
   const [imageFailed, setImageFailed] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const { toast } = useToast();
@@ -140,12 +149,21 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
             <StatusBadge status={effectiveStatus} />
           </div>
         )}
-        {isReadyToSend && (
+        {isReadyToSend && !isJustFinished && (
           <div
             className="absolute bottom-2 right-2 inline-flex items-center gap-1 bg-cta text-white text-[10px] font-semibold uppercase tracking-wider rounded-full px-2.5 py-1 shadow-sm"
             data-testid={`chip-ready-to-send-${card.id}`}
           >
             Ready to send
+          </div>
+        )}
+        {isJustFinished && (
+          <div
+            className="absolute bottom-2 right-2 inline-flex items-center gap-1 bg-brand text-brand-foreground text-[10px] font-semibold uppercase tracking-wider rounded-full px-2.5 py-1 shadow-sm"
+            data-testid={`chip-just-finished-${card.id}`}
+          >
+            <span aria-hidden>✨</span>
+            Just finished
           </div>
         )}
       </div>
@@ -159,8 +177,17 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
     <div className="group relative">
       <Link
         href={href}
-        className="block bg-white rounded-2xl border border-stone-200 overflow-hidden hover:border-brand hover:shadow-lg transition-all"
+        className={`block bg-white rounded-2xl border overflow-hidden hover:shadow-lg transition-all ${
+          isJustFinished
+            ? // Violet ring + glow on "Just finished" tiles. Subtle —
+              // visible enough to draw the eye, not so loud it overwhelms
+              // the rest of the grid. Fades to normal once notifiedAt
+              // is stamped (user opens it or dismisses the toast).
+              'border-brand ring-2 ring-brand/20 shadow-[0_4px_20px_-4px_rgba(122,118,232,0.35)] hover:border-brand-dark'
+            : 'border-stone-200 hover:border-brand'
+        }`}
         data-testid={`card-tile-${card.id}`}
+        data-just-finished={isJustFinished ? 'true' : undefined}
       >
         {tileBody}
       </Link>
