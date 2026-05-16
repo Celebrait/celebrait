@@ -1,35 +1,34 @@
 // server/routes/studio-inside-text.ts
 //
-// "Help me write this" — LLM-assisted inside-card message helper.
+// Inside-card message helper — STYLE TRANSFORM rebuild (2026-05-16).
 //
-// Why it exists:
-//   Greeting-card writer's block is real. Pre-this, the inside-text
-//   input was a blank textarea staring back at the user. That's the
-//   single biggest reason supermarket cards with pre-written rhymes
-//   exist as a market — most people don't know what to write. The
-//   helper seeds three suggestions grounded in the card's actual
-//   context (recipient, occasion, scene, photo summaries, style) and
-//   lets the user pick + edit, or "show more options" / "different
-//   tone" to iterate. Their voice still ships; we just unblock the
-//   blank-page moment.
+// Design philosophy (from next_inside_text_helper_polish_rebuild.md +
+// 2026-05-16 pre-mortem conversation):
 //
-// Pattern mirrors studio-brainstorm.ts:
-//   - openai chat.completions with response_format=json_object
-//   - inline system prompt (Prompt Lab is heavy machinery for image
-//     gen versioning; text helpers iterate faster inline)
-//   - light defensive parsing + fallback
+//   • Writing a card message isn't hard. Most users can. The helper is
+//     a BONUS for the "stuck" or "want to try a different vibe" moment,
+//     not a default writing tool.
 //
-// Each call returns exactly three suggestions, varied along:
-//   - tone (sincere / playful / brief)
-//   - length (short ≤20w, medium 20–50w, longer 50–80w)
+//   • The helper is a REWRITER, not a writer. It takes the user's draft
+//     and transforms it into a different style/vibe (funny, poem,
+//     heartfelt, brief, sweet). One job, one result, accept or try again.
 //
-// Hard caps: 100 words per suggestion. Never include the recipient's
-// name unless the user has provided one. References at least one
-// specific detail from the scene description.
+//   • The killer failure mode is "feels like AI" — generic output that
+//     could have been written for any birthday card on the internet.
+//     The fix is to ground HARD in the card's actual context (scene
+//     description, photo summaries, occasion, recipient) and to surface
+//     a "grounding receipt" so the user can SEE what was woven in.
 //
-// Cost: ~$0.005 per call on gpt-4o. Pre-launch volume is trivial.
-// Per-card cap is enforced on the client (drawer's "Show more options"
-// is the only path; UI naturally bounds to a few re-rolls).
+//   • Voice preservation matters. If the user wrote "love you, you
+//     legend", the rewrite keeps it. Don't ghostwrite — co-author.
+//
+// Endpoint contract (breaking change from previous version):
+//   POST /api/studio/inside-text/suggest
+//   request:  { cardId, style, draft, previousAttempts? }
+//   response: { result: { text, grounding: string[] } }
+//
+// The previous "fresh ideas vs adapt mine, three-suggestions-with-tone-
+// labels" shape is gone. Only the drawer called it; full rewrite.
 
 import type { Express, Request, Response } from 'express';
 import { z } from 'zod';
@@ -44,115 +43,163 @@ function getUserId(req: Request): string | null {
   return typeof id === 'string' && id.length > 0 ? id : null;
 }
 
+// ── Style catalogue ─────────────────────────────────────────────────
+//
+// Five styles, chosen to give breadth without choice paralysis. Each
+// has a tight per-style instruction block (voice + length + landmines)
+// so the model has a clear target and we don't get "funny" returning
+// 4 paragraphs of saccharine prose.
+//
+// Style copy NOT shown to the user — chips show 'funny' / 'a poem' /
+// etc. directly. The PROMPT_INSTRUCTION is what the model sees.
+
+type Style = 'funny' | 'poem' | 'heartfelt' | 'brief' | 'sweet';
+
+const STYLE_INSTRUCTIONS: Record<Style, string> = {
+  funny: `STYLE = FUNNY.
+- Light, observational humour. Affectionate teasing if the relationship implies it.
+- Specific not general. Tie the joke to something concrete from the scene, photo, or occasion — never a recycled "another year closer to old" Dad-joke.
+- Punny is the LAST resort, not the first.
+- Don't make the joke at the recipient's expense in a way that wouldn't land in person.
+- Length: 25–60 words. One tight beat.`,
+  poem: `STYLE = A POEM.
+- 4 lines, free verse OR rhyming. Use rhyme ONLY if it lands naturally — forced rhyme is worse than no rhyme.
+- Each line carries weight. No filler "and / so / very" lines.
+- Reference the scene or photo in at least one line.
+- Length: 4 lines, max ~40 words total.`,
+  heartfelt: `STYLE = HEARTFELT.
+- Earned emotion only. Specific moment > general sentiment. "I think about the time we..." beats "you mean so much to me".
+- NEVER use these phrases: "you mean the world to me", "I don't know what I'd do without you", "thank you for everything", "you're amazing".
+- One specific memory or observation > three vague compliments.
+- Length: 40–80 words. Give it room to breathe.`,
+  brief: `STYLE = BRIEF.
+- Tighten to a one or two-line punch. The kind of thing you'd handwrite under your signature in 5 seconds.
+- Specific detail still required — "Happy birthday" alone is too thin.
+- Length: 6–20 words. Hard cap.`,
+  sweet: `STYLE = SWEET.
+- Warm, gentle, soft. Affection without intensity. The card a grandparent sends, not a confession of love.
+- No grand declarations. No "forever and always" energy.
+- Reference one tangible detail from the scene/photo/occasion so it lands as "for them" not "for anyone".
+- Length: 25–55 words.`,
+};
+
+const ALL_STYLES = Object.keys(STYLE_INSTRUCTIONS) as Style[];
+
 // ── Request / Response shape ────────────────────────────────────────
 
 const requestSchema = z.object({
   cardId: z.number().int().positive(),
-  /** Optional tone hint for re-rolls. Default behaviour returns three
-   *  suggestions across all tones; passing a tone narrows the output
-   *  to three variations within that tone. */
-  tone: z.enum(['sincere', 'playful', 'brief']).optional(),
-  /** Optional user draft for the "adapt mine" path — model tightens or
-   *  varies the user's text instead of generating from scratch. */
-  adaptFrom: z.string().max(500).optional(),
+  style: z.enum(ALL_STYLES as [Style, ...Style[]]),
+  /** What the user has written so far. The rewriter transforms this.
+   *  Empty draft is rejected — the rewriter is rewrite-only, not a
+   *  generator. The client enforces this too (chips disabled when
+   *  textarea empty) but server validates as a safety net. */
+  draft: z.string().min(3).max(800),
+  /** Optional list of previous attempts in this style — the model is
+   *  told to avoid repeating the same opening or phrasing so "try
+   *  funny again" returns a different angle, not a near-duplicate. */
+  previousAttempts: z.array(z.string()).max(10).optional(),
 });
 
-interface InsideTextSuggestion {
-  /** The message text the user could drop straight into the inside
-   *  textarea. No quotes, no preamble. */
+interface RewriteResult {
+  /** The rewritten message — body only, no salutation, no signoff. */
   text: string;
-  /** Tone label for the suggestion card UI. */
-  toneLabel: 'sincere' | 'playful' | 'brief';
-  /** Approx length category for the suggestion card UI. */
-  lengthCategory: 'short' | 'medium' | 'longer';
+  /** What context elements the model claims to have used, surfaced
+   *  back to the user as a "grounding receipt" — proves the rewrite
+   *  is specific to their card, not generic. Short labels only
+   *  (e.g. "golf", "sunset", "the laughing photo"). */
+  grounding: string[];
 }
 
-interface InsideTextResponse {
-  suggestions: InsideTextSuggestion[];
+interface RewriteResponse {
+  result: RewriteResult;
 }
 
-// ── System prompt builder ───────────────────────────────────────────
+// ── Prompt builder ──────────────────────────────────────────────────
 
 interface PromptContext {
   recipientName: string;
   occasion: string;
-  /** Scene description from the front of the card. The strongest
-   *  context signal — the inside should feel of-a-piece with the
-   *  front. */
   sceneDescription: string;
-  /** Style mode chosen for the card (cinematic / illustrated / custom).
-   *  Influences tone — illustrated cards lean playful, cinematic lean
-   *  weighty. Optional. */
   styleHint: string;
-  /** Photo visual summaries — comma-joined short descriptions of the
-   *  card's reference photos. Empty when no analysis is available yet.
-   *  Gives the model grounding beyond just names. */
   photoSummaries: string;
-  /** Plural-safe vs singular framing. Mirrors the brainstorm/scene
-   *  photoMode awareness. */
   photoMode: 'one_person' | 'group' | null;
-  /** What the user has already typed in the inside text input, if
-   *  anything. Used in the "adapt mine" path. */
-  adaptFrom?: string;
-  /** Tone narrowing for re-rolls — undefined = mix of all three. */
-  tone?: 'sincere' | 'playful' | 'brief';
 }
 
-function buildSystemPrompt(ctx: PromptContext): string {
+function buildSystemPrompt(
+  ctx: PromptContext,
+  style: Style,
+  draft: string,
+  previousAttempts: string[],
+): string {
   const isGroup = ctx.photoMode === 'group';
-  const recipientFraming = isGroup
-    ? `the card is for ${ctx.recipientName} and the people they're sharing this moment with`
-    : `the card is for ${ctx.recipientName}`;
+  const recipientFraming = ctx.recipientName
+    ? isGroup
+      ? `the card is for ${ctx.recipientName} and the people they're sharing this moment with`
+      : `the card is for ${ctx.recipientName}`
+    : 'the recipient is unnamed — use "you" or no salutation';
 
-  const toneInstruction = ctx.tone
-    ? `\n\nThis re-roll narrows to ONE tone: "${ctx.tone}". Return three distinct variations within that tone — vary the length and the angle, not the warmth level.`
-    : `\n\nReturn three suggestions, one PER tone, in this order:\n  1. SINCERE — heartfelt, specific, lands a real emotion. Length: SHORT (≤20 words).\n  2. PLAYFUL — warm humour or affectionate teasing. Length: MEDIUM (20–50 words).\n  3. BRIEF — punchy, four to twelve words, the kind of one-liner you'd handwrite under a signature. Length: SHORT.`;
-
-  const adaptInstruction = ctx.adaptFrom
-    ? `\n\nADAPT MODE: The user has drafted this inside message:\n  "${ctx.adaptFrom}"\nReturn three improved variations that PRESERVE the user's voice and intent — tighten phrasing, fix flow, sharpen the emotional beat. Do NOT replace their message with a generic one. Do NOT change the meaning. Each variation gets a tone label + length category as normal.`
+  const previousBlock = previousAttempts.length
+    ? `\n\nThe user has already seen these ${style} versions and asked for another. Do NOT repeat the same opening, the same joke setup, or the same closing phrase. Find a DIFFERENT angle on the same draft:\n${previousAttempts.map((p, i) => `  ${i + 1}. "${p}"`).join('\n')}`
     : '';
 
-  return `You are a thoughtful greetings-card copywriter. Your only job is to suggest what a sender could handwrite inside their card.
+  return `You are a thoughtful greetings-card copywriter. Your ONE job: rewrite the user's draft inside-card message in a specific style, grounded in the card's real context. You are an editor / co-author, never a ghostwriter.
 
-CARD CONTEXT:
+CARD CONTEXT (use this — see GROUNDING RULE below):
 - Occasion: ${ctx.occasion}
 - ${recipientFraming}
-- Front-of-card scene: ${ctx.sceneDescription || '(none — work from the occasion alone)'}
-- Style mood: ${ctx.styleHint || '(neutral)'}
-- Photos: ${ctx.photoSummaries || '(no photo summaries available)'}
+- Front-of-card scene: ${ctx.sceneDescription || '(none — only occasion + recipient to work from)'}
+- Style mood of the card art: ${ctx.styleHint || '(neutral)'}
+- Reference photos: ${ctx.photoSummaries || '(no photo summaries available)'}
 
-RULES (hard):
-1. EVERY suggestion must reference at least one specific detail from the scene description above (a place, an activity, a mood) — never generic "wishing you a wonderful year" filler.
-2. Hard length cap: 100 words. Anything longer is wrong.
-3. ${ctx.recipientName ? `You may use the recipient name "${ctx.recipientName}" once per suggestion, but it's optional.` : 'No recipient name was given. Use "you" or no salutation at all.'}
-4. Do NOT include a salutation ("Dear ...") or a signoff ("Love, ..."). The user will add those. Each suggestion is the BODY of the message only.
-5. Do NOT use these banned phrases: "wishing you a wonderful", "many happy returns", "may this year bring", "all the best", "warmest wishes", "thinking of you on this special day".
-6. Do NOT invent specific people, names, relationships, or identifying facts not present in the context above.
-7. ${isGroup ? 'Plural framing — when the card is for more than one person, write to them collectively. "You both", "you three", "you all", "the two of you", "you lot" all work depending on tone.' : 'Singular framing — write to the named recipient.'}
-8. British English spelling.${toneInstruction}${adaptInstruction}
+USER'S DRAFT (this is what you're transforming — not replacing):
+"""
+${draft}
+"""
+
+${STYLE_INSTRUCTIONS[style]}
+
+GROUNDING RULE (the most important rule):
+Reference AT LEAST ONE concrete detail from the card context above by name — a place, an activity, a moment, a visible element from the photos. Generic output is failure. "Wishing you a wonderful year" is failure. The rewrite must be one that COULD NOT have been written for any other card.
+
+VOICE PRESERVATION RULE:
+If the user's draft contains a phrase that carries genuine emotion or personality (e.g. "love you, you legend", "miss you so much", a nickname, an inside joke), KEEP that phrase verbatim or near-verbatim in the rewrite. You are co-authoring, not erasing.
+
+BANNED PHRASES (never use):
+- "wishing you a wonderful"
+- "many happy returns"
+- "may this year bring"
+- "all the best"
+- "warmest wishes"
+- "thinking of you on this special day"
+- "you mean the world to me" (unless the user's draft says it)
+- "thank you for everything"
+
+OTHER RULES:
+- No salutation ("Dear ...") and no signoff ("Love, ..."). User adds those — return the MESSAGE BODY only.
+- British English spelling.
+- ${isGroup ? 'Plural framing — "you both" / "you all" / "you lot" — when writing to a group.' : 'Singular framing.'}
+- Do NOT invent specific people, names, relationships, or facts not in the context above.
+- Do NOT use emoji unless the style is funny AND it lands naturally — max one emoji.${previousBlock}
 
 JSON CONTRACT (strict — return exactly this shape, no markdown fences):
 {
-  "suggestions": [
-    {
-      "text": "the message body, no quotes, no salutation, no signoff",
-      "toneLabel": "sincere" | "playful" | "brief",
-      "lengthCategory": "short" | "medium" | "longer"
-    },
-    ... two more
-  ]
+  "text": "the rewritten message body, no quotes, no salutation, no signoff",
+  "grounding": ["short label", "short label", "..."]
 }
+
+GROUNDING ARRAY: list the specific context elements you actually wove into the rewrite. Short labels (1–4 words each), 1–4 items. Examples: "golf", "sunset behind him", "the laughing photo", "birthday", "for Dad". Be honest — only list what's genuinely in the rewrite. An empty array means "I didn't ground this in anything specific" which means you've failed the GROUNDING RULE — try harder.
 
 Output JSON only.`;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
-/** Pulls relevant data from a card draft for the prompt. */
+/** Pulls card draft + photo summaries into a PromptContext. Returns
+ *  null if the card doesn't exist or isn't owned by the user. */
 async function loadPromptContext(
   cardId: number,
   userId: string,
-  reqOverrides: { tone?: 'sincere' | 'playful' | 'brief'; adaptFrom?: string },
 ): Promise<PromptContext | null> {
   const rows = await db
     .select({
@@ -204,13 +251,13 @@ async function loadPromptContext(
     styleHint,
     photoSummaries,
     photoMode: state?.photos?.mode ?? null,
-    tone: reqOverrides.tone,
-    adaptFrom: reqOverrides.adaptFrom,
   };
 }
 
-/** Defensive parser — strips fence variants and normalises shape. */
-function parseSuggestions(raw: string): InsideTextSuggestion[] | null {
+/** Defensive parser — strips markdown fences if the model adds them
+ *  despite being told not to, then validates the shape. Returns null
+ *  on any failure (route turns that into a 502 with a try-again copy). */
+function parseRewrite(raw: string): RewriteResult | null {
   const trimmed = raw
     .trim()
     .replace(/^```(?:json)?\s*/i, '')
@@ -218,33 +265,24 @@ function parseSuggestions(raw: string): InsideTextSuggestion[] | null {
     .trim();
   try {
     const obj = JSON.parse(trimmed);
-    const list = Array.isArray(obj?.suggestions) ? obj.suggestions : null;
-    if (!list || list.length === 0) return null;
-    const normalized: InsideTextSuggestion[] = [];
-    for (const s of list) {
-      const text = String(s?.text ?? '').trim();
-      const toneLabel = ['sincere', 'playful', 'brief'].includes(s?.toneLabel)
-        ? (s.toneLabel as InsideTextSuggestion['toneLabel'])
-        : 'sincere';
-      const lengthCategory = ['short', 'medium', 'longer'].includes(
-        s?.lengthCategory,
-      )
-        ? (s.lengthCategory as InsideTextSuggestion['lengthCategory'])
-        : 'medium';
-      // Enforce the 100-word cap even if the model overshoots. We
-      // truncate at the last sentence boundary inside the cap rather
-      // than mid-sentence.
-      const words = text.split(/\s+/);
-      let capped = text;
-      if (words.length > 100) {
-        const within = words.slice(0, 100).join(' ');
-        const lastFullStop = within.lastIndexOf('.');
-        capped = lastFullStop > 30 ? within.slice(0, lastFullStop + 1) : within;
-      }
-      if (capped.length === 0) continue;
-      normalized.push({ text: capped, toneLabel, lengthCategory });
+    const text = String(obj?.text ?? '').trim();
+    if (!text) return null;
+    const groundingRaw = Array.isArray(obj?.grounding) ? obj.grounding : [];
+    const grounding = groundingRaw
+      .map((g: unknown) => String(g ?? '').trim())
+      .filter((s: string): s is string => s.length > 0 && s.length <= 40)
+      .slice(0, 4);
+    // Soft length cap — most styles cap below 100 in their own prompt
+    // blocks; this is the final safety net so a misbehaving model can't
+    // ship a 500-word essay. Truncate at last sentence boundary.
+    const words = text.split(/\s+/);
+    let capped = text;
+    if (words.length > 120) {
+      const within = words.slice(0, 120).join(' ');
+      const lastFullStop = within.lastIndexOf('.');
+      capped = lastFullStop > 30 ? within.slice(0, lastFullStop + 1) : within;
     }
-    return normalized.length > 0 ? normalized : null;
+    return { text: capped, grounding };
   } catch {
     return null;
   }
@@ -270,17 +308,14 @@ export function registerStudioInsideTextRoutes(app: Express): void {
         return res.status(400).json({ error: 'Invalid request body' });
       }
 
-      const ctx = await loadPromptContext(body.cardId, userId, {
-        tone: body.tone,
-        adaptFrom: body.adaptFrom,
-      });
+      const ctx = await loadPromptContext(body.cardId, userId);
       if (!ctx) {
         return res.status(404).json({ error: 'Card not found' });
       }
       if (!ctx.occasion) {
         return res.status(400).json({
           error:
-            'Card needs an occasion before we can suggest inside messages. Finish step 1 first.',
+            "Card needs an occasion before we can rewrite the inside message. Finish step 1 first.",
         });
       }
 
@@ -288,35 +323,46 @@ export function registerStudioInsideTextRoutes(app: Express): void {
         const completion = await openai.chat.completions.create({
           model: 'gpt-4o',
           messages: [
-            { role: 'system', content: buildSystemPrompt(ctx) },
+            {
+              role: 'system',
+              content: buildSystemPrompt(
+                ctx,
+                body.style,
+                body.draft,
+                body.previousAttempts ?? [],
+              ),
+            },
             {
               role: 'user',
-              content:
-                'Return three inside-card message suggestions per the contract.',
+              content: `Rewrite the user's draft as "${body.style}" per the contract.`,
             },
           ],
-          max_tokens: 700,
-          temperature: 0.85,
+          max_tokens: 400,
+          // Slightly higher temperature than refinement-style rewrites
+          // — we want the result to feel chosen, not boilerplate. The
+          // previousAttempts dedupe + grounding rule keep variance
+          // useful, not chaotic.
+          temperature: 0.9,
           response_format: { type: 'json_object' },
         });
 
         const raw = completion.choices[0]?.message?.content ?? '';
-        const suggestions = parseSuggestions(raw);
+        const result = parseRewrite(raw);
 
-        if (!suggestions) {
+        if (!result) {
           console.error('[INSIDE_TEXT] parse failed, raw:', raw);
           return res.status(502).json({
             error:
-              'Suggestion generation came back malformed. Try the button again.',
+              'The rewriter came back malformed. Try the button again.',
           });
         }
 
-        const response: InsideTextResponse = { suggestions };
+        const response: RewriteResponse = { result };
         res.json(response);
       } catch (err) {
-        console.error('[INSIDE_TEXT] generation failed:', err);
+        console.error('[INSIDE_TEXT] rewrite failed:', err);
         res.status(500).json({
-          error: 'Suggestion generation failed. Try again in a moment.',
+          error: 'Rewrite failed. Try again in a moment.',
         });
       }
     },

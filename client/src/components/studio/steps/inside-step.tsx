@@ -27,12 +27,18 @@
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { FileText, PenLine, Check, User, AlignLeft, Sparkles } from 'lucide-react';
+import { FileText, PenLine, Check, User, AlignLeft, Wand2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { InsideTextHelperDrawer } from '@/components/studio/inside-text-helper-drawer';
+import { ToastAction } from '@/components/ui/toast';
+import { useToast } from '@/hooks/use-toast';
+import {
+  InsideTextHelperDrawer,
+  STYLE_CHIPS,
+  type RewriteStyle,
+} from '@/components/studio/inside-text-helper-drawer';
 import type { CardDraftState } from '@shared/schema';
 
 const MESSAGE_AUTOSAVE_MS = 1000;
@@ -199,9 +205,20 @@ function WriteFields({
   const [message, setMessage] = useState(write.message ?? '');
   const [signoff, setSignoff] = useState(write.signoff ?? '');
 
-  // "Help me write this" drawer — context-grounded message suggestions.
-  // Opens via the small CTA under the Message field.
-  const [helperOpen, setHelperOpen] = useState(false);
+  // Style-transform rewriter drawer.
+  //
+  // Mental model: under the Message textarea sits a row of small "vibe"
+  // chips (funny / a poem / heartfelt / brief / sweet). Clicking one
+  // opens the drawer in that style and immediately fires a rewrite of
+  // the user's draft, grounded in the card's scene + occasion + photos.
+  // The drawer's job is one rewrite at a time — accept it, try the
+  // same style again for a different angle, or pick another vibe.
+  //
+  // `activeStyle` doubles as the open/closed flag: non-null = drawer
+  // open with that style; null = drawer closed.
+  const [activeStyle, setActiveStyle] = useState<RewriteStyle | null>(null);
+  const { toast } = useToast();
+  const messageHasContent = message.trim().length >= 3;
 
   // Keep the latest values in a ref so the debounced save can read them
   // without re-subscribing to state. (stateRef-style fresh-closure trick.)
@@ -282,24 +299,47 @@ function WriteFields({
           className="bg-white leading-relaxed resize-none border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
           data-testid="input-inside-message"
         />
-        {/* "Help me write this" — opens a drawer with three LLM
-            suggestions grounded in the card's full context (recipient,
-            occasion, scene, photo summaries, style). Sized as a quiet
-            secondary action — the message field is the hero, this is
-            the safety net for writer's block. */}
-        <div className="mt-2.5 flex items-center justify-between text-xs">
-          <button
-            type="button"
-            onClick={() => setHelperOpen(true)}
-            className="inline-flex items-center gap-1.5 text-brand hover:text-brand-dark transition-colors font-medium"
-            data-testid="btn-inside-helper-open"
-          >
-            <Sparkles className="w-3.5 h-3.5" strokeWidth={2} />
-            Help me write this
-          </button>
-          <span className="text-stone-400">
-            We'll use your scene + occasion to ground the suggestions.
-          </span>
+        {/* Style-transform chip row — the rewriter's entry point.
+            Quiet, low-prominence row of vibes under the textarea.
+            Disabled (greyed) when the message is empty, with a hint
+            line that explains why. The product position: writing a
+            card isn't hard, but if you want to try a different vibe
+            we're here. The chips literally tell you what each click
+            will do, no drawer needed to see the menu. */}
+        <div className="mt-3" data-testid="inside-vibe-chip-row">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 text-[11px] text-ink-soft font-medium mr-0.5">
+              <Wand2 className="w-3 h-3 text-brand/70" strokeWidth={2} />
+              Make it
+            </span>
+            {STYLE_CHIPS.map((c) => (
+              <button
+                key={c.value}
+                type="button"
+                disabled={!messageHasContent}
+                onClick={() => setActiveStyle(c.value)}
+                title={
+                  messageHasContent
+                    ? `Rewrite your draft as ${c.label}`
+                    : 'Write a message first, then try a vibe.'
+                }
+                className={
+                  messageHasContent
+                    ? 'px-2.5 py-1 rounded-full text-[11px] font-medium bg-brand-muted/60 text-brand-dark hover:bg-brand hover:text-white transition-colors'
+                    : 'px-2.5 py-1 rounded-full text-[11px] font-medium bg-stone-100 text-stone-400 cursor-not-allowed'
+                }
+                data-testid={`btn-inside-vibe-${c.value}`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+          {!messageHasContent && (
+            <p className="text-[11px] text-stone-400 mt-1.5">
+              Write a few words first — the rewriter needs your draft to
+              transform.
+            </p>
+          )}
         </div>
       </FieldCard>
 
@@ -319,22 +359,48 @@ function WriteFields({
         />
       </FieldCard>
 
-      {/* Help-me-write drawer. Stays mounted at the WriteFields level so
-          its internal state (loaded suggestions, draft buffer, tone
-          narrowing) persists across opens within one editing session.
-          Picking a suggestion routes through the same onMessageChange
-          path as a keystroke — autosaves the same way. */}
+      {/* Style-transform rewriter drawer. Opens when the user picks
+          a vibe chip; `activeStyle` doubles as the open flag. The
+          drawer auto-fires the rewrite on open + when the active
+          style changes from within the drawer ("Try another vibe").
+          Picking a result routes through onMessageChange + flushSave
+          so the autosave story is identical to typing. */}
       <InsideTextHelperDrawer
-        open={helperOpen}
-        onOpenChange={setHelperOpen}
+        open={activeStyle !== null}
+        onOpenChange={(o) => {
+          if (!o) setActiveStyle(null);
+        }}
         cardId={cardId}
-        currentText={message}
+        draft={message}
+        style={activeStyle}
+        onStyleChange={(next) => setActiveStyle(next)}
+        contextStrip={{
+          recipientName: state.recipient?.name?.trim() || undefined,
+          occasion: state.recipient?.occasion?.trim() || undefined,
+          sceneDescription: state.scene?.description?.trim() || undefined,
+        }}
         onAccept={(text) => {
+          // Capture the original BEFORE we overwrite — the toast's
+          // "Restore my original" action puts it back. Cheap safety
+          // net so accepting a rewrite never feels like erasure.
+          const originalBeforeAccept = message;
           onMessageChange(text);
-          // Also flush immediately — the user just made an explicit
-          // commit by picking the suggestion; no need to wait the
-          // debounce timer out.
           void flushSave();
+          toast({
+            title: 'Rewrite applied',
+            description: 'Edit freely from here. Or undo if it missed.',
+            action: (
+              <ToastAction
+                altText="Restore my original"
+                onClick={() => {
+                  onMessageChange(originalBeforeAccept);
+                  void flushSave();
+                }}
+              >
+                Restore my original
+              </ToastAction>
+            ),
+          });
         }}
       />
     </div>
