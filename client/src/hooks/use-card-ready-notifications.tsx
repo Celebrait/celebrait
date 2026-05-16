@@ -75,7 +75,14 @@ export function useCardReadyNotifications() {
     enabled,
     refetchInterval: POLL_INTERVAL_MS,
     refetchOnWindowFocus: false,
-    staleTime: 0,
+    // Match staleTime to poll interval. Without this, every navigation
+    // inside /studio/* re-fires the endpoint (staleTime: 0 = always
+    // stale on mount). The hook is mounted at the layout level so it
+    // technically only mounts once per app load — but staleTime: 0 is
+    // still wrong in spirit: we already KNOW the data is fresh for
+    // ~30s because that's how often we poll. This makes any future
+    // sibling consumer of the same query key a free read.
+    staleTime: POLL_INTERVAL_MS,
   });
 
   const unread = data?.unread ?? [];
