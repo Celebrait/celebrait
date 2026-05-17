@@ -26,7 +26,11 @@ import {
   isRecipientStepReady,
 } from '@/components/studio/steps/recipient-step';
 import { SceneStep, isSceneStepReady } from '@/components/studio/steps/scene-step';
-import { StyleStep, isStyleStepReady } from '@/components/studio/steps/style-step';
+// StyleStep parked for Celebrait Premium tier — V1 locks to the
+// "warm illustrated" default which is what we render today. The file
+// stays in the repo for revival under Premium. See next_celebrait_premium.md
+// + the CARD_MAKER_STEPS removal note in shared/models/card-draft.ts.
+// import { StyleStep, isStyleStepReady } from '@/components/studio/steps/style-step';
 import { FrontStep, isFrontStepReady } from '@/components/studio/steps/front-step';
 import { PhotoStep, isPhotoStepReady } from '@/components/studio/steps/photo-step';
 import { InsideStep, isInsideStepReady } from '@/components/studio/steps/inside-step';
@@ -234,7 +238,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
 
   // Chip click from the INITIAL-gen failure panel → open dialog,
   // initial mode.
-  const handleOpenFixDialog = (editor: 'scene' | 'photo' | 'style') => {
+  const handleOpenFixDialog = (editor: 'scene' | 'photo') => {
     setFixDialogEditor(editor);
     setFixDialogContext({ mode: 'initial' });
     setFixDialogOpen(true);
@@ -243,7 +247,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
   // Chip click from a REGEN failure panel → open dialog, regen mode,
   // remember which side failed so the retry fires the right regen.
   const handleOpenFixDialogRegen = (
-    editor: 'scene' | 'photo' | 'style',
+    editor: 'scene' | 'photo',
     side: CardSide,
   ) => {
     setFixDialogEditor(editor);
@@ -448,15 +452,12 @@ function CardMakerInner({ cardId }: { cardId: number }) {
             {currentStep === 2 && (
               <SceneStep state={state} onChange={update} cardId={cardId} />
             )}
-            {currentStep === 3 && (
-              <StyleStep
-                state={state}
-                onChange={update}
-                onAdvance={() => handleAutoAdvance(3)}
-              />
-            )}
-            {currentStep === 4 && <FrontStep state={state} onChange={update} />}
-            {currentStep === 5 && (
+            {/* Step 3 is FRONT TEXT in V1 (Style step removed — parked for
+                Celebrait Premium; see CARD_MAKER_STEPS comment in
+                shared/models/card-draft.ts). All step indices below
+                shifted down by one accordingly. */}
+            {currentStep === 3 && <FrontStep state={state} onChange={update} />}
+            {currentStep === 4 && (
               <InsideStep
                 cardId={cardId}
                 state={state}
@@ -465,7 +466,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 flushSave={flushSave}
               />
             )}
-            {currentStep === 6 && (
+            {currentStep === 5 && (
               <ReviewStep
                 cardId={cardId}
                 state={state}
@@ -589,15 +590,14 @@ function CardMakerInner({ cardId }: { cardId: number }) {
 // Per-step readiness gate. Steps that haven't been built yet default
 // to "ready" (true) so the Next button works through the whole flow;
 // as each step arrives it gains its own isXStepReady check here.
-// Step indexes follow CARD_MAKER_STEPS:
-//   0 recipient, 1 photo, 2 scene, 3 style, 4 front, 5 inside, 6 review
+// Step indexes follow CARD_MAKER_STEPS (V1 — Style step removed):
+//   0 recipient, 1 photo, 2 scene, 3 front, 4 inside, 5 review
 function isStepReady(stepIndex: number, state: CardDraftState): boolean {
   if (stepIndex === 0) return isRecipientStepReady(state);
   if (stepIndex === 1) return isPhotoStepReady(state);
   if (stepIndex === 2) return isSceneStepReady(state);
-  if (stepIndex === 3) return isStyleStepReady(state);
-  if (stepIndex === 4) return isFrontStepReady(state);
-  if (stepIndex === 5) return isInsideStepReady(state);
+  if (stepIndex === 3) return isFrontStepReady(state);
+  if (stepIndex === 4) return isInsideStepReady(state);
   return true;
 }
 
@@ -625,8 +625,6 @@ function getStepHeadline(stepId: StepId, state: CardDraftState): string {
       return 'Upload Photo(s)';
     case 'scene':
       return `Set the scene for the front of ${ownedCard}`;
-    case 'style':
-      return `Set the style for the front of ${ownedCard}`;
     case 'front':
       return `What should it say on the front of ${ownedCard}?`;
     case 'inside':

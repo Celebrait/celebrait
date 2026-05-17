@@ -23,7 +23,10 @@ import { registerStudioBrainstormRoutes } from "./routes/studio-brainstorm";
 import { registerStudioSceneSuggestRoutes } from "./routes/studio-scene-suggest";
 import { registerStudioCheckoutRoutes } from "./routes/studio-checkout";
 import { registerStudioNotificationRoutes } from "./routes/studio-notifications";
-import { registerStudioInsideTextRoutes } from "./routes/studio-inside-text";
+// Inside-text AI routes (rewriter + macro composer) — PARKED for
+// Celebrait Premium tier (decision 2026-05-17, see
+// next_celebrait_premium.md). File kept in repo for future revival.
+// import { registerStudioInsideTextRoutes } from "./routes/studio-inside-text";
 import { registerAdminCostsRoutes } from "./routes/admin-costs";
 import { registerAdminTestEmailRoutes } from "./routes/admin-test-emails";
 import { registerAddressBookRoutes } from "./routes/address-book";
@@ -232,7 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerStudioSceneSuggestRoutes(app);
   registerStudioCheckoutRoutes(app);
   registerStudioNotificationRoutes(app);
-  registerStudioInsideTextRoutes(app);
+  // registerStudioInsideTextRoutes(app); // PARKED for Premium tier — see next_celebrait_premium.md
   registerAdminCostsRoutes(app);
   registerAdminTestEmailRoutes(app);
   registerAddressBookRoutes(app);

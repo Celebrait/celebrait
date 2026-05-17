@@ -26,7 +26,6 @@ import {
   Pencil,
   User,
   Image as ImageIcon,
-  Palette,
   MessageSquare,
   FileText,
   Type,
@@ -74,12 +73,12 @@ interface ReviewStepProps {
   /** Variant of onJumpToStep used by the INITIAL-gen failure panel's
    *  action chips. Opens the fix-and-retry dialog in initial-gen mode.
    *  Optional — falls back to onJumpToStep when not provided. */
-  onJumpToStepFromFailure?: (stepId: 'scene' | 'photo' | 'style') => void;
+  onJumpToStepFromFailure?: (stepId: 'scene' | 'photo') => void;
   /** Variant of the above used by the REGEN failure panel's action
    *  chips (rendered inside RegenEditMode). Opens the dialog in regen
    *  mode and remembers which side failed so the right regen fires. */
   onJumpToStepFromRegenFailure?: (
-    stepId: 'scene' | 'photo' | 'style',
+    stepId: 'scene' | 'photo',
     side: CardSide,
   ) => void;
   /** Patch + flush the draft. Used by the photo / style pill controls
@@ -228,8 +227,6 @@ function SummaryPanel({
 }) {
   const recipient = state.recipient;
   const scene = state.scene?.description ?? '';
-  const styleMode = state.style?.mode;
-  const styleCustom = state.style?.custom ?? '';
   const insideMode = state.inside?.mode;
   const insideWrite = state.inside?.write ?? {};
   const photoCount = state.photos?.photoIds?.length ?? 0;
@@ -245,15 +242,6 @@ function SummaryPanel({
       : state.front?.text?.trim() || deriveDefaultFrontText(state);
   const frontTextIsDefault = frontMode !== 'none' && !state.front?.text?.trim();
   const frontExplicitlySkipped = frontMode === 'none';
-
-  const styleLabel =
-    styleMode === 'animated'
-      ? 'Animated'
-      : styleMode === 'realistic'
-        ? 'Realistic'
-        : styleMode === 'custom'
-          ? 'Custom'
-          : '—';
 
   return (
     <div className="space-y-3">
@@ -303,19 +291,10 @@ function SummaryPanel({
         )}
       </SummaryRow>
 
-      <SummaryRow
-        icon={Palette}
-        label="Style"
-        onEdit={() => onJumpToStep(stepIndexById.style)}
-        testId="summary-style"
-      >
-        <div className="text-sm text-ink font-medium">{styleLabel}</div>
-        {styleMode === 'custom' && styleCustom && (
-          <div className="text-xs text-stone-500 mt-0.5 line-clamp-2">
-            {styleCustom}
-          </div>
-        )}
-      </SummaryRow>
+      {/* Style summary row REMOVED 2026-05-17 — style picker parked
+          for Celebrait Premium. V1 locks to the warm illustrated
+          default which is what we render today. See
+          next_celebrait_premium.md. */}
 
       <SummaryRow
         icon={Type}
@@ -587,7 +566,7 @@ function RevealView({
    *  the inline panel's chips call this to open the fix-and-retry
    *  dialog in regen mode. */
   onJumpToStepFromRegenFailure?: (
-    stepId: 'scene' | 'photo' | 'style',
+    stepId: 'scene' | 'photo',
     side: CardSide,
   ) => void;
   /** Patch + flush draft. Powers the photo/style pill swap controls
@@ -1125,7 +1104,7 @@ function FailedView({
   failure: import('@/hooks/use-card-maker').DraftFailureDTO | null;
   stepIndexById: Record<StepId, number>;
   onJumpToStep: (stepIndex: number) => void;
-  onJumpToStepFromFailure?: (stepId: 'scene' | 'photo' | 'style') => void;
+  onJumpToStepFromFailure?: (stepId: 'scene' | 'photo') => void;
 }) {
   // Retry is a two-step operation orchestrated by the parent: first
   // POST /retry to flip the draft's server-side status from 'failed'

@@ -63,14 +63,15 @@ import {
   GenerationErrorPanel,
   type GenerationErrorKind,
 } from '@/components/studio/generation-error-panel';
-import { PhotoEditor, StyleEditor } from '@/components/studio/input-editors';
+import { PhotoEditor } from '@/components/studio/input-editors';
+// StyleEditor parked for Premium — see next_celebrait_premium.md.
 import {
   RegenIntentPicker,
   type RegenIntent,
 } from '@/components/studio/regen-intent-picker';
 import { ChevronLeft } from 'lucide-react';
 import type { CardAttemptDTO } from '@/hooks/use-card-maker';
-import type { CardSide, CardDraftState, StyleMode } from '@shared/schema';
+import type { CardSide, CardDraftState } from '@shared/schema';
 
 interface RegenEditModeProps {
   /** Recipient + occasion drive the header subtitle. */
@@ -93,7 +94,7 @@ interface RegenEditModeProps {
    *  retry fires the right regen. Optional — the panel falls back to
    *  hiding chips when not provided. */
   onJumpToStepFromRegenFailure?: (
-    stepId: 'scene' | 'photo' | 'style',
+    stepId: 'scene' | 'photo',
     side: CardSide,
   ) => void;
   /** Patch the draft AND flush to server. Used by the photo + style
@@ -180,18 +181,17 @@ export function RegenEditMode({
   //     a fresh intent pick, not the old surface still hanging around)
   const [pickedIntent, setPickedIntent] = useState<RegenIntent | null>(null);
 
-  // Pending photo / style state — held locally on the contextual
-  // surface until the user clicks "Make new version." Lets them
-  // preview a selection before committing (vs the previous instant-
-  // commit pill model which felt accidental).
+  // Pending photo state — held locally on the contextual surface
+  // until the user clicks "Make new version." Lets them preview a
+  // selection before committing (vs the previous instant-commit pill
+  // model which felt accidental).
+  //
+  // Style pending state REMOVED 2026-05-17 — style picker parked for
+  // Celebrait Premium tier. See next_celebrait_premium.md.
   const currentPhotoIds = state.photos?.photoIds ?? [];
   const currentPrimaryPhotoId = currentPhotoIds[0] ?? null;
-  const currentStyleMode: StyleMode = state.style?.mode ?? 'animated';
-  const currentStyleCustom = state.style?.custom ?? '';
 
   const [pendingPhotoId, setPendingPhotoId] = useState<number | null>(currentPrimaryPhotoId);
-  const [pendingStyleMode, setPendingStyleMode] = useState<StyleMode>(currentStyleMode);
-  const [pendingStyleCustom, setPendingStyleCustom] = useState<string>(currentStyleCustom);
 
   // Reset pending state every time the user enters a contextual
   // surface — pulls in the latest draft values. Avoids stale
@@ -200,21 +200,13 @@ export function RegenEditMode({
     if (pickedIntent === 'photo') {
       setPendingPhotoId(currentPrimaryPhotoId);
     }
-    if (pickedIntent === 'style') {
-      setPendingStyleMode(currentStyleMode);
-      setPendingStyleCustom(currentStyleCustom);
-    }
-  }, [pickedIntent, currentPrimaryPhotoId, currentStyleMode, currentStyleCustom]);
+  }, [pickedIntent, currentPrimaryPhotoId]);
 
   // Has the user actually changed anything on the current surface?
   // Drives the "Make new version" CTA's disabled state — no point
   // firing a regen with no inputs changed (which would be a re-roll,
   // and Kevin called for re-roll to NOT be an option).
   const photoChanged = pendingPhotoId !== null && pendingPhotoId !== currentPrimaryPhotoId;
-  const styleChanged =
-    pendingStyleMode !== currentStyleMode ||
-    (pendingStyleMode === 'custom' &&
-      pendingStyleCustom.trim() !== currentStyleCustom.trim());
 
   const frontTextareaRef = useRef<HTMLTextAreaElement>(null);
   const insideTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -314,20 +306,13 @@ export function RegenEditMode({
           },
         });
       }
-      if (pickedIntent === 'style' && styleChanged) {
-        await onUpdateInputs({
-          style: {
-            ...state.style,
-            mode: pendingStyleMode,
-            custom: pendingStyleMode === 'custom' ? pendingStyleCustom : undefined,
-          },
-        });
-      }
+      // Style-intent persist block REMOVED 2026-05-17 — see comment
+      // by currentPrimaryPhotoId.
 
-      // Photo / style intents always regen BOTH sides — input changes
-      // affect the whole card. Scene intent honours the user's
-      // target selector (front / inside / both).
-      if (pickedIntent === 'photo' || pickedIntent === 'style') {
+      // Photo intent always regens BOTH sides — input changes affect
+      // the whole card. Scene intent honours the user's target
+      // selector (front / inside / both).
+      if (pickedIntent === 'photo') {
         await onRegenerate('front');
         if (hasInside) await onRegenerate('inside');
       } else if (target === 'both') {
@@ -930,20 +915,9 @@ export function RegenEditMode({
               </div>
             )}
 
-            {pickedIntent === 'style' && (
-              <div className="mb-4">
-                <p className="text-sm text-ink font-medium mb-3">
-                  Pick a different aesthetic.
-                </p>
-                <StyleEditor
-                  mode={pendingStyleMode}
-                  customText={pendingStyleCustom}
-                  onModeChange={setPendingStyleMode}
-                  onCustomChange={setPendingStyleCustom}
-                  testIdPrefix="regen-style"
-                />
-              </div>
-            )}
+            {/* Style intent render block REMOVED 2026-05-17 — style
+                picker parked for Premium. See
+                next_celebrait_premium.md. */}
 
             {/* Soft-cap nudge — copy unchanged, this one's already good.
                 Only shown in tweaking mode; the deciding panel has its
@@ -980,8 +954,8 @@ export function RegenEditMode({
                   // target," matching the maker's behaviour.)
                   const submitDisabled =
                     !!isRegenerating ||
-                    (pickedIntent === 'photo' && !photoChanged) ||
-                    (pickedIntent === 'style' && !styleChanged);
+                    (pickedIntent === 'photo' && !photoChanged);
+                  // Style branch REMOVED 2026-05-17 — see Premium note.
                   return (
                     <Button
                       type="button"

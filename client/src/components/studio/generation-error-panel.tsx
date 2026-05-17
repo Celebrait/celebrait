@@ -107,7 +107,7 @@ export interface GenerationErrorPanelProps {
   onRetry: () => void | Promise<void>;
   /** Navigate to a specific Studio step. Wired by the parent so the
    *  action chips can jump to scene / photo / style etc. */
-  onJumpToStep: (stepId: 'scene' | 'photo' | 'style') => void;
+  onJumpToStep: (stepId: 'scene' | 'photo') => void;
   /** Show the retry CTA as pending (parent's mutation in flight). */
   isRetrying?: boolean;
 }
@@ -127,7 +127,7 @@ interface KindConfig {
    *  the user can actually fix the failure by editing inputs (safety;
    *  unknown as a hedge). For rate/server/auth, editing inputs doesn't
    *  help — the failure is on the provider side or our infra. */
-  chips: Array<{ stepId: 'scene' | 'photo' | 'style'; label: string }>;
+  chips: Array<{ stepId: 'scene' | 'photo'; label: string }>;
   /** Optional secondary line below the retry CTA. Used by `auth` to
    *  surface a support contact since the user can't actually fix an
    *  auth issue themselves. */
@@ -149,7 +149,8 @@ const KIND_CONFIG: Record<GenerationErrorKind, KindConfig> = {
     chips: [
       { stepId: 'scene', label: 'Edit scene' },
       { stepId: 'photo', label: 'Change photo' },
-      { stepId: 'style', label: 'Try a different style' },
+      // 'Try a different style' chip REMOVED 2026-05-17 — style picker
+      // parked for Premium. See next_celebrait_premium.md.
     ],
     isPanelKind: true,
   },
@@ -204,7 +205,8 @@ const KIND_CONFIG: Record<GenerationErrorKind, KindConfig> = {
     chips: [
       { stepId: 'scene', label: 'Edit scene' },
       { stepId: 'photo', label: 'Change photo' },
-      { stepId: 'style', label: 'Try a different style' },
+      // 'Try a different style' chip REMOVED 2026-05-17 — style picker
+      // parked for Premium. See next_celebrait_premium.md.
     ],
     isPanelKind: true,
   },

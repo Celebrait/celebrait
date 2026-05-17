@@ -107,22 +107,27 @@ export const EMPTY_CARD_DRAFT: CardDraftState = {
   step: 0,
 };
 
-/** The seven customer-facing steps, in order. Photo moved to step 2 (was
+/** The six customer-facing steps, in order. Photo moved to step 2 (was
  *  step 4) so users see their photo acknowledged early in the flow —
  *  the emotional click of "we've got Mum" happens before the blank
- *  scene description, not after. Analysis of the photo is deferred to
- *  a later sprint; this sprint just does upload + crop + confirmation.
+ *  scene description, not after.
  *
- *  Front text step (added 2026-04-19) sits between Style and Inside so
+ *  Front text step (added 2026-04-19) sits between Scene and Inside so
  *  the two sides of the card — front headline and interior message —
- *  are decided in order. Server has always supported cardText; the
- *  Studio now lets the user see and override the auto-derived default
- *  instead of it silently rendering. */
+ *  are decided in order.
+ *
+ *  Style step REMOVED 2026-05-17 — V1 locks to the "warm illustrated"
+ *  default which lands consistently and is what Kevin signed off as
+ *  the launch render. Choose-your-style (realistic / custom freeform)
+ *  is parked under Celebrait Premium — see next_celebrait_premium.md.
+ *  The style-step.tsx file is preserved in the repo for revival.
+ *  Schema fields state.style.mode / state.style.custom also stay in
+ *  card-draft.ts so server defaults + future Premium revival are
+ *  unchanged. */
 export const CARD_MAKER_STEPS = [
   { id: 'recipient', label: 'Recipient' },
   { id: 'photo', label: 'Photo' },
   { id: 'scene', label: 'Scene' },
-  { id: 'style', label: 'Style' },
   { id: 'front', label: 'Front text' },
   { id: 'inside', label: 'Inside text' },
   { id: 'review', label: 'Review & Purchase' },

@@ -36,14 +36,17 @@ import { Button } from '@/components/ui/button';
 import {
   Pencil,
   Image as ImageIcon,
-  Sparkles,
   RefreshCw,
   ChevronRight,
 } from 'lucide-react';
-import type { CardDraftState, StyleMode } from '@shared/schema';
-import { SceneEditor, PhotoEditor, StyleEditor } from './input-editors';
+import type { CardDraftState } from '@shared/schema';
+import { SceneEditor, PhotoEditor } from './input-editors';
 
-export type FixAndRetryEditor = 'scene' | 'photo' | 'style';
+// 'style' was a third editor — REMOVED 2026-05-17 when the style
+// picker was parked for Celebrait Premium. The StyleEditor component
+// still exists in input-editors.tsx for Premium revival. See
+// next_celebrait_premium.md.
+export type FixAndRetryEditor = 'scene' | 'photo';
 
 export interface FixAndRetryDialogProps {
   open: boolean;
@@ -64,7 +67,6 @@ export interface FixAndRetryDialogProps {
 const EDITOR_META: Record<FixAndRetryEditor, { label: string; icon: typeof Pencil }> = {
   scene: { label: 'Scene', icon: Pencil },
   photo: { label: 'Photo', icon: ImageIcon },
-  style: { label: 'Style', icon: Sparkles },
 };
 
 export function FixAndRetryDialog({
@@ -85,12 +87,7 @@ export function FixAndRetryDialog({
   const [pendingPhotoId, setPendingPhotoId] = useState<number | null>(
     state.photos?.photoIds?.[0] ?? null,
   );
-  const [pendingStyleMode, setPendingStyleMode] = useState<StyleMode>(
-    state.style?.mode ?? 'animated',
-  );
-  const [pendingStyleCustom, setPendingStyleCustom] = useState<string>(
-    state.style?.custom ?? '',
-  );
+  // Style pending-state REMOVED 2026-05-17 — see EDITOR_META comment.
 
   // Reset pending state every time the dialog opens with fresh draft
   // data. Avoids stale edits leaking between separate failure events.
@@ -99,8 +96,6 @@ export function FixAndRetryDialog({
       setActiveEditor(initialEditor);
       setPendingScene(state.scene?.description ?? '');
       setPendingPhotoId(state.photos?.photoIds?.[0] ?? null);
-      setPendingStyleMode(state.style?.mode ?? 'animated');
-      setPendingStyleCustom(state.style?.custom ?? '');
     }
   }, [open, initialEditor, state]);
 
@@ -134,17 +129,8 @@ export function FixAndRetryDialog({
         };
       }
 
-      const styleChanged =
-        pendingStyleMode !== (state.style?.mode ?? 'animated') ||
-        (pendingStyleMode === 'custom' &&
-          pendingStyleCustom.trim() !== (state.style?.custom ?? '').trim());
-      if (styleChanged) {
-        patch.style = {
-          ...state.style,
-          mode: pendingStyleMode,
-          custom: pendingStyleMode === 'custom' ? pendingStyleCustom : undefined,
-        };
-      }
+      // Style change block REMOVED 2026-05-17 — style picker parked
+      // for Premium. See next_celebrait_premium.md.
 
       await onSaveAndRetry(patch);
     } finally {
@@ -198,14 +184,8 @@ export function FixAndRetryDialog({
               onSelect={setPendingPhotoId}
             />
           )}
-          {activeEditor === 'style' && (
-            <StyleEditor
-              mode={pendingStyleMode}
-              customText={pendingStyleCustom}
-              onModeChange={setPendingStyleMode}
-              onCustomChange={setPendingStyleCustom}
-            />
-          )}
+          {/* StyleEditor render block REMOVED 2026-05-17 — style picker
+              parked for Premium. See next_celebrait_premium.md. */}
         </div>
 
         {/* Also using strip */}
@@ -214,7 +194,7 @@ export function FixAndRetryDialog({
             Also using — could one of these be it?
           </p>
           <div className="grid grid-cols-2 gap-2">
-            {(['scene', 'photo', 'style'] as FixAndRetryEditor[])
+            {(['scene', 'photo'] as FixAndRetryEditor[])
               .filter((e) => e !== activeEditor)
               .map((editor) => (
                 <AlsoUsingTile
@@ -223,8 +203,6 @@ export function FixAndRetryDialog({
                   state={state}
                   pendingScene={pendingScene}
                   pendingPhotoId={pendingPhotoId}
-                  pendingStyleMode={pendingStyleMode}
-                  pendingStyleCustom={pendingStyleCustom}
                   onSwitch={() => setActiveEditor(editor)}
                 />
               ))}
@@ -269,16 +247,12 @@ function AlsoUsingTile({
   state,
   pendingScene,
   pendingPhotoId,
-  pendingStyleMode,
-  pendingStyleCustom,
   onSwitch,
 }: {
   editor: FixAndRetryEditor;
   state: CardDraftState;
   pendingScene: string;
   pendingPhotoId: number | null;
-  pendingStyleMode: StyleMode;
-  pendingStyleCustom: string;
   onSwitch: () => void;
 }) {
   // Use pending values when displayed (so users see their in-progress
@@ -294,15 +268,8 @@ function AlsoUsingTile({
         : state.photos?.photoIds?.[0]
           ? `Photo #${state.photos.photoIds[0]}`
           : '(no photo selected)';
-  } else if (editor === 'style') {
-    if (pendingStyleMode === 'custom') {
-      summary = pendingStyleCustom || state.style?.custom || 'Custom (empty)';
-      summary = summary.length > 60 ? summary.slice(0, 60) + '…' : summary;
-    } else {
-      summary =
-        pendingStyleMode.charAt(0).toUpperCase() + pendingStyleMode.slice(1);
-    }
   }
+  // Style branch REMOVED 2026-05-17 — see EDITOR_META comment.
 
   const Icon = EDITOR_META[editor].icon;
   return (

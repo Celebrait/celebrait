@@ -24,9 +24,12 @@
 // button + a "← Change something else" affordance back to here.
 
 import { Link } from 'wouter';
-import { Pencil, Image as ImageIcon, Sparkles, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Pencil, Image as ImageIcon, ChevronRight, ArrowLeft } from 'lucide-react';
 
-export type RegenIntent = 'scene' | 'photo' | 'style';
+// 'style' was a third intent (Try a different style) — REMOVED 2026-05-17
+// when the style picker was parked for Celebrait Premium. See
+// next_celebrait_premium.md. Revive when Premium ships.
+export type RegenIntent = 'scene' | 'photo';
 
 interface RegenIntentPickerProps {
   /** Headline subject — typically "<Recipient>'s <occasion> card". */
@@ -57,12 +60,8 @@ const OPTIONS: IntentOption[] = [
     label: 'Change the photo',
     description: 'Swap the reference image — fix likeness or try a different angle.',
   },
-  {
-    intent: 'style',
-    icon: Sparkles,
-    label: 'Try a different style',
-    description: 'Animated, realistic, or describe your own look.',
-  },
+  // 'Try a different style' option REMOVED 2026-05-17 — style picker
+  // parked for Premium. See next_celebrait_premium.md.
 ];
 
 export function RegenIntentPicker({
