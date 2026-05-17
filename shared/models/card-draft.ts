@@ -75,6 +75,22 @@ export interface CardDraftState {
   };
   inside?: {
     mode?: InsideMode;
+    /** UX path declaration — added 2026-05-17 with the macro composer.
+     *  Independent of `mode` (which is write vs blank).
+     *    - 'self'    → user chose to write themselves. The 3-input form
+     *                  is shown directly with per-field rewriter chips.
+     *    - 'helped'  → user chose AI composition. A composer drawer is
+     *                  the entry point; once a result is accepted the
+     *                  same 3-input form is shown pre-filled, fully
+     *                  editable. Re-opening "Try another version" stays
+     *                  on the helped path.
+     *    - undefined → pre-question is shown so the user picks. Default
+     *                  state for any draft created before this field
+     *                  existed OR any fresh draft.
+     *  Persisting the choice avoids re-asking on every step revisit.
+     *  Cleared by a small "Change approach" link on either path that
+     *  surfaces the pre-question again. */
+    path?: 'self' | 'helped';
     /** Only present when mode='write'. All three fields are optional —
      *  only `message` gates readiness (salutation + signoff are decoration).
      *  Concatenated into the v1 `insideText` prompt variable at generate time. */

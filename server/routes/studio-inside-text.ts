@@ -35,7 +35,7 @@ import { z } from 'zod';
 import { and, eq, inArray } from 'drizzle-orm';
 import { openai } from '../utils/shared';
 import { db } from '../db';
-import { cards, photos, type CardDraftState } from '@shared/schema';
+import { cards, photos, users, type CardDraftState } from '@shared/schema';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 
 function getUserId(req: Request): string | null {
@@ -288,6 +288,199 @@ function parseRewrite(raw: string): RewriteResult | null {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// MACRO COMPOSER — /api/studio/inside-text/compose
+//
+// Generates the WHOLE inside (greeting + message + sign-off) in ONE
+// LLM call. Powers the "Write it for me" path on the Inside step.
+//
+// Why a separate endpoint from /suggest:
+//   • Different output shape (three fields, not one)
+//   • Different mental model (compose vs transform)
+//   • Easier to evolve / A/B / kill independently
+//
+// Architecture choice (vs two-pass generate-then-critique): single call,
+// because asking the model to produce the three fields TOGETHER in one
+// JSON object naturally gets you voice coherence for free — they share
+// the same generation context. Two-pass doubles latency (~5s) and cost
+// for marginal quality lift on a problem the style chip already
+// anchors hard. Park two-pass until we have evidence Tier 1-3 fails.
+// Full reasoning in conversation 2026-05-17.
+// ─────────────────────────────────────────────────────────────────────
+
+const composeRequestSchema = z.object({
+  cardId: z.number().int().positive(),
+  style: z.enum(ALL_STYLES as [Style, ...Style[]]),
+  /** Optional one-line user brief — "for his 60th, mention the fishing
+   *  trip, I'm proud of him". Empty/missing is FINE — composer falls
+   *  back to scene + occasion + recipient alone. */
+  brief: z.string().max(500).optional(),
+  /** Previous full-composition attempts in this style; model is told
+   *  to find a different angle. Stored as serialized "greeting | message
+   *  | signoff" strings so the model sees full context of what was
+   *  already shown. */
+  previousAttempts: z.array(z.string()).max(5).optional(),
+});
+
+interface ComposeResult {
+  greeting: string;
+  message: string;
+  signoff: string;
+  /** Same "Woven in: ..." receipt as the rewriter endpoint — proves
+   *  the composition is grounded, not generic. */
+  grounding: string[];
+}
+
+interface ComposeResponse {
+  result: ComposeResult;
+}
+
+interface ComposePromptContext extends PromptContext {
+  /** Sender's display name — used to build a safe sign-off and avoid
+   *  the model inventing a name. Empty string = unknown, in which case
+   *  the prompt tells the model to use "me" / "your daughter" / etc. */
+  senderFirstName: string;
+}
+
+async function loadComposePromptContext(
+  cardId: number,
+  userId: string,
+): Promise<ComposePromptContext | null> {
+  // Reuse the rewriter's context loader for card-side data...
+  const base = await loadPromptContext(cardId, userId);
+  if (!base) return null;
+  // ...then pull the sender's first name in parallel. Safe placeholder
+  // if missing — the prompt tells the model NEVER to invent a name.
+  const userRows = await db
+    .select({ firstName: users.firstName })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  const senderFirstName = userRows[0]?.firstName?.trim() ?? '';
+  return { ...base, senderFirstName };
+}
+
+function buildComposeSystemPrompt(
+  ctx: ComposePromptContext,
+  style: Style,
+  brief: string,
+  previousAttempts: string[],
+): string {
+  const isGroup = ctx.photoMode === 'group';
+  const recipientFraming = ctx.recipientName
+    ? isGroup
+      ? `the card is for ${ctx.recipientName} and the people they're sharing this moment with`
+      : `the card is for ${ctx.recipientName}`
+    : 'the recipient is unnamed';
+
+  const signoffGuidance = ctx.senderFirstName
+    ? `End the sign-off with the sender's name: "${ctx.senderFirstName}". Use a register-matched lead-in ("Love, ${ctx.senderFirstName}" for warm; "Cheers, ${ctx.senderFirstName}" for casual; "Yours, ${ctx.senderFirstName}" for restrained).`
+    : `The sender's name is unknown. Sign off with a relationship token ("me", "your daughter", "your son") or a generic affectionate close ("All my love"). NEVER invent a first name.`;
+
+  const briefBlock = brief.trim()
+    ? `\n\nSENDER'S BRIEF (use this — it's what they want to convey):\n"""\n${brief.trim()}\n"""\nWeave the brief's key points into the message. If the brief contains a specific phrase that carries emotion or an inside reference, keep it close to verbatim — you are co-authoring, not paraphrasing.`
+    : '\n\nNo sender brief — work from the card context alone (scene + occasion + recipient).';
+
+  const previousBlock = previousAttempts.length
+    ? `\n\nThe user has already seen these ${style} versions and asked for a fresh one. Do NOT repeat the same opening line, the same joke setup, the same memory beat, or the same sign-off phrasing. Find a DIFFERENT angle:\n${previousAttempts.map((p, i) => `  ${i + 1}. ${p}`).join('\n')}`
+    : '';
+
+  return `You are a thoughtful greetings-card copywriter. Your ONE job: compose the entire inside of a personal card — greeting, message, sign-off — in a specific style, grounded in the card's real context. The three fields are ONE message broken into three beats; write them TOGETHER, in ONE voice.
+
+CARD CONTEXT (use this — see GROUNDING RULE below):
+- Occasion: ${ctx.occasion}
+- ${recipientFraming}
+- Front-of-card scene: ${ctx.sceneDescription || '(none — only occasion + recipient to work from)'}
+- Style mood of the card art: ${ctx.styleHint || '(neutral)'}
+- Reference photos: ${ctx.photoSummaries || '(no photo summaries available)'}
+- Sender's first name: ${ctx.senderFirstName || '(unknown — see SIGN-OFF guidance below)'}${briefBlock}
+
+${STYLE_INSTRUCTIONS[style]}
+
+COHERENCE RULE (the most important rule alongside grounding):
+The greeting, message, and sign-off are ONE communication. They must:
+- Share the SAME register — formal greeting demands formal sign-off; warm greeting demands warm sign-off; never "Dear Father" → "Cheers".
+- Reference the recipient consistently. If the greeting names them ("Dear Dad"), the message can use a pronoun; if the greeting is bare ("Hey,"), the message should make the recipient clear.
+- Read as a single message when concatenated, not three separate AI outputs glued together.
+
+GROUNDING RULE:
+The message MUST reference at least one concrete detail from the card context above by name — a place, an activity, a moment, a visible element from the photos. Generic output is failure. The card must be one that COULD NOT have been written for any other recipient.
+
+SIGN-OFF RULE:
+${signoffGuidance}
+
+BANNED PHRASES (never use anywhere in the three fields):
+- "wishing you a wonderful"
+- "many happy returns"
+- "may this year bring"
+- "all the best"
+- "warmest wishes"
+- "thinking of you on this special day"
+- "you mean the world to me" (unless the sender's brief says it)
+- "thank you for everything"
+
+OTHER RULES:
+- Greeting: 1 short line ending in a comma (e.g. "Dear Dad,", "Hey you,", "Mum,"). Never just "Dear,".
+- Message: per the style block above.
+- Sign-off: 1 short line — affectionate phrase + name OR relationship token, per the SIGN-OFF rule.
+- British English spelling.
+- ${isGroup ? 'Plural framing — "you both" / "you all" / "you lot" — when writing to a group.' : 'Singular framing.'}
+- Do NOT invent specific people, names, relationships, or facts not in the context above.
+- Do NOT use emoji unless the style is funny AND it lands naturally — max one emoji.${previousBlock}
+
+JSON CONTRACT (strict — return exactly this shape, no markdown fences):
+{
+  "greeting": "the greeting line, including the trailing comma",
+  "message": "the message body, no quotes",
+  "signoff": "the sign-off line, including the sender's name or relationship token",
+  "grounding": ["short label", "short label", "..."]
+}
+
+GROUNDING ARRAY: list the specific context elements you actually wove into the composition. Short labels (1–4 words each), 1–4 items. Examples: "golf", "sunset behind him", "the laughing photo", "fishing trip" (if in the brief), "for Dad", "his 60th". Only list what's genuinely in the message. An empty array = you failed the GROUNDING RULE — try harder.
+
+Output JSON only.`;
+}
+
+/** Defensive parser for the compose endpoint — like parseRewrite but
+ *  validates all three fields and enforces sensible per-field caps. */
+function parseCompose(raw: string): ComposeResult | null {
+  const trimmed = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+  try {
+    const obj = JSON.parse(trimmed);
+    const greeting = String(obj?.greeting ?? '').trim();
+    const message = String(obj?.message ?? '').trim();
+    const signoff = String(obj?.signoff ?? '').trim();
+    if (!greeting || !message || !signoff) return null;
+    // Per-field length caps as a final safety net. Greeting + signoff
+    // are short single lines; message is the body. If the model
+    // overshoots, truncate at the last sentence within the cap.
+    const capWords = (s: string, cap: number): string => {
+      const w = s.split(/\s+/);
+      if (w.length <= cap) return s;
+      const within = w.slice(0, cap).join(' ');
+      const lastFullStop = within.lastIndexOf('.');
+      return lastFullStop > 10 ? within.slice(0, lastFullStop + 1) : within;
+    };
+    const groundingRaw = Array.isArray(obj?.grounding) ? obj.grounding : [];
+    const grounding = groundingRaw
+      .map((g: unknown) => String(g ?? '').trim())
+      .filter((s: string): s is string => s.length > 0 && s.length <= 40)
+      .slice(0, 4);
+    return {
+      greeting: capWords(greeting, 12),
+      message: capWords(message, 150),
+      signoff: capWords(signoff, 12),
+      grounding,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ── Route ───────────────────────────────────────────────────────────
 
 export function registerStudioInsideTextRoutes(app: Express): void {
@@ -363,6 +556,91 @@ export function registerStudioInsideTextRoutes(app: Express): void {
         console.error('[INSIDE_TEXT] rewrite failed:', err);
         res.status(500).json({
           error: 'Rewrite failed. Try again in a moment.',
+        });
+      }
+    },
+  );
+
+  // ── /api/studio/inside-text/compose ──────────────────────────────
+  // Macro composer. Generates greeting + message + sign-off in one
+  // call. See banner above composeRequestSchema for design rationale.
+  app.post(
+    '/api/studio/inside-text/compose',
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      if (!openai) {
+        return res.status(503).json({ error: 'OpenAI is not configured' });
+      }
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+
+      let body: z.infer<typeof composeRequestSchema>;
+      try {
+        body = composeRequestSchema.parse(req.body);
+      } catch {
+        return res.status(400).json({ error: 'Invalid request body' });
+      }
+
+      const ctx = await loadComposePromptContext(body.cardId, userId);
+      if (!ctx) {
+        return res.status(404).json({ error: 'Card not found' });
+      }
+      if (!ctx.occasion) {
+        return res.status(400).json({
+          error:
+            "Card needs an occasion before we can compose the inside. Finish step 1 first.",
+        });
+      }
+
+      try {
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: buildComposeSystemPrompt(
+                ctx,
+                body.style,
+                body.brief ?? '',
+                body.previousAttempts ?? [],
+              ),
+            },
+            {
+              role: 'user',
+              content: `Compose the whole inside as "${body.style}" per the contract.`,
+            },
+          ],
+          // Higher max_tokens than the single-field rewriter because
+          // we're returning three fields with their own caps. Generous
+          // upper bound; the per-field word caps in parseCompose are
+          // the real ceiling.
+          max_tokens: 700,
+          // Slightly LOWER temperature than the rewriter (0.9 → 0.8).
+          // Composing three coherent fields benefits from a touch more
+          // determinism than transforming one field does. Voice
+          // coherence is the killer quality bar; let the style chip +
+          // grounding rule drive variance rather than raw temperature.
+          temperature: 0.8,
+          response_format: { type: 'json_object' },
+        });
+
+        const raw = completion.choices[0]?.message?.content ?? '';
+        const result = parseCompose(raw);
+
+        if (!result) {
+          console.error('[INSIDE_TEXT] compose parse failed, raw:', raw);
+          return res.status(502).json({
+            error:
+              'The composer came back malformed. Try the button again.',
+          });
+        }
+
+        const response: ComposeResponse = { result };
+        res.json(response);
+      } catch (err) {
+        console.error('[INSIDE_TEXT] compose failed:', err);
+        res.status(500).json({
+          error: 'Composition failed. Try again in a moment.',
         });
       }
     },
