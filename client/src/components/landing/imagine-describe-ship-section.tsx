@@ -42,6 +42,7 @@ import {
   AnimatePresence,
   cubicBezier,
   useReducedMotion,
+  useInView,
 } from 'framer-motion';
 import {
   Battery,
@@ -558,14 +559,25 @@ export function ImagineDescribeShipSection() {
   const reduced = useReducedMotion() ?? false;
   const sectionRef = useRef<HTMLElement>(null);
 
+  // Chat autoplay is gated on the section scrolling into view. The
+  // timeline is ~13.7s; if it starts on page load (as it used to),
+  // anyone who doesn't reach this section within ~14s arrives to a
+  // chat that's already finished — they miss the whole demo.
+  //
+  // `useInView` (framer-motion's helper) is used instead of a raw
+  // IntersectionObserver — earlier attempts with the bare observer
+  // were flaky (the snapshot timer never started). `once: true` so
+  // the timeline never restarts once it's begun; `amount: 0.2` kept
+  // low because the section is tall (>900px) — requiring a large
+  // visible fraction would never trip on a laptop viewport. 20% in
+  // view ≈ the headline + top of the phone on screen, which is the
+  // right moment to begin so the user catches the chat from message 1.
+  const inView = useInView(sectionRef, { once: true, amount: 0.2 });
+
   // Snapshot index for the chat playback. Advances on each
-  // snapshot's `durationMs` while revealPhase==='chat'. Chat
-  // starts immediately on mount — simpler + more reliable than
-  // gating on IntersectionObserver/useInView, which were giving
-  // us trouble (the snapshot timer never started). Section is
-  // below the hero so users will scroll into it naturally; if
-  // they're slow scrollers they'll see whatever state the chat
-  // is in when they arrive.
+  // snapshot's `durationMs` while revealPhase==='chat' AND the
+  // section is in view. Before in-view, the phone holds on
+  // SCROLL_SCRIPT[0] (empty chat + typing dots) as an idle teaser.
   const [snapIdx, setSnapIdx] = useState(0);
   const [revealPhase, setRevealPhase] = useState<RevealPhase>('chat');
 
@@ -581,11 +593,17 @@ export function ImagineDescribeShipSection() {
     if (revealPhase !== 'chat') return;
 
     if (reduced) {
-      // Reduced motion: jump straight to the card.
+      // Reduced motion: jump straight to the card. Not gated on
+      // in-view — there's no animation to miss, so resolving on
+      // mount is fine.
       setSnapIdx(SCROLL_SCRIPT.length - 1);
       setRevealPhase('card');
       return;
     }
+
+    // Hold the timeline until the section scrolls into view — see the
+    // `inView` comment above. The phone idles on snapshot 0 until then.
+    if (!inView) return;
 
     const dwell = SCROLL_SCRIPT[snapIdx].durationMs;
 
@@ -599,7 +617,7 @@ export function ImagineDescribeShipSection() {
     // by overlaying the panel on top of the chat surface.
     const t = window.setTimeout(() => setRevealPhase('choice'), dwell);
     return () => window.clearTimeout(t);
-  }, [snapIdx, revealPhase, reduced]);
+  }, [snapIdx, revealPhase, reduced, inView]);
 
   // Choice handlers — wired to the two buttons inside the phone
   // when revealPhase === 'choice'.
@@ -661,10 +679,16 @@ export function ImagineDescribeShipSection() {
                   animate={
                     reduced
                       ? { scaleX: 1 }
-                      : {
-                          scaleX: 1,
-                          backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'],
-                        }
+                      : inView
+                        ? {
+                            scaleX: 1,
+                            backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'],
+                          }
+                        : // Hold un-drawn until the section scrolls into
+                          // view — same reasoning as the chat timeline.
+                          // Otherwise the underline draws + finishes its
+                          // intro sweep before the user ever reaches it.
+                          { scaleX: 0 }
                   }
                   transition={
                     reduced
