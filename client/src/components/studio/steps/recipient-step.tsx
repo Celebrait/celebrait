@@ -34,6 +34,8 @@ import {
   Leaf,
   PenLine,
   Diamond,
+  Send,
+  HandHeart,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
@@ -211,6 +213,35 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
     if (final !== selectedOccasion) {
       onChange({ recipient: { ...state.recipient, occasion: final } });
     }
+  };
+
+  // ── Soft delivery intent (optional, 2026-05-18) ──────────────────
+  // See next_delivery_destination_usp.md. Captures "how are you giving
+  // this card" up front for users who already know — seeds the
+  // checkout ship-to default and (for 'handwrite') pre-resolves the
+  // Inside step to blank. Skipping it changes nothing.
+  const deliveryIntent = state.delivery?.intent;
+
+  const pickDeliveryIntent = (
+    intent: NonNullable<NonNullable<CardDraftState['delivery']>['intent']>,
+  ) => {
+    // Re-tapping the current pick clears it — keeps the question
+    // genuinely skippable (no selection = decide at checkout).
+    const next = deliveryIntent === intent ? undefined : intent;
+    const patch: Partial<CardDraftState> = { delivery: { intent: next } };
+    // Seed inside.mode from the intent — but never clobber a message
+    // the user has already typed. (At step 1 the Inside step hasn't
+    // been reached, so this is almost always empty; the guard is
+    // purely defensive for users who jump back to step 1 mid-flow.)
+    const hasTypedMessage =
+      (state.inside?.write?.message?.trim().length ?? 0) > 0;
+    if (!hasTypedMessage) {
+      patch.inside = {
+        ...state.inside,
+        mode: next === 'handwrite' ? 'blank' : 'write',
+      };
+    }
+    onChange(patch);
   };
 
   const moreOccasions = OCCASION_OPTIONS.filter(
@@ -413,7 +444,101 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
           </div>
         )}
       </div>
+
+      {/* Delivery intent — OPTIONAL soft capture (2026-05-18). For
+          users who already know how they're giving the card: seeds the
+          checkout ship-to default and, for "handwrite", pre-resolves
+          the Inside step to blank. Skipping it changes nothing — they
+          decide at checkout exactly as before. See
+          next_delivery_destination_usp.md. */}
+      <div className="space-y-2 pt-1">
+        <Label className="text-sm text-ink flex items-center gap-1.5">
+          How are you giving it?
+          <span className="text-xs text-stone-400 font-normal">optional</span>
+        </Label>
+        <p className="text-xs text-stone-500 -mt-0.5">
+          Know already? We'll tailor the rest. If not, no rush — you can
+          choose at checkout.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-0.5">
+          <DeliveryIntentButton
+            intent="post-to-them"
+            Icon={Send}
+            label="Post it to them"
+            sub="Straight to their door."
+            selected={deliveryIntent === 'post-to-them'}
+            onPick={() => pickDeliveryIntent('post-to-them')}
+          />
+          <DeliveryIntentButton
+            intent="hand-over"
+            Icon={HandHeart}
+            label="Give it in person"
+            sub="We post the card to you."
+            selected={deliveryIntent === 'hand-over'}
+            onPick={() => pickDeliveryIntent('hand-over')}
+          />
+          <DeliveryIntentButton
+            intent="handwrite"
+            Icon={PenLine}
+            label="I'll handwrite it"
+            sub="Blank inside, sent to you."
+            selected={deliveryIntent === 'handwrite'}
+            onPick={() => pickDeliveryIntent('handwrite')}
+          />
+        </div>
+      </div>
     </div>
+  );
+}
+
+// Delivery-intent card — vertical layout (icon / label / sub) so three
+// fit across on desktop. Single-select; re-tapping the selected one
+// clears it (handled by the parent's pickDeliveryIntent).
+function DeliveryIntentButton({
+  intent,
+  Icon,
+  label,
+  sub,
+  selected,
+  onPick,
+}: {
+  intent: string;
+  Icon: LucideIcon;
+  label: string;
+  sub: string;
+  selected: boolean;
+  onPick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      className={`relative flex flex-col gap-1.5 text-left p-3 rounded-xl border-2 transition-all ${
+        selected
+          ? 'border-brand bg-brand-muted shadow-sm'
+          : 'border-stone-200 hover:border-brand hover:bg-brand-muted/40 bg-white'
+      }`}
+      data-testid={`btn-delivery-${intent}`}
+    >
+      <span
+        className={`flex items-center justify-center w-8 h-8 rounded-lg shrink-0 transition-colors ${
+          selected
+            ? 'bg-brand text-brand-foreground'
+            : 'bg-accent-coral-light text-accent-coral-dark'
+        }`}
+      >
+        <Icon className="w-4 h-4" strokeWidth={1.75} />
+      </span>
+      <span className="text-sm font-medium text-ink leading-tight">
+        {label}
+      </span>
+      <span className="text-[11px] text-stone-500 leading-snug">{sub}</span>
+      {selected && (
+        <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0">
+          <Check className="w-2.5 h-2.5" strokeWidth={3} />
+        </span>
+      )}
+    </button>
   );
 }
 

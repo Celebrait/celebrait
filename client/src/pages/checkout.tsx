@@ -11,7 +11,7 @@
 // Builds against the stubbed PaymentProvider today; swapping to
 // Peach / Stitch / Stripe-via-UK is a provider swap, not a rebuild.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -29,7 +29,17 @@ interface CardSummary {
   status: string | null;
   frontImageUrl: string | null;
   insideImageUrl: string | null;
-  state?: { recipient?: { name?: string | null } };
+  state?: {
+    recipient?: { name?: string | null };
+    /** Inside mode — 'blank' means the user deliberately left the
+     *  inside empty to handwrite it themselves. Used to catch the
+     *  blank-inside + ship-to-recipient footgun below. */
+    inside?: { mode?: 'write' | 'blank' };
+    /** Soft delivery intent captured on the Recipient step. Pre-selects
+     *  the ship-to choice below. Optional — absent when the user
+     *  skipped the question. See next_delivery_destination_usp.md. */
+    delivery?: { intent?: 'post-to-them' | 'hand-over' | 'handwrite' };
+  };
 }
 
 interface CheckoutResponse {
@@ -79,6 +89,11 @@ export default function CheckoutPage() {
   });
 
   const recipientName = card?.state?.recipient?.name?.trim() || '';
+  // The user deliberately left the inside blank (to handwrite it).
+  // Posting a blank card straight to the recipient is the one
+  // delivery combo that's almost never intended — see the warning
+  // rendered in the ship-to section below.
+  const insideIsBlank = card?.state?.inside?.mode === 'blank';
 
   // Pre-select from ?product= URL param when coming from the Studio
   // review step (sender picks the tier there, checkout just confirms).
@@ -105,6 +120,21 @@ export default function CheckoutPage() {
   const includesPrint = choice !== 'digital';
   const includesDigital = choice !== 'print';
   const totals = useMemo(() => totalsFor(choice), [choice]);
+
+  // Pre-select the ship-to choice from the soft delivery intent the
+  // user (optionally) gave on the Recipient step. 'post-to-them' →
+  // recipient; 'hand-over' / 'handwrite' → sender. Runs once when the
+  // card data lands; after that the user's manual choice sticks. If
+  // they skipped the Step 1 question, shipTo keeps its 'sender'
+  // default — exactly the pre-2026-05-18 behaviour.
+  const intentAppliedRef = useRef(false);
+  useEffect(() => {
+    if (intentAppliedRef.current) return;
+    const intent = card?.state?.delivery?.intent;
+    if (!intent) return;
+    intentAppliedRef.current = true;
+    setShipTo(intent === 'post-to-them' ? 'recipient' : 'sender');
+  }, [card]);
 
   // Postcode lookup via postcodes.io — free, no key, fills city on
   // blur. Full address autofill (getAddress.io / Loqate / Ideal
@@ -323,7 +353,7 @@ export default function CheckoutPage() {
 
             {includesPrint && (
               <>
-                <Section title="Who gets the card in the post?">
+                <Section title="How should it reach them?">
                   <RadioGroup
                     value={shipTo}
                     onValueChange={(v) => setShipTo(v as 'sender' | 'recipient')}
@@ -332,14 +362,49 @@ export default function CheckoutPage() {
                     <ShipToOption
                       value="sender"
                       title="Send it to me"
-                      description="I'll give it to them in person."
+                      description={
+                        insideIsBlank
+                          ? "Blank inside — you'll handwrite your message, then give it yourself."
+                          : 'The finished card comes to you, to give in person.'
+                      }
                     />
                     <ShipToOption
                       value="recipient"
-                      title="Ship direct to them"
-                      description="Plain packaging. Optional gift message."
+                      title={
+                        recipientName ? `Straight to ${recipientName}` : 'Straight to them'
+                      }
+                      description="Posted to their door, tracked. Add a gift message if you like."
                     />
                   </RadioGroup>
+
+                  {/* Footgun guard — the user left the inside blank (to
+                      handwrite it) but is about to post the card straight
+                      to the recipient. It would land on their doormat
+                      with nothing written inside. Loud, non-blocking
+                      warning with a one-tap fix. */}
+                  {insideIsBlank && shipTo === 'recipient' && (
+                    <div
+                      className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3"
+                      data-testid="checkout-blank-inside-warning"
+                    >
+                      <p className="text-sm font-semibold text-amber-900">
+                        Heads up — this card's inside is blank
+                      </p>
+                      <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                        You chose to handwrite the message yourself. Posted
+                        straight to {recipientName || 'them'}, it'll arrive
+                        with nothing written inside.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setShipTo('sender')}
+                        className="mt-2 text-xs font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-700"
+                        data-testid="btn-blank-inside-fix"
+                      >
+                        Send it to me instead, so I can write it
+                      </button>
+                    </div>
+                  )}
 
                   {shipTo === 'recipient' && (
                     <div className="space-y-4 mt-4 pt-4 border-t border-stone-200">

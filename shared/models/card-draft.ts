@@ -73,6 +73,28 @@ export interface CardDraftState {
      *  mode === 'none'. */
     text?: string;
   };
+  /** Soft delivery intent — captured optionally on the Recipient step
+   *  (added 2026-05-18, see next_delivery_destination_usp.md).
+   *
+   *  NOT binding. It seeds defaults only; every downstream step stays
+   *  fully overridable. Undefined = the user skipped the question —
+   *  behaviour is exactly as before (they choose at checkout).
+   *
+   *    - 'post-to-them' → seeds shipTo='recipient' at checkout;
+   *                       inside stays in write mode.
+   *    - 'hand-over'    → seeds shipTo='sender'; inside stays write.
+   *                       ("Send me the finished card, I'll give it
+   *                       in person.")
+   *    - 'handwrite'    → seeds shipTo='sender' AND pre-resolves the
+   *                       Inside step to 'blank' so the user can sign
+   *                       the card by hand when it arrives.
+   *
+   *  The three intents are also fully derivable from (shipTo, inside.mode)
+   *  — this field additionally records that the user *answered*, which
+   *  drives the checkout pre-selection. */
+  delivery?: {
+    intent?: 'post-to-them' | 'hand-over' | 'handwrite';
+  };
   inside?: {
     mode?: InsideMode;
     /** UX path declaration — added 2026-05-17 with the macro composer.
