@@ -60,11 +60,17 @@ interface InsideStepProps {
 }
 
 export function InsideStep({ cardId: _cardId, state, onChange, scheduleSave, flushSave }: InsideStepProps) {
+  // Three display states, driven by inside.mode:
+  //   undefined → the fork picker (write your message / leave it blank).
+  //               This is the deliberate opening choice — blank is no
+  //               longer a footnote escape hatch, it's a first-class
+  //               path the Giving Moment celebrates (handwrite it
+  //               yourself). See next_delivery_destination_usp.md.
+  //   'write'   → the three-input form.
+  //   'blank'   → the blank-confirmation panel.
+  // Once a fork is picked, each panel carries its own switch-back
+  // affordance so the user can change their mind without hunting.
   const mode = state.inside?.mode;
-  // Write is the implicit default (~everyone types a message). Undefined
-  // mode is treated as Write for display so the happy path is one click
-  // shorter — the write form is already there. Blank is an explicit opt-in.
-  const isBlank = mode === 'blank';
 
   const switchToBlank = () => {
     onChange({
@@ -86,13 +92,15 @@ export function InsideStep({ cardId: _cardId, state, onChange, scheduleSave, flu
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      <p className="text-sm text-stone-600">
-        We'll set it in a style that matches the card.
-      </p>
+      {mode === 'write' && (
+        <p className="text-sm text-stone-600">
+          We'll set it in a style that matches the card.
+        </p>
+      )}
 
-      {isBlank ? (
+      {mode === 'blank' ? (
         <BlankPanel onUndo={switchToWrite} />
-      ) : (
+      ) : mode === 'write' ? (
         <>
           <WriteFields
             state={state}
@@ -102,8 +110,87 @@ export function InsideStep({ cardId: _cardId, state, onChange, scheduleSave, flu
           />
           <LeaveBlankCard onPick={switchToBlank} />
         </>
+      ) : (
+        <InsideForkPicker onWrite={switchToWrite} onBlank={switchToBlank} />
       )}
     </div>
+  );
+}
+
+// ── Fork picker (the opening state of the step) ──────────────────────
+// Two co-equal choices. Deliberately NOT defaulting into the form —
+// "leave it blank to handwrite yourself" is a real, dignified path now
+// that the Giving Moment treats it as a USP, so the user makes a clear
+// choice rather than discovering blank as a footnote under the form.
+function InsideForkPicker({
+  onWrite,
+  onBlank,
+}: {
+  onWrite: () => void;
+  onBlank: () => void;
+}) {
+  return (
+    <div className="space-y-3" data-testid="inside-fork-picker">
+      <h3 className="text-base font-semibold text-ink">
+        What goes inside the card?
+      </h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <ForkCard
+          icon={PenLine}
+          title="Write your message here"
+          body="A greeting, your message, a sign-off — we'll print it inside, set in a style that matches the card."
+          onClick={onWrite}
+          testid="inside-fork-write"
+          highlighted
+        />
+        <ForkCard
+          icon={FileText}
+          title="Leave it blank"
+          body="We'll keep the inside clean for your own handwriting — write your message by hand when the card arrives."
+          onClick={onBlank}
+          testid="inside-fork-blank"
+        />
+      </div>
+    </div>
+  );
+}
+
+function ForkCard({
+  icon: Icon,
+  title,
+  body,
+  onClick,
+  testid,
+  highlighted = false,
+}: {
+  icon: LucideIcon;
+  title: string;
+  body: string;
+  onClick: () => void;
+  testid: string;
+  highlighted?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-left p-5 rounded-2xl border-2 transition-all flex flex-col gap-2 ${
+        highlighted
+          ? 'border-brand/60 bg-brand-muted/30 hover:border-brand hover:bg-brand-muted/50 hover:shadow-sm'
+          : 'border-stone-200 bg-white hover:border-brand/40 hover:bg-stone-50 hover:shadow-sm'
+      }`}
+      data-testid={testid}
+    >
+      <span
+        className={`flex items-center justify-center w-9 h-9 rounded-lg shrink-0 ${
+          highlighted ? 'bg-brand text-white' : 'bg-brand-muted text-brand-dark'
+        }`}
+      >
+        <Icon className="w-4 h-4" strokeWidth={1.75} />
+      </span>
+      <div className="text-sm font-semibold text-ink">{title}</div>
+      <p className="text-xs text-stone-600 leading-relaxed">{body}</p>
+    </button>
   );
 }
 

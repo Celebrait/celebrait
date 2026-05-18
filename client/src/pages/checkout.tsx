@@ -11,7 +11,7 @@
 // Builds against the stubbed PaymentProvider today; swapping to
 // Peach / Stitch / Stripe-via-UK is a provider swap, not a rebuild.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -120,21 +120,6 @@ export default function CheckoutPage() {
   const includesPrint = choice !== 'digital';
   const includesDigital = choice !== 'print';
   const totals = useMemo(() => totalsFor(choice), [choice]);
-
-  // Pre-select the ship-to choice from the soft delivery intent the
-  // user (optionally) gave on the Recipient step. 'post-to-them' →
-  // recipient; 'hand-over' / 'handwrite' → sender. Runs once when the
-  // card data lands; after that the user's manual choice sticks. If
-  // they skipped the Step 1 question, shipTo keeps its 'sender'
-  // default — exactly the pre-2026-05-18 behaviour.
-  const intentAppliedRef = useRef(false);
-  useEffect(() => {
-    if (intentAppliedRef.current) return;
-    const intent = card?.state?.delivery?.intent;
-    if (!intent) return;
-    intentAppliedRef.current = true;
-    setShipTo(intent === 'post-to-them' ? 'recipient' : 'sender');
-  }, [card]);
 
   // Postcode lookup via postcodes.io — free, no key, fills city on
   // blur. Full address autofill (getAddress.io / Loqate / Ideal
