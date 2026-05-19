@@ -1,31 +1,27 @@
 // client/src/components/studio/giving-moment.tsx
 //
-// The Giving Moment — the post-reveal screen where the sender decides
-// HOW their card reaches the person. See next_delivery_destination_usp.md.
+// The Giving Moment — the questions component for the giving screen
+// (rendered by pages/studio-give.tsx). See next_delivery_destination_usp.md.
 //
 // Why this exists: a greetings card only becomes real when it's given.
 // The "how" used to be a mis-titled tier-picker dialog plus a logistics
-// form at checkout. This is the designed moment instead — shown right
-// after the card reveal, with the 3D card still on screen above it
-// (it's rendered inline by RevealView, NOT as a dialog — a dialog is
-// dismissable and tonally wrong straight after the reveal ceremony).
+// form at checkout. This is the designed moment instead — its own
+// screen after the card reveal, the finished card shown flat above.
 //
 // Two questions, in dependency order:
 //   Q1 — Format:      Digital / Printed / Both
 //   Q2 — Destination: straight to them, or to the sender first
 //                     (copy adapts to the format chosen in Q1)
 //
-// Blank-inside special case: if the user left the inside blank (to
-// handwrite it), there is no real choice to make — a blank card can't
-// go digital and mustn't be posted to the recipient. So the screen
-// collapses to a confirmation: printed, posted to the sender, ready to
-// handwrite. The footgun (blank card on the recipient's doormat) is
-// designed OUT — "straight to them" is simply never offered for a
-// blank inside.
+// WRITTEN-INSIDE ONLY. A blank inside has no giving choice — it can
+// only be printed and posted to the sender (a blank card can't go
+// digital, and mustn't land on the recipient's doormat). So a blank
+// inside skips this screen entirely and goes straight to checkout
+// (branch in review-step.tsx, guard in studio-give.tsx). That's the
+// blank-card footgun designed out — the choice simply never exists.
 //
 // On continue: the choice is saved to the draft (`state.delivery`) and
-// the user is sent to /checkout/:id?product=<format>. Checkout reads
-// the draft for the destination.
+// the user is sent to /checkout/:id?product=<format>.
 
 import { useState } from 'react';
 import { useLocation } from 'wouter';
@@ -34,7 +30,6 @@ import {
   Package,
   Mail,
   HandHeart,
-  PenLine,
   Check,
   ArrowRight,
   Loader2,
@@ -69,19 +64,15 @@ function formatGBP(minor: number): string {
 
 // ── Props ────────────────────────────────────────────────────────────
 
+// This component is for WRITTEN-inside cards only. A blank inside has
+// no giving choice to make (printed + posted to the sender, always),
+// so it skips the Giving Moment screen entirely and goes straight to
+// checkout — the routing branch lives in review-step.tsx + the guard
+// in studio-give.tsx. See next_delivery_destination_usp.md.
 interface GivingMomentProps {
   cardId: number;
   /** Recipient's name — woven into the copy. Empty string is fine. */
   recipientName: string;
-  /** Inside mode of the card. 'blank' collapses the screen to the
-   *  handwrite-confirmation path. null is treated as 'write'.
-   *
-   *  Note: there is deliberately NO "go back and add a message" path
-   *  from here. The write/blank choice is a clear, deliberate fork on
-   *  the Inside step; once the card is generated it's committed.
-   *  Offering an undo here would mean a regeneration and would
-   *  undermine that commitment. */
-  insideMode: 'write' | 'blank' | null;
   /** Persist the delivery choice to the draft (patch + flush). Awaited
    *  before navigating to checkout so the choice can't be lost to a
    *  refresh. */
@@ -95,11 +86,9 @@ interface GivingMomentProps {
 export function GivingMoment({
   cardId,
   recipientName,
-  insideMode,
   saveDelivery,
 }: GivingMomentProps) {
   const [, setLocation] = useLocation();
-  const isBlank = insideMode === 'blank';
 
   const them = recipientName || 'them';
 
@@ -130,63 +119,8 @@ export function GivingMoment({
     setLocation(`/checkout/${cardId}?product=${resolved.format}`);
   };
 
-  // ── Blank-inside path — a confirmation, NOT a question ─────────────
-  // A blank inside can only go one way: printed, posted to the sender,
-  // to handwrite and give. There's no choice to make, so this path
-  // does NOT ask "how would you like to give it?" — it confirms.
-  if (isBlank) {
-    return (
-      <div className="text-left space-y-5" data-testid="giving-moment-blank">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-ink">
-            Ready for your own hand
-          </h2>
-          <p className="text-sm text-stone-500 leading-relaxed">
-            You left the inside blank — so this one's yours to finish.
-          </p>
-        </div>
-        <div className="rounded-2xl border-2 border-brand/40 bg-brand-muted/30 p-5 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-brand text-white shrink-0">
-              <PenLine className="w-4 h-4" strokeWidth={1.75} />
-            </span>
-            <p className="text-sm font-semibold text-ink">Here's how it works</p>
-          </div>
-          <p className="text-sm text-stone-600 leading-relaxed">
-            We print your card and post it to you. Write your message by
-            hand when it arrives, then give it to {them} yourself.
-          </p>
-          <p className="text-[13px] text-stone-500">
-            {formatGBP(totalFor('print'))} · printed card, posted in the UK.
-          </p>
-        </div>
-
-        <Button
-          onClick={() =>
-            commitAndGo({ format: 'print', destination: 'sender' })
-          }
-          disabled={submitting}
-          className="w-full bg-cta hover:bg-cta-hover text-white"
-          size="lg"
-          data-testid="giving-moment-continue"
-        >
-          {submitting ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              One moment…
-            </>
-          ) : (
-            <>
-              Continue to payment
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </>
-          )}
-        </Button>
-      </div>
-    );
-  }
-
-  // ── Written-inside path — the full two-question flow ───────────────
+  // Written-inside path — the full two-question flow. (Blank inside
+  // never reaches this component; it skips straight to checkout.)
   const includesPrint = format === 'print' || format === 'both';
   const canContinue = !!format && !!destination && !submitting;
 

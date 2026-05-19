@@ -801,7 +801,18 @@ function RevealView({
                   className="mt-8 flex flex-col items-center gap-7"
                 >
                   <Button
-                    onClick={() => setLocation(`/studio/card/${cardId}/give`)}
+                    onClick={() =>
+                      setLocation(
+                        // Blank inside has no giving CHOICE to make
+                        // (it can only be printed + posted to the
+                        // sender), so it skips the Giving Moment and
+                        // goes straight to checkout. A written inside
+                        // gets the Giving Moment screen.
+                        insideMode === 'blank'
+                          ? `/checkout/${cardId}?product=print`
+                          : `/studio/card/${cardId}/give`,
+                      )
+                    }
                     className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 py-3.5 rounded-lg w-full sm:w-auto"
                     size="lg"
                     data-testid="btn-buy-card"

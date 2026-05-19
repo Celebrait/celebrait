@@ -52,6 +52,14 @@ export default function StudioGivePage() {
   const recipientName = state.recipient?.name?.trim() ?? '';
   const insideMode = state.inside?.mode ?? null;
 
+  // A blank inside has no giving choice to make — it can only be
+  // printed and posted to the sender. Skip the Giving Moment and go
+  // straight to checkout. The review reveal already routes blank →
+  // checkout; this guard covers a direct visit / bookmark of /give.
+  if (insideMode === 'blank') {
+    return <Redirect to={`/checkout/${cardId}?product=print`} />;
+  }
+
   // Persist the Giving Moment's choice onto the draft. The PATCH
   // endpoint replaces conversationData wholesale, so send the full
   // state with `delivery` merged in. Awaited by <GivingMoment> before
@@ -77,18 +85,13 @@ export default function StudioGivePage() {
         </p>
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <CardFace url={card.frontImageUrl} label="Front" />
-          <CardFace
-            url={card.insideImageUrl}
-            label="Inside"
-            blankInside={insideMode === 'blank'}
-          />
+          <CardFace url={card.insideImageUrl} label="Inside" />
         </div>
       </div>
 
       <GivingMoment
         cardId={cardId}
         recipientName={recipientName}
-        insideMode={insideMode}
         saveDelivery={saveDelivery}
       />
     </div>
@@ -96,29 +99,16 @@ export default function StudioGivePage() {
 }
 
 // ── Flat card face — front or inside ─────────────────────────────────
-function CardFace({
-  url,
-  label,
-  blankInside = false,
-}: {
-  url: string | null;
-  label: string;
-  blankInside?: boolean;
-}) {
+// The give page only renders for written-inside cards (blank inside is
+// redirected away above), so there's always an inside image to show.
+function CardFace({ url, label }: { url: string | null; label: string }) {
   return (
     <div>
       <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1.5">
         {label}
       </p>
       <div className="aspect-square rounded-xl overflow-hidden border border-stone-200 bg-stone-50 flex items-center justify-center">
-        {/* Blank inside takes priority over any image — a blank-inside
-            card's interior IS blank, so we show the placeholder even
-            if an image URL happens to exist (e.g. stub-mode reuse). */}
-        {blankInside ? (
-          <p className="text-xs text-stone-400 text-center px-4 leading-relaxed">
-            Blank inside — kept clean for your handwriting
-          </p>
-        ) : url ? (
+        {url ? (
           <img
             src={url}
             alt={`Card ${label.toLowerCase()}`}
