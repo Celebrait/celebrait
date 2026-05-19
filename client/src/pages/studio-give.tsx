@@ -11,7 +11,7 @@
 //
 // Flow: review/reveal  →  /studio/card/:id/give  →  /checkout/:id
 
-import { useRoute, useLocation, Redirect } from 'wouter';
+import { useRoute, Redirect } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
@@ -30,7 +30,6 @@ interface DraftResponse {
 
 export default function StudioGivePage() {
   const [, params] = useRoute<{ id: string }>('/studio/card/:id/give');
-  const [, setLocation] = useLocation();
   const cardId = params ? parseInt(params.id, 10) : NaN;
 
   const { data: card, isLoading } = useQuery<DraftResponse>({
@@ -90,7 +89,6 @@ export default function StudioGivePage() {
         cardId={cardId}
         recipientName={recipientName}
         insideMode={insideMode}
-        onEditInside={() => setLocation(`/studio/card/${cardId}/edit`)}
         saveDelivery={saveDelivery}
       />
     </div>
@@ -113,16 +111,19 @@ function CardFace({
         {label}
       </p>
       <div className="aspect-square rounded-xl overflow-hidden border border-stone-200 bg-stone-50 flex items-center justify-center">
-        {url ? (
+        {/* Blank inside takes priority over any image — a blank-inside
+            card's interior IS blank, so we show the placeholder even
+            if an image URL happens to exist (e.g. stub-mode reuse). */}
+        {blankInside ? (
+          <p className="text-xs text-stone-400 text-center px-4 leading-relaxed">
+            Blank inside — kept clean for your handwriting
+          </p>
+        ) : url ? (
           <img
             src={url}
             alt={`Card ${label.toLowerCase()}`}
             className="w-full h-full object-cover"
           />
-        ) : blankInside ? (
-          <p className="text-xs text-stone-400 text-center px-4 leading-relaxed">
-            Blank inside — kept clean for your handwriting
-          </p>
         ) : (
           <p className="text-xs text-stone-400">—</p>
         )}

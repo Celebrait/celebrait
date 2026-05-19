@@ -74,12 +74,14 @@ interface GivingMomentProps {
   /** Recipient's name — woven into the copy. Empty string is fine. */
   recipientName: string;
   /** Inside mode of the card. 'blank' collapses the screen to the
-   *  handwrite-confirmation path. null is treated as 'write'. */
+   *  handwrite-confirmation path. null is treated as 'write'.
+   *
+   *  Note: there is deliberately NO "go back and add a message" path
+   *  from here. The write/blank choice is a clear, deliberate fork on
+   *  the Inside step; once the card is generated it's committed.
+   *  Offering an undo here would mean a regeneration and would
+   *  undermine that commitment. */
   insideMode: 'write' | 'blank' | null;
-  /** Recovery: jump back to the Inside step to add a message — used by
-   *  the blank-inside path's "actually, I'd like to send it digitally"
-   *  link. */
-  onEditInside: () => void;
   /** Persist the delivery choice to the draft (patch + flush). Awaited
    *  before navigating to checkout so the choice can't be lost to a
    *  refresh. */
@@ -94,7 +96,6 @@ export function GivingMoment({
   cardId,
   recipientName,
   insideMode,
-  onEditInside,
   saveDelivery,
 }: GivingMomentProps) {
   const [, setLocation] = useLocation();
@@ -152,16 +153,6 @@ export function GivingMoment({
             {formatGBP(totalFor('print'))} · printed card, posted in the UK.
           </p>
         </div>
-
-        <button
-          type="button"
-          onClick={onEditInside}
-          className="text-xs text-brand hover:text-brand-dark underline underline-offset-2"
-          data-testid="giving-moment-edit-inside"
-        >
-          Changed your mind? Add a message inside — then you can send it
-          digitally too →
-        </button>
 
         <Button
           onClick={() =>
