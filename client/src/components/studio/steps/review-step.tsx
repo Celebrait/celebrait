@@ -20,7 +20,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useLocation } from 'wouter';
 import {
   Sparkles,
   Pencil,
@@ -29,19 +28,10 @@ import {
   MessageSquare,
   FileText,
   Type,
-  AlertTriangle,
-  Package,
-  ArrowRight,
   RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
+import { GivingMoment } from '@/components/studio/giving-moment';
 import { toast } from '@/hooks/use-toast';
 import type { CardDraftState, StepId } from '@shared/schema';
 import { deriveDefaultFrontText } from '@shared/schema';
@@ -496,24 +486,10 @@ function _legacyBuildNarration(state: CardDraftState): {
 // card. Single violet "Buy this card" CTA opens a modal for the
 // digital/print/both decision.
 
-type ProductChoice = 'digital' | 'print' | 'both';
-
-const PRINT_PRICE = 599;
-const DIGITAL_PRICE = 99;
-const UK_SHIPPING = 150;
-const BUNDLE_DISCOUNT = 50;
-
-function totalsFor(choice: ProductChoice): number {
-  const print = choice === 'digital' ? 0 : PRINT_PRICE;
-  const digital = choice === 'print' ? 0 : DIGITAL_PRICE;
-  const shipping = choice === 'digital' ? 0 : UK_SHIPPING;
-  const discount = choice === 'both' ? BUNDLE_DISCOUNT : 0;
-  return print + digital + shipping - discount;
-}
-
-function formatGBP(minor: number): string {
-  return `£${(minor / 100).toFixed(2)}`;
-}
+// Pricing / format-choice helpers + the BuyDialog modal that used to
+// live here were removed 2026-05-19 — the digital/print/both choice
+// now lives in the inline <GivingMoment> (giving-moment.tsx). See
+// next_delivery_destination_usp.md.
 
 /**
  * RevealView — the end-to-end generation experience.
@@ -672,7 +648,10 @@ function RevealView({
   const [open, setOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
-  const [buyOpen, setBuyOpen] = useState(false);
+  // The Giving Moment is an inline view of this surface — when true,
+  // the post-reveal CTA stack is replaced by the <GivingMoment> panel
+  // and the 3D card stage shrinks so the questions sit near the fold.
+  const [givingOpen, setGivingOpen] = useState(false);
   // Edit mode — flips the whole surface from "look at the card / buy"
   // (3D card + Buy CTA) to a focused regen workbench. Triggered by
   // the "Make a change" pill on the reveal layout; exited via the
@@ -690,6 +669,14 @@ function RevealView({
     if (interactTimerRef.current) window.clearTimeout(interactTimerRef.current);
     interactTimerRef.current = window.setTimeout(() => setIsInteracting(false), 1200);
   };
+
+  // Persist the Giving Moment's format + destination choice onto the
+  // draft. Awaited by <GivingMoment> before it navigates to checkout.
+  const saveDelivery = async (
+    delivery: NonNullable<CardDraftState['delivery']>,
+  ): Promise<void> => {
+    if (onUpdateInputs) await onUpdateInputs({ delivery });
+  };
   // bumpInteract was used to treat wheel-scroll as card interaction
   // (start + end in one tick). Removed 2026-05-10 along with the
   // onWheel handler — wheel = page scroll, not card play. See comment
@@ -697,52 +684,47 @@ function RevealView({
 
   // Edit mode takes the entire surface — the 3D card + CTA stack
   // are intentionally hidden so the user has a focused workbench.
-  // The Buy dialog sits outside this branch so a regen-then-buy
-  // flow doesn't lose its mount.
+  // The Giving Moment is an inline view of the normal reveal surface,
+  // so it isn't reachable from edit mode — the user exits edit mode
+  // (Done) and then continues to give the card.
   if (editMode && onRegenerate && onSelectAttempt) {
     return (
-      <>
-        <RegenEditMode
-          state={state}
-          frontUrl={frontUrl}
-          insideUrl={insideUrl}
-          attempts={attempts}
-          isRegenerating={isRegenerating}
-          hasInside={insideMode === 'write' || insideMode === 'blank'}
-          onRegenerate={onRegenerate}
-          onSelectAttempt={onSelectAttempt}
-          onExit={() => setEditMode(false)}
-          onJumpToStepFromRegenFailure={onJumpToStepFromRegenFailure}
-          onUpdateInputs={
-            onUpdateInputs ??
-            (async () => {
-              /* no-op fallback when not wired (defensive) */
-            })
-          }
-        />
-        <BuyDialog
-          open={buyOpen}
-          onOpenChange={setBuyOpen}
-          cardId={cardId}
-          insideMode={insideMode}
-          onEditInside={onEditInside}
-        />
-      </>
+      <RegenEditMode
+        state={state}
+        frontUrl={frontUrl}
+        insideUrl={insideUrl}
+        attempts={attempts}
+        isRegenerating={isRegenerating}
+        hasInside={insideMode === 'write' || insideMode === 'blank'}
+        onRegenerate={onRegenerate}
+        onSelectAttempt={onSelectAttempt}
+        onExit={() => setEditMode(false)}
+        onJumpToStepFromRegenFailure={onJumpToStepFromRegenFailure}
+        onUpdateInputs={
+          onUpdateInputs ??
+          (async () => {
+            /* no-op fallback when not wired (defensive) */
+          })
+        }
+      />
     );
   }
 
   return (
-    <>
       <div
         className="max-w-3xl mx-auto"
         data-testid={showReveal ? 'review-completed' : 'review-generating'}
       >
-        {/* Stage — constant dimensions across both phases so
-            narration → card reveal reads as one continuous surface.
-            Note: regen-in-flight no longer renders narration HERE —
-            it runs inside CardThumb in edit mode. The 3D viewer
-            stays mounted on the reveal surface throughout. */}
-        <div className="h-[60vh] sm:h-[68vh] w-full relative">
+        {/* Stage — constant dimensions through narration → card reveal
+            so it reads as one continuous surface. Once the Giving
+            Moment opens, the stage shrinks (discrete, not animated —
+            the Canvas re-fits on container resize) so the giving
+            questions sit close to the fold with the card still above. */}
+        <div
+          className={`w-full relative transition-[height] duration-300 ${
+            givingOpen ? 'h-[42vh] sm:h-[46vh]' : 'h-[60vh] sm:h-[68vh]'
+          }`}
+        >
           {/* mode="wait" so narration fully exits before the card enters.
               Avoids the two layers animating in tandem — the card used
               to appear to "snap in" because its mount + texture load
@@ -812,15 +794,33 @@ function RevealView({
           </AnimatePresence>
         </div>
 
-        {/* Post-reveal CTA stack — confirmation line, Buy, gesture
-            hints. Only fires once showReveal flips so the entry is
-            clean and doesn't race the card's materialise animation. */}
-        <div className="relative z-30 max-w-xl mx-auto px-4 pt-2 text-center">
+        {/* Post-reveal area — either the CTA stack (Buy / hints /
+            regen) or, once the user taps through, the inline Giving
+            Moment. Both gated on showReveal so the entry doesn't race
+            the card's materialise animation. AnimatePresence mode=wait
+            crossfades between the two. */}
+        <div className="relative z-30 max-w-xl mx-auto px-4 pt-2">
           <AnimatePresence mode="wait">
-            {showReveal && (
+            {showReveal && givingOpen && (
+              <motion.div
+                key="giving"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+              >
+                <GivingMoment
+                  cardId={cardId}
+                  recipientName={state.recipient?.name?.trim() ?? ''}
+                  insideMode={insideMode}
+                  onEditInside={onEditInside}
+                  saveDelivery={saveDelivery}
+                />
+              </motion.div>
+            )}
+            {showReveal && !givingOpen && (
               <motion.div
                 key="post-reveal"
-                className="flex flex-col items-center"
+                className="flex flex-col items-center text-center"
               >
                 {/* The "ready" confirmation line was removed 2026-04-24
                     — the card itself is the confirmation, the sentence
@@ -835,12 +835,12 @@ function RevealView({
                   className="mt-8 flex flex-col items-center gap-7"
                 >
                   <Button
-                    onClick={() => setBuyOpen(true)}
+                    onClick={() => setGivingOpen(true)}
                     className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 py-3.5 rounded-lg w-full sm:w-auto"
                     size="lg"
                     data-testid="btn-buy-card"
                   >
-                    Buy this card
+                    Send this card
                   </Button>
                   {/* Caption beneath ("Choose digital or print next") was
                       removed 2026-04-25 — the 3D card has just appeared,
@@ -915,159 +915,11 @@ function RevealView({
           </AnimatePresence>
         </div>
       </div>
-
-      <BuyDialog
-        open={buyOpen}
-        onOpenChange={setBuyOpen}
-        cardId={cardId}
-        insideMode={insideMode}
-        onEditInside={onEditInside}
-      />
-    </>
   );
 }
 
-// ── BuyDialog ─────────────────────────────────────────────────────────
-// The "digital / print / both" choice moment. Three clickable option
-// cards; each handoff navigates to /checkout/:id?product={choice}.
-// Digital's value prop is made explicit — they get a share link with
-// the exact 3D viewer the sender just played with.
-function BuyDialog({
-  open,
-  onOpenChange,
-  cardId,
-  insideMode,
-  onEditInside,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  cardId: number;
-  /** When 'blank', hide the digital option — the recipient can't read
-   *  an empty inside — and offer a recovery link to the Inside step. */
-  insideMode: 'write' | 'blank' | null;
-  onEditInside: () => void;
-}) {
-  const [, setLocation] = useLocation();
-  const go = (choice: ProductChoice) => {
-    onOpenChange(false);
-    setLocation(`/checkout/${cardId}?product=${choice}`);
-  };
-  const handleEditInside = () => {
-    onOpenChange(false);
-    onEditInside();
-  };
-  const isBlank = insideMode === 'blank';
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-left">How would you like to send it?</DialogTitle>
-          <DialogDescription className="text-left">
-            {isBlank
-              ? "You chose a blank inside, so this one's for the post."
-              : 'Pick one — you can change your mind at checkout.'}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="mt-1 space-y-3">
-          {!isBlank && (
-            <BuyOption
-              icon={<Sparkles className="w-5 h-5 text-brand" />}
-              title="Digital"
-              description="A share link that opens with the same 3D viewer you're playing with now. Instant."
-              price={formatGBP(totalsFor('digital'))}
-              onClick={() => go('digital')}
-              testId="btn-buy-digital"
-            />
-          )}
-          <BuyOption
-            icon={<Package className="w-5 h-5 text-stone-700" />}
-            title="Printed"
-            description="Premium square card, posted in the UK."
-            price={formatGBP(totalsFor('print'))}
-            onClick={() => go('print')}
-            testId="btn-buy-print"
-          />
-          {!isBlank && (
-            <BuyOption
-              icon={
-                <div className="flex gap-1">
-                  <Package className="w-5 h-5 text-stone-700" />
-                  <Sparkles className="w-5 h-5 text-brand" />
-                </div>
-              }
-              title="Printed + digital"
-              description="The real thing in the post plus the instant 3D share link. Most popular."
-              price={formatGBP(totalsFor('both'))}
-              badge="Best value"
-              onClick={() => go('both')}
-              testId="btn-buy-both"
-            />
-          )}
-        </div>
-
-        {isBlank && (
-          <div className="mt-3 text-center">
-            <button
-              type="button"
-              onClick={handleEditInside}
-              className="text-xs text-brand hover:text-brand-dark underline underline-offset-2"
-              data-testid="btn-buy-edit-inside"
-            >
-              Want to send digitally? Add a message inside →
-            </button>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function BuyOption({
-  icon,
-  title,
-  description,
-  price,
-  badge,
-  onClick,
-  testId,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  price: string;
-  badge?: string;
-  onClick: () => void;
-  testId?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="relative w-full text-left bg-white border border-stone-200 rounded-xl p-4 hover:border-brand/60 hover:shadow-sm transition-all group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-      data-testid={testId}
-    >
-      <div className="flex items-start gap-3">
-        <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-muted flex-shrink-0">
-          {icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline justify-between gap-2">
-            <p className="text-sm font-semibold text-ink">{title}</p>
-            <p className="text-sm font-semibold text-ink whitespace-nowrap">{price}</p>
-          </div>
-          <p className="text-xs text-stone-600 mt-1 leading-relaxed">{description}</p>
-          {badge && (
-            <span className="inline-block mt-2 text-[10px] uppercase tracking-wider font-medium text-brand">
-              {badge}
-            </span>
-          )}
-        </div>
-        <ArrowRight className="w-4 h-4 text-stone-400 group-hover:text-brand mt-2 flex-shrink-0" />
-      </div>
-    </button>
-  );
-}
+// (BuyDialog + BuyOption removed 2026-05-19 — replaced by the inline
+//  <GivingMoment>. See giving-moment.tsx + next_delivery_destination_usp.md.)
 
 function CardImage({ url, label }: { url: string; label: string }) {
   return (

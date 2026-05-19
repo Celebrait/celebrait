@@ -73,27 +73,28 @@ export interface CardDraftState {
      *  mode === 'none'. */
     text?: string;
   };
-  /** Soft delivery intent — captured optionally on the Recipient step
-   *  (added 2026-05-18, see next_delivery_destination_usp.md).
+  /** The Giving Moment choice — format + destination — captured on the
+   *  dedicated post-reveal screen (see next_delivery_destination_usp.md).
+   *  Written by the Giving Moment, read by checkout. Absent until the
+   *  user reaches and completes that screen.
    *
-   *  NOT binding. It seeds defaults only; every downstream step stays
-   *  fully overridable. Undefined = the user skipped the question —
-   *  behaviour is exactly as before (they choose at checkout).
-   *
-   *    - 'post-to-them' → seeds shipTo='recipient' at checkout;
-   *                       inside stays in write mode.
-   *    - 'hand-over'    → seeds shipTo='sender'; inside stays write.
-   *                       ("Send me the finished card, I'll give it
-   *                       in person.")
-   *    - 'handwrite'    → seeds shipTo='sender' AND pre-resolves the
-   *                       Inside step to 'blank' so the user can sign
-   *                       the card by hand when it arrives.
-   *
-   *  The three intents are also fully derivable from (shipTo, inside.mode)
-   *  — this field additionally records that the user *answered*, which
-   *  drives the checkout pre-selection. */
+   *  (An earlier `intent` sub-field, from a reverted 2026-05-18 Step-1
+   *  experiment, has been replaced by this shape.) */
   delivery?: {
-    intent?: 'post-to-them' | 'hand-over' | 'handwrite';
+    /** Product format. Values mirror checkout's ?product= param
+     *  ('print' not 'printed') so the handoff needs no mapping. */
+    format?: 'digital' | 'print' | 'both';
+    /** Where it goes:
+     *   'recipient' → posted / emailed straight to the recipient.
+     *   'sender'    → posted / sent to the sender — to hand over in
+     *                 person, or (when inside.mode is 'blank') to
+     *                 handwrite first then give.
+     *  The hand-over vs handwrite nuance is derivable from inside.mode,
+     *  so it is NOT stored separately here. */
+    destination?: 'recipient' | 'sender';
+    /** Optional short "from…" note printed on the envelope insert for
+     *  direct-to-recipient orders. */
+    fromLine?: string;
   };
   inside?: {
     mode?: InsideMode;
