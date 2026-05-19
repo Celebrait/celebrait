@@ -20,6 +20,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useLocation } from 'wouter';
 import {
   Sparkles,
   Pencil,
@@ -31,7 +32,6 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { GivingMoment } from '@/components/studio/giving-moment';
 import { toast } from '@/hooks/use-toast';
 import type { CardDraftState, StepId } from '@shared/schema';
 import { deriveDefaultFrontText } from '@shared/schema';
@@ -645,13 +645,10 @@ function RevealView({
     return () => window.clearTimeout(t);
   }, [isReady]);
 
+  const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
-  // The Giving Moment is an inline view of this surface — when true,
-  // the post-reveal CTA stack is replaced by the <GivingMoment> panel
-  // and the 3D card stage shrinks so the questions sit near the fold.
-  const [givingOpen, setGivingOpen] = useState(false);
   // Edit mode — flips the whole surface from "look at the card / buy"
   // (3D card + Buy CTA) to a focused regen workbench. Triggered by
   // the "Make a change" pill on the reveal layout; exited via the
@@ -668,14 +665,6 @@ function RevealView({
   const endInteract = () => {
     if (interactTimerRef.current) window.clearTimeout(interactTimerRef.current);
     interactTimerRef.current = window.setTimeout(() => setIsInteracting(false), 1200);
-  };
-
-  // Persist the Giving Moment's format + destination choice onto the
-  // draft. Awaited by <GivingMoment> before it navigates to checkout.
-  const saveDelivery = async (
-    delivery: NonNullable<CardDraftState['delivery']>,
-  ): Promise<void> => {
-    if (onUpdateInputs) await onUpdateInputs({ delivery });
   };
   // bumpInteract was used to treat wheel-scroll as card interaction
   // (start + end in one tick). Removed 2026-05-10 along with the
@@ -715,16 +704,11 @@ function RevealView({
         className="max-w-3xl mx-auto"
         data-testid={showReveal ? 'review-completed' : 'review-generating'}
       >
-        {/* Stage — constant dimensions through narration → card reveal
-            so it reads as one continuous surface. Once the Giving
-            Moment opens, the stage shrinks (discrete, not animated —
-            the Canvas re-fits on container resize) so the giving
-            questions sit close to the fold with the card still above. */}
-        <div
-          className={`w-full relative transition-[height] duration-300 ${
-            givingOpen ? 'h-[42vh] sm:h-[46vh]' : 'h-[60vh] sm:h-[68vh]'
-          }`}
-        >
+        {/* Stage — constant dimensions across narration → card reveal
+            so it reads as one continuous surface. The reveal is its
+            own moment; the Giving Moment is a separate screen
+            (/studio/card/:id/give) so it never crowds the 3D card. */}
+        <div className="h-[60vh] sm:h-[68vh] w-full relative">
           {/* mode="wait" so narration fully exits before the card enters.
               Avoids the two layers animating in tandem — the card used
               to appear to "snap in" because its mount + texture load
@@ -794,33 +778,15 @@ function RevealView({
           </AnimatePresence>
         </div>
 
-        {/* Post-reveal area — either the CTA stack (Buy / hints /
-            regen) or, once the user taps through, the inline Giving
-            Moment. Both gated on showReveal so the entry doesn't race
-            the card's materialise animation. AnimatePresence mode=wait
-            crossfades between the two. */}
-        <div className="relative z-30 max-w-xl mx-auto px-4 pt-2">
+        {/* Post-reveal CTA stack — confirmation, Send CTA, gesture
+            hints, regen entry. Only fires once showReveal flips so the
+            entry doesn't race the card's materialise animation. */}
+        <div className="relative z-30 max-w-xl mx-auto px-4 pt-2 text-center">
           <AnimatePresence mode="wait">
-            {showReveal && givingOpen && (
-              <motion.div
-                key="giving"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease: 'easeOut' }}
-              >
-                <GivingMoment
-                  cardId={cardId}
-                  recipientName={state.recipient?.name?.trim() ?? ''}
-                  insideMode={insideMode}
-                  onEditInside={onEditInside}
-                  saveDelivery={saveDelivery}
-                />
-              </motion.div>
-            )}
-            {showReveal && !givingOpen && (
+            {showReveal && (
               <motion.div
                 key="post-reveal"
-                className="flex flex-col items-center text-center"
+                className="flex flex-col items-center"
               >
                 {/* The "ready" confirmation line was removed 2026-04-24
                     — the card itself is the confirmation, the sentence
@@ -835,7 +801,7 @@ function RevealView({
                   className="mt-8 flex flex-col items-center gap-7"
                 >
                   <Button
-                    onClick={() => setGivingOpen(true)}
+                    onClick={() => setLocation(`/studio/card/${cardId}/give`)}
                     className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 py-3.5 rounded-lg w-full sm:w-auto"
                     size="lg"
                     data-testid="btn-buy-card"

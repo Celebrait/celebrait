@@ -65,6 +65,9 @@ const StudioReady = lazy(() => import("@/pages/studio-ready"));
 const StudioSent = lazy(() => import("@/pages/studio-sent"));
 const StudioOrders = lazy(() => import("@/pages/studio-orders"));
 const StudioCardViewPage = lazy(() => import("@/pages/studio-card-view"));
+// The Giving Moment — its own screen between the card reveal and
+// checkout. See next_delivery_destination_usp.md.
+const StudioGivePage = lazy(() => import("@/pages/studio-give"));
 const StudioAddressBookPage = lazy(() => import("@/pages/studio-address-book"));
 const AddressBookFormPage = lazy(() =>
   import("@/pages/studio-address-book-form"),
@@ -202,6 +205,17 @@ function Router() {
             <RequireAuth>
               <StudioLayout>
                 <CardMakerPage />
+              </StudioLayout>
+            </RequireAuth>
+          </Route>
+          {/* The Giving Moment — how the finished card reaches the
+              recipient. Sits between the reveal and checkout. Must be
+              declared before the bare /studio/card/:id route below so
+              wouter matches the more specific path first. */}
+          <Route path="/studio/card/:id/give">
+            <RequireAuth>
+              <StudioLayout>
+                <StudioGivePage />
               </StudioLayout>
             </RequireAuth>
           </Route>
