@@ -80,13 +80,10 @@ function isDraftReadyToGenerate(state: CardDraftState): { ok: boolean; reason?: 
   if (!state.scene?.description?.trim()) {
     return { ok: false, reason: 'Scene description required' };
   }
-  const styleMode = state.style?.mode;
-  if (styleMode !== 'animated' && styleMode !== 'realistic' && styleMode !== 'custom') {
-    return { ok: false, reason: 'Style selection required' };
-  }
-  if (styleMode === 'custom' && (state.style?.custom?.trim().length ?? 0) < 15) {
-    return { ok: false, reason: 'Custom style needs at least 15 characters' };
-  }
+  // Style validation removed 2026-05-17 — the Style step is parked for
+  // Celebrait Premium; V1 locks to the 'animated' (warm illustrated)
+  // default, which the generation pipeline applies when state.style is
+  // absent. See next_celebrait_premium.md.
   const insideMode = state.inside?.mode;
   if (insideMode === 'blank') {
     // Blank is always ready.
