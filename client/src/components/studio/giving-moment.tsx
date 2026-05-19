@@ -130,24 +130,31 @@ export function GivingMoment({
     setLocation(`/checkout/${cardId}?product=${resolved.format}`);
   };
 
-  // ── Blank-inside path — a confirmation, not a choice ───────────────
+  // ── Blank-inside path — a confirmation, NOT a question ─────────────
+  // A blank inside can only go one way: printed, posted to the sender,
+  // to handwrite and give. There's no choice to make, so this path
+  // does NOT ask "how would you like to give it?" — it confirms.
   if (isBlank) {
     return (
       <div className="text-left space-y-5" data-testid="giving-moment-blank">
-        <Header />
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold text-ink">
+            Ready for your own hand
+          </h2>
+          <p className="text-sm text-stone-500 leading-relaxed">
+            You left the inside blank — so this one's yours to finish.
+          </p>
+        </div>
         <div className="rounded-2xl border-2 border-brand/40 bg-brand-muted/30 p-5 space-y-3">
           <div className="flex items-center gap-2">
             <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-brand text-white shrink-0">
               <PenLine className="w-4 h-4" strokeWidth={1.75} />
             </span>
-            <p className="text-sm font-semibold text-ink">
-              Your card has a blank inside
-            </p>
+            <p className="text-sm font-semibold text-ink">Here's how it works</p>
           </div>
           <p className="text-sm text-stone-600 leading-relaxed">
-            We'll post your printed card to you — ready for your own
-            handwriting. Write your message by hand when it arrives, then
-            give it to {them} yourself.
+            We print your card and post it to you. Write your message by
+            hand when it arrives, then give it to {them} yourself.
           </p>
           <p className="text-[13px] text-stone-500">
             {formatGBP(totalFor('print'))} · printed card, posted in the UK.
