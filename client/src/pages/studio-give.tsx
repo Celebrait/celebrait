@@ -2,19 +2,26 @@
 //
 // The Giving Moment — its own screen. Route: /studio/card/:id/give.
 //
-// Reached from the review step's reveal ("Send this card"). The 3D
-// card reveal is its own untouched moment on the previous screen; this
-// screen shows the finished card FLAT (front + inside, side by side)
-// above the delivery questions, and gives the "how does this reach
-// them?" decision the room it deserves. See
-// next_delivery_destination_usp.md.
+// Reached from the review step's reveal ("Send this card"), written-
+// inside cards only. The sender has JUST watched the 3D reveal, so
+// this screen does NOT re-show the card big — it leads with the
+// decision (how should it reach them?) and offers a small "take
+// another look" link that pops the card in a modal for anyone who
+// wants to refresh their memory. See next_delivery_destination_usp.md.
 //
 // Flow: review/reveal  →  /studio/card/:id/give  →  /checkout/:id
 
+import { useState } from 'react';
 import { useRoute, Redirect } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { GivingMoment } from '@/components/studio/giving-moment';
 import type { CardDraftState } from '@shared/schema';
 
@@ -31,6 +38,8 @@ interface DraftResponse {
 export default function StudioGivePage() {
   const [, params] = useRoute<{ id: string }>('/studio/card/:id/give');
   const cardId = params ? parseInt(params.id, 10) : NaN;
+
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   const { data: card, isLoading } = useQuery<DraftResponse>({
     queryKey: [`/api/studio/drafts/${cardId}`],
@@ -75,25 +84,54 @@ export default function StudioGivePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 sm:py-10">
-      {/* The finished card, flat — front + inside side by side. The
-          3D reveal already had its moment on the previous screen;
-          here the card is simply shown as the thing being given,
-          calm and complete, while the decision is made below. */}
-      <div className="mb-8">
-        <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-3 text-center">
-          {recipientName ? `${recipientName}'s card` : 'Your card'}
-        </p>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          <CardFace url={card.frontImageUrl} label="Front" />
-          <CardFace url={card.insideImageUrl} label="Inside" />
-        </div>
-      </div>
+      {/* Compact card reference — a small front thumbnail + a "take
+          another look" trigger. The sender just saw the full 3D
+          reveal, so the card isn't re-shown big here; this is just a
+          quiet memory-refresh affordance that pops the modal below.
+          The decision (rendered by <GivingMoment>) stays above the
+          fold. */}
+      <button
+        type="button"
+        onClick={() => setViewerOpen(true)}
+        className="mb-6 flex items-center gap-3 group"
+        data-testid="give-view-card"
+      >
+        <img
+          src={card.frontImageUrl}
+          alt="Your card"
+          className="w-12 h-12 rounded-md object-cover border border-stone-200 shrink-0"
+        />
+        <span className="text-left">
+          <span className="block text-sm font-medium text-ink">
+            {recipientName ? `${recipientName}'s card` : 'Your card'}
+          </span>
+          <span className="inline-flex items-center gap-1 text-xs text-brand group-hover:text-brand-dark">
+            <Eye className="w-3 h-3" strokeWidth={2} />
+            Take another look
+          </span>
+        </span>
+      </button>
 
       <GivingMoment
         cardId={cardId}
         recipientName={recipientName}
         saveDelivery={saveDelivery}
       />
+
+      {/* Memory-refresh modal — front + inside flat, on demand. */}
+      <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-left">
+              {recipientName ? `${recipientName}'s card` : 'Your card'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-1">
+            <CardFace url={card.frontImageUrl} label="Front" />
+            <CardFace url={card.insideImageUrl} label="Inside" />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
