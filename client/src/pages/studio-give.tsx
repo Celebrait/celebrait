@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { AjarCardRender } from '@/components/ajar-card-render';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { GestureHints } from '@/components/gesture-hints';
 import { GivingMoment } from '@/components/studio/giving-moment';
@@ -108,9 +109,9 @@ export default function StudioGivePage() {
         className="mb-6 flex items-center gap-3 group"
         data-testid="give-view-card"
       >
-        <CardStandingUpThumb
-          frontUrl={card.frontImageUrl}
-          insideUrl={card.insideImageUrl}
+        <AjarCardRender
+          frontImageUrl={card.frontImageUrl}
+          insideImageUrl={card.insideImageUrl}
         />
         <span className="text-left">
           <span className="block text-sm font-medium text-ink">
@@ -170,43 +171,10 @@ export default function StudioGivePage() {
   );
 }
 
-// ── Standing-open-card thumbnail ─────────────────────────────────────
-// A miniature, locked Card3DViewer — uses the actual 3D card render
-// with the cover left slightly ajar (closedAngle) so the inside peeks
-// out, frozen in place (no rotate, no zoom, no click-to-open). Same
-// pattern the marketing hero uses for its ambient ajar card; the
-// `interactive={false}` flag makes the hit zone pointer-events: none
-// so clicks pass through to the wrapper button (which opens the
-// modal with the full interactive viewer).
-//
-// Earlier CSS attempts (perspective rotation; layered offset images)
-// kept reading as "two flat rectangles" rather than a card. Using
-// the real 3D viewer is more expensive (one extra Canvas on the
-// page) but the card textures are already warm from the reveal, and
-// the polish is worth it on the emotional-core surface.
-function CardStandingUpThumb({
-  frontUrl,
-  insideUrl,
-}: {
-  frontUrl: string;
-  insideUrl: string | null;
-}) {
-  return (
-    <div className="relative shrink-0 w-20 h-20 pointer-events-none">
-      <Card3DViewer
-        frontImageUrl={frontUrl}
-        insideImageUrl={insideUrl}
-        open={false}
-        closedAngle={-0.8}
-        interactive={false}
-        enableRotate={false}
-        enableZoom={false}
-        framingMargin={1.6}
-        className="w-full h-full"
-      />
-    </div>
-  );
-}
+// (The local CardStandingUpThumb function was extracted 2026-05-20
+//  into <AjarCardRender> at @/components/ajar-card-render so the
+//  same asset can be dropped into the homepage narrative sections.
+//  See next_delivery_destination_usp.md.)
 
 function CenterSpinner() {
   return (
