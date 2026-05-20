@@ -171,13 +171,19 @@ export default function StudioGivePage() {
 }
 
 // ── Standing-open-card thumbnail ─────────────────────────────────────
-// A small layered composition: the front face dominant in the
-// foreground, the inside peeking behind to the upper-right with a
-// slight vertical offset and subtle shadows. Reads at thumbnail size
-// as "a card with its inside visible" — much clearer than the earlier
-// CSS-3D-perspective attempt, which foreshortened both halves so
-// hard they just looked like two narrow parallel rectangles.
-// Click-through opens the real 3D viewer in the modal.
+// A miniature, locked Card3DViewer — uses the actual 3D card render
+// with the cover left slightly ajar (closedAngle) so the inside peeks
+// out, frozen in place (no rotate, no zoom, no click-to-open). Same
+// pattern the marketing hero uses for its ambient ajar card; the
+// `interactive={false}` flag makes the hit zone pointer-events: none
+// so clicks pass through to the wrapper button (which opens the
+// modal with the full interactive viewer).
+//
+// Earlier CSS attempts (perspective rotation; layered offset images)
+// kept reading as "two flat rectangles" rather than a card. Using
+// the real 3D viewer is more expensive (one extra Canvas on the
+// page) but the card textures are already warm from the reveal, and
+// the polish is worth it on the emotional-core surface.
 function CardStandingUpThumb({
   frontUrl,
   insideUrl,
@@ -185,34 +191,18 @@ function CardStandingUpThumb({
   frontUrl: string;
   insideUrl: string | null;
 }) {
-  // Container size — wide enough for the inside to peek out clearly
-  // to the right of the front, tall enough that the upward offset of
-  // the inside reads as "behind" not "above."
   return (
-    <div
-      className="relative shrink-0"
-      style={{ width: 76, height: 60 }}
-      aria-hidden="false"
-    >
-      {/* Inside — peeks behind the front, offset up-and-right. Drawn
-          first so the front naturally overlaps it. Hidden when no
-          inside image (defensive — the give page only renders for
-          written cards, which always have one). */}
-      {insideUrl && (
-        <img
-          src={insideUrl}
-          alt=""
-          aria-hidden
-          className="absolute left-7 top-0 w-12 h-12 object-cover rounded-sm border border-stone-200 shadow-sm"
-        />
-      )}
-      {/* Front — dominant, in front, offset down-and-left from centre
-          so the inside has room to peek out. A slightly heavier
-          shadow than the inside reinforces the front-most layering. */}
-      <img
-        src={frontUrl}
-        alt="Your card"
-        className="absolute left-0 top-3 w-12 h-12 object-cover rounded-sm border border-stone-300 shadow-md"
+    <div className="relative shrink-0 w-20 h-20 pointer-events-none">
+      <Card3DViewer
+        frontImageUrl={frontUrl}
+        insideImageUrl={insideUrl}
+        open={false}
+        closedAngle={-0.5}
+        interactive={false}
+        enableRotate={false}
+        enableZoom={false}
+        framingMargin={1.6}
+        className="w-full h-full"
       />
     </div>
   );
