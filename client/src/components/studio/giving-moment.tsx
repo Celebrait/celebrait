@@ -8,10 +8,11 @@
 // form at checkout. This is the designed moment instead — its own
 // screen after the card reveal, the finished card shown flat above.
 //
-// Two questions, in dependency order:
-//   Q1 — Format:      Digital / Printed / Both
-//   Q2 — Destination: straight to them, or to the sender first
-//                     (copy adapts to the format chosen in Q1)
+// Two questions, on SEPARATE screens (one beat per screen, the way
+// they're decided in real life — pick what, then pick who):
+//   Step 1 — Format:      Digital / Printed / Both
+//   Step 2 — Destination: straight to them, or to the sender first
+//                         (copy adapts to the format chosen in step 1)
 //
 // WRITTEN-INSIDE ONLY. A blank inside has no giving choice — it can
 // only be printed and posted to the sender (a blank card can't go
@@ -31,6 +32,7 @@ import {
   Mail,
   HandHeart,
   Check,
+  ArrowLeft,
   ArrowRight,
   Loader2,
 } from 'lucide-react';
@@ -92,6 +94,11 @@ export function GivingMoment({
 
   const them = recipientName || 'them';
 
+  // Two-screen flow: pick the format, then pick the destination. The
+  // user clicks Next on screen 1 to advance (no auto-advance — gives
+  // them a beat to read the chosen card). Back from screen 2 keeps
+  // both selections so changing your mind doesn't lose your place.
+  const [step, setStep] = useState<'format' | 'destination'>('format');
   const [format, setFormat] = useState<Format | null>(null);
   const [destination, setDestination] = useState<Destination | null>(null);
   const [fromLine, setFromLine] = useState('');
@@ -119,177 +126,222 @@ export function GivingMoment({
     setLocation(`/checkout/${cardId}?product=${resolved.format}`);
   };
 
-  // Written-inside path — the full two-question flow. (Blank inside
-  // never reaches this component; it skips straight to checkout.)
+  // Written-inside path — the two-screen flow. (Blank inside never
+  // reaches this component; it skips straight to checkout.)
   const includesPrint = format === 'print' || format === 'both';
+  const canAdvance = !!format;
   const canContinue = !!format && !!destination && !submitting;
+  const formatLabel =
+    format === 'both'
+      ? 'printed card + digital link'
+      : format === 'print'
+        ? 'printed card'
+        : format === 'digital'
+          ? 'digital share link'
+          : '';
 
   return (
     <div className="text-left space-y-6" data-testid="giving-moment">
-      <Header />
-
-      {/* ── Q1 — Format ─────────────────────────────────────────── */}
-      <section className="space-y-2.5">
-        <h3 className="text-sm font-semibold text-ink">
-          1 · What would you like?
-        </h3>
-        <div className="space-y-2.5">
-          <FormatCard
-            value="digital"
-            icon={<Sparkles className="w-5 h-5 text-brand" />}
-            title="Digital"
-            body="An instant share link — it opens with the same 3D card you're looking at now."
-            price={totalFor('digital')}
-            selected={format === 'digital'}
-            onSelect={() => setFormat('digital')}
-          />
-          <FormatCard
-            value="print"
-            icon={<Package className="w-5 h-5 text-stone-700" />}
-            title="Printed"
-            body="A premium square card, posted in a kraft envelope."
-            price={totalFor('print')}
-            selected={format === 'print'}
-            onSelect={() => setFormat('print')}
-          />
-          <FormatCard
-            value="both"
-            icon={
-              <span className="flex gap-0.5">
-                <Package className="w-4 h-4 text-stone-700" />
-                <Sparkles className="w-4 h-4 text-brand" />
-              </span>
-            }
-            title="Printed + digital"
-            body="The real card in the post, plus the instant share link."
-            price={totalFor('both')}
-            badge="Most popular"
-            selected={format === 'both'}
-            onSelect={() => setFormat('both')}
-          />
-        </div>
-      </section>
-
-      {/* ── Q2 — Destination ────────────────────────────────────── */}
-      {format && (
-        <section className="space-y-2.5" data-testid="giving-moment-destination">
-          <h3 className="text-sm font-semibold text-ink">
-            2 · Where should it go?
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <DestinationCard
-              icon={<Mail className="w-5 h-5" />}
-              title={recipientName ? `Straight to ${recipientName}` : 'Straight to them'}
-              body={
-                includesPrint
-                  ? `We post it to ${them}, tracked.${
-                      format === 'both' ? ' The link goes to them too.' : ''
-                    }`
-                  : `We email the link straight to ${them}.`
-              }
-              selected={destination === 'recipient'}
-              onSelect={() => setDestination('recipient')}
-              testId="giving-dest-recipient"
-            />
-            <DestinationCard
-              icon={<HandHeart className="w-5 h-5" />}
-              title="To you first"
-              body={
-                includesPrint
-                  ? `We post the finished card to you — to give to ${them} in person.`
-                  : `We send you the link to pass on to ${them} yourself.`
-              }
-              selected={destination === 'sender'}
-              onSelect={() => setDestination('sender')}
-              testId="giving-dest-sender"
-            />
+      {step === 'format' ? (
+        <>
+          {/* ── Step 1 — Format ───────────────────────────────────── */}
+          <div className="space-y-1">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-stone-400 font-semibold">
+              Step 1 of 2
+            </p>
+            <h2 className="text-lg font-semibold text-ink">
+              How would you like to give it?
+            </h2>
+            <p className="text-sm text-stone-500 leading-relaxed">
+              The card's the easy part — this is the bit that matters.
+            </p>
           </div>
 
-          {/* Optional "from…" line — only for direct-to-recipient. */}
-          {destination === 'recipient' && (
-            <div className="pt-1">
-              <label
-                htmlFor="giving-from-line"
-                className="text-xs font-medium text-stone-600"
+          <section className="space-y-2.5">
+            <FormatCard
+              value="digital"
+              icon={<Sparkles className="w-5 h-5 text-brand" />}
+              title="Digital"
+              body="An instant share link — it opens with the same 3D card you're looking at now."
+              price={totalFor('digital')}
+              selected={format === 'digital'}
+              onSelect={() => setFormat('digital')}
+            />
+            <FormatCard
+              value="print"
+              icon={<Package className="w-5 h-5 text-stone-700" />}
+              title="Printed"
+              body="A premium square card, posted in a kraft envelope."
+              price={totalFor('print')}
+              selected={format === 'print'}
+              onSelect={() => setFormat('print')}
+            />
+            <FormatCard
+              value="both"
+              icon={
+                <span className="flex gap-0.5">
+                  <Package className="w-4 h-4 text-stone-700" />
+                  <Sparkles className="w-4 h-4 text-brand" />
+                </span>
+              }
+              title="Printed + digital"
+              body="The real card in the post, plus the instant share link."
+              price={totalFor('both')}
+              badge="Most popular"
+              selected={format === 'both'}
+              onSelect={() => setFormat('both')}
+            />
+          </section>
+
+          <Button
+            onClick={() => format && setStep('destination')}
+            disabled={!canAdvance}
+            className="w-full bg-brand hover:bg-brand-dark text-white"
+            size="lg"
+            data-testid="giving-moment-next"
+          >
+            Next — where should it go?
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+          {!canAdvance && (
+            <p className="text-[11px] text-stone-400 text-center -mt-3">
+              Pick what you'd like, above.
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          {/* ── Step 2 — Destination ──────────────────────────────── */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-stone-400 font-semibold">
+                Step 2 of 2
+              </p>
+              <button
+                type="button"
+                onClick={() => setStep('format')}
+                className="inline-flex items-center gap-1 text-xs text-stone-500 hover:text-ink"
+                data-testid="giving-moment-back"
               >
-                A short note for the envelope{' '}
-                <span className="text-stone-400">(optional)</span>
-              </label>
-              <Input
-                id="giving-from-line"
-                value={fromLine}
-                onChange={(e) => setFromLine(e.target.value)}
-                placeholder="e.g. With love, Sarah"
-                maxLength={120}
-                className="mt-1 border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
-                data-testid="giving-from-line"
+                <ArrowLeft className="w-3 h-3" /> Back
+              </button>
+            </div>
+            <h2 className="text-lg font-semibold text-ink">
+              Where should it go?
+            </h2>
+            <p className="text-sm text-stone-500 leading-relaxed">
+              For your {formatLabel}
+              {format && (
+                <span className="text-stone-400">
+                  {' '}
+                  · {formatGBP(totalFor(format))}
+                </span>
+              )}
+            </p>
+          </div>
+
+          <section className="space-y-2.5" data-testid="giving-moment-destination">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <DestinationCard
+                icon={<Mail className="w-5 h-5" />}
+                title={recipientName ? `Straight to ${recipientName}` : 'Straight to them'}
+                body={
+                  includesPrint
+                    ? `We post it to ${them}, tracked.${
+                        format === 'both' ? ' The link goes to them too.' : ''
+                      }`
+                    : `We email the link straight to ${them}.`
+                }
+                selected={destination === 'recipient'}
+                onSelect={() => setDestination('recipient')}
+                testId="giving-dest-recipient"
+              />
+              <DestinationCard
+                icon={<HandHeart className="w-5 h-5" />}
+                title="To you first"
+                body={
+                  includesPrint
+                    ? `We post the finished card to you — to give to ${them} in person.`
+                    : `We send you the link to pass on to ${them} yourself.`
+                }
+                selected={destination === 'sender'}
+                onSelect={() => setDestination('sender')}
+                testId="giving-dest-sender"
               />
             </div>
-          )}
-        </section>
-      )}
 
-      {/* ── Continue ─────────────────────────────────────────────── */}
-      <Button
-        onClick={() =>
-          format &&
-          destination &&
-          commitAndGo({
-            format,
-            destination,
-            fromLine:
-              destination === 'recipient' && fromLine.trim()
-                ? fromLine.trim()
-                : undefined,
-          })
-        }
-        disabled={!canContinue}
-        className="w-full bg-cta hover:bg-cta-hover text-white"
-        size="lg"
-        data-testid="giving-moment-continue"
-      >
-        {submitting ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            One moment…
-          </>
-        ) : (
-          <>
-            Continue to payment
-            {format && (
-              <span className="ml-2 font-normal opacity-90">
-                · {formatGBP(totalFor(format))}
-              </span>
+            {/* Optional "from…" line — only for direct-to-recipient. */}
+            {destination === 'recipient' && (
+              <div className="pt-1">
+                <label
+                  htmlFor="giving-from-line"
+                  className="text-xs font-medium text-stone-600"
+                >
+                  A short note for the envelope{' '}
+                  <span className="text-stone-400">(optional)</span>
+                </label>
+                <Input
+                  id="giving-from-line"
+                  value={fromLine}
+                  onChange={(e) => setFromLine(e.target.value)}
+                  placeholder="e.g. With love, Sarah"
+                  maxLength={120}
+                  className="mt-1 border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
+                  data-testid="giving-from-line"
+                />
+              </div>
             )}
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </>
-        )}
-      </Button>
-      {!canContinue && !submitting && (
-        <p className="text-[11px] text-stone-400 text-center -mt-3">
-          {!format
-            ? 'Pick what you’d like, above.'
-            : 'Choose where it should go.'}
-        </p>
+          </section>
+
+          <Button
+            onClick={() =>
+              format &&
+              destination &&
+              commitAndGo({
+                format,
+                destination,
+                fromLine:
+                  destination === 'recipient' && fromLine.trim()
+                    ? fromLine.trim()
+                    : undefined,
+              })
+            }
+            disabled={!canContinue}
+            className="w-full bg-cta hover:bg-cta-hover text-white"
+            size="lg"
+            data-testid="giving-moment-continue"
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                One moment…
+              </>
+            ) : (
+              <>
+                Continue to payment
+                {format && (
+                  <span className="ml-2 font-normal opacity-90">
+                    · {formatGBP(totalFor(format))}
+                  </span>
+                )}
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </>
+            )}
+          </Button>
+          {!canContinue && !submitting && (
+            <p className="text-[11px] text-stone-400 text-center -mt-3">
+              Choose where it should go.
+            </p>
+          )}
+        </>
       )}
     </div>
   );
 }
 
 // ── Sub-components ───────────────────────────────────────────────────
-
-function Header() {
-  return (
-    <div className="space-y-1">
-      <h2 className="text-lg font-semibold text-ink">
-        How would you like to give it?
-      </h2>
-      <p className="text-sm text-stone-500 leading-relaxed">
-        The card's the easy part — this is the bit that matters.
-      </p>
-    </div>
-  );
-}
+// (Header component removed 2026-05-20 — each step has its own inline
+// header now that the flow is split across two screens.)
 
 function FormatCard({
   value,
