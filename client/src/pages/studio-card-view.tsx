@@ -19,13 +19,6 @@ import { Redirect, useLocation, useParams } from 'wouter';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Loader2, Share2, Package, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { useTexture } from '@react-three/drei';
@@ -129,7 +122,6 @@ function LoadedView({
 }) {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  const [buyOpen, setBuyOpen] = useState(false);
   const [open3D, setOpen3D] = useState(false);
   // Edit mode flips the surface from "look at the card / buy" to a
   // focused regen workbench. Same pattern as RevealView in the
@@ -283,32 +275,24 @@ function LoadedView({
   const insideMode = card.state.inside?.mode ?? null;
   const hasInside = insideMode === 'write' || insideMode === 'blank';
 
-  // Edit mode takes the entire surface. BuyDialog stays mounted so
-  // a regen → exit → buy flow doesn't lose its state. Shown only
-  // for unpaid cards because the entry pill only renders below for
-  // unpaid (paid cards have nothing to regen for — gift's en route).
+  // Edit mode takes the entire surface. Buy is now its own route
+  // (Giving Moment screen, then checkout) so there's no modal to
+  // keep mounted in this branch — the user exits edit mode and the
+  // Send button below navigates them away.
   if (editMode && !hasPaid) {
     return (
-      <>
-        <RegenEditMode
-          state={card.state}
-          frontUrl={card.frontImageUrl}
-          insideUrl={card.insideImageUrl}
-          attempts={card.attempts ?? []}
-          isRegenerating={isRegenerating}
-          hasInside={hasInside}
-          onRegenerate={handleRegenerate}
-          onSelectAttempt={handleSelectAttempt}
-          onUpdateInputs={handleUpdateInputs}
-          onExit={() => setEditMode(false)}
-        />
-        <BuyDialog
-          open={buyOpen}
-          onOpenChange={setBuyOpen}
-          cardId={card.id}
-          insideMode={card.state.inside?.mode ?? null}
-        />
-      </>
+      <RegenEditMode
+        state={card.state}
+        frontUrl={card.frontImageUrl}
+        insideUrl={card.insideImageUrl}
+        attempts={card.attempts ?? []}
+        isRegenerating={isRegenerating}
+        hasInside={hasInside}
+        onRegenerate={handleRegenerate}
+        onSelectAttempt={handleSelectAttempt}
+        onUpdateInputs={handleUpdateInputs}
+        onExit={() => setEditMode(false)}
+      />
     );
   }
 
@@ -377,12 +361,23 @@ function LoadedView({
           />
         ) : (
           <Button
-            onClick={() => setBuyOpen(true)}
+            onClick={() =>
+              setLocation(
+                // Blank inside skips the Giving Moment (no choice to
+                // make → printed + posted to the sender, always);
+                // every other card lands on the Giving Moment screen
+                // for the format + destination choice. Same routing
+                // as the post-reveal "Send this card" in the maker.
+                insideMode === 'blank'
+                  ? `/checkout/${card.id}?product=print`
+                  : `/studio/card/${card.id}/give`,
+              )
+            }
             className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 py-3.5 rounded-lg w-full sm:w-auto"
             size="lg"
             data-testid="btn-card-view-buy"
           >
-            Buy this card
+            Send this card
           </Button>
         )}
 
@@ -421,12 +416,6 @@ function LoadedView({
         )}
       </div>
 
-      <BuyDialog
-        open={buyOpen}
-        onOpenChange={setBuyOpen}
-        cardId={card.id}
-        insideMode={card.state.inside?.mode ?? null}
-      />
     </div>
   );
 }
@@ -465,132 +454,10 @@ function PaidActions({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Buy dialog — same three-option pattern used by review-step. Copy/
-// paste for now; if we refactor review-step's BuyDialog into a shared
-// component later, this uses the shared one.
-// ─────────────────────────────────────────────────────────────────────
-
-type ProductChoice = 'digital' | 'print' | 'both';
-
-const PRINT_PRICE = 599;
-const DIGITAL_PRICE = 99;
-const UK_SHIPPING = 150;
-const BUNDLE_DISCOUNT = 50;
-
-function totalsFor(choice: ProductChoice): number {
-  const print = choice === 'digital' ? 0 : PRINT_PRICE;
-  const digital = choice === 'print' ? 0 : DIGITAL_PRICE;
-  const shipping = choice === 'digital' ? 0 : UK_SHIPPING;
-  const discount = choice === 'both' ? BUNDLE_DISCOUNT : 0;
-  return print + digital + shipping - discount;
-}
-
-function formatGBP(minor: number): string {
-  return `£${(minor / 100).toFixed(2)}`;
-}
-
-function BuyDialog({
-  open,
-  onOpenChange,
-  cardId,
-  insideMode,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  cardId: number;
-  insideMode: 'write' | 'blank' | null;
-}) {
-  const [, setLocation] = useLocation();
-  const isBlank = insideMode === 'blank';
-  const go = (choice: ProductChoice) => {
-    onOpenChange(false);
-    setLocation(`/checkout/${cardId}?product=${choice}`);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-left">How would you like to send it?</DialogTitle>
-          <DialogDescription className="text-left">
-            {isBlank
-              ? "You chose a blank inside, so this one's for the post."
-              : 'Pick one — you can change your mind at checkout.'}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="mt-1 space-y-3">
-          {!isBlank && (
-            <BuyOption
-              title="Digital"
-              description="A share link that opens with the same 3D viewer — instant."
-              price={formatGBP(totalsFor('digital'))}
-              onClick={() => go('digital')}
-              testId="btn-card-view-buy-digital"
-            />
-          )}
-          <BuyOption
-            title="Printed"
-            description="Premium square card, posted in the UK."
-            price={formatGBP(totalsFor('print'))}
-            onClick={() => go('print')}
-            testId="btn-card-view-buy-print"
-          />
-          {!isBlank && (
-            <BuyOption
-              title="Printed + digital"
-              description="The real thing in the post plus the instant share link."
-              price={formatGBP(totalsFor('both'))}
-              badge="Best value"
-              onClick={() => go('both')}
-              testId="btn-card-view-buy-both"
-            />
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function BuyOption({
-  title,
-  description,
-  price,
-  badge,
-  onClick,
-  testId,
-}: {
-  title: string;
-  description: string;
-  price: string;
-  badge?: string;
-  onClick: () => void;
-  testId?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="relative w-full text-left bg-white border border-stone-200 rounded-xl p-4 hover:border-brand/60 hover:shadow-sm transition-all group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-      data-testid={testId}
-    >
-      {badge && (
-        <span className="absolute top-2 right-2 bg-brand text-white text-[10px] uppercase font-semibold tracking-wide rounded-full px-2 py-0.5">
-          {badge}
-        </span>
-      )}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-ink">{title}</p>
-          <p className="text-xs text-stone-600 mt-0.5">{description}</p>
-        </div>
-        <p className="text-sm font-semibold text-brand-dark whitespace-nowrap">
-          {price}
-        </p>
-      </div>
-    </button>
-  );
-}
+// (BuyDialog + BuyOption + pricing helpers removed 2026-05-20 — the
+//  send/buy flow now navigates to /studio/card/:id/give → /checkout
+//  instead of opening a modal. Same change as in review-step.tsx
+//  earlier. See next_delivery_destination_usp.md.)
 
 // ─────────────────────────────────────────────────────────────────────
 // TitleSROnly — sets document.title for the tab label and renders a
