@@ -130,19 +130,22 @@ export default function StudioGivePage() {
 
       {/* Memory-refresh modal — compact 3D viewer, click to open the
           card, no zoom (it's a refresher, not a re-reveal). Hints
-          retire automatically once the user opens the card. */}
+          render statically (alwaysVisible) so the modal's height
+          doesn't change as the user interacts. Title is sr-only —
+          required for Radix Dialog a11y but visually unneeded
+          (the modal opens with the card front and centre). */}
       <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-left">
+            <DialogTitle className="sr-only">
               {recipientName ? `${recipientName}'s card` : 'Your card'}
             </DialogTitle>
           </DialogHeader>
-          {/* 3D stage — fixed-ish height so the modal doesn't grow
+          {/* 3D stage — fixed height so the modal doesn't grow
               wildly on tall viewports. Negative-margin bleed lets the
               card rotate without clipping at the edges, same pattern
               as the public card viewer. */}
-          <div className="relative h-[44vh] sm:h-[48vh] w-full mt-1">
+          <div className="relative h-[44vh] sm:h-[48vh] w-full">
             <div
               className="absolute inset-x-[-6vw] top-[-2vh] bottom-[-2vh]"
               style={{ filter: 'drop-shadow(0 18px 24px rgba(0,0,0,0.10))' }}
@@ -158,8 +161,8 @@ export default function StudioGivePage() {
               />
             </div>
           </div>
-          <div className="mt-3 flex justify-center">
-            <GestureHints open={cardOpen} hideZoomHint />
+          <div className="mt-3">
+            <GestureHints open={cardOpen} hideZoomHint alwaysVisible />
           </div>
         </DialogContent>
       </Dialog>

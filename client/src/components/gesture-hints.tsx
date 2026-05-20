@@ -11,27 +11,60 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 interface GestureHintsProps {
-  /** Hide the hints once the card opens — presumed engaged. */
+  /** Hide the hints once the card opens — presumed engaged. Ignored
+   *  when `alwaysVisible` is true. */
   open: boolean;
-  /** Delay (ms) before the hints fade in on mount. Defaults 900ms. */
+  /** Delay (ms) before the hints fade in on mount. Defaults 900ms.
+   *  Ignored when `alwaysVisible` is true. */
   mountDelayMs?: number;
   /** Hide the "Scroll to zoom" hint. Use on surfaces where the
    *  Card3DViewer has `enableZoom={false}` (e.g. the marketing
    *  hero) so the hint copy isn't a lie. Default false. */
   hideZoomHint?: boolean;
+  /** Render the hints STATICALLY — no mount fade-in, no fade-out
+   *  when the card opens, always at full opacity. Used in modal
+   *  contexts where the hints belong as fixed guidance (and where a
+   *  fading row would change the modal's height mid-interaction).
+   *  Default false. */
+  alwaysVisible?: boolean;
 }
 
 export function GestureHints({
   open,
   mountDelayMs = 900,
   hideZoomHint = false,
+  alwaysVisible = false,
 }: GestureHintsProps) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    if (alwaysVisible) return; // no fade-in timing in static mode
     const t = setTimeout(() => setVisible(true), mountDelayMs);
     return () => clearTimeout(t);
-  }, [mountDelayMs]);
+  }, [mountDelayMs, alwaysVisible]);
+
+  const HintsRow = (
+    <div className="flex items-center gap-6 sm:gap-10">
+      <Hint label="Tap to open">
+        <TapGlyph />
+      </Hint>
+      <Hint label="Drag to rotate">
+        <DragGlyph />
+      </Hint>
+      {!hideZoomHint && (
+        <Hint label="Scroll to zoom" hideOnMobile>
+          <ZoomGlyph />
+        </Hint>
+      )}
+    </div>
+  );
+
+  // Static mode — render immediately, always visible, no motion.
+  // Modal callers use this so the modal's height doesn't change as
+  // hints fade in or out.
+  if (alwaysVisible) {
+    return <div className="flex justify-center">{HintsRow}</div>;
+  }
 
   return (
     <AnimatePresence>
@@ -43,19 +76,7 @@ export function GestureHints({
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className="flex justify-center"
         >
-          <div className="flex items-center gap-6 sm:gap-10">
-            <Hint label="Tap to open">
-              <TapGlyph />
-            </Hint>
-            <Hint label="Drag to rotate">
-              <DragGlyph />
-            </Hint>
-            {!hideZoomHint && (
-              <Hint label="Scroll to zoom" hideOnMobile>
-                <ZoomGlyph />
-              </Hint>
-            )}
-          </div>
+          {HintsRow}
         </motion.div>
       )}
     </AnimatePresence>
