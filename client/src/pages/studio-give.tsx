@@ -171,11 +171,13 @@ export default function StudioGivePage() {
 }
 
 // ── Standing-open-card thumbnail ─────────────────────────────────────
-// A small composition that suggests an opened greetings card seen from
-// a 3/4 angle — two halves meeting at the centre fold, each tilted
-// outward via CSS perspective. Cheap, no Three.js, reads instantly as
-// "an open card" instead of "a flat square." Click-through opens the
-// real 3D viewer in the modal.
+// A small layered composition: the front face dominant in the
+// foreground, the inside peeking behind to the upper-right with a
+// slight vertical offset and subtle shadows. Reads at thumbnail size
+// as "a card with its inside visible" — much clearer than the earlier
+// CSS-3D-perspective attempt, which foreshortened both halves so
+// hard they just looked like two narrow parallel rectangles.
+// Click-through opens the real 3D viewer in the modal.
 function CardStandingUpThumb({
   frontUrl,
   insideUrl,
@@ -183,41 +185,35 @@ function CardStandingUpThumb({
   frontUrl: string;
   insideUrl: string | null;
 }) {
+  // Container size — wide enough for the inside to peek out clearly
+  // to the right of the front, tall enough that the upward offset of
+  // the inside reads as "behind" not "above."
   return (
     <div
       className="relative shrink-0"
-      style={{ perspective: '160px', width: 72, height: 56 }}
+      style={{ width: 76, height: 60 }}
       aria-hidden="false"
     >
-      <div className="relative w-full h-full">
-        {/* Inside half — the right-hand spread, peeking from behind
-            the front. Rendered first so the front overlaps it cleanly
-            at the fold. Hidden when there's no inside image. */}
-        {insideUrl && (
-          <img
-            src={insideUrl}
-            alt=""
-            aria-hidden
-            className="absolute left-1/2 top-0 h-full w-1/2 object-cover rounded-sm border border-stone-200 shadow"
-            style={{
-              transform: 'rotateY(-32deg)',
-              transformOrigin: 'left center',
-            }}
-          />
-        )}
-        {/* Front half — the cover, tilted the other way. The two
-            together meet at the centre line and look like an open
-            card seen from slightly above. */}
+      {/* Inside — peeks behind the front, offset up-and-right. Drawn
+          first so the front naturally overlaps it. Hidden when no
+          inside image (defensive — the give page only renders for
+          written cards, which always have one). */}
+      {insideUrl && (
         <img
-          src={frontUrl}
-          alt="Your card"
-          className="absolute right-1/2 top-0 h-full w-1/2 object-cover rounded-sm border border-stone-300 shadow-md"
-          style={{
-            transform: 'rotateY(32deg)',
-            transformOrigin: 'right center',
-          }}
+          src={insideUrl}
+          alt=""
+          aria-hidden
+          className="absolute left-7 top-0 w-12 h-12 object-cover rounded-sm border border-stone-200 shadow-sm"
         />
-      </div>
+      )}
+      {/* Front — dominant, in front, offset down-and-left from centre
+          so the inside has room to peek out. A slightly heavier
+          shadow than the inside reinforces the front-most layering. */}
+      <img
+        src={frontUrl}
+        alt="Your card"
+        className="absolute left-0 top-3 w-12 h-12 object-cover rounded-sm border border-stone-300 shadow-md"
+      />
     </div>
   );
 }
