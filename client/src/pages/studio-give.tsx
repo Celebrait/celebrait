@@ -197,7 +197,7 @@ function CardStandingUpThumb({
         frontImageUrl={frontUrl}
         insideImageUrl={insideUrl}
         open={false}
-        closedAngle={-0.5}
+        closedAngle={-0.8}
         interactive={false}
         enableRotate={false}
         enableZoom={false}
