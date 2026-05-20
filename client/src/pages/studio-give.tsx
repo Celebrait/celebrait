@@ -5,16 +5,18 @@
 // Reached from the review step's reveal ("Send this card"), written-
 // inside cards only. The sender has JUST watched the 3D reveal, so
 // this screen does NOT re-show the card big — it leads with the
-// decision (how should it reach them?) and offers a small "take
-// another look" link that pops the card in a modal for anyone who
-// wants to refresh their memory. See next_delivery_destination_usp.md.
+// decision (rendered by <GivingMoment>, a two-step flow) and offers
+// a small "take another look" thumbnail (an open-card-from-above
+// composition) that pops a compact interactive 3D viewer in a modal
+// for anyone who wants to refresh their memory. See
+// next_delivery_destination_usp.md.
 //
 // Flow: review/reveal  →  /studio/card/:id/give  →  /checkout/:id
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRoute, Redirect } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Eye } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import {
   Dialog,
@@ -22,6 +24,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Card3DViewer } from '@/components/card-3d-viewer';
+import { GestureHints } from '@/components/gesture-hints';
 import { GivingMoment } from '@/components/studio/giving-moment';
 import type { CardDraftState } from '@shared/schema';
 
@@ -40,6 +44,13 @@ export default function StudioGivePage() {
   const cardId = params ? parseInt(params.id, 10) : NaN;
 
   const [viewerOpen, setViewerOpen] = useState(false);
+  // The 3D card's open/closed state inside the modal. Reset each time
+  // the modal opens so the viewer always starts closed (one tap to
+  // open is the expected interaction).
+  const [cardOpen, setCardOpen] = useState(false);
+  useEffect(() => {
+    if (!viewerOpen) setCardOpen(false);
+  }, [viewerOpen]);
 
   const { data: card, isLoading } = useQuery<DraftResponse>({
     queryKey: [`/api/studio/drafts/${cardId}`],
@@ -84,30 +95,29 @@ export default function StudioGivePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 sm:py-10">
-      {/* Compact card reference — a small front thumbnail + a "take
-          another look" trigger. The sender just saw the full 3D
-          reveal, so the card isn't re-shown big here; this is just a
-          quiet memory-refresh affordance that pops the modal below.
-          The decision (rendered by <GivingMoment>) stays above the
-          fold. */}
+      {/* Compact card reference — a small "standing open card"
+          thumbnail (front + a peek of the inside, tilted at a slight
+          angle) + a "Take another look" trigger. The sender just saw
+          the full 3D reveal, so the card isn't re-shown big here;
+          this is just a quiet memory-refresh affordance that pops the
+          3D viewer modal below. The decision (rendered by
+          <GivingMoment>) stays above the fold. */}
       <button
         type="button"
         onClick={() => setViewerOpen(true)}
         className="mb-6 flex items-center gap-3 group"
         data-testid="give-view-card"
       >
-        <img
-          src={card.frontImageUrl}
-          alt="Your card"
-          className="w-12 h-12 rounded-md object-cover border border-stone-200 shrink-0"
+        <CardStandingUpThumb
+          frontUrl={card.frontImageUrl}
+          insideUrl={card.insideImageUrl}
         />
         <span className="text-left">
           <span className="block text-sm font-medium text-ink">
             {recipientName ? `${recipientName}'s card` : 'Your card'}
           </span>
-          <span className="inline-flex items-center gap-1 text-xs text-brand group-hover:text-brand-dark">
-            <Eye className="w-3 h-3" strokeWidth={2} />
-            Take another look
+          <span className="text-xs text-brand group-hover:text-brand-dark">
+            Take another look ↗
           </span>
         </span>
       </button>
@@ -118,7 +128,9 @@ export default function StudioGivePage() {
         saveDelivery={saveDelivery}
       />
 
-      {/* Memory-refresh modal — front + inside flat, on demand. */}
+      {/* Memory-refresh modal — compact 3D viewer, click to open the
+          card, no zoom (it's a refresher, not a re-reveal). Hints
+          retire automatically once the user opens the card. */}
       <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -126,9 +138,28 @@ export default function StudioGivePage() {
               {recipientName ? `${recipientName}'s card` : 'Your card'}
             </DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-1">
-            <CardFace url={card.frontImageUrl} label="Front" />
-            <CardFace url={card.insideImageUrl} label="Inside" />
+          {/* 3D stage — fixed-ish height so the modal doesn't grow
+              wildly on tall viewports. Negative-margin bleed lets the
+              card rotate without clipping at the edges, same pattern
+              as the public card viewer. */}
+          <div className="relative h-[44vh] sm:h-[48vh] w-full mt-1">
+            <div
+              className="absolute inset-x-[-6vw] top-[-2vh] bottom-[-2vh]"
+              style={{ filter: 'drop-shadow(0 18px 24px rgba(0,0,0,0.10))' }}
+            >
+              <Card3DViewer
+                frontImageUrl={card.frontImageUrl}
+                insideImageUrl={card.insideImageUrl}
+                open={cardOpen}
+                onOpenChange={setCardOpen}
+                enableZoom={false}
+                enableRotate
+                className="w-full h-full"
+              />
+            </div>
+          </div>
+          <div className="mt-3 flex justify-center">
+            <GestureHints open={cardOpen} hideZoomHint />
           </div>
         </DialogContent>
       </Dialog>
@@ -136,25 +167,53 @@ export default function StudioGivePage() {
   );
 }
 
-// ── Flat card face — front or inside ─────────────────────────────────
-// The give page only renders for written-inside cards (blank inside is
-// redirected away above), so there's always an inside image to show.
-function CardFace({ url, label }: { url: string | null; label: string }) {
+// ── Standing-open-card thumbnail ─────────────────────────────────────
+// A small composition that suggests an opened greetings card seen from
+// a 3/4 angle — two halves meeting at the centre fold, each tilted
+// outward via CSS perspective. Cheap, no Three.js, reads instantly as
+// "an open card" instead of "a flat square." Click-through opens the
+// real 3D viewer in the modal.
+function CardStandingUpThumb({
+  frontUrl,
+  insideUrl,
+}: {
+  frontUrl: string;
+  insideUrl: string | null;
+}) {
   return (
-    <div>
-      <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1.5">
-        {label}
-      </p>
-      <div className="aspect-square rounded-xl overflow-hidden border border-stone-200 bg-stone-50 flex items-center justify-center">
-        {url ? (
+    <div
+      className="relative shrink-0"
+      style={{ perspective: '160px', width: 72, height: 56 }}
+      aria-hidden="false"
+    >
+      <div className="relative w-full h-full">
+        {/* Inside half — the right-hand spread, peeking from behind
+            the front. Rendered first so the front overlaps it cleanly
+            at the fold. Hidden when there's no inside image. */}
+        {insideUrl && (
           <img
-            src={url}
-            alt={`Card ${label.toLowerCase()}`}
-            className="w-full h-full object-cover"
+            src={insideUrl}
+            alt=""
+            aria-hidden
+            className="absolute left-1/2 top-0 h-full w-1/2 object-cover rounded-sm border border-stone-200 shadow"
+            style={{
+              transform: 'rotateY(-32deg)',
+              transformOrigin: 'left center',
+            }}
           />
-        ) : (
-          <p className="text-xs text-stone-400">—</p>
         )}
+        {/* Front half — the cover, tilted the other way. The two
+            together meet at the centre line and look like an open
+            card seen from slightly above. */}
+        <img
+          src={frontUrl}
+          alt="Your card"
+          className="absolute right-1/2 top-0 h-full w-1/2 object-cover rounded-sm border border-stone-300 shadow-md"
+          style={{
+            transform: 'rotateY(32deg)',
+            transformOrigin: 'right center',
+          }}
+        />
       </div>
     </div>
   );
