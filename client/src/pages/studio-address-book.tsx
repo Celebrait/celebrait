@@ -55,6 +55,12 @@ import type {
 
 interface EntryWithOccasions extends AddressBookEntry {
   occasions: RecipientOccasionRow[];
+  /** The most recent completed card sent to this recipient. Drives
+   *  the row thumbnail — when present, the row shows the card's front
+   *  art instead of the letter avatar. See
+   *  next_address_book_reminders_retention.md. Mirrors the server
+   *  `EntryWithOccasions` shape in routes/address-book.ts. */
+  lastCard: { frontImageUrl: string } | null;
 }
 
 export default function StudioAddressBookPage() {
@@ -273,10 +279,25 @@ function EntryRow({
           className="flex-1 min-w-0 flex items-start gap-3"
           data-testid={`address-book-edit-${entry.id}`}
         >
-          <div className="w-10 h-10 rounded-full bg-brand-muted/50 text-brand-dark flex items-center justify-center shrink-0">
-            <span className="text-sm font-semibold">
-              {entry.name.charAt(0).toUpperCase()}
-            </span>
+          {/* Avatar — last card sent if we have one (turns the row
+              into a memory anchor), otherwise the letter fallback.
+              Slightly larger than the letter version (12×12 ≈ 48px)
+              so the card art is readable; rounded-md not rounded-full
+              because it's a card, not a person photo. See
+              next_address_book_reminders_retention.md. */}
+          <div className="w-12 h-12 rounded-md overflow-hidden border border-stone-200 shrink-0 bg-brand-muted/50 text-brand-dark flex items-center justify-center">
+            {entry.lastCard?.frontImageUrl ? (
+              <img
+                src={entry.lastCard.frontImageUrl}
+                alt=""
+                aria-hidden
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-base font-semibold">
+                {entry.name.charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
           <div className="flex-1 min-w-0 pt-0.5">
             <p className="text-base font-medium text-ink truncate">

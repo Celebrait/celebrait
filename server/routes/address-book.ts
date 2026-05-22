@@ -45,20 +45,74 @@ function getUserId(req: Request): string | null {
   return typeof id === 'string' && id.length > 0 ? id : null;
 }
 
-interface EntryWithOccasions extends AddressBookEntry {
-  occasions: RecipientOccasionRow[];
+/** Tiny shape returned alongside an address-book entry to give the
+ *  list UI a visual anchor — the front art of the most recent card
+ *  this person was sent. Null when nothing's been sent yet (the row
+ *  falls back to a letter avatar). Just front for now; inside isn't
+ *  needed for a list thumbnail and keeps the payload small. */
+interface LastSentCard {
+  frontImageUrl: string;
 }
 
-/** Hydrate an entry with its occasions in one extra query. Two-query
- *  shape (entry then occasions) is cleaner than a left-join + group
- *  for V1; the cron will do its own optimised query path. */
+interface EntryWithOccasions extends AddressBookEntry {
+  occasions: RecipientOccasionRow[];
+  /** Most recent completed card sent to this recipient (matched by
+   *  case-insensitive name on cards.conversationData.recipient.name).
+   *  Drives the row thumbnail — turns the address book from a
+   *  contacts list into a memory shelf. See
+   *  next_address_book_reminders_retention.md. */
+  lastCard: LastSentCard | null;
+}
+
+/** Look up the front image of the most recent completed card a user
+ *  sent to a recipient (matched loosely by name). Returns null if
+ *  nothing's been sent. Mirrors the dashboard's image-resolution
+ *  pattern: prefer the on-disk `/images/<path>` when frontImagePath
+ *  is set (1-year cache), fall back to the legacy frontImageUrl. */
+async function findLastSentCardForName(
+  userId: string,
+  name: string,
+): Promise<LastSentCard | null> {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  const rows = await db
+    .select({
+      frontImagePath: cards.frontImagePath,
+      frontImageUrl: cards.frontImageUrl,
+    })
+    .from(cards)
+    .where(
+      and(
+        eq(cards.userId, userId),
+        eq(cards.status, 'completed'),
+        sql`lower(${cards.conversationData}->'recipient'->>'name') = lower(${trimmed})`,
+      ),
+    )
+    .orderBy(desc(cards.createdAt))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  const url = row.frontImagePath
+    ? `/images/${row.frontImagePath}`
+    : row.frontImageUrl;
+  return url ? { frontImageUrl: url } : null;
+}
+
+/** Hydrate an entry with its occasions AND its most recent sent card
+ *  (the row thumbnail anchor). Two extra queries per entry; runs them
+ *  in parallel so it's still effectively one round-trip per entry.
+ *  Pre-launch list sizes are small enough that the N+1 doesn't matter;
+ *  if the address book grows large we batch this with a left-join. */
 async function hydrateEntry(entry: AddressBookEntry): Promise<EntryWithOccasions> {
-  const occs = await db
-    .select()
-    .from(recipientOccasions)
-    .where(eq(recipientOccasions.addressBookEntryId, entry.id))
-    .orderBy(recipientOccasions.date);
-  return { ...entry, occasions: occs };
+  const [occs, lastCard] = await Promise.all([
+    db
+      .select()
+      .from(recipientOccasions)
+      .where(eq(recipientOccasions.addressBookEntryId, entry.id))
+      .orderBy(recipientOccasions.date),
+    findLastSentCardForName(entry.userId, entry.name),
+  ]);
+  return { ...entry, occasions: occs, lastCard };
 }
 
 /** Find an entry by case-insensitive name match within a user's
