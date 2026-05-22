@@ -441,7 +441,17 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
     regenerate,
     selectAttempt,
     failure,
-    currentStep: state.step ?? 0,
+    // Clamp on read — defends against legacy drafts saved before a
+    // CARD_MAKER_STEPS change (the V1 style-step removal on 2026-05-17
+    // shifted indices, leaving existing test drafts with state.step
+    // values that no longer have a render branch — empty-panel bug).
+    // setStep already clamps writes; this matches on the read side so
+    // a single bad value can't render an empty maker. Subsequent
+    // navigation persists a clamped step, self-healing the draft.
+    currentStep: Math.max(
+      0,
+      Math.min(totalSteps - 1, state.step ?? 0),
+    ),
     totalSteps,
   };
 }
