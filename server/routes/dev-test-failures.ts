@@ -150,7 +150,13 @@ export function registerDevTestFailureRoutes(app: Express): void {
         // (isDraftReadyToGenerate in studio-drafts.ts).
         const draft: CardDraftState = {
           version: 1,
-          step: 6, // Review step — in case gen never starts (e.g. cap hit)
+          // Review step. Was 6 pre-V1-scope-cut when there were 7 steps;
+          // after the Style step was removed (2026-05-17, 37d7f4be) the
+          // Review step's index is 5. The stale `6` here made spawned
+          // cards land at currentStep=6 in the card-maker — no render
+          // branch matched → empty panel + all-green stepper (the
+          // failure-injection no-render bug, fixed 2026-05-22).
+          step: 5,
           recipient: {
             name: 'Sarah',
             occasion: 'birthday',

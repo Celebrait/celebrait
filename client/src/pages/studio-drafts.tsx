@@ -15,8 +15,11 @@
 //     within the same step. The user's eye lands on the drafts
 //     they're closest to finishing — the implicit nudge to complete.
 //   • Visual nudge for the "almost there" cohort: a subtle
-//     "Ready to generate" badge for drafts on Review (step 6), and
-//     a "One step away" hint for drafts on Inside text (step 5).
+//     "Ready to generate" badge for drafts on Review (step 5), and
+//     a "One step away" hint for drafts on Inside text (step 4).
+//     (Step numbering shifted after the V1 style-step removal; the
+//     code derives both from VISIBLE_STEP_COUNT so it's already
+//     correct — these comments just reflect the new numbering.)
 //   • Earlier drafts get the same row, no badge — quietly
 //     de-emphasised by being lower in the list, not by chrome.
 
@@ -131,10 +134,10 @@ function DraftListRow({ card }: { card: CardGridItem }) {
   const editHref = `/studio/card/${card.id}/edit`;
   const goEdit = () => setLocation(editHref);
 
-  // Step interpretation:
-  //   step 0..5 = Recipient → Inside text (in-progress)
-  //   step 6    = Review & Purchase (= ready to generate)
-  // Filled-dot count caps at VISIBLE_STEP_COUNT (6).
+  // Step interpretation (post V1 style-step removal):
+  //   step 0..4 = Recipient → Inside text (in-progress)
+  //   step 5    = Review & Purchase (= ready to generate)
+  // Filled-dot count caps at VISIBLE_STEP_COUNT (5).
   const isReadyToGenerate = step >= VISIBLE_STEP_COUNT;
   const isOneStepAway = step === VISIBLE_STEP_COUNT - 1;
   const filled = Math.min(step, VISIBLE_STEP_COUNT);
