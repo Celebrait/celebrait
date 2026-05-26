@@ -47,6 +47,7 @@ import heroInsideSrc from '@/assets/fathers-day-inside-new.png';
 import { useAuth } from '@/hooks/use-auth';
 import { bucketCards, deriveCardTitle } from '@/lib/studio-card-buckets';
 import { getOccasionIcon } from '@/lib/occasion-icon';
+import { getOccasionLabel } from '@/components/studio/scene-presets';
 import { CARD_MAKER_STEPS } from '@shared/schema';
 import type { CardGridItem } from '@shared/schema';
 
@@ -190,6 +191,13 @@ function EmptyView({ name }: { name: string }) {
         </div>
       </section>
 
+      {/* Upcoming widget — only renders if the user has at least one
+          recipient with a date in the next 60 days. For most brand-new
+          empty-state users it'll be invisible (no recipients yet);
+          appears the moment they add someone via the address book or
+          finish a card. */}
+      <UpcomingWidget />
+
       <HowItWorks />
       {/* Invitations teaser intentionally OMITTED on the empty state
           (audit 2026-04-25): a brand-new user's first visit shouldn't
@@ -274,6 +282,8 @@ function DraftPendingView({ name, draft }: { name: string; draft: CardGridItem }
         </Link>
       </div>
 
+      <UpcomingWidget />
+
       <DemoVideoBlock />
       <HowItWorks compact />
       <InvitationsTeaser />
@@ -320,6 +330,13 @@ function HasActivityView({
       {heroCards.length > 0 && (
         <HeroCarousel cards={heroCards} bucket={heroBucket} />
       )}
+
+      {/* Upcoming — sits high in the returning-user view because this
+          IS the engine the founder is investing in for retention. The
+          audit's discoverability fix: don't bury it below the activity
+          columns. Renders nothing when no upcoming items in 60 days,
+          so users with recipients-but-nothing-soon don't see clutter. */}
+      <UpcomingWidget />
 
       {/* Three-column activity summary. Accent hierarchy reflects
           priority: Ready gets the loudest CTA-green treatment (revenue
@@ -868,5 +885,121 @@ function DashboardHeader({
       </h1>
       {subtitle && <p className="text-sm text-stone-600 mt-1">{subtitle}</p>}
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Upcoming widget — first move from the retention-engine audit
+// (next_address_book_reminders_retention.md). Surfaces the next few
+// dates the user shouldn't forget, right on Studio Home, where it
+// fixes the discoverability hole the audit named: before this, the
+// People/Reminders engine was invisible from the page users actually
+// land on after login. Without this surface the audit's prediction
+// stood: "users will look at retention metrics in month three and
+// conclude reminders don't work — when really the surfaces haven't
+// yet asked the user to care."
+//
+// Conditional: renders nothing when there are no upcoming dates in
+// the next 60 days. Zero-clutter for never-added-anyone users.
+//
+// Each row taps through to /studio/people/reminders rather than
+// jumping into the maker. The widget's V1 job is DISCOVERY of the
+// feature, not a direct call to action — that's a later iteration
+// (e.g. "make a card for Mum now" inline button).
+// ─────────────────────────────────────────────────────────────────────
+
+interface UpcomingReminder {
+  occasionId: number;
+  entryId: number;
+  recipientName: string;
+  relationship: string | null;
+  occasion: string;
+  occurrenceDate: string;
+  daysUntil: number;
+  suppressed: boolean;
+  suppressedUntil: string | null;
+}
+
+const UPCOMING_WINDOW_DAYS = 60;
+const UPCOMING_MAX_ITEMS = 3;
+
+function UpcomingWidget() {
+  const { data, isLoading } = useQuery<UpcomingReminder[]>({
+    queryKey: ['/api/user/reminders'],
+  });
+
+  if (isLoading) return null;
+
+  const items = (data ?? [])
+    .filter(
+      (r) => !r.suppressed && r.daysUntil >= 0 && r.daysUntil <= UPCOMING_WINDOW_DAYS,
+    )
+    .slice(0, UPCOMING_MAX_ITEMS);
+
+  if (items.length === 0) return null;
+
+  return (
+    <section
+      className="bg-white rounded-2xl border border-stone-200 p-5 sm:p-6 mb-8 sm:mb-10"
+      aria-labelledby="upcoming-heading"
+      data-testid="studio-upcoming"
+    >
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <h2
+          id="upcoming-heading"
+          className="text-sm font-semibold text-ink uppercase tracking-wide"
+        >
+          Coming up
+        </h2>
+        <Link
+          href="/studio/people/reminders"
+          className="text-xs text-brand hover:text-brand-dark font-medium"
+          data-testid="studio-upcoming-see-all"
+        >
+          See all →
+        </Link>
+      </div>
+      <ul className="space-y-1">
+        {items.map((r) => (
+          <UpcomingRow key={r.occasionId} reminder={r} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function UpcomingRow({ reminder }: { reminder: UpcomingReminder }) {
+  const Icon = getOccasionIcon(reminder.occasion);
+  const label = getOccasionLabel(reminder.occasion);
+  const isOther = reminder.occasion === 'other' || label === 'Other';
+  // "Mum's birthday" / "Sarah's anniversary". For 'other' we omit the
+  // (ugly) "'s other" suffix — just the name + the day text carries
+  // enough.
+  const title = isOther
+    ? reminder.recipientName
+    : `${reminder.recipientName}'s ${label.toLowerCase()}`;
+  const dayText =
+    reminder.daysUntil === 0
+      ? 'Today'
+      : reminder.daysUntil === 1
+        ? 'Tomorrow'
+        : `In ${reminder.daysUntil} days`;
+
+  return (
+    <li>
+      <Link
+        href="/studio/people/reminders"
+        className="flex items-center gap-3 px-2 py-2 -mx-2 rounded-lg hover:bg-stone-50 transition-colors"
+        data-testid={`studio-upcoming-${reminder.occasionId}`}
+      >
+        <span className="w-9 h-9 rounded-full bg-brand-muted/50 text-brand-dark flex items-center justify-center shrink-0">
+          <Icon className="w-4 h-4" strokeWidth={1.75} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-ink truncate">{title}</p>
+          <p className="text-xs text-stone-500">{dayText}</p>
+        </div>
+      </Link>
+    </li>
   );
 }
