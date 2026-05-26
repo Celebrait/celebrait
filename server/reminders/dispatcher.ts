@@ -23,7 +23,7 @@
 // Acceptable for SA (10am) + UK (9am). Real timezone awareness is
 // V1.5 (would need users.timezone).
 
-import { and, eq, ilike, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, sql } from 'drizzle-orm';
 import { db } from '../db';
 import {
   addressBookEntries,
@@ -191,6 +191,13 @@ export async function runReminderDispatch(
       }
 
       const startCardUrl = buildStartCardUrl(entry.name, occasion.occasion);
+      // Retention-paradox fix: surface the most recent card sent to this
+      // recipient inside the email itself. Without this, the reminder
+      // trains the user to remember the *date* (they then go wherever's
+      // cheapest); with it, the email anchors the act to Celebrait
+      // specifically — *"this is the card you sent last time"*. See
+      // next_address_book_reminders_retention.md.
+      const lastCardImageUrl = await findLastSentCardImageUrl(entry.userId, entry.name);
       const emailSent = await sendReminderEmail({
         senderEmail: sender.email,
         senderName: sender.firstName,
@@ -199,6 +206,7 @@ export async function runReminderDispatch(
         daysUntil,
         tier: dueTier,
         startCardUrl,
+        lastCardImageUrl,
       });
 
       // Log regardless of send success — prevents retry loops.
@@ -366,6 +374,40 @@ async function isPrintOrderPlaced(
     )
     .limit(1);
   return rows.length > 0;
+}
+
+/** Look up the front image of the most recent completed card a user
+ *  sent to a recipient (matched case-insensitively by name). Returns
+ *  null if nothing's been sent. Mirrors the helper of the same name in
+ *  routes/address-book.ts — duplicated rather than shared because the
+ *  query is 12 lines and shared/ doesn't have a server-only home for
+ *  query helpers yet. If a third caller appears, extract to server/lib/. */
+async function findLastSentCardImageUrl(
+  userId: string,
+  recipientName: string,
+): Promise<string | null> {
+  const trimmed = recipientName.trim();
+  if (!trimmed) return null;
+  const rows = await db
+    .select({
+      frontImagePath: cards.frontImagePath,
+      frontImageUrl: cards.frontImageUrl,
+    })
+    .from(cards)
+    .where(
+      and(
+        eq(cards.userId, userId),
+        eq(cards.status, 'completed'),
+        sql`lower(${cards.conversationData}->'recipient'->>'name') = lower(${trimmed})`,
+      ),
+    )
+    .orderBy(desc(cards.createdAt))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  return row.frontImagePath
+    ? `/images/${row.frontImagePath}`
+    : row.frontImageUrl;
 }
 
 /** Build the deep-link URL for the reminder email's CTA. Pre-fills

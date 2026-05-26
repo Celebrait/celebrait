@@ -884,6 +884,14 @@ export async function sendReminderEmail(params: {
   /** Deep link to start the card. Should pre-fill recipient + occasion
    *  via query string. Generated upstream by the cron. */
   startCardUrl: string;
+  /** Front image of the most recent card this user sent to this
+   *  recipient, if any. Rendered above the body as *"last time you
+   *  sent this"* — the retention-paradox fix from
+   *  next_address_book_reminders_retention.md. Without this, the email
+   *  trains users to remember the date (they go wherever's cheapest);
+   *  with it, the email anchors the act to Celebrait specifically.
+   *  May be an absolute URL or a `/images/...` path (we absolutise). */
+  lastCardImageUrl?: string | null;
 }): Promise<boolean> {
   const {
     senderEmail,
@@ -893,10 +901,35 @@ export async function sendReminderEmail(params: {
     daysUntil,
     tier,
     startCardUrl,
+    lastCardImageUrl,
   } = params;
 
   const greeting = senderName ? `Hi ${escape(senderName)},` : 'Hi there,';
   const occasionLabel = humaniseOccasion(occasion);
+
+  // Absolutise the card image URL — email clients can't resolve
+  // relative paths. Falls through unchanged if already absolute.
+  const absoluteCardImage = lastCardImageUrl
+    ? lastCardImageUrl.startsWith('http')
+      ? lastCardImageUrl
+      : `${PUBLIC_ORIGIN}${lastCardImageUrl}`
+    : null;
+
+  // The memory block — rendered before the body when we have art to
+  // show. Soft caption framing ("last time you sent this") sets up the
+  // body's *"want to do something for this one?"* without being explicit
+  // about the strategic intent. Inline styles only — email clients
+  // strip <style> tags.
+  const memoryBlock = absoluteCardImage
+    ? `
+      <p style="margin: 0 0 12px; color: #475569; font-size: 14px;">
+        Last time you sent ${escape(recipientName)} this&nbsp;&mdash;
+      </p>
+      <div style="margin: 0 0 24px; text-align: center;">
+        <img src="${escape(absoluteCardImage)}" alt="The card you sent ${escape(recipientName)}" width="320" style="display: inline-block; max-width: 320px; width: 100%; height: auto; border-radius: 14px; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08); border: 1px solid rgba(15, 23, 42, 0.04);">
+      </div>
+    `
+    : '';
 
   // Tier-specific copy. Subject + pre-header + body each adapt.
   let subject: string;
@@ -904,38 +937,56 @@ export async function sendReminderEmail(params: {
   let body: string;
   let ctaLabel: string;
 
+  // When we have last-card art, the body opens with the memory block
+  // and uses *"make this year's"* framing — anchors the act to the
+  // previous Celebrait card the user made. Without art, copy stays
+  // generic. Memory block is rendered first so the image is the first
+  // thing visible after the greeting.
+  const hasMemory = !!absoluteCardImage;
+
   if (tier === 't_21') {
     subject = `${recipientName}'s ${occasionLabel} is in 3 weeks`;
-    preheader = `Plenty of time to make them something lovely.`;
+    preheader = hasMemory
+      ? `Time to make this year's.`
+      : `Plenty of time to make them something lovely.`;
     body = `
       <p style="margin: 0 0 16px;">${greeting}</p>
+      ${memoryBlock}
       <p style="margin: 0 0 16px;">
-        ${escape(recipientName)}'s ${escape(occasionLabel)} is in <strong>3 weeks</strong> — plenty of time to make them something lovely.
+        ${escape(recipientName)}'s ${escape(occasionLabel)} is in <strong>3 weeks</strong>.${hasMemory ? ` Plenty of time to make this year's.` : ` Plenty of time to make them something lovely.`}
       </p>
       <p style="margin: 0 0 8px; color: #475569;">
         Start now and there's room to tweak the scene, the message, the lot.
       </p>
     `;
-    ctaLabel = `Start ${recipientName}'s card`;
+    ctaLabel = hasMemory
+      ? `Make this year's card`
+      : `Start ${recipientName}'s card`;
   } else if (tier === 't_7') {
     subject = `One week to ${recipientName}'s ${occasionLabel}`;
-    preheader = `Time to start their card.`;
+    preheader = hasMemory
+      ? `Time to make this year's card.`
+      : `Time to start their card.`;
     body = `
       <p style="margin: 0 0 16px;">${greeting}</p>
+      ${memoryBlock}
       <p style="margin: 0 0 16px;">
-        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>a week away</strong>. If you start now, there's still time to print and post in time for the day.
+        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>a week away</strong>.${hasMemory ? ` Time to make this year's.` : ''} If you start now, there's still time to print and post in time for the day.
       </p>
       <p style="margin: 0 0 8px; color: #475569;">
         Or send them a digital one — that lands instantly.
       </p>
     `;
-    ctaLabel = `Start ${recipientName}'s card`;
+    ctaLabel = hasMemory
+      ? `Make this year's card`
+      : `Start ${recipientName}'s card`;
   } else {
     // t_3 — digital pivot
     subject = `${recipientName}'s ${occasionLabel} is in ${daysUntil} days`;
     preheader = `Cutting it fine for print — but a digital card lands instantly.`;
     body = `
       <p style="margin: 0 0 16px;">${greeting}</p>
+      ${memoryBlock}
       <p style="margin: 0 0 16px;">
         ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}</strong>. Print won't make it now — but a digital card lands instantly, with their face on it, and they can open it on the day.
       </p>
@@ -943,7 +994,9 @@ export async function sendReminderEmail(params: {
         About 5 minutes to make. Sent the moment it's ready, or scheduled for the day.
       </p>
     `;
-    ctaLabel = `Make a digital card for ${recipientName}`;
+    ctaLabel = hasMemory
+      ? `Make this year's digital card`
+      : `Make a digital card for ${recipientName}`;
   }
 
   const html = chassis({
