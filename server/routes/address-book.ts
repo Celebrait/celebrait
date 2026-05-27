@@ -52,6 +52,11 @@ function getUserId(req: Request): string | null {
  *  needed for a list thumbnail and keeps the payload small. */
 interface LastSentCard {
   frontImageUrl: string;
+  /** ISO timestamp of when the card was completed. Renders as a soft
+   *  "Last sent 14 Mar 2026" line on the address-book row — the memory
+   *  shelf framing from next_address_book_reminders_retention.md.
+   *  Client formats locally so we don't bake a locale on the server. */
+  sentAt: string;
 }
 
 interface EntryWithOccasions extends AddressBookEntry {
@@ -79,6 +84,7 @@ async function findLastSentCardForName(
     .select({
       frontImagePath: cards.frontImagePath,
       frontImageUrl: cards.frontImageUrl,
+      createdAt: cards.createdAt,
     })
     .from(cards)
     .where(
@@ -95,7 +101,16 @@ async function findLastSentCardForName(
   const url = row.frontImagePath
     ? `/images/${row.frontImagePath}`
     : row.frontImageUrl;
-  return url ? { frontImageUrl: url } : null;
+  if (!url) return null;
+  // createdAt is non-null in the schema (defaultNow().notNull()) but
+  // Drizzle's inferred type allows null because the column is
+  // technically nullable at the DB layer until a row is inserted.
+  // Fall back to "now" defensively — never null in practice for a
+  // completed card row.
+  return {
+    frontImageUrl: url,
+    sentAt: (row.createdAt ?? new Date()).toISOString(),
+  };
 }
 
 /** Hydrate an entry with its occasions AND its most recent sent card

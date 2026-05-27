@@ -60,7 +60,7 @@ interface EntryWithOccasions extends AddressBookEntry {
    *  art instead of the letter avatar. See
    *  next_address_book_reminders_retention.md. Mirrors the server
    *  `EntryWithOccasions` shape in routes/address-book.ts. */
-  lastCard: { frontImageUrl: string } | null;
+  lastCard: { frontImageUrl: string; sentAt: string } | null;
 }
 
 export default function StudioAddressBookPage() {
@@ -255,6 +255,32 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 // Edit + Remove actions.
 // ─────────────────────────────────────────────────────────────────────
 
+/** Format the lastCard.sentAt timestamp for the "Last sent" line.
+ *  - Same calendar day → "today"
+ *  - Yesterday → "yesterday"
+ *  - This calendar year → "14 Mar"
+ *  - Older → "14 Mar 2025"
+ *  Keeps the line short — it's the quietest signal on the row, not
+ *  a headline. en-GB locale to match the rest of the product. */
+function formatLastSentDate(iso: string): string {
+  const sent = new Date(iso);
+  if (Number.isNaN(sent.getTime())) return '';
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfSent = new Date(sent.getFullYear(), sent.getMonth(), sent.getDate());
+  const dayDiff = Math.round(
+    (startOfToday.getTime() - startOfSent.getTime()) / (24 * 60 * 60 * 1000),
+  );
+  if (dayDiff === 0) return 'today';
+  if (dayDiff === 1) return 'yesterday';
+  const sameYear = sent.getFullYear() === now.getFullYear();
+  return sent.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    ...(sameYear ? {} : { year: 'numeric' }),
+  });
+}
+
 function EntryRow({
   entry,
   onDelete,
@@ -314,6 +340,16 @@ function EntryRow({
                   <OccasionChip key={o.id} occasion={o} />
                 ))}
               </div>
+            )}
+            {/* Last sent — the quietest signal on the row, historical
+                rather than actionable, so it sits below the chips.
+                Memory-shelf framing: this is a person you've sent
+                something to before. See
+                next_address_book_reminders_retention.md. */}
+            {entry.lastCard && (
+              <p className="text-xs text-stone-400 mt-2.5">
+                Last sent {formatLastSentDate(entry.lastCard.sentAt)}
+              </p>
             )}
           </div>
         </Link>
