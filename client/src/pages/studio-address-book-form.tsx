@@ -24,6 +24,7 @@ import {
   Calendar,
   Loader2,
   Plus,
+  ShieldCheck,
   Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { OCCASION_PRESETS } from '@/components/studio/scene-presets';
@@ -629,6 +638,12 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
         </FormSection>
       </div>
 
+      {/* Privacy footer — GDPR table-stakes. Sits below the form so it
+          frames the act of saving without slowing it down. The Dialog
+          carries the full "what we store" explainer for users who want
+          the detail. See next_address_book_reminders_retention.md. */}
+      <PrivacyFooter />
+
       {/* Actions */}
       <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:justify-end">
         <Button
@@ -677,6 +692,94 @@ function FormSection({
         )}
       </div>
       {children}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// PrivacyFooter — small reassurance line under the form + dialog with
+// the full "what we store" detail.
+//
+// Why this matters: the form collects DOBs, addresses, phone numbers,
+// free-form notes — all personal data about people who haven't
+// consented (their friend signed them up). UK GDPR doesn't make that
+// illegal (legitimate interest covers a private address book), but it
+// does require we tell the *sender* clearly what we do with it, and
+// give them a clean way to remove anyone. The per-row Remove action
+// already exists; this footer is the visible disclosure half. See
+// next_address_book_reminders_retention.md.
+// ─────────────────────────────────────────────────────────────────────
+
+function PrivacyFooter() {
+  return (
+    <div className="mt-6 flex items-start gap-2.5 text-xs text-stone-500 leading-relaxed px-1">
+      <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-stone-400" aria-hidden />
+      <p>
+        Stored privately — only you can see it. Remove anyone any time from
+        the address book menu.{' '}
+        <Dialog>
+          <DialogTrigger asChild>
+            <button
+              type="button"
+              className="underline underline-offset-2 text-stone-600 hover:text-ink focus:outline-none focus:text-ink"
+              data-testid="btn-ab-privacy-detail"
+            >
+              What we store
+            </button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>What we store, in plain English</DialogTitle>
+              <DialogDescription>
+                Your address book lives in your account so we can remind
+                you about the people who matter and pre-fill cards for
+                them.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 text-sm text-stone-600 leading-relaxed">
+              <div>
+                <p className="font-medium text-ink mb-1">What we keep</p>
+                <p>
+                  Just what you type — names, relationships, occasion
+                  dates, contact details, and your private notes. Nothing
+                  is shared with anyone else.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-ink mb-1">What we do with it</p>
+                <p>
+                  We use it to send <em>you</em> reminders before each
+                  occasion, and to pre-fill the recipient step when you
+                  start a new card. That's it — no marketing to your
+                  contacts, no third-party sharing, no resale.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-ink mb-1">Removing someone</p>
+                <p>
+                  Hit the ⋯ menu next to anyone in the address book and
+                  choose Remove. We delete the entry, their occasions,
+                  and any reminder history attached to them.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-ink mb-1">Your rights</p>
+                <p>
+                  Under UK GDPR you can ask us to export or delete
+                  everything we hold about you — email{' '}
+                  <a
+                    href="mailto:privacy@celebrait.co.uk"
+                    className="underline underline-offset-2 text-stone-700 hover:text-ink"
+                  >
+                    privacy@celebrait.co.uk
+                  </a>{' '}
+                  and we'll handle it within 30 days.
+                </p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </p>
     </div>
   );
 }
