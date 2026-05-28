@@ -256,6 +256,10 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user/address-book'] });
+      // Reminders feed is derived from occasions — must invalidate so the
+      // Studio Home "Coming up" widget picks up a freshly-added birthday
+      // on the next render. Without this, the widget shows stale cache.
+      queryClient.invalidateQueries({ queryKey: ['/api/user/reminders'] });
       toast({ title: `${name.trim()} added` });
       setLocation('/studio/people/address-book');
     },
@@ -347,6 +351,10 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
       queryClient.invalidateQueries({
         queryKey: [`/api/user/address-book/${idFromUrl}`],
       });
+      // Reminders feed is derived from occasions — must invalidate so
+      // the Studio Home "Coming up" widget reflects edits to dates /
+      // added or removed occasions on the next render.
+      queryClient.invalidateQueries({ queryKey: ['/api/user/reminders'] });
       // Name-weave the saved-toast like the create-toast does — the
       // form has the name in scope, may as well land warmer.
       const savedName = name.trim();
