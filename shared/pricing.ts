@@ -111,6 +111,34 @@ export const OVERNIGHT_DELIVERY = {
   ukOnly: true,
 } as const;
 
+// ─────────────────────────────────────────────────────────────────────
+// Checkout extras — shipping cost + bundle discount.
+//
+// Lives here (not in checkout.tsx / studio-checkout.ts) so the client
+// and server can't drift apart. The audit
+// (next_checkout_shipping_robust.md, 2026-05-27) caught a 50p server
+// underprice for "both" orders because the bundle discount lived only
+// in the client. One source of truth, both consumers import.
+//
+// Numbers stay UK-GBP only for V1 — SA is parked.
+// ─────────────────────────────────────────────────────────────────────
+
+/** Flat UK standard shipping for a single printed card. In minor units
+ *  (pence). Real shipping-tier UX (Standard / Express / Tracked) is
+ *  V1.5 — see the checkout-robust note's build order. */
+export const UK_SHIPPING_STANDARD_GBP = 150;
+
+/** Discount applied to a "both" order (digital + printed) — the print
+ *  tier already includes the digital share, so the bundle saves the
+ *  user from paying twice for what they get once. In minor units. */
+export const BUNDLE_DISCOUNT_GBP = 50;
+
+/** Derive the GBP price of a tier in minor units. Tiny helper so
+ *  consumers don't have to remember the price-shape (`.GBP` indexing). */
+export function tierPriceGBP(id: TierId): number {
+  return getTier(id).price.GBP;
+}
+
 /** Format a TierPrice for display. Returns "Free" when 0. */
 export function formatPrice(price: TierPrice, currency: CurrencyCode): string {
   if (price[currency] === 0) return 'Free';

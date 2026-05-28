@@ -4,12 +4,15 @@
 // fill in only the fields that product needs. The interactive front/
 // inside preview leads the page — it's what they're paying for.
 //
-// Pricing (pence): print 599, digital 99, UK shipping 150. Both-tier
-// carries a 50p bundle discount as psychology — shown as a line item
-// so there's no hidden maths.
+// Prices come from `shared/pricing.ts` — the same numbers the public
+// /pricing page renders, so checkout can't drift below what we
+// advertised. UK shipping + bundle discount are in there too. See
+// next_checkout_shipping_robust.md (audit 2026-05-27) — earlier this
+// file hardcoded a lower price than /pricing showed (bait-and-switch
+// risk), and bundle discount was client-only (server underpriced 50p).
 //
 // Builds against the stubbed PaymentProvider today; swapping to
-// Peach / Stitch / Stripe-via-UK is a provider swap, not a rebuild.
+// Stripe is a provider swap, not a rebuild (see next_payment_gateway.md).
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRoute, useLocation } from 'wouter';
@@ -23,6 +26,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import CheckoutLayout from '@/layouts/checkout-layout';
+import {
+  tierPriceGBP,
+  UK_SHIPPING_STANDARD_GBP,
+  BUNDLE_DISCOUNT_GBP,
+} from '@shared/pricing';
 
 interface CardSummary {
   id: number;
@@ -61,10 +69,12 @@ interface CheckoutResponse {
 
 type ProductChoice = 'digital' | 'print' | 'both';
 
-const PRINT_PRICE = 599;
-const DIGITAL_PRICE = 99;
-const UK_SHIPPING = 150;
-const BUNDLE_DISCOUNT = 50;
+// Prices in pence — sourced from shared/pricing.ts so the public
+// /pricing page and checkout can't disagree.
+const PRINT_PRICE = tierPriceGBP('printed');
+const DIGITAL_PRICE = tierPriceGBP('digital');
+const UK_SHIPPING = UK_SHIPPING_STANDARD_GBP;
+const BUNDLE_DISCOUNT = BUNDLE_DISCOUNT_GBP;
 
 function formatGBP(minor: number): string {
   return `£${(minor / 100).toFixed(2)}`;

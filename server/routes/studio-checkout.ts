@@ -27,11 +27,21 @@ import {
   sendRecipientCardArrivedEmail,
   sendSenderOrderConfirmedEmail,
 } from '../email-service';
+import {
+  tierPriceGBP,
+  UK_SHIPPING_STANDARD_GBP,
+  BUNDLE_DISCOUNT_GBP,
+} from '@shared/pricing';
 
-// Pricing (pence). Tweak here until we have something real to A/B.
-const PRINT_PRICE = 599;
-const DIGITAL_PRICE = 99;
-const UK_SHIPPING = 150;
+// Pricing in pence — sourced from shared/pricing.ts. Client checkout
+// imports the same constants, so client + server totals can't drift.
+// Earlier this file hardcoded 599/99/150 and didn't apply the bundle
+// discount at all — `totalAmount` was 50p under the client's display
+// for "both" orders. See next_checkout_shipping_robust.md.
+const PRINT_PRICE = tierPriceGBP('printed');
+const DIGITAL_PRICE = tierPriceGBP('digital');
+const UK_SHIPPING = UK_SHIPPING_STANDARD_GBP;
+const BUNDLE_DISCOUNT = BUNDLE_DISCOUNT_GBP;
 
 function getUserId(req: Request): string | null {
   const id = (req as any).session?.otpUserId;
@@ -126,7 +136,15 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         const printAmount = body.includesPrint ? PRINT_PRICE : 0;
         const digitalAmount = body.includesDigital ? DIGITAL_PRICE : 0;
         const shippingAmount = body.includesPrint ? UK_SHIPPING : 0;
-        const totalAmount = printAmount + digitalAmount + shippingAmount;
+        // Bundle discount applies when the buyer takes BOTH print and
+        // digital — the print tier already includes the digital share
+        // they get on its own, so this saves them paying twice. The
+        // client shows this as a line item; the server must mirror it
+        // or `totalAmount` lags the displayed total by 50p.
+        const bundleDiscount =
+          body.includesPrint && body.includesDigital ? BUNDLE_DISCOUNT : 0;
+        const totalAmount =
+          printAmount + digitalAmount + shippingAmount - bundleDiscount;
 
         // Mint a share token up-front for digital orders. Payment
         // hasn't confirmed yet, but the token is meaningless without
