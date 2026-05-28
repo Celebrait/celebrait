@@ -414,7 +414,7 @@ async function findLastSentCardImageUrl(
  *  recipient name + occasion via query string so the new-card flow
  *  knows who this is for. */
 function buildStartCardUrl(recipientName: string, occasion: string): string {
-  const origin = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.za';
+  const origin = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk';
   const params = new URLSearchParams({
     recipient: recipientName,
     occasion,

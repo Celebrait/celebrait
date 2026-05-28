@@ -91,9 +91,12 @@ console.log('Brevo API Key configured:', brevoApiKey ? 'Present' : 'Missing');
 const apiInstance = new brevo.TransactionalEmailsApi();
 apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, brevoApiKey);
 
-const FROM_EMAIL = 'greetings@celebrait.co.za';
-const FROM_NAME = 'Celebrait';
-const PUBLIC_ORIGIN = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.za';
+// Domain defaults are UK — Celebrait launches UK-only (V1, founder
+// direction 2026-05-27). Both can be overridden via env for staging
+// or future SA support. See next_checkout_shipping_robust.md.
+const FROM_EMAIL = process.env.MAIL_FROM_EMAIL ?? 'greetings@celebrait.co.uk';
+const FROM_NAME = process.env.MAIL_FROM_NAME ?? 'Celebrait';
+const PUBLIC_ORIGIN = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk';
 
 interface EmailParams {
   to: string;

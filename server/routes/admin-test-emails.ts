@@ -216,7 +216,7 @@ async function dispatchTemplate(
     case 'recipient-card-arrived': {
       const shareUrl =
         body.shareUrl ??
-        `${process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.za'}/card/${cardId ?? 0}/view?t=TEST_TOKEN`;
+        `${process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk'}/card/${cardId ?? 0}/view?t=TEST_TOKEN`;
       return sendRecipientCardArrivedEmail({
         recipientEmail: targetTo,
         recipientName: vars.recipientName,
@@ -234,8 +234,8 @@ async function dispatchTemplate(
         occasion: vars.occasion,
         includesPrint: body.includesPrint ?? false,
         includesDigital: body.includesDigital ?? true,
-        totalAmount: body.totalAmount ?? 4900, // R49.00
-        currency: body.currency ?? 'ZAR',
+        totalAmount: body.totalAmount ?? 199, // £1.99 (matches Digital tier in shared/pricing.ts)
+        currency: body.currency ?? 'GBP',
         orderId: body.orderId ?? `test_${cardId ?? 'X'}`,
         scheduledSendAt: body.scheduledSendAt
           ? new Date(body.scheduledSendAt)
