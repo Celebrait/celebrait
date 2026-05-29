@@ -8,7 +8,17 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
-app.use(express.json({ limit: "50mb" }));
+app.use(
+  express.json({
+    limit: "50mb",
+    // Stash the raw request body so the Stripe webhook handler can verify
+    // the signature against the exact bytes Stripe signed. Re-serialised
+    // JSON won't match. Cheap — just keeps a reference to the buffer.
+    verify: (req, _res, buf) => {
+      (req as any).rawBody = buf;
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: false, limit: "50mb" }));
 
 // Increase server timeout for complex AI processing

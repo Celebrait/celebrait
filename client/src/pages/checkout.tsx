@@ -225,7 +225,15 @@ export default function CheckoutPage() {
       const body: CheckoutResponse = await res.json();
 
       if (body.payment.mode === 'redirect' && body.payment.redirectUrl) {
-        setLocation(body.payment.redirectUrl);
+        const url = body.payment.redirectUrl;
+        // Stripe returns an absolute URL (https://checkout.stripe.com/…)
+        // which needs a real navigation; the stub returns a relative
+        // in-app path which wouter handles. Branch on protocol.
+        if (/^https?:\/\//i.test(url)) {
+          window.location.href = url;
+        } else {
+          setLocation(url);
+        }
       } else {
         toast({
           title: 'Payment provider not configured',

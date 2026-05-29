@@ -1,8 +1,14 @@
-// Payment provider abstraction. Gateway pick (Peach / Stitch / Yoco /
-// Stripe-via-UK-entity) is deferred until the business structure call
-// is made. Checkout UI wires to `createPayment()` regardless, and the
-// stub provider lets us test the end-to-end flow with a "mark as paid"
-// dev button.
+// Payment provider abstraction. Gateway: **Stripe** (test mode wired
+// 2026-05-27, see next_payment_gateway.md). Checkout UI wires to
+// `createPayment()` regardless of provider; the stub provider keeps the
+// "mark as paid" dev button available by flipping
+// STUDIO_PAYMENT_PROVIDER=stub.
+//
+// Note: stripe-provider.ts imports only TYPES from this file (erased at
+// runtime), so the value-import of stripePaymentProvider below is not a
+// runtime circular dependency.
+
+import { stripePaymentProvider } from "./stripe-provider";
 
 export interface CreatePaymentRequest {
   studioOrderId: string;
@@ -66,6 +72,10 @@ export function getPaymentProvider(): PaymentProvider {
   switch (name) {
     case "stub":
       return stubPaymentProvider;
+    case "stripe":
+      // The stripe provider constructs its SDK client lazily, so the
+      // import is inert until createPayment/getStatus is actually called.
+      return stripePaymentProvider;
     default:
       throw new Error(`Unknown STUDIO_PAYMENT_PROVIDER: ${name}`);
   }

@@ -12,7 +12,7 @@
 
 import type { Express, Request, Response } from 'express';
 import { randomBytes } from 'crypto';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
 import {
@@ -234,10 +234,42 @@ export function registerStudioCheckoutRoutes(app: Express): void {
           .where(eq(studioOrders.id, orderId))
           .limit(1);
 
-        const order = rows[0];
+        let order = rows[0];
         if (!order) return res.status(404).json({ message: 'Order not found' });
         if (order.userId !== userId) {
           return res.status(403).json({ message: 'Not your order' });
+        }
+
+        // Reconcile against Stripe if still unpaid. The success page
+        // polls this route after the gateway redirect; if the webhook
+        // hasn't landed yet (or isn't being forwarded in local dev),
+        // ask Stripe directly. markOrderPaidAndDispatch is idempotent,
+        // so this never double-fires against the webhook.
+        if (
+          order.paymentStatus !== 'paid' &&
+          order.paymentProvider === 'stripe' &&
+          order.paymentReference
+        ) {
+          try {
+            const provider = getPaymentProvider();
+            if (provider.name === 'stripe') {
+              const st = await provider.getStatus(order.paymentReference);
+              if (st.status === 'paid') {
+                await markOrderPaidAndDispatch(order.id);
+                const refreshed = await db
+                  .select()
+                  .from(studioOrders)
+                  .where(eq(studioOrders.id, order.id))
+                  .limit(1);
+                order = refreshed[0] ?? order;
+              }
+            }
+          } catch (err: any) {
+            console.error(
+              '[STUDIO-CHECKOUT] stripe reconcile failed:',
+              err?.message ?? err,
+            );
+          }
         }
 
         // Attach the share URL for digital orders that have confirmed.
@@ -370,33 +402,110 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         if (order.paymentProvider !== 'stub') {
           return res.status(404).json({ message: 'Dev-confirm only available for stub provider' });
         }
-        if (order.paymentStatus === 'paid') {
-          return res.json({ ok: true, alreadyPaid: true });
-        }
-
-        await db
-          .update(studioOrders)
-          .set({
-            paymentStatus: 'paid',
-            paidAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where(eq(studioOrders.id, orderId));
-
-        // Fire comms now that the order is paid. Async — don't block
-        // the response on email send; any failure is logged inside
-        // the helper so the dev-confirm flow still completes.
-        fireOrderPaidEmails(order).catch((err) => {
-          console.error('[STUDIO-CHECKOUT] paid-email dispatch failed:', err);
-        });
-
-        res.json({ ok: true });
+        const result = await markOrderPaidAndDispatch(orderId);
+        res.json(result);
       } catch (err: any) {
         console.error('[STUDIO-CHECKOUT] dev-confirm error:', err);
         res.status(500).json({ message: 'Could not confirm order' });
       }
     },
   );
+
+  // ── POST /api/webhooks/stripe ────────────────────────────────────
+  // Stripe's server-to-server callback. NOT auth-gated (Stripe has no
+  // session); security comes from the signature check inside
+  // parseWebhook. This is the SOURCE OF TRUTH for "paid" — a user can
+  // close the tab before the success redirect, but the webhook lands.
+  //
+  // Local dev: Stripe can't reach localhost, so run
+  //   stripe listen --forward-to localhost:5050/api/webhooks/stripe
+  // and paste the printed `whsec_...` into STRIPE_WEBHOOK_SECRET. The
+  // success page also reconciles via getStatus() (see GET order route),
+  // so the loop still completes even without the CLI running.
+  app.post('/api/webhooks/stripe', async (req: Request, res: Response) => {
+    const provider = getPaymentProvider();
+    if (provider.name !== 'stripe') {
+      return res.status(404).json({ message: 'Stripe webhook not active' });
+    }
+
+    let status;
+    try {
+      status = await provider.parseWebhook(
+        req.headers as Record<string, string>,
+        (req as any).rawBody ?? req.body,
+      );
+    } catch (err: any) {
+      // Bad signature or unverifiable payload — 400 so Stripe retries.
+      console.error('[STRIPE-WEBHOOK] verification failed:', err?.message ?? err);
+      return res.status(400).json({ message: 'Webhook verification failed' });
+    }
+
+    try {
+      if (status.status === 'paid') {
+        const rows = await db
+          .select()
+          .from(studioOrders)
+          .where(eq(studioOrders.paymentReference, status.paymentReference))
+          .limit(1);
+        const order = rows[0];
+        if (order) {
+          await markOrderPaidAndDispatch(order.id);
+        } else {
+          console.warn(
+            '[STRIPE-WEBHOOK] no order found for payment ref',
+            status.paymentReference,
+          );
+        }
+      }
+      // refunded/failed handling is V1.5 — refund matching needs the
+      // payment_intent→order link, which we don't store yet. Logged in
+      // next_checkout_shipping_robust.md as a gap.
+      res.json({ received: true });
+    } catch (err: any) {
+      console.error('[STRIPE-WEBHOOK] handler error:', err);
+      res.status(500).json({ message: 'Webhook handler error' });
+    }
+  });
+}
+
+// ── Shared: mark an order paid + dispatch comms ──────────────────────
+// Single funnel for every "this order is now paid" trigger — the dev
+// stub button, the Stripe webhook, and the success-page reconciliation
+// all call this. The conditional UPDATE (only flip when NOT already
+// paid) + returning() makes it idempotent AND race-safe: whoever wins
+// the flip fires the emails exactly once; everyone else sees
+// alreadyPaid and no-ops. Without that guard a webhook + a reconcile
+// landing together would double-send the receipt.
+async function markOrderPaidAndDispatch(
+  orderId: string,
+): Promise<{ ok: true; alreadyPaid?: boolean }> {
+  const updated = await db
+    .update(studioOrders)
+    .set({
+      paymentStatus: 'paid',
+      paidAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(studioOrders.id, orderId),
+        ne(studioOrders.paymentStatus, 'paid'),
+      ),
+    )
+    .returning();
+
+  if (updated.length === 0) {
+    // Either already paid (lost the race) or no such order — no email.
+    return { ok: true, alreadyPaid: true };
+  }
+
+  // Fire comms async — don't block the caller (webhook/redirect) on the
+  // email round-trip. Failures are logged inside the helper.
+  fireOrderPaidEmails(updated[0]).catch((err) => {
+    console.error('[STUDIO-CHECKOUT] paid-email dispatch failed:', err);
+  });
+
+  return { ok: true };
 }
 
 // ── Post-paid comms dispatch ─────────────────────────────────────────
