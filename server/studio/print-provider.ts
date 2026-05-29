@@ -1,11 +1,14 @@
-// Print provider abstraction. The supplier choice (Gelato leading
-// candidate, Prodigi as fallback) is deliberately deferred — we build
-// checkout + order flow against this interface and slot in the real
-// provider once physical samples land.
+// Print provider abstraction. **Supplier locked: Prodigi** (decision
+// 2026-04-29, confirmed 2026-05-27). API key in Kevin's possession.
+// Sandbox-first via `api.sandbox.prodigi.com/v4.0` — test orders are
+// free, so the integration can be wired and exercised end-to-end
+// before any real money or real prints. Real implementation lives in
+// `prodigi-provider.ts` (TBD); pick it via `STUDIO_PRINT_PROVIDER=prodigi`.
 //
-// Implementations live alongside this file (e.g. `gelato-provider.ts`).
-// Pick the active one via the `STUDIO_PRINT_PROVIDER` env var, resolved
-// through `getPrintProvider()`.
+// See next_prodigi_and_print_modes.md for SKU map (5.5×5.5 squares,
+// Direct vs Self-Send modes maps onto Giving Moment destinations) and
+// the open paper-stock decision (Mohawk vs Gloss). Samples ordered
+// 2026-05-27 — paper choice lands when they arrive.
 
 import type { ShippingAddress } from "@shared/schema";
 
