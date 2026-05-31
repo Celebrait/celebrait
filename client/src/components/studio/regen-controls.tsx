@@ -332,34 +332,27 @@ export function RegenEditMode({
       // The server returns ProviderError fields (kind, suggestions,
       // modelExplanation, etc.) on the Error object via throwIfResNotOk.
       //
-      // Safety failures get the persistent inline <GenerationErrorPanel>
-      // (same surface the initial-gen path uses) — the user can act
-      // (edit scene / change photo / try again) and we want them to
-      // stay on the failure for as long as it takes.
-      //
-      // Transient kinds (rate / server / unknown) keep the toast for
-      // now — they're "wait and retry" not "do something different",
-      // and don't justify a persistent surface. Restyling those as
-      // non-destructive is a follow-on.
+      // ALL failure kinds now get the persistent inline
+      // <GenerationErrorPanel> (the panel handles every kind incl. null
+      // via configFor). Previously only 'safety' got the panel and
+      // transient kinds (rate/server/unknown) toasted destructively —
+      // but an auto-dismissing red toast meant a transient provider 503
+      // flashed and vanished, leaving a blank that read as "nothing
+      // rendered" (exactly what bit a real test). A "wait and retry"
+      // error should stay on screen with a Try-again button, calmly.
+      // See next_regen_ux_audit.md (P1).
       const kind = (err?.kind ?? null) as GenerationErrorKind | null;
 
-      if (kind === 'safety') {
-        setRegenFailure({
-          kind,
-          modelExplanation: err?.modelExplanation ?? null,
-          suggestions: err?.suggestions ?? null,
-          provider: err?.provider ?? null,
-          code: err?.code ?? null,
-          side: submitSide,
-        });
-      } else {
-        const friendly = friendlyRegenError(err);
-        toast({
-          title: friendly.title,
-          description: friendly.description,
-          variant: 'destructive',
-        });
-      }
+      setRegenFailure({
+        // null/non-ProviderError (e.g. a raw network failure) → 'unknown'
+        // so the panel always has a sensible presentation + retry.
+        kind: kind ?? 'unknown',
+        modelExplanation: err?.modelExplanation ?? null,
+        suggestions: err?.suggestions ?? null,
+        provider: err?.provider ?? null,
+        code: err?.code ?? null,
+        side: submitSide,
+      });
     }
   };
 
