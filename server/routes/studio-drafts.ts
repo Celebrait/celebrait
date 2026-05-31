@@ -201,6 +201,7 @@ export function registerStudioDraftRoutes(app: Express): void {
           side: cardAttempts.side,
           attemptNumber: cardAttempts.attemptNumber,
           status: cardAttempts.status,
+          errorCode: cardAttempts.errorCode,
           imageUrl: cardAttempts.imageUrl,
           imagePath: cardAttempts.imagePath,
           createdAt: cardAttempts.createdAt,
@@ -208,6 +209,25 @@ export function registerStudioDraftRoutes(app: Express): void {
         .from(cardAttempts)
         .where(eq(cardAttempts.cardId, id))
         .orderBy(cardAttempts.side, cardAttempts.attemptNumber);
+
+      // Per-side regen failure signal. Background regens are
+      // fire-and-forget, so the client's POST resolves before the gen
+      // runs — this projection is the ONLY way it learns a regen failed.
+      // For each side, if the MOST RECENT attempt failed (nothing
+      // succeeded after it), surface it so the client shows the error
+      // panel instead of silently dropping back to the old card. See
+      // next_regen_interaction_polish.md (G1).
+      const latestBySide = new Map<string, (typeof attemptRows)[number]>();
+      for (const a of attemptRows) {
+        const cur = latestBySide.get(a.side);
+        if (!cur || a.attemptNumber > cur.attemptNumber) latestBySide.set(a.side, a);
+      }
+      const regenFailures = Array.from(latestBySide.values())
+        .filter((a) => a.status === 'failed')
+        .map((a) => ({
+          side: a.side as CardSide,
+          kind: a.errorCode ?? 'server',
+        }));
 
       const attempts: (CardAttemptListItem & { status: string })[] = attemptRows
         .filter((a) => a.status !== 'failed')
@@ -249,6 +269,7 @@ export function registerStudioDraftRoutes(app: Express): void {
         state,
         attempts,
         failure,
+        regenFailures,
       });
     } catch (err: any) {
       console.error('[STUDIO] draft fetch error:', err);

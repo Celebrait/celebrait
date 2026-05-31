@@ -1458,7 +1458,13 @@ export async function runRegenAttempt(
       .update(cardAttempts)
       .set({
         status: 'failed',
-        errorCode: err?.code ?? 'server',
+        // Store the GenerationErrorKind ('safety' | 'server' | 'rate' |
+        // 'unknown') so the client can map it straight to the error
+        // panel's kind. Fire-and-forget regens surface failures via the
+        // /drafts projection (regenFailures), not the POST response —
+        // this column is the only failure signal the client gets. See
+        // next_regen_interaction_polish.md (G1).
+        errorCode: err?.kind ?? err?.code ?? 'server',
       })
       .where(eq(cardAttempts.id, attemptId))
       .catch(() => {});

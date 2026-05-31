@@ -54,6 +54,14 @@ interface DraftResponse {
   state: CardDraftState;
   attempts?: CardAttemptDTO[];
   failure?: DraftFailureDTO | null;
+  /** Per-side regen failure (most-recent attempt failed). The only way
+   *  the client learns a fire-and-forget background regen failed. */
+  regenFailures?: { side: CardSide; kind: string }[];
+}
+
+export interface RegenError {
+  side: CardSide;
+  kind: string;
 }
 
 interface UseCardMakerOptions {
@@ -108,6 +116,10 @@ interface UseCardMakerResult {
   /** True while a regen request is in flight from this client (the
    *  POST to /regenerate). Distinct from server-side attempt status. */
   isRegenerating: CardSide | null;
+  /** Set when a background regen failed (poll-detected). null = no
+   *  failure. The regen surface reads this to show the error panel —
+   *  fire-and-forget regens can't throw to the caller. */
+  regenError: RegenError | null;
   /** Trigger a regen of one side. Resolves once the server completes
    *  (regen runs synchronously inside the route — see studio-drafts.ts).
    *  On success the new attempt becomes selected automatically. */
@@ -144,6 +156,12 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
   const [attempts, setAttempts] = useState<CardAttemptDTO[]>([]);
   const [isRegenerating, setIsRegenerating] = useState<CardSide | null>(null);
   const [failure, setFailure] = useState<DraftFailureDTO | null>(null);
+  // Background-regen failure (poll-detected). null = no failure. Cleared
+  // when a fresh regen starts. See next_regen_interaction_polish.md (G1).
+  const [regenError, setRegenError] = useState<RegenError | null>(null);
+  // True while regenerate()'s own poll loop owns the polling. Suppresses
+  // the shouldPoll interval so the two don't double-poll + race (G2).
+  const [isManualRegenActive, setIsManualRegenActive] = useState(false);
 
   // Keep a live mirror of state so the debounced save can read the
   // latest value when its timer fires (avoids stale-closure bugs).
@@ -208,7 +226,11 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
   //   • a single attempt is still in 'generating' state (regen of one
   //     side — card.status stays 'completed' for the other side).
   const hasInflightAttempt = attempts.some((a) => a.status === 'generating');
-  const shouldPoll = status === 'generating' || hasInflightAttempt;
+  // G2: don't run this interval while regenerate()'s own loop is polling
+  // — that was the double-poll. This interval still covers initial-gen
+  // and an orphaned in-flight attempt picked up on a fresh page load.
+  const shouldPoll =
+    (status === 'generating' || hasInflightAttempt) && !isManualRegenActive;
   useEffect(() => {
     if (!shouldPoll) return;
     let cancelled = false;
@@ -221,6 +243,7 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
         setInsideImageUrl(data.insideImageUrl);
         setAttempts(data.attempts ?? []);
         setFailure(data.failure ?? null);
+        setRegenError(data.regenFailures?.[0] ?? null);
         // Also refresh state so any server-side post-processing that
         // modified conversationData (future-proofing) is reflected.
         setState(data.state);
@@ -345,6 +368,8 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
   const regenerate = useCallback(
     async (side: CardSide, tweak?: string): Promise<void> => {
       setIsRegenerating(side);
+      setIsManualRegenActive(true); // G2: this loop owns the poll
+      setRegenError(null); // clear any prior failure for the fresh attempt
       const startedAt = Date.now();
       try {
         await apiRequest('POST', `/api/studio/drafts/${cardId}/regenerate`, {
@@ -368,14 +393,24 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
           }
           const stillGenerating =
             data?.attempts?.some((a) => a.status === 'generating') ?? false;
-          if (!stillGenerating) break;
+          if (!stillGenerating) {
+            // G1: did THIS side's regen fail? The failed attempt is
+            // filtered out of `attempts`, so the spinner just clears —
+            // surface the failure explicitly so the panel can show it
+            // instead of silently dropping back to the old card.
+            const failed =
+              data?.regenFailures?.find((f) => f.side === side) ?? null;
+            setRegenError(failed);
+            break;
+          }
           if (Date.now() - startedAt > REGEN_POLL_TIMEOUT_MS) {
             // Defensive cap — if we get here something has gone
-            // seriously sideways server-side. Stop spinning forever;
-            // the user can refresh / try again.
+            // seriously sideways server-side. Stop spinning forever and
+            // surface it (G9) rather than a silent spinner-stop.
             console.warn(
               `[use-card-maker] regen poll timed out after ${REGEN_POLL_TIMEOUT_MS}ms — bailing.`,
             );
+            setRegenError({ side, kind: 'server' });
             break;
           }
           await new Promise((r) => setTimeout(r, REGEN_POLL_INTERVAL_MS));
@@ -383,6 +418,7 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
         queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
       } finally {
         setIsRegenerating(null);
+        setIsManualRegenActive(false);
       }
     },
     [cardId, loadDraft],
@@ -438,6 +474,7 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
     isStartingGeneration,
     attempts,
     isRegenerating,
+    regenError,
     regenerate,
     selectAttempt,
     failure,

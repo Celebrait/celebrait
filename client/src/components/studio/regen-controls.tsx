@@ -82,6 +82,11 @@ interface RegenEditModeProps {
   attempts: CardAttemptDTO[];
   /** Which side is regenerating right now, or null. */
   isRegenerating: CardSide | null;
+  /** Poll-detected background-regen failure. Drives the inline error
+   *  panel — fire-and-forget regens can't throw to handleSubmit's catch,
+   *  so this is how a failure surfaces. See
+   *  next_regen_interaction_polish.md (G1). */
+  regenError?: import('@/hooks/use-card-maker').RegenError | null;
   /** True when the card has an inside (write or blank). */
   hasInside: boolean;
   onRegenerate: (side: CardSide, tweak?: string) => Promise<void>;
@@ -121,6 +126,7 @@ export function RegenEditMode({
   insideUrl,
   attempts,
   isRegenerating,
+  regenError,
   hasInside,
   onRegenerate,
   onSelectAttempt,
@@ -165,6 +171,27 @@ export function RegenEditMode({
   useEffect(() => {
     if (isRegenerating !== null) setRegenFailure(null);
   }, [isRegenerating]);
+
+  // G1: map the poll-detected background-regen failure (prop) into the
+  // local failure panel. Fire-and-forget regens can't throw to
+  // handleSubmit's catch, so this is how a server/safety/503 failure
+  // actually reaches the UI. The errorCode column stores the kind; coerce
+  // to a known GenerationErrorKind, else 'unknown'.
+  useEffect(() => {
+    if (!regenError) return;
+    const VALID = ['safety', 'rate', 'server', 'auth', 'unknown'];
+    const kind = (
+      VALID.includes(regenError.kind) ? regenError.kind : 'unknown'
+    ) as GenerationErrorKind;
+    setRegenFailure({
+      kind,
+      modelExplanation: null,
+      suggestions: null,
+      provider: null,
+      code: null,
+      side: regenError.side,
+    });
+  }, [regenError]);
 
   // ── Picked intent (router state) ───────────────────────────────────
   // The regen flow is now a wizard: first the user picks WHAT to change
@@ -233,14 +260,16 @@ export function RegenEditMode({
   useEffect(() => {
     const was = wasRegeneratingRef.current;
     if (was && !isRegenerating) {
-      // A regen just landed — force the decision surface. Reset the
-      // intent to 'scene' (the only intent since 'photo' was removed)
-      // so the next iteration lands straight on the scene surface.
-      setMode('deciding');
+      // A regen just ended. If it FAILED (G1), stay in 'tweaking' so the
+      // error panel + the textarea/retry show — don't flip to 'deciding'
+      // and pretend a new version is ready (that was the silent-failure
+      // glitch). On success, show the decision surface as before. Reset
+      // the intent to 'scene' (the only intent) either way.
+      setMode(regenError ? 'tweaking' : 'deciding');
       setPickedIntent('scene');
     }
     wasRegeneratingRef.current = isRegenerating;
-  }, [isRegenerating]);
+  }, [isRegenerating, regenError]);
 
   // When the user clicks "Keep tweaking" from the deciding surface,
   // bring them back to the picker (not the previous surface). They

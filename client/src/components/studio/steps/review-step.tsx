@@ -96,6 +96,10 @@ interface ReviewStepProps {
    *  optional so future read-only viewers don't have to mock these). */
   attempts?: CardAttemptDTO[];
   isRegenerating?: CardSide | null;
+  /** Poll-detected background-regen failure. Drives the regen surface's
+   *  inline error panel — fire-and-forget regens can't throw to the
+   *  client. See next_regen_interaction_polish.md (G1). */
+  regenError?: import('@/hooks/use-card-maker').RegenError | null;
   onRegenerate?: (side: CardSide, tweak?: string) => Promise<void>;
   onSelectAttempt?: (attemptId: number) => Promise<void>;
   /** Failure metadata when status === 'failed'. Drives the
@@ -120,6 +124,7 @@ export function ReviewStep({
   generatedInsideUrl,
   attempts,
   isRegenerating,
+  regenError,
   onRegenerate,
   onSelectAttempt,
   failure,
@@ -151,6 +156,7 @@ export function ReviewStep({
         }}
         attempts={attempts ?? []}
         isRegenerating={isRegenerating ?? null}
+        regenError={regenError ?? null}
         onRegenerate={onRegenerate}
         onSelectAttempt={onSelectAttempt}
         onJumpToStepFromRegenFailure={onJumpToStepFromRegenFailure}
@@ -521,6 +527,7 @@ function RevealView({
   onEditInside,
   attempts,
   isRegenerating,
+  regenError,
   onRegenerate,
   onSelectAttempt,
   onJumpToStepFromRegenFailure,
@@ -536,6 +543,7 @@ function RevealView({
   onEditInside: () => void;
   attempts: CardAttemptDTO[];
   isRegenerating: CardSide | null;
+  regenError?: import('@/hooks/use-card-maker').RegenError | null;
   onRegenerate?: (side: CardSide, tweak?: string) => Promise<void>;
   onSelectAttempt?: (attemptId: number) => Promise<void>;
   /** Threaded down to RegenEditMode. When a regen fails on safety,
@@ -684,6 +692,7 @@ function RevealView({
         insideUrl={insideUrl}
         attempts={attempts}
         isRegenerating={isRegenerating}
+        regenError={regenError ?? null}
         hasInside={insideMode === 'write' || insideMode === 'blank'}
         onRegenerate={onRegenerate}
         onSelectAttempt={onSelectAttempt}
