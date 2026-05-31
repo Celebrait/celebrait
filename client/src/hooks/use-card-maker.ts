@@ -384,15 +384,25 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
         // 'failed' (both terminal states).
         while (true) {
           const data = await loadDraft();
-          if (data) {
-            setFrontImageUrl(data.frontImageUrl);
-            setInsideImageUrl(data.insideImageUrl);
-            setAttempts(data.attempts ?? []);
-            setFailure(data.failure ?? null);
-            setStatus(data.status);
+          if (!data) {
+            // Transient poll failure (network blip / busy server). Do NOT
+            // treat "couldn't fetch" as "done" — that ended the regen
+            // early and made the spinner clear + the "ready" panel flash
+            // while the gen was still running. Keep polling.
+            if (Date.now() - startedAt > REGEN_POLL_TIMEOUT_MS) {
+              setRegenError({ side, kind: 'server' });
+              break;
+            }
+            await new Promise((r) => setTimeout(r, REGEN_POLL_INTERVAL_MS));
+            continue;
           }
+          setFrontImageUrl(data.frontImageUrl);
+          setInsideImageUrl(data.insideImageUrl);
+          setAttempts(data.attempts ?? []);
+          setFailure(data.failure ?? null);
+          setStatus(data.status);
           const stillGenerating =
-            data?.attempts?.some((a) => a.status === 'generating') ?? false;
+            data.attempts?.some((a) => a.status === 'generating') ?? false;
           if (!stillGenerating) {
             // G1: did THIS side's regen fail? The failed attempt is
             // filtered out of `attempts`, so the spinner just clears —

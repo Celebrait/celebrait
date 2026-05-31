@@ -290,6 +290,27 @@ export function RegenEditMode({
   const completedInside = insideAttempts.filter((a) => a.status === 'completed');
   const totalAttempts = completedFront.length + completedInside.length;
 
+  // Is the SERVER still generating an attempt? The projection includes
+  // the in-flight 'generating' row, so this is authoritative regardless
+  // of the client's isRegenerating flag. Used to gate the "ready"
+  // decision panel: never declare a version ready while one is still
+  // cooking, even if isRegenerating momentarily clears (the "decision
+  // panel flashes mid-regen" bug). See next_regen_interaction_polish.md.
+  const someAttemptGenerating = attempts.some(
+    (a) => a.status === 'generating',
+  );
+
+  // Which side's spinner to show. Prefer the client's isRegenerating
+  // flag; fall back to the server's attempt status so the spinner holds
+  // even if isRegenerating momentarily wobbles mid-regen.
+  const regeneratingSide: CardSide | null =
+    isRegenerating ??
+    (frontAttempts.some((a) => a.status === 'generating')
+      ? 'front'
+      : insideAttempts.some((a) => a.status === 'generating')
+        ? 'inside'
+        : null);
+
   const showSoftCap =
     completedFront.length >= SOFT_CAP_PER_SIDE ||
     completedInside.length >= SOFT_CAP_PER_SIDE;
@@ -651,7 +672,10 @@ export function RegenEditMode({
           insideUrl={displayedInsideUrl}
           target={target}
           hasInside={hasInside}
-          regeneratingSide={isRegenerating}
+          // Robust spinner: show it while the client is regenerating OR
+          // the server still has a generating attempt for that side, so
+          // it never flickers off mid-regen if isRegenerating wobbles.
+          regeneratingSide={regeneratingSide}
         />
       </div>
 
@@ -797,7 +821,7 @@ export function RegenEditMode({
           flash on entry to the regen page (Kevin 2026-04-27). Mode
           transitions AFTER mount still cross-fade — that's the point. */}
       <AnimatePresence mode="wait" initial={false}>
-        {mode === 'deciding' && !isRegenerating ? (
+        {mode === 'deciding' && !isRegenerating && !someAttemptGenerating ? (
           <motion.div
             key="decision-panel"
             initial={{ opacity: 0, y: 6 }}
