@@ -53,6 +53,7 @@
 //     to whatever's active after the rail click.
 
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Check, Loader2, PenLine, Shield } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
@@ -450,6 +451,14 @@ export function RegenEditMode({
   // Time hint depends on target.
   const timeHint = target === 'both' ? BOTH_WAIT_LABEL : SINGLE_WAIT_LABEL;
 
+  // Empty-tweak guard. An empty scene submit used to fall through to the
+  // server's RE-ROLL path (a full from-scratch remake) — the exact
+  // behaviour the photo/both removal was meant to kill. Block it: a tweak
+  // must say something so it always lands on refine(). See
+  // next_regen_ux_audit.md.
+  const activeTweak = target === 'inside' ? tweakInside : tweakFront;
+  const sceneTweakEmpty = activeTweak.trim().length === 0;
+
   // ── Picker entry point ────────────────────────────────────────────
   // When the user first enters regen (or hits "Keep tweaking" from
   // the post-regen banner), render the focused intent picker INSTEAD
@@ -525,11 +534,12 @@ export function RegenEditMode({
         </button>
       </div>
 
-      {/* Safety line — answers the unspoken "will I lose my original?"
-          worry every regen UX has. Shown always, low-key.
-          (Photo + Style controls used to live above this banner — moved
-          down into the input group so they're visually linked to the
-          textareas instead of floating as header chrome.) */}
+      {/* Reassurance line — answers the two unspoken worries: "what will
+          this actually do?" (refine, not redraw) and "will I lose my
+          original / rack up cost?" (no — saved + free). The refine-not-
+          remake message is the highest-leverage clarity fix: the whole
+          point of the flow is that a tweak only changes what you ask for.
+          See next_regen_ux_audit.md. */}
       <div className="mb-5 flex items-start gap-2 rounded-lg bg-stone-50 border border-stone-200 px-3 py-2">
         <Shield
           className="w-3.5 h-3.5 text-brand shrink-0 mt-0.5"
@@ -537,8 +547,9 @@ export function RegenEditMode({
           aria-hidden
         />
         <p className="text-[12px] text-stone-600 leading-snug">
-          Each tweak makes a new version. Your originals are kept — flip
-          back any time using the row below the card.
+          Tweaks only change what you ask for — your card's face, text and
+          likeness stay put. Every version is saved and free, so flip back
+          any time using the row below the card.
         </p>
       </div>
 
@@ -918,6 +929,23 @@ export function RegenEditMode({
               </p>
             )}
 
+            {/* Start over — restored 2026-05-31. When the intent picker
+                was skipped (only the scene intent remains), the picker's
+                "Start over" link became unreachable; this is the escape
+                for a user who wants a different card altogether, not a
+                tweak of this one. Quiet, in normal flow (above the mobile
+                sticky submit). See next_regen_ux_audit.md. */}
+            <p className="text-[11px] text-ink-soft text-center mb-4">
+              Want a different card altogether?{' '}
+              <Link
+                href="/studio/new-card"
+                className="text-brand hover:text-brand-dark font-medium"
+                data-testid="regen-start-over"
+              >
+                Start over →
+              </Link>
+            </p>
+
             {/* Submit — sticky-bottom on mobile so it stays above the
                 keyboard. Single label, time hint always visible. */}
             <div className="fixed sm:static bottom-0 inset-x-0 px-4 sm:px-0 py-3 sm:py-0 bg-white/95 sm:bg-transparent backdrop-blur sm:backdrop-blur-0 border-t sm:border-0 border-stone-200">
@@ -928,18 +956,18 @@ export function RegenEditMode({
                 >
                   {isRegenerating
                     ? `Crafting your new ${isRegenerating}…`
-                    : timeHint}
+                    : sceneTweakEmpty
+                      ? 'Type a change to begin'
+                      : timeHint}
                 </p>
                 {(() => {
-                  // Per-intent disabled state — re-roll was Kevin'd
-                  // out of the picker, so the CTA shouldn't fire when
-                  // the user has actually changed nothing for the
-                  // current intent. (Scene intent stays unconditional
-                  // — even an empty tweak is meaningful as "re-run
-                  // the existing prompt with the user's selected
-                  // target," matching the maker's behaviour.)
+                  // Disabled when: regenerating, OR an empty scene tweak
+                  // (would re-roll a full remake — blocked, see
+                  // sceneTweakEmpty above). Photo branch is dead (intent
+                  // removed) but kept until the dead-code cleanup pass.
                   const submitDisabled =
                     !!isRegenerating ||
+                    (pickedIntent === 'scene' && sceneTweakEmpty) ||
                     (pickedIntent === 'photo' && !photoChanged);
                   // Style branch REMOVED 2026-05-17 — see Premium note.
                   return (
