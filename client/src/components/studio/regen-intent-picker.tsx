@@ -24,7 +24,7 @@
 // button + a "← Change something else" affordance back to here.
 
 import { Link } from 'wouter';
-import { Pencil, Image as ImageIcon, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Pencil, ChevronRight, ArrowLeft } from 'lucide-react';
 
 // 'style' was a third intent (Try a different style) — REMOVED 2026-05-17
 // when the style picker was parked for Celebrait Premium. See
@@ -54,12 +54,15 @@ const OPTIONS: IntentOption[] = [
     label: 'Edit the scene',
     description: 'Tweak the front or inside — refine the moment, the vibe, the details.',
   },
-  {
-    intent: 'photo',
-    icon: ImageIcon,
-    label: 'Change the photo',
-    description: 'Swap the reference image — fix likeness or try a different angle.',
-  },
+  // 'Change the photo' option REMOVED 2026-05-31 (Kevin's call): photo
+  // re-gen felt clunky AND was the no-tweak path that triggered a full
+  // from-scratch RE-ROLL of both sides (vs the structure-preserving
+  // refine() a text tweak gets). Likeness from the initial gen is good
+  // enough that swapping the reference isn't worth the regression. Users
+  // who need a different photo can Start over. With only the 'scene'
+  // intent left, the picker auto-advances (RegenEditMode defaults the
+  // intent to 'scene'), so this list having one entry is intentional.
+  //
   // 'Try a different style' option REMOVED 2026-05-17 — style picker
   // parked for Premium. See next_celebrait_premium.md.
 ];

@@ -69,7 +69,6 @@ import {
   RegenIntentPicker,
   type RegenIntent,
 } from '@/components/studio/regen-intent-picker';
-import { ChevronLeft } from 'lucide-react';
 import type { CardAttemptDTO } from '@/hooks/use-card-maker';
 import type { CardSide, CardDraftState } from '@shared/schema';
 
@@ -179,7 +178,12 @@ export function RegenEditMode({
   //   - "Keep tweaking" from the post-regen deciding banner
   //   - Successful regen completion (so the next iteration starts with
   //     a fresh intent pick, not the old surface still hanging around)
-  const [pickedIntent, setPickedIntent] = useState<RegenIntent | null>(null);
+  // Defaults to 'scene' (was null → show picker) because 'photo' was
+  // removed 2026-05-31, leaving 'scene' as the only intent. With one
+  // intent there's nothing to pick, so we skip straight to the scene
+  // surface. The picker render below (kept for the failure surface) only
+  // fires if pickedIntent is null, which no longer happens in normal use.
+  const [pickedIntent, setPickedIntent] = useState<RegenIntent | null>('scene');
 
   // Pending photo state — held locally on the contextual surface
   // until the user clicks "Make new version." Lets them preview a
@@ -228,11 +232,11 @@ export function RegenEditMode({
   useEffect(() => {
     const was = wasRegeneratingRef.current;
     if (was && !isRegenerating) {
-      // A regen just landed — force the decision surface AND clear
-      // the picked intent so the next iteration starts fresh from
-      // the picker (not the surface they just used).
+      // A regen just landed — force the decision surface. Reset the
+      // intent to 'scene' (the only intent since 'photo' was removed)
+      // so the next iteration lands straight on the scene surface.
       setMode('deciding');
-      setPickedIntent(null);
+      setPickedIntent('scene');
     }
     wasRegeneratingRef.current = isRegenerating;
   }, [isRegenerating]);
@@ -242,7 +246,7 @@ export function RegenEditMode({
   // might want to change something different this time.
   const enterTweakingMode = () => {
     setMode('tweaking');
-    setPickedIntent(null);
+    setPickedIntent('scene');
   };
 
   const frontAttempts = attempts
@@ -664,14 +668,11 @@ export function RegenEditMode({
             >
               Inside
             </SegmentTab>
-            <SegmentTab
-              active={target === 'both'}
-              onClick={() => setTarget('both')}
-              disabled={!!isRegenerating}
-              testId="pill-target-both"
-            >
-              Both
-            </SegmentTab>
+            {/* 'Both' target REMOVED 2026-05-31: tweaking the scene should
+                only touch the side you're editing. Regenerating the inside
+                when you edit the front (the scene) was wasted cost + the
+                source of "it remade the whole card". Front/Inside only now;
+                each is a single-side text tweak → always the refine path. */}
           </div>
         </div>
       )}
@@ -818,24 +819,9 @@ export function RegenEditMode({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
           >
-            {/* "← Change something else" affordance — back to the
-                intent picker. Lets the user switch what they're
-                changing without losing their place in regen. Hidden
-                in deciding mode (different action set). */}
-            {pickedIntent && (
-              <div className="mb-3">
-                <button
-                  type="button"
-                  onClick={() => setPickedIntent(null)}
-                  disabled={!!isRegenerating}
-                  className="inline-flex items-center gap-1 text-xs text-ink-soft hover:text-ink transition-colors disabled:opacity-50"
-                  data-testid="regen-back-to-picker"
-                >
-                  <ChevronLeft className="w-3 h-3" />
-                  Change something else
-                </button>
-              </div>
-            )}
+            {/* "Change something else" affordance REMOVED 2026-05-31:
+                with 'photo' gone there's only one intent (scene), so
+                there's nothing else to switch to. */}
 
             {/* Contextual surface — only the controls relevant to the
                 user's picked intent. Replaces the old "everything on
