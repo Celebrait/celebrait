@@ -28,6 +28,7 @@
 // and competing with the action elsewhere on the page. A spinner is
 // the honest "this is happening, hold on" signal.
 
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ImageOff, Loader2 } from 'lucide-react';
 
@@ -115,6 +116,32 @@ function ThumbChassis({
   label: string;
   isGenerating: boolean;
 }) {
+  // The url whose pixels are actually painted on screen. Drives the
+  // decode-gate so the spinner only lifts to REAL pixels, never a stale
+  // frame ("lands too early then pops"). onLoad fires for cached images
+  // too, so preloaded version switches resolve in ~a frame.
+  const [paintedUrl, setPaintedUrl] = useState<string | null>(url);
+
+  // Hold the working overlay across a regen COMPLETION until the new
+  // image has decoded. Plain version switches (not preceded by
+  // generating) don't set this — the src swap is instant for preloaded
+  // images, so we don't veil them.
+  const [holdForDecode, setHoldForDecode] = useState(false);
+  const prevGeneratingRef = useRef(isGenerating);
+  useEffect(() => {
+    if (prevGeneratingRef.current && !isGenerating) {
+      // regen just ended — if the (new) image hasn't painted yet, keep
+      // the overlay up until it does.
+      setHoldForDecode(url != null && url !== paintedUrl);
+    }
+    prevGeneratingRef.current = isGenerating;
+  }, [isGenerating, url, paintedUrl]);
+  useEffect(() => {
+    if (paintedUrl === url) setHoldForDecode(false);
+  }, [paintedUrl, url]);
+
+  const showOverlay = isGenerating || holdForDecode;
+
   return (
     <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
       <div className="aspect-square bg-stone-50 relative">
@@ -122,12 +149,12 @@ function ThumbChassis({
             Two wins vs the old AnimatePresence-mode="wait" swap:
             (1) no remount → preloaded version-rail switches are instant,
             no cross-fade lag; (2) changing src keeps the previous frame
-            painted until the new one decodes → no flash to white and no
-            "appears to land then continues" double-paint. */}
+            painted until the new one decodes → no flash to white. */}
         {url ? (
           <img
             src={url}
             alt={label}
+            onLoad={() => setPaintedUrl(url)}
             className="absolute inset-0 w-full h-full object-contain"
           />
         ) : !isGenerating ? (
@@ -140,12 +167,11 @@ function ThumbChassis({
         ) : null}
 
         {/* Regen spinner is an OVERLAY on top of the prior image — the
-            user keeps seeing THEIR card, just "working", instead of an
-            empty well that stages in/out. Fades over ~0.25s; the image
-            underneath never unmounts, so completion is a clean reveal as
-            the overlay lifts. */}
+            user keeps seeing THEIR card, just "working". It stays up
+            until the NEW image has decoded (holdForDecode), so it lifts
+            to real pixels in one clean reveal — never to the old frame. */}
         <AnimatePresence>
-          {isGenerating && (
+          {showOverlay && (
             <motion.div
               key="regen-overlay"
               className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/75 backdrop-blur-[1px]"
