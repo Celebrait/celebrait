@@ -24,10 +24,14 @@
 //      blowing out birthday candles at home surrounded by non-family) is
 //      WORSE than empty: it betrays the meaning of the moment.
 //
-//   B. GAZE — add two clauses: (1) vague-verb → invent-action (scenes like
-//      "looking joyful"/"living it up" name a FEELING not an action, so
-//      the model defaults to a standing portrait/selfie — force it to turn
-//      the feeling into a verb); (2) explicit anti-selfie.
+//   B. GAZE — vibe-only scenes ("living it up", "looking joyful") name a
+//      FEELING not an action; the fix is ENGAGEMENT, not necessarily
+//      motion. Standing/stillness is explicitly fine (often more premium);
+//      the ONE ban is posing FOR THE CAMERA — squared to the lens, eye
+//      contact with the viewer, "having my photo taken" body language.
+//      Plus an explicit anti-selfie rule. (Reframed 2026-05-27 after the
+//      yacht test: more anti-pose words didn't move a camera-facing
+//      stand — the target is engagement + gaze, not motion level.)
 //
 //   C. EXPRESSION — light always-on reinforcement that the new expression
 //      must be visibly born in the scene, not the mild reference carried
@@ -68,7 +72,12 @@ NEVER render a stiff side-by-side facing-camera portrait.`;
 
 const B_NEW = `  "At a famous landmark" (any) → walking past it, looking up at it, leaning over a railing to see, NEVER posed in front of it
 
-For scenes that give only a MOOD or VIBE with no action verb at all ("looking joyful", "living it up", "having the time of their life", "celebrating", "relaxing", "having fun") — those words name a FEELING, not a thing to do, and the model's lazy default for a feeling is a standing portrait or a selfie. Do NOT do that. Turn the feeling into a concrete VERB that fits the setting, and express the feeling THROUGH that action: "living it up on a yacht" → mid-laugh raising a glass with friends, leaning on the rail watching the coast, dancing on the deck; "joyful on a beach" → mid-stride through the shallows with arms wide, kicking up water, spinning to watch the sunset. Never let a feeling collapse into a pose.
+For scenes that give only a MOOD or VIBE with no action verb ("looking joyful", "living it up", "having the time of their life", "celebrating", "relaxing", "having fun") — those words name a FEELING, not a thing to do. The model's lazy default is to stand the person square to the camera, smiling at the lens. THAT is the failure — not the standing, the FACING. The fix is ENGAGEMENT, not necessarily motion: give the person something in the scene to be absorbed in (a gaze, an orientation, a focus) and let the feeling show through it.
+
+  - Engagement can be ACTIVE: "living it up on a yacht" → mid-laugh raising a glass, dancing on the deck; "joyful on a beach" → mid-stride through the shallows, arms wide, spinning to watch the sunset.
+  - Engagement can be STILL, and stillness is welcome — often more premium and frame-worthy than forced action: standing at the yacht rail, drink in hand, gaze out on the golden-hour coast; sitting on the sand watching the waves; leaning on a balcony taking in the city.
+
+Standing is fine. Sitting is fine. Stillness is fine. The ONE thing that is always wrong is posing FOR THE CAMERA — squared to the lens, eye contact with the viewer, the disengaged body language of someone having their photo taken. Whether still or active, the person is absorbed in their own moment, never presenting themselves to a photographer.
 
 NEVER render a selfie — the character never holds the camera, never extends an arm toward the lens, never frames their own face in close-up. The camera is an invisible observer of the moment, never something the character is holding or posing for. NEVER render a stiff side-by-side facing-camera portrait.`;
 
