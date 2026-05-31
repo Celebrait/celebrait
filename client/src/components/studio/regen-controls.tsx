@@ -423,6 +423,22 @@ export function RegenEditMode({
     }
   }, [insideUrl, optimisticInsideUrl]);
 
+  // G7: when a regen ENDS, drop any leftover optimistic rail override.
+  // The exact-match clears above don't fire when a regen promotes a NEW
+  // image (it never equals the user's earlier optimistic url), so a
+  // pre-regen version-switch could keep shadowing the freshly-
+  // regenerated card. On regen end the server's URL is authoritative
+  // (new attempt on success, unchanged card on failure) — clear the
+  // override so the real image shows. See next_regen_interaction_polish.md.
+  const prevRegenSideRef = useRef<CardSide | null>(null);
+  useEffect(() => {
+    if (prevRegenSideRef.current && !isRegenerating) {
+      setOptimisticFrontUrl(null);
+      setOptimisticInsideUrl(null);
+    }
+    prevRegenSideRef.current = isRegenerating;
+  }, [isRegenerating]);
+
   const displayedFrontUrl = optimisticFrontUrl ?? frontUrl;
   const displayedInsideUrl = optimisticInsideUrl ?? insideUrl;
 

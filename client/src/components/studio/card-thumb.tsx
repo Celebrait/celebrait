@@ -118,44 +118,46 @@ function ThumbChassis({
   return (
     <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
       <div className="aspect-square bg-stone-50 relative">
-        <AnimatePresence mode="wait">
-          {isGenerating ? (
+        {/* The image stays MOUNTED across regens + version switches.
+            Two wins vs the old AnimatePresence-mode="wait" swap:
+            (1) no remount → preloaded version-rail switches are instant,
+            no cross-fade lag; (2) changing src keeps the previous frame
+            painted until the new one decodes → no flash to white and no
+            "appears to land then continues" double-paint. */}
+        {url ? (
+          <img
+            src={url}
+            alt={label}
+            className="absolute inset-0 w-full h-full object-contain"
+          />
+        ) : !isGenerating ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-stone-400">
+            <ImageOff className="w-5 h-5" />
+            <p className="text-[10px] uppercase tracking-[0.2em]">
+              No image yet
+            </p>
+          </div>
+        ) : null}
+
+        {/* Regen spinner is an OVERLAY on top of the prior image — the
+            user keeps seeing THEIR card, just "working", instead of an
+            empty well that stages in/out. Fades over ~0.25s; the image
+            underneath never unmounts, so completion is a clean reveal as
+            the overlay lifts. */}
+        <AnimatePresence>
+          {isGenerating && (
             <motion.div
-              key="spinner"
-              className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white"
+              key="regen-overlay"
+              className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/75 backdrop-blur-[1px]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.25 }}
               data-testid="thumb-spinner"
             >
               <Loader2 className="w-6 h-6 text-brand animate-spin" />
-              <p className="text-[10px] uppercase tracking-[0.2em] font-medium text-stone-400">
+              <p className="text-[10px] uppercase tracking-[0.2em] font-medium text-stone-500">
                 Regenerating
-              </p>
-            </motion.div>
-          ) : url ? (
-            <motion.img
-              key={url}
-              src={url}
-              alt={label}
-              className="absolute inset-0 w-full h-full object-contain"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-            />
-          ) : (
-            <motion.div
-              key="empty"
-              className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-stone-400"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <ImageOff className="w-5 h-5" />
-              <p className="text-[10px] uppercase tracking-[0.2em]">
-                No image yet
               </p>
             </motion.div>
           )}
