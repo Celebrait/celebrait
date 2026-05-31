@@ -81,6 +81,23 @@ Standing is fine. Sitting is fine. Stillness is fine. The ONE thing that is alwa
 
 NEVER render a selfie — the character never holds the camera, never extends an arm toward the lens, never frames their own face in close-up. The camera is an invisible observer of the moment, never something the character is holding or posing for. NEVER render a stiff side-by-side facing-camera portrait.`;
 
+// ── Edit D — EXPRESSION REBORN: strong ALWAYS-ON block, high priority ──
+// The strongest expression directive in the base lives inside the
+// {{#if noCharacterAnchor}} gate — so turning Character Anchor ON drops
+// it. This adds an un-gated, concrete, top-of-prompt directive so the
+// expression instruction is present in BOTH modes. Expression-copy is
+// the #1 hand-tested failure (2026-05-27).
+const D_OLD = `  - If you find yourself rendering the source's exact head tilt with the source's exact framing in the new scene, you have failed this rule.
+
+SCENE ENERGY — the RELATIONSHIP TEST for background figures:`;
+
+const D_NEW = `  - If you find yourself rendering the source's exact head tilt with the source's exact framing in the new scene, you have failed this rule.
+
+EXPRESSION IS REBORN — THE #1 PRIORITY (this has been the single biggest failure):
+The reference photo gives you the IDENTITY of the face — bone structure, feature shapes, skin, hair, distinctive marks. It does NOT give you the EXPRESSION. The expression on the card is generated FRESH for this scene's mood and MUST visibly differ from the photo. If the source is a calm, closed-mouth, mild selfie and the scene is a joyful celebration, the card MUST show an open, animated, delighted face — a broad smile or open laugh, eyes alight, brows lifted — NOT the calm closed mouth carried over from the photo. A face that looks unchanged from the source is the clearest sign of a pasted-in cutout and the most common failure of all. Every single time: keep the IDENTITY, REBUILD the EXPRESSION to fit the scene.
+
+SCENE ENERGY — the RELATIONSHIP TEST for background figures:`;
+
 // ── Edit C — EXPRESSION: light always-on reinforcement ────────────────
 const C_OLD = `- SCENE-APPROPRIATE EXPRESSION: The character(s) display a brand NEW facial expression that captures the energy and mood of this specific scene`;
 
@@ -92,8 +109,9 @@ interface Edit {
   newStr: string;
 }
 const EDITS: Edit[] = [
+  { label: 'D:expression-reborn-always-on', oldStr: D_OLD, newStr: D_NEW },
   { label: 'A:scene-energy', oldStr: A_OLD, newStr: A_NEW },
-  { label: 'B:gaze-invent-action+anti-selfie', oldStr: B_OLD, newStr: B_NEW },
+  { label: 'B:gaze-engagement-not-motion', oldStr: B_OLD, newStr: B_NEW },
   { label: 'C:expression-reinforce', oldStr: C_OLD, newStr: C_NEW },
 ];
 
