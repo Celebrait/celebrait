@@ -40,6 +40,8 @@ type CardViewData = {
   /** Regen attempts (per side) — same shape as the maker. Always
    *  present in responses from /api/studio/drafts/:id since 2026-04-25. */
   attempts?: CardAttemptDTO[];
+  /** Per-side background-regen failure (most-recent attempt failed). */
+  regenFailures?: { side: CardSide; kind: string }[];
 };
 
 type OrderSummary = {
@@ -263,9 +265,42 @@ function LoadedView({
   const pendingRegenSide: CardSide | null = regenMutation.isPending
     ? (regenMutation.variables?.side ?? null)
     : null;
-  const isRegenerating: CardSide | null = pendingRegenSide ?? polledRegenSide;
+
+  // THIRD signal — bridge the gap between the mutation resolving and the
+  // react-query refetch actually seeing the new 'generating' attempt. In
+  // that window pendingRegenSide AND polledRegenSide are both null, so
+  // isRegenerating dropped to null and the "Your new version is ready"
+  // panel flashed mid-regen (the long-hunted "landing too early" bug —
+  // it lived in THIS card-view path, not the maker's useCardMaker hook).
+  // firedRegen stays set from the click until a NEW completed attempt for
+  // that side lands (or it fails). See next_regen_interaction_polish.md.
+  const [firedRegen, setFiredRegen] = useState<{
+    side: CardSide;
+    baseline: number;
+  } | null>(null);
+  useEffect(() => {
+    if (!firedRegen) return;
+    const completedNow = (card.attempts ?? []).filter(
+      (a) => a.side === firedRegen.side && a.status === 'completed',
+    ).length;
+    const failed = (card.regenFailures ?? []).some(
+      (f) => f.side === firedRegen.side,
+    );
+    if (completedNow > firedRegen.baseline || failed) setFiredRegen(null);
+  }, [card.attempts, card.regenFailures, firedRegen]);
+
+  const isRegenerating: CardSide | null =
+    pendingRegenSide ?? polledRegenSide ?? firedRegen?.side ?? null;
+
+  // Poll-detected failure → inline error panel (G1 parity with the maker
+  // path). null when no side's latest attempt failed.
+  const regenError = card.regenFailures?.[0] ?? null;
 
   const handleRegenerate = async (side: CardSide, tweak?: string) => {
+    const baseline = (card.attempts ?? []).filter(
+      (a) => a.side === side && a.status === 'completed',
+    ).length;
+    setFiredRegen({ side, baseline });
     await regenMutation.mutateAsync({ side, tweak });
   };
   const handleSelectAttempt = async (attemptId: number) => {
@@ -287,6 +322,7 @@ function LoadedView({
         insideUrl={card.insideImageUrl}
         attempts={card.attempts ?? []}
         isRegenerating={isRegenerating}
+        regenError={regenError}
         hasInside={hasInside}
         onRegenerate={handleRegenerate}
         onSelectAttempt={handleSelectAttempt}
