@@ -4,53 +4,32 @@
 // a generated card. The reveal screen's "Make a change" pill flips
 // here; the Back button (or "Use this version" CTA) flips back.
 //
-// 2026-04-27 review pass (Kevin): the screen had the right mechanics
-// but the scaffolding was too quiet — new users couldn't tell where
-// they were, what was safe, or how long things would take. This pass:
-//   • Action title + subtitle (was just the recipient's name).
-//   • Persistent safety line: originals are kept, you can flip back.
-//   • Single 3-way segmented control (Front / Inside / Both) — replaces
-//     the 2-pill + italic-link pattern that hid Both as a tertiary action.
-//   • "Currently showing v3 of 3" label above the thumb so the user
-//     always knows which version is committed.
-//   • Versions rail visible from v1 (not v2+), bigger thumbs (64×64
-//     SQUARE — Celebrait cards are 5.5×5.5; the thumbs were briefly
-//     portrait 56×72 between 2026-04-26 and 2026-04-30 which made
-//     square outputs look distorted) so it's a real compare surface,
-//     and clearer copy.
-//   • Single submit-button label ("Make a new version") with a clean
-//     loading state instead of 5 variants.
-//   • Time hint always visible next to the submit button.
+// 2026-06-01 layout (Kevin): show BOTH sides at once.
+//   • Front + Inside previews side-by-side (even on mobile) so the user
+//     sees the whole card they're editing — like an open card.
+//   • Front + Inside tweak boxes BOTH visible, stacked beneath. The rule
+//     that makes this safe: a BLANK box means "leave that side exactly as
+//     it is" — only the side(s) you actually type in get regenerated.
+//     This is what the old "Both" target got wrong (it regenerated both
+//     regardless, which is what caused "it remade the whole card").
+//   • One submit. Disabled only when both boxes are blank.
 //
-// 2026-04-27 second pass (Kevin again): "after a new gen renders we
-// can lose the text boxes and let the user decide whether to use or
-// tweak". Two-mode state machine:
+// Concurrency: when both boxes are filled we fire two independent
+// fire-and-forget regens. The per-side "busy" signal is derived from the
+// attempt list (+ a local fired-baseline for the pre-first-poll window),
+// so both previews spin independently and the "your new version is ready"
+// decision panel only appears once BOTH sides have finished. This keeps
+// the G1 (silent-failure) and "landing too early" fixes intact under
+// concurrency. See next_regen_interaction_polish.md.
 //
-//   mode='tweaking' (default + after "Keep tweaking" click)
-//     → textarea + submit visible. Standard authoring surface.
+// Two-mode state machine (unchanged in spirit):
+//   mode='tweaking' (default) → previews + text boxes + submit visible.
+//   mode='deciding' (entered when a regen completes) → text boxes hidden,
+//     a "Use this version" / "Keep tweaking" decision panel takes over.
 //
-//   mode='deciding' (entered automatically on regen completion)
-//     → textarea + submit HIDDEN. Big "Use this version" / "Keep
-//       tweaking" decision panel is the only action surface.
-//
-// Why: previously the post-regen banner sat *above* the still-visible
-// textareas (with stale typed content) — two competing surfaces, no
-// clear primary action. The new flow forces a decision before re-
-// engaging with authoring, which matches how users actually think
-// ("did the AI nail it? — yes/no").
-//
-// Tweak-text persistence (unchanged): when the user clicks "Keep
-// tweaking", their typed tweak text is preserved so iteration stays
-// warm ("warmer light" → "warmer light, less orange").
-//
-// Loop semantics (unchanged):
-//   • Empty submit = pure re-roll. The coach copy labels this
-//     explicitly ("…or leave blank for a fresh take").
-//   • Switching versions via the rail is non-destructive — the server
-//     just updates which attempt is "selected"; nothing is deleted.
-//     Rail switching works in BOTH modes; in 'deciding' mode, the
-//     decision panel keeps showing — "use this version" then refers
-//     to whatever's active after the rail click.
+// Loop semantics:
+//   • Switching versions via a side's rail is non-destructive — the
+//     server just updates which attempt is "selected"; nothing deleted.
 
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
@@ -59,7 +38,7 @@ import { ArrowLeft, Check, Loader2, PenLine } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { CardThumb, type ThumbTarget } from '@/components/studio/card-thumb';
+import { CardThumb } from '@/components/studio/card-thumb';
 import { HowTweakingWorks } from '@/components/studio/how-tweaking-works';
 import {
   GenerationErrorPanel,
@@ -75,7 +54,9 @@ interface RegenEditModeProps {
   insideUrl: string | null;
   /** All attempts (front + inside, completed + in-flight). */
   attempts: CardAttemptDTO[];
-  /** Which side is regenerating right now, or null. */
+  /** Which side is regenerating right now, or null. A hint from the
+   *  parent; the component also derives per-side busy from `attempts`
+   *  so it survives concurrent (front+inside) regens. */
   isRegenerating: CardSide | null;
   /** Poll-detected background-regen failure. Drives the inline error
    *  panel — fire-and-forget regens can't throw to handleSubmit's catch,
@@ -91,26 +72,21 @@ interface RegenEditModeProps {
   /** Open the parent's fix-and-retry dialog in regen mode. Called by
    *  the inline <GenerationErrorPanel> chips when a regen safety
    *  failure happens, with the side that just failed so the dialog's
-   *  retry fires the right regen. Optional — the panel falls back to
-   *  hiding chips when not provided. */
+   *  retry fires the right regen. Optional. */
   onJumpToStepFromRegenFailure?: (
     stepId: 'scene' | 'photo',
     side: CardSide,
   ) => void;
-  /** Patch the draft AND flush to server. Was used by the photo/style
-   *  pill controls to persist a swap before regen. Those intents are gone
-   *  (regen is text-tweak only now), so this is currently unused inside
-   *  the component — kept on the interface because callers still pass it
-   *  and a future input-changing intent would want it. */
+  /** Patch the draft AND flush to server. Currently unused inside the
+   *  component (regen is text-tweak only) — kept on the interface because
+   *  callers still pass it and a future input-changing intent would want
+   *  it. */
   onUpdateInputs: (patch: Partial<CardDraftState>) => Promise<void>;
 }
 
 /** Soft cap — show the "sometimes the first one was the one" nudge
  *  once a side has this many completed attempts. */
 const SOFT_CAP_PER_SIDE = 3;
-
-/** Approximate wait copy for a single-side tweak. */
-const SINGLE_WAIT_LABEL = '~45s';
 
 /** Two-mode state machine. See file header. */
 type Mode = 'tweaking' | 'deciding';
@@ -128,51 +104,92 @@ export function RegenEditMode({
   onExit,
   onJumpToStepFromRegenFailure,
 }: RegenEditModeProps) {
-  // target is 'front' | 'inside' in practice — the 'both' member of
-  // ThumbTarget is no longer reachable (the Both segment was removed
-  // 2026-05-31). Typed as ThumbTarget only because <CardThumb> takes it.
-  const [target, setTarget] = useState<ThumbTarget>('front');
-  // Per-side tweak state. The single textarea reads/writes whichever side
-  // `target` points at; we keep both so switching target preserves what
-  // the user typed in either box. Cleared only by "Keep tweaking".
+  // Per-side tweak text. Blank = "leave that side as-is" (no regen).
   const [tweakFront, setTweakFront] = useState('');
   const [tweakInside, setTweakInside] = useState('');
 
+  const frontTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const insideTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const { toast } = useToast();
+
   // ── Regen failure state ────────────────────────────────────────────
-  // When a regen attempt throws (safety filter, rate limit, server
-  // overload, etc.), we capture the structured ProviderError fields
-  // here and render <GenerationErrorPanel> inline above the regen
-  // controls. Replaces the old destructive red toast for `safety` —
-  // a persistent, on-brand panel the user can act on. Other kinds
-  // (rate / server / unknown) still toast for now (they're transient
-  // and don't need a persistent surface).
-  //
-  // Cleared on the next attempt (a new `isRegenerating` value), or
-  // when the user dismisses the panel via "Try again" / a chip click.
+  // When a regen fails (safety / rate / server / 503), capture the
+  // structured ProviderError fields here and render an inline
+  // <GenerationErrorPanel> above the previews — a persistent, on-brand
+  // surface the user can act on, not a disappearing red toast.
   type RegenFailure = {
     kind: GenerationErrorKind;
     modelExplanation: string | null;
     suggestions: string[] | null;
     provider: string | null;
     code: string | null;
-    /** Which side failed — drives the dialog's regen target if the
-     *  user clicks a chip. 'both' falls back to 'front' (the side
-     *  the regen pipeline runs first). */
+    /** Which side failed — drives the dialog's regen target on a chip click. */
     side: CardSide;
   };
   const [regenFailure, setRegenFailure] = useState<RegenFailure | null>(null);
 
-  // Auto-clear the failure panel when a new regen kicks off — the
-  // user is trying again, the failure surface is no longer relevant.
-  useEffect(() => {
-    if (isRegenerating !== null) setRegenFailure(null);
-  }, [isRegenerating]);
+  const frontAttempts = attempts
+    .filter((a) => a.side === 'front')
+    .sort((a, b) => a.attemptNumber - b.attemptNumber);
+  const insideAttempts = attempts
+    .filter((a) => a.side === 'inside')
+    .sort((a, b) => a.attemptNumber - b.attemptNumber);
 
-  // G1: map the poll-detected background-regen failure (prop) into the
-  // local failure panel. Fire-and-forget regens can't throw to
-  // handleSubmit's catch, so this is how a server/safety/503 failure
-  // actually reaches the UI. The errorCode column stores the kind; coerce
-  // to a known GenerationErrorKind, else 'unknown'.
+  const completedFront = frontAttempts.filter((a) => a.status === 'completed');
+  const completedInside = insideAttempts.filter((a) => a.status === 'completed');
+  const totalAttempts = completedFront.length + completedInside.length;
+
+  // ── Per-side busy model (concurrency-safe) ─────────────────────────
+  // A side is "busy" from the moment the user submits a tweak for it
+  // until a NEW completed attempt lands (or it fails). We track a local
+  // "fired" baseline (the completed-count at submit time) so the spinner
+  // shows IMMEDIATELY — before the first 2s poll creates the 'generating'
+  // attempt row — and clears exactly when a new version arrives. The
+  // server's 'generating' attempt status is OR'd in as a belt-and-braces
+  // signal. Both sides are independent, so front+inside regens don't
+  // fight over a single flag.
+  const [firedFront, setFiredFront] = useState<number | null>(null);
+  const [firedInside, setFiredInside] = useState<number | null>(null);
+
+  // Clear a side's busy when a new version lands (success) or it fails.
+  // On SUCCESS also clear that side's tweak box — the instruction has been
+  // carried out, so a follow-up "keep tweaking" pass starts blank and the
+  // blank-skip rule holds (a stale instruction won't silently re-regen a
+  // side you didn't mean to touch). On FAILURE keep the text so the user
+  // can retry or edit it.
+  useEffect(() => {
+    if (firedFront === null) return;
+    if (completedFront.length > firedFront) {
+      setFiredFront(null);
+      setTweakFront('');
+    } else if (regenError?.side === 'front') {
+      setFiredFront(null);
+    }
+  }, [completedFront.length, regenError, firedFront]);
+  useEffect(() => {
+    if (firedInside === null) return;
+    if (completedInside.length > firedInside) {
+      setFiredInside(null);
+      setTweakInside('');
+    } else if (regenError?.side === 'inside') {
+      setFiredInside(null);
+    }
+  }, [completedInside.length, regenError, firedInside]);
+
+  const frontServerBusy = frontAttempts.some((a) => a.status === 'generating');
+  const insideServerBusy = insideAttempts.some((a) => a.status === 'generating');
+  const frontBusy =
+    firedFront !== null || frontServerBusy || isRegenerating === 'front';
+  const insideBusy =
+    firedInside !== null || insideServerBusy || isRegenerating === 'inside';
+  const anyBusy = frontBusy || insideBusy;
+
+  // Auto-clear the failure panel when a new regen kicks off.
+  useEffect(() => {
+    if (anyBusy) setRegenFailure(null);
+  }, [anyBusy]);
+
+  // G1: map the poll-detected background failure into the local panel.
   useEffect(() => {
     if (!regenError) return;
     const VALID = ['safety', 'rate', 'server', 'auth', 'unknown'];
@@ -189,131 +206,54 @@ export function RegenEditMode({
     });
   }, [regenError]);
 
-  // The regen flow used to be a wizard (pick scene / photo / style, then a
-  // contextual surface). Photo + style intents were removed (2026-05-17 /
-  // 2026-05-31), leaving the scene text-tweak as the only path — so the
-  // intent picker and the photo/style state it drove are gone entirely
-  // (dead-code cleanup, G8, 2026-06-01). What's left is just: type a tweak
-  // for the chosen side, regenerate.
-
-  const frontTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const insideTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const { toast } = useToast();
-
-  // Force target back to 'front' if hasInside flips off mid-flow.
-  useEffect(() => {
-    if (!hasInside && target !== 'front') setTarget('front');
-  }, [hasInside, target]);
-
   // ── Mode state machine ────────────────────────────────────────────
-  // Default 'tweaking' (textarea + submit visible). Flips to 'deciding'
-  // automatically when a regen completes — the textarea hides, and a
-  // big "Use this / Keep tweaking" decision panel takes over until the
-  // user picks. No timeout: stealing their decision is worse than
-  // letting the panel sit.
+  // Flip to 'deciding' when ALL in-flight regens finish (anyBusy goes
+  // true→false). On failure stay in 'tweaking' so the error panel + the
+  // boxes show. Driven off anyBusy (not the single isRegenerating prop)
+  // so a concurrent both-sides regen waits for BOTH before deciding.
   const [mode, setMode] = useState<Mode>('tweaking');
-  const wasRegeneratingRef = useRef<CardSide | null>(null);
+  const wasBusyRef = useRef(false);
   useEffect(() => {
-    const was = wasRegeneratingRef.current;
-    if (was && !isRegenerating) {
-      // A regen just ended. If it FAILED (G1), stay in 'tweaking' so the
-      // error panel + the textarea/retry show — don't flip to 'deciding'
-      // and pretend a new version is ready (that was the silent-failure
-      // glitch). On success, show the decision surface as before.
+    if (wasBusyRef.current && !anyBusy) {
       setMode(regenError ? 'tweaking' : 'deciding');
     }
-    wasRegeneratingRef.current = isRegenerating;
-  }, [isRegenerating, regenError]);
+    wasBusyRef.current = anyBusy;
+  }, [anyBusy, regenError]);
 
-  // "Keep tweaking" from the deciding surface → back to the authoring
-  // textarea for another pass.
-  const enterTweakingMode = () => {
-    setMode('tweaking');
-  };
-
-  const frontAttempts = attempts
-    .filter((a) => a.side === 'front')
-    .sort((a, b) => a.attemptNumber - b.attemptNumber);
-  const insideAttempts = attempts
-    .filter((a) => a.side === 'inside')
-    .sort((a, b) => a.attemptNumber - b.attemptNumber);
-
-  const completedFront = frontAttempts.filter((a) => a.status === 'completed');
-  const completedInside = insideAttempts.filter((a) => a.status === 'completed');
-  const totalAttempts = completedFront.length + completedInside.length;
-
-  // Is the SERVER still generating an attempt? The projection includes
-  // the in-flight 'generating' row, so this is authoritative regardless
-  // of the client's isRegenerating flag. Used to gate the "ready"
-  // decision panel: never declare a version ready while one is still
-  // cooking, even if isRegenerating momentarily clears (the "decision
-  // panel flashes mid-regen" bug). See next_regen_interaction_polish.md.
-  const someAttemptGenerating = attempts.some(
-    (a) => a.status === 'generating',
-  );
-
-  // Which side's spinner to show. Prefer the client's isRegenerating
-  // flag; fall back to the server's attempt status so the spinner holds
-  // even if isRegenerating momentarily wobbles mid-regen.
-  const regeneratingSide: CardSide | null =
-    isRegenerating ??
-    (frontAttempts.some((a) => a.status === 'generating')
-      ? 'front'
-      : insideAttempts.some((a) => a.status === 'generating')
-        ? 'inside'
-        : null);
+  const enterTweakingMode = () => setMode('tweaking');
 
   const showSoftCap =
     completedFront.length >= SOFT_CAP_PER_SIDE ||
     completedInside.length >= SOFT_CAP_PER_SIDE;
 
-  // Versions rail content for the active side. Shown from v1 onwards so
-  // the concept is taught immediately, not retroactively at v2+.
-  const railAttempts = target === 'front' ? completedFront : completedInside;
-
-  // Find the "currently showing" attempt for the active target so we
-  // can show "Currently showing v3 of 3" above the thumb.
-  const currentRailAttempt = railAttempts.find((a) => a.isSelected);
-  const currentVersionNumber = currentRailAttempt?.attemptNumber;
+  // ── Blank-skip submit ──────────────────────────────────────────────
+  const frontBlank = tweakFront.trim().length === 0;
+  const insideBlank = !hasInside || tweakInside.trim().length === 0;
+  const bothBlank = frontBlank && insideBlank;
 
   const handleSubmit = async () => {
     const front = tweakFront.trim() || undefined;
-    const inside = tweakInside.trim() || undefined;
+    const inside = hasInside ? tweakInside.trim() || undefined : undefined;
+    if (!front && !inside) return; // both blank — nothing to do
 
-    // Submit only fires from 'tweaking' mode (the button isn't rendered
-    // in 'deciding' mode), so no mode flip needed here. The post-regen
-    // useEffect will flip us to 'deciding' once isRegenerating clears.
+    // Failure-panel retry target: prefer the front side if it's in play.
+    const submitSide: CardSide = front ? 'front' : 'inside';
 
-    // The side this submit runs against — whichever the segmented control
-    // points at. Also drives the failure panel's retry target below.
-    const submitSide: CardSide = target === 'inside' ? 'inside' : 'front';
+    // Optimistic per-side busy — spinner shows instantly.
+    if (front) setFiredFront(completedFront.length);
+    if (inside) setFiredInside(completedInside.length);
 
     try {
-      // Single-side text tweak → refine that one side. The typed tweak is
-      // passed straight through as the `tweak` arg (no draft mutation).
-      if (target === 'inside') {
-        await onRegenerate('inside', inside);
-      } else {
-        await onRegenerate('front', front);
-      }
+      // Only the filled side(s) regenerate; a blank side is left untouched.
+      if (front) await onRegenerate('front', front);
+      if (inside) await onRegenerate('inside', inside);
     } catch (err: any) {
-      // The server returns ProviderError fields (kind, suggestions,
-      // modelExplanation, etc.) on the Error object via throwIfResNotOk.
-      //
-      // ALL failure kinds now get the persistent inline
-      // <GenerationErrorPanel> (the panel handles every kind incl. null
-      // via configFor). Previously only 'safety' got the panel and
-      // transient kinds (rate/server/unknown) toasted destructively —
-      // but an auto-dismissing red toast meant a transient provider 503
-      // flashed and vanished, leaving a blank that read as "nothing
-      // rendered" (exactly what bit a real test). A "wait and retry"
-      // error should stay on screen with a Try-again button, calmly.
-      // See next_regen_ux_audit.md (P1).
+      // POST failed before an attempt row was created — clear the
+      // optimistic busy so the spinner doesn't hang, and surface the error.
+      setFiredFront(null);
+      setFiredInside(null);
       const kind = (err?.kind ?? null) as GenerationErrorKind | null;
-
       setRegenFailure({
-        // null/non-ProviderError (e.g. a raw network failure) → 'unknown'
-        // so the panel always has a sensible presentation + retry.
         kind: kind ?? 'unknown',
         modelExplanation: err?.modelExplanation ?? null,
         suggestions: err?.suggestions ?? null,
@@ -324,33 +264,22 @@ export function RegenEditMode({
     }
   };
 
-  // "Try again" on the regen failure panel — re-fires the same submit
-  // with the user's current tweaks. Clearing the panel happens via the
-  // useEffect above when isRegenerating flips on.
   const handleRetryRegen = async () => {
     setRegenFailure(null);
     await handleSubmit();
   };
 
   // ── Optimistic version switching ─────────────────────────────────
-  // selectAttempt does PATCH → reload-draft → re-render. With image
-  // fetch on top, the displayed thumb felt sluggish (~500ms of dead
-  // time per click). Two-layer fix:
-  //
-  //   1. Preload every attempt image on mount (hidden <img> below)
-  //      so the browser cache is hot before the user clicks anything.
-  //   2. Optimistic URL override — when a thumb is clicked we know
-  //      the target imageUrl locally (it's in the rail attempt). Set
-  //      it as the displayed URL immediately, fire the server call in
-  //      the background. When the parent re-passes the URL it'll
-  //      match what we already have on screen — no flicker.
-  const [optimisticFrontUrl, setOptimisticFrontUrl] = useState<string | null>(null);
-  const [optimisticInsideUrl, setOptimisticInsideUrl] = useState<string | null>(null);
+  // Preload every attempt image (hidden) so rail clicks are instant; set
+  // the clicked URL locally before the server roundtrip so the thumb
+  // swaps with no flicker.
+  const [optimisticFrontUrl, setOptimisticFrontUrl] = useState<string | null>(
+    null,
+  );
+  const [optimisticInsideUrl, setOptimisticInsideUrl] = useState<string | null>(
+    null,
+  );
 
-  // Clear optimistic overrides once the parent's "real" URL catches up
-  // (i.e. the server roundtrip completed and the URL matches what we
-  // optimistically set). Keeps us from showing a stale optimistic URL
-  // if the user does a regen-then-switch in quick succession.
   useEffect(() => {
     if (optimisticFrontUrl && optimisticFrontUrl === frontUrl) {
       setOptimisticFrontUrl(null);
@@ -362,41 +291,30 @@ export function RegenEditMode({
     }
   }, [insideUrl, optimisticInsideUrl]);
 
-  // G7: when a regen ENDS, drop any leftover optimistic rail override.
-  // The exact-match clears above don't fire when a regen promotes a NEW
-  // image (it never equals the user's earlier optimistic url), so a
-  // pre-regen version-switch could keep shadowing the freshly-
-  // regenerated card. On regen end the server's URL is authoritative
-  // (new attempt on success, unchanged card on failure) — clear the
-  // override so the real image shows. See next_regen_interaction_polish.md.
-  const prevRegenSideRef = useRef<CardSide | null>(null);
+  // G7: when ALL regens end, drop any leftover optimistic rail override —
+  // a fresh regen promotes a new image that never equals the user's
+  // earlier optimistic url, so the exact-match clears above wouldn't fire.
+  const prevAnyBusyRef = useRef(false);
   useEffect(() => {
-    if (prevRegenSideRef.current && !isRegenerating) {
+    if (prevAnyBusyRef.current && !anyBusy) {
       setOptimisticFrontUrl(null);
       setOptimisticInsideUrl(null);
     }
-    prevRegenSideRef.current = isRegenerating;
-  }, [isRegenerating]);
+    prevAnyBusyRef.current = anyBusy;
+  }, [anyBusy]);
 
   const displayedFrontUrl = optimisticFrontUrl ?? frontUrl;
   const displayedInsideUrl = optimisticInsideUrl ?? insideUrl;
 
   const handleSelect = async (attemptId: number) => {
-    // Find the attempt locally so we can swap the displayed URL
-    // before waiting on the server.
     const attempt = attempts.find((a) => a.id === attemptId);
     if (attempt?.imageUrl) {
-      if (attempt.side === 'front') {
-        setOptimisticFrontUrl(attempt.imageUrl);
-      } else {
-        setOptimisticInsideUrl(attempt.imageUrl);
-      }
+      if (attempt.side === 'front') setOptimisticFrontUrl(attempt.imageUrl);
+      else setOptimisticInsideUrl(attempt.imageUrl);
     }
     try {
       await onSelectAttempt(attemptId);
     } catch (err: any) {
-      // Roll back the optimistic state on failure so the UI doesn't
-      // lie about which version is committed.
       if (attempt?.side === 'front') setOptimisticFrontUrl(null);
       else if (attempt?.side === 'inside') setOptimisticInsideUrl(null);
       toast({
@@ -407,12 +325,7 @@ export function RegenEditMode({
     }
   };
 
-  // Header subtitle — recipient. Per-side version count was dropped
-  // 2026-04-27: it summed front + inside attempts ("3 front + 4 inside
-  // = 7 versions saved") which read as "I made 7 changes" to users,
-  // but each side has its own scoped history. The rail's "Currently
-  // showing v3 of 3" caption is the accurate per-side surface; one
-  // truth is enough.
+  // Header subtitle — recipient.
   const recipient = state.recipient?.name?.trim();
   const occasion = state.recipient?.occasion?.trim();
   const subtitleSubject = recipient
@@ -420,20 +333,10 @@ export function RegenEditMode({
       ? `${recipient}'s ${occasion} card`
       : `${recipient}'s card`
     : 'Your card';
-  // Suppress unused-var warning — totalAttempts no longer goes into
-  // the subtitle but the value is still useful as a future hook
-  // (e.g. analytics, "X tweaks so far" surface).
-  void totalAttempts;
 
-  const timeHint = SINGLE_WAIT_LABEL;
-
-  // Empty-tweak guard. An empty scene submit used to fall through to the
-  // server's RE-ROLL path (a full from-scratch remake) — the exact
-  // behaviour the photo/both removal was meant to kill. Block it: a tweak
-  // must say something so it always lands on refine(). See
-  // next_regen_ux_audit.md.
-  const activeTweak = target === 'inside' ? tweakInside : tweakFront;
-  const sceneTweakEmpty = activeTweak.trim().length === 0;
+  // Time hint — two boxes filled ≈ two sequenced gens.
+  const willRegenBoth = !frontBlank && !insideBlank;
+  const timeHint = willRegenBoth ? '~90s · two new versions' : '~45s';
 
   return (
     <motion.div
@@ -465,14 +368,8 @@ export function RegenEditMode({
         </button>
       </div>
 
-      {/* Reassurance is now a one-line nudge + a "How tweaking works" module
-          (2026-06-01, Kevin). The old always-on paragraph carried the whole
-          mental model in a run-on sentence AND pushed the card — the thing
-          the user came to see — down the page. The detail (you're editing
-          THIS design; be specific; you can change expressions/actions/
-          details/front text/inside message; you CAN'T change the photo or
-          likeness; front vs inside defined) now lives one tap away in
-          <HowTweakingWorks>. See next_regen_ux_audit.md. */}
+      {/* One-line nudge + the "How tweaking works" module (detail one tap
+          away rather than a wall of text pushing the card down). */}
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-[12px] text-stone-500 leading-snug">
           Describe a change — your photo &amp; likeness stay put.
@@ -480,12 +377,8 @@ export function RegenEditMode({
         <HowTweakingWorks />
       </div>
 
-      {/* Inline failure panel — only renders when a regen attempt failed
-          on safety. Same component the initial-gen path uses (one source
-          of truth for failure UX). Sits between the safety-line banner
-          and the card thumb so the user sees it the moment a regen
-          comes back blocked, with the existing card preserved below
-          for context. */}
+      {/* Inline failure panel (G1) — surfaces a background regen failure
+          the moment it's polled, with the existing card preserved below. */}
       {regenFailure && (
         <div className="mb-5">
           <GenerationErrorPanel
@@ -497,54 +390,58 @@ export function RegenEditMode({
             context="regen"
             onRetry={handleRetryRegen}
             onJumpToStep={(editor) => {
-              // Hand off to the parent's regen-aware dialog opener so
-              // chip clicks land in the fix-and-retry dialog with the
-              // right side context. Falls back to no-op if the prop
-              // isn't wired (defensive — should always be wired in
-              // production but useful for storybook/standalone tests).
               if (onJumpToStepFromRegenFailure) {
                 onJumpToStepFromRegenFailure(editor, regenFailure.side);
               }
             }}
-            isRetrying={isRegenerating !== null}
+            isRetrying={anyBusy}
           />
         </div>
       )}
 
-      {/* "Currently showing" caption — anchors the user in version
-          history. Shown only when there's >1 version so v1 doesn't say
-          "showing v1 of 1" (noise). */}
-      {railAttempts.length > 1 && currentVersionNumber && (
-        <p
-          className="text-center text-[11px] uppercase tracking-[0.2em] text-stone-400 mb-2"
-          data-testid="regen-current-version-caption"
-        >
-          Currently showing v{currentVersionNumber} of {railAttempts.length}
-        </p>
-      )}
-
-      {/* Card thumb. Uses optimistic URLs (set immediately on rail click)
-          when present, otherwise the parent's "real" URL — keeps the
-          displayed image in sync with the user's intent without waiting
-          on the server roundtrip. */}
-      <div className="mb-3">
-        <CardThumb
-          frontUrl={displayedFrontUrl}
-          insideUrl={displayedInsideUrl}
-          target={target}
-          hasInside={hasInside}
-          // Robust spinner: show it while the client is regenerating OR
-          // the server still has a generating attempt for that side, so
-          // it never flickers off mid-regen if isRegenerating wobbles.
-          regeneratingSide={regeneratingSide}
-        />
+      {/* Previews — Front + Inside side-by-side (even on mobile, Kevin's
+          call). Two independent thumbs so each spins on its own when both
+          sides regenerate at once. Each column carries its own version
+          rail beneath. Single column when the card has no inside. */}
+      <div
+        className={`grid ${hasInside ? 'grid-cols-2' : 'grid-cols-1'} gap-3 mb-5`}
+        data-testid="regen-previews"
+      >
+        <div>
+          <CardThumb
+            frontUrl={displayedFrontUrl}
+            insideUrl={null}
+            target="front"
+            hasInside
+            regeneratingSide={frontBusy ? 'front' : null}
+          />
+          <VersionRail
+            attempts={completedFront}
+            side="front"
+            onSelect={handleSelect}
+            disabled={anyBusy}
+          />
+        </div>
+        {hasInside && (
+          <div>
+            <CardThumb
+              frontUrl={null}
+              insideUrl={displayedInsideUrl}
+              target="inside"
+              hasInside
+              regeneratingSide={insideBusy ? 'inside' : null}
+            />
+            <VersionRail
+              attempts={completedInside}
+              side="inside"
+              onSelect={handleSelect}
+              disabled={anyBusy}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Image preload — hidden, off-screen <img> tags for every
-          completed attempt's URL. Browser caches them so subsequent
-          rail clicks feel instant. Width/height kept tiny so layout
-          isn't affected; loading="eager" defeats lazy-load deferral.
-          ARIA-hidden because these are pure cache primers, not content. */}
+      {/* Image preload — hidden <img> tags so rail clicks feel instant. */}
       <div
         aria-hidden
         className="absolute -left-[9999px] top-0 w-0 h-0 overflow-hidden"
@@ -564,344 +461,284 @@ export function RegenEditMode({
         )}
       </div>
 
-      {/* Front / Inside segmented control. Hidden when there's no inside
-          (then Front is the only option, so the choice is noise). */}
-      {hasInside && (
-        <div className="mb-5 flex flex-col items-center gap-2">
-          {/* Label so the control reads as a real decision, not chrome. */}
-          <p className="text-[10px] uppercase tracking-[0.18em] text-ink-soft font-semibold">
-            Which side?
-          </p>
-          <div
-            className="inline-flex bg-stone-100 rounded-full p-1.5"
-            data-testid="regen-target-segmented"
-          >
-            <SegmentTab
-              active={target === 'front'}
-              onClick={() => setTarget('front')}
-              disabled={!!isRegenerating}
-              testId="pill-target-front"
-            >
-              Front
-            </SegmentTab>
-            <SegmentTab
-              active={target === 'inside'}
-              onClick={() => setTarget('inside')}
-              disabled={!!isRegenerating}
-              testId="pill-target-inside"
-            >
-              Inside
-            </SegmentTab>
-            {/* 'Both' target REMOVED 2026-05-31: tweaking the scene should
-                only touch the side you're editing. Regenerating the inside
-                when you edit the front (the scene) was wasted cost + the
-                source of "it remade the whole card". Front/Inside only now;
-                each is a single-side text tweak → always the refine path. */}
-          </div>
-        </div>
-      )}
-
-      {/* Versions rail — square 64×64 thumbs (Celebrait cards are
-          5.5×5.5 square), shown from v1 onwards so the concept is taught
-          immediately. Tap any version to switch back. The active version
-          gets a brand border + soft glow. */}
-      {railAttempts.length > 0 && (
-        <div className="mb-5">
-          <p className="text-[11px] text-stone-500 text-center mb-2">
-            {railAttempts.length === 1
-              ? 'Your card so far'
-              : 'Tap a version to switch back'}
-          </p>
-          <div className="flex items-center justify-center gap-2 overflow-x-auto pb-1">
-            {railAttempts.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                onClick={() => handleSelect(a.id)}
-                disabled={!!isRegenerating || a.isSelected}
-                className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${
-                  a.isSelected
-                    ? 'border-brand shadow-md shadow-brand/20'
-                    : 'border-stone-200 hover:border-brand/60 opacity-80 hover:opacity-100'
-                } disabled:cursor-not-allowed`}
-                aria-label={
-                  a.isSelected
-                    ? `Currently showing version ${a.attemptNumber}`
-                    : `Switch to version ${a.attemptNumber}`
-                }
-                data-testid={`regen-thumb-${target}-${a.attemptNumber}`}
-              >
-                {a.imageUrl ? (
-                  <img
-                    src={a.imageUrl}
-                    alt={`Version ${a.attemptNumber}`}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-stone-100" />
-                )}
-                <span
-                  className={`absolute bottom-0 inset-x-0 text-[10px] font-medium leading-none py-1 text-center ${
-                    a.isSelected
-                      ? 'bg-brand text-brand-foreground'
-                      : 'bg-black/45 text-white'
-                  }`}
-                >
-                  v{a.attemptNumber}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ───────────────────────────────────────────────────────────
-          MODE: 'deciding' — full decision panel replaces textarea.
-          User must pick "Use this version" or "Keep tweaking" before
-          they can author again. Rail switching still works underneath
-          (handled above) — if they pick a different version while
-          deciding, the panel keeps showing and "Use this version"
-          refers to whatever's now active.
-          ─────────────────────────────────────────────────────────── */}
-      {/* AnimatePresence with `initial={false}`: don't run the entry
-          animation on the very first render. The parent motion.div
-          already does its own fade-in for the whole component; running
-          a second fade on the inner mode panel made the submit button
-          flash on entry to the regen page (Kevin 2026-04-27). Mode
-          transitions AFTER mount still cross-fade — that's the point.
-
-          mode="popLayout" (was "wait", changed 2026-06-01 for G5): "wait"
-          fully unmounts the exiting panel BEFORE mounting the new one, so
-          for one frame neither is in flow and everything below collapses
-          up then drops back down — the un-animated reflow "jump" Kevin
-          flagged. popLayout pops the exiting panel out of layout flow (it
-          fades out in place) while the entering panel takes its spot
-          immediately, so the surrounding chrome never sees a zero-height
-          gap. See next_regen_interaction_polish.md (G5). */}
-      {/* `relative` gives popLayout's absolutely-positioned exiting panel a
-          containing block, so the old panel fades out exactly where it sat
-          (top of this box) and the new one fades in over the same spot — a
-          true cross-fade rather than the exiting panel flying to a stray
-          ancestor's origin. */}
+      {/* popLayout cross-fade between the decision panel and the authoring
+          surface — no zero-height reflow gap (G5). `relative` gives the
+          exiting (absolutely-positioned) panel a containing block. */}
       <div className="relative">
-      <AnimatePresence mode="popLayout" initial={false}>
-        {mode === 'deciding' && !isRegenerating && !someAttemptGenerating ? (
-          <motion.div
-            key="decision-panel"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
-            className="mb-4 rounded-2xl border-2 border-brand/30 bg-gradient-to-br from-brand-muted/60 via-white to-brand-muted/40 p-5 sm:p-6 shadow-sm"
-            data-testid="regen-decision-panel"
-          >
-            <div className="flex items-start gap-3 mb-4">
-              <div className="w-9 h-9 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0 shadow-sm">
-                <Check className="w-5 h-5" strokeWidth={2.5} />
+        <AnimatePresence mode="popLayout" initial={false}>
+          {mode === 'deciding' && !anyBusy ? (
+            <motion.div
+              key="decision-panel"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
+              className="mb-4 rounded-2xl border-2 border-brand/30 bg-gradient-to-br from-brand-muted/60 via-white to-brand-muted/40 p-5 sm:p-6 shadow-sm"
+              data-testid="regen-decision-panel"
+            >
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-9 h-9 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0 shadow-sm">
+                  <Check className="w-5 h-5" strokeWidth={2.5} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-base font-semibold text-ink">
+                    Your new version is ready
+                  </p>
+                  <p className="text-xs text-stone-600 mt-0.5">
+                    {totalAttempts > 1
+                      ? 'Like it? Use it as your card. Or keep tweaking — earlier versions are still saved below each side.'
+                      : 'Like it? Use it as your card. Or keep tweaking — every try is saved so you can compare.'}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-base font-semibold text-ink">
-                  Your new version is ready
-                </p>
-                <p className="text-xs text-stone-600 mt-0.5">
-                  {totalAttempts > 1
-                    ? "Like it? Use it as your card. Or keep tweaking — earlier versions are still saved below."
-                    : "Like it? Use it as your card. Or keep tweaking — every try is saved so you can compare."}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                type="button"
-                size="lg"
-                onClick={onExit}
-                className="bg-brand hover:bg-brand-dark text-brand-foreground sm:flex-1 shadow-md shadow-brand/20"
-                data-testid="btn-decision-use"
-              >
-                <Check className="w-4 h-4 mr-1.5" strokeWidth={2.5} />
-                Use this version
-              </Button>
-              <Button
-                type="button"
-                size="lg"
-                variant="outline"
-                onClick={enterTweakingMode}
-                className="border-brand/40 bg-white text-brand-dark hover:bg-brand-muted sm:flex-1"
-                data-testid="btn-decision-keep-tweaking"
-              >
-                <PenLine className="w-4 h-4 mr-1.5" />
-                Keep tweaking
-              </Button>
-            </div>
-            {showSoftCap && (
-              <p
-                className="text-[11px] italic text-stone-500 text-center mt-4"
-                data-testid="regen-soft-cap-deciding"
-              >
-                Sometimes the first one was the one — flip back through
-                the versions before trying again.
-              </p>
-            )}
-          </motion.div>
-        ) : (
-          /* ─────────────────────────────────────────────────────────
-              MODE: 'tweaking' — textarea(s) + submit. The default
-              authoring surface. Hidden during 'deciding' so the user
-              isn't presented with two competing surfaces.
-              ───────────────────────────────────────────────────── */
-          <motion.div
-            key="tweaking-surface"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-          >
-            {/* Tweak input — a single textarea for whichever side the
-                segmented control points at. (The old wizard's photo/style
-                surfaces and the Both two-textarea layout were removed —
-                regen is a single-side text tweak now.) */}
-            <div className="mb-4">
-              <p className="text-sm text-ink font-medium mb-1.5">
-                Tell us what to change.
-              </p>
-              <Textarea
-                ref={target === 'front' ? frontTextareaRef : insideTextareaRef}
-                value={target === 'front' ? tweakFront : tweakInside}
-                onChange={(e) =>
-                  target === 'front'
-                    ? setTweakFront(e.target.value)
-                    : setTweakInside(e.target.value)
-                }
-                placeholder={
-                  target === 'front'
-                    ? 'e.g. "make it more autumnal" or "swap the dog for a cat"'
-                    : 'e.g. "tidier handwriting" or "warmer tone"'
-                }
-                rows={3}
-                className="text-sm resize-none"
-                disabled={!!isRegenerating}
-                onKeyDown={(e) => {
-                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                    e.preventDefault();
-                    if (!isRegenerating) void handleSubmit();
-                  }
-                }}
-                data-testid="input-regen-tweak"
-              />
-            </div>
-
-            {/* Soft-cap nudge — copy unchanged, this one's already good.
-                Only shown in tweaking mode; the deciding panel has its
-                own copy of the same nudge inline. */}
-            {showSoftCap && !isRegenerating && (
-              <p
-                className="text-[11px] italic text-stone-500 text-center mb-4"
-                data-testid="regen-soft-cap"
-              >
-                Sometimes the first one was the one — flip back through
-                the versions before trying again.
-              </p>
-            )}
-
-            {/* Start over — restored 2026-05-31. When the intent picker
-                was skipped (only the scene intent remains), the picker's
-                "Start over" link became unreachable; this is the escape
-                for a user who wants a different card altogether, not a
-                tweak of this one. Quiet, in normal flow (above the mobile
-                sticky submit). See next_regen_ux_audit.md. */}
-            <p className="text-[11px] text-ink-soft text-center mb-4">
-              Want a different card altogether?{' '}
-              <Link
-                href="/studio/new-card"
-                className="text-brand hover:text-brand-dark font-medium"
-                data-testid="regen-start-over"
-              >
-                Start over →
-              </Link>
-            </p>
-
-            {/* Submit — sticky-bottom on mobile so it stays above the
-                keyboard. Single label, time hint always visible. */}
-            <div className="fixed sm:static bottom-0 inset-x-0 px-4 sm:px-0 py-3 sm:py-0 bg-white/95 sm:bg-transparent backdrop-blur sm:backdrop-blur-0 border-t sm:border-0 border-stone-200">
-              <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
-                <p
-                  className="text-[11px] text-stone-400 hidden sm:block"
-                  data-testid="regen-time-hint"
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={onExit}
+                  className="bg-brand hover:bg-brand-dark text-brand-foreground sm:flex-1 shadow-md shadow-brand/20"
+                  data-testid="btn-decision-use"
                 >
-                  {isRegenerating
-                    ? `Crafting your new ${isRegenerating}…`
-                    : sceneTweakEmpty
-                      ? 'Type a change to begin'
-                      : timeHint}
-                </p>
-                {(() => {
-                  // Disabled when regenerating, or when the tweak is empty
-                  // (an empty submit would hit the server's re-roll/full-
-                  // remake path — blocked, see sceneTweakEmpty above).
-                  const submitDisabled = !!isRegenerating || sceneTweakEmpty;
-                  return (
-                    <Button
-                      type="button"
-                      size="lg"
-                      onClick={handleSubmit}
-                      disabled={submitDisabled}
-                      className="bg-brand hover:bg-brand-dark text-brand-foreground w-full sm:w-auto"
-                      data-testid="btn-regen-submit"
-                    >
-                      {isRegenerating ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Crafting your new {isRegenerating}…
-                        </>
-                      ) : (
-                        'Make a new version'
-                      )}
-                    </Button>
-                  );
-                })()}
+                  <Check className="w-4 h-4 mr-1.5" strokeWidth={2.5} />
+                  Use this version
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  onClick={enterTweakingMode}
+                  className="border-brand/40 bg-white text-brand-dark hover:bg-brand-muted sm:flex-1"
+                  data-testid="btn-decision-keep-tweaking"
+                >
+                  <PenLine className="w-4 h-4 mr-1.5" />
+                  Keep tweaking
+                </Button>
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              {showSoftCap && (
+                <p
+                  className="text-[11px] italic text-stone-500 text-center mt-4"
+                  data-testid="regen-soft-cap-deciding"
+                >
+                  Sometimes the first one was the one — flip back through the
+                  versions before trying again.
+                </p>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="tweaking-surface"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              {/* Tweak boxes — one per side, blank = leave that side as-is. */}
+              <p className="text-sm text-ink font-medium mb-2">
+                Tell us what to change.{' '}
+                {hasInside && (
+                  <span className="text-stone-500 font-normal">
+                    Leave a box blank to keep that side as it is.
+                  </span>
+                )}
+              </p>
+              <div className="mb-4 space-y-3">
+                <SidedTweakInput
+                  label="Front"
+                  value={tweakFront}
+                  onChange={setTweakFront}
+                  placeholder='e.g. "make it more autumnal" or "swap the dog for a cat"'
+                  onSubmit={handleSubmit}
+                  inputRef={frontTextareaRef}
+                  disabled={anyBusy}
+                  testId="input-regen-tweak-front"
+                />
+                {hasInside && (
+                  <SidedTweakInput
+                    label="Inside"
+                    value={tweakInside}
+                    onChange={setTweakInside}
+                    placeholder='e.g. "tidier handwriting" or "warmer tone"'
+                    onSubmit={handleSubmit}
+                    inputRef={insideTextareaRef}
+                    disabled={anyBusy}
+                    testId="input-regen-tweak-inside"
+                  />
+                )}
+              </div>
+
+              {showSoftCap && !anyBusy && (
+                <p
+                  className="text-[11px] italic text-stone-500 text-center mb-4"
+                  data-testid="regen-soft-cap"
+                >
+                  Sometimes the first one was the one — flip back through the
+                  versions before trying again.
+                </p>
+              )}
+
+              {/* Start over — escape to a wholly different card. */}
+              <p className="text-[11px] text-ink-soft text-center mb-4">
+                Want a different card altogether?{' '}
+                <Link
+                  href="/studio/new-card"
+                  className="text-brand hover:text-brand-dark font-medium"
+                  data-testid="regen-start-over"
+                >
+                  Start over →
+                </Link>
+              </p>
+
+              {/* Submit — sticky-bottom on mobile so it stays above the
+                  keyboard. Disabled only when both boxes are blank. */}
+              <div className="fixed sm:static bottom-0 inset-x-0 px-4 sm:px-0 py-3 sm:py-0 bg-white/95 sm:bg-transparent backdrop-blur sm:backdrop-blur-0 border-t sm:border-0 border-stone-200">
+                <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
+                  <p
+                    className="text-[11px] text-stone-400 hidden sm:block"
+                    data-testid="regen-time-hint"
+                  >
+                    {anyBusy
+                      ? 'Crafting your new version…'
+                      : bothBlank
+                        ? 'Type a change to begin'
+                        : timeHint}
+                  </p>
+                  <Button
+                    type="button"
+                    size="lg"
+                    onClick={handleSubmit}
+                    disabled={anyBusy || bothBlank}
+                    className="bg-brand hover:bg-brand-dark text-brand-foreground w-full sm:w-auto"
+                    data-testid="btn-regen-submit"
+                  >
+                    {anyBusy ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Crafting your new version…
+                      </>
+                    ) : (
+                      'Make a new version'
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );
 }
 
-// ── SegmentTab — Front / Inside target toggle.
-// Bumped weight 2026-05-10 (Kevin's call: "needs more signposting that
-// this is an option") — bigger padding, semibold labels, brand-violet
-// active state instead of white-with-shadow. Reads as a real choice,
-// not chrome.
-function SegmentTab({
-  active,
-  onClick,
-  children,
+// ── VersionRail — per-side version history under a preview column.
+// Shown only once a side has more than one completed version (a lone v1
+// thumb would just duplicate the preview above it). Tap a thumb to switch
+// the committed version for that side (non-destructive).
+function VersionRail({
+  attempts,
+  side,
+  onSelect,
+  disabled,
+}: {
+  attempts: CardAttemptDTO[];
+  side: CardSide;
+  onSelect: (attemptId: number) => void;
+  disabled: boolean;
+}) {
+  if (attempts.length <= 1) return null;
+  const current = attempts.find((a) => a.isSelected);
+  return (
+    <div className="mt-2">
+      {current && (
+        <p className="text-center text-[10px] uppercase tracking-[0.16em] text-stone-400 mb-1">
+          v{current.attemptNumber} of {attempts.length}
+        </p>
+      )}
+      <div className="flex items-center justify-center gap-1.5 overflow-x-auto pb-1">
+        {attempts.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            onClick={() => onSelect(a.id)}
+            disabled={disabled || a.isSelected}
+            className={`relative w-12 h-12 rounded-md overflow-hidden border-2 transition-all flex-shrink-0 ${
+              a.isSelected
+                ? 'border-brand shadow-sm shadow-brand/20'
+                : 'border-stone-200 hover:border-brand/60 opacity-80 hover:opacity-100'
+            } disabled:cursor-not-allowed`}
+            aria-label={
+              a.isSelected
+                ? `Currently showing ${side} version ${a.attemptNumber}`
+                : `Switch ${side} to version ${a.attemptNumber}`
+            }
+            data-testid={`regen-thumb-${side}-${a.attemptNumber}`}
+          >
+            {a.imageUrl ? (
+              <img
+                src={a.imageUrl}
+                alt={`Version ${a.attemptNumber}`}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-full h-full bg-stone-100" />
+            )}
+            <span
+              className={`absolute bottom-0 inset-x-0 text-[9px] font-medium leading-none py-0.5 text-center ${
+                a.isSelected
+                  ? 'bg-brand text-brand-foreground'
+                  : 'bg-black/45 text-white'
+              }`}
+            >
+              v{a.attemptNumber}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── SidedTweakInput — labelled textarea row, one per side.
+function SidedTweakInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  onSubmit,
+  inputRef,
   disabled,
   testId,
 }: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+  placeholder: string;
+  onSubmit: () => void;
+  inputRef?: React.RefObject<HTMLTextAreaElement>;
   disabled?: boolean;
   testId?: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`px-5 py-2 text-sm font-semibold rounded-full transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
-        active
-          ? 'bg-brand text-brand-foreground shadow-sm shadow-brand/20'
-          : 'text-ink-soft hover:text-ink'
-      }`}
-      data-testid={testId}
-    >
-      {children}
-    </button>
+    <div className="flex items-start gap-2">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-400 w-12 shrink-0 pt-2.5">
+        {label}
+      </p>
+      <Textarea
+        ref={inputRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={2}
+        disabled={disabled}
+        className="text-sm resize-none flex-1"
+        onKeyDown={(e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+            e.preventDefault();
+            if (!disabled) onSubmit();
+          }
+        }}
+        data-testid={testId}
+      />
+    </div>
   );
 }
-
