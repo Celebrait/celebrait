@@ -759,7 +759,7 @@ export function RegenEditMode({
         <div className="mb-5">
           <p className="text-[11px] text-stone-500 text-center mb-2">
             {railAttempts.length === 1
-              ? 'Your first version'
+              ? 'Your card so far'
               : 'Tap a version to switch back'}
           </p>
           <div className="flex items-center justify-center gap-2 overflow-x-auto pb-1">
@@ -819,8 +819,23 @@ export function RegenEditMode({
           already does its own fade-in for the whole component; running
           a second fade on the inner mode panel made the submit button
           flash on entry to the regen page (Kevin 2026-04-27). Mode
-          transitions AFTER mount still cross-fade — that's the point. */}
-      <AnimatePresence mode="wait" initial={false}>
+          transitions AFTER mount still cross-fade — that's the point.
+
+          mode="popLayout" (was "wait", changed 2026-06-01 for G5): "wait"
+          fully unmounts the exiting panel BEFORE mounting the new one, so
+          for one frame neither is in flow and everything below collapses
+          up then drops back down — the un-animated reflow "jump" Kevin
+          flagged. popLayout pops the exiting panel out of layout flow (it
+          fades out in place) while the entering panel takes its spot
+          immediately, so the surrounding chrome never sees a zero-height
+          gap. See next_regen_interaction_polish.md (G5). */}
+      {/* `relative` gives popLayout's absolutely-positioned exiting panel a
+          containing block, so the old panel fades out exactly where it sat
+          (top of this box) and the new one fades in over the same spot — a
+          true cross-fade rather than the exiting panel flying to a stray
+          ancestor's origin. */}
+      <div className="relative">
+      <AnimatePresence mode="popLayout" initial={false}>
         {mode === 'deciding' && !isRegenerating && !someAttemptGenerating ? (
           <motion.div
             key="decision-panel"
@@ -1057,6 +1072,7 @@ export function RegenEditMode({
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </motion.div>
   );
 }
