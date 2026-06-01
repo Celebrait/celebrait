@@ -65,12 +65,6 @@ import {
   GenerationErrorPanel,
   type GenerationErrorKind,
 } from '@/components/studio/generation-error-panel';
-import { PhotoEditor } from '@/components/studio/input-editors';
-// StyleEditor parked for Premium — see next_celebrait_premium.md.
-import {
-  RegenIntentPicker,
-  type RegenIntent,
-} from '@/components/studio/regen-intent-picker';
 import type { CardAttemptDTO } from '@/hooks/use-card-maker';
 import type { CardSide, CardDraftState } from '@shared/schema';
 
@@ -103,10 +97,11 @@ interface RegenEditModeProps {
     stepId: 'scene' | 'photo',
     side: CardSide,
   ) => void;
-  /** Patch the draft AND flush to server. Used by the photo + style
-   *  pill controls so a swap is persisted before the user clicks
-   *  "Generate new" (the regen reads the saved draft state). The
-   *  promise resolves when the save round-trip completes. */
+  /** Patch the draft AND flush to server. Was used by the photo/style
+   *  pill controls to persist a swap before regen. Those intents are gone
+   *  (regen is text-tweak only now), so this is currently unused inside
+   *  the component — kept on the interface because callers still pass it
+   *  and a future input-changing intent would want it. */
   onUpdateInputs: (patch: Partial<CardDraftState>) => Promise<void>;
 }
 
@@ -114,9 +109,8 @@ interface RegenEditModeProps {
  *  once a side has this many completed attempts. */
 const SOFT_CAP_PER_SIDE = 3;
 
-/** Approximate wait copy. Single side ≈ 45s, both sides sequenced ≈ 90s. */
+/** Approximate wait copy for a single-side tweak. */
 const SINGLE_WAIT_LABEL = '~45s';
-const BOTH_WAIT_LABEL = '~90s · two new versions';
 
 /** Two-mode state machine. See file header. */
 type Mode = 'tweaking' | 'deciding';
@@ -133,13 +127,14 @@ export function RegenEditMode({
   onSelectAttempt,
   onExit,
   onJumpToStepFromRegenFailure,
-  onUpdateInputs,
 }: RegenEditModeProps) {
+  // target is 'front' | 'inside' in practice — the 'both' member of
+  // ThumbTarget is no longer reachable (the Both segment was removed
+  // 2026-05-31). Typed as ThumbTarget only because <CardThumb> takes it.
   const [target, setTarget] = useState<ThumbTarget>('front');
-  // Per-side tweak state. Both mode renders BOTH textareas (one per
-  // side); single-side modes render one. Switching target preserves
-  // what the user typed in either box. Cleared only by Cancel or
-  // explicit "Keep tweaking" on the post-regen banner.
+  // Per-side tweak state. The single textarea reads/writes whichever side
+  // `target` points at; we keep both so switching target preserves what
+  // the user typed in either box. Cleared only by "Keep tweaking".
   const [tweakFront, setTweakFront] = useState('');
   const [tweakInside, setTweakInside] = useState('');
 
@@ -194,52 +189,12 @@ export function RegenEditMode({
     });
   }, [regenError]);
 
-  // ── Picked intent (router state) ───────────────────────────────────
-  // The regen flow is now a wizard: first the user picks WHAT to change
-  // (scene / photo / style) via <RegenIntentPicker>, then they're
-  // routed to a focused contextual surface for that one change.
-  //
-  // null = picker is shown (default entry).
-  // 'scene' | 'photo' | 'style' = contextual surface for that input.
-  //
-  // Cleared back to null on:
-  //   - "← Change something else" affordance inside any contextual surface
-  //   - "Keep tweaking" from the post-regen deciding banner
-  //   - Successful regen completion (so the next iteration starts with
-  //     a fresh intent pick, not the old surface still hanging around)
-  // Defaults to 'scene' (was null → show picker) because 'photo' was
-  // removed 2026-05-31, leaving 'scene' as the only intent. With one
-  // intent there's nothing to pick, so we skip straight to the scene
-  // surface. The picker render below (kept for the failure surface) only
-  // fires if pickedIntent is null, which no longer happens in normal use.
-  const [pickedIntent, setPickedIntent] = useState<RegenIntent | null>('scene');
-
-  // Pending photo state — held locally on the contextual surface
-  // until the user clicks "Make new version." Lets them preview a
-  // selection before committing (vs the previous instant-commit pill
-  // model which felt accidental).
-  //
-  // Style pending state REMOVED 2026-05-17 — style picker parked for
-  // Celebrait Premium tier. See next_celebrait_premium.md.
-  const currentPhotoIds = state.photos?.photoIds ?? [];
-  const currentPrimaryPhotoId = currentPhotoIds[0] ?? null;
-
-  const [pendingPhotoId, setPendingPhotoId] = useState<number | null>(currentPrimaryPhotoId);
-
-  // Reset pending state every time the user enters a contextual
-  // surface — pulls in the latest draft values. Avoids stale
-  // selections leaking from a previous regen attempt.
-  useEffect(() => {
-    if (pickedIntent === 'photo') {
-      setPendingPhotoId(currentPrimaryPhotoId);
-    }
-  }, [pickedIntent, currentPrimaryPhotoId]);
-
-  // Has the user actually changed anything on the current surface?
-  // Drives the "Make new version" CTA's disabled state — no point
-  // firing a regen with no inputs changed (which would be a re-roll,
-  // and Kevin called for re-roll to NOT be an option).
-  const photoChanged = pendingPhotoId !== null && pendingPhotoId !== currentPrimaryPhotoId;
+  // The regen flow used to be a wizard (pick scene / photo / style, then a
+  // contextual surface). Photo + style intents were removed (2026-05-17 /
+  // 2026-05-31), leaving the scene text-tweak as the only path — so the
+  // intent picker and the photo/style state it drove are gone entirely
+  // (dead-code cleanup, G8, 2026-06-01). What's left is just: type a tweak
+  // for the chosen side, regenerate.
 
   const frontTextareaRef = useRef<HTMLTextAreaElement>(null);
   const insideTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -264,20 +219,16 @@ export function RegenEditMode({
       // A regen just ended. If it FAILED (G1), stay in 'tweaking' so the
       // error panel + the textarea/retry show — don't flip to 'deciding'
       // and pretend a new version is ready (that was the silent-failure
-      // glitch). On success, show the decision surface as before. Reset
-      // the intent to 'scene' (the only intent) either way.
+      // glitch). On success, show the decision surface as before.
       setMode(regenError ? 'tweaking' : 'deciding');
-      setPickedIntent('scene');
     }
     wasRegeneratingRef.current = isRegenerating;
   }, [isRegenerating, regenError]);
 
-  // When the user clicks "Keep tweaking" from the deciding surface,
-  // bring them back to the picker (not the previous surface). They
-  // might want to change something different this time.
+  // "Keep tweaking" from the deciding surface → back to the authoring
+  // textarea for another pass.
   const enterTweakingMode = () => {
     setMode('tweaking');
-    setPickedIntent('scene');
   };
 
   const frontAttempts = attempts
@@ -316,20 +267,12 @@ export function RegenEditMode({
     completedFront.length >= SOFT_CAP_PER_SIDE ||
     completedInside.length >= SOFT_CAP_PER_SIDE;
 
-  // Versions rail content depends on target. Hidden in Both mode
-  // (each side has its own version history; showing both rails would
-  // double the chrome). Shown from v1 onwards so the concept is
-  // taught immediately, not retroactively at v2+.
-  const railAttempts =
-    target === 'front'
-      ? completedFront
-      : target === 'inside'
-        ? completedInside
-        : [];
+  // Versions rail content for the active side. Shown from v1 onwards so
+  // the concept is taught immediately, not retroactively at v2+.
+  const railAttempts = target === 'front' ? completedFront : completedInside;
 
   // Find the "currently showing" attempt for the active target so we
-  // can show "Currently showing v3 of 3" above the thumb. In Both mode
-  // we don't show this — it'd need two captions and clutter the layout.
+  // can show "Currently showing v3 of 3" above the thumb.
   const currentRailAttempt = railAttempts.find((a) => a.isSelected);
   const currentVersionNumber = currentRailAttempt?.attemptNumber;
 
@@ -341,43 +284,17 @@ export function RegenEditMode({
     // in 'deciding' mode), so no mode flip needed here. The post-regen
     // useEffect will flip us to 'deciding' once isRegenerating clears.
 
-    // The side that this submit will run against. For 'both' (and for
-    // photo/style intents which always regen both sides) we point at
-    // 'front' since that's the side the regen pipeline runs first and
-    // the more likely cause of any safety filter trip.
-    const submitSide: CardSide =
-      pickedIntent === 'scene' && target === 'inside' ? 'inside' : 'front';
+    // The side this submit runs against — whichever the segmented control
+    // points at. Also drives the failure panel's retry target below.
+    const submitSide: CardSide = target === 'inside' ? 'inside' : 'front';
 
     try {
-      // Persist photo/style change BEFORE firing regen, since the
-      // server reads the saved draft state. For scene tweaks the
-      // input is passed through as the `tweak` arg so no draft
-      // mutation needed beyond the per-attempt regen log.
-      if (pickedIntent === 'photo' && photoChanged && pendingPhotoId !== null) {
-        await onUpdateInputs({
-          photos: {
-            ...state.photos,
-            mode: state.photos?.mode ?? 'one_person',
-            photoIds: [pendingPhotoId],
-          },
-        });
-      }
-      // Style-intent persist block REMOVED 2026-05-17 — see comment
-      // by currentPrimaryPhotoId.
-
-      // Photo intent always regens BOTH sides — input changes affect
-      // the whole card. Scene intent honours the user's target
-      // selector (front / inside / both).
-      if (pickedIntent === 'photo') {
-        await onRegenerate('front');
-        if (hasInside) await onRegenerate('inside');
-      } else if (target === 'both') {
-        await onRegenerate('front', front);
+      // Single-side text tweak → refine that one side. The typed tweak is
+      // passed straight through as the `tweak` arg (no draft mutation).
+      if (target === 'inside') {
         await onRegenerate('inside', inside);
-      } else if (target === 'front') {
-        await onRegenerate('front', front);
       } else {
-        await onRegenerate('inside', inside);
+        await onRegenerate('front', front);
       }
     } catch (err: any) {
       // The server returns ProviderError fields (kind, suggestions,
@@ -508,8 +425,7 @@ export function RegenEditMode({
   // (e.g. analytics, "X tweaks so far" surface).
   void totalAttempts;
 
-  // Time hint depends on target.
-  const timeHint = target === 'both' ? BOTH_WAIT_LABEL : SINGLE_WAIT_LABEL;
+  const timeHint = SINGLE_WAIT_LABEL;
 
   // Empty-tweak guard. An empty scene submit used to fall through to the
   // server's RE-ROLL path (a full from-scratch remake) — the exact
@@ -518,51 +434,6 @@ export function RegenEditMode({
   // next_regen_ux_audit.md.
   const activeTweak = target === 'inside' ? tweakInside : tweakFront;
   const sceneTweakEmpty = activeTweak.trim().length === 0;
-
-  // ── Picker entry point ────────────────────────────────────────────
-  // When the user first enters regen (or hits "Keep tweaking" from
-  // the post-regen banner), render the focused intent picker INSTEAD
-  // of the full regen surface. Single decision: scene / photo / style.
-  // Routes them to a contextual surface for that one change.
-  if (mode === 'tweaking' && pickedIntent === null) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
-        className="max-w-2xl mx-auto px-4 sm:px-6 pb-32 sm:pb-12"
-        data-testid="regen-edit-mode"
-      >
-        <RegenIntentPicker
-          subjectLabel={subtitleSubject}
-          onPick={setPickedIntent}
-          onExit={onExit}
-        />
-
-        {/* Failure panel still shows on the picker — it's the
-            highest-priority surface when a previous regen failed. */}
-        {regenFailure && (
-          <div className="mt-5">
-            <GenerationErrorPanel
-              kind={regenFailure.kind}
-              modelExplanation={regenFailure.modelExplanation}
-              suggestions={regenFailure.suggestions}
-              provider={regenFailure.provider}
-              code={regenFailure.code}
-              context="regen"
-              onRetry={handleRetryRegen}
-              onJumpToStep={(editor) => {
-                if (onJumpToStepFromRegenFailure) {
-                  onJumpToStepFromRegenFailure(editor, regenFailure.side);
-                }
-              }}
-              isRetrying={isRegenerating !== null}
-            />
-          </div>
-        )}
-      </motion.div>
-    );
-  }
 
   return (
     <motion.div
@@ -609,12 +480,6 @@ export function RegenEditMode({
         <HowTweakingWorks />
       </div>
 
-      {/* Photo + Style picker dialogs were removed when the regen flow
-          became wizard-style (2026-05-10). Their controls now live as
-          inline contextual surfaces rendered when pickedIntent is
-          'photo' or 'style' — see the conditional render down by the
-          tweak input section. */}
-
       {/* Inline failure panel — only renders when a regen attempt failed
           on safety. Same component the initial-gen path uses (one source
           of truth for failure UX). Sits between the safety-line banner
@@ -647,10 +512,9 @@ export function RegenEditMode({
       )}
 
       {/* "Currently showing" caption — anchors the user in version
-          history. Hidden in Both mode (would need two captions).
-          Shown only when there's >1 version so v1 doesn't say
+          history. Shown only when there's >1 version so v1 doesn't say
           "showing v1 of 1" (noise). */}
-      {target !== 'both' && railAttempts.length > 1 && currentVersionNumber && (
+      {railAttempts.length > 1 && currentVersionNumber && (
         <p
           className="text-center text-[11px] uppercase tracking-[0.2em] text-stone-400 mb-2"
           data-testid="regen-current-version-caption"
@@ -700,24 +564,14 @@ export function RegenEditMode({
         )}
       </div>
 
-      {/* Three-way segmented control — Front / Inside / Both. Replaces
-          the previous "2 pills + italic underline link for Both" pattern
-          that buried the most powerful action. Hidden when no inside
-          (then Front is the only option) AND when the user picked
-          photo/style intent — for those, both sides regen automatically
-          (input change = whole card), so the target selector is
-          irrelevant noise. */}
-      {hasInside && (pickedIntent === 'scene' || mode === 'deciding') && (
+      {/* Front / Inside segmented control. Hidden when there's no inside
+          (then Front is the only option, so the choice is noise). */}
+      {hasInside && (
         <div className="mb-5 flex flex-col items-center gap-2">
-          {/* Label so the control reads as a real decision, not chrome.
-              Suppressed in deciding mode where the target's already
-              been used and the segmented control is just showing
-              what was picked. */}
-          {pickedIntent === 'scene' && (
-            <p className="text-[10px] uppercase tracking-[0.18em] text-ink-soft font-semibold">
-              Which side?
-            </p>
-          )}
+          {/* Label so the control reads as a real decision, not chrome. */}
+          <p className="text-[10px] uppercase tracking-[0.18em] text-ink-soft font-semibold">
+            Which side?
+          </p>
           <div
             className="inline-flex bg-stone-100 rounded-full p-1.5"
             data-testid="regen-target-segmented"
@@ -748,11 +602,10 @@ export function RegenEditMode({
       )}
 
       {/* Versions rail — square 64×64 thumbs (Celebrait cards are
-          5.5×5.5 square), shown from
-          v1 onwards so the concept is taught immediately. Tap any
-          version to switch back. The active version gets a brand
-          border + soft glow. Hidden in Both mode. */}
-      {target !== 'both' && railAttempts.length > 0 && (
+          5.5×5.5 square), shown from v1 onwards so the concept is taught
+          immediately. Tap any version to switch back. The active version
+          gets a brand border + soft glow. */}
+      {railAttempts.length > 0 && (
         <div className="mb-5">
           <p className="text-[11px] text-stone-500 text-center mb-2">
             {railAttempts.length === 1
@@ -904,91 +757,39 @@ export function RegenEditMode({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
           >
-            {/* "Change something else" affordance REMOVED 2026-05-31:
-                with 'photo' gone there's only one intent (scene), so
-                there's nothing else to switch to. */}
-
-            {/* Contextual surface — only the controls relevant to the
-                user's picked intent. Replaces the old "everything on
-                one screen" model. */}
-            {pickedIntent === 'scene' && (
-              <>
-                {target === 'both' ? (
-                  <div className="mb-4 space-y-3">
-                    <p className="text-sm text-ink font-medium">
-                      Tell us what to change for each side.
-                    </p>
-                    <SidedTweakInput
-                      label="Front"
-                      value={tweakFront}
-                      onChange={setTweakFront}
-                      placeholder='e.g. "swap the dog for a cat"'
-                      onSubmit={handleSubmit}
-                      inputRef={frontTextareaRef}
-                      disabled={!!isRegenerating}
-                      testId="input-regen-tweak-front"
-                    />
-                    <SidedTweakInput
-                      label="Inside"
-                      value={tweakInside}
-                      onChange={setTweakInside}
-                      placeholder='e.g. "tidier handwriting"'
-                      onSubmit={handleSubmit}
-                      inputRef={insideTextareaRef}
-                      disabled={!!isRegenerating}
-                      testId="input-regen-tweak-inside"
-                    />
-                  </div>
-                ) : (
-                  <div className="mb-4">
-                    <p className="text-sm text-ink font-medium mb-1.5">
-                      Tell us what to change.
-                    </p>
-                    <Textarea
-                      ref={target === 'front' ? frontTextareaRef : insideTextareaRef}
-                      value={target === 'front' ? tweakFront : tweakInside}
-                      onChange={(e) =>
-                        target === 'front'
-                          ? setTweakFront(e.target.value)
-                          : setTweakInside(e.target.value)
-                      }
-                      placeholder={
-                        target === 'front'
-                          ? 'e.g. "make it more autumnal" or "swap the dog for a cat"'
-                          : 'e.g. "tidier handwriting" or "warmer tone"'
-                      }
-                      rows={3}
-                      className="text-sm resize-none"
-                      disabled={!!isRegenerating}
-                      onKeyDown={(e) => {
-                        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                          e.preventDefault();
-                          if (!isRegenerating) void handleSubmit();
-                        }
-                      }}
-                      data-testid="input-regen-tweak"
-                    />
-                  </div>
-                )}
-              </>
-            )}
-
-            {pickedIntent === 'photo' && (
-              <div className="mb-4">
-                <p className="text-sm text-ink font-medium mb-3">
-                  Pick a different reference photo or upload a new one.
-                </p>
-                <PhotoEditor
-                  selectedId={pendingPhotoId}
-                  onSelect={setPendingPhotoId}
-                  testIdPrefix="regen-photo"
-                />
-              </div>
-            )}
-
-            {/* Style intent render block REMOVED 2026-05-17 — style
-                picker parked for Premium. See
-                next_celebrait_premium.md. */}
+            {/* Tweak input — a single textarea for whichever side the
+                segmented control points at. (The old wizard's photo/style
+                surfaces and the Both two-textarea layout were removed —
+                regen is a single-side text tweak now.) */}
+            <div className="mb-4">
+              <p className="text-sm text-ink font-medium mb-1.5">
+                Tell us what to change.
+              </p>
+              <Textarea
+                ref={target === 'front' ? frontTextareaRef : insideTextareaRef}
+                value={target === 'front' ? tweakFront : tweakInside}
+                onChange={(e) =>
+                  target === 'front'
+                    ? setTweakFront(e.target.value)
+                    : setTweakInside(e.target.value)
+                }
+                placeholder={
+                  target === 'front'
+                    ? 'e.g. "make it more autumnal" or "swap the dog for a cat"'
+                    : 'e.g. "tidier handwriting" or "warmer tone"'
+                }
+                rows={3}
+                className="text-sm resize-none"
+                disabled={!!isRegenerating}
+                onKeyDown={(e) => {
+                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!isRegenerating) void handleSubmit();
+                  }
+                }}
+                data-testid="input-regen-tweak"
+              />
+            </div>
 
             {/* Soft-cap nudge — copy unchanged, this one's already good.
                 Only shown in tweaking mode; the deciding panel has its
@@ -1035,15 +836,10 @@ export function RegenEditMode({
                       : timeHint}
                 </p>
                 {(() => {
-                  // Disabled when: regenerating, OR an empty scene tweak
-                  // (would re-roll a full remake — blocked, see
-                  // sceneTweakEmpty above). Photo branch is dead (intent
-                  // removed) but kept until the dead-code cleanup pass.
-                  const submitDisabled =
-                    !!isRegenerating ||
-                    (pickedIntent === 'scene' && sceneTweakEmpty) ||
-                    (pickedIntent === 'photo' && !photoChanged);
-                  // Style branch REMOVED 2026-05-17 — see Premium note.
+                  // Disabled when regenerating, or when the tweak is empty
+                  // (an empty submit would hit the server's re-roll/full-
+                  // remake path — blocked, see sceneTweakEmpty above).
+                  const submitDisabled = !!isRegenerating || sceneTweakEmpty;
                   return (
                     <Button
                       type="button"
@@ -1074,7 +870,7 @@ export function RegenEditMode({
   );
 }
 
-// ── SegmentTab — 3-way control for the Front / Inside / Both target.
+// ── SegmentTab — Front / Inside target toggle.
 // Bumped weight 2026-05-10 (Kevin's call: "needs more signposting that
 // this is an option") — bigger padding, semibold labels, brand-violet
 // active state instead of white-with-shadow. Reads as a real choice,
@@ -1109,120 +905,3 @@ function SegmentTab({
   );
 }
 
-// ── SidedTweakInput — labelled textarea row used inside Both mode ──
-function SidedTweakInput({
-  label,
-  value,
-  onChange,
-  placeholder,
-  onSubmit,
-  inputRef,
-  disabled,
-  testId,
-}: {
-  label: string;
-  value: string;
-  onChange: (next: string) => void;
-  placeholder: string;
-  onSubmit: () => void;
-  inputRef?: React.RefObject<HTMLTextAreaElement>;
-  disabled?: boolean;
-  testId?: string;
-}) {
-  return (
-    <div className="flex items-start gap-2">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-400 w-12 shrink-0 pt-2.5">
-        {label}
-      </p>
-      <Textarea
-        ref={inputRef}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        rows={2}
-        disabled={disabled}
-        className="text-sm resize-none flex-1"
-        onKeyDown={(e) => {
-          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-            e.preventDefault();
-            if (!disabled) onSubmit();
-          }
-        }}
-        data-testid={testId}
-      />
-    </div>
-  );
-}
-
-// ─── Friendly error mapping ─────────────────────────────────────────
-//
-// Server now returns ProviderError fields (kind, suggestions, etc.) on
-// regen failures. throwIfResNotOk in queryClient.ts copies them onto
-// the thrown Error. Map kind → user-facing copy here so the toast
-// reads as a coherent product message rather than a raw API dump.
-
-interface FriendlyError {
-  title: string;
-  description: string;
-}
-
-function friendlyRegenError(err: any): FriendlyError {
-  const kind: string | undefined = err?.kind;
-  const firstSuggestion: string | undefined = err?.suggestions?.[0];
-  const status: number | undefined =
-    err?.status ?? err?.response?.status;
-  const message: string | undefined =
-    typeof err?.message === 'string' ? err.message : undefined;
-
-  // 429 cap-reached — the route returns this when REGEN_HARD_CAP_PER_SIDE
-  // has been hit on this card's side, OR when the daily user limit fires.
-  // Both are explanatory enough to show verbatim — don't swallow them
-  // behind a generic "try again" message.
-  const looksLikeCap =
-    /\b(?:regen limit|daily generation limit|reached the limit)\b/i.test(
-      message ?? '',
-    );
-  if (looksLikeCap || (status === 429 && !kind)) {
-    return {
-      title: 'Hit the limit',
-      description:
-        message ?? "You've reached the regen limit on this card.",
-    };
-  }
-
-  switch (kind) {
-    case 'safety':
-      // Safety filter — the user can usually fix this with a different
-      // photo or scene. Surface the model's explanation if present.
-      return {
-        title: 'Safety filter caught it',
-        description: err?.modelExplanation
-          ? `Your card's still here. ${err.modelExplanation}`
-          : `Your card's still here. ${firstSuggestion ?? 'Try a different scene description or photo.'}`,
-      };
-    case 'rate':
-      return {
-        title: 'Slow down a sec',
-        description:
-          "We've hit a rate limit. Wait 30 seconds and try again — your card's still here.",
-      };
-    case 'server':
-      return {
-        title: 'Drawing engine’s busy',
-        description:
-          "Google's image model is overloaded right now. Try again in a minute, it usually clears fast. Your card's still here.",
-      };
-    case 'auth':
-      // Should never reach the user — backend misconfiguration.
-      return {
-        title: 'Something’s misconfigured',
-        description:
-          "We hit an authentication issue. The team's been notified — your card's still here.",
-      };
-    default:
-      return {
-        title: "That one didn’t land",
-        description: `Your card’s still here. ${firstSuggestion ?? message ?? 'Have another go in a moment.'}`,
-      };
-  }
-}
