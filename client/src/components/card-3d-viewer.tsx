@@ -132,6 +132,15 @@ interface Card3DViewerProps {
    *  not parented to the card group), so the card visibly lifts off
    *  its shadow as it bobs. Default false. */
   hover?: boolean;
+  /** Resting yaw of the whole card, in radians, applied to the card's
+   *  root group. Default 0 (straight-on). A small NEGATIVE value angles
+   *  the card to the left so the opening side (the cover's free right
+   *  edge) turns toward the viewer — which makes a `closedAngle` ajar
+   *  actually read as "open a crack" instead of a flat skew, because you
+   *  can see INTO the gap. Pair with `closedAngle` for a resting "peek".
+   *  The camera/OrbitControls are unchanged, so drag-to-rotate still
+   *  orbits freely around this resting pose. */
+  restYaw?: number;
 }
 
 export function Card3DViewer({
@@ -153,6 +162,7 @@ export function Card3DViewer({
   openProgress,
   closedAngle = 0,
   hover = false,
+  restYaw = 0,
 }: Card3DViewerProps) {
   const insideUrl = insideImageUrl ?? frontImageUrl;
   const [openState, setOpenState] = useState(false);
@@ -338,6 +348,7 @@ export function Card3DViewer({
           openProgress={openProgress}
           closedAngle={closedAngle}
           hover={hover}
+          restYaw={restYaw}
         />
       </Canvas>
       {/* The hit zone — invisible, sits over roughly the card's visible
@@ -427,6 +438,7 @@ function Scene({
   openProgress,
   closedAngle,
   hover,
+  restYaw,
 }: {
   frontUrl: string;
   insideUrl: string;
@@ -447,6 +459,7 @@ function Scene({
   openProgress?: MotionValue<number>;
   closedAngle: number;
   hover: boolean;
+  restYaw: number;
 }) {
   return (
     <>
@@ -492,6 +505,7 @@ function Scene({
         openProgress={openProgress}
         closedAngle={closedAngle}
         hover={hover}
+        restYaw={restYaw}
       />
 
       {/* Ground shadow — two layers. The soft broad layer reads as
@@ -642,6 +656,7 @@ function Card({
   openProgress,
   closedAngle,
   hover,
+  restYaw,
 }: {
   frontUrl: string;
   insideUrl: string;
@@ -651,6 +666,7 @@ function Card({
   openProgress?: MotionValue<number>;
   closedAngle: number;
   hover: boolean;
+  restYaw: number;
 }) {
   const { gl } = useThree();
   const maxAnisotropy = useMemo(() => gl.capabilities.getMaxAnisotropy(), [gl]);
@@ -694,6 +710,12 @@ function Card({
     if (!rootRef.current || !coverRef.current) return;
     const cover = coverRef.current;
     const root = rootRef.current;
+
+    // Resting yaw — angle the whole card so an ajar cover reads as a real
+    // opening (you see into the gap) rather than a flat skew. Constant
+    // pose; OrbitControls moves the camera, not this group, so drag-to-
+    // rotate still orbits freely around it.
+    root.rotation.y = restYaw;
 
     // Hover bob — sine oscillation in y, applied to the card's root
     // group. ContactShadows live at scene level (not parented to this

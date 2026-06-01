@@ -806,7 +806,12 @@ export function ImagineDescribeShipSection() {
                       minDistance={2.2}
                       enableZoom={false}
                       enableRotate
-                      closedAngle={0}
+                      /* Resting ajar (Kevin 2026-06-01) — gentle peek so
+                         the revealed card reads as openable. Matches the
+                         hero + studio card view (-0.3 rad). */
+                      closedAngle={-0.3}
+                      /* Slight left angle so the ajar reads as 3D depth. */
+                      restYaw={-0.1}
                       open={cardManualOpen}
                       onOpenChange={setCardManualOpen}
                       /* Hit zone hugs the card (2026-06-01) — drop the

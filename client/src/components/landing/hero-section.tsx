@@ -528,13 +528,18 @@ export function HeroSection() {
                        `open` state above (controlled). */
                     enableZoom={false}
                     enableRotate={true}
-                    /* Square-on at rest (Kevin call 2026-05-05):
-                       earlier `closedAngle` values left the card
-                       looking ajar / lopsided. The hints below the
-                       card already do the "tap to open / drag to
-                       rotate" work — the visual hint isn't needed.
-                       Square-on lets the front art read cleanly. */
-                    closedAngle={0}
+                    /* Resting ajar (Kevin 2026-06-01): a gentle peek so
+                       the card reads as a real openable object, not a flat
+                       image. Earlier attempts looked lopsided because the
+                       angle was too big on a dead-on camera (the cover
+                       hinges on one side, so a big swing skews). -0.3 rad
+                       (~17°, ~14% of the full open) is a modest peek.
+                       Matches the brainstorm reveal + studio card view. */
+                    closedAngle={-0.3}
+                    /* Slight left angle on the resting card so the ajar
+                       reads as 3D depth, not a flat skew. Tunable; matches
+                       the other surfaces. */
+                    restYaw={-0.1}
                     /* Hit zone hugs the card (2026-06-01). Previously the
                        hit zone was sized as a % of the bleed-wrapper WIDTH
                        (closed 30% → ~40% of bleed width), which — because
