@@ -34,6 +34,16 @@ import { ImageOff, Loader2 } from 'lucide-react';
 
 export type ThumbTarget = 'front' | 'inside' | 'both';
 
+// G10 — staged wait copy shown under the spinner during a regen, advancing
+// every ~13s. Honest stages (no fake progress %); makes a 45-90s wait read
+// as "working" rather than "stuck on a spinner".
+const WAIT_MESSAGES = [
+  'Reading your tweak…',
+  'Re-drawing the scene…',
+  'Bringing it to life…',
+  'Almost there…',
+];
+
 interface CardThumbProps {
   frontUrl: string | null;
   insideUrl: string | null;
@@ -142,6 +152,22 @@ function ThumbChassis({
 
   const showOverlay = isGenerating || holdForDecode;
 
+  // G10 — progressive wait feedback. A lone static spinner for 45-90s
+  // reads as "stuck"; a line that advances through honest stages reads as
+  // "working". Steps are time-based (no fake %), capped at the last one.
+  const [waitStep, setWaitStep] = useState(0);
+  useEffect(() => {
+    if (!isGenerating) {
+      setWaitStep(0);
+      return;
+    }
+    const id = setInterval(
+      () => setWaitStep((s) => Math.min(s + 1, WAIT_MESSAGES.length - 1)),
+      13000,
+    );
+    return () => clearInterval(id);
+  }, [isGenerating]);
+
   return (
     <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
       <div className="aspect-square bg-stone-50 relative">
@@ -182,9 +208,24 @@ function ThumbChassis({
               data-testid="thumb-spinner"
             >
               <Loader2 className="w-6 h-6 text-brand animate-spin" />
-              <p className="text-[10px] uppercase tracking-[0.2em] font-medium text-stone-500">
-                Regenerating
-              </p>
+              {/* G10 — rotating wait copy. Crossfade between honest stages so a
+                  45-90s wait reads as "working", not "stuck". During the brief
+                  decode-hold (holdForDecode, not isGenerating) waitStep is 0,
+                  so it settles on the first line — fine for a sub-second beat. */}
+              <div className="h-3 flex items-center justify-center overflow-hidden">
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={waitStep}
+                    className="text-[10px] uppercase tracking-[0.2em] font-medium text-stone-500"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {WAIT_MESSAGES[waitStep]}
+                  </motion.p>
+                </AnimatePresence>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
