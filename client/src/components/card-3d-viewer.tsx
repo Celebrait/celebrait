@@ -30,7 +30,7 @@
 // This is NOT the full CelebrationCard from celebrait-card-brief.md.
 // That's a Sprint 5+ rebuild (envelope, seal, state machine, audio).
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { ContactShadows, OrbitControls, useTexture } from '@react-three/drei';
 import type { MotionValue } from 'framer-motion';
@@ -254,8 +254,46 @@ export function Card3DViewer({
   const hitZoneInsetPct = open ? openInsetPct : closedInsetPct;
   const [hitEl, setHitEl] = useState<HTMLDivElement | null>(null);
 
+  // ── Card-hugging hit zone (px-accurate) ────────────────────────────
+  // The % model above sizes the hit square as a fraction of the wrapper
+  // WIDTH. That only matches the card when the wrapper's bounds equal the
+  // card's visible footprint. Inside a "bleed" wrapper (much larger than
+  // the card, so it can rotate/zoom without clipping) the % square balloons
+  // way past the card — you end up able to drag/rotate while hovering empty
+  // space around it (Kevin 2026-06-01: "the hit point is too large").
+  //
+  // Fix: when no explicit `hitZoneInsetPercent` is given, size the hit zone
+  // to the card's ACTUAL rendered footprint, in px. InitialCameraFit frames
+  // the card to span 1/framingMargin of the wrapper's SMALLER dimension, so
+  // the on-screen card is a square of side ≈ min(w, h) / framingMargin. We
+  // measure the wrapper and size the hit square to that (× 0.96 so it sits
+  // just inside the silhouette and never spills onto empty space). Surfaces
+  // that pass an explicit inset (recipient viewer = 0 full, landing heroes
+  // = 30) keep the % model and are unaffected.
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const [autoSquarePx, setAutoSquarePx] = useState<number | null>(null);
+  const useAutoHug = typeof hitZoneInsetPercent !== 'number';
+  useLayoutEffect(() => {
+    if (!useAutoHug) {
+      setAutoSquarePx(null);
+      return;
+    }
+    const el = wrapperRef.current;
+    if (!el) return;
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return;
+      setAutoSquarePx((Math.min(r.width, r.height) / framingMargin) * 0.96);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [useAutoHug, framingMargin]);
+
   return (
     <div
+      ref={wrapperRef}
       className={className}
       style={{
         position: 'relative',
@@ -342,7 +380,13 @@ export function Card3DViewer({
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: `${(100 - 2 * hitZoneInsetPct).toFixed(2)}%`,
+          // Auto-hug mode: an exact px square matching the card's rendered
+          // footprint. Otherwise the legacy %-of-width square (explicit
+          // inset callers). aspectRatio keeps it square in both cases.
+          width:
+            autoSquarePx != null
+              ? `${autoSquarePx.toFixed(1)}px`
+              : `${(100 - 2 * hitZoneInsetPct).toFixed(2)}%`,
           aspectRatio: '1 / 1',
           // Smooth width transition between closed/open hit zones.
           // ~500ms tracks the cover spring rotation roughly so the
