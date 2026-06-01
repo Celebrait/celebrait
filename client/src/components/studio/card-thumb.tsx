@@ -37,11 +37,20 @@ export type ThumbTarget = 'front' | 'inside' | 'both';
 // G10 — staged wait copy shown under the spinner during a regen, advancing
 // every ~13s. Honest stages (no fake progress %); makes a 45-90s wait read
 // as "working" rather than "stuck on a spinner".
+//
+// The TERMINAL stage is deliberately NOT a falsely-optimistic "Almost
+// there…" — a slow gen (60-90s+) would freeze on that line for the whole
+// tail and read as hanging (founder feedback 2026-06-01). Instead the last
+// step is an honest "taking a little longer" reassurance, so a long wait
+// still reads as alive + working rather than stuck. The real fix (set
+// expectations up front + leave-and-return) is queued in
+// next_wait_state_async_and_notifications.md.
 const WAIT_MESSAGES = [
   'Reading your tweak…',
   'Re-drawing the scene…',
   'Bringing it to life…',
-  'Almost there…',
+  'Adding the final details…',
+  'Still working — hang tight…',
 ];
 
 interface CardThumbProps {
@@ -212,11 +221,11 @@ function ThumbChassis({
                   45-90s wait reads as "working", not "stuck". During the brief
                   decode-hold (holdForDecode, not isGenerating) waitStep is 0,
                   so it settles on the first line — fine for a sub-second beat. */}
-              <div className="h-3 flex items-center justify-center overflow-hidden">
+              <div className="min-h-[0.75rem] px-3 flex items-center justify-center text-center">
                 <AnimatePresence mode="wait">
                   <motion.p
                     key={waitStep}
-                    className="text-[10px] uppercase tracking-[0.2em] font-medium text-stone-500"
+                    className="text-[10px] uppercase tracking-[0.18em] font-medium text-stone-500 leading-tight"
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
