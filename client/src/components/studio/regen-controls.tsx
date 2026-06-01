@@ -55,11 +55,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Check, Loader2, PenLine, Shield } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, PenLine } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { CardThumb, type ThumbTarget } from '@/components/studio/card-thumb';
+import { HowTweakingWorks } from '@/components/studio/how-tweaking-works';
 import {
   GenerationErrorPanel,
   type GenerationErrorKind,
@@ -593,23 +594,19 @@ export function RegenEditMode({
         </button>
       </div>
 
-      {/* Reassurance line — answers the two unspoken worries: "what will
-          this actually do?" (refine, not redraw) and "will I lose my
-          original / rack up cost?" (no — saved + free). The refine-not-
-          remake message is the highest-leverage clarity fix: the whole
-          point of the flow is that a tweak only changes what you ask for.
-          See next_regen_ux_audit.md. */}
-      <div className="mb-5 flex items-start gap-2 rounded-lg bg-stone-50 border border-stone-200 px-3 py-2">
-        <Shield
-          className="w-3.5 h-3.5 text-brand shrink-0 mt-0.5"
-          strokeWidth={2}
-          aria-hidden
-        />
-        <p className="text-[12px] text-stone-600 leading-snug">
-          Tweaks only change what you ask for — your card's face, text and
-          likeness stay put. Every version is saved and free, so flip back
-          any time using the row below the card.
+      {/* Reassurance is now a one-line nudge + a "How tweaking works" module
+          (2026-06-01, Kevin). The old always-on paragraph carried the whole
+          mental model in a run-on sentence AND pushed the card — the thing
+          the user came to see — down the page. The detail (you're editing
+          THIS design; be specific; you can change expressions/actions/
+          details/front text/inside message; you CAN'T change the photo or
+          likeness; front vs inside defined) now lives one tap away in
+          <HowTweakingWorks>. See next_regen_ux_audit.md. */}
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-[12px] text-stone-500 leading-snug">
+          Describe a change — your photo &amp; likeness stay put.
         </p>
+        <HowTweakingWorks />
       </div>
 
       {/* Photo + Style picker dialogs were removed when the regen flow
