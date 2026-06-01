@@ -34,8 +34,11 @@ import {
   User,
   Users,
   Check,
+  Lightbulb,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { Link } from 'wouter';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { queryClient } from '@/lib/queryClient';
@@ -56,6 +59,30 @@ interface PhotoStepProps {
 
 const CLIENT_MAX_BYTES = 15 * 1024 * 1024;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+
+// One-time photo-consent gate. The user confirms (once, then remembered)
+// that they have permission to use the photos they upload and agree to the
+// Terms + Privacy. Remembered in localStorage so it's asked once, not per
+// card. Versioned so we can re-prompt if the consent terms materially change.
+//
+// ⚠️ TODO(solicitor): this is a LIGHTWEIGHT scaffold. Before launch, confirm
+// with counsel: (1) the exact consent wording, (2) whether explicit consent
+// must be recorded SERVER-SIDE with a timestamp + terms-version (localStorage
+// is a per-device UX convenience, not a durable legal record), (3) whether
+// signup-ToS acceptance already covers this. See
+// next_photo_consent_and_tips.md + next_studio_safety_ux_and_ip.md.
+const PHOTO_CONSENT_KEY = 'celebrait:photo-consent:v1';
+
+function readPhotoConsent(): boolean {
+  try {
+    return (
+      typeof window !== 'undefined' &&
+      window.localStorage.getItem(PHOTO_CONSENT_KEY) === 'true'
+    );
+  } catch {
+    return false;
+  }
+}
 
 // Max photos per mode. one_person = 5 gives enough identity signal without
 // cost blowing up; group = 1 by definition (the photo already contains
@@ -147,6 +174,20 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
   // Mode + selected photos come from the draft state; legacy drafts that
   // predate the toggle default to one_person.
   const mode: PhotoMode = state.photos?.mode ?? 'one_person';
+
+  // One-time photo-consent gate (see PHOTO_CONSENT_KEY). Initialised from
+  // localStorage so a returning user who already confirmed isn't re-asked.
+  const [photoConsentGiven, setPhotoConsentGiven] = useState<boolean>(
+    readPhotoConsent,
+  );
+  const givePhotoConsent = () => {
+    setPhotoConsentGiven(true);
+    try {
+      window.localStorage.setItem(PHOTO_CONSENT_KEY, 'true');
+    } catch {
+      /* private mode / storage disabled — consent still holds for this session */
+    }
+  };
   const selectedIds = state.photos?.photoIds ?? [];
   const selectedPhotos: Photo[] = selectedIds
     .map((id) => photos?.find((p) => p.id === id))
@@ -862,8 +903,8 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
     <div className="max-w-2xl mx-auto">
       <p className="text-xs text-stone-500 mb-4">
         {recipientName
-          ? `We'll build ${recipientName}'s scene around this.`
-          : "We'll build the scene around this."}
+          ? `We'll use this to put ${recipientName} in the card — a clear photo of their face works best.`
+          : "We'll use this to put them in the card — a clear photo of their face works best."}
       </p>
 
       {/* Mode decision — card tiles, not a pill. The pair is the first
@@ -892,12 +933,56 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
         />
       </div>
 
+      {/* Tips — inline + mode-aware, not gated behind a modal. Helps the
+          user upload a photo that yields a good likeness. */}
+      <PhotoTips mode={mode} />
+
+      {/* One-time consent gate. Shown until the user confirms (then
+          remembered, see PHOTO_CONSENT_KEY) and gates the upload + library
+          so a photo of a real person isn't uploaded without the
+          affirmation. TODO(solicitor): exact wording + server-side record. */}
+      {!photoConsentGiven && (
+        <div
+          className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3"
+          data-testid="photo-consent"
+        >
+          <Checkbox
+            checked={photoConsentGiven}
+            onCheckedChange={(v) => {
+              if (v === true) givePhotoConsent();
+            }}
+            className="mt-0.5"
+            aria-label="I have permission to use these photos and agree to the Terms and Privacy Policy"
+            data-testid="photo-consent-checkbox"
+          />
+          <span className="text-[12.5px] text-stone-700 leading-snug">
+            I have permission to use these photos, and I agree to the{' '}
+            <Link
+              href="/terms-of-service"
+              className="text-brand hover:text-brand-dark underline underline-offset-2"
+            >
+              Terms
+            </Link>{' '}
+            and{' '}
+            <Link
+              href="/privacy-policy"
+              className="text-brand hover:text-brand-dark underline underline-offset-2"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </span>
+        </div>
+      )}
+
       {/* Primary upload CTA — single card, no peer. Library is a
-          subdued inline link below, not a competing tile. */}
+          subdued inline link below, not a competing tile. Disabled until
+          the one-time consent is given. */}
       <button
         type="button"
         onClick={triggerFilePicker}
-        className="w-full relative flex flex-col items-center justify-center gap-2 p-8 rounded-2xl border-2 border-brand bg-brand-muted hover:bg-brand-muted/70 transition-colors text-center"
+        disabled={!photoConsentGiven}
+        className="w-full relative flex flex-col items-center justify-center gap-2 p-8 rounded-2xl border-2 border-brand bg-brand-muted hover:bg-brand-muted/70 transition-colors text-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-brand-muted"
         data-testid="btn-upload-photo"
       >
         <div className="w-12 h-12 rounded-full bg-white border-2 border-brand flex items-center justify-center shadow-sm">
@@ -918,7 +1003,8 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
           <button
             type="button"
             onClick={() => setLibraryOpen(true)}
-            className="text-xs text-stone-600 hover:text-ink underline underline-offset-2"
+            disabled={!photoConsentGiven}
+            className="text-xs text-stone-600 hover:text-ink underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-stone-600"
             data-testid="btn-pick-from-library"
           >
             <ImageIcon className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" />
@@ -926,6 +1012,18 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
           </button>
         </div>
       )}
+
+      {/* Standing permission/privacy notice — always visible, even after
+          the one-time checkbox is gone. TODO(solicitor): final wording. */}
+      <p className="text-[11px] text-stone-400 mt-4 text-center leading-snug">
+        We use your photos only to create this card.{' '}
+        <Link
+          href="/privacy-policy"
+          className="underline underline-offset-2 hover:text-stone-600"
+        >
+          How we handle photos
+        </Link>
+      </p>
 
       {/* Tertiary — moved well down, quieter, no false-affordance
           violet. Serves the rare multi-individual case without
@@ -1108,6 +1206,52 @@ function PhotoTile({
  * so users re-use muscle memory from step 1. Icon tile + label +
  * one-line explainer inline, tick badge when selected.
  */
+// ── PhotoTips — inline, mode-aware "what makes a good photo" guidance.
+// Always visible on the empty state (not a dismissable modal) so it's
+// read where it's acted on. Copy differs slightly for group vs single.
+function PhotoTips({ mode }: { mode: PhotoMode }) {
+  const tips =
+    mode === 'group'
+      ? [
+          'One photo with everyone in it',
+          'Faces clearly visible and facing the camera',
+          'Even lighting — avoid heavy shadows or backlight',
+        ]
+      : [
+          'A clear, front-on photo of their face',
+          'Even lighting — avoid heavy shadows or backlight',
+          'A few different angles help the likeness',
+        ];
+  return (
+    <div
+      className="mb-4 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3"
+      data-testid="photo-tips"
+    >
+      <div className="flex items-center gap-1.5 mb-2">
+        <Lightbulb className="w-3.5 h-3.5 text-brand" strokeWidth={2} aria-hidden />
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink">
+          Tips for a great result
+        </p>
+      </div>
+      <ul className="space-y-1">
+        {tips.map((t) => (
+          <li
+            key={t}
+            className="flex items-start gap-2 text-[12.5px] text-stone-600 leading-snug"
+          >
+            <Check
+              className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5"
+              strokeWidth={2.5}
+              aria-hidden
+            />
+            <span>{t}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function ModeTile({
   Icon,
   label,
