@@ -809,8 +809,12 @@ export function ImagineDescribeShipSection() {
                       closedAngle={0}
                       open={cardManualOpen}
                       onOpenChange={setCardManualOpen}
-                      hitZoneInsetPercent={30}
-                      openHitZoneInsetPercent={10}
+                      /* Hit zone hugs the card (2026-06-01) — drop the
+                         explicit %-of-bleed-width insets so the hit zone
+                         auto-sizes to the card's actual rendered footprint
+                         in px, same as the hero + studio card view. The old
+                         30% inset over this big bleed wrapper left the
+                         interactive area far larger than the card. */
                       className="w-full h-full"
                     />
                   </Suspense>

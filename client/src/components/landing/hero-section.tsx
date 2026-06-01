@@ -535,28 +535,16 @@ export function HeroSection() {
                        rotate" work — the visual hint isn't needed.
                        Square-on lets the front art read cleanly. */
                     closedAngle={0}
-                    /* Two-state hit zone (Kevin call 2026-05-05).
-                       Earlier the hit zone was statically wide (18%
-                       inset) and clicks well outside the card
-                       silhouette were opening it.
-                       Note: pointer handlers also moved to the root
-                       <group> in Card3DViewer (was on the invisible
-                       box mesh) so any click on the VISIBLE cover /
-                       inside / back fires the open. Without that
-                       fix, only clicks outside the cover's bounds
-                       (where the box mesh extended past the cover)
-                       fired — Kevin's "only far-right opens" bug.
-                       Now:
-                       - Closed: 30% inset (~40% of bleed width) —
-                         matches the visible card silhouette so the
-                         cursor-grab hand only shows OVER the card.
-                       - Open: 10% inset (~80% of bleed width) —
-                         covers the cover's swung-out position AND
-                         the inside spread.
-                       Width transitions via CSS so the bounds
-                       animate alongside the cover's spring open. */
-                    hitZoneInsetPercent={30}
-                    openHitZoneInsetPercent={10}
+                    /* Hit zone hugs the card (2026-06-01). Previously the
+                       hit zone was sized as a % of the bleed-wrapper WIDTH
+                       (closed 30% → ~40% of bleed width), which — because
+                       the bleed is huge — still extended well past the card
+                       silhouette: you could grab/rotate on empty space
+                       around it (Kevin). Dropping the explicit insets lets
+                       Card3DViewer auto-size the hit zone to the card's
+                       actual rendered footprint in px (same fix as the
+                       studio card view). Card-hug applies in both states;
+                       the centred inside spread is still covered when open. */
                     className="w-full h-full"
                   />
                 </Suspense>
