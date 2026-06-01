@@ -109,6 +109,19 @@ export function GivingMoment({
   // valid across formats — so we keep the destination selection when
   // format changes. Only the copy below re-renders.
 
+  // Step-1 "Back to card" — leaves the giving flow back to wherever the
+  // user came from. /give has two entry points (the maker reveal and the
+  // gallery card view), so history-back returns them to the right one
+  // rather than a hardcoded route. Falls back to the card's own view page
+  // for a deep-link with no history to pop.
+  const goBackToCard = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back();
+    } else {
+      setLocation(`/studio/card/${cardId}`);
+    }
+  };
+
   const commitAndGo = async (resolved: NonNullable<CardDraftState['delivery']>) => {
     if (submitting) return;
     setSubmitting(true);
@@ -146,9 +159,22 @@ export function GivingMoment({
         <>
           {/* ── Step 1 — Format ───────────────────────────────────── */}
           <div className="space-y-1">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-stone-400 font-semibold">
-              Step 1 of 2
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-stone-400 font-semibold">
+                Step 1 of 2
+              </p>
+              {/* Exit the giving flow back to the card. Labelled "Back to
+                  card" (vs step 2's within-flow "Back") so its scope reads
+                  clearly. */}
+              <button
+                type="button"
+                onClick={goBackToCard}
+                className="inline-flex items-center gap-1 text-xs text-stone-500 hover:text-ink"
+                data-testid="giving-moment-back-to-card"
+              >
+                <ArrowLeft className="w-3 h-3" /> Back to card
+              </button>
+            </div>
             <h2 className="text-lg font-semibold text-ink">
               How would you like to give it?
             </h2>
