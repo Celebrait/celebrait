@@ -249,6 +249,14 @@ export function RegenEditMode({
   const insideBlank = !hasInside || tweakInside.trim().length === 0;
   const bothBlank = frontBlank && insideBlank;
 
+  // When nothing's typed, the user isn't asking to change anything — the
+  // primary action is to COMMIT the selected versions and head back to the
+  // card (the 3D render + pay path), not to regenerate. This gives a
+  // concrete "I'm done, use these" affordance in the resting state instead
+  // of a disabled "Make a new version" dead-end. When a change is typed the
+  // primary flips back to the regen action.
+  const committing = !anyBusy && bothBlank;
+
   const handleSubmit = async () => {
     const front = tweakFront.trim() || undefined;
     const inside = hasInside ? tweakInside.trim() || undefined : undefined;
@@ -619,22 +627,29 @@ export function RegenEditMode({
                   >
                     {anyBusy
                       ? 'Crafting your new version…'
-                      : bothBlank
-                        ? 'Type a change to begin'
+                      : committing
+                        ? 'Happy with these? Or describe a change below.'
                         : timeHint}
                   </p>
                   <Button
                     type="button"
                     size="lg"
-                    onClick={handleSubmit}
-                    disabled={anyBusy || bothBlank}
+                    // Contextual primary: commit-and-go when nothing's typed,
+                    // regenerate when a change is described.
+                    onClick={committing ? onExit : handleSubmit}
+                    disabled={anyBusy}
                     className="bg-brand hover:bg-brand-dark text-brand-foreground w-full sm:w-auto"
-                    data-testid="btn-regen-submit"
+                    data-testid={committing ? 'btn-regen-use' : 'btn-regen-submit'}
                   >
                     {anyBusy ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         Crafting your new version…
+                      </>
+                    ) : committing ? (
+                      <>
+                        <Check className="w-4 h-4 mr-1.5" strokeWidth={2.5} />
+                        Use this card
                       </>
                     ) : (
                       'Make a new version'
