@@ -204,6 +204,44 @@ function LoadedView({
         attemptId: vars.attemptId,
       });
     },
+    // Optimistically point the card's displayed image (and the isSelected
+    // flags) at the chosen attempt IMMEDIATELY. Without this, the new
+    // version's URL only lands on the next refetch (onSettled), so exiting
+    // to the 3D view rendered the OLD texture for a beat before swapping —
+    // the "not fresh clean when landing on the new version" flash. Updating
+    // the cache here means frontImageUrl/insideImageUrl (and the texture
+    // preload that depends on them) are already correct before we leave the
+    // regen surface, so the 3D mounts straight onto the new version.
+    onMutate: async (vars) => {
+      const key = [`/api/studio/drafts/${card.id}`];
+      await queryClient.cancelQueries({ queryKey: key });
+      const prev = queryClient.getQueryData<CardViewData>(key);
+      const attempt = prev?.attempts?.find((a) => a.id === vars.attemptId);
+      if (prev && attempt?.imageUrl) {
+        queryClient.setQueryData<CardViewData>(key, {
+          ...prev,
+          frontImageUrl:
+            attempt.side === 'front' ? attempt.imageUrl : prev.frontImageUrl,
+          insideImageUrl:
+            attempt.side === 'inside' ? attempt.imageUrl : prev.insideImageUrl,
+          attempts: (prev.attempts ?? []).map((a) =>
+            a.side === attempt.side
+              ? { ...a, isSelected: a.id === attempt.id }
+              : a,
+          ),
+        });
+      }
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      // Roll back so the UI doesn't lie about the committed version.
+      if (ctx?.prev) {
+        queryClient.setQueryData(
+          [`/api/studio/drafts/${card.id}`],
+          ctx.prev,
+        );
+      }
+    },
     onSettled: () => {
       queryClient.invalidateQueries({
         queryKey: [`/api/studio/drafts/${card.id}`],
