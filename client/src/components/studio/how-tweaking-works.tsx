@@ -160,6 +160,16 @@ export function HowTweakingWorks() {
             </div>
           </div>
 
+          {/* Style-coherence nudge — a tweak only changes the side you
+              type in, so a whole-look change on the front can leave the
+              inside (styled to match) looking out of step. Point the user
+              at the fix they already have: tweak both. See
+              next_regen_ux_audit.md (front/inside coherence gap). */}
+          <p className="text-[12px] text-stone-500 leading-snug">
+            Changing the <span className="font-medium text-ink">whole look</span>{' '}
+            of the scene? Tweak the inside too, so the two sides still match.
+          </p>
+
           <p className="text-[11.5px] text-stone-400 leading-snug pt-0.5">
             Every version is saved and free, so you can flip back any time
             using the row below the card.

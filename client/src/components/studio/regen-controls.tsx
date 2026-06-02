@@ -112,6 +112,21 @@ export function RegenEditMode({
   const insideTextareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
+  // G3 — scroll to the top of the edit surface on entry. The reveal the
+  // user came from may have been scrolled down, so without this the edit
+  // mode opens mid-page (card + controls below the fold = the "scroll
+  // jump"). Instant (not smooth) so it doesn't race the surface's fade-in.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+
+  // G6 — autofocus the Front tweak box when the user RE-enters tweaking
+  // (clicks "Keep tweaking"), but NOT on first landing (that would pop the
+  // mobile keyboard over the card before they've even looked at it). Starts
+  // false; flipped true the first time enterTweakingMode runs, so every
+  // keep-tweaking pass lands the cursor ready to type.
+  const [autoFocusTweak, setAutoFocusTweak] = useState(false);
+
   // ── Regen failure state ────────────────────────────────────────────
   // When a regen fails (safety / rate / server / 503), capture the
   // structured ProviderError fields here and render an inline
@@ -220,7 +235,10 @@ export function RegenEditMode({
     wasBusyRef.current = anyBusy;
   }, [anyBusy, regenError]);
 
-  const enterTweakingMode = () => setMode('tweaking');
+  const enterTweakingMode = () => {
+    setAutoFocusTweak(true);
+    setMode('tweaking');
+  };
 
   const showSoftCap =
     completedFront.length >= SOFT_CAP_PER_SIDE ||
@@ -550,6 +568,7 @@ export function RegenEditMode({
                   onSubmit={handleSubmit}
                   inputRef={frontTextareaRef}
                   disabled={anyBusy}
+                  autoFocus={autoFocusTweak}
                   testId="input-regen-tweak-front"
                 />
                 {hasInside && (
@@ -589,8 +608,10 @@ export function RegenEditMode({
               </p>
 
               {/* Submit — sticky-bottom on mobile so it stays above the
-                  keyboard. Disabled only when both boxes are blank. */}
-              <div className="fixed sm:static bottom-0 inset-x-0 px-4 sm:px-0 py-3 sm:py-0 bg-white/95 sm:bg-transparent backdrop-blur sm:backdrop-blur-0 border-t sm:border-0 border-stone-200">
+                  keyboard. G6: bottom padding adds the safe-area inset so
+                  the bar clears the iPhone home indicator / gesture bar
+                  instead of sitting under it. */}
+              <div className="fixed sm:static bottom-0 inset-x-0 px-4 sm:px-0 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:py-0 bg-white/95 sm:bg-transparent backdrop-blur sm:backdrop-blur-0 border-t sm:border-0 border-stone-200">
                 <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
                   <p
                     className="text-[11px] text-stone-400 hidden sm:block"
@@ -707,6 +728,7 @@ function SidedTweakInput({
   onSubmit,
   inputRef,
   disabled,
+  autoFocus,
   testId,
 }: {
   label: string;
@@ -716,6 +738,7 @@ function SidedTweakInput({
   onSubmit: () => void;
   inputRef?: React.RefObject<HTMLTextAreaElement>;
   disabled?: boolean;
+  autoFocus?: boolean;
   testId?: string;
 }) {
   return (
@@ -730,6 +753,7 @@ function SidedTweakInput({
         placeholder={placeholder}
         rows={2}
         disabled={disabled}
+        autoFocus={autoFocus}
         className="text-sm resize-none flex-1"
         onKeyDown={(e) => {
           if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
