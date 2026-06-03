@@ -83,6 +83,9 @@ const CardMakerPage = lazy(() =>
 // Public card viewer — drags in Card3DViewer + Three.js, multi-MB.
 const CardViewerPage = lazy(() => import("@/pages/card-viewer"));
 
+// Hero scroll-dolly PROOF OF CONCEPT — isolated, not linked.
+const HeroScrollPocPage = lazy(() => import("@/pages/hero-scroll-poc"));
+
 // Checkout
 const CheckoutPage = lazy(() => import("@/pages/checkout"));
 const CheckoutDevConfirmPage = lazy(
@@ -120,6 +123,7 @@ function Router() {
       <Suspense fallback={<RouteFallback />}>
         <Switch>
           <Route path="/" component={Landing} />
+          <Route path="/hero-poc" component={HeroScrollPocPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/pricing" component={PricingPage} />
           <Route path="/privacy-policy" component={PrivacyPolicy} />
