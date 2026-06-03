@@ -39,7 +39,7 @@ export default function HeroScrollPocPage() {
   // Drive the studio card as we approach beat 3: name + occasion toggle IN
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
-    const sub = clamp((v - 0.34) / (0.55 - 0.34), 0, 1);
+    const sub = clamp((v - 0.34) / (0.56 - 0.34), 0, 1);
     if (sub <= 0) {
       setName('');
       setSelectedIdx(-1);
@@ -62,13 +62,16 @@ export default function HeroScrollPocPage() {
   // Beat 1 — intro: full at top, zooms through + fades.
   const z1 = useTransform(scrollYProgress, [0, 0.2], [0, 880]);
   const o1 = useTransform(scrollYProgress, [0, 0.12, 0.2], [1, 1, 0]);
-  // Beat 2 — "Choose your celebration": approaches, full, zooms through.
-  const z2 = useTransform(scrollYProgress, [0.14, 0.3, 0.42], [-720, 0, 880]);
-  const o2 = useTransform(scrollYProgress, [0.2, 0.3, 0.38, 0.44], [0, 1, 1, 0]);
-  // Beat 3 — studio card: approaches + zooms straight through (no pause). The
-  // name/occasion land on Sarah + Anniversary just before the camera reaches it.
-  const z3 = useTransform(scrollYProgress, [0.34, 0.54, 0.7], [-760, 0, 760]);
-  const o3 = useTransform(scrollYProgress, [0.34, 0.46, 0.62, 0.7], [0, 1, 1, 0]);
+  // Beat 2 — "Choose your celebration": approaches, becomes readable, then
+  // settles back + DIMS so the studio card can fade in over the top of it
+  // (the headline sits behind the card — film-style depth layering).
+  const z2 = useTransform(scrollYProgress, [0.14, 0.28, 0.66, 0.74], [-720, 0, 80, 720]);
+  const o2 = useTransform(scrollYProgress, [0.14, 0.24, 0.34, 0.6, 0.72], [0, 1, 1, 0.35, 0]);
+  // Beat 3 — studio card: instead of dollying in from far, it FADES IN quickly
+  // in the foreground, over the still-visible headline. Name/occasion land on
+  // Sarah + Anniversary, then the whole thing zooms straight through (no pause).
+  const z3 = useTransform(scrollYProgress, [0.34, 0.56, 0.72], [-40, 40, 820]);
+  const o3 = useTransform(scrollYProgress, [0.34, 0.4, 0.66, 0.72], [0, 1, 1, 0]);
   // Beat 4 — "Select your photo(s)": approaches, lands, holds (end).
   const z4 = useTransform(scrollYProgress, [0.72, 0.9, 1], [-760, 0, 60]);
   const o4 = useTransform(scrollYProgress, [0.72, 0.88, 1], [0, 1, 1]);
