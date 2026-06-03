@@ -236,14 +236,7 @@ function StudioCard({
 }) {
   return (
     <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
-      <h2 className="text-[22px] font-bold text-ink leading-tight">
-        Who's this card for?
-      </h2>
-      <p className="text-[13px] text-stone-500 mt-1.5">
-        A name and a reason — that's all we need to start.
-      </p>
-
-      <p className="text-[13px] text-ink mt-5 mb-1.5">Name</p>
+      <p className="text-[13px] text-ink mb-1.5">Name</p>
       <div className="rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[15px] min-h-[46px] flex items-center">
         {name ? (
           <span className="text-ink">
@@ -321,14 +314,7 @@ function PhotoCard({ selected }: { selected: number }) {
   };
   return (
     <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
-      <h2 className="text-[22px] font-bold text-ink leading-tight">
-        Add your photos
-      </h2>
-      <p className="text-[13px] text-stone-500 mt-1.5">
-        A few clear angles of Sarah — more = better likeness.
-      </p>
-
-      <div className="grid grid-cols-3 gap-2.5 mt-5">
+      <div className="grid grid-cols-3 gap-2.5">
         {PHOTOS.map((g, i) => {
           const sel = isSelected(i);
           return (
@@ -365,15 +351,8 @@ function SceneCard({ typed }: { typed: string }) {
   const empty = typed.length === 0;
   return (
     <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
-      <h2 className="text-[22px] font-bold text-ink leading-tight">
-        What's the picture?
-      </h2>
-      <p className="text-[13px] text-stone-500 mt-1.5">
-        Who's there, where they are, what they're doing.
-      </p>
-
       {/* Textarea-styled box — the scene types itself in with a live cursor. */}
-      <div className="mt-5 rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed min-h-[104px] text-ink">
+      <div className="rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed min-h-[104px] text-ink">
         {empty ? (
           <span className="text-stone-400">
             e.g. Sarah at golden hour on an Italian terrace…
