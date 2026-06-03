@@ -23,7 +23,7 @@
 // example once produced. One swap here updates every step.
 
 import { useEffect, useState } from 'react';
-import { Lightbulb } from 'lucide-react';
+import { Lightbulb, Loader2 } from 'lucide-react';
 import { useTexture } from '@react-three/drei';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import {
@@ -59,6 +59,20 @@ export function StepExample({
 }: StepExampleProps) {
   const [open, setOpen] = useState(false);
   const showInside = show === 'inside';
+
+  // Spinner-then-card: the 3D canvas takes a beat to spin up on open. Show a
+  // spinner in the card slot until it's had time to render, then fade to the
+  // card — so the wait reads as an intentional load, not a late pop-in. The
+  // canvas remounts on each open, so reset per open.
+  const [cardReady, setCardReady] = useState(false);
+  useEffect(() => {
+    if (!open) {
+      setCardReady(false);
+      return;
+    }
+    const t = window.setTimeout(() => setCardReady(true), 550);
+    return () => window.clearTimeout(t);
+  }, [open]);
 
   // Preload the example textures the moment the trigger renders on the step
   // — well before the user opens the modal — so the 3D card materialises
@@ -148,6 +162,19 @@ export function StepExample({
                 framingMargin={showInside ? 1.72 : 1.7}
                 minDistance={showInside ? 1.0 : 2.5}
                 className="w-full h-full"
+              />
+            </div>
+            {/* Spinner over the card slot while the canvas spins up; fades
+                out to reveal the card once it's had time to render. */}
+            <div
+              className={`absolute inset-0 z-30 flex items-center justify-center bg-background transition-opacity duration-300 ${
+                cardReady ? 'pointer-events-none opacity-0' : 'opacity-100'
+              }`}
+              aria-hidden
+            >
+              <Loader2
+                className="w-7 h-7 text-brand animate-spin"
+                strokeWidth={1.75}
               />
             </div>
           </div>
