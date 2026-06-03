@@ -110,8 +110,11 @@ export function StepExample({
                 insideImageUrl={exampleInside}
                 open={showInside}
                 instantOpen={showInside}
-                closedAngle={0}
-                restYaw={0}
+                // Inside view: open + straight-on. Front view: the slightly-
+                // ajar resting pose used on the landing 3D (gentle peek + a
+                // touch of left turn) so it reads as a real 3D card, not flat.
+                closedAngle={showInside ? 0 : -0.3}
+                restYaw={showInside ? 0 : -0.1}
                 interactive={false}
                 enableRotate={false}
                 enableZoom={false}

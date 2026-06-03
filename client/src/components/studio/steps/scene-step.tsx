@@ -209,7 +209,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
         <div className="mb-3">
           <StepExample
             eyebrow="Front Scene Example"
-            assist="Not sure what to picture?"
+            assist="Not sure what to describe?"
             modalTitle="Front scene example"
             modalDescription="The front of the card is the picture — who's there, where they are, what they're doing. Describe the moment and we'll bring it to life in this style."
             show="front"

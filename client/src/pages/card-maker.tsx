@@ -630,7 +630,7 @@ function getStepHeadline(stepId: StepId, state: CardDraftState): string {
     case 'photo':
       return 'Upload Photo(s)';
     case 'scene':
-      return `Set the scene for the front of ${ownedCard}`;
+      return `Describe the scene for the front of ${ownedCard}`;
     case 'front':
       return `What should it say on the front of ${ownedCard}?`;
     case 'inside':
