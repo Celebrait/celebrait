@@ -66,8 +66,8 @@ export default function HeroScrollPocPage() {
     const ps = clamp((v - 0.38) / (0.48 - 0.38), 0, 1);
     setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
 
-    // Beat 4 — scene description types in as the card lands + holds (slows).
-    const ps5 = clamp((v - 0.6) / (0.69 - 0.6), 0, 1);
+    // Beat 4 — scene description types in during the slow crawl.
+    const ps5 = clamp((v - 0.62) / (0.71 - 0.62), 0, 1);
     setSceneLen(Math.round(ps5 * SCENE_TEXT.length));
 
     // Beat 5 — front headline types in as the final card lands + holds.
@@ -103,9 +103,9 @@ export default function HeroScrollPocPage() {
   // Beat 3 — "Select your photo(s)": constant-pace dolly through; photos tick in mid-pass.
   const z4 = useTransform(scrollYProgress, [0.3, 0.54], [-720, 760]);
   const o4 = useTransform(scrollYProgress, [0.3, 0.35, 0.49, 0.54], [0, 1, 1, 0]);
-  // Beat 4 — "Describe the scene": approaches, lands + HOLDS (slows) while the
-  // scene types in, then dollies through to the final beat.
-  const z5 = useTransform(scrollYProgress, [0.5, 0.63, 0.7, 0.78], [-720, 0, 0, 820]);
+  // Beat 4 — "Describe the scene": approaches, SLOWS to a crawl (never fully
+  // stops) through the readable zone while the scene types in, then dollies on.
+  const z5 = useTransform(scrollYProgress, [0.5, 0.62, 0.72, 0.78], [-720, -40, 40, 820]);
   const o5 = useTransform(scrollYProgress, [0.5, 0.56, 0.72, 0.78], [0, 1, 1, 0]);
   // Beat 5 — "Add text to the front": approaches, lands + holds (end of journey).
   const z6 = useTransform(scrollYProgress, [0.76, 0.9, 1], [-720, 0, 60]);
