@@ -39,7 +39,7 @@ export default function HeroScrollPocPage() {
   // Drive the studio card as we approach beat 3: name + occasion toggle IN
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
-    const sub = clamp((v - 0.3) / (0.62 - 0.3), 0, 1);
+    const sub = clamp((v - 0.16) / (0.56 - 0.16), 0, 1);
     if (sub <= 0) {
       setName('');
       setSelectedIdx(-1);
@@ -65,11 +65,12 @@ export default function HeroScrollPocPage() {
   // Beat 2 — "Choose your celebration" + the studio card move together as ONE
   // locked group: the headline dollies in and reads, the card JOINS later (quick
   // reveal, no soft cross-fade), then the whole pair dollies + fades out as one.
-  const zChoose = useTransform(scrollYProgress, [0.16, 0.3, 0.66, 0.76], [-720, 0, 60, 760]);
-  const oChoose = useTransform(scrollYProgress, [0.16, 0.26, 0.64, 0.74], [0, 1, 1, 0]);
+  // Constant-pace dolly straight through (no mid-section slowdown).
+  const zChoose = useTransform(scrollYProgress, [0.16, 0.76], [-720, 760]);
+  const oChoose = useTransform(scrollYProgress, [0.16, 0.24, 0.6, 0.7], [0, 1, 1, 0]);
   // Beat 4 — "Select your photo(s)": approaches, lands, holds (end).
-  const z4 = useTransform(scrollYProgress, [0.78, 0.92, 1], [-760, 0, 60]);
-  const o4 = useTransform(scrollYProgress, [0.78, 0.9, 1], [0, 1, 1]);
+  const z4 = useTransform(scrollYProgress, [0.74, 0.9, 1], [-760, 0, 60]);
+  const o4 = useTransform(scrollYProgress, [0.74, 0.88, 1], [0, 1, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.06], [1, 0]);
 
