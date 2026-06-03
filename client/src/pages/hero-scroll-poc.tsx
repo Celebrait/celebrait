@@ -30,7 +30,6 @@ import {
   Wand2,
   Sparkles,
   Type,
-  FileText,
 } from 'lucide-react';
 
 const NAMES = ['Mum', 'Jack', 'Emma', 'Dad', 'Sarah'];
@@ -419,19 +418,6 @@ function FrontTextCard({ typed }: { typed: string }) {
             <span className="inline-block w-[2px] h-[16px] bg-brand align-middle ml-0.5 animate-pulse" />
           </span>
         )}
-      </div>
-
-      {/* Skip-the-front-text escape hatch — dashed card, matches the studio. */}
-      <div className="mt-3 flex items-start gap-3 rounded-xl border border-dashed border-stone-300 p-4">
-        <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-brand-muted text-brand shrink-0">
-          <FileText className="w-4 h-4" strokeWidth={1.75} />
-        </span>
-        <div>
-          <div className="text-sm font-medium text-ink">Skip the front text</div>
-          <p className="text-xs text-stone-500 mt-0.5">
-            No headline — the scene speaks for itself.
-          </p>
-        </div>
       </div>
     </div>
   );
