@@ -128,6 +128,9 @@ export default function HeroScrollPocPage() {
   // Beat 2 — "Choose your celebration" + card (centre .25).
   const zChoose = useTransform(scrollYProgress, [0.12, 0.22, 0.28, 0.35], [-720, -40, 40, 820]);
   const oChoose = useTransform(scrollYProgress, [0.165, 0.22, 0.28, 0.335], [0, 1, 1, 0]);
+  // Confetti burst — fires out of the card right as Anniversary is "clicked"
+  // (press lands ~.258), then settles. Scroll-driven so it scrubs both ways.
+  const burst = useTransform(scrollYProgress, [0.26, 0.32], [0, 1]);
   // Beat 3 — "Select your photo(s)" (centre .41).
   const z4 = useTransform(scrollYProgress, [0.28, 0.38, 0.44, 0.51], [-720, -40, 40, 820]);
   const o4 = useTransform(scrollYProgress, [0.325, 0.38, 0.44, 0.495], [0, 1, 1, 0]);
@@ -162,7 +165,10 @@ export default function HeroScrollPocPage() {
         <Layer z={zChoose} opacity={oChoose}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Choose your celebration</h1>
-            <StudioCard name={name} selectedIdx={selectedIdx} pressed={pressed} />
+            <div className="relative">
+              <StudioCard name={name} selectedIdx={selectedIdx} pressed={pressed} />
+              <ConfettiBurst burst={burst} />
+            </div>
           </div>
         </Layer>
 
@@ -495,6 +501,65 @@ function InsideTextCard({ typed }: { typed: string }) {
         {INSIDE_SIGNOFF}
       </div>
     </div>
+  );
+}
+
+// Confetti pieces — deterministic spread (index-based, no RNG) so it's stable.
+const CONFETTI_COLORS = ['#7a76e8', '#e8519b', '#f5c542', '#5ad19a', '#5c57d4'];
+const CONFETTI = Array.from({ length: 18 }, (_, i) => {
+  const angle = (i / 18) * Math.PI * 2 + (i % 2 ? 0.3 : -0.2);
+  const dist = 96 + (i % 4) * 36;
+  return {
+    color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+    dx: Math.cos(angle) * dist,
+    dy: Math.sin(angle) * dist - 28, // slight upward bias — a pop, not a drop
+    rot: 140 + (i % 5) * 70,
+    w: i % 3 === 0 ? 6 : 9,
+    h: i % 3 === 0 ? 11 : 6,
+  };
+});
+
+function ConfettiBurst({ burst }: { burst: MotionValue<number> }) {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
+      <div className="relative">
+        {CONFETTI.map((c, i) => (
+          <ConfettiPiece key={i} burst={burst} c={c} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ConfettiPiece({
+  burst,
+  c,
+}: {
+  burst: MotionValue<number>;
+  c: (typeof CONFETTI)[number];
+}) {
+  const x = useTransform(burst, [0, 1], [0, c.dx]);
+  const y = useTransform(burst, [0, 1], [0, c.dy]);
+  const rotate = useTransform(burst, [0, 1], [0, c.rot]);
+  const scale = useTransform(burst, [0, 0.2, 1], [0.3, 1, 0.85]);
+  // Pop in fast, fade out as it travels — 0 at both ends so it's invisible
+  // outside the burst window.
+  const opacity = useTransform(burst, [0, 0.12, 0.6, 1], [0, 1, 1, 0]);
+  return (
+    <motion.span
+      aria-hidden
+      style={{
+        x,
+        y,
+        rotate,
+        scale,
+        opacity,
+        width: c.w,
+        height: c.h,
+        backgroundColor: c.color,
+      }}
+      className="absolute left-0 top-0 rounded-[2px]"
+    />
   );
 }
 
