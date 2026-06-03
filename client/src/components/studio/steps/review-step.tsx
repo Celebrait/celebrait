@@ -645,13 +645,25 @@ function RevealView({
   // for ~1600ms, then crossfade into the 3D viewer over ~1200ms. Neither
   // number is a loading bar — they're pacing dials. Tune with Kevin.
   const READY_HOLD_MS = 1600;
-  const [showReveal, setShowReveal] = useState(false);
+
+  // If the card is ALREADY complete the moment this screen mounts, it's a
+  // REVISIT (e.g. navigating back from checkout), not a fresh generation —
+  // so reveal immediately and skip the wait stage + hold. Replaying the
+  // "celebration content looping" generation screen on a finished card
+  // reads as "it's generating again". The ceremony only applies to a gen
+  // that completes WHILE the user is watching this screen.
+  const wasReadyAtMount = useRef(isReady);
+  const [showReveal, setShowReveal] = useState(isReady);
 
   useEffect(() => {
-    if (!isReady) return;
+    if (!isReady || showReveal) return;
+    if (wasReadyAtMount.current) {
+      setShowReveal(true);
+      return;
+    }
     const t = window.setTimeout(() => setShowReveal(true), READY_HOLD_MS);
     return () => window.clearTimeout(t);
-  }, [isReady]);
+  }, [isReady, showReveal]);
 
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
