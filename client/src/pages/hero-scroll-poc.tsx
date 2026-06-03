@@ -32,7 +32,6 @@ import {
   Type,
 } from 'lucide-react';
 
-const NAMES = ['Mum', 'Jack', 'Emma', 'Dad', 'Sarah'];
 const FINAL_NAME = 'Sarah';
 const ANNIVERSARY_IDX = 1; // 'Anniversary' in OCC
 
@@ -88,7 +87,8 @@ export default function HeroScrollPocPage() {
     const ps7 = clamp((v - 0.845) / (0.9 - 0.845), 0, 1);
     setInsideLen(Math.round(ps7 * INSIDE_MESSAGE.length));
 
-    // Beat 2 — name + occasion cycle, land + press Anniversary by ~.26.
+    // Beat 2 — name stays "Sarah" the whole time; the occasions toggle as the
+    // card approaches, then Anniversary is "clicked" (pressed) as we pass.
     const sub = clamp((v - 0.15) / (0.27 - 0.15), 0, 1);
     if (sub <= 0) {
       setName('');
@@ -96,14 +96,12 @@ export default function HeroScrollPocPage() {
       setPressed(false);
       return;
     }
+    setName(FINAL_NAME); // static "Sarah"
     if (sub < 0.8) {
-      // Synced toggle — both advance on the same step.
       const steps = Math.floor((sub / 0.8) * 12);
-      setName(NAMES[steps % NAMES.length]);
       setSelectedIdx(steps % OCC.length);
       setPressed(false);
     } else {
-      setName(FINAL_NAME);
       setSelectedIdx(ANNIVERSARY_IDX);
       setPressed(sub > 0.9); // tap Anniversary near the end of the approach
     }
