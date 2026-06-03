@@ -1,20 +1,18 @@
 // client/src/pages/experience-poc.tsx
 //
-// PROOF OF CONCEPT — immersive 3D scroll journey showcasing the studio.
-// v4 (2026-06-02, Kevin's call): drop the rendered-UI / 3D-phone entirely.
-// Work with SCREENSHOTS — real studio step shots as crisp framed panels that
-// you fly past on scroll, landing on the finished card. Screenshots are
-// pixel-exact and deterministic to size (no Html-scale guessing).
+// PROOF OF CONCEPT — immersive scroll journey showcasing the studio.
+// v5 (2026-06-02, Kevin's call): ONE mobile container, rendered STEP BY STEP.
+// A single premium framed device sits in view; as you scroll, its screen
+// crossfades through the studio steps (step 1 → 2 → …). No flying panels.
 //
-// Mechanic: panels are offset to alternating sides + angled, so the camera
-// swoops down the middle PAST them (no clip-through), gallery-style, then
-// arrives at the centred card.
+// Each step is just a screenshot (mobile, same container). Drop them into
+// client/src/assets/experience/ and add to STEPS — the panel auto-sizes to
+// the first image's aspect and the crossfade spreads over the scroll.
 //
-// PLACEHOLDER ART: using existing repo images until real step screenshots are
-// dropped in at client/src/assets/experience/step-N.png. Swap the imports +
-// the PANELS list. Isolated /experience, not linked.
+// PLACEHOLDER: one existing image stands in until step-1.png is added.
+// Isolated /experience, not linked.
 
-import { Suspense } from 'react';
+import { Suspense, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import {
   ScrollControls,
@@ -27,20 +25,14 @@ import {
   useTexture,
 } from '@react-three/drei';
 import * as THREE from 'three';
-// TODO(Kevin): replace these placeholders with real step screenshots.
-import shotA from '@/assets/studio-dashboard-poster.png';
-import shotB from '@/assets/sample-card.jpeg';
-import shotC from '@/assets/hero-card-inside.png';
-import heroFront from '@/assets/hero-card-front.png';
+// TODO(Kevin): replace with real step screenshots, in order.
+// import step1 from '@/assets/experience/step-1.png';
+import placeholder from '@/assets/studio-dashboard-poster.png';
 
-const CARD_Z = -15;
+// Steps render in this order as you scroll. Add step-2, step-3, … here.
+const STEPS: string[] = [placeholder];
 
-// Each station: a screenshot, offset to a side + angled, along the path.
-const PANELS: { src: string; position: [number, number, number]; rotationY: number }[] = [
-  { src: shotA, position: [-2.6, 0.2, 2], rotationY: 0.5 },
-  { src: shotB, position: [2.7, -0.1, -3], rotationY: -0.5 },
-  { src: shotC, position: [-2.7, 0.1, -8], rotationY: 0.5 },
-];
+const PANEL_H = 4.6; // world height of the device
 
 export default function ExperiencePocPage() {
   return (
@@ -52,12 +44,12 @@ export default function ExperiencePocPage() {
       }}
     >
       <Canvas
-        camera={{ position: [0, 0.3, 9], fov: 48 }}
+        camera={{ position: [0.4, 0.2, 8], fov: 45 }}
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true }}
       >
         <Suspense fallback={null}>
-          <ScrollControls pages={3} damping={0.3}>
+          <ScrollControls pages={Math.max(2, STEPS.length)} damping={0.3}>
             <Scene />
           </ScrollControls>
         </Suspense>
@@ -81,11 +73,12 @@ function Scene() {
   const scroll = useScroll();
 
   useFrame((state) => {
-    const o = scroll.offset; // 0..1
-    state.camera.position.z = THREE.MathUtils.lerp(9, CARD_Z + 4, o);
-    state.camera.position.y = 0.3 + Math.sin(o * Math.PI) * 0.25;
-    state.camera.position.x = Math.sin(o * Math.PI * 1.4) * 0.35;
-    state.camera.lookAt(0, 0, state.camera.position.z - 6);
+    const o = scroll.offset;
+    // Gentle continuous push-in + drift so it breathes (not a fly-through).
+    state.camera.position.z = THREE.MathUtils.lerp(8, 6.4, o);
+    state.camera.position.x = THREE.MathUtils.lerp(0.4, -0.4, o);
+    state.camera.position.y = 0.2 + Math.sin(o * Math.PI) * 0.12;
+    state.camera.lookAt(0, 0, 0);
   });
 
   return (
@@ -98,66 +91,66 @@ function Scene() {
       <ambientLight intensity={0.6} />
       <directionalLight position={[4, 6, 5]} intensity={0.8} color="#fff6ea" />
 
-      {PANELS.map((p, i) => (
-        <ScreenshotPanel key={i} {...p} />
-      ))}
-
-      {/* Landing card — centred destination. */}
-      <Float speed={1.1} rotationIntensity={0.1} floatIntensity={0.35}>
-        <group position={[0, 0, CARD_Z]} rotation={[0.02, 0.12, 0]}>
-          <mesh position={[0, 0, -0.25]}>
-            <planeGeometry args={[5.2, 5.2]} />
-            <meshBasicMaterial color="#ffe6cf" transparent opacity={0.32} blending={THREE.AdditiveBlending} depthWrite={false} />
-          </mesh>
-          <CardPlane src={heroFront} size={4} />
+      <Float speed={1} rotationIntensity={0.05} floatIntensity={0.3}>
+        <group rotation={[0.01, -0.14, 0]}>
+          <StepDevice />
         </group>
       </Float>
 
-      <ContactShadows position={[0, -2.7, 0]} opacity={0.28} scale={26} blur={2.6} far={6} resolution={512} color="#3a2f55" />
+      <ContactShadows position={[0, -2.7, 0]} opacity={0.3} scale={22} blur={2.6} far={6} resolution={512} color="#3a2f55" />
     </>
   );
 }
 
-function ScreenshotPanel({
-  src,
-  position,
-  rotationY,
-}: {
-  src: string;
-  position: [number, number, number];
-  rotationY: number;
-}) {
-  const tex = useTexture(src);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  const img = tex.image as HTMLImageElement | undefined;
-  const aspect = img && img.height ? img.width / img.height : 0.62;
-  const H = 3.6;
-  const W = H * aspect;
+function StepDevice() {
+  const scroll = useScroll();
+  const textures = useTexture(STEPS) as unknown as THREE.Texture[];
+  const list = Array.isArray(textures) ? textures : [textures];
+  list.forEach((t) => (t.colorSpace = THREE.SRGBColorSpace));
+
+  // Size from the first screenshot's aspect (all steps share the container).
+  const img0 = list[0]?.image as HTMLImageElement | undefined;
+  const aspect = img0 && img0.height ? img0.width / img0.height : 0.78;
+  const W = PANEL_H * aspect;
+
+  const matRefs = useRef<(THREE.MeshBasicMaterial | null)[]>([]);
+
+  useFrame(() => {
+    const o = scroll.offset;
+    // Position along the steps: 0 → N-1.
+    const span = Math.max(1, list.length - 1);
+    const pos = o * span;
+    list.forEach((_, i) => {
+      const op =
+        list.length === 1
+          ? 1
+          : THREE.MathUtils.clamp(1 - Math.abs(pos - i), 0, 1);
+      const m = matRefs.current[i];
+      if (m) m.opacity = op;
+    });
+  });
 
   return (
-    <Float speed={1} rotationIntensity={0.05} floatIntensity={0.3}>
-      <group position={position} rotation={[0, rotationY, 0]}>
-        {/* White frame backing (catches the env → premium card). */}
-        <RoundedBox args={[W + 0.16, H + 0.16, 0.06]} radius={0.12} smoothness={5} position={[0, 0, -0.035]}>
-          <meshStandardMaterial color="#ffffff" roughness={0.4} envMapIntensity={1.1} />
-        </RoundedBox>
-        {/* The screenshot itself — crisp, unlit. */}
-        <mesh>
-          <planeGeometry args={[W, H]} />
-          <meshBasicMaterial map={tex} toneMapped={false} />
+    <group>
+      {/* Device frame — premium soft-white, catches the env. */}
+      <RoundedBox args={[W + 0.18, PANEL_H + 0.18, 0.12]} radius={0.16} smoothness={6} position={[0, 0, -0.07]}>
+        <meshStandardMaterial color="#ffffff" roughness={0.35} metalness={0.04} envMapIntensity={1.1} />
+      </RoundedBox>
+
+      {/* Stacked step screens, crossfaded by scroll (only one visible at a time). */}
+      {list.map((tex, i) => (
+        <mesh key={i} position={[0, 0, 0.001 * i]} renderOrder={i}>
+          <planeGeometry args={[W, PANEL_H]} />
+          <meshBasicMaterial
+            ref={(r) => (matRefs.current[i] = r)}
+            map={tex}
+            toneMapped={false}
+            transparent
+            opacity={i === 0 ? 1 : 0}
+            depthWrite={false}
+          />
         </mesh>
-      </group>
-    </Float>
-  );
-}
-
-function CardPlane({ src, size }: { src: string; size: number }) {
-  const tex = useTexture(src);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return (
-    <mesh>
-      <planeGeometry args={[size, size]} />
-      <meshBasicMaterial map={tex} toneMapped={false} />
-    </mesh>
+      ))}
+    </group>
   );
 }
