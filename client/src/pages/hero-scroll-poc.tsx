@@ -115,27 +115,27 @@ export default function HeroScrollPocPage() {
   // (−40→40, the readable beat where content animates) → fast exit
   // (40→820). Crawl centres are evenly spaced (.16 apart) at
   // .25 / .41 / .57 / .73 / .89 (final), and opacity is held tight to each
-  // crawl so a card fully clears (~.03 gap) before the next ghosts in.
+  // crawl so a card fully clears (~.015 gap) before the next ghosts in.
   //
   // Beat 1 — intro: full at top, zooms through + fades.
-  const z1 = useTransform(scrollYProgress, [0, 0.14], [0, 880]);
-  const o1 = useTransform(scrollYProgress, [0, 0.07, 0.14], [1, 1, 0]);
+  const z1 = useTransform(scrollYProgress, [0, 0.155], [0, 880]);
+  const o1 = useTransform(scrollYProgress, [0, 0.08, 0.155], [1, 1, 0]);
   // Opacity is held tight to each beat's readable crawl (fade in late in the
   // approach, fade out early in the exit) so a card fully clears before the
   // next appears — a beat of empty gradient between steps, no overlapping
   // assets at the seams.
   // Beat 2 — "Choose your celebration" + card (centre .25).
   const zChoose = useTransform(scrollYProgress, [0.12, 0.22, 0.28, 0.35], [-720, -40, 40, 820]);
-  const oChoose = useTransform(scrollYProgress, [0.175, 0.22, 0.28, 0.305], [0, 1, 1, 0]);
+  const oChoose = useTransform(scrollYProgress, [0.17, 0.22, 0.28, 0.32], [0, 1, 1, 0]);
   // Beat 3 — "Select your photo(s)" (centre .41).
   const z4 = useTransform(scrollYProgress, [0.28, 0.38, 0.44, 0.51], [-720, -40, 40, 820]);
-  const o4 = useTransform(scrollYProgress, [0.335, 0.38, 0.44, 0.465], [0, 1, 1, 0]);
+  const o4 = useTransform(scrollYProgress, [0.335, 0.38, 0.44, 0.48], [0, 1, 1, 0]);
   // Beat 4 — "Describe the scene" (centre .57).
   const z5 = useTransform(scrollYProgress, [0.44, 0.54, 0.60, 0.67], [-720, -40, 40, 820]);
-  const o5 = useTransform(scrollYProgress, [0.495, 0.54, 0.60, 0.625], [0, 1, 1, 0]);
+  const o5 = useTransform(scrollYProgress, [0.495, 0.54, 0.60, 0.64], [0, 1, 1, 0]);
   // Beat 5 — "Add text to the front" (centre .73).
   const z6 = useTransform(scrollYProgress, [0.60, 0.70, 0.76, 0.83], [-720, -40, 40, 820]);
-  const o6 = useTransform(scrollYProgress, [0.655, 0.70, 0.76, 0.785], [0, 1, 1, 0]);
+  const o6 = useTransform(scrollYProgress, [0.655, 0.70, 0.76, 0.80], [0, 1, 1, 0]);
   // Beat 6 — "Add text on the inside": approach → land → gentle drift (journey's end).
   const z7 = useTransform(scrollYProgress, [0.76, 0.89, 1], [-720, 0, 50]);
   const o7 = useTransform(scrollYProgress, [0.815, 0.89, 1], [0, 1, 1]);
