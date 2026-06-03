@@ -93,7 +93,7 @@ export default function HeroScrollPocPage() {
     const ps7 = clamp((v - 0.735) / (0.775 - 0.735), 0, 1);
     setInsideLen(Math.round(ps7 * INSIDE_MESSAGE.length));
 
-    // Finale — the card opens once we scroll past the reveal point.
+    // Finale — the card opens at its closest point (~.965), then continues.
     setRevealOpen(v > 0.95);
 
     // Choose celebration (centre .22) — name stays "Sarah"; occasions toggle
@@ -144,13 +144,13 @@ export default function HeroScrollPocPage() {
   // Beat 6 — "Add text on the inside" (centre .76) — now a through-beat.
   const z7 = useTransform(scrollYProgress, [0.66, 0.735, 0.785, 0.86], [-720, -40, 40, 820]);
   const o7 = useTransform(scrollYProgress, [0.688, 0.735, 0.785, 0.833], [0, 1, 1, 0]);
-  // Finale — a spinner spins as you scroll in (echoing the studio's "creating
-  // your card" moment), then fades and the finished 3D card reveals + opens.
-  const spinnerRot = useTransform(scrollYProgress, [0.81, 0.94], [0, 540]);
-  const spinnerO = useTransform(scrollYProgress, [0.8, 0.84, 0.9, 0.93], [0, 1, 1, 0]);
-  const oReveal = useTransform(scrollYProgress, [0.92, 0.97, 1], [0, 1, 1]);
-  const yReveal = useTransform(scrollYProgress, [0.92, 0.99], [40, 0]);
-  const scaleReveal = useTransform(scrollYProgress, [0.92, 0.99], [0.92, 1]);
+  // Finale — a spinner spins as you scroll in (the studio's "creating your
+  // card" moment), fades, then the finished card zooms in STATIC (straight-on,
+  // no tilt): small → close, opens at the closest point, continues through.
+  const spinnerRot = useTransform(scrollYProgress, [0.83, 0.91], [0, 540]);
+  const spinnerO = useTransform(scrollYProgress, [0.83, 0.85, 0.89, 0.91], [0, 1, 1, 0]);
+  const oReveal = useTransform(scrollYProgress, [0.89, 0.93, 0.99, 1], [0, 1, 1, 0]);
+  const scaleReveal = useTransform(scrollYProgress, [0.89, 0.965, 1], [0.35, 1, 1.55]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
 
@@ -228,20 +228,20 @@ export default function HeroScrollPocPage() {
           className="absolute inset-0 flex items-center justify-center px-6 will-change-transform"
         >
           <motion.div
-            style={{ y: yReveal, scale: scaleReveal }}
+            style={{ scale: scaleReveal }}
             className="w-[320px] sm:w-[380px] h-[420px] sm:h-[460px]"
           >
             <Card3DViewer
               frontImageUrl={revealFront}
               insideImageUrl={revealInside}
               open={revealOpen}
-              closedAngle={-0.32}
-              restYaw={-0.12}
+              closedAngle={0}
+              restYaw={0}
               interactive={false}
               enableRotate={false}
               enableZoom={false}
-              framingMargin={2.3}
-              minDistance={2.8}
+              framingMargin={2.0}
+              minDistance={2.4}
               className="w-full h-full"
             />
           </motion.div>
