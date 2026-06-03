@@ -68,8 +68,6 @@ export default function HeroScrollPocPage() {
   const [frontLen, setFrontLen] = useState(0);
   // Beat 7 — how many characters of the inside message have "typed" in.
   const [insideLen, setInsideLen] = useState(0);
-  // Finale — the 3D card swings open once you scroll past the reveal point.
-  const [revealOpen, setRevealOpen] = useState(false);
 
   // Drive the studio card as we approach beat 3: name + occasion toggle IN
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
@@ -92,9 +90,6 @@ export default function HeroScrollPocPage() {
     // Add text on the inside (centre .76).
     const ps7 = clamp((v - 0.735) / (0.775 - 0.735), 0, 1);
     setInsideLen(Math.round(ps7 * INSIDE_MESSAGE.length));
-
-    // Finale — the card opens at its closest point (~.965), then continues.
-    setRevealOpen(v > 0.95);
 
     // Choose celebration (centre .22) — name stays "Sarah"; occasions toggle
     // on approach, Anniversary "clicked" (pressed) as we pass.
@@ -145,12 +140,13 @@ export default function HeroScrollPocPage() {
   const z7 = useTransform(scrollYProgress, [0.66, 0.735, 0.785, 0.86], [-720, -40, 40, 820]);
   const o7 = useTransform(scrollYProgress, [0.688, 0.735, 0.785, 0.833], [0, 1, 1, 0]);
   // Finale — a spinner spins as you scroll in (the studio's "creating your
-  // card" moment), fades, then the finished card zooms in STATIC (straight-on,
-  // no tilt): small → close, opens at the closest point, continues through.
+  // card" moment), fades, then the finished card fades in FULL SIZE (no zoom,
+  // static) and the cover opens as you reach the bottom. openProgress scrubs
+  // the hinge 1:1 with scroll — no spring, no jank.
   const spinnerRot = useTransform(scrollYProgress, [0.83, 0.91], [0, 540]);
   const spinnerO = useTransform(scrollYProgress, [0.83, 0.85, 0.89, 0.91], [0, 1, 1, 0]);
-  const oReveal = useTransform(scrollYProgress, [0.89, 0.93, 0.99, 1], [0, 1, 1, 0]);
-  const scaleReveal = useTransform(scrollYProgress, [0.89, 0.965, 1], [0.35, 1, 1.55]);
+  const oReveal = useTransform(scrollYProgress, [0.88, 0.93, 1], [0, 1, 1]);
+  const openProgress = useTransform(scrollYProgress, [0.93, 1], [0, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
 
@@ -225,26 +221,31 @@ export default function HeroScrollPocPage() {
 
         <motion.div
           style={{ opacity: oReveal }}
-          className="absolute inset-0 flex items-center justify-center px-6 will-change-transform"
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
         >
-          <motion.div
-            style={{ scale: scaleReveal }}
-            className="w-[320px] sm:w-[380px] h-[420px] sm:h-[460px]"
-          >
-            <Card3DViewer
-              frontImageUrl={revealFront}
-              insideImageUrl={revealInside}
-              open={revealOpen}
-              closedAngle={0}
-              restYaw={0}
-              interactive={false}
-              enableRotate={false}
-              enableZoom={false}
-              framingMargin={2.0}
-              minDistance={2.4}
-              className="w-full h-full"
-            />
-          </motion.div>
+          {/* Full size, static — no zoom. Slot + bleed wrapper mirror the
+              landing hero so the card renders at a known-good size and the
+              opened cover has headroom (not clipped). */}
+          <div className="relative w-full max-w-[340px] sm:max-w-[380px] aspect-square mx-auto">
+            <div
+              className="absolute top-[-30vh] bottom-[-30vh] left-[-25vw] right-[-25vw]"
+              style={{ filter: 'drop-shadow(0 28px 40px rgba(15,23,42,0.12))' }}
+            >
+              <Card3DViewer
+                frontImageUrl={revealFront}
+                insideImageUrl={revealInside}
+                openProgress={openProgress}
+                closedAngle={0}
+                restYaw={-0.1}
+                interactive={false}
+                enableRotate={false}
+                enableZoom={false}
+                framingMargin={2.4}
+                minDistance={2.2}
+                className="w-full h-full"
+              />
+            </div>
+          </div>
         </motion.div>
 
         <motion.div
