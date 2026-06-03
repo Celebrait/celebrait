@@ -79,7 +79,7 @@ export default function HeroScrollPocPage() {
   // (intro, choose+press, photos, scene, front, inside).
   const DWELL_TARGETS = [0.02, 0.26, 0.42, 0.58, 0.74, 0.9];
   const STEP_MS = 380; // super-fast dolly into each step
-  const DWELL_MS = 900; // hold on the step (~3 beats)
+  const DWELL_MS = 2400; // hold on the step (~8 beats)
 
   const stopFlow = () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
