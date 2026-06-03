@@ -109,18 +109,21 @@ export default function HeroScrollPocPage() {
   // Beat 1 — intro: full at top, zooms through + fades.
   const z1 = useTransform(scrollYProgress, [0, 0.14], [0, 880]);
   const o1 = useTransform(scrollYProgress, [0, 0.07, 0.14], [1, 1, 0]);
+  // Opacity tracks the SAME breakpoints as z, so the card is faint while it's
+  // far (approach), solid only through the readable crawl, and fading the whole
+  // time it zooms past (exit) — a clean ghost-in / dissolve-out every beat.
   // Beat 2 — "Choose your celebration" + card.
   const zChoose = useTransform(scrollYProgress, [0.12, 0.26, 0.34, 0.44], [-720, -40, 40, 820]);
-  const oChoose = useTransform(scrollYProgress, [0.12, 0.18, 0.36, 0.44], [0, 1, 1, 0]);
+  const oChoose = useTransform(scrollYProgress, [0.12, 0.26, 0.34, 0.44], [0, 1, 1, 0]);
   // Beat 3 — "Select your photo(s)".
   const z4 = useTransform(scrollYProgress, [0.34, 0.48, 0.56, 0.66], [-720, -40, 40, 820]);
-  const o4 = useTransform(scrollYProgress, [0.34, 0.40, 0.58, 0.66], [0, 1, 1, 0]);
+  const o4 = useTransform(scrollYProgress, [0.34, 0.48, 0.56, 0.66], [0, 1, 1, 0]);
   // Beat 4 — "Describe the scene".
   const z5 = useTransform(scrollYProgress, [0.56, 0.70, 0.78, 0.88], [-720, -40, 40, 820]);
-  const o5 = useTransform(scrollYProgress, [0.56, 0.62, 0.80, 0.88], [0, 1, 1, 0]);
+  const o5 = useTransform(scrollYProgress, [0.56, 0.70, 0.78, 0.88], [0, 1, 1, 0]);
   // Beat 5 — "Add text to the front": approach → land → gentle drift (journey's end).
   const z6 = useTransform(scrollYProgress, [0.80, 0.94, 1], [-720, 0, 50]);
-  const o6 = useTransform(scrollYProgress, [0.80, 0.90, 1], [0, 1, 1]);
+  const o6 = useTransform(scrollYProgress, [0.80, 0.94, 1], [0, 1, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
 
