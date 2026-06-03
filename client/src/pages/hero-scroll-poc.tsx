@@ -29,6 +29,8 @@ import {
   Check,
   Wand2,
   Sparkles,
+  Type,
+  FileText,
 } from 'lucide-react';
 
 const NAMES = ['Mum', 'Jack', 'Emma', 'Dad', 'Sarah'];
@@ -38,6 +40,8 @@ const ANNIVERSARY_IDX = 1; // 'Anniversary' in OCC
 // Beat 5 — the scene description that types itself in.
 const SCENE_TEXT =
   'Sarah on a sunlit terrace in Positano, laughing with a glass of wine as the sea glows gold behind her.';
+// Beat 6 — the front headline that types itself in.
+const FRONT_TEXT = 'Happy Anniversary, Sarah';
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
@@ -53,19 +57,25 @@ export default function HeroScrollPocPage() {
   const [photoSel, setPhotoSel] = useState(0);
   // Beat 5 — how many characters of the scene have "typed" in.
   const [sceneLen, setSceneLen] = useState(0);
+  // Beat 6 — how many characters of the front headline have "typed" in.
+  const [frontLen, setFrontLen] = useState(0);
 
   // Drive the studio card as we approach beat 3: name + occasion toggle IN
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
-    // Beat 4 — photos "select in" one by one around the centre of the pass.
-    const ps = clamp((v - 0.5) / (0.62 - 0.5), 0, 1);
+    // Beat 3 — photos "select in" one by one around the centre of the pass.
+    const ps = clamp((v - 0.38) / (0.48 - 0.38), 0, 1);
     setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
 
-    // Beat 5 — scene description types in as the card lands + holds.
-    const ps5 = clamp((v - 0.82) / (0.98 - 0.82), 0, 1);
+    // Beat 4 — scene description types in around the centre of the pass.
+    const ps5 = clamp((v - 0.58) / (0.7 - 0.58), 0, 1);
     setSceneLen(Math.round(ps5 * SCENE_TEXT.length));
 
-    const sub = clamp((v - 0.12) / (0.34 - 0.12), 0, 1);
+    // Beat 5 — front headline types in as the final card lands + holds.
+    const ps6 = clamp((v - 0.86) / (0.99 - 0.86), 0, 1);
+    setFrontLen(Math.round(ps6 * FRONT_TEXT.length));
+
+    const sub = clamp((v - 0.1) / (0.28 - 0.1), 0, 1);
     if (sub <= 0) {
       setName('');
       setSelectedIdx(-1);
@@ -86,22 +96,25 @@ export default function HeroScrollPocPage() {
   });
 
   // Beat 1 — intro: full at top, zooms through + fades.
-  const z1 = useTransform(scrollYProgress, [0, 0.14], [0, 880]);
-  const o1 = useTransform(scrollYProgress, [0, 0.08, 0.14], [1, 1, 0]);
-  // Beat 2 — "Choose your celebration" + card as one group: constant-pace dolly through.
-  const zChoose = useTransform(scrollYProgress, [0.12, 0.42], [-720, 760]);
-  const oChoose = useTransform(scrollYProgress, [0.12, 0.18, 0.36, 0.42], [0, 1, 1, 0]);
-  // Beat 4 — "Select your photo(s)": constant-pace dolly through; photos tick in mid-pass.
-  const z4 = useTransform(scrollYProgress, [0.4, 0.7], [-720, 760]);
-  const o4 = useTransform(scrollYProgress, [0.4, 0.46, 0.64, 0.7], [0, 1, 1, 0]);
-  // Beat 5 — "Describe the scene": approaches, lands + holds (end of journey).
-  const z5 = useTransform(scrollYProgress, [0.68, 0.86, 1], [-720, 0, 60]);
-  const o5 = useTransform(scrollYProgress, [0.68, 0.82, 1], [0, 1, 1]);
+  const z1 = useTransform(scrollYProgress, [0, 0.12], [0, 880]);
+  const o1 = useTransform(scrollYProgress, [0, 0.06, 0.12], [1, 1, 0]);
+  // Beat 2 — "Choose your celebration" + card: constant-pace dolly through.
+  const zChoose = useTransform(scrollYProgress, [0.1, 0.34], [-720, 760]);
+  const oChoose = useTransform(scrollYProgress, [0.1, 0.15, 0.29, 0.34], [0, 1, 1, 0]);
+  // Beat 3 — "Select your photo(s)": constant-pace dolly through; photos tick in mid-pass.
+  const z4 = useTransform(scrollYProgress, [0.3, 0.54], [-720, 760]);
+  const o4 = useTransform(scrollYProgress, [0.3, 0.35, 0.49, 0.54], [0, 1, 1, 0]);
+  // Beat 4 — "Describe the scene": constant-pace dolly through; scene types mid-pass.
+  const z5 = useTransform(scrollYProgress, [0.5, 0.74], [-720, 760]);
+  const o5 = useTransform(scrollYProgress, [0.5, 0.55, 0.69, 0.74], [0, 1, 1, 0]);
+  // Beat 5 — "Add text to the front": approaches, lands + holds (end of journey).
+  const z6 = useTransform(scrollYProgress, [0.72, 0.88, 1], [-720, 0, 60]);
+  const o6 = useTransform(scrollYProgress, [0.72, 0.84, 1], [0, 1, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.06], [1, 0]);
 
   return (
-    <div ref={ref} className="relative" style={{ height: '680vh' }}>
+    <div ref={ref} className="relative" style={{ height: '820vh' }}>
       <div
         className="fixed inset-0 overflow-hidden"
         style={{
@@ -136,6 +149,14 @@ export default function HeroScrollPocPage() {
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Describe the scene</h1>
             <SceneCard typed={SCENE_TEXT.slice(0, sceneLen)} />
+          </div>
+        </Layer>
+
+        {/* Headline + front-text composer — the headline types itself in. */}
+        <Layer z={z6} opacity={o6}>
+          <div className="flex flex-col items-center gap-7 sm:gap-9">
+            <h1 className={CHOOSE_CLASS}>Add text to the front</h1>
+            <FrontTextCard typed={FRONT_TEXT.slice(0, frontLen)} />
           </div>
         </Layer>
 
@@ -374,6 +395,42 @@ function SceneCard({ typed }: { typed: string }) {
         <div className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-brand-dark text-white text-[13px] font-semibold shadow-md shadow-brand/20">
           <Sparkles className="w-4 h-4" strokeWidth={2} />
           Brainstorm
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FrontTextCard({ typed }: { typed: string }) {
+  const empty = typed.length === 0;
+  return (
+    <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
+      <p className="text-[13px] text-ink mb-1.5 flex items-center gap-1.5">
+        <Type className="w-3.5 h-3.5 text-brand" strokeWidth={2} />
+        Front headline
+        <span className="text-stone-400 font-normal">optional</span>
+      </p>
+      <div className="rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 min-h-[46px] flex items-center text-[15px]">
+        {empty ? (
+          <span className="text-stone-400">Happy Anniversary</span>
+        ) : (
+          <span className="text-ink font-medium">
+            {typed}
+            <span className="inline-block w-[2px] h-[16px] bg-brand align-middle ml-0.5 animate-pulse" />
+          </span>
+        )}
+      </div>
+
+      {/* Skip-the-front-text escape hatch — dashed card, matches the studio. */}
+      <div className="mt-3 flex items-start gap-3 rounded-xl border border-dashed border-stone-300 p-4">
+        <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-brand-muted text-brand shrink-0">
+          <FileText className="w-4 h-4" strokeWidth={1.75} />
+        </span>
+        <div>
+          <div className="text-sm font-medium text-ink">Skip the front text</div>
+          <p className="text-xs text-stone-500 mt-0.5">
+            No headline — the scene speaks for itself.
+          </p>
         </div>
       </div>
     </div>
