@@ -145,7 +145,15 @@ export function StepExample({
                 so the inside stays the same on-screen size.
               Static: no rotate/zoom. */}
           <div className="self-stretch -mx-6 h-[300px] relative">
-            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[460px] z-20 pointer-events-none">
+            {/* The card (incl. the cover that overflows the slot) is faded in
+                only once it's had time to render, so no part of it pops in
+                during the spinner. opacity (not visibility) so r3f keeps
+                rendering it warm behind the fade. */}
+            <div
+              className={`absolute inset-x-0 top-1/2 -translate-y-1/2 h-[460px] z-20 pointer-events-none transition-opacity duration-300 ${
+                cardReady ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
               <Card3DViewer
                 frontImageUrl={exampleFront}
                 insideImageUrl={exampleInside}
@@ -164,10 +172,11 @@ export function StepExample({
                 className="w-full h-full"
               />
             </div>
-            {/* Spinner over the card slot while the canvas spins up; fades
-                out to reveal the card once it's had time to render. */}
+            {/* Spinner in the slot while the canvas spins up; fades out as
+                the card fades in. No background — the card is hidden via its
+                own opacity, and the centred eyebrow/body must stay visible. */}
             <div
-              className={`absolute inset-0 z-30 flex items-center justify-center bg-background transition-opacity duration-300 ${
+              className={`absolute inset-0 z-30 flex items-center justify-center transition-opacity duration-300 ${
                 cardReady ? 'pointer-events-none opacity-0' : 'opacity-100'
               }`}
               aria-hidden
