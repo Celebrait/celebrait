@@ -115,7 +115,7 @@ export default function HeroScrollPocPage() {
   // assets at the seams.
   // Beat 2 — "Choose your celebration" + card.
   const zChoose = useTransform(scrollYProgress, [0.12, 0.26, 0.34, 0.44], [-720, -40, 40, 820]);
-  const oChoose = useTransform(scrollYProgress, [0.21, 0.26, 0.34, 0.39], [0, 1, 1, 0]);
+  const oChoose = useTransform(scrollYProgress, [0.18, 0.23, 0.34, 0.39], [0, 1, 1, 0]);
   // Beat 3 — "Select your photo(s)".
   const z4 = useTransform(scrollYProgress, [0.34, 0.48, 0.56, 0.66], [-720, -40, 40, 820]);
   const o4 = useTransform(scrollYProgress, [0.43, 0.48, 0.56, 0.61], [0, 1, 1, 0]);
