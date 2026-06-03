@@ -1,38 +1,45 @@
 // client/src/pages/experience-poc.tsx
 //
-// PROOF OF CONCEPT — one beat of the immersive 3D scroll-journey landing,
-// pushed toward ~8/10 with all-in-engine tricks (no external assets):
-//   • drei <Clouds> field, color-graded, flown through on scroll
-//   • dawn palette: gradient sky + fog for depth ("in the clouds")
-//   • warm key + cool fill + rim lighting (the biggest premium lever)
-//   • drei <Sparkles> dust motes for atmosphere
-//   • bloom + vignette via @react-three/postprocessing (dreamy glow)
-//   • a glowing "Choose your celebration" glass block, landing on the card
+// PROOF OF CONCEPT — immersive 3D scroll journey that SHOWCASES THE STUDIO.
+// New direction (2026-06-02): the studio steps become floating 3D product
+// panels in the studio's own visual language (rounded card + brand chips),
+// stylized for speed. Each step plays a signature animation as you reach it.
 //
-// Isolated route (/experience), NOT linked. Native scroll (no scroll-jack).
-// Tunable palette/positions up top. See next_landing_3d_immersive_scroll.md.
+// This beat = step 1, "Choose your celebration": fly toward a 3D panel whose
+// occasion chips cycle and LAND on one, the panel dissolves, and you fly on
+// to the finished card. Clean premium space (no clouds) — restrained, so the
+// product is the hero. Isolated route /experience, not linked.
+// See next_landing_3d_immersive_scroll.md.
 
-import { Suspense } from 'react';
+import { Suspense, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import {
   ScrollControls,
   useScroll,
-  Clouds,
-  Cloud,
-  Sparkles,
+  RoundedBox,
   Text,
+  Sparkles,
   Float,
   useTexture,
 } from '@react-three/drei';
-import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import heroFront from '@/assets/hero-card-front.png';
 
-// ── Palette (dawn in the clouds) — tweak here ───────────────────────────
-const FOG = '#ecdff0';
-const KEY_LIGHT = '#ffd9a8'; // warm golden key
-const FILL_LIGHT = '#cfd9ff'; // cool fill
-const CARD_Z = -20;
+const BRAND = '#7a76e8';
+const INK = '#2c2540';
+const CHIP_BG = '#f1f0f7';
+const CARD_Z = -16;
+
+const OCCASIONS = [
+  'Birthday',
+  'Anniversary',
+  'Wedding',
+  'New baby',
+  "Father's Day",
+  'Thank you',
+];
+const FINAL = 0; // lands on Birthday
 
 export default function ExperiencePocPage() {
   return (
@@ -40,11 +47,11 @@ export default function ExperiencePocPage() {
       className="fixed inset-0"
       style={{
         background:
-          'linear-gradient(180deg, #cfe0f5 0%, #e7d9ee 46%, #f9e6d3 100%)',
+          'linear-gradient(180deg, #f4f2fb 0%, #eef3fb 58%, #f8f1ec 100%)',
       }}
     >
       <Canvas
-        camera={{ position: [0, 0, 8], fov: 60 }}
+        camera={{ position: [0, 0, 8], fov: 55 }}
         dpr={[1, 1.5]}
         gl={{ antialias: true, alpha: true }}
       >
@@ -52,30 +59,26 @@ export default function ExperiencePocPage() {
           <ScrollControls pages={3} damping={0.3}>
             <Scene />
           </ScrollControls>
+          {/* Subtle bloom only — just enough to lift the selected chip + card. */}
           <EffectComposer>
             <Bloom
-              intensity={0.9}
-              luminanceThreshold={0.55}
+              intensity={0.35}
+              luminanceThreshold={0.75}
               luminanceSmoothing={0.3}
               mipmapBlur
-              radius={0.7}
             />
-            <Vignette eskil={false} offset={0.25} darkness={0.55} />
           </EffectComposer>
         </Suspense>
       </Canvas>
 
-      {/* DOM overlays */}
       <div className="pointer-events-none absolute inset-0 flex flex-col">
         <div className="pt-8 text-center">
-          <p className="text-[11px] uppercase tracking-[0.3em] text-white/80 font-semibold drop-shadow">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-ink-soft/70 font-semibold">
             Celebrait · experience POC
           </p>
         </div>
         <div className="mt-auto pb-8 text-center">
-          <p className="text-sm text-white/90 drop-shadow animate-pulse">
-            Scroll ↓
-          </p>
+          <p className="text-sm text-ink-soft/70 animate-pulse">Scroll ↓</p>
         </div>
       </div>
     </div>
@@ -84,85 +87,70 @@ export default function ExperiencePocPage() {
 
 function Scene() {
   const scroll = useScroll();
+  const [selected, setSelected] = useState(0);
+  const lastIdx = useRef(-1);
+  const panelRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
     const o = scroll.offset; // 0..1
-    // Fly forward along -z with a gentle weave + vertical breathe.
     state.camera.position.z = THREE.MathUtils.lerp(8, CARD_Z + 4, o);
-    state.camera.position.x = Math.sin(o * Math.PI * 1.6) * 0.7;
-    state.camera.position.y = Math.sin(o * Math.PI) * 0.6;
+    state.camera.position.x = Math.sin(o * Math.PI * 1.2) * 0.4;
+    state.camera.position.y = Math.sin(o * Math.PI) * 0.25;
     state.camera.lookAt(0, 0, state.camera.position.z - 6);
+
+    // Chip cycle while approaching the panel (z ≈ 0, reached at o ≈ 0.4).
+    // Cycle fast through the occasions, then settle on FINAL.
+    const p = THREE.MathUtils.clamp((o - 0.08) / (0.28 - 0.08), 0, 1);
+    let idx = 0;
+    if (p > 0 && p < 0.82) {
+      idx = Math.floor((p / 0.82) * OCCASIONS.length * 2.6) % OCCASIONS.length;
+    } else if (p >= 0.82) {
+      idx = FINAL;
+    }
+    if (idx !== lastIdx.current) {
+      lastIdx.current = idx;
+      setSelected(idx);
+    }
+
+    // Dissolve the panel (scale down) just before the camera flies through it.
+    if (panelRef.current) {
+      const s = 1 - THREE.MathUtils.smoothstep(o, 0.3, 0.4);
+      panelRef.current.scale.setScalar(Math.max(0.0001, s));
+    }
   });
 
   return (
     <>
-      <fog attach="fog" args={[FOG, 6, 34]} />
-      <ambientLight intensity={1.3} />
-      <directionalLight position={[7, 9, 6]} intensity={1.6} color={KEY_LIGHT} />
-      <directionalLight position={[-7, -3, 2]} intensity={0.6} color={FILL_LIGHT} />
-      {/* rim from behind to halo the clouds */}
-      <directionalLight position={[0, 2, -14]} intensity={1.1} color="#ffffff" />
+      <ambientLight intensity={1.5} />
+      <directionalLight position={[4, 6, 6]} intensity={1.1} color="#fff4e6" />
+      <directionalLight position={[-5, -2, 3]} intensity={0.4} color="#dfe6ff" />
 
-      {/* Sparkles / dust motes drifting through the whole path. They bloom,
-          which reads as floating light. */}
       <Sparkles
-        count={70}
-        scale={[14, 8, 30]}
-        position={[0, 0, -6]}
-        size={3}
-        speed={0.25}
-        opacity={0.7}
-        color="#fff6e6"
+        count={40}
+        scale={[12, 7, 26]}
+        position={[0, 0, -5]}
+        size={2}
+        speed={0.2}
+        opacity={0.5}
+        color={BRAND}
       />
 
-      {/* Clouds along the flight path (z: +6 → -16). */}
-      <Clouds material={THREE.MeshLambertMaterial} limit={400}>
-        <Cloud position={[-4.5, 1.6, 6]} seed={1} segments={22} bounds={[7, 1.6, 1.6]} volume={7} color="#ffffff" opacity={0.7} speed={0.08} growth={4} />
-        <Cloud position={[5, -1.2, 2]} seed={2} segments={20} bounds={[7, 1.6, 1.6]} volume={7} color="#fbeede" opacity={0.6} speed={0.08} growth={4} />
-        <Cloud position={[-3.5, -2.2, -3]} seed={3} segments={20} bounds={[6, 1.6, 1.6]} volume={6} color="#ffffff" opacity={0.62} speed={0.08} growth={4} />
-        <Cloud position={[4.6, 2.4, -7]} seed={4} segments={20} bounds={[6, 1.6, 1.6]} volume={6} color="#efe7fb" opacity={0.58} speed={0.08} growth={4} />
-        <Cloud position={[-1.6, -2.6, -11]} seed={5} segments={20} bounds={[7, 1.6, 1.6]} volume={7} color="#ffffff" opacity={0.62} speed={0.08} growth={4} />
-        <Cloud position={[3.2, 1.4, -14]} seed={6} segments={18} bounds={[6, 1.4, 1.4]} volume={6} color="#fdeede" opacity={0.55} speed={0.08} growth={4} />
-        <Cloud position={[-4, 0.4, -16]} seed={7} segments={18} bounds={[6, 1.4, 1.4]} volume={6} color="#ffffff" opacity={0.55} speed={0.08} growth={4} />
-      </Clouds>
-
-      {/* Block — "Choose your celebration", a glowing glass panel ~mid-path. */}
-      <Float speed={1.1} rotationIntensity={0.12} floatIntensity={0.5}>
-        <group position={[0, 0.2, 0]}>
-          <mesh position={[0, 0, -0.06]}>
-            <planeGeometry args={[5.8, 1.9]} />
-            <meshStandardMaterial
-              color="#ffffff"
-              emissive="#fff2e0"
-              emissiveIntensity={0.4}
-              transparent
-              opacity={0.5}
-              roughness={0.4}
-            />
-          </mesh>
-          <Text
-            fontSize={0.52}
-            color="#43356a"
-            anchorX="center"
-            anchorY="middle"
-            maxWidth={5.2}
-            textAlign="center"
-            letterSpacing={0.02}
-          >
-            Choose your celebration
-          </Text>
+      {/* Step 1 panel — Choose your celebration */}
+      <Float speed={1} rotationIntensity={0.06} floatIntensity={0.35}>
+        <group ref={panelRef}>
+          <ChoosePanel selected={selected} />
         </group>
       </Float>
 
-      {/* Landing card with a warm glow halo behind it (blooms on arrival). */}
-      <Float speed={1.3} rotationIntensity={0.18} floatIntensity={0.45}>
+      {/* Landing card — the payoff */}
+      <Float speed={1.2} rotationIntensity={0.15} floatIntensity={0.4}>
         <group position={[0, 0, CARD_Z]}>
-          <mesh position={[0, 0, -0.3]}>
-            <planeGeometry args={[6.2, 6.2]} />
+          <mesh position={[0, 0, -0.25]}>
+            <planeGeometry args={[5.6, 5.6]} />
             <meshBasicMaterial
-              color="#ffe6c4"
+              color="#ffe9cf"
               transparent
-              opacity={0.5}
+              opacity={0.4}
               blending={THREE.AdditiveBlending}
               depthWrite={false}
             />
@@ -174,12 +162,87 @@ function Scene() {
   );
 }
 
+function ChoosePanel({ selected }: { selected: number }) {
+  return (
+    <group>
+      {/* Card backing — rounded, with real depth. */}
+      <RoundedBox args={[3.6, 4.6, 0.18]} radius={0.18} smoothness={4}>
+        <meshStandardMaterial color="#ffffff" roughness={0.65} />
+      </RoundedBox>
+
+      {/* Title */}
+      <Text
+        position={[0, 1.78, 0.11]}
+        fontSize={0.26}
+        color={INK}
+        anchorX="center"
+        anchorY="middle"
+        maxWidth={3.1}
+        textAlign="center"
+        lineHeight={1.15}
+      >
+        Choose your{'\n'}celebration
+      </Text>
+
+      {/* Occasion chips — 2 cols × 3 rows */}
+      {OCCASIONS.map((label, i) => {
+        const col = i % 2;
+        const row = Math.floor(i / 2);
+        const x = col === 0 ? -0.86 : 0.86;
+        const y = 0.7 - row * 0.92;
+        return (
+          <Chip
+            key={label}
+            label={label}
+            position={[x, y, 0.11]}
+            active={i === selected}
+          />
+        );
+      })}
+    </group>
+  );
+}
+
+function Chip({
+  label,
+  position,
+  active,
+}: {
+  label: string;
+  position: [number, number, number];
+  active: boolean;
+}) {
+  return (
+    <group position={position}>
+      <RoundedBox args={[1.52, 0.66, 0.07]} radius={0.13} smoothness={4}>
+        <meshStandardMaterial
+          color={active ? BRAND : CHIP_BG}
+          emissive={active ? BRAND : '#000000'}
+          emissiveIntensity={active ? 0.55 : 0}
+          roughness={0.5}
+        />
+      </RoundedBox>
+      <Text
+        position={[0, 0, 0.06]}
+        fontSize={0.17}
+        color={active ? '#ffffff' : INK}
+        anchorX="center"
+        anchorY="middle"
+        maxWidth={1.4}
+        textAlign="center"
+      >
+        {label}
+      </Text>
+    </group>
+  );
+}
+
 function CardPlane() {
   const tex = useTexture(heroFront);
   tex.colorSpace = THREE.SRGBColorSpace;
   return (
     <mesh>
-      <planeGeometry args={[4.2, 4.2]} />
+      <planeGeometry args={[4, 4]} />
       <meshBasicMaterial map={tex} toneMapped={false} />
     </mesh>
   );
