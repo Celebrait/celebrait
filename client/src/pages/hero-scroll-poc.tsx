@@ -39,7 +39,7 @@ export default function HeroScrollPocPage() {
   // Drive the studio card as we approach beat 3: name + occasion toggle IN
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
-    const sub = clamp((v - 0.42) / (0.62 - 0.42), 0, 1);
+    const sub = clamp((v - 0.3) / (0.62 - 0.3), 0, 1);
     if (sub <= 0) {
       setName('');
       setSelectedIdx(-1);
@@ -67,8 +67,6 @@ export default function HeroScrollPocPage() {
   // reveal, no soft cross-fade), then the whole pair dollies + fades out as one.
   const zChoose = useTransform(scrollYProgress, [0.16, 0.3, 0.66, 0.76], [-720, 0, 60, 760]);
   const oChoose = useTransform(scrollYProgress, [0.16, 0.26, 0.64, 0.74], [0, 1, 1, 0]);
-  // Card joins later — quick reveal (no slow fade), then it's just part of the group.
-  const cardReveal = useTransform(scrollYProgress, [0.42, 0.46], [0, 1]);
   // Beat 4 — "Select your photo(s)": approaches, lands, holds (end).
   const z4 = useTransform(scrollYProgress, [0.78, 0.92, 1], [-760, 0, 60]);
   const o4 = useTransform(scrollYProgress, [0.78, 0.9, 1], [0, 1, 1]);
@@ -89,15 +87,12 @@ export default function HeroScrollPocPage() {
           <HeadlineIntro reduced={!!reduced} />
         </Layer>
 
-        {/* Headline + card locked in one group so they move together. The
-            card slot is always in layout (reserved space) so revealing it
-            doesn't shove the headline — it just appears below it. */}
+        {/* Headline + card are ONE unit — fade in and dolly together, text
+            above the asset. */}
         <Layer z={zChoose} opacity={oChoose}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Choose your celebration</h1>
-            <motion.div style={{ opacity: cardReveal }} className="will-change-transform">
-              <StudioCard name={name} selectedIdx={selectedIdx} pressed={pressed} />
-            </motion.div>
+            <StudioCard name={name} selectedIdx={selectedIdx} pressed={pressed} />
           </div>
         </Layer>
 
