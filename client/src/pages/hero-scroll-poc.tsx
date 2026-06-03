@@ -66,12 +66,12 @@ export default function HeroScrollPocPage() {
     const ps = clamp((v - 0.38) / (0.48 - 0.38), 0, 1);
     setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
 
-    // Beat 4 — scene description types in around the centre of the pass.
-    const ps5 = clamp((v - 0.58) / (0.7 - 0.58), 0, 1);
+    // Beat 4 — scene description types in as the card lands + holds (slows).
+    const ps5 = clamp((v - 0.6) / (0.69 - 0.6), 0, 1);
     setSceneLen(Math.round(ps5 * SCENE_TEXT.length));
 
     // Beat 5 — front headline types in as the final card lands + holds.
-    const ps6 = clamp((v - 0.86) / (0.99 - 0.86), 0, 1);
+    const ps6 = clamp((v - 0.88) / (0.99 - 0.88), 0, 1);
     setFrontLen(Math.round(ps6 * FRONT_TEXT.length));
 
     const sub = clamp((v - 0.1) / (0.28 - 0.1), 0, 1);
@@ -103,12 +103,13 @@ export default function HeroScrollPocPage() {
   // Beat 3 — "Select your photo(s)": constant-pace dolly through; photos tick in mid-pass.
   const z4 = useTransform(scrollYProgress, [0.3, 0.54], [-720, 760]);
   const o4 = useTransform(scrollYProgress, [0.3, 0.35, 0.49, 0.54], [0, 1, 1, 0]);
-  // Beat 4 — "Describe the scene": constant-pace dolly through; scene types mid-pass.
-  const z5 = useTransform(scrollYProgress, [0.5, 0.74], [-720, 760]);
-  const o5 = useTransform(scrollYProgress, [0.5, 0.55, 0.69, 0.74], [0, 1, 1, 0]);
+  // Beat 4 — "Describe the scene": approaches, lands + HOLDS (slows) while the
+  // scene types in, then dollies through to the final beat.
+  const z5 = useTransform(scrollYProgress, [0.5, 0.63, 0.7, 0.78], [-720, 0, 0, 820]);
+  const o5 = useTransform(scrollYProgress, [0.5, 0.56, 0.72, 0.78], [0, 1, 1, 0]);
   // Beat 5 — "Add text to the front": approaches, lands + holds (end of journey).
-  const z6 = useTransform(scrollYProgress, [0.72, 0.88, 1], [-720, 0, 60]);
-  const o6 = useTransform(scrollYProgress, [0.72, 0.84, 1], [0, 1, 1]);
+  const z6 = useTransform(scrollYProgress, [0.76, 0.9, 1], [-720, 0, 60]);
+  const o6 = useTransform(scrollYProgress, [0.76, 0.86, 1], [0, 1, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.06], [1, 0]);
 
