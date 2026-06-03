@@ -74,7 +74,7 @@ export default function HeroScrollPocPage() {
   // the user scrolls/taps/keys so it never fights manual control.
   const [playing, setPlaying] = useState(false);
   const rafRef = useRef<number | null>(null);
-  const PLAY_MS = 30000; // full top→bottom run length
+  const PLAY_MS = 13000; // full top→bottom run length
 
   const stopFlow = () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
