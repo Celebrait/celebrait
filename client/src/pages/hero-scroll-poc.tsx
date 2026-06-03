@@ -19,7 +19,7 @@ import {
   useReducedMotion,
   type MotionValue,
 } from 'framer-motion';
-import { Cake, Heart, Gem, GraduationCap, ChevronDown } from 'lucide-react';
+import { Cake, Heart, Gem, GraduationCap, ChevronDown, User, Check } from 'lucide-react';
 
 const NAMES = ['Mum', 'Jack', 'Emma', 'Dad', 'Sarah'];
 const FINAL_NAME = 'Sarah';
@@ -35,10 +35,16 @@ export default function HeroScrollPocPage() {
   const [name, setName] = useState('');
   const [selectedIdx, setSelectedIdx] = useState(-1);
   const [pressed, setPressed] = useState(false);
+  // Beat 4 — how many photos have "selected" in (0–3).
+  const [photoSel, setPhotoSel] = useState(0);
 
   // Drive the studio card as we approach beat 3: name + occasion toggle IN
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
+    // Beat 4 — photos "select in" one by one as the photo card lands + holds.
+    const ps = clamp((v - 0.88) / (1 - 0.88), 0, 1);
+    setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
+
     const sub = clamp((v - 0.16) / (0.56 - 0.16), 0, 1);
     if (sub <= 0) {
       setName('');
@@ -97,8 +103,12 @@ export default function HeroScrollPocPage() {
           </div>
         </Layer>
 
+        {/* Headline + photo picker as one unit — photos "select in" as it lands. */}
         <Layer z={z4} opacity={o4}>
-          <h1 className={HEADLINE_CLASS}>Select your photo(s)</h1>
+          <div className="flex flex-col items-center gap-7 sm:gap-9">
+            <h1 className={CHOOSE_CLASS}>Select your photo(s)</h1>
+            <PhotoCard selected={photoSel} />
+          </div>
         </Layer>
 
         <motion.div
@@ -260,6 +270,65 @@ function StudioCard({
         <ChevronDown className="w-4 h-4" />
         More occasions
       </div>
+    </div>
+  );
+}
+
+// Placeholder photo thumbnails — gradient tiles standing in for portraits
+// (swap for real sample shots later). SELECT_ORDER = the order they tick in.
+const PHOTOS = [
+  'from-rose-300 to-orange-200',
+  'from-sky-300 to-indigo-200',
+  'from-amber-300 to-pink-200',
+  'from-emerald-300 to-teal-200',
+  'from-violet-300 to-fuchsia-200',
+  'from-stone-300 to-stone-200',
+];
+const SELECT_ORDER = [0, 4, 2];
+
+function PhotoCard({ selected }: { selected: number }) {
+  const isSelected = (i: number) => {
+    const pos = SELECT_ORDER.indexOf(i);
+    return pos !== -1 && pos < selected;
+  };
+  return (
+    <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
+      <h2 className="text-[22px] font-bold text-ink leading-tight">
+        Add your photos
+      </h2>
+      <p className="text-[13px] text-stone-500 mt-1.5">
+        A few clear angles of Sarah — more = better likeness.
+      </p>
+
+      <div className="grid grid-cols-3 gap-2.5 mt-5">
+        {PHOTOS.map((g, i) => {
+          const sel = isSelected(i);
+          return (
+            <div
+              key={i}
+              className={`relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br ${g} ring-2 transition-all duration-200 ${
+                sel ? 'ring-brand' : 'ring-transparent'
+              } ${selected > 0 && !sel ? 'opacity-60' : 'opacity-100'}`}
+            >
+              <span className="absolute inset-0 flex items-center justify-center">
+                <User className="w-7 h-7 text-white/75" strokeWidth={1.75} />
+              </span>
+              <motion.div
+                initial={false}
+                animate={{ opacity: sel ? 1 : 0, scale: sel ? 1 : 0.5 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-brand flex items-center justify-center shadow-md"
+              >
+                <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+              </motion.div>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="text-[13px] mt-4 h-5 text-center font-semibold text-ink">
+        {selected > 0 ? `Sarah — ${selected} selected` : ''}
+      </p>
     </div>
   );
 }
