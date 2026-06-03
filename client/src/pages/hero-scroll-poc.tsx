@@ -31,6 +31,9 @@ import {
   Sparkles,
   Type,
 } from 'lucide-react';
+import { Card3DViewer } from '@/components/card-3d-viewer';
+import revealFront from '@/assets/hero-card-front.png';
+import revealInside from '@/assets/hero-card-inside.png';
 
 const FINAL_NAME = 'Sarah';
 const ANNIVERSARY_IDX = 1; // 'Anniversary' in OCC
@@ -64,34 +67,37 @@ export default function HeroScrollPocPage() {
   const [frontLen, setFrontLen] = useState(0);
   // Beat 7 — how many characters of the inside message have "typed" in.
   const [insideLen, setInsideLen] = useState(0);
+  // Finale — the 3D card swings open once you scroll past the reveal point.
+  const [revealOpen, setRevealOpen] = useState(false);
 
   // Drive the studio card as we approach beat 3: name + occasion toggle IN
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
-    // Each content beat's animation COMPLETES at that beat's dwell target
-    // (.26/.42/.58/.74/.90) — within the full-opacity crawl — so it reads as
-    // finished on a hold, then sits complete briefly before moving on.
-    // Beat 3 — photos "select in", all 3 done by .42.
-    const ps = clamp((v - 0.36) / (0.42 - 0.36), 0, 1);
+    // Each content beat's animation runs across its crawl, starting exactly as
+    // the card slows (crawl start = centre − .025) so type-in syncs with the
+    // deceleration. Centres: .22 / .355 / .49 / .625 / .76, then the finale.
+    // Photos "select in" across the crawl (centre .355).
+    const ps = clamp((v - 0.33) / (0.37 - 0.33), 0, 1);
     setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
 
-    // Typing starts exactly as each card SLOWS (crawl start / landing) so the
-    // type-in is in sync with the deceleration, then holds complete briefly.
-    // Beat 4 — scene: crawl starts at .54.
-    const ps5 = clamp((v - 0.54) / (0.59 - 0.54), 0, 1);
+    // Design the front — scene types in (centre .49).
+    const ps5 = clamp((v - 0.465) / (0.505 - 0.465), 0, 1);
     setSceneLen(Math.round(ps5 * SCENE_TEXT.length));
 
-    // Beat 5 — front: crawl starts at .70.
-    const ps6 = clamp((v - 0.7) / (0.75 - 0.7), 0, 1);
+    // Add text to the front (centre .625).
+    const ps6 = clamp((v - 0.6) / (0.64 - 0.6), 0, 1);
     setFrontLen(Math.round(ps6 * FRONT_TEXT.length));
 
-    // Beat 6 — inside: lands/slows at .89.
-    const ps7 = clamp((v - 0.89) / (0.98 - 0.89), 0, 1);
+    // Add text on the inside (centre .76).
+    const ps7 = clamp((v - 0.735) / (0.775 - 0.735), 0, 1);
     setInsideLen(Math.round(ps7 * INSIDE_MESSAGE.length));
 
-    // Beat 2 — name stays "Sarah" the whole time; the occasions toggle as the
-    // card approaches, then Anniversary is "clicked" (pressed) as we pass.
-    const sub = clamp((v - 0.15) / (0.27 - 0.15), 0, 1);
+    // Finale — the card opens once we scroll past the reveal point.
+    setRevealOpen(v > 0.92);
+
+    // Choose celebration (centre .22) — name stays "Sarah"; occasions toggle
+    // on approach, Anniversary "clicked" (pressed) as we pass.
+    const sub = clamp((v - 0.145) / (0.23 - 0.145), 0, 1);
     if (sub <= 0) {
       setName('');
       setSelectedIdx(-1);
@@ -110,44 +116,43 @@ export default function HeroScrollPocPage() {
   });
 
   // ── Unified timing ─────────────────────────────────────────────────
-  // Every content beat shares ONE motion profile so the journey reads as
-  // one continuous dolly: fast approach (−720→−40) → slow crawl
-  // (−40→40, the readable beat where content animates) → fast exit
-  // (40→820). Crawl centres are evenly spaced (.16 apart) at
-  // .25 / .41 / .57 / .73 / .89 (final), and opacity is held tight to each
-  // crawl, with a ~.01 overlap at each seam (no white gap — a faint
-  // crossfade as one dissolves while the next ghosts in).
+  // Every content beat shares ONE motion profile so the journey reads as one
+  // continuous dolly: fast approach (−720→−40) → slow crawl (−40→40, the
+  // readable beat where content animates) → fast exit (40→820). Crawl centres
+  // are evenly spaced (~.135 apart) at .22 / .355 / .49 / .625 / .76; opacity
+  // is held tight to each crawl with a ~.01 overlap at every seam (no white
+  // gap — a faint crossfade). The finale (3D card) lands + opens, no dolly.
   //
   // Beat 1 — intro: full at top, zooms through + fades.
-  const z1 = useTransform(scrollYProgress, [0, 0.17], [0, 880]);
-  const o1 = useTransform(scrollYProgress, [0, 0.09, 0.17], [1, 1, 0]);
-  // Opacity is held tight to each beat's readable crawl (fade in late in the
-  // approach, fade out early in the exit) so a card fully clears before the
-  // next appears — a beat of empty gradient between steps, no overlapping
-  // assets at the seams.
-  // Beat 2 — "Choose your celebration" + card (centre .25).
-  const zChoose = useTransform(scrollYProgress, [0.12, 0.22, 0.28, 0.35], [-720, -40, 40, 820]);
-  const oChoose = useTransform(scrollYProgress, [0.165, 0.22, 0.28, 0.335], [0, 1, 1, 0]);
-  // Confetti burst — fires out of the card right as Anniversary is "clicked"
-  // (press lands ~.258), then settles. Scroll-driven so it scrubs both ways.
-  const burst = useTransform(scrollYProgress, [0.26, 0.32], [0, 1]);
-  // Beat 3 — "Select your photo(s)" (centre .41).
-  const z4 = useTransform(scrollYProgress, [0.28, 0.38, 0.44, 0.51], [-720, -40, 40, 820]);
-  const o4 = useTransform(scrollYProgress, [0.325, 0.38, 0.44, 0.495], [0, 1, 1, 0]);
-  // Beat 4 — "Describe the scene" (centre .57).
-  const z5 = useTransform(scrollYProgress, [0.44, 0.54, 0.60, 0.67], [-720, -40, 40, 820]);
-  const o5 = useTransform(scrollYProgress, [0.485, 0.54, 0.60, 0.655], [0, 1, 1, 0]);
-  // Beat 5 — "Add text to the front" (centre .73).
-  const z6 = useTransform(scrollYProgress, [0.60, 0.70, 0.76, 0.83], [-720, -40, 40, 820]);
-  const o6 = useTransform(scrollYProgress, [0.645, 0.70, 0.76, 0.815], [0, 1, 1, 0]);
-  // Beat 6 — "Add text on the inside": approach → land → gentle drift (journey's end).
-  const z7 = useTransform(scrollYProgress, [0.76, 0.89, 1], [-720, 0, 50]);
-  const o7 = useTransform(scrollYProgress, [0.805, 0.89, 1], [0, 1, 1]);
+  const z1 = useTransform(scrollYProgress, [0, 0.16], [0, 880]);
+  const o1 = useTransform(scrollYProgress, [0, 0.08, 0.16], [1, 1, 0]);
+  // Beat 2 — "Choose your celebration" + card (centre .22).
+  const zChoose = useTransform(scrollYProgress, [0.12, 0.195, 0.245, 0.32], [-720, -40, 40, 820]);
+  const oChoose = useTransform(scrollYProgress, [0.148, 0.195, 0.245, 0.293], [0, 1, 1, 0]);
+  // Confetti burst — fires out of the card as Anniversary is "clicked" (~.22).
+  const burst = useTransform(scrollYProgress, [0.215, 0.27], [0, 1]);
+  // Beat 3 — "Select your photo(s)" (centre .355).
+  const z4 = useTransform(scrollYProgress, [0.255, 0.33, 0.38, 0.455], [-720, -40, 40, 820]);
+  const o4 = useTransform(scrollYProgress, [0.283, 0.33, 0.38, 0.428], [0, 1, 1, 0]);
+  // Beat 4 — "Design the front" (centre .49).
+  const z5 = useTransform(scrollYProgress, [0.39, 0.465, 0.515, 0.59], [-720, -40, 40, 820]);
+  const o5 = useTransform(scrollYProgress, [0.418, 0.465, 0.515, 0.563], [0, 1, 1, 0]);
+  // Beat 5 — "Add text to the front" (centre .625).
+  const z6 = useTransform(scrollYProgress, [0.525, 0.6, 0.65, 0.725], [-720, -40, 40, 820]);
+  const o6 = useTransform(scrollYProgress, [0.553, 0.6, 0.65, 0.698], [0, 1, 1, 0]);
+  // Beat 6 — "Add text on the inside" (centre .76) — now a through-beat.
+  const z7 = useTransform(scrollYProgress, [0.66, 0.735, 0.785, 0.86], [-720, -40, 40, 820]);
+  const o7 = useTransform(scrollYProgress, [0.688, 0.735, 0.785, 0.833], [0, 1, 1, 0]);
+  // Finale — the finished 3D card. No CSS dolly (it's a live 3D render); it
+  // rises + scales in, then swings open (revealOpen) to show the inside.
+  const oReveal = useTransform(scrollYProgress, [0.82, 0.88, 1], [0, 1, 1]);
+  const yReveal = useTransform(scrollYProgress, [0.82, 0.9], [48, 0]);
+  const scaleReveal = useTransform(scrollYProgress, [0.82, 0.9], [0.9, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
 
   return (
-    <div ref={ref} className="relative" style={{ height: '1120vh' }}>
+    <div ref={ref} className="relative" style={{ height: '1340vh' }}>
       <div
         className="fixed inset-0 overflow-hidden"
         style={{
@@ -203,6 +208,35 @@ export default function HeroScrollPocPage() {
             <InsideTextCard typed={INSIDE_MESSAGE.slice(0, insideLen)} />
           </div>
         </Layer>
+
+        {/* Finale — the finished 3D card. Rises + scales in (no CSS dolly),
+            then swings open on scroll to reveal the inside message. */}
+        <motion.div
+          style={{ opacity: oReveal }}
+          className="absolute inset-0 flex items-center justify-center px-6 will-change-transform"
+        >
+          <motion.div
+            style={{ y: yReveal, scale: scaleReveal }}
+            className="flex flex-col items-center gap-6 sm:gap-8"
+          >
+            <h1 className={CHOOSE_CLASS}>And it's ready</h1>
+            <div className="w-[320px] sm:w-[380px] h-[420px] sm:h-[460px]">
+              <Card3DViewer
+                frontImageUrl={revealFront}
+                insideImageUrl={revealInside}
+                open={revealOpen}
+                closedAngle={-0.32}
+                restYaw={-0.12}
+                interactive={false}
+                enableRotate={false}
+                enableZoom={false}
+                framingMargin={1.95}
+                minDistance={2.4}
+                className="w-full h-full"
+              />
+            </div>
+          </motion.div>
+        </motion.div>
 
         <motion.div
           style={{ opacity: hintO }}
