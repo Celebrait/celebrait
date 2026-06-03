@@ -1,19 +1,18 @@
 // client/src/pages/experience-poc.tsx
 //
 // PROOF OF CONCEPT — immersive 3D scroll journey showcasing the studio.
-// v2 (senior rebuild, 2026-06-02): the grey/flat first pass missed the
-// fundamentals of a premium render. Fixed here:
-//   • Environment (Lightformers) → image-based lighting/reflections, so the
-//     white card reads WHITE + premium, not grey. (the #1 unlock)
-//   • ContactShadows → objects sit with weight, not floating toys.
-//   • Cinematic ANGLE — the panel/card presented at a 3/4, with perspective.
-//   • Studio's real language: white card + occasion ROWS with pink icon
-//     tiles (matches the actual recipient step) instead of grey buttons.
-//   • A satisfying selection "land" (lift + violet glow).
+// v3 (2026-06-02, Kevin's call): DON'T rebuild the UI as 3D geometry (it goes
+// puffy/skeuomorphic). Keep the studio UI FLAT + crisp + authentic, and put
+// it on the SCREEN of a floating 3D PHONE. The phone is the only 3D object
+// (premium material, angle, env lighting, soft shadow, flies on scroll); the
+// interface stays exactly like the real app.
 //
-// Honest ceiling: this is roughly the best REAL-TIME WebGL gets, iterated
-// blind. True "3D-movie" quality = pre-rendered sequence scrubbed on scroll
-// (needs a 3D artist). See next_landing_3d_immersive_scroll.md.
+// This beat = step 1 "Who's this card for?": the phone flies in at an angle,
+// the name types itself, the occasion cycles and lands on Birthday, then the
+// phone dissolves and we fly to the finished card.
+//
+// Real UI via drei <Html transform> — actual DOM (real lucide icons, real
+// Tailwind), so it's pixel-crisp, not a blurry texture. Isolated /experience.
 
 import { Suspense, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
@@ -24,22 +23,23 @@ import {
   Lightformer,
   ContactShadows,
   RoundedBox,
-  Text,
+  Html,
   Float,
   useTexture,
 } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { Cake, Heart, Gem, GraduationCap, ChevronDown } from 'lucide-react';
 import * as THREE from 'three';
 import heroFront from '@/assets/hero-card-front.png';
 
-const BRAND = '#7a76e8';
-const INK = '#2c2540';
-const PINK_TILE = '#fbdcec';
-const PINK_ICON = '#e8519b';
-const CARD_Z = -15;
-
-const OCCASIONS = ['Birthday', 'Anniversary', 'Wedding', 'Graduation'];
-const FINAL = 0; // lands on Birthday
+const CARD_Z = -14;
+const NAME = 'Sarah';
+const OCCASIONS = [
+  { label: 'Birthday', Icon: Cake },
+  { label: 'Anniversary', Icon: Heart },
+  { label: 'Wedding', Icon: Gem },
+  { label: 'Graduation', Icon: GraduationCap },
+];
+const FINAL = 0;
 
 export default function ExperiencePocPage() {
   return (
@@ -51,22 +51,14 @@ export default function ExperiencePocPage() {
       }}
     >
       <Canvas
-        camera={{ position: [1.2, 0.4, 8], fov: 50 }}
-        dpr={[1, 1.75]}
+        camera={{ position: [0.9, 0.3, 7], fov: 45 }}
+        dpr={[1, 2]}
         gl={{ antialias: true, alpha: true }}
       >
         <Suspense fallback={null}>
           <ScrollControls pages={3} damping={0.3}>
             <Scene />
           </ScrollControls>
-          <EffectComposer>
-            <Bloom
-              intensity={0.5}
-              luminanceThreshold={0.7}
-              luminanceSmoothing={0.35}
-              mipmapBlur
-            />
-          </EffectComposer>
         </Suspense>
       </Canvas>
 
@@ -86,155 +78,160 @@ export default function ExperiencePocPage() {
 
 function Scene() {
   const scroll = useScroll();
+  const [typed, setTyped] = useState('');
   const [selected, setSelected] = useState(0);
-  const lastIdx = useRef(-1);
-  const panelRef = useRef<THREE.Group>(null);
+  const lastTyped = useRef(-1);
+  const lastSel = useRef(-1);
+  const phoneRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
     const o = scroll.offset; // 0..1
-    // Cinematic dolly — slight off-axis so we view the panel at an angle.
-    state.camera.position.z = THREE.MathUtils.lerp(8, CARD_Z + 4, o);
-    state.camera.position.x = THREE.MathUtils.lerp(1.2, -0.6, o);
-    state.camera.position.y = 0.4 + Math.sin(o * Math.PI) * 0.25;
-    state.camera.lookAt(-0.2, 0, state.camera.position.z - 6);
+    state.camera.position.z = THREE.MathUtils.lerp(7, CARD_Z + 4, o);
+    state.camera.position.x = THREE.MathUtils.lerp(0.9, -0.5, o);
+    state.camera.position.y = 0.3 + Math.sin(o * Math.PI) * 0.2;
+    state.camera.lookAt(-0.1, 0, state.camera.position.z - 6);
 
-    // Chips cycle while approaching the panel, then settle on FINAL.
-    const p = THREE.MathUtils.clamp((o - 0.08) / (0.26 - 0.08), 0, 1);
+    // 1) Name types in (o 0.05 → 0.16)
+    const tp = THREE.MathUtils.clamp((o - 0.05) / (0.16 - 0.05), 0, 1);
+    const tlen = Math.round(tp * NAME.length);
+    if (tlen !== lastTyped.current) {
+      lastTyped.current = tlen;
+      setTyped(NAME.slice(0, tlen));
+    }
+
+    // 2) Occasion cycles then lands on Birthday (o 0.17 → 0.3)
+    const sp = THREE.MathUtils.clamp((o - 0.17) / (0.3 - 0.17), 0, 1);
     let idx = 0;
-    if (p > 0 && p < 0.82) {
-      idx = Math.floor((p / 0.82) * OCCASIONS.length * 2.6) % OCCASIONS.length;
-    } else if (p >= 0.82) {
+    if (sp > 0 && sp < 0.8) {
+      idx = Math.floor((sp / 0.8) * OCCASIONS.length * 2.4) % OCCASIONS.length;
+    } else if (sp >= 0.8) {
       idx = FINAL;
     }
-    if (idx !== lastIdx.current) {
-      lastIdx.current = idx;
+    if (idx !== lastSel.current) {
+      lastSel.current = idx;
       setSelected(idx);
     }
 
-    // Dissolve the panel just before we fly through it.
-    if (panelRef.current) {
-      const s = 1 - THREE.MathUtils.smoothstep(o, 0.32, 0.42);
-      panelRef.current.scale.setScalar(Math.max(0.0001, s));
+    // 3) Dissolve the phone just before we fly through it.
+    if (phoneRef.current) {
+      const s = 1 - THREE.MathUtils.smoothstep(o, 0.34, 0.44);
+      phoneRef.current.scale.setScalar(Math.max(0.0001, s));
     }
   });
 
   return (
     <>
-      {/* Image-based lighting via lightformers (no external HDRI fetch). This
-          is what makes white read premium-white with soft reflections. */}
+      {/* Image-based light (lightformers — no HDRI fetch) for a premium
+          phone body. */}
       <Environment resolution={256} frames={1}>
-        <Lightformer intensity={2.2} position={[0, 4, 2]} scale={[12, 8, 1]} color="#ffffff" />
+        <Lightformer intensity={2.2} position={[0, 4, 3]} scale={[12, 8, 1]} color="#ffffff" />
         <Lightformer intensity={1.1} position={[-6, 1, 2]} scale={[5, 6, 1]} color="#e6ecff" />
         <Lightformer intensity={1.0} position={[6, -1, 2]} scale={[5, 6, 1]} color="#fff2e6" />
-        <Lightformer intensity={0.8} position={[0, -4, -3]} scale={[10, 6, 1]} color="#f3eefb" />
       </Environment>
-      <ambientLight intensity={0.5} />
+      <ambientLight intensity={0.55} />
       <directionalLight position={[4, 6, 5]} intensity={0.8} color="#fff6ea" />
 
-      {/* Step 1 — Choose your celebration, presented at a 3/4 angle. */}
-      <group ref={panelRef}>
-        <Float speed={1} rotationIntensity={0.05} floatIntensity={0.3}>
-          <group rotation={[0.03, -0.26, 0]}>
-            <ChoosePanel selected={selected} />
+      {/* The 3D phone — only thing that's 3D; screen is the real flat UI. */}
+      <group ref={phoneRef}>
+        <Float speed={1} rotationIntensity={0.06} floatIntensity={0.3}>
+          <group rotation={[0.02, -0.2, 0]}>
+            <Phone typed={typed} selected={selected} />
           </group>
         </Float>
       </group>
 
-      {/* Landing card — slight angle, soft additive glow. */}
-      <Float speed={1.1} rotationIntensity={0.12} floatIntensity={0.35}>
-        <group position={[-0.2, 0, CARD_Z]} rotation={[0.02, 0.16, 0]}>
+      {/* Landing card. */}
+      <Float speed={1.1} rotationIntensity={0.1} floatIntensity={0.35}>
+        <group position={[-0.1, 0, CARD_Z]} rotation={[0.02, 0.14, 0]}>
           <mesh position={[0, 0, -0.25]}>
-            <planeGeometry args={[5.4, 5.4]} />
-            <meshBasicMaterial
-              color="#ffe6cf"
-              transparent
-              opacity={0.35}
-              blending={THREE.AdditiveBlending}
-              depthWrite={false}
-            />
+            <planeGeometry args={[5.2, 5.2]} />
+            <meshBasicMaterial color="#ffe6cf" transparent opacity={0.32} blending={THREE.AdditiveBlending} depthWrite={false} />
           </mesh>
           <CardPlane />
         </group>
       </Float>
 
-      {/* Grounding shadow under the whole scene. */}
-      <ContactShadows
-        position={[0, -2.7, 0]}
-        opacity={0.32}
-        scale={26}
-        blur={2.6}
-        far={6}
-        resolution={512}
-        color="#3a2f55"
-      />
+      <ContactShadows position={[0, -2.6, 0]} opacity={0.3} scale={24} blur={2.6} far={6} resolution={512} color="#3a2f55" />
     </>
   );
 }
 
-function ChoosePanel({ selected }: { selected: number }) {
+function Phone({ typed, selected }: { typed: string; selected: number }) {
   return (
     <group>
-      {/* Card body — soft white, low roughness so it catches the env. */}
-      <RoundedBox args={[3.7, 4.5, 0.16]} radius={0.2} smoothness={5}>
-        <meshStandardMaterial color="#ffffff" roughness={0.32} metalness={0} envMapIntensity={1.1} />
+      {/* Phone body — premium soft-white, catches the environment. */}
+      <RoundedBox args={[2.45, 4.95, 0.22]} radius={0.34} smoothness={6}>
+        <meshStandardMaterial color="#f4f4f7" roughness={0.28} metalness={0.05} envMapIntensity={1.2} />
       </RoundedBox>
 
-      <Text
-        position={[-1.5, 1.78, 0.1]}
-        fontSize={0.26}
-        color={INK}
-        anchorX="left"
-        anchorY="middle"
-        maxWidth={3.2}
-        lineHeight={1.1}
+      {/* Screen — the REAL studio UI as flat crisp DOM, on the phone face. */}
+      <Html
+        transform
+        position={[0, 0, 0.13]}
+        scale={0.0072}
+        style={{ pointerEvents: 'none' }}
+        zIndexRange={[0, 0]}
       >
-        Choose your{'\n'}celebration
-      </Text>
-
-      {OCCASIONS.map((label, i) => (
-        <OccasionRow
-          key={label}
-          label={label}
-          y={0.75 - i * 0.78}
-          active={i === selected}
-        />
-      ))}
+        <StudioScreen typed={typed} selected={selected} />
+      </Html>
     </group>
   );
 }
 
-function OccasionRow({
-  label,
-  y,
-  active,
-}: {
-  label: string;
-  y: number;
-  active: boolean;
-}) {
+// Faithful clone of the studio's "Who's this card for?" step — real Tailwind,
+// real lucide icons. Selected occasion uses the brand highlight, like the app.
+function StudioScreen({ typed, selected }: { typed: string; selected: number }) {
   return (
-    <group position={[0, y, active ? 0.2 : 0.09]}>
-      {/* Violet selection ring, behind, when active. */}
-      {active && (
-        <RoundedBox args={[3.28, 0.74, 0.05]} radius={0.2} smoothness={4} position={[0, 0, -0.04]}>
-          <meshStandardMaterial color={BRAND} emissive={BRAND} emissiveIntensity={0.7} roughness={0.4} />
-        </RoundedBox>
-      )}
-      {/* Row card */}
-      <RoundedBox args={[3.16, 0.64, 0.09]} radius={0.16} smoothness={4}>
-        <meshStandardMaterial color="#ffffff" roughness={0.28} metalness={0} envMapIntensity={1.1} />
-      </RoundedBox>
-      {/* Pink icon tile + dot (placeholder for the real occasion icon). */}
-      <RoundedBox args={[0.44, 0.44, 0.06]} radius={0.12} smoothness={4} position={[-1.22, 0, 0.07]}>
-        <meshStandardMaterial color={PINK_TILE} roughness={0.45} />
-      </RoundedBox>
-      <RoundedBox args={[0.2, 0.2, 0.04]} radius={0.06} smoothness={3} position={[-1.22, 0, 0.12]}>
-        <meshStandardMaterial color={PINK_ICON} emissive={PINK_ICON} emissiveIntensity={0.25} roughness={0.5} />
-      </RoundedBox>
-      <Text position={[-0.82, 0, 0.08]} fontSize={0.2} color={INK} anchorX="left" anchorY="middle">
-        {label}
-      </Text>
-    </group>
+    <div
+      style={{ width: 300 }}
+      className="rounded-[26px] bg-white px-5 py-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.25)] font-sans select-none"
+    >
+      <h2 className="text-[20px] font-bold text-ink leading-tight">
+        Who's this card for?
+      </h2>
+      <p className="text-[12px] text-stone-500 mt-1.5">
+        A name and a reason — that's all we need to start.
+      </p>
+
+      <p className="text-[13px] text-ink mt-5 mb-1.5">Name</p>
+      <div className="rounded-xl border-2 border-brand/50 bg-stone-50 px-3 py-2.5 text-[14px]">
+        {typed ? (
+          <span className="text-ink">
+            {typed}
+            <span className="inline-block w-[2px] h-[15px] bg-brand align-middle ml-0.5 animate-pulse" />
+          </span>
+        ) : (
+          <span className="text-stone-400">e.g. Mum, Sarah, Dad</span>
+        )}
+      </div>
+
+      <p className="text-[13px] text-ink mt-5 mb-2.5">What's the celebration?</p>
+      <div className="space-y-2">
+        {OCCASIONS.map(({ label, Icon }, i) => {
+          const active = i === selected;
+          return (
+            <div
+              key={label}
+              className={`flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 transition-colors ${
+                active
+                  ? 'border-brand bg-brand-muted/40'
+                  : 'border-stone-200 bg-white'
+              }`}
+            >
+              <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-pink-100 text-pink-500">
+                <Icon className="w-[18px] h-[18px]" strokeWidth={2} />
+              </span>
+              <span className="text-[14px] font-medium text-ink">{label}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-3 flex items-center gap-1 text-[12px] text-brand font-medium">
+        <ChevronDown className="w-3.5 h-3.5" />
+        More occasions
+      </div>
+    </div>
   );
 }
 
