@@ -75,16 +75,18 @@ export default function HeroScrollPocPage() {
     const ps = clamp((v - 0.36) / (0.42 - 0.36), 0, 1);
     setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
 
-    // Beat 4 — scene description typed by .58.
-    const ps5 = clamp((v - 0.525) / (0.58 - 0.525), 0, 1);
+    // Typing starts exactly as each card SLOWS (crawl start / landing) so the
+    // type-in is in sync with the deceleration, then holds complete briefly.
+    // Beat 4 — scene: crawl starts at .54.
+    const ps5 = clamp((v - 0.54) / (0.59 - 0.54), 0, 1);
     setSceneLen(Math.round(ps5 * SCENE_TEXT.length));
 
-    // Beat 5 — front headline typed by .74.
-    const ps6 = clamp((v - 0.685) / (0.74 - 0.685), 0, 1);
+    // Beat 5 — front: crawl starts at .70.
+    const ps6 = clamp((v - 0.7) / (0.75 - 0.7), 0, 1);
     setFrontLen(Math.round(ps6 * FRONT_TEXT.length));
 
-    // Beat 6 — inside message typed by .90.
-    const ps7 = clamp((v - 0.845) / (0.9 - 0.845), 0, 1);
+    // Beat 6 — inside: lands/slows at .89.
+    const ps7 = clamp((v - 0.89) / (0.98 - 0.89), 0, 1);
     setInsideLen(Math.round(ps7 * INSIDE_MESSAGE.length));
 
     // Beat 2 — name stays "Sarah" the whole time; the occasions toggle as the
