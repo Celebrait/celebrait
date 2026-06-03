@@ -10,7 +10,7 @@
 // Pure DOM + framer-motion: CSS perspective does the dolly; the studio card is
 // a live clone (not a screenshot) so it can animate. Isolated /hero-poc.
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   motion,
   useScroll,
@@ -30,8 +30,6 @@ import {
   Wand2,
   Sparkles,
   Type,
-  Play,
-  Square,
 } from 'lucide-react';
 
 const NAMES = ['Mum', 'Jack', 'Emma', 'Dad', 'Sarah'];
@@ -67,94 +65,6 @@ export default function HeroScrollPocPage() {
   const [frontLen, setFrontLen] = useState(0);
   // Beat 7 — how many characters of the inside message have "typed" in.
   const [insideLen, setInsideLen] = useState(0);
-
-  // ── Autoplay ───────────────────────────────────────────────────────
-  // "Play walkthrough" smoothly scrolls the page top→bottom over a fixed
-  // duration so the whole flow can be watched hands-free. Bails the moment
-  // the user scrolls/taps/keys so it never fights manual control.
-  const [playing, setPlaying] = useState(false);
-  const rafRef = useRef<number | null>(null);
-  // Autoplay = snap fast into each step, hold, snap to the next. Targets are
-  // the scroll progress where each step's content is complete + card readable
-  // (intro, choose+press, photos, scene, front, inside).
-  const DWELL_TARGETS = [0.02, 0.26, 0.42, 0.58, 0.74, 0.9];
-  const STEP_MS = 380; // super-fast dolly into each step
-  const DWELL_MS = 2400; // hold on the step (~8 beats)
-
-  const stopFlow = () => {
-    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-    rafRef.current = null;
-    setPlaying(false);
-  };
-
-  const playFlow = () => {
-    if (playing) {
-      stopFlow();
-      return;
-    }
-    setPlaying(true);
-    const maxScroll = () =>
-      document.documentElement.scrollHeight - window.innerHeight;
-    const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
-    let i = 0;
-    let fromY = 0;
-    let toY = DWELL_TARGETS[0] * maxScroll();
-    let phase: 'move' | 'dwell' = 'move';
-    let start: number | null = null;
-    window.scrollTo(0, 0);
-    const tick = (ts: number) => {
-      if (start === null) start = ts;
-      const elapsed = ts - start;
-      if (phase === 'move') {
-        const p = Math.min(elapsed / STEP_MS, 1);
-        window.scrollTo(0, fromY + (toY - fromY) * easeOut(p));
-        if (p >= 1) {
-          phase = 'dwell';
-          start = ts;
-        }
-      } else if (elapsed >= DWELL_MS) {
-        i += 1;
-        if (i >= DWELL_TARGETS.length) {
-          stopFlow();
-          return;
-        }
-        fromY = toY;
-        toY = DWELL_TARGETS[i] * maxScroll();
-        phase = 'move';
-        start = ts;
-      }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-  };
-
-  // While playing, any manual scroll/tap/key cancels the run. We arm these
-  // a tick after starting so the initial programmatic scrollTo(0,0) doesn't
-  // immediately abort it.
-  useEffect(() => {
-    if (!playing) return;
-    let armed = false;
-    const t = window.setTimeout(() => {
-      armed = true;
-    }, 120);
-    const cancel = () => {
-      if (armed) stopFlow();
-    };
-    window.addEventListener('wheel', cancel, { passive: true });
-    window.addEventListener('touchstart', cancel, { passive: true });
-    window.addEventListener('keydown', cancel);
-    return () => {
-      window.clearTimeout(t);
-      window.removeEventListener('wheel', cancel);
-      window.removeEventListener('touchstart', cancel);
-      window.removeEventListener('keydown', cancel);
-    };
-  }, [playing]);
-
-  // Clean up any in-flight animation frame on unmount.
-  useEffect(() => () => {
-    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-  }, []);
 
   // Drive the studio card as we approach beat 3: name + occasion toggle IN
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
@@ -300,20 +210,6 @@ export default function HeroScrollPocPage() {
             </span>
           </div>
         </motion.div>
-
-        {/* Autoplay button — watch the whole flow hands-free. */}
-        <button
-          type="button"
-          onClick={playFlow}
-          className="absolute bottom-7 right-7 z-50 flex items-center gap-2 rounded-full bg-brand-dark px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/30 transition-colors hover:bg-brand"
-        >
-          {playing ? (
-            <Square className="w-4 h-4 fill-current" strokeWidth={0} />
-          ) : (
-            <Play className="w-4 h-4 fill-current" strokeWidth={0} />
-          )}
-          {playing ? 'Stop' : 'Play walkthrough'}
-        </button>
       </div>
     </div>
   );
