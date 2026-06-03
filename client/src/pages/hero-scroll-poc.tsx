@@ -30,6 +30,7 @@ import {
   Wand2,
   Sparkles,
   Type,
+  Loader2,
 } from 'lucide-react';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import revealFront from '@/assets/hero-card-front.png';
@@ -93,7 +94,7 @@ export default function HeroScrollPocPage() {
     setInsideLen(Math.round(ps7 * INSIDE_MESSAGE.length));
 
     // Finale — the card opens once we scroll past the reveal point.
-    setRevealOpen(v > 0.92);
+    setRevealOpen(v > 0.95);
 
     // Choose celebration (centre .22) — name stays "Sarah"; occasions toggle
     // on approach, Anniversary "clicked" (pressed) as we pass.
@@ -143,11 +144,13 @@ export default function HeroScrollPocPage() {
   // Beat 6 — "Add text on the inside" (centre .76) — now a through-beat.
   const z7 = useTransform(scrollYProgress, [0.66, 0.735, 0.785, 0.86], [-720, -40, 40, 820]);
   const o7 = useTransform(scrollYProgress, [0.688, 0.735, 0.785, 0.833], [0, 1, 1, 0]);
-  // Finale — the finished 3D card. No CSS dolly (it's a live 3D render); it
-  // rises + scales in, then swings open (revealOpen) to show the inside.
-  const oReveal = useTransform(scrollYProgress, [0.82, 0.88, 1], [0, 1, 1]);
-  const yReveal = useTransform(scrollYProgress, [0.82, 0.9], [48, 0]);
-  const scaleReveal = useTransform(scrollYProgress, [0.82, 0.9], [0.9, 1]);
+  // Finale — a spinner spins as you scroll in (echoing the studio's "creating
+  // your card" moment), then fades and the finished 3D card reveals + opens.
+  const spinnerRot = useTransform(scrollYProgress, [0.81, 0.94], [0, 540]);
+  const spinnerO = useTransform(scrollYProgress, [0.8, 0.84, 0.9, 0.93], [0, 1, 1, 0]);
+  const oReveal = useTransform(scrollYProgress, [0.92, 0.97, 1], [0, 1, 1]);
+  const yReveal = useTransform(scrollYProgress, [0.92, 0.99], [40, 0]);
+  const scaleReveal = useTransform(scrollYProgress, [0.92, 0.99], [0.92, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
 
@@ -209,32 +212,38 @@ export default function HeroScrollPocPage() {
           </div>
         </Layer>
 
-        {/* Finale — the finished 3D card. Rises + scales in (no CSS dolly),
-            then swings open on scroll to reveal the inside message. */}
+        {/* Finale — a spinner spins as you scroll (the "creating your card"
+            moment), then the finished 3D card reveals + opens. */}
+        <motion.div
+          style={{ opacity: spinnerO }}
+          className="pointer-events-none absolute inset-0 flex items-center justify-center px-6"
+        >
+          <motion.div style={{ rotate: spinnerRot }}>
+            <Loader2 className="w-14 h-14 text-brand" strokeWidth={2} />
+          </motion.div>
+        </motion.div>
+
         <motion.div
           style={{ opacity: oReveal }}
           className="absolute inset-0 flex items-center justify-center px-6 will-change-transform"
         >
           <motion.div
             style={{ y: yReveal, scale: scaleReveal }}
-            className="flex flex-col items-center gap-6 sm:gap-8"
+            className="w-[320px] sm:w-[380px] h-[420px] sm:h-[460px]"
           >
-            <h1 className={CHOOSE_CLASS}>And it's ready</h1>
-            <div className="w-[320px] sm:w-[380px] h-[420px] sm:h-[460px]">
-              <Card3DViewer
-                frontImageUrl={revealFront}
-                insideImageUrl={revealInside}
-                open={revealOpen}
-                closedAngle={-0.32}
-                restYaw={-0.12}
-                interactive={false}
-                enableRotate={false}
-                enableZoom={false}
-                framingMargin={1.95}
-                minDistance={2.4}
-                className="w-full h-full"
-              />
-            </div>
+            <Card3DViewer
+              frontImageUrl={revealFront}
+              insideImageUrl={revealInside}
+              open={revealOpen}
+              closedAngle={-0.32}
+              restYaw={-0.12}
+              interactive={false}
+              enableRotate={false}
+              enableZoom={false}
+              framingMargin={2.3}
+              minDistance={2.8}
+              className="w-full h-full"
+            />
           </motion.div>
         </motion.div>
 
