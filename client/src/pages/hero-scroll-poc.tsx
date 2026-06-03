@@ -74,7 +74,12 @@ export default function HeroScrollPocPage() {
   // the user scrolls/taps/keys so it never fights manual control.
   const [playing, setPlaying] = useState(false);
   const rafRef = useRef<number | null>(null);
-  const PLAY_MS = 13000; // full top→bottom run length
+  // Autoplay = snap fast into each step, hold, snap to the next. Targets are
+  // the scroll progress where each step's content is complete + card readable
+  // (intro, choose+press, photos, scene, front, inside).
+  const DWELL_TARGETS = [0.02, 0.26, 0.42, 0.58, 0.74, 0.9];
+  const STEP_MS = 380; // super-fast dolly into each step
+  const DWELL_MS = 900; // hold on the step (~3 beats)
 
   const stopFlow = () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
@@ -88,22 +93,39 @@ export default function HeroScrollPocPage() {
       return;
     }
     setPlaying(true);
-    window.scrollTo(0, 0);
-    const endY = () =>
+    const maxScroll = () =>
       document.documentElement.scrollHeight - window.innerHeight;
+    const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+    let i = 0;
+    let fromY = 0;
+    let toY = DWELL_TARGETS[0] * maxScroll();
+    let phase: 'move' | 'dwell' = 'move';
     let start: number | null = null;
-    const step = (ts: number) => {
+    window.scrollTo(0, 0);
+    const tick = (ts: number) => {
       if (start === null) start = ts;
-      const p = Math.min((ts - start) / PLAY_MS, 1);
-      window.scrollTo(0, endY() * p); // linear → even beat pacing
-      if (p < 1) {
-        rafRef.current = requestAnimationFrame(step);
-      } else {
-        rafRef.current = null;
-        setPlaying(false);
+      const elapsed = ts - start;
+      if (phase === 'move') {
+        const p = Math.min(elapsed / STEP_MS, 1);
+        window.scrollTo(0, fromY + (toY - fromY) * easeOut(p));
+        if (p >= 1) {
+          phase = 'dwell';
+          start = ts;
+        }
+      } else if (elapsed >= DWELL_MS) {
+        i += 1;
+        if (i >= DWELL_TARGETS.length) {
+          stopFlow();
+          return;
+        }
+        fromY = toY;
+        toY = DWELL_TARGETS[i] * maxScroll();
+        phase = 'move';
+        start = ts;
       }
+      rafRef.current = requestAnimationFrame(tick);
     };
-    rafRef.current = requestAnimationFrame(step);
+    rafRef.current = requestAnimationFrame(tick);
   };
 
   // While playing, any manual scroll/tap/key cancels the run. We arm these
@@ -137,25 +159,26 @@ export default function HeroScrollPocPage() {
   // Drive the studio card as we approach beat 3: name + occasion toggle IN
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
-    // Each content beat animates during its slow crawl (see the z-transforms
-    // below — the crawl window is where z hovers near 0 / readable).
-    // Beat 3 — photos "select in" one by one across the crawl.
-    const ps = clamp((v - 0.37) / (0.44 - 0.37), 0, 1);
+    // Each content beat's animation COMPLETES at that beat's dwell target
+    // (.26/.42/.58/.74/.90) — within the full-opacity crawl — so it reads as
+    // finished on a hold, then sits complete briefly before moving on.
+    // Beat 3 — photos "select in", all 3 done by .42.
+    const ps = clamp((v - 0.36) / (0.42 - 0.36), 0, 1);
     setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
 
-    // Beat 4 — scene description types in across the crawl.
-    const ps5 = clamp((v - 0.54) / (0.61 - 0.54), 0, 1);
+    // Beat 4 — scene description typed by .58.
+    const ps5 = clamp((v - 0.525) / (0.58 - 0.525), 0, 1);
     setSceneLen(Math.round(ps5 * SCENE_TEXT.length));
 
-    // Beat 5 — front headline types in across the crawl.
-    const ps6 = clamp((v - 0.7) / (0.77 - 0.7), 0, 1);
+    // Beat 5 — front headline typed by .74.
+    const ps6 = clamp((v - 0.685) / (0.74 - 0.685), 0, 1);
     setFrontLen(Math.round(ps6 * FRONT_TEXT.length));
 
-    // Beat 6 — inside message types in as the final card lands.
-    const ps7 = clamp((v - 0.86) / (0.96 - 0.86), 0, 1);
+    // Beat 6 — inside message typed by .90.
+    const ps7 = clamp((v - 0.845) / (0.9 - 0.845), 0, 1);
     setInsideLen(Math.round(ps7 * INSIDE_MESSAGE.length));
 
-    // Beat 2 — name + occasion cycle across approach + crawl, land + press.
+    // Beat 2 — name + occasion cycle, land + press Anniversary by ~.26.
     const sub = clamp((v - 0.15) / (0.27 - 0.15), 0, 1);
     if (sub <= 0) {
       setName('');
