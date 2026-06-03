@@ -39,7 +39,7 @@ export default function HeroScrollPocPage() {
   // Drive the studio card as we approach beat 3: name + occasion toggle IN
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
-    const sub = clamp((v - 0.34) / (0.56 - 0.34), 0, 1);
+    const sub = clamp((v - 0.42) / (0.62 - 0.42), 0, 1);
     if (sub <= 0) {
       setName('');
       setSelectedIdx(-1);
@@ -62,19 +62,16 @@ export default function HeroScrollPocPage() {
   // Beat 1 — intro: full at top, zooms through + fades.
   const z1 = useTransform(scrollYProgress, [0, 0.2], [0, 880]);
   const o1 = useTransform(scrollYProgress, [0, 0.12, 0.2], [1, 1, 0]);
-  // Beat 2 — "Choose your celebration": approaches, becomes readable, then
-  // settles back + DIMS so the studio card can fade in over the top of it
-  // (the headline sits behind the card — film-style depth layering).
-  const z2 = useTransform(scrollYProgress, [0.14, 0.28, 0.66, 0.74], [-720, 0, 80, 720]);
-  const o2 = useTransform(scrollYProgress, [0.14, 0.24, 0.34, 0.6, 0.72], [0, 1, 1, 0.35, 0]);
-  // Beat 3 — studio card: instead of dollying in from far, it FADES IN quickly
-  // in the foreground, over the still-visible headline. Name/occasion land on
-  // Sarah + Anniversary, then the whole thing zooms straight through (no pause).
-  const z3 = useTransform(scrollYProgress, [0.34, 0.56, 0.72], [-40, 40, 820]);
-  const o3 = useTransform(scrollYProgress, [0.34, 0.4, 0.66, 0.72], [0, 1, 1, 0]);
+  // Beat 2 — "Choose your celebration" + the studio card move together as ONE
+  // locked group: the headline dollies in and reads, the card JOINS later (quick
+  // reveal, no soft cross-fade), then the whole pair dollies + fades out as one.
+  const zChoose = useTransform(scrollYProgress, [0.16, 0.3, 0.66, 0.76], [-720, 0, 60, 760]);
+  const oChoose = useTransform(scrollYProgress, [0.16, 0.26, 0.64, 0.74], [0, 1, 1, 0]);
+  // Card joins later — quick reveal (no slow fade), then it's just part of the group.
+  const cardReveal = useTransform(scrollYProgress, [0.42, 0.46], [0, 1]);
   // Beat 4 — "Select your photo(s)": approaches, lands, holds (end).
-  const z4 = useTransform(scrollYProgress, [0.72, 0.9, 1], [-760, 0, 60]);
-  const o4 = useTransform(scrollYProgress, [0.72, 0.88, 1], [0, 1, 1]);
+  const z4 = useTransform(scrollYProgress, [0.78, 0.92, 1], [-760, 0, 60]);
+  const o4 = useTransform(scrollYProgress, [0.78, 0.9, 1], [0, 1, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.06], [1, 0]);
 
@@ -92,12 +89,16 @@ export default function HeroScrollPocPage() {
           <HeadlineIntro reduced={!!reduced} />
         </Layer>
 
-        <Layer z={z2} opacity={o2}>
-          <h1 className={HEADLINE_CLASS}>Choose your celebration</h1>
-        </Layer>
-
-        <Layer z={z3} opacity={o3}>
-          <StudioCard name={name} selectedIdx={selectedIdx} pressed={pressed} />
+        {/* Headline + card locked in one group so they move together. The
+            card slot is always in layout (reserved space) so revealing it
+            doesn't shove the headline — it just appears below it. */}
+        <Layer z={zChoose} opacity={oChoose}>
+          <div className="flex flex-col items-center gap-7 sm:gap-9">
+            <h1 className={CHOOSE_CLASS}>Choose your celebration</h1>
+            <motion.div style={{ opacity: cardReveal }} className="will-change-transform">
+              <StudioCard name={name} selectedIdx={selectedIdx} pressed={pressed} />
+            </motion.div>
+          </div>
         </Layer>
 
         <Layer z={z4} opacity={o4}>
@@ -124,6 +125,11 @@ export default function HeroScrollPocPage() {
 
 const HEADLINE_CLASS =
   'text-[40px] sm:text-[56px] md:text-[68px] lg:text-[80px] font-semibold text-ink leading-[0.95] tracking-[-0.02em] text-center';
+
+// Paired headline (above the studio card) — smaller than the solo hero
+// headlines so the headline + card fit the viewport together.
+const CHOOSE_CLASS =
+  'text-[30px] sm:text-[40px] md:text-[48px] font-semibold text-ink leading-[1.0] tracking-[-0.02em] text-center';
 
 function Layer({
   z,
