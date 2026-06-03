@@ -41,6 +41,11 @@ const SCENE_TEXT =
   'Sarah on a sunlit terrace in Positano, laughing with a glass of wine as the sea glows gold behind her.';
 // Beat 6 — the front headline that types itself in.
 const FRONT_TEXT = 'Happy Anniversary, Sarah';
+// Beat 7 — the inside message that types itself in.
+const INSIDE_GREETING = 'Dear Sarah,';
+const INSIDE_MESSAGE =
+  "Twenty-five years, and you still make me laugh like it's day one. Here's to every adventure still to come.";
+const INSIDE_SIGNOFF = 'All my love, Mum';
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
@@ -58,6 +63,8 @@ export default function HeroScrollPocPage() {
   const [sceneLen, setSceneLen] = useState(0);
   // Beat 6 — how many characters of the front headline have "typed" in.
   const [frontLen, setFrontLen] = useState(0);
+  // Beat 7 — how many characters of the inside message have "typed" in.
+  const [insideLen, setInsideLen] = useState(0);
 
   // Drive the studio card as we approach beat 3: name + occasion toggle IN
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
@@ -65,19 +72,23 @@ export default function HeroScrollPocPage() {
     // Each content beat animates during its slow crawl (see the z-transforms
     // below — the crawl window is where z hovers near 0 / readable).
     // Beat 3 — photos "select in" one by one across the crawl.
-    const ps = clamp((v - 0.47) / (0.56 - 0.47), 0, 1);
+    const ps = clamp((v - 0.37) / (0.44 - 0.37), 0, 1);
     setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
 
     // Beat 4 — scene description types in across the crawl.
-    const ps5 = clamp((v - 0.69) / (0.78 - 0.69), 0, 1);
+    const ps5 = clamp((v - 0.54) / (0.61 - 0.54), 0, 1);
     setSceneLen(Math.round(ps5 * SCENE_TEXT.length));
 
-    // Beat 5 — front headline types in as the final card lands.
-    const ps6 = clamp((v - 0.92) / (1 - 0.92), 0, 1);
+    // Beat 5 — front headline types in across the crawl.
+    const ps6 = clamp((v - 0.7) / (0.77 - 0.7), 0, 1);
     setFrontLen(Math.round(ps6 * FRONT_TEXT.length));
 
+    // Beat 6 — inside message types in as the final card lands.
+    const ps7 = clamp((v - 0.86) / (0.96 - 0.86), 0, 1);
+    setInsideLen(Math.round(ps7 * INSIDE_MESSAGE.length));
+
     // Beat 2 — name + occasion cycle across approach + crawl, land + press.
-    const sub = clamp((v - 0.14) / (0.32 - 0.14), 0, 1);
+    const sub = clamp((v - 0.15) / (0.27 - 0.15), 0, 1);
     if (sub <= 0) {
       setName('');
       setSelectedIdx(-1);
@@ -101,10 +112,9 @@ export default function HeroScrollPocPage() {
   // Every content beat shares ONE motion profile so the journey reads as
   // one continuous dolly: fast approach (−720→−40) → slow crawl
   // (−40→40, the readable beat where content animates) → fast exit
-  // (40→820). Spans are uniform (approach .14 / crawl .08 / exit .10) so
-  // travel speed is constant beat-to-beat, and neighbours overlap on the
-  // fades so each handoff is a crossfade, never a gap. Crawl centres land
-  // at .30 / .52 / .74 / .94 — evenly spaced.
+  // (40→820). Crawl centres are evenly spaced (.16 apart) at
+  // .25 / .41 / .57 / .73 / .89 (final), and opacity is held tight to each
+  // crawl so a card fully clears (~.03 gap) before the next ghosts in.
   //
   // Beat 1 — intro: full at top, zooms through + fades.
   const z1 = useTransform(scrollYProgress, [0, 0.14], [0, 880]);
@@ -113,23 +123,26 @@ export default function HeroScrollPocPage() {
   // approach, fade out early in the exit) so a card fully clears before the
   // next appears — a beat of empty gradient between steps, no overlapping
   // assets at the seams.
-  // Beat 2 — "Choose your celebration" + card.
-  const zChoose = useTransform(scrollYProgress, [0.12, 0.26, 0.34, 0.44], [-720, -40, 40, 820]);
-  const oChoose = useTransform(scrollYProgress, [0.18, 0.23, 0.34, 0.39], [0, 1, 1, 0]);
-  // Beat 3 — "Select your photo(s)".
-  const z4 = useTransform(scrollYProgress, [0.34, 0.48, 0.56, 0.66], [-720, -40, 40, 820]);
-  const o4 = useTransform(scrollYProgress, [0.43, 0.48, 0.56, 0.61], [0, 1, 1, 0]);
-  // Beat 4 — "Describe the scene".
-  const z5 = useTransform(scrollYProgress, [0.56, 0.70, 0.78, 0.88], [-720, -40, 40, 820]);
-  const o5 = useTransform(scrollYProgress, [0.65, 0.70, 0.78, 0.83], [0, 1, 1, 0]);
-  // Beat 5 — "Add text to the front": approach → land → gentle drift (journey's end).
-  const z6 = useTransform(scrollYProgress, [0.80, 0.94, 1], [-720, 0, 50]);
-  const o6 = useTransform(scrollYProgress, [0.85, 0.94, 1], [0, 1, 1]);
+  // Beat 2 — "Choose your celebration" + card (centre .25).
+  const zChoose = useTransform(scrollYProgress, [0.12, 0.22, 0.28, 0.35], [-720, -40, 40, 820]);
+  const oChoose = useTransform(scrollYProgress, [0.175, 0.22, 0.28, 0.305], [0, 1, 1, 0]);
+  // Beat 3 — "Select your photo(s)" (centre .41).
+  const z4 = useTransform(scrollYProgress, [0.28, 0.38, 0.44, 0.51], [-720, -40, 40, 820]);
+  const o4 = useTransform(scrollYProgress, [0.335, 0.38, 0.44, 0.465], [0, 1, 1, 0]);
+  // Beat 4 — "Describe the scene" (centre .57).
+  const z5 = useTransform(scrollYProgress, [0.44, 0.54, 0.60, 0.67], [-720, -40, 40, 820]);
+  const o5 = useTransform(scrollYProgress, [0.495, 0.54, 0.60, 0.625], [0, 1, 1, 0]);
+  // Beat 5 — "Add text to the front" (centre .73).
+  const z6 = useTransform(scrollYProgress, [0.60, 0.70, 0.76, 0.83], [-720, -40, 40, 820]);
+  const o6 = useTransform(scrollYProgress, [0.655, 0.70, 0.76, 0.785], [0, 1, 1, 0]);
+  // Beat 6 — "Add text on the inside": approach → land → gentle drift (journey's end).
+  const z7 = useTransform(scrollYProgress, [0.76, 0.89, 1], [-720, 0, 50]);
+  const o7 = useTransform(scrollYProgress, [0.815, 0.89, 1], [0, 1, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
 
   return (
-    <div ref={ref} className="relative" style={{ height: '820vh' }}>
+    <div ref={ref} className="relative" style={{ height: '1120vh' }}>
       <div
         className="fixed inset-0 overflow-hidden"
         style={{
@@ -172,6 +185,14 @@ export default function HeroScrollPocPage() {
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Add text to the front</h1>
             <FrontTextCard typed={FRONT_TEXT.slice(0, frontLen)} />
+          </div>
+        </Layer>
+
+        {/* Headline + inside-text composer — the message types itself in. */}
+        <Layer z={z7} opacity={o7}>
+          <div className="flex flex-col items-center gap-7 sm:gap-9">
+            <h1 className={CHOOSE_CLASS}>Add text on the inside</h1>
+            <InsideTextCard typed={INSIDE_MESSAGE.slice(0, insideLen)} />
           </div>
         </Layer>
 
@@ -434,6 +455,42 @@ function FrontTextCard({ typed }: { typed: string }) {
             <span className="inline-block w-[2px] h-[16px] bg-brand align-middle ml-0.5 animate-pulse" />
           </span>
         )}
+      </div>
+    </div>
+  );
+}
+
+function InsideTextCard({ typed }: { typed: string }) {
+  const empty = typed.length === 0;
+  return (
+    <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
+      {/* Greeting */}
+      <p className="text-[12px] text-stone-500 mb-1">
+        Greeting <span className="text-stone-400">optional</span>
+      </p>
+      <div className="rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[14px] text-ink mb-3.5">
+        {INSIDE_GREETING}
+      </div>
+
+      {/* Message — the hero field, types itself in. */}
+      <p className="text-[12px] text-stone-500 mb-1">Message</p>
+      <div className="rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed min-h-[92px] text-ink mb-3.5">
+        {empty ? (
+          <span className="text-stone-400">Write a few words from the heart…</span>
+        ) : (
+          <span>
+            {typed}
+            <span className="inline-block w-[2px] h-[15px] bg-brand align-middle ml-0.5 animate-pulse" />
+          </span>
+        )}
+      </div>
+
+      {/* Sign-off */}
+      <p className="text-[12px] text-stone-500 mb-1">
+        Sign-off <span className="text-stone-400">optional</span>
+      </p>
+      <div className="rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[14px] text-ink">
+        {INSIDE_SIGNOFF}
       </div>
     </div>
   );
