@@ -183,7 +183,7 @@ export default function HeroScrollPocPage() {
         {/* Headline + scene composer — the description types itself in. */}
         <Layer z={z5} opacity={o5}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
-            <h1 className={CHOOSE_CLASS}>Describe the scene</h1>
+            <h1 className={CHOOSE_CLASS}>Design the front</h1>
             <SceneCard typed={SCENE_TEXT.slice(0, sceneLen)} />
           </div>
         </Layer>
