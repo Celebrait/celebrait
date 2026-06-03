@@ -34,6 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { CardDraftState } from '@shared/schema';
 import { OCCASION_PRESETS } from '../scene-presets';
 import { BrainstormChatDrawer } from '../brainstorm-chat-drawer';
+import { StepExample } from '@/components/studio/step-example';
 
 interface SceneStepProps {
   state: CardDraftState;
@@ -202,10 +203,18 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
         <Label htmlFor="scene-description" className="sr-only">
           Scene description
         </Label>
-        <p className="text-sm text-stone-600 mb-2">
-          The front of the card is a picture. Tell us what's in it — who's
-          there, where they are, what they're doing.
-        </p>
+        {/* House-style example — the front-of-card picture, front-on. The
+            guidance that used to sit inline (who's there, where, doing what)
+            now lives in the module's description. */}
+        <div className="mb-3">
+          <StepExample
+            eyebrow="Front Scene Example"
+            assist="Not sure what to picture?"
+            modalTitle="Front scene example"
+            modalDescription="The front of the card is the picture — who's there, where they are, what they're doing. Describe the moment and we'll bring it to life in this style."
+            show="front"
+          />
+        </div>
         <Textarea
           ref={textareaRef}
           id="scene-description"

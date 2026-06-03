@@ -141,6 +141,11 @@ interface Card3DViewerProps {
    *  The camera/OrbitControls are unchanged, so drag-to-rotate still
    *  orbits freely around this resting pose. */
   restYaw?: number;
+  /** Render the card ALREADY open at mount, with NO opening animation —
+   *  the cover initialises at the fully-open angle and the spring starts
+   *  there, so it never swings. For static open-card displays (e.g. an
+   *  example render). Default false; only meaningful alongside `open`. */
+  instantOpen?: boolean;
 }
 
 export function Card3DViewer({
@@ -163,6 +168,7 @@ export function Card3DViewer({
   closedAngle = 0,
   hover = false,
   restYaw = 0,
+  instantOpen = false,
 }: Card3DViewerProps) {
   const insideUrl = insideImageUrl ?? frontImageUrl;
   const [openState, setOpenState] = useState(false);
@@ -349,6 +355,7 @@ export function Card3DViewer({
           closedAngle={closedAngle}
           hover={hover}
           restYaw={restYaw}
+          instantOpen={instantOpen}
         />
       </Canvas>
       {/* The hit zone — invisible, sits over roughly the card's visible
@@ -439,6 +446,7 @@ function Scene({
   closedAngle,
   hover,
   restYaw,
+  instantOpen,
 }: {
   frontUrl: string;
   insideUrl: string;
@@ -460,6 +468,7 @@ function Scene({
   closedAngle: number;
   hover: boolean;
   restYaw: number;
+  instantOpen: boolean;
 }) {
   return (
     <>
@@ -506,6 +515,7 @@ function Scene({
         closedAngle={closedAngle}
         hover={hover}
         restYaw={restYaw}
+        instantOpen={instantOpen}
       />
 
       {/* Ground shadow — two layers. The soft broad layer reads as
@@ -657,6 +667,7 @@ function Card({
   closedAngle,
   hover,
   restYaw,
+  instantOpen,
 }: {
   frontUrl: string;
   insideUrl: string;
@@ -667,6 +678,7 @@ function Card({
   closedAngle: number;
   hover: boolean;
   restYaw: number;
+  instantOpen: boolean;
 }) {
   const { gl } = useThree();
   const maxAnisotropy = useMemo(() => gl.capabilities.getMaxAnisotropy(), [gl]);
@@ -829,9 +841,11 @@ function Card({
       <group
         ref={coverRef}
         position={[-CARD_W / 2, 0, 0]}
-        /* Start at the caller's `closedAngle` rest so the cover
-           doesn't briefly animate from 0 → closedAngle on mount. */
-        rotation={[0, closedAngle, 0]}
+        /* Start at the caller's `closedAngle` rest so the cover doesn't
+           briefly animate from 0 → closedAngle on mount. When `instantOpen`
+           is set, start fully open instead so the card renders open with no
+           swing (the spring targets OPEN_REST and is already there). */
+        rotation={[0, instantOpen ? OPEN_REST : closedAngle, 0]}
       >
         <mesh position={[CARD_W / 2, 0, 0]} geometry={cardGeom} castShadow receiveShadow>
           <meshStandardMaterial map={frontTex} roughness={0.9} side={THREE.DoubleSide} />
