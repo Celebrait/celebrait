@@ -22,8 +22,9 @@
 // TODO(Kevin): swap the placeholder hero card art for a CURATED house-style
 // example once produced. One swap here updates every step.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Lightbulb } from 'lucide-react';
+import { useTexture } from '@react-three/drei';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import {
   Dialog,
@@ -58,6 +59,32 @@ export function StepExample({
 }: StepExampleProps) {
   const [open, setOpen] = useState(false);
   const showInside = show === 'inside';
+
+  // Preload the example textures the moment the trigger renders on the step
+  // — well before the user opens the modal — so the 3D card materialises
+  // WITH the rest of the module instead of popping in a beat later (the
+  // PNGs are a couple of MB to decode). Warms both the browser image cache
+  // (<link rel=preload>) and drei's texture cache (useTexture.preload), so
+  // the Card3DViewer's useTexture resolves instantly on open.
+  useEffect(() => {
+    const urls = [exampleFront, exampleInside];
+    const links = urls.map((url) => {
+      const el = document.createElement('link');
+      el.rel = 'preload';
+      el.as = 'image';
+      el.href = url;
+      document.head.appendChild(el);
+      return el;
+    });
+    try {
+      useTexture.preload(urls);
+    } catch {
+      /* drei occasionally throws on dev HMR re-runs — not worth crashing */
+    }
+    return () => {
+      for (const el of links) el.parentNode?.removeChild(el);
+    };
+  }, []);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
