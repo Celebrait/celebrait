@@ -62,19 +62,22 @@ export default function HeroScrollPocPage() {
   // Drive the studio card as we approach beat 3: name + occasion toggle IN
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
-    // Beat 3 — photos "select in" one by one around the centre of the pass.
-    const ps = clamp((v - 0.38) / (0.48 - 0.38), 0, 1);
+    // Each content beat animates during its slow crawl (see the z-transforms
+    // below — the crawl window is where z hovers near 0 / readable).
+    // Beat 3 — photos "select in" one by one across the crawl.
+    const ps = clamp((v - 0.47) / (0.56 - 0.47), 0, 1);
     setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
 
-    // Beat 4 — scene description types in during the slow crawl.
-    const ps5 = clamp((v - 0.62) / (0.71 - 0.62), 0, 1);
+    // Beat 4 — scene description types in across the crawl.
+    const ps5 = clamp((v - 0.69) / (0.78 - 0.69), 0, 1);
     setSceneLen(Math.round(ps5 * SCENE_TEXT.length));
 
-    // Beat 5 — front headline types in as the final card lands + holds.
-    const ps6 = clamp((v - 0.88) / (0.99 - 0.88), 0, 1);
+    // Beat 5 — front headline types in as the final card lands.
+    const ps6 = clamp((v - 0.92) / (1 - 0.92), 0, 1);
     setFrontLen(Math.round(ps6 * FRONT_TEXT.length));
 
-    const sub = clamp((v - 0.1) / (0.28 - 0.1), 0, 1);
+    // Beat 2 — name + occasion cycle across approach + crawl, land + press.
+    const sub = clamp((v - 0.14) / (0.32 - 0.14), 0, 1);
     if (sub <= 0) {
       setName('');
       setSelectedIdx(-1);
@@ -94,24 +97,32 @@ export default function HeroScrollPocPage() {
     }
   });
 
+  // ── Unified timing ─────────────────────────────────────────────────
+  // Every content beat shares ONE motion profile so the journey reads as
+  // one continuous dolly: fast approach (−720→−40) → slow crawl
+  // (−40→40, the readable beat where content animates) → fast exit
+  // (40→820). Spans are uniform (approach .14 / crawl .08 / exit .10) so
+  // travel speed is constant beat-to-beat, and neighbours overlap on the
+  // fades so each handoff is a crossfade, never a gap. Crawl centres land
+  // at .30 / .52 / .74 / .94 — evenly spaced.
+  //
   // Beat 1 — intro: full at top, zooms through + fades.
-  const z1 = useTransform(scrollYProgress, [0, 0.12], [0, 880]);
-  const o1 = useTransform(scrollYProgress, [0, 0.06, 0.12], [1, 1, 0]);
-  // Beat 2 — "Choose your celebration" + card: constant-pace dolly through.
-  const zChoose = useTransform(scrollYProgress, [0.1, 0.34], [-720, 760]);
-  const oChoose = useTransform(scrollYProgress, [0.1, 0.15, 0.29, 0.34], [0, 1, 1, 0]);
-  // Beat 3 — "Select your photo(s)": constant-pace dolly through; photos tick in mid-pass.
-  const z4 = useTransform(scrollYProgress, [0.3, 0.54], [-720, 760]);
-  const o4 = useTransform(scrollYProgress, [0.3, 0.35, 0.49, 0.54], [0, 1, 1, 0]);
-  // Beat 4 — "Describe the scene": approaches, SLOWS to a crawl (never fully
-  // stops) through the readable zone while the scene types in, then dollies on.
-  const z5 = useTransform(scrollYProgress, [0.5, 0.62, 0.72, 0.78], [-720, -40, 40, 820]);
-  const o5 = useTransform(scrollYProgress, [0.5, 0.56, 0.72, 0.78], [0, 1, 1, 0]);
-  // Beat 5 — "Add text to the front": approaches, lands + holds (end of journey).
-  const z6 = useTransform(scrollYProgress, [0.76, 0.9, 1], [-720, 0, 60]);
-  const o6 = useTransform(scrollYProgress, [0.76, 0.86, 1], [0, 1, 1]);
+  const z1 = useTransform(scrollYProgress, [0, 0.14], [0, 880]);
+  const o1 = useTransform(scrollYProgress, [0, 0.07, 0.14], [1, 1, 0]);
+  // Beat 2 — "Choose your celebration" + card.
+  const zChoose = useTransform(scrollYProgress, [0.12, 0.26, 0.34, 0.44], [-720, -40, 40, 820]);
+  const oChoose = useTransform(scrollYProgress, [0.12, 0.18, 0.36, 0.44], [0, 1, 1, 0]);
+  // Beat 3 — "Select your photo(s)".
+  const z4 = useTransform(scrollYProgress, [0.34, 0.48, 0.56, 0.66], [-720, -40, 40, 820]);
+  const o4 = useTransform(scrollYProgress, [0.34, 0.40, 0.58, 0.66], [0, 1, 1, 0]);
+  // Beat 4 — "Describe the scene".
+  const z5 = useTransform(scrollYProgress, [0.56, 0.70, 0.78, 0.88], [-720, -40, 40, 820]);
+  const o5 = useTransform(scrollYProgress, [0.56, 0.62, 0.80, 0.88], [0, 1, 1, 0]);
+  // Beat 5 — "Add text to the front": approach → land → gentle drift (journey's end).
+  const z6 = useTransform(scrollYProgress, [0.80, 0.94, 1], [-720, 0, 50]);
+  const o6 = useTransform(scrollYProgress, [0.80, 0.90, 1], [0, 1, 1]);
 
-  const hintO = useTransform(scrollYProgress, [0, 0.06], [1, 0]);
+  const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
 
   return (
     <div ref={ref} className="relative" style={{ height: '820vh' }}>
