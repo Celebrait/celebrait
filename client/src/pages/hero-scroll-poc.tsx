@@ -147,6 +147,11 @@ export default function HeroScrollPocPage() {
   const spinnerO = useTransform(scrollYProgress, [0.83, 0.85, 0.89, 0.91], [0, 1, 1, 0]);
   const oReveal = useTransform(scrollYProgress, [0.88, 0.93, 1], [0, 1, 1]);
   const openProgress = useTransform(scrollYProgress, [0.93, 1], [0, 1]);
+  // The inputs you passed through, orbiting the finished card: the front-side
+  // assets (scene + front text) show while it's closed and fade as it opens;
+  // the inside message fades in with the open.
+  const frontChipsO = useTransform(scrollYProgress, [0.9, 0.93, 0.95, 0.975], [0, 1, 1, 0]);
+  const insideChipO = useTransform(scrollYProgress, [0.955, 0.99], [0, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
 
@@ -247,6 +252,25 @@ export default function HeroScrollPocPage() {
             </div>
           </div>
         </motion.div>
+
+        {/* The "ingredients" you passed through, orbiting the finished card.
+            Desktop only — they'd crowd the card on mobile. */}
+        <div className="pointer-events-none absolute inset-0 hidden items-center justify-center sm:flex">
+          <div className="relative h-[460px] w-[820px] max-w-[94vw]">
+            <motion.div style={{ opacity: frontChipsO }} className="absolute left-0 top-3">
+              <FloatChip eyebrow="Scene" text={SCENE_TEXT} delay={0} />
+            </motion.div>
+            <motion.div style={{ opacity: frontChipsO }} className="absolute bottom-4 right-0">
+              <FloatChip eyebrow="Front text" text={FRONT_TEXT} delay={0.9} />
+            </motion.div>
+            <motion.div
+              style={{ opacity: insideChipO }}
+              className="absolute right-0 top-1/2 -translate-y-1/2"
+            >
+              <FloatChip eyebrow="Inside message" text={INSIDE_MESSAGE} delay={0.5} />
+            </motion.div>
+          </div>
+        </div>
 
         <motion.div
           style={{ opacity: hintO }}
@@ -604,6 +628,29 @@ function ConfettiPiece({
       }}
       className="absolute left-0 top-0 rounded-[2px]"
     />
+  );
+}
+
+function FloatChip({
+  eyebrow,
+  text,
+  delay,
+}: {
+  eyebrow: string;
+  text: string;
+  delay: number;
+}) {
+  return (
+    <motion.div
+      animate={{ y: [0, -9, 0] }}
+      transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay }}
+      className="w-[200px] rounded-2xl bg-white/90 px-4 py-3 shadow-[0_20px_50px_-22px_rgba(15,23,42,0.35)] ring-1 ring-stone-200/70 backdrop-blur-sm"
+    >
+      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.18em] text-brand">
+        {eyebrow}
+      </span>
+      <p className="line-clamp-3 text-[12px] leading-snug text-ink">{text}</p>
+    </motion.div>
   );
 }
 
