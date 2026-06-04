@@ -73,19 +73,19 @@ export default function HeroScrollPocPage() {
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
 
-    // Each content beat's animation runs across its crawl, starting exactly as
-    // the card slows (crawl start = centre − .025) so type-in syncs with the
-    // deceleration. Centres: .22 / .355 / .49 / .625 / .76, then the finale.
-    // Photos "select in" across the crawl (centre .355).
-    const ps = clamp((v - 0.33) / (0.37 - 0.33), 0, 1);
+    // Each content beat's animation runs across its crawl, starting as the card
+    // slows (crawl start) so type-in syncs with the deceleration. Centres:
+    // .22 / .40 / .58 (scene→front) / .76, then the finale.
+    // Photos "select in" across the crawl (centre .40).
+    const ps = clamp((v - 0.375) / (0.415 - 0.375), 0, 1);
     setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
 
-    // Design the front — scene types in (centre .49).
-    const ps5 = clamp((v - 0.465) / (0.505 - 0.465), 0, 1);
+    // Design the front (centre .58) — scene types in first…
+    const ps5 = clamp((v - 0.53) / (0.585 - 0.53), 0, 1);
     setSceneLen(Math.round(ps5 * SCENE_TEXT.length));
 
-    // Add text to the front (centre .625).
-    const ps6 = clamp((v - 0.6) / (0.64 - 0.6), 0, 1);
+    // …then the front headline types in.
+    const ps6 = clamp((v - 0.585) / (0.63 - 0.585), 0, 1);
     setFrontLen(Math.round(ps6 * FRONT_TEXT.length));
 
     // Add text on the inside (centre .76).
@@ -124,23 +124,23 @@ export default function HeroScrollPocPage() {
   // Beat 1 — intro: full at top, zooms through + fades.
   const z1 = useTransform(scrollYProgress, [0, 0.16], [0, 880]);
   const o1 = useTransform(scrollYProgress, [0, 0.08, 0.16], [1, 1, 0]);
+  // Four build beats now (front text merged into Design the front), evenly
+  // spaced at .22 / .40 / .58 / .76. Design the front has a wider crawl so the
+  // scene then the front headline both type in.
   // Beat 2 — "Choose your celebration" + card (centre .22).
   const zChoose = useTransform(scrollYProgress, [0.12, 0.195, 0.245, 0.32], [-720, -40, 40, 820]);
-  const oChoose = useTransform(scrollYProgress, [0.148, 0.195, 0.245, 0.293], [0, 1, 1, 0]);
+  const oChoose = useTransform(scrollYProgress, [0.15, 0.195, 0.245, 0.315], [0, 1, 1, 0]);
   // Confetti burst — fires out of the card as Anniversary is "clicked" (~.22).
   const burst = useTransform(scrollYProgress, [0.215, 0.27], [0, 1]);
-  // Beat 3 — "Select your photo(s)" (centre .355).
-  const z4 = useTransform(scrollYProgress, [0.255, 0.33, 0.38, 0.455], [-720, -40, 40, 820]);
-  const o4 = useTransform(scrollYProgress, [0.283, 0.33, 0.38, 0.428], [0, 1, 1, 0]);
-  // Beat 4 — "Design the front" (centre .49).
-  const z5 = useTransform(scrollYProgress, [0.39, 0.465, 0.515, 0.59], [-720, -40, 40, 820]);
-  const o5 = useTransform(scrollYProgress, [0.418, 0.465, 0.515, 0.563], [0, 1, 1, 0]);
-  // Beat 5 — "Add text to the front" (centre .625).
-  const z6 = useTransform(scrollYProgress, [0.525, 0.6, 0.65, 0.725], [-720, -40, 40, 820]);
-  const o6 = useTransform(scrollYProgress, [0.553, 0.6, 0.65, 0.698], [0, 1, 1, 0]);
-  // Beat 6 — "Add text on the inside" (centre .76) — now a through-beat.
+  // Beat 3 — "Select your photo(s)" (centre .40).
+  const z4 = useTransform(scrollYProgress, [0.3, 0.375, 0.425, 0.5], [-720, -40, 40, 820]);
+  const o4 = useTransform(scrollYProgress, [0.305, 0.375, 0.425, 0.495], [0, 1, 1, 0]);
+  // Beat 4 — "Design the front" (centre .58, wider crawl: scene then front text).
+  const z5 = useTransform(scrollYProgress, [0.48, 0.53, 0.63, 0.68], [-720, -40, 40, 820]);
+  const o5 = useTransform(scrollYProgress, [0.485, 0.53, 0.63, 0.675], [0, 1, 1, 0]);
+  // Beat 5 — "Add text on the inside" (centre .76).
   const z7 = useTransform(scrollYProgress, [0.66, 0.735, 0.785, 0.86], [-720, -40, 40, 820]);
-  const o7 = useTransform(scrollYProgress, [0.688, 0.735, 0.785, 0.833], [0, 1, 1, 0]);
+  const o7 = useTransform(scrollYProgress, [0.665, 0.735, 0.785, 0.855], [0, 1, 1, 0]);
   // Finale — a spinner spins as you scroll in (the studio's "creating your
   // card" moment), fades, then the finished card fades in (in sync with the
   // spinner), opens, then simply fades out into the regen screen (no zoom).
@@ -221,19 +221,14 @@ export default function HeroScrollPocPage() {
           </div>
         </Layer>
 
-        {/* Headline + scene composer — the description types itself in. */}
+        {/* Headline + combined composer — scene then front headline type in. */}
         <Layer z={z5} opacity={o5}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Design the front</h1>
-            <SceneCard typed={SCENE_TEXT.slice(0, sceneLen)} />
-          </div>
-        </Layer>
-
-        {/* Headline + front-text composer — the headline types itself in. */}
-        <Layer z={z6} opacity={o6}>
-          <div className="flex flex-col items-center gap-7 sm:gap-9">
-            <h1 className={CHOOSE_CLASS}>Add text to the front</h1>
-            <FrontTextCard typed={FRONT_TEXT.slice(0, frontLen)} />
+            <DesignFrontCard
+              scene={SCENE_TEXT.slice(0, sceneLen)}
+              front={FRONT_TEXT.slice(0, frontLen)}
+            />
           </div>
         </Layer>
 
@@ -472,55 +467,53 @@ function PhotoCard({ selected }: { selected: number }) {
   );
 }
 
-function SceneCard({ typed }: { typed: string }) {
-  const empty = typed.length === 0;
+// Combined "Design the front" — the picture (scene) AND the front headline in
+// one card. The scene types in first, then the front headline.
+function DesignFrontCard({ scene, front }: { scene: string; front: string }) {
+  const sceneEmpty = scene.length === 0;
+  const frontEmpty = front.length === 0;
   return (
     <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
-      {/* Textarea-styled box — the scene types itself in with a live cursor. */}
-      <div className="rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed min-h-[104px] text-ink">
-        {empty ? (
+      {/* The picture (scene) — types itself in. */}
+      <p className="mb-1.5 text-[13px] text-ink">The picture</p>
+      <div className="min-h-[88px] rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed text-ink">
+        {sceneEmpty ? (
           <span className="text-stone-400">
             e.g. Sarah at golden hour on an Italian terrace…
           </span>
         ) : (
           <span>
-            {typed}
-            <span className="inline-block w-[2px] h-[15px] bg-brand align-middle ml-0.5 animate-pulse" />
+            {scene}
+            <span className="ml-0.5 inline-block h-[15px] w-[2px] animate-pulse bg-brand align-middle" />
           </span>
         )}
       </div>
 
       {/* Two AI helpers — match the studio's Suggest / Brainstorm pair. */}
-      <div className="mt-4 flex gap-2.5">
-        <div className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-brand-muted text-brand-dark border border-brand/40 text-[13px] font-semibold">
-          <Wand2 className="w-4 h-4" strokeWidth={2} />
+      <div className="mt-3.5 flex gap-2.5">
+        <div className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-brand/40 bg-brand-muted text-[13px] font-semibold text-brand-dark">
+          <Wand2 className="h-4 w-4" strokeWidth={2} />
           Suggest scenes
         </div>
-        <div className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-brand-dark text-white text-[13px] font-semibold shadow-md shadow-brand/20">
-          <Sparkles className="w-4 h-4" strokeWidth={2} />
+        <div className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-dark text-[13px] font-semibold text-white shadow-md shadow-brand/20">
+          <Sparkles className="h-4 w-4" strokeWidth={2} />
           Brainstorm
         </div>
       </div>
-    </div>
-  );
-}
 
-function FrontTextCard({ typed }: { typed: string }) {
-  const empty = typed.length === 0;
-  return (
-    <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
-      <p className="text-[13px] text-ink mb-1.5 flex items-center gap-1.5">
-        <Type className="w-3.5 h-3.5 text-brand" strokeWidth={2} />
+      {/* Front headline — types in after the scene. */}
+      <p className="mb-1.5 mt-4 flex items-center gap-1.5 text-[13px] text-ink">
+        <Type className="h-3.5 w-3.5 text-brand" strokeWidth={2} />
         Front headline
-        <span className="text-stone-400 font-normal">optional</span>
+        <span className="font-normal text-stone-400">optional</span>
       </p>
-      <div className="rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 min-h-[46px] flex items-center text-[15px]">
-        {empty ? (
+      <div className="flex min-h-[46px] items-center rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[15px]">
+        {frontEmpty ? (
           <span className="text-stone-400">Happy Anniversary</span>
         ) : (
-          <span className="text-ink font-medium">
-            {typed}
-            <span className="inline-block w-[2px] h-[16px] bg-brand align-middle ml-0.5 animate-pulse" />
+          <span className="font-medium text-ink">
+            {front}
+            <span className="ml-0.5 inline-block h-[16px] w-[2px] animate-pulse bg-brand align-middle" />
           </span>
         )}
       </div>
