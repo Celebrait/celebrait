@@ -15,6 +15,7 @@ import {
   motion,
   useScroll,
   useTransform,
+  useMotionTemplate,
   useMotionValueEvent,
   useReducedMotion,
   type MotionValue,
@@ -29,9 +30,7 @@ import {
   Check,
   Loader2,
 } from 'lucide-react';
-import { Card3DViewer } from '@/components/card-3d-viewer';
 import revealFront from '@/assets/hero-card-front.png';
-import revealInside from '@/assets/hero-card-inside.png';
 
 const FINAL_NAME = 'Sarah';
 const ANNIVERSARY_IDX = 1; // 'Anniversary' in OCC
@@ -109,14 +108,13 @@ export default function HeroScrollPocPage() {
   // card" moment), fades, then the finished card fades in (in sync with the
   // spinner), opens, then simply fades out into the regen screen (no zoom).
   // openProgress scrubs the hinge 1:1 with scroll.
-  // Spinner comes in right after "Add your words" and spins for a few beats…
-  const spinnerRot = useTransform(scrollYProgress, [0.8, 0.87], [0, 540]);
-  const spinnerO = useTransform(scrollYProgress, [0.8, 0.815, 0.85, 0.87], [0, 1, 1, 0]);
-  // …then the finished card DOLLIES IN from afar (same as the build beats),
-  // lands at a good size and holds STATIC, then opens, closes, and drops off.
+  // A BLANK card dollies in from afar while the spinner "loads"… then when it
+  // lands, the render SWIPES in (magic swipe), and the card drops off-screen.
+  const spinnerRot = useTransform(scrollYProgress, [0.8, 0.92], [0, 540]);
+  const spinnerO = useTransform(scrollYProgress, [0.8, 0.83, 0.91, 0.925], [0, 1, 1, 0]);
   const zCard = useTransform(scrollYProgress, [0.85, 0.91], [-720, 0]);
   const backdropO = useTransform(scrollYProgress, [0.85, 0.895, 1], [0, 1, 1]);
-  const openProgress = useTransform(scrollYProgress, [0.93, 0.955, 0.96, 0.975], [0, 1, 1, 0]);
+  const swipeProgress = useTransform(scrollYProgress, [0.915, 0.965], [0, 1]);
   const yCard = useTransform(scrollYProgress, [0.975, 1], [0, 1100]);
   // "Send it" is revealed as the card drops away.
   const oSend = useTransform(scrollYProgress, [0.975, 0.995, 1], [0, 1, 1]);
@@ -136,30 +134,13 @@ export default function HeroScrollPocPage() {
         {/* The finished card — invisible through the steps (clean white), fades
             in during the spinner phase, opens (see inside), closes, then slides
             DOWN off the screen — sent. */}
+        {/* Blank card dollies in (with the spinner loading over it), then the
+            render swipes in on arrival, then it drops off-screen. */}
         <motion.div
           style={{ z: zCard, y: yCard, opacity: backdropO }}
           className="pointer-events-none absolute inset-0 flex items-center justify-center will-change-transform"
         >
-          <div className="relative mx-auto aspect-square w-full max-w-[420px] sm:max-w-[480px]">
-            <div
-              className="absolute top-[-30vh] bottom-[-30vh] left-[-25vw] right-[-25vw]"
-              style={{ filter: 'drop-shadow(0 28px 40px rgba(15,23,42,0.12))' }}
-            >
-              <Card3DViewer
-                frontImageUrl={revealFront}
-                insideImageUrl={revealInside}
-                openProgress={openProgress}
-                closedAngle={0}
-                restYaw={-0.1}
-                interactive={false}
-                enableRotate={false}
-                enableZoom={false}
-                framingMargin={2.0}
-                minDistance={1.8}
-                className="w-full h-full"
-              />
-            </div>
-          </div>
+          <MagicCard swipe={swipeProgress} />
         </motion.div>
 
         <Layer z={z1} opacity={o1}>
@@ -534,6 +515,32 @@ function ConfettiPiece({
       }}
       className="absolute left-0 top-0 rounded-[2px]"
     />
+  );
+}
+
+// The finale card — starts BLANK (white), then the render swipes in left→right
+// with a glowing edge (a "magic swipe"). `swipe` 0→1 drives the wipe.
+function MagicCard({ swipe }: { swipe: MotionValue<number> }) {
+  const rightInset = useTransform(swipe, [0, 1], [100, 0]);
+  const clipPath = useMotionTemplate`inset(0% ${rightInset}% 0% 0%)`;
+  const lineLeft = useTransform(swipe, [0, 1], ['0%', '100%']);
+  const lineO = useTransform(swipe, [0, 0.05, 0.95, 1], [0, 1, 1, 0]);
+  return (
+    <div className="relative aspect-square w-[320px] overflow-hidden rounded-[16px] bg-white shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70 sm:w-[380px]">
+      {/* The render — wiped in left→right. */}
+      <motion.img
+        src={revealFront}
+        alt=""
+        style={{ clipPath }}
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      {/* Glowing swipe edge. */}
+      <motion.div
+        aria-hidden
+        style={{ left: lineLeft, opacity: lineO }}
+        className="pointer-events-none absolute bottom-0 top-0 w-[4px] -translate-x-1/2 bg-white/90 shadow-[0_0_24px_7px_rgba(122,118,232,0.85)]"
+      />
+    </div>
   );
 }
 
