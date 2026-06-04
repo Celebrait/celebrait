@@ -222,7 +222,7 @@ export default function HeroScrollPocPage() {
         {/* Headline + combined composer — scene then front headline type in. */}
         <Layer z={z5} opacity={o5}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
-            <h1 className={CHOOSE_CLASS}>Design the front</h1>
+            <h1 className={CHOOSE_CLASS}>Put them in the picture</h1>
             <DesignFrontCard
               scene={SCENE_TEXT.slice(0, sceneLen)}
               front={FRONT_TEXT.slice(0, frontLen)}
