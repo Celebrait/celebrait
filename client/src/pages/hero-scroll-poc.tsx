@@ -49,6 +49,8 @@ const INSIDE_GREETING = 'Dear Sarah,';
 const INSIDE_MESSAGE =
   "Twenty-five years, and you still make me laugh like it's day one. Here's to every adventure still to come.";
 const INSIDE_SIGNOFF = 'All my love, Mum';
+// Finale +1 — the regen "tweak" that types itself in.
+const TWEAK_TEXT = 'Make the sky a warmer golden hour';
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
@@ -68,6 +70,8 @@ export default function HeroScrollPocPage() {
   const [frontLen, setFrontLen] = useState(0);
   // Beat 7 — how many characters of the inside message have "typed" in.
   const [insideLen, setInsideLen] = useState(0);
+  // Finale +1 — how many characters of the regen tweak have "typed" in.
+  const [tweakLen, setTweakLen] = useState(0);
 
   // Drive the studio card as we approach beat 3: name + occasion toggle IN
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
@@ -91,6 +95,11 @@ export default function HeroScrollPocPage() {
     // Add text on the inside (centre .76).
     const ps7 = clamp((v - 0.735) / (0.775 - 0.735), 0, 1);
     setInsideLen(Math.round(ps7 * INSIDE_MESSAGE.length));
+
+    // Finale +1 — the regen tweak types in as the screen settles (slow-down
+    // synced, same as the other text beats).
+    const psTweak = clamp((v - 0.955) / (0.998 - 0.955), 0, 1);
+    setTweakLen(Math.round(psTweak * TWEAK_TEXT.length));
 
     // Choose celebration (centre .22) — name stays "Sarah"; occasions toggle
     // on approach, Anniversary "clicked" (pressed) as we pass.
@@ -141,21 +150,26 @@ export default function HeroScrollPocPage() {
   const z7 = useTransform(scrollYProgress, [0.66, 0.735, 0.785, 0.86], [-720, -40, 40, 820]);
   const o7 = useTransform(scrollYProgress, [0.688, 0.735, 0.785, 0.833], [0, 1, 1, 0]);
   // Finale — a spinner spins as you scroll in (the studio's "creating your
-  // card" moment), fades, then the finished card fades in FULL SIZE (no zoom,
-  // static) and the cover opens as you reach the bottom. openProgress scrubs
-  // the hinge 1:1 with scroll — no spring, no jank.
-  const spinnerRot = useTransform(scrollYProgress, [0.83, 0.91], [0, 540]);
-  const spinnerO = useTransform(scrollYProgress, [0.83, 0.85, 0.89, 0.91], [0, 1, 1, 0]);
-  // Clean white through all the steps — the card is invisible until the spinner
-  // starts (.83), then fades in IN SYNC with the spinner and its cover opens at
-  // the bottom. No backdrop presence during the build.
-  const backdropO = useTransform(scrollYProgress, [0.83, 0.93, 1], [0, 1, 1]);
-  const openProgress = useTransform(scrollYProgress, [0.93, 1], [0, 1]);
+  // card" moment), fades, then the finished card fades in (in sync with the
+  // spinner), opens, and the zoom carries THROUGH the open card into the regen
+  // screen. openProgress scrubs the hinge 1:1 with scroll.
+  const spinnerRot = useTransform(scrollYProgress, [0.835, 0.89], [0, 540]);
+  const spinnerO = useTransform(scrollYProgress, [0.835, 0.85, 0.87, 0.885], [0, 1, 1, 0]);
+  // Card: fades in with the spinner, full while it opens, then fades as the
+  // zoom carries through it.
+  const backdropO = useTransform(scrollYProgress, [0.835, 0.875, 0.915, 0.945], [0, 1, 1, 0]);
+  const openProgress = useTransform(scrollYProgress, [0.875, 0.905], [0, 1]);
+  // Zoom carries through the open card (scale up + the fade above).
+  const cardScale = useTransform(scrollYProgress, [0.905, 0.95], [1, 2.6]);
+  // Finale +1 — the regen screen emerges from the zoom-through, settles, and
+  // the tweak types in.
+  const oRegen = useTransform(scrollYProgress, [0.93, 0.965, 1], [0, 1, 1]);
+  const regenScale = useTransform(scrollYProgress, [0.93, 0.99], [1.08, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
 
   return (
-    <div ref={ref} className="relative" style={{ height: '1340vh' }}>
+    <div ref={ref} className="relative" style={{ height: '1550vh' }}>
       <div
         className="fixed inset-0 overflow-hidden"
         style={{
@@ -165,10 +179,11 @@ export default function HeroScrollPocPage() {
         }}
       >
         {/* The finished card — invisible through the steps (clean white), fades
-            in during the spinner phase, then its cover opens at the bottom. */}
+            in during the spinner phase, opens, then the zoom carries THROUGH it
+            (scale up + fade) into the regen screen. */}
         <motion.div
-          style={{ opacity: backdropO }}
-          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          style={{ opacity: backdropO, scale: cardScale }}
+          className="pointer-events-none absolute inset-0 flex items-center justify-center will-change-transform"
         >
           <div className="relative w-full max-w-[460px] sm:max-w-[540px] aspect-square mx-auto">
             <div
@@ -249,6 +264,18 @@ export default function HeroScrollPocPage() {
           <motion.div style={{ rotate: spinnerRot }}>
             <Loader2 className="w-14 h-14 text-brand" strokeWidth={2} />
           </motion.div>
+        </motion.div>
+
+        {/* Finale +1 — the zoom carries through the open card into the regen
+            screen: "Not 100% happy?" + the card + a tweak that auto-types. */}
+        <motion.div
+          style={{ opacity: oRegen, scale: regenScale }}
+          className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 will-change-transform"
+        >
+          <div className="flex flex-col items-center gap-7 sm:gap-9">
+            <h1 className={CHOOSE_CLASS}>Not 100% happy? Make a change.</h1>
+            <RegenCard typed={TWEAK_TEXT.slice(0, tweakLen)} />
+          </div>
         </motion.div>
 
         <motion.div
@@ -607,6 +634,33 @@ function ConfettiPiece({
       }}
       className="absolute left-0 top-0 rounded-[2px]"
     />
+  );
+}
+
+function RegenCard({ typed }: { typed: string }) {
+  const empty = typed.length === 0;
+  return (
+    <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
+      {/* The rendered card you're tweaking */}
+      <img
+        src={revealFront}
+        alt=""
+        className="aspect-square w-full rounded-2xl object-cover ring-1 ring-stone-200/70"
+      />
+
+      {/* Tweak field — types a change in. */}
+      <p className="mb-1.5 mt-4 text-[13px] text-ink">Describe your tweak</p>
+      <div className="min-h-[60px] rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed text-ink">
+        {empty ? (
+          <span className="text-stone-400">e.g. Make the sunset more golden…</span>
+        ) : (
+          <span>
+            {typed}
+            <span className="ml-0.5 inline-block h-[15px] w-[2px] animate-pulse bg-brand align-middle" />
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 
