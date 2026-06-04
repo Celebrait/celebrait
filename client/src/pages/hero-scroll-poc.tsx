@@ -231,7 +231,7 @@ export default function HeroScrollPocPage() {
                 value={SCENE_TEXT.slice(0, sceneLen)}
                 placeholder="e.g. Sarah at golden hour on an Italian terrace…"
                 live
-                minH={84}
+                grow
               />
               <SquareField
                 label="Front headline"
@@ -255,7 +255,7 @@ export default function HeroScrollPocPage() {
                 value={INSIDE_MESSAGE.slice(0, insideLen)}
                 placeholder="Write a few words from the heart…"
                 live
-                minH={56}
+                grow
               />
               <SquareField label="Sign-off" value={INSIDE_SIGNOFF} />
             </DesignSquare>
@@ -508,8 +508,9 @@ function DesignSquare({
   const scanO = useTransform(renderProgress, [0, 0.04, 0.96, 1], [0, 1, 1, 0]);
   return (
     <div className="relative aspect-square w-[300px] overflow-hidden rounded-[12px] bg-white shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70 sm:w-[340px]">
-      {/* Text inputs — underneath, get painted over by the render. */}
-      <div className="absolute inset-0 flex flex-col justify-center gap-2.5 px-5">
+      {/* Text inputs — underneath, get painted over by the render. They fill
+          the square (the main field grows) with balanced padding. */}
+      <div className="absolute inset-0 flex flex-col gap-3 px-6 py-7">
         {children}
       </div>
       {/* The render paints over the inputs, revealed top→down. */}
@@ -536,25 +537,29 @@ function SquareField({
   value,
   placeholder,
   live = false,
+  grow = false,
   minH = 38,
 }: {
   label: string;
   value: string;
   placeholder?: string;
   live?: boolean;
+  grow?: boolean;
   minH?: number;
 }) {
   const empty = value.length === 0;
   return (
-    <div>
+    <div className={`flex flex-col ${grow ? 'flex-1' : ''}`}>
       <p className="mb-1 text-[11px] text-stone-500">{label}</p>
       <div
         className={`overflow-hidden rounded-lg px-3 py-2 text-[13px] leading-snug ${
+          grow ? 'flex-1' : ''
+        } ${
           live
             ? 'border-2 border-brand/50 bg-stone-50'
             : 'border border-stone-200 bg-stone-50'
         }`}
-        style={{ minHeight: minH }}
+        style={grow ? undefined : { minHeight: minH }}
       >
         {empty ? (
           <span className="text-stone-400">{placeholder}</span>
