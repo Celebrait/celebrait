@@ -15,7 +15,6 @@ import {
   motion,
   useScroll,
   useTransform,
-  useMotionTemplate,
   useMotionValueEvent,
   useReducedMotion,
   type MotionValue,
@@ -69,10 +68,23 @@ export default function HeroScrollPocPage() {
   const [frontLen, setFrontLen] = useState(0);
   // Beat 7 — how many characters of the inside message have "typed" in.
   const [insideLen, setInsideLen] = useState(0);
+  // Backdrop card pixelation block size (px). Sharpens 12 → 1 at the finale.
+  const [px, setPx] = useState(12);
+  const pxRef = useRef(12);
 
   // Drive the studio card as we approach beat 3: name + occasion toggle IN
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
+    // Backdrop card: blocky (12px) through the steps, sharpens to 1 by the
+    // finale. Threshold to integers so the SVG filter only re-renders on a
+    // real change (not every scroll frame).
+    const pxTarget =
+      v < 0.86 ? 12 : v > 0.95 ? 1 : Math.round(12 - ((v - 0.86) / 0.09) * 11);
+    if (pxTarget !== pxRef.current) {
+      pxRef.current = pxTarget;
+      setPx(pxTarget);
+    }
+
     // Each content beat's animation runs across its crawl, starting exactly as
     // the card slows (crawl start = centre − .025) so type-in syncs with the
     // deceleration. Centres: .22 / .355 / .49 / .625 / .76, then the finale.
@@ -146,12 +158,13 @@ export default function HeroScrollPocPage() {
   // the hinge 1:1 with scroll — no spring, no jank.
   const spinnerRot = useTransform(scrollYProgress, [0.83, 0.91], [0, 540]);
   const spinnerO = useTransform(scrollYProgress, [0.83, 0.85, 0.89, 0.91], [0, 1, 1, 0]);
-  // The finished card lives behind every step — blurred + faint for depth —
-  // then racks into focus and comes forward at the finale (same element, so no
-  // crossfade), and its cover opens as you reach the bottom.
-  const backdropBlur = useTransform(scrollYProgress, [0, 0.86, 0.95], [22, 22, 0]);
-  const backdropFilter = useMotionTemplate`blur(${backdropBlur}px)`;
-  const backdropO = useTransform(scrollYProgress, [0.04, 0.1, 0.86, 0.93], [0, 0.16, 0.16, 1]);
+  // The finished card lives behind every step (incl. the intro) — big +
+  // PIXELATED + clearly present (like a render still resolving) — then it
+  // sharpens (block size 12→1) and comes fully forward at the finale (same
+  // element, no crossfade), and its cover opens at the bottom. Block size is
+  // `px` state below, integer-thresholded so the SVG filter only re-renders on
+  // an actual change.
+  const backdropO = useTransform(scrollYProgress, [0, 0.04, 0.86, 0.93], [0, 0.32, 0.32, 1]);
   const openProgress = useTransform(scrollYProgress, [0.93, 1], [0, 1]);
   // The inputs you passed through, orbiting the finished card: the front-side
   // assets (scene + front text) show while it's closed and fade as it opens;
@@ -171,17 +184,31 @@ export default function HeroScrollPocPage() {
             'radial-gradient(120% 90% at 50% 32%, #ffffff 0%, #f4f3fb 55%, #efeefb 100%)',
         }}
       >
-        {/* The finished card, BEHIND every step — blurred + faint for depth,
-            then it racks into focus + comes forward at the finale and opens.
-            Static backdrop (no dolly) so the steps parallax past it. */}
+        {/* Pixelation filter for the backdrop card — block size = px. */}
+        <svg aria-hidden className="pointer-events-none absolute h-0 w-0">
+          <filter id="hero-pixelate">
+            <feFlood x={px / 2} y={px / 2} width="1" height="1" />
+            <feComposite width={px} height={px} />
+            <feTile result="a" />
+            <feComposite in="SourceGraphic" in2="a" operator="in" />
+            <feMorphology operator="dilate" radius={px / 2} />
+          </filter>
+        </svg>
+
+        {/* The finished card, BEHIND every step (incl. the intro) — big +
+            pixelated + clearly present, then it sharpens + comes forward at the
+            finale and opens. Static backdrop (no dolly) so steps parallax past. */}
         <motion.div
-          style={{ opacity: backdropO, filter: backdropFilter }}
+          style={{ opacity: backdropO }}
           className="pointer-events-none absolute inset-0 flex items-center justify-center"
         >
-          <div className="relative w-full max-w-[340px] sm:max-w-[380px] aspect-square mx-auto">
+          <div className="relative w-full max-w-[460px] sm:max-w-[540px] aspect-square mx-auto">
             <div
               className="absolute top-[-30vh] bottom-[-30vh] left-[-25vw] right-[-25vw]"
-              style={{ filter: 'drop-shadow(0 28px 40px rgba(15,23,42,0.12))' }}
+              style={{
+                filter:
+                  'url(#hero-pixelate) drop-shadow(0 28px 40px rgba(15,23,42,0.12))',
+              }}
             >
               <Card3DViewer
                 frontImageUrl={revealFront}
@@ -192,8 +219,8 @@ export default function HeroScrollPocPage() {
                 interactive={false}
                 enableRotate={false}
                 enableZoom={false}
-                framingMargin={2.4}
-                minDistance={2.2}
+                framingMargin={1.8}
+                minDistance={1.8}
                 className="w-full h-full"
               />
             </div>
