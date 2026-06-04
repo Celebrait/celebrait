@@ -147,9 +147,9 @@ export default function HeroScrollPocPage() {
   const spinnerRot = useTransform(scrollYProgress, [0.83, 0.91], [0, 540]);
   const spinnerO = useTransform(scrollYProgress, [0.83, 0.85, 0.89, 0.91], [0, 1, 1, 0]);
   // Clean white through all the steps — the card is invisible until the spinner
-  // phase, then fades in (as the spinner finishes) and its cover opens at the
-  // bottom. No backdrop presence during the build.
-  const backdropO = useTransform(scrollYProgress, [0.86, 0.93, 1], [0, 1, 1]);
+  // starts (.83), then fades in IN SYNC with the spinner and its cover opens at
+  // the bottom. No backdrop presence during the build.
+  const backdropO = useTransform(scrollYProgress, [0.83, 0.93, 1], [0, 1, 1]);
   const openProgress = useTransform(scrollYProgress, [0.93, 1], [0, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
