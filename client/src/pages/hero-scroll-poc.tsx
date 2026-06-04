@@ -112,15 +112,14 @@ export default function HeroScrollPocPage() {
   // Spinner comes in right after "Add your words" and spins for a few beats…
   const spinnerRot = useTransform(scrollYProgress, [0.8, 0.87], [0, 540]);
   const spinnerO = useTransform(scrollYProgress, [0.8, 0.815, 0.85, 0.87], [0, 1, 1, 0]);
-  // …then the finished card makes a SPECIAL entrance: it turns to face you
-  // (rotateY) with a scale "bloom", lands, opens, closes, then drops off-screen.
-  const backdropO = useTransform(scrollYProgress, [0.855, 0.9, 1], [0, 1, 1]);
-  const cardRotY = useTransform(scrollYProgress, [0.855, 0.925], [-38, 0]);
-  const cardScale = useTransform(scrollYProgress, [0.855, 0.91, 0.935], [0.6, 1.05, 1]);
-  const openProgress = useTransform(scrollYProgress, [0.925, 0.95, 0.955, 0.97], [0, 1, 1, 0]);
-  const yCard = useTransform(scrollYProgress, [0.97, 1], [0, 1100]);
+  // …then the finished card DOLLIES IN from afar (same as the build beats),
+  // lands at a good size and holds STATIC, then opens, closes, and drops off.
+  const zCard = useTransform(scrollYProgress, [0.85, 0.91], [-720, 0]);
+  const backdropO = useTransform(scrollYProgress, [0.85, 0.895, 1], [0, 1, 1]);
+  const openProgress = useTransform(scrollYProgress, [0.93, 0.955, 0.96, 0.975], [0, 1, 1, 0]);
+  const yCard = useTransform(scrollYProgress, [0.975, 1], [0, 1100]);
   // "Send it" is revealed as the card drops away.
-  const oSend = useTransform(scrollYProgress, [0.97, 0.995, 1], [0, 1, 1]);
+  const oSend = useTransform(scrollYProgress, [0.975, 0.995, 1], [0, 1, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
 
@@ -138,14 +137,10 @@ export default function HeroScrollPocPage() {
             in during the spinner phase, opens (see inside), closes, then slides
             DOWN off the screen — sent. */}
         <motion.div
-          style={{ opacity: backdropO, y: yCard, perspective: 1400 }}
+          style={{ z: zCard, y: yCard, opacity: backdropO }}
           className="pointer-events-none absolute inset-0 flex items-center justify-center will-change-transform"
         >
-          {/* Special entrance — turns to face you (rotateY) + scale bloom. */}
-          <motion.div
-            style={{ rotateY: cardRotY, scale: cardScale }}
-            className="relative mx-auto aspect-square w-full max-w-[420px] sm:max-w-[480px]"
-          >
+          <div className="relative mx-auto aspect-square w-full max-w-[420px] sm:max-w-[480px]">
             <div
               className="absolute top-[-30vh] bottom-[-30vh] left-[-25vw] right-[-25vw]"
               style={{ filter: 'drop-shadow(0 28px 40px rgba(15,23,42,0.12))' }}
@@ -164,7 +159,7 @@ export default function HeroScrollPocPage() {
                 className="w-full h-full"
               />
             </div>
-          </motion.div>
+          </div>
         </motion.div>
 
         <Layer z={z1} opacity={o1}>
