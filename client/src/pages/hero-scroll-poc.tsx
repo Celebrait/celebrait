@@ -27,7 +27,6 @@ import {
   ChevronDown,
   User,
   Check,
-  Type,
   Loader2,
 } from 'lucide-react';
 import { Card3DViewer } from '@/components/card-3d-viewer';
@@ -43,10 +42,8 @@ const SCENE_TEXT =
 // Beat 6 — the front headline that types itself in.
 const FRONT_TEXT = 'Happy Anniversary, Sarah';
 // Beat 7 — the inside message that types itself in.
-const INSIDE_GREETING = 'Dear Sarah,';
 const INSIDE_MESSAGE =
   "Twenty-five years, and you still make me laugh like it's day one. Here's to every adventure still to come.";
-const INSIDE_SIGNOFF = 'All my love, Mum';
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
@@ -73,16 +70,16 @@ export default function HeroScrollPocPage() {
     const ps = clamp((v - 0.245) / (0.285 - 0.245), 0, 1);
     setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
 
-    // Put them in the picture — scene types first…
-    const ps5 = clamp((v - 0.45) / (0.51 - 0.45), 0, 1);
+    // Put them in the picture — scene types across the crawl (centre .50).
+    const ps5 = clamp((v - 0.45) / (0.53 - 0.45), 0, 1);
     setSceneLen(Math.round(ps5 * SCENE_TEXT.length));
 
-    // …then the front headline.
-    const ps6 = clamp((v - 0.51) / (0.55 - 0.51), 0, 1);
+    // Add your words (centre .72) — front headline types first…
+    const ps6 = clamp((v - 0.66) / (0.70 - 0.66), 0, 1);
     setFrontLen(Math.round(ps6 * FRONT_TEXT.length));
 
-    // Inside message (centre .72).
-    const ps7 = clamp((v - 0.695) / (0.74 - 0.695), 0, 1);
+    // …then the full inside message.
+    const ps7 = clamp((v - 0.70) / (0.78 - 0.70), 0, 1);
     setInsideLen(Math.round(ps7 * INSIDE_MESSAGE.length));
   });
 
@@ -105,9 +102,9 @@ export default function HeroScrollPocPage() {
   // Beat 3 — "Put them in the picture" (centre .50, wider crawl: scene+front).
   const z5 = useTransform(scrollYProgress, [0.37, 0.45, 0.55, 0.63], [-720, -40, 40, 820]);
   const o5 = useTransform(scrollYProgress, [0.4, 0.45, 0.55, 0.6], [0, 1, 1, 0]);
-  // Beat 4 — "Add text on the inside" (centre .72).
-  const z7 = useTransform(scrollYProgress, [0.59, 0.695, 0.745, 0.85], [-720, -40, 40, 820]);
-  const o7 = useTransform(scrollYProgress, [0.62, 0.695, 0.745, 0.82], [0, 1, 1, 0]);
+  // Beat 4 — "Add your words" (centre .72, wide crawl: front then message).
+  const z7 = useTransform(scrollYProgress, [0.59, 0.66, 0.78, 0.85], [-720, -40, 40, 820]);
+  const o7 = useTransform(scrollYProgress, [0.62, 0.66, 0.78, 0.82], [0, 1, 1, 0]);
   // Finale — a spinner spins as you scroll in (the studio's "creating your
   // card" moment), fades, then the finished card fades in (in sync with the
   // spinner), opens, then simply fades out into the regen screen (no zoom).
@@ -176,22 +173,22 @@ export default function HeroScrollPocPage() {
           </div>
         </Layer>
 
-        {/* Headline + combined composer — scene then front headline type in. */}
+        {/* Put them in the picture — scene description types in. */}
         <Layer z={z5} opacity={o5}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Put them in the picture</h1>
-            <DesignFrontCard
-              scene={SCENE_TEXT.slice(0, sceneLen)}
-              front={FRONT_TEXT.slice(0, frontLen)}
-            />
+            <PictureCard scene={SCENE_TEXT.slice(0, sceneLen)} />
           </div>
         </Layer>
 
-        {/* Headline + inside-text composer — the message types itself in. */}
+        {/* Add your words — front headline then the full inside message. */}
         <Layer z={z7} opacity={o7}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
-            <h1 className={CHOOSE_CLASS}>Add text on the inside</h1>
-            <InsideTextCard typed={INSIDE_MESSAGE.slice(0, insideLen)} />
+            <h1 className={CHOOSE_CLASS}>Add your words</h1>
+            <WordsCard
+              front={FRONT_TEXT.slice(0, frontLen)}
+              message={INSIDE_MESSAGE.slice(0, insideLen)}
+            />
           </div>
         </Layer>
 
@@ -422,41 +419,20 @@ function PhotoCard({ selected }: { selected: number }) {
   );
 }
 
-// Combined "Design the front" — the picture (scene) AND the front headline in
-// one card. The scene types in first, then the front headline.
-function DesignFrontCard({ scene, front }: { scene: string; front: string }) {
-  const sceneEmpty = scene.length === 0;
-  const frontEmpty = front.length === 0;
+// "Put them in the picture" — just the scene description, types itself in.
+function PictureCard({ scene }: { scene: string }) {
+  const empty = scene.length === 0;
   return (
     <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
-      {/* The picture (scene) — types itself in. Fixed height so it never grows
-          as the text fills it. */}
       <p className="mb-1.5 text-[13px] text-ink">The picture</p>
-      <div className="h-[116px] overflow-hidden rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed text-ink">
-        {sceneEmpty ? (
+      <div className="h-[150px] overflow-hidden rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[15px] leading-relaxed text-ink">
+        {empty ? (
           <span className="text-stone-400">
             e.g. Sarah at golden hour on an Italian terrace…
           </span>
         ) : (
           <span>
             {scene}
-            <span className="ml-0.5 inline-block h-[15px] w-[2px] animate-pulse bg-brand align-middle" />
-          </span>
-        )}
-      </div>
-
-      {/* Front headline — types in after the scene. */}
-      <p className="mb-1.5 mt-4 flex items-center gap-1.5 text-[13px] text-ink">
-        <Type className="h-3.5 w-3.5 text-brand" strokeWidth={2} />
-        Front headline
-        <span className="font-normal text-stone-400">optional</span>
-      </p>
-      <div className="flex min-h-[46px] items-center rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[15px]">
-        {frontEmpty ? (
-          <span className="text-stone-400">Happy Anniversary</span>
-        ) : (
-          <span className="font-medium text-ink">
-            {front}
             <span className="ml-0.5 inline-block h-[16px] w-[2px] animate-pulse bg-brand align-middle" />
           </span>
         )}
@@ -465,37 +441,37 @@ function DesignFrontCard({ scene, front }: { scene: string; front: string }) {
   );
 }
 
-function InsideTextCard({ typed }: { typed: string }) {
-  const empty = typed.length === 0;
+// "Add your words" — what's on the front (headline) + what's on the inside
+// (the full message). Front types first, then the message.
+function WordsCard({ front, message }: { front: string; message: string }) {
+  const fEmpty = front.length === 0;
+  const mEmpty = message.length === 0;
   return (
     <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
-      {/* Greeting */}
-      <p className="text-[12px] text-stone-500 mb-1">
-        Greeting <span className="text-stone-400">optional</span>
-      </p>
-      <div className="rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[14px] text-ink mb-3.5">
-        {INSIDE_GREETING}
-      </div>
-
-      {/* Message — the hero field, types itself in. */}
-      <p className="text-[12px] text-stone-500 mb-1">Message</p>
-      <div className="rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed min-h-[92px] text-ink mb-3.5">
-        {empty ? (
-          <span className="text-stone-400">Write a few words from the heart…</span>
+      {/* What's on the front? */}
+      <p className="mb-1.5 text-[13px] text-ink">What's on the front?</p>
+      <div className="flex min-h-[46px] items-center rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[15px]">
+        {fEmpty ? (
+          <span className="text-stone-400">Happy Anniversary</span>
         ) : (
-          <span>
-            {typed}
-            <span className="inline-block w-[2px] h-[15px] bg-brand align-middle ml-0.5 animate-pulse" />
+          <span className="font-medium text-ink">
+            {front}
+            <span className="ml-0.5 inline-block h-[16px] w-[2px] animate-pulse bg-brand align-middle" />
           </span>
         )}
       </div>
 
-      {/* Sign-off */}
-      <p className="text-[12px] text-stone-500 mb-1">
-        Sign-off <span className="text-stone-400">optional</span>
-      </p>
-      <div className="rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[14px] text-ink">
-        {INSIDE_SIGNOFF}
+      {/* What's on the inside? */}
+      <p className="mb-1.5 mt-4 text-[13px] text-ink">What's on the inside?</p>
+      <div className="h-[120px] overflow-hidden rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed text-ink">
+        {mEmpty ? (
+          <span className="text-stone-400">Write a few words from the heart…</span>
+        ) : (
+          <span>
+            {message}
+            <span className="ml-0.5 inline-block h-[15px] w-[2px] animate-pulse bg-brand align-middle" />
+          </span>
+        )}
       </div>
     </div>
   );
