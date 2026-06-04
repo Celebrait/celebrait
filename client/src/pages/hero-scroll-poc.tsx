@@ -27,8 +27,6 @@ import {
   ChevronDown,
   User,
   Check,
-  Wand2,
-  Sparkles,
   Type,
   Loader2,
 } from 'lucide-react';
@@ -474,9 +472,10 @@ function DesignFrontCard({ scene, front }: { scene: string; front: string }) {
   const frontEmpty = front.length === 0;
   return (
     <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
-      {/* The picture (scene) — types itself in. */}
+      {/* The picture (scene) — types itself in. Fixed height so it never grows
+          as the text fills it. */}
       <p className="mb-1.5 text-[13px] text-ink">The picture</p>
-      <div className="min-h-[88px] rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed text-ink">
+      <div className="h-[116px] overflow-hidden rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed text-ink">
         {sceneEmpty ? (
           <span className="text-stone-400">
             e.g. Sarah at golden hour on an Italian terrace…
@@ -487,18 +486,6 @@ function DesignFrontCard({ scene, front }: { scene: string; front: string }) {
             <span className="ml-0.5 inline-block h-[15px] w-[2px] animate-pulse bg-brand align-middle" />
           </span>
         )}
-      </div>
-
-      {/* Two AI helpers — match the studio's Suggest / Brainstorm pair. */}
-      <div className="mt-3.5 flex gap-2.5">
-        <div className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-brand/40 bg-brand-muted text-[13px] font-semibold text-brand-dark">
-          <Wand2 className="h-4 w-4" strokeWidth={2} />
-          Suggest scenes
-        </div>
-        <div className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-dark text-[13px] font-semibold text-white shadow-md shadow-brand/20">
-          <Sparkles className="h-4 w-4" strokeWidth={2} />
-          Brainstorm
-        </div>
       </div>
 
       {/* Front headline — types in after the scene. */}
