@@ -140,8 +140,9 @@ export default function HeroScrollPocPage() {
   // Beat 5 — front render "develops" (centre .625).
   const zRev = useTransform(scrollYProgress, [0.525, 0.6, 0.65, 0.725], [-720, -40, 40, 820]);
   const oRev = useTransform(scrollYProgress, [0.553, 0.6, 0.65, 0.698], [0, 1, 1, 0]);
-  // The generative scan reveal runs across the crawl.
-  const revealProgress = useTransform(scrollYProgress, [0.6, 0.648], [0, 1]);
+  // The generative scan reveal starts as the card fades in (earlier than the
+  // crawl) so it's developing on arrival, not blank first.
+  const revealProgress = useTransform(scrollYProgress, [0.56, 0.625], [0, 1]);
   // Beat 6 — "Add text on the inside" (centre .76).
   const z7 = useTransform(scrollYProgress, [0.66, 0.735, 0.785, 0.86], [-720, -40, 40, 820]);
   const o7 = useTransform(scrollYProgress, [0.688, 0.735, 0.785, 0.833], [0, 1, 1, 0]);
@@ -238,10 +239,7 @@ export default function HeroScrollPocPage() {
 
         {/* Front render develops into existence — flat 2D, scan-reveal. */}
         <Layer z={zRev} opacity={oRev}>
-          <div className="flex flex-col items-center gap-7 sm:gap-9">
-            <h1 className={CHOOSE_CLASS}>Watch it come to life</h1>
-            <FrontRevealCard progress={revealProgress} />
-          </div>
+          <FrontRevealCard progress={revealProgress} />
         </Layer>
 
         {/* Headline + inside-text composer — the message types itself in. */}
