@@ -109,16 +109,18 @@ export default function HeroScrollPocPage() {
   // card" moment), fades, then the finished card fades in (in sync with the
   // spinner), opens, then simply fades out into the regen screen (no zoom).
   // openProgress scrubs the hinge 1:1 with scroll.
-  const spinnerRot = useTransform(scrollYProgress, [0.835, 0.89], [0, 540]);
-  const spinnerO = useTransform(scrollYProgress, [0.835, 0.85, 0.87, 0.885], [0, 1, 1, 0]);
-  // Card: fades in with the spinner, opens (see inside), closes again, then
-  // slides DOWN off the screen — the "send it" gesture. Stays full opacity; it
-  // leaves by sliding, not fading.
-  const backdropO = useTransform(scrollYProgress, [0.835, 0.875, 1], [0, 1, 1]);
-  const openProgress = useTransform(scrollYProgress, [0.875, 0.905, 0.93, 0.955], [0, 1, 1, 0]);
-  const yCard = useTransform(scrollYProgress, [0.95, 1], [0, 1100]);
+  // Spinner comes in right after "Add your words" and spins for a few beats…
+  const spinnerRot = useTransform(scrollYProgress, [0.8, 0.87], [0, 540]);
+  const spinnerO = useTransform(scrollYProgress, [0.8, 0.815, 0.85, 0.87], [0, 1, 1, 0]);
+  // …then the finished card makes a SPECIAL entrance: it turns to face you
+  // (rotateY) with a scale "bloom", lands, opens, closes, then drops off-screen.
+  const backdropO = useTransform(scrollYProgress, [0.855, 0.9, 1], [0, 1, 1]);
+  const cardRotY = useTransform(scrollYProgress, [0.855, 0.925], [-38, 0]);
+  const cardScale = useTransform(scrollYProgress, [0.855, 0.91, 0.935], [0.6, 1.05, 1]);
+  const openProgress = useTransform(scrollYProgress, [0.925, 0.95, 0.955, 0.97], [0, 1, 1, 0]);
+  const yCard = useTransform(scrollYProgress, [0.97, 1], [0, 1100]);
   // "Send it" is revealed as the card drops away.
-  const oSend = useTransform(scrollYProgress, [0.95, 0.99, 1], [0, 1, 1]);
+  const oSend = useTransform(scrollYProgress, [0.97, 0.995, 1], [0, 1, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
 
@@ -136,10 +138,14 @@ export default function HeroScrollPocPage() {
             in during the spinner phase, opens (see inside), closes, then slides
             DOWN off the screen — sent. */}
         <motion.div
-          style={{ opacity: backdropO, y: yCard }}
+          style={{ opacity: backdropO, y: yCard, perspective: 1400 }}
           className="pointer-events-none absolute inset-0 flex items-center justify-center will-change-transform"
         >
-          <div className="relative w-full max-w-[460px] sm:max-w-[540px] aspect-square mx-auto">
+          {/* Special entrance — turns to face you (rotateY) + scale bloom. */}
+          <motion.div
+            style={{ rotateY: cardRotY, scale: cardScale }}
+            className="relative mx-auto aspect-square w-full max-w-[420px] sm:max-w-[480px]"
+          >
             <div
               className="absolute top-[-30vh] bottom-[-30vh] left-[-25vw] right-[-25vw]"
               style={{ filter: 'drop-shadow(0 28px 40px rgba(15,23,42,0.12))' }}
@@ -153,12 +159,12 @@ export default function HeroScrollPocPage() {
                 interactive={false}
                 enableRotate={false}
                 enableZoom={false}
-                framingMargin={1.8}
+                framingMargin={2.0}
                 minDistance={1.8}
                 className="w-full h-full"
               />
             </div>
-          </div>
+          </motion.div>
         </motion.div>
 
         <Layer z={z1} opacity={o1}>
