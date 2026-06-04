@@ -108,13 +108,14 @@ export default function HeroScrollPocPage() {
   // card" moment), fades, then the finished card fades in (in sync with the
   // spinner), opens, then simply fades out into the regen screen (no zoom).
   // openProgress scrubs the hinge 1:1 with scroll.
-  // A BLANK card dollies in from afar while the spinner "loads"… then when it
-  // lands, the render SWIPES in (magic swipe), and the card drops off-screen.
-  const spinnerRot = useTransform(scrollYProgress, [0.8, 0.92], [0, 540]);
-  const spinnerO = useTransform(scrollYProgress, [0.8, 0.83, 0.91, 0.925], [0, 1, 1, 0]);
-  const zCard = useTransform(scrollYProgress, [0.85, 0.91], [-720, 0]);
-  const backdropO = useTransform(scrollYProgress, [0.85, 0.895, 1], [0, 1, 1]);
-  const swipeProgress = useTransform(scrollYProgress, [0.915, 0.965], [0, 1]);
+  // Blank card dollies in while the spinner loads → render SWIPES in → the
+  // cover OPENS (revealing the inside) → it drops off-screen to "Send it".
+  const spinnerRot = useTransform(scrollYProgress, [0.8, 0.89], [0, 540]);
+  const spinnerO = useTransform(scrollYProgress, [0.8, 0.82, 0.875, 0.89], [0, 1, 1, 0]);
+  const zCard = useTransform(scrollYProgress, [0.82, 0.88], [-720, 0]);
+  const backdropO = useTransform(scrollYProgress, [0.82, 0.865, 1], [0, 1, 1]);
+  const swipeProgress = useTransform(scrollYProgress, [0.885, 0.92], [0, 1]);
+  const openProgress = useTransform(scrollYProgress, [0.925, 0.97], [0, 1]);
   const yCard = useTransform(scrollYProgress, [0.975, 1], [0, 1100]);
   // "Send it" is revealed as the card drops away.
   const oSend = useTransform(scrollYProgress, [0.975, 0.995, 1], [0, 1, 1]);
@@ -140,7 +141,7 @@ export default function HeroScrollPocPage() {
           style={{ z: zCard, y: yCard, opacity: backdropO }}
           className="pointer-events-none absolute inset-0 flex items-center justify-center will-change-transform"
         >
-          <MagicCard swipe={swipeProgress} />
+          <MagicCard swipe={swipeProgress} open={openProgress} />
         </motion.div>
 
         <Layer z={z1} opacity={o1}>
@@ -518,29 +519,94 @@ function ConfettiPiece({
   );
 }
 
-// The finale card — starts BLANK (white), then the render swipes in left→right
-// with a glowing edge (a "magic swipe"). `swipe` 0→1 drives the wipe.
-function MagicCard({ swipe }: { swipe: MotionValue<number> }) {
+// Finale card. Starts BLANK; the render SWIPES in on the cover (`swipe` 0→1);
+// then the cover OPENS on the spine (`open` 0→1) like a real card — revealing a
+// WHITE inside-left (the cover's back) and the message on the inside-right, with
+// the cover casting a shadow on the inside-right. Pure CSS hinge, no 3D viewer.
+const CARD_W = 340; // px — fixed for the hinge geometry (POC: desktop-first)
+
+function MagicCard({
+  swipe,
+  open,
+}: {
+  swipe: MotionValue<number>;
+  open: MotionValue<number>;
+}) {
+  // Front render swipe — left→right wipe with a glowing edge.
   const rightInset = useTransform(swipe, [0, 1], [100, 0]);
-  const clipPath = useMotionTemplate`inset(0% ${rightInset}% 0% 0%)`;
+  const frontClip = useMotionTemplate`inset(0% ${rightInset}% 0% 0%)`;
   const lineLeft = useTransform(swipe, [0, 1], ['0%', '100%']);
   const lineO = useTransform(swipe, [0, 0.05, 0.95, 1], [0, 1, 1, 0]);
+
+  // Cover hinge — swings open around the spine (left edge).
+  const coverRotY = useTransform(open, [0, 1], [0, -158]);
+  const coverTransform = useMotionTemplate`rotateY(${coverRotY}deg)`;
+  // Re-centre: the closed card sits right of the spine; centre it as it opens.
+  const shiftX = useTransform(open, [0, 1], [-CARD_W / 2, 0]);
+  // Shadow the opening cover casts on the inside-right.
+  const shadowO = useTransform(open, [0, 0.25, 0.6, 1], [0, 0.45, 0.3, 0.2]);
+
   return (
-    <div className="relative aspect-square w-[320px] overflow-hidden rounded-[16px] bg-white shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70 sm:w-[380px]">
-      {/* The render — wiped in left→right. */}
-      <motion.img
-        src={revealFront}
-        alt=""
-        style={{ clipPath }}
-        className="absolute inset-0 h-full w-full object-cover"
-      />
-      {/* Glowing swipe edge. */}
-      <motion.div
-        aria-hidden
-        style={{ left: lineLeft, opacity: lineO }}
-        className="pointer-events-none absolute bottom-0 top-0 w-[4px] -translate-x-1/2 bg-white/90 shadow-[0_0_24px_7px_rgba(122,118,232,0.85)]"
-      />
-    </div>
+    <motion.div
+      style={{ x: shiftX, perspective: 1600 }}
+      className="relative flex items-center justify-center"
+    >
+      {/* Spine anchor at centre; panels positioned relative to it. */}
+      <div
+        className="relative"
+        style={{ width: 0, height: CARD_W, transformStyle: 'preserve-3d' }}
+      >
+        {/* Inside-right — white panel with the message + the cast shadow. */}
+        <div
+          className="absolute left-0 top-0 flex items-center justify-center overflow-hidden rounded-[16px] bg-white p-7 ring-1 ring-stone-200/70"
+          style={{ width: CARD_W, height: CARD_W }}
+        >
+          <p className="text-center text-[15px] leading-relaxed text-ink">
+            {INSIDE_MESSAGE}
+          </p>
+          <motion.div
+            aria-hidden
+            style={{ opacity: shadowO }}
+            className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/55 via-black/15 to-transparent"
+          />
+        </div>
+
+        {/* Cover — hinged at the spine (left edge), two faces. */}
+        <motion.div
+          className="absolute left-0 top-0"
+          style={{
+            width: CARD_W,
+            height: CARD_W,
+            transformOrigin: 'left center',
+            transform: coverTransform,
+            transformStyle: 'preserve-3d',
+          }}
+        >
+          {/* Front face — the render, swiped in. */}
+          <div
+            className="absolute inset-0 overflow-hidden rounded-[16px] bg-white ring-1 ring-stone-200/70"
+            style={{ backfaceVisibility: 'hidden' }}
+          >
+            <motion.img
+              src={revealFront}
+              alt=""
+              style={{ clipPath: frontClip }}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <motion.div
+              aria-hidden
+              style={{ left: lineLeft, opacity: lineO }}
+              className="pointer-events-none absolute bottom-0 top-0 w-[4px] -translate-x-1/2 bg-white/90 shadow-[0_0_24px_7px_rgba(122,118,232,0.85)]"
+            />
+          </div>
+          {/* Back face — the inside-left, WHITE. */}
+          <div
+            className="absolute inset-0 rounded-[16px] bg-white ring-1 ring-stone-200/70"
+            style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+          />
+        </motion.div>
+      </div>
+    </motion.div>
   );
 }
 
