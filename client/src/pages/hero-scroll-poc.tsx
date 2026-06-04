@@ -49,8 +49,6 @@ const INSIDE_GREETING = 'Dear Sarah,';
 const INSIDE_MESSAGE =
   "Twenty-five years, and you still make me laugh like it's day one. Here's to every adventure still to come.";
 const INSIDE_SIGNOFF = 'All my love, Mum';
-// Finale +1 — the regen "tweak" that types itself in.
-const TWEAK_TEXT = 'Make the sky a warmer golden hour';
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
@@ -70,8 +68,6 @@ export default function HeroScrollPocPage() {
   const [frontLen, setFrontLen] = useState(0);
   // Beat 7 — how many characters of the inside message have "typed" in.
   const [insideLen, setInsideLen] = useState(0);
-  // Finale +1 — how many characters of the regen tweak have "typed" in.
-  const [tweakLen, setTweakLen] = useState(0);
 
   // Drive the studio card as we approach beat 3: name + occasion toggle IN
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
@@ -96,10 +92,6 @@ export default function HeroScrollPocPage() {
     const ps7 = clamp((v - 0.735) / (0.775 - 0.735), 0, 1);
     setInsideLen(Math.round(ps7 * INSIDE_MESSAGE.length));
 
-    // Finale +1 — the regen tweak types in as the screen settles (slow-down
-    // synced, same as the other text beats).
-    const psTweak = clamp((v - 0.955) / (0.998 - 0.955), 0, 1);
-    setTweakLen(Math.round(psTweak * TWEAK_TEXT.length));
 
     // Choose celebration (centre .22) — name stays "Sarah"; occasions toggle
     // on approach, Anniversary "clicked" (pressed) as we pass.
@@ -155,17 +147,19 @@ export default function HeroScrollPocPage() {
   // openProgress scrubs the hinge 1:1 with scroll.
   const spinnerRot = useTransform(scrollYProgress, [0.835, 0.89], [0, 540]);
   const spinnerO = useTransform(scrollYProgress, [0.835, 0.85, 0.87, 0.885], [0, 1, 1, 0]);
-  // Card: fades in with the spinner, full while it opens, then fades out.
-  const backdropO = useTransform(scrollYProgress, [0.835, 0.875, 0.915, 0.945], [0, 1, 1, 0]);
-  const openProgress = useTransform(scrollYProgress, [0.875, 0.91], [0, 1]);
-  // Finale +1 — the regen screen crossfades in, settles, and the tweak types in.
-  const oRegen = useTransform(scrollYProgress, [0.925, 0.965, 1], [0, 1, 1]);
-  const regenScale = useTransform(scrollYProgress, [0.925, 0.99], [1.06, 1]);
+  // Card: fades in with the spinner, opens (see inside), closes again, then
+  // slides DOWN off the screen — the "send it" gesture. Stays full opacity; it
+  // leaves by sliding, not fading.
+  const backdropO = useTransform(scrollYProgress, [0.835, 0.875, 1], [0, 1, 1]);
+  const openProgress = useTransform(scrollYProgress, [0.875, 0.905, 0.93, 0.955], [0, 1, 1, 0]);
+  const yCard = useTransform(scrollYProgress, [0.95, 1], [0, 1100]);
+  // "Send it" is revealed as the card drops away.
+  const oSend = useTransform(scrollYProgress, [0.95, 0.99, 1], [0, 1, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
 
   return (
-    <div ref={ref} className="relative" style={{ height: '1550vh' }}>
+    <div ref={ref} className="relative" style={{ height: '1400vh' }}>
       <div
         className="fixed inset-0 overflow-hidden"
         style={{
@@ -175,11 +169,11 @@ export default function HeroScrollPocPage() {
         }}
       >
         {/* The finished card — invisible through the steps (clean white), fades
-            in during the spinner phase, opens, then fades out into the regen
-            screen (no zoom). */}
+            in during the spinner phase, opens (see inside), closes, then slides
+            DOWN off the screen — sent. */}
         <motion.div
-          style={{ opacity: backdropO }}
-          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          style={{ opacity: backdropO, y: yCard }}
+          className="pointer-events-none absolute inset-0 flex items-center justify-center will-change-transform"
         >
           <div className="relative w-full max-w-[460px] sm:max-w-[540px] aspect-square mx-auto">
             <div
@@ -262,16 +256,12 @@ export default function HeroScrollPocPage() {
           </motion.div>
         </motion.div>
 
-        {/* Finale +1 — the zoom carries through the open card into the regen
-            screen: "Not 100% happy?" + the card + a tweak that auto-types. */}
+        {/* Finale — "Send it", revealed in the centre as the card drops away. */}
         <motion.div
-          style={{ opacity: oRegen, scale: regenScale }}
-          className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 will-change-transform"
+          style={{ opacity: oSend }}
+          className="pointer-events-none absolute inset-0 flex items-center justify-center px-6"
         >
-          <div className="flex flex-col items-center gap-7 sm:gap-9">
-            <h1 className={CHOOSE_CLASS}>Not 100% happy? Make a change.</h1>
-            <RegenCard typed={TWEAK_TEXT.slice(0, tweakLen)} />
-          </div>
+          <h1 className={CHOOSE_CLASS}>Send it</h1>
         </motion.div>
 
         <motion.div
@@ -630,33 +620,6 @@ function ConfettiPiece({
       }}
       className="absolute left-0 top-0 rounded-[2px]"
     />
-  );
-}
-
-function RegenCard({ typed }: { typed: string }) {
-  const empty = typed.length === 0;
-  return (
-    <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
-      {/* The rendered card you're tweaking */}
-      <img
-        src={revealFront}
-        alt=""
-        className="aspect-square w-full rounded-2xl object-cover ring-1 ring-stone-200/70"
-      />
-
-      {/* Tweak field — types a change in. */}
-      <p className="mb-1.5 mt-4 text-[13px] text-ink">Describe your tweak</p>
-      <div className="min-h-[60px] rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed text-ink">
-        {empty ? (
-          <span className="text-stone-400">e.g. Make the sunset more golden…</span>
-        ) : (
-          <span>
-            {typed}
-            <span className="ml-0.5 inline-block h-[15px] w-[2px] animate-pulse bg-brand align-middle" />
-          </span>
-        )}
-      </div>
-    </div>
   );
 }
 
