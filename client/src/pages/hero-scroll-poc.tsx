@@ -15,7 +15,6 @@ import {
   motion,
   useScroll,
   useTransform,
-  useMotionTemplate,
   useMotionValueEvent,
   useReducedMotion,
   type MotionValue,
@@ -134,12 +133,12 @@ export default function HeroScrollPocPage() {
   // then the front render paints over.
   const z5 = useTransform(scrollYProgress, [0.43, 0.47, 0.59, 0.63], [-720, -40, 40, 820]);
   const o5 = useTransform(scrollYProgress, [0.425, 0.47, 0.59, 0.635], [0, 1, 1, 0]);
-  const frontRender = useTransform(scrollYProgress, [0.535, 0.585], [0, 1]);
+  const frontRender = useTransform(scrollYProgress, [0.535, 0.59], [0, 1]);
   // Beat 5 — "Design the inside" (centre .72, wide crawl). Message types, then
   // the inside render paints over.
   const z7 = useTransform(scrollYProgress, [0.62, 0.66, 0.78, 0.82], [-720, -40, 40, 820]);
   const o7 = useTransform(scrollYProgress, [0.615, 0.66, 0.78, 0.825], [0, 1, 1, 0]);
-  const insideRender = useTransform(scrollYProgress, [0.71, 0.77], [0, 1]);
+  const insideRender = useTransform(scrollYProgress, [0.71, 0.785], [0, 1]);
   // Finale — a spinner spins as you scroll in (the studio's "creating your
   // card" moment), fades, then the finished card fades in (in sync with the
   // spinner), opens, then simply fades out into the regen screen (no zoom).
@@ -490,9 +489,9 @@ function PhotoCard({ selected }: { selected: number }) {
   );
 }
 
-// A square "design" container — text inputs sit inside, then the AI render
-// paints OVER them (scan-reveal, top→down) as `renderProgress` goes 0→1. Used
-// for both Design the front and Design the inside (same move, different art).
+// A square "design" container — text inputs sit inside. Once they're typed,
+// `renderProgress` (0→1) plays the generate beat: a spinner appears over the
+// inputs, then the AI render fades in. Used for both front and inside.
 function DesignSquare({
   image,
   renderProgress,
@@ -502,30 +501,32 @@ function DesignSquare({
   renderProgress: MotionValue<number>;
   children: React.ReactNode;
 }) {
-  const bottomInset = useTransform(renderProgress, [0, 1], [100, 0]);
-  const clipPath = useMotionTemplate`inset(0% 0% ${bottomInset}% 0%)`;
-  const scanTopPct = useTransform(renderProgress, [0, 1], [0, 100]);
-  const scanTop = useMotionTemplate`${scanTopPct}%`;
-  const scanO = useTransform(renderProgress, [0, 0.04, 0.96, 1], [0, 1, 1, 0]);
+  // Spinner first (generating), then the render fades in over everything.
+  const spinnerO = useTransform(renderProgress, [0, 0.08, 0.45, 0.55], [0, 1, 1, 0]);
+  const spinnerRot = useTransform(renderProgress, [0, 0.55], [0, 420]);
+  const imageO = useTransform(renderProgress, [0.5, 0.95], [0, 1]);
   return (
     <div className="relative aspect-square w-[300px] overflow-hidden rounded-[12px] bg-white shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70 sm:w-[340px]">
-      {/* Text inputs — underneath, get painted over by the render. They fill
-          the square (the main field grows) with a small even margin. */}
+      {/* Text inputs — fill the square (the main field grows). */}
       <div className="absolute inset-0 flex flex-col gap-4 px-6 py-6">
         {children}
       </div>
-      {/* The render paints over the inputs, revealed top→down. */}
+      {/* Generating — a soft veil + spinner over the typed inputs. */}
+      <motion.div
+        aria-hidden
+        style={{ opacity: spinnerO }}
+        className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/75"
+      >
+        <motion.div style={{ rotate: spinnerRot }}>
+          <Loader2 className="h-10 w-10 text-brand" strokeWidth={2} />
+        </motion.div>
+      </motion.div>
+      {/* The render fades in over everything. */}
       <motion.img
         src={image}
         alt=""
-        style={{ clipPath }}
+        style={{ opacity: imageO }}
         className="absolute inset-0 h-full w-full object-cover"
-      />
-      {/* Bright scan line at the render edge. */}
-      <motion.div
-        aria-hidden
-        style={{ top: scanTop, opacity: scanO }}
-        className="pointer-events-none absolute inset-x-0 h-[3px] -translate-y-1/2 bg-gradient-to-r from-transparent via-white to-transparent shadow-[0_0_20px_5px_rgba(255,255,255,0.85)]"
       />
     </div>
   );
