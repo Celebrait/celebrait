@@ -501,32 +501,33 @@ function DesignSquare({
   renderProgress: MotionValue<number>;
   children: React.ReactNode;
 }) {
-  // Spinner first (generating), then the render fades in over everything.
-  const spinnerO = useTransform(renderProgress, [0, 0.08, 0.45, 0.55], [0, 1, 1, 0]);
-  const spinnerRot = useTransform(renderProgress, [0, 0.55], [0, 420]);
-  const imageO = useTransform(renderProgress, [0.5, 0.95], [0, 1]);
+  // Instant swaps (no crossfades): inputs → spinner → render. The spinner still
+  // spins while shown; only the appearances snap.
+  const spinnerO = useTransform(renderProgress, [0, 0.001, 0.6, 0.601], [0, 1, 1, 0]);
+  const spinnerRot = useTransform(renderProgress, [0, 0.6], [0, 540]);
+  const imageO = useTransform(renderProgress, [0.6, 0.601], [0, 1]);
   return (
     <div className="relative aspect-square w-[300px] overflow-hidden rounded-[12px] bg-white shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70 sm:w-[340px]">
       {/* Text inputs — fill the square (the main field grows). */}
       <div className="absolute inset-0 flex flex-col gap-4 px-6 py-6">
         {children}
       </div>
-      {/* Generating — a soft veil + spinner over the typed inputs. */}
+      {/* Generating — opaque panel + spinner, snaps on then off. */}
       <motion.div
         aria-hidden
         style={{ opacity: spinnerO }}
-        className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/75"
+        className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-[12px] bg-white"
       >
         <motion.div style={{ rotate: spinnerRot }}>
           <Loader2 className="h-10 w-10 text-brand" strokeWidth={2} />
         </motion.div>
       </motion.div>
-      {/* The render fades in over everything. */}
+      {/* The render — snaps in, rounded to match the container corners. */}
       <motion.img
         src={image}
         alt=""
         style={{ opacity: imageO }}
-        className="absolute inset-0 h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full rounded-[12px] object-cover"
       />
     </div>
   );
