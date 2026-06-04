@@ -145,9 +145,10 @@ export default function HeroScrollPocPage() {
   // The generative scan reveal starts as the card fades in (earlier than the
   // crawl) so it's developing on arrival, not blank first.
   const revealProgress = useTransform(scrollYProgress, [0.56, 0.625], [0, 1]);
-  // Beat 6 — "Add text on the inside" (centre .76).
+  // Beat 6 — "Design the inside" (centre .76). Fades in only AFTER the front
+  // render has flown through (~.735), not during the pass.
   const z7 = useTransform(scrollYProgress, [0.66, 0.735, 0.785, 0.86], [-720, -40, 40, 820]);
-  const o7 = useTransform(scrollYProgress, [0.688, 0.735, 0.785, 0.833], [0, 1, 1, 0]);
+  const o7 = useTransform(scrollYProgress, [0.735, 0.755, 0.785, 0.833], [0, 1, 1, 0]);
   // Finale — a spinner spins as you scroll in (the studio's "creating your
   // card" moment), fades, then the finished card fades in (in sync with the
   // spinner), opens, then simply fades out into the regen screen (no zoom).
@@ -247,7 +248,7 @@ export default function HeroScrollPocPage() {
         {/* Headline + inside-text composer — the message types itself in. */}
         <Layer z={z7} opacity={o7}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
-            <h1 className={CHOOSE_CLASS}>Add text on the inside</h1>
+            <h1 className={CHOOSE_CLASS}>Design the inside</h1>
             <InsideTextCard typed={INSIDE_MESSAGE.slice(0, insideLen)} />
           </div>
         </Layer>
@@ -627,7 +628,7 @@ function FrontRevealCard({ progress }: { progress: MotionValue<number> }) {
   const scanTop = useMotionTemplate`${scanTopPct}%`;
   const scanO = useTransform(progress, [0, 0.04, 0.96, 1], [0, 1, 1, 0]);
   return (
-    <div className="relative aspect-square w-[300px] overflow-hidden rounded-[24px] bg-gradient-to-br from-brand-muted to-stone-100 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70 sm:w-[340px]">
+    <div className="relative aspect-square w-[300px] overflow-hidden rounded-[12px] bg-gradient-to-br from-brand-muted to-stone-100 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70 sm:w-[340px]">
       {/* The render resolving in, revealed top→down. */}
       <motion.img
         src={revealFront}
