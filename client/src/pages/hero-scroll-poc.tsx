@@ -68,22 +68,10 @@ export default function HeroScrollPocPage() {
   const [frontLen, setFrontLen] = useState(0);
   // Beat 7 — how many characters of the inside message have "typed" in.
   const [insideLen, setInsideLen] = useState(0);
-  // Backdrop card pixelation block size (px). Sharpens 12 → 1 at the finale.
-  const [px, setPx] = useState(12);
-  const pxRef = useRef(12);
 
   // Drive the studio card as we approach beat 3: name + occasion toggle IN
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
-    // Backdrop card: blocky (12px) through the steps, sharpens to 1 by the
-    // finale. Threshold to integers so the SVG filter only re-renders on a
-    // real change (not every scroll frame).
-    const pxTarget =
-      v < 0.86 ? 12 : v > 0.95 ? 1 : Math.round(12 - ((v - 0.86) / 0.09) * 11);
-    if (pxTarget !== pxRef.current) {
-      pxRef.current = pxTarget;
-      setPx(pxTarget);
-    }
 
     // Each content beat's animation runs across its crawl, starting exactly as
     // the card slows (crawl start = centre − .025) so type-in syncs with the
@@ -158,19 +146,11 @@ export default function HeroScrollPocPage() {
   // the hinge 1:1 with scroll — no spring, no jank.
   const spinnerRot = useTransform(scrollYProgress, [0.83, 0.91], [0, 540]);
   const spinnerO = useTransform(scrollYProgress, [0.83, 0.85, 0.89, 0.91], [0, 1, 1, 0]);
-  // The finished card lives behind every step (incl. the intro) — big +
-  // PIXELATED + clearly present (like a render still resolving) — then it
-  // sharpens (block size 12→1) and comes fully forward at the finale (same
-  // element, no crossfade), and its cover opens at the bottom. Block size is
-  // `px` state below, integer-thresholded so the SVG filter only re-renders on
-  // an actual change.
+  // The finished card lives behind every step (incl. the intro) — a clean
+  // render, faint for presence — then it comes fully forward at the finale
+  // (same element) and its cover opens at the bottom.
   const backdropO = useTransform(scrollYProgress, [0, 0.04, 0.86, 0.93], [0, 0.32, 0.32, 1]);
   const openProgress = useTransform(scrollYProgress, [0.93, 1], [0, 1]);
-  // The inputs you passed through, orbiting the finished card: the front-side
-  // assets (scene + front text) show while it's closed and fade as it opens;
-  // the inside message fades in with the open.
-  const frontChipsO = useTransform(scrollYProgress, [0.9, 0.93, 0.95, 0.975], [0, 1, 1, 0]);
-  const insideChipO = useTransform(scrollYProgress, [0.955, 0.99], [0, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
 
@@ -184,20 +164,9 @@ export default function HeroScrollPocPage() {
             'radial-gradient(120% 90% at 50% 32%, #ffffff 0%, #f4f3fb 55%, #efeefb 100%)',
         }}
       >
-        {/* Pixelation filter for the backdrop card — block size = px. */}
-        <svg aria-hidden className="pointer-events-none absolute h-0 w-0">
-          <filter id="hero-pixelate">
-            <feFlood x={px / 2} y={px / 2} width="1" height="1" />
-            <feComposite width={px} height={px} />
-            <feTile result="a" />
-            <feComposite in="SourceGraphic" in2="a" operator="in" />
-            <feMorphology operator="dilate" radius={px / 2} />
-          </filter>
-        </svg>
-
-        {/* The finished card, BEHIND every step (incl. the intro) — big +
-            pixelated + clearly present, then it sharpens + comes forward at the
-            finale and opens. Static backdrop (no dolly) so steps parallax past. */}
+        {/* The finished card, BEHIND every step (incl. the intro) — a clean
+            render, faint for presence, then full opacity + opens at the finale.
+            Static backdrop (no dolly) so the steps parallax past it. */}
         <motion.div
           style={{ opacity: backdropO }}
           className="pointer-events-none absolute inset-0 flex items-center justify-center"
@@ -205,10 +174,7 @@ export default function HeroScrollPocPage() {
           <div className="relative w-full max-w-[460px] sm:max-w-[540px] aspect-square mx-auto">
             <div
               className="absolute top-[-30vh] bottom-[-30vh] left-[-25vw] right-[-25vw]"
-              style={{
-                filter:
-                  'url(#hero-pixelate) drop-shadow(0 28px 40px rgba(15,23,42,0.12))',
-              }}
+              style={{ filter: 'drop-shadow(0 28px 40px rgba(15,23,42,0.12))' }}
             >
               <Card3DViewer
                 frontImageUrl={revealFront}
@@ -285,25 +251,6 @@ export default function HeroScrollPocPage() {
             <Loader2 className="w-14 h-14 text-brand" strokeWidth={2} />
           </motion.div>
         </motion.div>
-
-        {/* The "ingredients" you passed through, orbiting the finished card.
-            Desktop only — they'd crowd the card on mobile. */}
-        <div className="pointer-events-none absolute inset-0 hidden items-center justify-center sm:flex">
-          <div className="relative h-[460px] w-[820px] max-w-[94vw]">
-            <motion.div style={{ opacity: frontChipsO }} className="absolute left-0 top-3">
-              <FloatChip eyebrow="Scene" text={SCENE_TEXT} delay={0} />
-            </motion.div>
-            <motion.div style={{ opacity: frontChipsO }} className="absolute bottom-4 right-0">
-              <FloatChip eyebrow="Front text" text={FRONT_TEXT} delay={0.9} />
-            </motion.div>
-            <motion.div
-              style={{ opacity: insideChipO }}
-              className="absolute right-0 top-1/2 -translate-y-1/2"
-            >
-              <FloatChip eyebrow="Inside message" text={INSIDE_MESSAGE} delay={0.5} />
-            </motion.div>
-          </div>
-        </div>
 
         <motion.div
           style={{ opacity: hintO }}
@@ -661,29 +608,6 @@ function ConfettiPiece({
       }}
       className="absolute left-0 top-0 rounded-[2px]"
     />
-  );
-}
-
-function FloatChip({
-  eyebrow,
-  text,
-  delay,
-}: {
-  eyebrow: string;
-  text: string;
-  delay: number;
-}) {
-  return (
-    <motion.div
-      animate={{ y: [0, -9, 0] }}
-      transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay }}
-      className="w-[200px] rounded-2xl bg-white/90 px-4 py-3 shadow-[0_20px_50px_-22px_rgba(15,23,42,0.35)] ring-1 ring-stone-200/70 backdrop-blur-sm"
-    >
-      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.18em] text-brand">
-        {eyebrow}
-      </span>
-      <p className="line-clamp-3 text-[12px] leading-snug text-ink">{text}</p>
-    </motion.div>
   );
 }
 
