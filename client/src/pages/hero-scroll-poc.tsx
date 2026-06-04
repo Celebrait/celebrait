@@ -137,9 +137,13 @@ export default function HeroScrollPocPage() {
         }}
       />
 
-      {/* Hero — a normal landing section you just scroll past. */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center px-6">
-        <HeadlineIntro reduced={!!reduced} />
+      {/* Hero — a normal landing section you just scroll past, over a faded
+          field of floating card renders. */}
+      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6">
+        <FloatingCards />
+        <div className="relative z-10">
+          <HeadlineIntro reduced={!!reduced} />
+        </div>
         <div className="absolute inset-x-0 bottom-10 flex justify-center">
           <div className="flex flex-col items-center gap-1.5">
             <div className="flex h-9 w-9 items-center justify-center text-cta">
@@ -605,6 +609,100 @@ function MagicCard({
           />
         </motion.div>
       </div>
+    </div>
+  );
+}
+
+// ── Floating card field (hero background) ───────────────────────────
+// Faded, static card renders scattered across the page — a mix of closed
+// and open (different amounts), sizes, tilts, opacities — gently drifting.
+// Deterministic (index-based, no RNG). openDeg 0 = closed; ~125–160 = open.
+const FLOAT_OPENS = [0, 135, 0, 30, 155, 0, 125, 0, 150, 30, 160, 0];
+const FLOATING = Array.from({ length: 14 }, (_, i) => ({
+  x: 5 + ((i * 27 + (i % 3) * 11) % 90),
+  y: 7 + ((i * 41) % 84),
+  size: 84 + ((i * 7) % 8) * 17, // 84–203
+  openDeg: FLOAT_OPENS[i % FLOAT_OPENS.length],
+  rot: ((i * 13) % 26) - 13,
+  opacity: 0.06 + ((i * 5) % 9) / 80, // ~.06–.17
+  delay: (i % 6) * 0.6,
+  dur: 7 + (i % 5),
+  drift: (i % 2 ? -1 : 1) * (8 + (i % 3) * 5),
+}));
+
+function FloatingCard({
+  x,
+  y,
+  size,
+  openDeg,
+  rot,
+  opacity,
+  delay,
+  dur,
+  drift,
+}: (typeof FLOATING)[number]) {
+  return (
+    <motion.div
+      className="absolute"
+      style={{ left: `${x}%`, top: `${y}%`, opacity }}
+      animate={{ y: [0, drift, 0] }}
+      transition={{ duration: dur, repeat: Infinity, ease: 'easeInOut', delay }}
+    >
+      <div
+        className="relative"
+        style={{
+          perspective: 1200,
+          transform: `translate(-50%, -50%) rotate(${rot}deg)`,
+        }}
+      >
+        <div
+          className="relative"
+          style={{ width: size, height: size, transformStyle: 'preserve-3d' }}
+        >
+          {/* inside-right */}
+          <div className="absolute inset-0 overflow-hidden rounded-[5px] bg-white ring-1 ring-stone-200/50">
+            <img
+              src={revealInside}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          </div>
+          {/* cover — opened by openDeg */}
+          <div
+            className="absolute inset-0"
+            style={{
+              transformOrigin: 'left center',
+              transform: `rotateY(${-openDeg}deg)`,
+              transformStyle: 'preserve-3d',
+            }}
+          >
+            <div
+              className="absolute inset-0 overflow-hidden rounded-[5px] ring-1 ring-stone-200/50"
+              style={{ backfaceVisibility: 'hidden' }}
+            >
+              <img
+                src={revealFront}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            </div>
+            <div
+              className="absolute inset-0 rounded-[5px] bg-white ring-1 ring-stone-200/50"
+              style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+            />
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function FloatingCards() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {FLOATING.map((c, i) => (
+        <FloatingCard key={i} {...c} />
+      ))}
     </div>
   );
 }
