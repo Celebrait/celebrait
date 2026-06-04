@@ -238,7 +238,7 @@ export default function HeroScrollPocPage() {
                 value={FRONT_TEXT.slice(0, frontLen)}
                 placeholder="Happy Anniversary"
                 live
-                minH={58}
+                minH={50}
               />
             </DesignSquare>
           </div>
@@ -554,7 +554,7 @@ function SquareField({
       <p className="mb-1.5 text-[14px] font-medium text-stone-500">{label}</p>
       <div
         className={`overflow-hidden rounded-xl px-3.5 py-2.5 text-[17px] leading-relaxed ${
-          grow ? 'flex-1' : ''
+          grow ? 'flex-1' : 'flex items-center'
         } ${
           live
             ? 'border-2 border-brand/50 bg-stone-50'
