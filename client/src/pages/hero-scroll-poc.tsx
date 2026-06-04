@@ -58,7 +58,7 @@ export default function HeroScrollPocPage() {
   // pinned below it. This virtual progress crops the (removed) intro out of the
   // timing so the flow starts at photos — every beat keeps its original 0→1
   // numbers, they just play over [.13, 1] of the pinned scroll.
-  const scrollYProgress = useTransform(rawProgress, [0, 1], [0.13, 1]);
+  const scrollYProgress = useTransform(rawProgress, [0, 1], [0.14, 1]);
 
   // Beat 4 — how many photos have "selected" in (0–3).
   const [photoSel, setPhotoSel] = useState(0);
@@ -103,7 +103,7 @@ export default function HeroScrollPocPage() {
   // inside (.72). Then the finale.
   // Beat 2 — "Select your photo(s)" (centre .27).
   const z4 = useTransform(scrollYProgress, [0.14, 0.245, 0.295, 0.4], [-720, -40, 40, 820]);
-  const o4 = useTransform(scrollYProgress, [0.17, 0.245, 0.295, 0.37], [0, 1, 1, 0]);
+  const o4 = useTransform(scrollYProgress, [0.14, 0.205, 0.295, 0.37], [0, 1, 1, 0]);
   // Beat 3 — "Put them in the picture" (centre .50, wider crawl: scene+front).
   const z5 = useTransform(scrollYProgress, [0.37, 0.45, 0.55, 0.63], [-720, -40, 40, 820]);
   const o5 = useTransform(scrollYProgress, [0.4, 0.45, 0.55, 0.6], [0, 1, 1, 0]);
