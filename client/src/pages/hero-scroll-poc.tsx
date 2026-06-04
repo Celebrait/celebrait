@@ -137,9 +137,11 @@ export default function HeroScrollPocPage() {
   // Beat 4 — "Design the front" (centre .49, wider crawl: scene then front text).
   const z5 = useTransform(scrollYProgress, [0.39, 0.44, 0.54, 0.59], [-720, -40, 40, 820]);
   const o5 = useTransform(scrollYProgress, [0.418, 0.44, 0.54, 0.563], [0, 1, 1, 0]);
-  // Beat 5 — front render "develops" (centre .625).
-  const zRev = useTransform(scrollYProgress, [0.525, 0.6, 0.65, 0.725], [-720, -40, 40, 820]);
-  const oRev = useTransform(scrollYProgress, [0.553, 0.6, 0.65, 0.698], [0, 1, 1, 0]);
+  // Beat 5 — front render "develops" (centre .625). Stays full opacity and
+  // zooms STRAIGHT THROUGH (no in-place fade) — only winks out at the very end
+  // when it's huge and flying past the camera.
+  const zRev = useTransform(scrollYProgress, [0.525, 0.6, 0.65, 0.73], [-720, -40, 40, 980]);
+  const oRev = useTransform(scrollYProgress, [0.553, 0.6, 0.72, 0.735], [0, 1, 1, 0]);
   // The generative scan reveal starts as the card fades in (earlier than the
   // crawl) so it's developing on arrival, not blank first.
   const revealProgress = useTransform(scrollYProgress, [0.56, 0.625], [0, 1]);
