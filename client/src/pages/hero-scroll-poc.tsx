@@ -15,6 +15,7 @@ import {
   motion,
   useScroll,
   useTransform,
+  useMotionTemplate,
   useMotionValueEvent,
   useReducedMotion,
   type MotionValue,
@@ -145,7 +146,12 @@ export default function HeroScrollPocPage() {
   // the hinge 1:1 with scroll — no spring, no jank.
   const spinnerRot = useTransform(scrollYProgress, [0.83, 0.91], [0, 540]);
   const spinnerO = useTransform(scrollYProgress, [0.83, 0.85, 0.89, 0.91], [0, 1, 1, 0]);
-  const oReveal = useTransform(scrollYProgress, [0.88, 0.93, 1], [0, 1, 1]);
+  // The finished card lives behind every step — blurred + faint for depth —
+  // then racks into focus and comes forward at the finale (same element, so no
+  // crossfade), and its cover opens as you reach the bottom.
+  const backdropBlur = useTransform(scrollYProgress, [0, 0.86, 0.95], [22, 22, 0]);
+  const backdropFilter = useMotionTemplate`blur(${backdropBlur}px)`;
+  const backdropO = useTransform(scrollYProgress, [0.04, 0.1, 0.86, 0.93], [0, 0.16, 0.16, 1]);
   const openProgress = useTransform(scrollYProgress, [0.93, 1], [0, 1]);
   // The inputs you passed through, orbiting the finished card: the front-side
   // assets (scene + front text) show while it's closed and fade as it opens;
@@ -165,6 +171,35 @@ export default function HeroScrollPocPage() {
             'radial-gradient(120% 90% at 50% 32%, #ffffff 0%, #f4f3fb 55%, #efeefb 100%)',
         }}
       >
+        {/* The finished card, BEHIND every step — blurred + faint for depth,
+            then it racks into focus + comes forward at the finale and opens.
+            Static backdrop (no dolly) so the steps parallax past it. */}
+        <motion.div
+          style={{ opacity: backdropO, filter: backdropFilter }}
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        >
+          <div className="relative w-full max-w-[340px] sm:max-w-[380px] aspect-square mx-auto">
+            <div
+              className="absolute top-[-30vh] bottom-[-30vh] left-[-25vw] right-[-25vw]"
+              style={{ filter: 'drop-shadow(0 28px 40px rgba(15,23,42,0.12))' }}
+            >
+              <Card3DViewer
+                frontImageUrl={revealFront}
+                insideImageUrl={revealInside}
+                openProgress={openProgress}
+                closedAngle={0}
+                restYaw={-0.1}
+                interactive={false}
+                enableRotate={false}
+                enableZoom={false}
+                framingMargin={2.4}
+                minDistance={2.2}
+                className="w-full h-full"
+              />
+            </div>
+          </div>
+        </motion.div>
+
         <Layer z={z1} opacity={o1}>
           <HeadlineIntro reduced={!!reduced} />
         </Layer>
@@ -222,35 +257,6 @@ export default function HeroScrollPocPage() {
           <motion.div style={{ rotate: spinnerRot }}>
             <Loader2 className="w-14 h-14 text-brand" strokeWidth={2} />
           </motion.div>
-        </motion.div>
-
-        <motion.div
-          style={{ opacity: oReveal }}
-          className="pointer-events-none absolute inset-0 flex items-center justify-center"
-        >
-          {/* Full size, static — no zoom. Slot + bleed wrapper mirror the
-              landing hero so the card renders at a known-good size and the
-              opened cover has headroom (not clipped). */}
-          <div className="relative w-full max-w-[340px] sm:max-w-[380px] aspect-square mx-auto">
-            <div
-              className="absolute top-[-30vh] bottom-[-30vh] left-[-25vw] right-[-25vw]"
-              style={{ filter: 'drop-shadow(0 28px 40px rgba(15,23,42,0.12))' }}
-            >
-              <Card3DViewer
-                frontImageUrl={revealFront}
-                insideImageUrl={revealInside}
-                openProgress={openProgress}
-                closedAngle={0}
-                restYaw={-0.1}
-                interactive={false}
-                enableRotate={false}
-                enableZoom={false}
-                framingMargin={2.4}
-                minDistance={2.2}
-                className="w-full h-full"
-              />
-            </div>
-          </div>
         </motion.div>
 
         {/* The "ingredients" you passed through, orbiting the finished card.
