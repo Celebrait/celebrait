@@ -50,7 +50,15 @@ const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 export default function HeroScrollPocPage() {
   const ref = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
-  const { scrollYProgress } = useScroll({ target: ref });
+  const { scrollYProgress: rawProgress } = useScroll({
+    target: ref,
+    offset: ['start start', 'end end'],
+  });
+  // The intro is now a normal hero section ABOVE; the dolly stage is sticky-
+  // pinned below it. This virtual progress crops the (removed) intro out of the
+  // timing so the flow starts at photos — every beat keeps its original 0→1
+  // numbers, they just play over [.13, 1] of the pinned scroll.
+  const scrollYProgress = useTransform(rawProgress, [0, 1], [0.13, 1]);
 
   // Beat 4 — how many photos have "selected" in (0–3).
   const [photoSel, setPhotoSel] = useState(0);
@@ -91,9 +99,6 @@ export default function HeroScrollPocPage() {
   // is held tight to each crawl with a ~.01 overlap at every seam (no white
   // gap — a faint crossfade). The finale (3D card) lands + opens, no dolly.
   //
-  // Beat 1 — intro: full at top, zooms through + fades.
-  const z1 = useTransform(scrollYProgress, [0, 0.16], [0, 880]);
-  const o1 = useTransform(scrollYProgress, [0, 0.08, 0.16], [1, 1, 0]);
   // Three build beats: photos (.27) / put them in the picture (.50, wide) /
   // inside (.72). Then the finale.
   // Beat 2 — "Select your photo(s)" (centre .27).
@@ -121,35 +126,47 @@ export default function HeroScrollPocPage() {
   // "Send it" is revealed as the card drops away.
   const oSend = useTransform(scrollYProgress, [0.975, 0.995, 1], [0, 1, 1]);
 
-  const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
-
   return (
-    <div ref={ref} className="relative" style={{ height: '1200vh' }}>
+    <>
+      {/* Constant gradient backdrop — seamless across the hero + the stage. */}
       <div
-        className="fixed inset-0 overflow-hidden"
+        className="fixed inset-0 -z-10"
         style={{
-          perspective: '1000px',
           background:
             'radial-gradient(120% 90% at 50% 32%, #ffffff 0%, #f4f3fb 55%, #efeefb 100%)',
         }}
-      >
-        {/* The finished card — invisible through the steps (clean white), fades
-            in during the spinner phase, opens (see inside), closes, then slides
-            DOWN off the screen — sent. */}
-        {/* Blank card dollies in (with the spinner loading over it), then the
-            render swipes in on arrival, then it drops off-screen. */}
-        <motion.div
-          style={{ z: zCard, y: yCard, opacity: backdropO }}
-          className="pointer-events-none absolute inset-0 flex items-center justify-center will-change-transform"
+      />
+
+      {/* Hero — a normal landing section you just scroll past. */}
+      <section className="relative flex min-h-screen flex-col items-center justify-center px-6">
+        <HeadlineIntro reduced={!!reduced} />
+        <div className="absolute inset-x-0 bottom-10 flex justify-center">
+          <div className="flex flex-col items-center gap-1.5">
+            <div className="flex h-9 w-9 items-center justify-center text-cta">
+              <ScrollGlyph />
+            </div>
+            <span className="text-[10px] uppercase tracking-[0.15em] text-stone-500">
+              Scroll to begin
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Dolly stage — sticky-pinned; the flow plays as you scroll through. */}
+      <div ref={ref} className="relative" style={{ height: '1100vh' }}>
+        <div
+          className="sticky top-0 h-screen overflow-hidden"
+          style={{ perspective: '1000px' }}
         >
-          <MagicCard swipe={swipeProgress} open={openProgress} />
-        </motion.div>
+          {/* Blank card dollies in (spinner loading) → render swipes in → opens → drops. */}
+          <motion.div
+            style={{ z: zCard, y: yCard, opacity: backdropO }}
+            className="pointer-events-none absolute inset-0 flex items-center justify-center will-change-transform"
+          >
+            <MagicCard swipe={swipeProgress} open={openProgress} />
+          </motion.div>
 
-        <Layer z={z1} opacity={o1}>
-          <HeadlineIntro reduced={!!reduced} />
-        </Layer>
-
-        {/* Headline + photo picker as one unit — photos "select in" as it lands. */}
+          {/* Headline + photo picker as one unit — photos "select in" as it lands. */}
         <Layer z={z4} opacity={o4}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Select your photo(s)</h1>
@@ -195,21 +212,9 @@ export default function HeroScrollPocPage() {
           <h1 className={CHOOSE_CLASS}>Send it</h1>
         </motion.div>
 
-        <motion.div
-          style={{ opacity: hintO }}
-          className="absolute inset-x-0 bottom-10 flex justify-center"
-        >
-          <div className="flex flex-col items-center gap-1.5">
-            <div className="w-9 h-9 flex items-center justify-center text-cta">
-              <ScrollGlyph />
-            </div>
-            <span className="text-[10px] uppercase tracking-[0.15em] text-stone-500">
-              Scroll to walk through
-            </span>
-          </div>
-        </motion.div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
