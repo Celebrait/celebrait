@@ -146,10 +146,10 @@ export default function HeroScrollPocPage() {
   // the hinge 1:1 with scroll — no spring, no jank.
   const spinnerRot = useTransform(scrollYProgress, [0.83, 0.91], [0, 540]);
   const spinnerO = useTransform(scrollYProgress, [0.83, 0.85, 0.89, 0.91], [0, 1, 1, 0]);
-  // The finished card lives behind every step (incl. the intro) — a clean
-  // render, faint for presence — then it comes fully forward at the finale
-  // (same element) and its cover opens at the bottom.
-  const backdropO = useTransform(scrollYProgress, [0, 0.04, 0.86, 0.93], [0, 0.32, 0.32, 1]);
+  // Clean white through all the steps — the card is invisible until the spinner
+  // phase, then fades in (as the spinner finishes) and its cover opens at the
+  // bottom. No backdrop presence during the build.
+  const backdropO = useTransform(scrollYProgress, [0.86, 0.93, 1], [0, 1, 1]);
   const openProgress = useTransform(scrollYProgress, [0.93, 1], [0, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
@@ -164,9 +164,8 @@ export default function HeroScrollPocPage() {
             'radial-gradient(120% 90% at 50% 32%, #ffffff 0%, #f4f3fb 55%, #efeefb 100%)',
         }}
       >
-        {/* The finished card, BEHIND every step (incl. the intro) — a clean
-            render, faint for presence, then full opacity + opens at the finale.
-            Static backdrop (no dolly) so the steps parallax past it. */}
+        {/* The finished card — invisible through the steps (clean white), fades
+            in during the spinner phase, then its cover opens at the bottom. */}
         <motion.div
           style={{ opacity: backdropO }}
           className="pointer-events-none absolute inset-0 flex items-center justify-center"
