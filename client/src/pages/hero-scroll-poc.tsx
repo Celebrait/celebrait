@@ -27,6 +27,7 @@ import {
   ChevronDown,
   User,
   Check,
+  Type,
   Loader2,
 } from 'lucide-react';
 import { Card3DViewer } from '@/components/card-3d-viewer';
@@ -70,26 +71,29 @@ export default function HeroScrollPocPage() {
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
 
-    // Photos "select in" across the crawl (centre .35).
-    const ps = clamp((v - 0.325) / (0.365 - 0.325), 0, 1);
+    // Each content beat's animation runs across its crawl, starting as the card
+    // slows (crawl start) so type-in syncs with the deceleration. Centres:
+    // .22 / .40 / .58 (scene→front) / .76, then the finale.
+    // Photos "select in" across the crawl (centre .40).
+    const ps = clamp((v - 0.375) / (0.415 - 0.375), 0, 1);
     setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
 
-    // Design the front (centre .53) — scene types first…
-    const ps5 = clamp((v - 0.47) / (0.515 - 0.47), 0, 1);
+    // Design the front (centre .58) — scene types in first…
+    const ps5 = clamp((v - 0.53) / (0.585 - 0.53), 0, 1);
     setSceneLen(Math.round(ps5 * SCENE_TEXT.length));
 
-    // …then the front headline (before the render paints over at .535).
-    const ps6 = clamp((v - 0.515) / (0.535 - 0.515), 0, 1);
+    // …then the front headline types in.
+    const ps6 = clamp((v - 0.585) / (0.63 - 0.585), 0, 1);
     setFrontLen(Math.round(ps6 * FRONT_TEXT.length));
 
-    // Design the inside (centre .72) — message types (before render at .71).
-    const ps7 = clamp((v - 0.66) / (0.71 - 0.66), 0, 1);
+    // Add text on the inside (centre .76).
+    const ps7 = clamp((v - 0.735) / (0.775 - 0.735), 0, 1);
     setInsideLen(Math.round(ps7 * INSIDE_MESSAGE.length));
 
 
-    // Choose celebration (centre .21) — name stays "Sarah"; occasions toggle
+    // Choose celebration (centre .22) — name stays "Sarah"; occasions toggle
     // on approach, Anniversary "clicked" (pressed) as we pass.
-    const sub = clamp((v - 0.135) / (0.22 - 0.135), 0, 1);
+    const sub = clamp((v - 0.145) / (0.23 - 0.145), 0, 1);
     if (sub <= 0) {
       setName('');
       setSelectedIdx(-1);
@@ -118,28 +122,23 @@ export default function HeroScrollPocPage() {
   // Beat 1 — intro: full at top, zooms through + fades.
   const z1 = useTransform(scrollYProgress, [0, 0.16], [0, 880]);
   const o1 = useTransform(scrollYProgress, [0, 0.08, 0.16], [1, 1, 0]);
-  // Four build beats: choose / photos / Design the front / Design the inside.
-  // The two design beats are wider — text inputs type in, THEN the AI render
-  // paints over them inside the same square.
-  // Beat 2 — "Choose your celebration" + card (centre .21).
-  const zChoose = useTransform(scrollYProgress, [0.11, 0.185, 0.235, 0.31], [-720, -40, 40, 820]);
-  const oChoose = useTransform(scrollYProgress, [0.14, 0.185, 0.235, 0.28], [0, 1, 1, 0]);
-  // Confetti burst — fires out of the card as Anniversary is "clicked" (~.21).
-  const burst = useTransform(scrollYProgress, [0.205, 0.26], [0, 1]);
-  // Beat 3 — "Select your photo(s)" (centre .35).
-  const z4 = useTransform(scrollYProgress, [0.25, 0.325, 0.375, 0.45], [-720, -40, 40, 820]);
-  const o4 = useTransform(scrollYProgress, [0.28, 0.325, 0.375, 0.42], [0, 1, 1, 0]);
-  // Beat 4 — "Design the front" (centre .53, wide crawl). Scene+front type,
-  // then the front render paints over.
-  const z5 = useTransform(scrollYProgress, [0.43, 0.47, 0.59, 0.63], [-720, -40, 40, 820]);
-  const o5 = useTransform(scrollYProgress, [0.425, 0.47, 0.59, 0.635], [0, 1, 1, 0]);
-  const frontRender = useTransform(scrollYProgress, [0.535, 0.59], [0, 1]);
-  // Beat 5 — "Design the inside" (centre .72, wide crawl). Message types, then
-  // the inside render paints over.
-  const z7 = useTransform(scrollYProgress, [0.62, 0.66, 0.78, 0.82], [-720, -40, 40, 820]);
-  // Fades in only AFTER the Design-front render has cleared (o5 ends ~.635).
-  const o7 = useTransform(scrollYProgress, [0.64, 0.68, 0.78, 0.825], [0, 1, 1, 0]);
-  const insideRender = useTransform(scrollYProgress, [0.71, 0.785], [0, 1]);
+  // Four build beats now (front text merged into Design the front), evenly
+  // spaced at .22 / .40 / .58 / .76. Design the front has a wider crawl so the
+  // scene then the front headline both type in.
+  // Beat 2 — "Choose your celebration" + card (centre .22).
+  const zChoose = useTransform(scrollYProgress, [0.12, 0.195, 0.245, 0.32], [-720, -40, 40, 820]);
+  const oChoose = useTransform(scrollYProgress, [0.15, 0.195, 0.245, 0.315], [0, 1, 1, 0]);
+  // Confetti burst — fires out of the card as Anniversary is "clicked" (~.22).
+  const burst = useTransform(scrollYProgress, [0.215, 0.27], [0, 1]);
+  // Beat 3 — "Select your photo(s)" (centre .40).
+  const z4 = useTransform(scrollYProgress, [0.3, 0.375, 0.425, 0.5], [-720, -40, 40, 820]);
+  const o4 = useTransform(scrollYProgress, [0.305, 0.375, 0.425, 0.495], [0, 1, 1, 0]);
+  // Beat 4 — "Design the front" (centre .58, wider crawl: scene then front text).
+  const z5 = useTransform(scrollYProgress, [0.48, 0.53, 0.63, 0.68], [-720, -40, 40, 820]);
+  const o5 = useTransform(scrollYProgress, [0.485, 0.53, 0.63, 0.675], [0, 1, 1, 0]);
+  // Beat 5 — "Add text on the inside" (centre .76).
+  const z7 = useTransform(scrollYProgress, [0.66, 0.735, 0.785, 0.86], [-720, -40, 40, 820]);
+  const o7 = useTransform(scrollYProgress, [0.665, 0.735, 0.785, 0.855], [0, 1, 1, 0]);
   // Finale — a spinner spins as you scroll in (the studio's "creating your
   // card" moment), fades, then the finished card fades in (in sync with the
   // spinner), opens, then simply fades out into the regen screen (no zoom).
@@ -220,46 +219,22 @@ export default function HeroScrollPocPage() {
           </div>
         </Layer>
 
-        {/* Design the front — scene + front headline type into the square,
-            then the front render paints over them. */}
+        {/* Headline + combined composer — scene then front headline type in. */}
         <Layer z={z5} opacity={o5}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Design the front</h1>
-            <DesignSquare image={revealFront} renderProgress={frontRender}>
-              <SquareField
-                label="The picture"
-                value={SCENE_TEXT.slice(0, sceneLen)}
-                placeholder="e.g. Sarah at golden hour on an Italian terrace…"
-                live
-                grow
-              />
-              <SquareField
-                label="Front headline"
-                value={FRONT_TEXT.slice(0, frontLen)}
-                placeholder="Happy Anniversary"
-                live
-                minH={50}
-              />
-            </DesignSquare>
+            <DesignFrontCard
+              scene={SCENE_TEXT.slice(0, sceneLen)}
+              front={FRONT_TEXT.slice(0, frontLen)}
+            />
           </div>
         </Layer>
 
-        {/* Design the inside — greeting / message / sign-off into the square,
-            then the inside render paints over them. */}
+        {/* Headline + inside-text composer — the message types itself in. */}
         <Layer z={z7} opacity={o7}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
-            <h1 className={CHOOSE_CLASS}>Design the inside</h1>
-            <DesignSquare image={revealInside} renderProgress={insideRender}>
-              <SquareField label="Greeting" value={INSIDE_GREETING} minH={50} />
-              <SquareField
-                label="Message"
-                value={INSIDE_MESSAGE.slice(0, insideLen)}
-                placeholder="Write a few words from the heart…"
-                live
-                grow
-              />
-              <SquareField label="Sign-off" value={INSIDE_SIGNOFF} minH={50} />
-            </DesignSquare>
+            <h1 className={CHOOSE_CLASS}>Add text on the inside</h1>
+            <InsideTextCard typed={INSIDE_MESSAGE.slice(0, insideLen)} />
           </div>
         </Layer>
 
@@ -490,91 +465,80 @@ function PhotoCard({ selected }: { selected: number }) {
   );
 }
 
-// A square "design" container — text inputs sit inside. Once they're typed,
-// `renderProgress` (0→1) plays the generate beat: a spinner appears over the
-// inputs, then the AI render fades in. Used for both front and inside.
-function DesignSquare({
-  image,
-  renderProgress,
-  children,
-}: {
-  image: string;
-  renderProgress: MotionValue<number>;
-  children: React.ReactNode;
-}) {
-  // Instant swaps (no crossfades): inputs → spinner → render. The spinner still
-  // spins while shown; only the appearances snap.
-  const spinnerO = useTransform(renderProgress, [0, 0.001, 0.6, 0.601], [0, 1, 1, 0]);
-  const spinnerRot = useTransform(renderProgress, [0, 0.6], [0, 540]);
-  const imageO = useTransform(renderProgress, [0.6, 0.601], [0, 1]);
+// Combined "Design the front" — the picture (scene) AND the front headline in
+// one card. The scene types in first, then the front headline.
+function DesignFrontCard({ scene, front }: { scene: string; front: string }) {
+  const sceneEmpty = scene.length === 0;
+  const frontEmpty = front.length === 0;
   return (
-    <div className="relative aspect-square w-[300px] overflow-hidden rounded-[8px] bg-white shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70 sm:w-[340px]">
-      {/* Text inputs — fill the square (the main field grows). */}
-      <div className="absolute inset-0 flex flex-col gap-4 px-6 py-6">
-        {children}
+    <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
+      {/* The picture (scene) — types itself in. Fixed height so it never grows
+          as the text fills it. */}
+      <p className="mb-1.5 text-[13px] text-ink">The picture</p>
+      <div className="h-[116px] overflow-hidden rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed text-ink">
+        {sceneEmpty ? (
+          <span className="text-stone-400">
+            e.g. Sarah at golden hour on an Italian terrace…
+          </span>
+        ) : (
+          <span>
+            {scene}
+            <span className="ml-0.5 inline-block h-[15px] w-[2px] animate-pulse bg-brand align-middle" />
+          </span>
+        )}
       </div>
-      {/* Generating — opaque panel + spinner, snaps on then off. */}
-      <motion.div
-        aria-hidden
-        style={{ opacity: spinnerO }}
-        className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-[8px] bg-white"
-      >
-        <motion.div style={{ rotate: spinnerRot }}>
-          <Loader2 className="h-10 w-10 text-brand" strokeWidth={2} />
-        </motion.div>
-      </motion.div>
-      {/* The render — snaps in, rounded to match the container corners. */}
-      <motion.img
-        src={image}
-        alt=""
-        style={{ opacity: imageO }}
-        className="absolute inset-0 h-full w-full rounded-[8px] object-cover"
-      />
+
+      {/* Front headline — types in after the scene. */}
+      <p className="mb-1.5 mt-4 flex items-center gap-1.5 text-[13px] text-ink">
+        <Type className="h-3.5 w-3.5 text-brand" strokeWidth={2} />
+        Front headline
+        <span className="font-normal text-stone-400">optional</span>
+      </p>
+      <div className="flex min-h-[46px] items-center rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[15px]">
+        {frontEmpty ? (
+          <span className="text-stone-400">Happy Anniversary</span>
+        ) : (
+          <span className="font-medium text-ink">
+            {front}
+            <span className="ml-0.5 inline-block h-[16px] w-[2px] animate-pulse bg-brand align-middle" />
+          </span>
+        )}
+      </div>
     </div>
   );
 }
 
-// A compact field used inside DesignSquare. `live` = typing field (brand
-// border + cursor); otherwise a static filled field.
-function SquareField({
-  label,
-  value,
-  placeholder,
-  live = false,
-  grow = false,
-  minH = 38,
-}: {
-  label: string;
-  value: string;
-  placeholder?: string;
-  live?: boolean;
-  grow?: boolean;
-  minH?: number;
-}) {
-  const empty = value.length === 0;
+function InsideTextCard({ typed }: { typed: string }) {
+  const empty = typed.length === 0;
   return (
-    <div className={`flex flex-col ${grow ? 'flex-1' : ''}`}>
-      <p className="mb-1.5 text-[14px] font-medium text-stone-500">{label}</p>
-      <div
-        className={`overflow-hidden rounded-xl px-3.5 py-2.5 text-[17px] leading-relaxed ${
-          grow ? 'flex-1' : 'flex items-center'
-        } ${
-          live
-            ? 'border-2 border-brand/50 bg-stone-50'
-            : 'border border-stone-200 bg-stone-50'
-        }`}
-        style={grow ? undefined : { minHeight: minH }}
-      >
+    <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
+      {/* Greeting */}
+      <p className="text-[12px] text-stone-500 mb-1">
+        Greeting <span className="text-stone-400">optional</span>
+      </p>
+      <div className="rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[14px] text-ink mb-3.5">
+        {INSIDE_GREETING}
+      </div>
+
+      {/* Message — the hero field, types itself in. */}
+      <p className="text-[12px] text-stone-500 mb-1">Message</p>
+      <div className="rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed min-h-[92px] text-ink mb-3.5">
         {empty ? (
-          <span className="text-stone-400">{placeholder}</span>
+          <span className="text-stone-400">Write a few words from the heart…</span>
         ) : (
-          <span className="text-ink">
-            {value}
-            {live && (
-              <span className="ml-0.5 inline-block h-[18px] w-[2px] animate-pulse bg-brand align-middle" />
-            )}
+          <span>
+            {typed}
+            <span className="inline-block w-[2px] h-[15px] bg-brand align-middle ml-0.5 animate-pulse" />
           </span>
         )}
+      </div>
+
+      {/* Sign-off */}
+      <p className="text-[12px] text-stone-500 mb-1">
+        Sign-off <span className="text-stone-400">optional</span>
+      </p>
+      <div className="rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[14px] text-ink">
+        {INSIDE_SIGNOFF}
       </div>
     </div>
   );
