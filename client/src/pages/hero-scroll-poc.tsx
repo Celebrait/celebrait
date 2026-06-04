@@ -31,6 +31,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import revealFront from '@/assets/hero-card-front.png';
+import revealInside from '@/assets/hero-card-inside.png';
 
 const FINAL_NAME = 'Sarah';
 const ANNIVERSARY_IDX = 1; // 'Anniversary' in OCC
@@ -556,14 +557,16 @@ function MagicCard({
         className="relative"
         style={{ width: 0, height: CARD_W, transformStyle: 'preserve-3d' }}
       >
-        {/* Inside-right — white panel with the message + the cast shadow. */}
+        {/* Inside-right — the inside render + the cast shadow. */}
         <div
-          className="absolute left-0 top-0 flex items-center justify-center overflow-hidden rounded-[16px] bg-white p-7 ring-1 ring-stone-200/70"
+          className="absolute left-0 top-0 overflow-hidden rounded-[16px] bg-white ring-1 ring-stone-200/70"
           style={{ width: CARD_W, height: CARD_W }}
         >
-          <p className="text-center text-[15px] leading-relaxed text-ink">
-            {INSIDE_MESSAGE}
-          </p>
+          <img
+            src={revealInside}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
           <motion.div
             aria-hidden
             style={{ opacity: shadowO }}
