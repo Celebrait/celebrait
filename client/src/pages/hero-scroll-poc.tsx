@@ -542,26 +542,19 @@ function MagicCard({
   // Cover hinge — swings open around the spine (left edge).
   const coverRotY = useTransform(open, [0, 1], [0, -158]);
   const coverTransform = useMotionTemplate`rotateY(${coverRotY}deg)`;
-  // Re-centre: the closed card sits right of the spine; centre it as it opens.
-  const shiftX = useTransform(open, [0, 1], [-CARD_W / 2, 0]);
-  // Shadow the opening cover casts on the inside-right.
-  const shadowO = useTransform(open, [0, 0.25, 0.6, 1], [0, 0.45, 0.3, 0.2]);
+  // Shadow the opening cover casts across the inside.
+  const shadowO = useTransform(open, [0, 0.25, 0.6, 1], [0, 0.5, 0.34, 0.24]);
 
   return (
-    <motion.div
-      style={{ x: shiftX, perspective: 1600 }}
-      className="relative flex items-center justify-center"
-    >
-      {/* Spine anchor at centre; panels positioned relative to it. */}
+    <div style={{ perspective: 1600 }} className="relative">
+      {/* The card box stays put (static, centred); the cover hinges open to the
+          left around the spine — same as the 3D render, no recentering. */}
       <div
         className="relative"
-        style={{ width: 0, height: CARD_W, transformStyle: 'preserve-3d' }}
+        style={{ width: CARD_W, height: CARD_W, transformStyle: 'preserve-3d' }}
       >
         {/* Inside-right — the inside render + the cast shadow. */}
-        <div
-          className="absolute left-0 top-0 overflow-hidden rounded-[16px] bg-white ring-1 ring-stone-200/70"
-          style={{ width: CARD_W, height: CARD_W }}
-        >
+        <div className="absolute inset-0 overflow-hidden rounded-[6px] bg-white ring-1 ring-stone-200/70">
           <img
             src={revealInside}
             alt=""
@@ -574,12 +567,10 @@ function MagicCard({
           />
         </div>
 
-        {/* Cover — hinged at the spine (left edge), two faces. */}
+        {/* Cover — hinged on the left edge (spine), two faces. */}
         <motion.div
-          className="absolute left-0 top-0"
+          className="absolute inset-0"
           style={{
-            width: CARD_W,
-            height: CARD_W,
             transformOrigin: 'left center',
             transform: coverTransform,
             transformStyle: 'preserve-3d',
@@ -587,7 +578,7 @@ function MagicCard({
         >
           {/* Front face — the render, swiped in. */}
           <div
-            className="absolute inset-0 overflow-hidden rounded-[16px] bg-white ring-1 ring-stone-200/70"
+            className="absolute inset-0 overflow-hidden rounded-[6px] bg-white ring-1 ring-stone-200/70"
             style={{ backfaceVisibility: 'hidden' }}
           >
             <motion.img
@@ -604,12 +595,12 @@ function MagicCard({
           </div>
           {/* Back face — the inside-left, WHITE. */}
           <div
-            className="absolute inset-0 rounded-[16px] bg-white ring-1 ring-stone-200/70"
+            className="absolute inset-0 rounded-[6px] bg-white ring-1 ring-stone-200/70"
             style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
           />
         </motion.div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
