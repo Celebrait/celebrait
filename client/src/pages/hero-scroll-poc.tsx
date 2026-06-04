@@ -15,6 +15,7 @@ import {
   motion,
   useScroll,
   useTransform,
+  useMotionTemplate,
   useMotionValueEvent,
   useReducedMotion,
   type MotionValue,
@@ -72,18 +73,18 @@ export default function HeroScrollPocPage() {
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
 
     // Each content beat's animation runs across its crawl, starting as the card
-    // slows (crawl start) so type-in syncs with the deceleration. Centres:
-    // .22 / .40 / .58 (scene→front) / .76, then the finale.
-    // Photos "select in" across the crawl (centre .40).
-    const ps = clamp((v - 0.375) / (0.415 - 0.375), 0, 1);
+    // slows (crawl start) so it syncs with the deceleration. Centres:
+    // .22 / .355 / .49 (scene→front) / .625 (front reveal) / .76, then finale.
+    // Photos "select in" across the crawl (centre .355).
+    const ps = clamp((v - 0.33) / (0.37 - 0.33), 0, 1);
     setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
 
-    // Design the front (centre .58) — scene types in first…
-    const ps5 = clamp((v - 0.53) / (0.585 - 0.53), 0, 1);
+    // Design the front (centre .49) — scene types in first…
+    const ps5 = clamp((v - 0.44) / (0.495 - 0.44), 0, 1);
     setSceneLen(Math.round(ps5 * SCENE_TEXT.length));
 
     // …then the front headline types in.
-    const ps6 = clamp((v - 0.585) / (0.63 - 0.585), 0, 1);
+    const ps6 = clamp((v - 0.495) / (0.54 - 0.495), 0, 1);
     setFrontLen(Math.round(ps6 * FRONT_TEXT.length));
 
     // Add text on the inside (centre .76).
@@ -122,23 +123,28 @@ export default function HeroScrollPocPage() {
   // Beat 1 — intro: full at top, zooms through + fades.
   const z1 = useTransform(scrollYProgress, [0, 0.16], [0, 880]);
   const o1 = useTransform(scrollYProgress, [0, 0.08, 0.16], [1, 1, 0]);
-  // Four build beats now (front text merged into Design the front), evenly
-  // spaced at .22 / .40 / .58 / .76. Design the front has a wider crawl so the
-  // scene then the front headline both type in.
+  // Five build beats, evenly spaced at .22 / .355 / .49 / .625 / .76. Design
+  // the front has a wider crawl (scene + front headline); the front reveal
+  // shows a flat 2D render generating into existence.
   // Beat 2 — "Choose your celebration" + card (centre .22).
   const zChoose = useTransform(scrollYProgress, [0.12, 0.195, 0.245, 0.32], [-720, -40, 40, 820]);
-  const oChoose = useTransform(scrollYProgress, [0.15, 0.195, 0.245, 0.315], [0, 1, 1, 0]);
+  const oChoose = useTransform(scrollYProgress, [0.148, 0.195, 0.245, 0.293], [0, 1, 1, 0]);
   // Confetti burst — fires out of the card as Anniversary is "clicked" (~.22).
   const burst = useTransform(scrollYProgress, [0.215, 0.27], [0, 1]);
-  // Beat 3 — "Select your photo(s)" (centre .40).
-  const z4 = useTransform(scrollYProgress, [0.3, 0.375, 0.425, 0.5], [-720, -40, 40, 820]);
-  const o4 = useTransform(scrollYProgress, [0.305, 0.375, 0.425, 0.495], [0, 1, 1, 0]);
-  // Beat 4 — "Design the front" (centre .58, wider crawl: scene then front text).
-  const z5 = useTransform(scrollYProgress, [0.48, 0.53, 0.63, 0.68], [-720, -40, 40, 820]);
-  const o5 = useTransform(scrollYProgress, [0.485, 0.53, 0.63, 0.675], [0, 1, 1, 0]);
-  // Beat 5 — "Add text on the inside" (centre .76).
+  // Beat 3 — "Select your photo(s)" (centre .355).
+  const z4 = useTransform(scrollYProgress, [0.255, 0.33, 0.38, 0.455], [-720, -40, 40, 820]);
+  const o4 = useTransform(scrollYProgress, [0.283, 0.33, 0.38, 0.428], [0, 1, 1, 0]);
+  // Beat 4 — "Design the front" (centre .49, wider crawl: scene then front text).
+  const z5 = useTransform(scrollYProgress, [0.39, 0.44, 0.54, 0.59], [-720, -40, 40, 820]);
+  const o5 = useTransform(scrollYProgress, [0.418, 0.44, 0.54, 0.563], [0, 1, 1, 0]);
+  // Beat 5 — front render "develops" (centre .625).
+  const zRev = useTransform(scrollYProgress, [0.525, 0.6, 0.65, 0.725], [-720, -40, 40, 820]);
+  const oRev = useTransform(scrollYProgress, [0.553, 0.6, 0.65, 0.698], [0, 1, 1, 0]);
+  // The generative scan reveal runs across the crawl.
+  const revealProgress = useTransform(scrollYProgress, [0.6, 0.648], [0, 1]);
+  // Beat 6 — "Add text on the inside" (centre .76).
   const z7 = useTransform(scrollYProgress, [0.66, 0.735, 0.785, 0.86], [-720, -40, 40, 820]);
-  const o7 = useTransform(scrollYProgress, [0.665, 0.735, 0.785, 0.855], [0, 1, 1, 0]);
+  const o7 = useTransform(scrollYProgress, [0.688, 0.735, 0.785, 0.833], [0, 1, 1, 0]);
   // Finale — a spinner spins as you scroll in (the studio's "creating your
   // card" moment), fades, then the finished card fades in (in sync with the
   // spinner), opens, then simply fades out into the regen screen (no zoom).
@@ -227,6 +233,14 @@ export default function HeroScrollPocPage() {
               scene={SCENE_TEXT.slice(0, sceneLen)}
               front={FRONT_TEXT.slice(0, frontLen)}
             />
+          </div>
+        </Layer>
+
+        {/* Front render develops into existence — flat 2D, scan-reveal. */}
+        <Layer z={zRev} opacity={oRev}>
+          <div className="flex flex-col items-center gap-7 sm:gap-9">
+            <h1 className={CHOOSE_CLASS}>Watch it come to life</h1>
+            <FrontRevealCard progress={revealProgress} />
           </div>
         </Layer>
 
@@ -600,6 +614,34 @@ function ConfettiPiece({
       }}
       className="absolute left-0 top-0 rounded-[2px]"
     />
+  );
+}
+
+// Front render "developing" — a flat 2D image (distinct from the 3D card)
+// that generates into existence: a bright scan line sweeps top→bottom and the
+// image resolves behind it. Driven by `progress` (0→1) on scroll.
+function FrontRevealCard({ progress }: { progress: MotionValue<number> }) {
+  const bottomInset = useTransform(progress, [0, 1], [100, 0]);
+  const clipPath = useMotionTemplate`inset(0% 0% ${bottomInset}% 0%)`;
+  const scanTopPct = useTransform(progress, [0, 1], [0, 100]);
+  const scanTop = useMotionTemplate`${scanTopPct}%`;
+  const scanO = useTransform(progress, [0, 0.04, 0.96, 1], [0, 1, 1, 0]);
+  return (
+    <div className="relative aspect-square w-[300px] overflow-hidden rounded-[24px] bg-gradient-to-br from-brand-muted to-stone-100 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70 sm:w-[340px]">
+      {/* The render resolving in, revealed top→down. */}
+      <motion.img
+        src={revealFront}
+        alt=""
+        style={{ clipPath }}
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      {/* The generation scan line — bright, glowing, at the reveal edge. */}
+      <motion.div
+        aria-hidden
+        style={{ top: scanTop, opacity: scanO }}
+        className="pointer-events-none absolute inset-x-0 h-[3px] -translate-y-1/2 bg-gradient-to-r from-transparent via-white to-transparent shadow-[0_0_20px_5px_rgba(255,255,255,0.85)]"
+      />
+    </div>
   );
 }
 
