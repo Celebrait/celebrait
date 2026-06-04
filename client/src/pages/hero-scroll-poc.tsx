@@ -151,20 +151,16 @@ export default function HeroScrollPocPage() {
   const o7 = useTransform(scrollYProgress, [0.688, 0.735, 0.785, 0.833], [0, 1, 1, 0]);
   // Finale — a spinner spins as you scroll in (the studio's "creating your
   // card" moment), fades, then the finished card fades in (in sync with the
-  // spinner), opens, and the zoom carries THROUGH the open card into the regen
-  // screen. openProgress scrubs the hinge 1:1 with scroll.
+  // spinner), opens, then simply fades out into the regen screen (no zoom).
+  // openProgress scrubs the hinge 1:1 with scroll.
   const spinnerRot = useTransform(scrollYProgress, [0.835, 0.89], [0, 540]);
   const spinnerO = useTransform(scrollYProgress, [0.835, 0.85, 0.87, 0.885], [0, 1, 1, 0]);
-  // Card: fades in with the spinner, full while it opens, then fades as the
-  // zoom carries through it.
+  // Card: fades in with the spinner, full while it opens, then fades out.
   const backdropO = useTransform(scrollYProgress, [0.835, 0.875, 0.915, 0.945], [0, 1, 1, 0]);
-  const openProgress = useTransform(scrollYProgress, [0.875, 0.905], [0, 1]);
-  // Zoom carries through the open card (scale up + the fade above).
-  const cardScale = useTransform(scrollYProgress, [0.905, 0.95], [1, 2.6]);
-  // Finale +1 — the regen screen emerges from the zoom-through, settles, and
-  // the tweak types in.
-  const oRegen = useTransform(scrollYProgress, [0.93, 0.965, 1], [0, 1, 1]);
-  const regenScale = useTransform(scrollYProgress, [0.93, 0.99], [1.08, 1]);
+  const openProgress = useTransform(scrollYProgress, [0.875, 0.91], [0, 1]);
+  // Finale +1 — the regen screen crossfades in, settles, and the tweak types in.
+  const oRegen = useTransform(scrollYProgress, [0.925, 0.965, 1], [0, 1, 1]);
+  const regenScale = useTransform(scrollYProgress, [0.925, 0.99], [1.06, 1]);
 
   const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
 
@@ -179,11 +175,11 @@ export default function HeroScrollPocPage() {
         }}
       >
         {/* The finished card — invisible through the steps (clean white), fades
-            in during the spinner phase, opens, then the zoom carries THROUGH it
-            (scale up + fade) into the regen screen. */}
+            in during the spinner phase, opens, then fades out into the regen
+            screen (no zoom). */}
         <motion.div
-          style={{ opacity: backdropO, scale: cardScale }}
-          className="pointer-events-none absolute inset-0 flex items-center justify-center will-change-transform"
+          style={{ opacity: backdropO }}
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
         >
           <div className="relative w-full max-w-[460px] sm:max-w-[540px] aspect-square mx-auto">
             <div
