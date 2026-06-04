@@ -614,21 +614,22 @@ function MagicCard({
 }
 
 // ── Floating card field (hero background) ───────────────────────────
-// Faded, static card renders scattered across the page — a mix of closed
-// and open (different amounts), sizes, tilts, opacities — gently drifting.
-// Deterministic (index-based, no RNG). openDeg 0 = closed; ~125–160 = open.
-const FLOAT_OPENS = [0, 135, 0, 30, 155, 0, 125, 0, 150, 30, 160, 0];
-const FLOATING = Array.from({ length: 14 }, (_, i) => ({
-  x: 5 + ((i * 27 + (i % 3) * 11) % 90),
-  y: 7 + ((i * 41) % 84),
-  size: 84 + ((i * 7) % 8) * 17, // 84–203
-  openDeg: FLOAT_OPENS[i % FLOAT_OPENS.length],
-  rot: ((i * 13) % 26) - 13,
-  opacity: 0.06 + ((i * 5) % 9) / 80, // ~.06–.17
-  delay: (i % 6) * 0.6,
-  dur: 7 + (i % 5),
-  drift: (i % 2 ? -1 : 1) * (8 + (i % 3) * 5),
-}));
+// Faded, static card renders around the PERIPHERY (a centre mask keeps the
+// headline clear) — mostly closed with a couple open, varied sizes/tilts,
+// gently drifting. Hand-placed so they frame, not clutter.
+const FLOATING = [
+  { x: 6, y: 17, size: 140, openDeg: 0, rot: -7, opacity: 0.08, delay: 0, dur: 8, drift: 12 },
+  { x: 5, y: 48, size: 170, openDeg: 0, rot: 5, opacity: 0.07, delay: 1.2, dur: 9, drift: -14 },
+  { x: 11, y: 74, size: 128, openDeg: 138, rot: -6, opacity: 0.06, delay: 0.6, dur: 10, drift: 10 },
+  { x: 25, y: 89, size: 108, openDeg: 0, rot: 8, opacity: 0.07, delay: 2, dur: 8, drift: -10 },
+  { x: 33, y: 9, size: 98, openDeg: 0, rot: -5, opacity: 0.06, delay: 1.6, dur: 9, drift: 9 },
+  { x: 67, y: 8, size: 118, openDeg: 0, rot: 6, opacity: 0.07, delay: 0.3, dur: 10, drift: -11 },
+  { x: 94, y: 21, size: 128, openDeg: 0, rot: 7, opacity: 0.08, delay: 1, dur: 8, drift: 13 },
+  { x: 93, y: 52, size: 165, openDeg: 142, rot: -5, opacity: 0.07, delay: 0.8, dur: 9, drift: -12 },
+  { x: 95, y: 79, size: 124, openDeg: 0, rot: 5, opacity: 0.06, delay: 2.2, dur: 10, drift: 10 },
+  { x: 76, y: 88, size: 112, openDeg: 0, rot: -8, opacity: 0.07, delay: 1.4, dur: 8, drift: -9 },
+  { x: 86, y: 13, size: 92, openDeg: 0, rot: 4, opacity: 0.05, delay: 0.5, dur: 11, drift: 8 },
+];
 
 function FloatingCard({
   x,
@@ -698,8 +699,15 @@ function FloatingCard({
 }
 
 function FloatingCards() {
+  // Radial mask — fully transparent in the centre (so the headline is never
+  // crowded), fading the cards in only toward the edges.
+  const mask =
+    'radial-gradient(62% 56% at 50% 44%, transparent 0%, transparent 48%, #000 88%)';
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+      style={{ maskImage: mask, WebkitMaskImage: mask }}
+    >
       {FLOATING.map((c, i) => (
         <FloatingCard key={i} {...c} />
       ))}
