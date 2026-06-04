@@ -28,7 +28,6 @@ import {
   ChevronDown,
   User,
   Check,
-  Type,
   Loader2,
 } from 'lucide-react';
 import { Card3DViewer } from '@/components/card-3d-viewer';
@@ -72,29 +71,26 @@ export default function HeroScrollPocPage() {
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
 
-    // Each content beat's animation runs across its crawl, starting as the card
-    // slows (crawl start) so it syncs with the deceleration. Centres:
-    // .22 / .355 / .49 (scene→front) / .625 (front reveal) / .76, then finale.
-    // Photos "select in" across the crawl (centre .355).
-    const ps = clamp((v - 0.33) / (0.37 - 0.33), 0, 1);
+    // Photos "select in" across the crawl (centre .35).
+    const ps = clamp((v - 0.325) / (0.365 - 0.325), 0, 1);
     setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
 
-    // Design the front (centre .49) — scene types in first…
-    const ps5 = clamp((v - 0.44) / (0.495 - 0.44), 0, 1);
+    // Design the front (centre .53) — scene types first…
+    const ps5 = clamp((v - 0.47) / (0.515 - 0.47), 0, 1);
     setSceneLen(Math.round(ps5 * SCENE_TEXT.length));
 
-    // …then the front headline types in.
-    const ps6 = clamp((v - 0.495) / (0.54 - 0.495), 0, 1);
+    // …then the front headline (before the render paints over at .535).
+    const ps6 = clamp((v - 0.515) / (0.535 - 0.515), 0, 1);
     setFrontLen(Math.round(ps6 * FRONT_TEXT.length));
 
-    // Add text on the inside (centre .76).
-    const ps7 = clamp((v - 0.735) / (0.775 - 0.735), 0, 1);
+    // Design the inside (centre .72) — message types (before render at .71).
+    const ps7 = clamp((v - 0.66) / (0.71 - 0.66), 0, 1);
     setInsideLen(Math.round(ps7 * INSIDE_MESSAGE.length));
 
 
-    // Choose celebration (centre .22) — name stays "Sarah"; occasions toggle
+    // Choose celebration (centre .21) — name stays "Sarah"; occasions toggle
     // on approach, Anniversary "clicked" (pressed) as we pass.
-    const sub = clamp((v - 0.145) / (0.23 - 0.145), 0, 1);
+    const sub = clamp((v - 0.135) / (0.22 - 0.135), 0, 1);
     if (sub <= 0) {
       setName('');
       setSelectedIdx(-1);
@@ -123,32 +119,27 @@ export default function HeroScrollPocPage() {
   // Beat 1 — intro: full at top, zooms through + fades.
   const z1 = useTransform(scrollYProgress, [0, 0.16], [0, 880]);
   const o1 = useTransform(scrollYProgress, [0, 0.08, 0.16], [1, 1, 0]);
-  // Five build beats, evenly spaced at .22 / .355 / .49 / .625 / .76. Design
-  // the front has a wider crawl (scene + front headline); the front reveal
-  // shows a flat 2D render generating into existence.
-  // Beat 2 — "Choose your celebration" + card (centre .22).
-  const zChoose = useTransform(scrollYProgress, [0.12, 0.195, 0.245, 0.32], [-720, -40, 40, 820]);
-  const oChoose = useTransform(scrollYProgress, [0.148, 0.195, 0.245, 0.293], [0, 1, 1, 0]);
-  // Confetti burst — fires out of the card as Anniversary is "clicked" (~.22).
-  const burst = useTransform(scrollYProgress, [0.215, 0.27], [0, 1]);
-  // Beat 3 — "Select your photo(s)" (centre .355).
-  const z4 = useTransform(scrollYProgress, [0.255, 0.33, 0.38, 0.455], [-720, -40, 40, 820]);
-  const o4 = useTransform(scrollYProgress, [0.283, 0.33, 0.38, 0.428], [0, 1, 1, 0]);
-  // Beat 4 — "Design the front" (centre .49, wider crawl: scene then front text).
-  const z5 = useTransform(scrollYProgress, [0.39, 0.44, 0.54, 0.59], [-720, -40, 40, 820]);
-  const o5 = useTransform(scrollYProgress, [0.418, 0.44, 0.54, 0.563], [0, 1, 1, 0]);
-  // Beat 5 — front render "develops" (centre .625). Stays full opacity and
-  // zooms STRAIGHT THROUGH (no in-place fade) — only winks out at the very end
-  // when it's huge and flying past the camera.
-  const zRev = useTransform(scrollYProgress, [0.525, 0.6, 0.65, 0.73], [-720, -40, 40, 980]);
-  const oRev = useTransform(scrollYProgress, [0.553, 0.6, 0.72, 0.735], [0, 1, 1, 0]);
-  // The generative scan reveal starts as the card fades in (earlier than the
-  // crawl) so it's developing on arrival, not blank first.
-  const revealProgress = useTransform(scrollYProgress, [0.56, 0.625], [0, 1]);
-  // Beat 6 — "Design the inside" (centre .76). Fades in only AFTER the front
-  // render has flown through (~.735), not during the pass.
-  const z7 = useTransform(scrollYProgress, [0.66, 0.735, 0.785, 0.86], [-720, -40, 40, 820]);
-  const o7 = useTransform(scrollYProgress, [0.735, 0.755, 0.785, 0.833], [0, 1, 1, 0]);
+  // Four build beats: choose / photos / Design the front / Design the inside.
+  // The two design beats are wider — text inputs type in, THEN the AI render
+  // paints over them inside the same square.
+  // Beat 2 — "Choose your celebration" + card (centre .21).
+  const zChoose = useTransform(scrollYProgress, [0.11, 0.185, 0.235, 0.31], [-720, -40, 40, 820]);
+  const oChoose = useTransform(scrollYProgress, [0.14, 0.185, 0.235, 0.28], [0, 1, 1, 0]);
+  // Confetti burst — fires out of the card as Anniversary is "clicked" (~.21).
+  const burst = useTransform(scrollYProgress, [0.205, 0.26], [0, 1]);
+  // Beat 3 — "Select your photo(s)" (centre .35).
+  const z4 = useTransform(scrollYProgress, [0.25, 0.325, 0.375, 0.45], [-720, -40, 40, 820]);
+  const o4 = useTransform(scrollYProgress, [0.28, 0.325, 0.375, 0.42], [0, 1, 1, 0]);
+  // Beat 4 — "Design the front" (centre .53, wide crawl). Scene+front type,
+  // then the front render paints over.
+  const z5 = useTransform(scrollYProgress, [0.43, 0.47, 0.59, 0.63], [-720, -40, 40, 820]);
+  const o5 = useTransform(scrollYProgress, [0.425, 0.47, 0.59, 0.635], [0, 1, 1, 0]);
+  const frontRender = useTransform(scrollYProgress, [0.535, 0.585], [0, 1]);
+  // Beat 5 — "Design the inside" (centre .72, wide crawl). Message types, then
+  // the inside render paints over.
+  const z7 = useTransform(scrollYProgress, [0.62, 0.66, 0.78, 0.82], [-720, -40, 40, 820]);
+  const o7 = useTransform(scrollYProgress, [0.615, 0.66, 0.78, 0.825], [0, 1, 1, 0]);
+  const insideRender = useTransform(scrollYProgress, [0.71, 0.77], [0, 1]);
   // Finale — a spinner spins as you scroll in (the studio's "creating your
   // card" moment), fades, then the finished card fades in (in sync with the
   // spinner), opens, then simply fades out into the regen screen (no zoom).
@@ -229,27 +220,45 @@ export default function HeroScrollPocPage() {
           </div>
         </Layer>
 
-        {/* Headline + combined composer — scene then front headline type in. */}
+        {/* Design the front — scene + front headline type into the square,
+            then the front render paints over them. */}
         <Layer z={z5} opacity={o5}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Design the front</h1>
-            <DesignFrontCard
-              scene={SCENE_TEXT.slice(0, sceneLen)}
-              front={FRONT_TEXT.slice(0, frontLen)}
-            />
+            <DesignSquare image={revealFront} renderProgress={frontRender}>
+              <SquareField
+                label="The picture"
+                value={SCENE_TEXT.slice(0, sceneLen)}
+                placeholder="e.g. Sarah at golden hour on an Italian terrace…"
+                live
+                minH={84}
+              />
+              <SquareField
+                label="Front headline"
+                value={FRONT_TEXT.slice(0, frontLen)}
+                placeholder="Happy Anniversary"
+                live
+              />
+            </DesignSquare>
           </div>
         </Layer>
 
-        {/* Front render develops into existence — flat 2D, scan-reveal. */}
-        <Layer z={zRev} opacity={oRev}>
-          <FrontRevealCard progress={revealProgress} />
-        </Layer>
-
-        {/* Headline + inside-text composer — the message types itself in. */}
+        {/* Design the inside — greeting / message / sign-off into the square,
+            then the inside render paints over them. */}
         <Layer z={z7} opacity={o7}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Design the inside</h1>
-            <InsideTextCard typed={INSIDE_MESSAGE.slice(0, insideLen)} />
+            <DesignSquare image={revealInside} renderProgress={insideRender}>
+              <SquareField label="Greeting" value={INSIDE_GREETING} />
+              <SquareField
+                label="Message"
+                value={INSIDE_MESSAGE.slice(0, insideLen)}
+                placeholder="Write a few words from the heart…"
+                live
+                minH={56}
+              />
+              <SquareField label="Sign-off" value={INSIDE_SIGNOFF} />
+            </DesignSquare>
           </div>
         </Layer>
 
@@ -480,80 +489,83 @@ function PhotoCard({ selected }: { selected: number }) {
   );
 }
 
-// Combined "Design the front" — the picture (scene) AND the front headline in
-// one card. The scene types in first, then the front headline.
-function DesignFrontCard({ scene, front }: { scene: string; front: string }) {
-  const sceneEmpty = scene.length === 0;
-  const frontEmpty = front.length === 0;
+// A square "design" container — text inputs sit inside, then the AI render
+// paints OVER them (scan-reveal, top→down) as `renderProgress` goes 0→1. Used
+// for both Design the front and Design the inside (same move, different art).
+function DesignSquare({
+  image,
+  renderProgress,
+  children,
+}: {
+  image: string;
+  renderProgress: MotionValue<number>;
+  children: React.ReactNode;
+}) {
+  const bottomInset = useTransform(renderProgress, [0, 1], [100, 0]);
+  const clipPath = useMotionTemplate`inset(0% 0% ${bottomInset}% 0%)`;
+  const scanTopPct = useTransform(renderProgress, [0, 1], [0, 100]);
+  const scanTop = useMotionTemplate`${scanTopPct}%`;
+  const scanO = useTransform(renderProgress, [0, 0.04, 0.96, 1], [0, 1, 1, 0]);
   return (
-    <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
-      {/* The picture (scene) — types itself in. Fixed height so it never grows
-          as the text fills it. */}
-      <p className="mb-1.5 text-[13px] text-ink">The picture</p>
-      <div className="h-[116px] overflow-hidden rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed text-ink">
-        {sceneEmpty ? (
-          <span className="text-stone-400">
-            e.g. Sarah at golden hour on an Italian terrace…
-          </span>
-        ) : (
-          <span>
-            {scene}
-            <span className="ml-0.5 inline-block h-[15px] w-[2px] animate-pulse bg-brand align-middle" />
-          </span>
-        )}
+    <div className="relative aspect-square w-[300px] overflow-hidden rounded-[12px] bg-white shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70 sm:w-[340px]">
+      {/* Text inputs — underneath, get painted over by the render. */}
+      <div className="absolute inset-0 flex flex-col justify-center gap-2.5 px-5">
+        {children}
       </div>
-
-      {/* Front headline — types in after the scene. */}
-      <p className="mb-1.5 mt-4 flex items-center gap-1.5 text-[13px] text-ink">
-        <Type className="h-3.5 w-3.5 text-brand" strokeWidth={2} />
-        Front headline
-        <span className="font-normal text-stone-400">optional</span>
-      </p>
-      <div className="flex min-h-[46px] items-center rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[15px]">
-        {frontEmpty ? (
-          <span className="text-stone-400">Happy Anniversary</span>
-        ) : (
-          <span className="font-medium text-ink">
-            {front}
-            <span className="ml-0.5 inline-block h-[16px] w-[2px] animate-pulse bg-brand align-middle" />
-          </span>
-        )}
-      </div>
+      {/* The render paints over the inputs, revealed top→down. */}
+      <motion.img
+        src={image}
+        alt=""
+        style={{ clipPath }}
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      {/* Bright scan line at the render edge. */}
+      <motion.div
+        aria-hidden
+        style={{ top: scanTop, opacity: scanO }}
+        className="pointer-events-none absolute inset-x-0 h-[3px] -translate-y-1/2 bg-gradient-to-r from-transparent via-white to-transparent shadow-[0_0_20px_5px_rgba(255,255,255,0.85)]"
+      />
     </div>
   );
 }
 
-function InsideTextCard({ typed }: { typed: string }) {
-  const empty = typed.length === 0;
+// A compact field used inside DesignSquare. `live` = typing field (brand
+// border + cursor); otherwise a static filled field.
+function SquareField({
+  label,
+  value,
+  placeholder,
+  live = false,
+  minH = 38,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  live?: boolean;
+  minH?: number;
+}) {
+  const empty = value.length === 0;
   return (
-    <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
-      {/* Greeting */}
-      <p className="text-[12px] text-stone-500 mb-1">
-        Greeting <span className="text-stone-400">optional</span>
-      </p>
-      <div className="rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[14px] text-ink mb-3.5">
-        {INSIDE_GREETING}
-      </div>
-
-      {/* Message — the hero field, types itself in. */}
-      <p className="text-[12px] text-stone-500 mb-1">Message</p>
-      <div className="rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed min-h-[92px] text-ink mb-3.5">
+    <div>
+      <p className="mb-1 text-[11px] text-stone-500">{label}</p>
+      <div
+        className={`overflow-hidden rounded-lg px-3 py-2 text-[13px] leading-snug ${
+          live
+            ? 'border-2 border-brand/50 bg-stone-50'
+            : 'border border-stone-200 bg-stone-50'
+        }`}
+        style={{ minHeight: minH }}
+      >
         {empty ? (
-          <span className="text-stone-400">Write a few words from the heart…</span>
+          <span className="text-stone-400">{placeholder}</span>
         ) : (
-          <span>
-            {typed}
-            <span className="inline-block w-[2px] h-[15px] bg-brand align-middle ml-0.5 animate-pulse" />
+          <span className="text-ink">
+            {value}
+            {live && (
+              <span className="ml-0.5 inline-block h-[14px] w-[2px] animate-pulse bg-brand align-middle" />
+            )}
           </span>
         )}
-      </div>
-
-      {/* Sign-off */}
-      <p className="text-[12px] text-stone-500 mb-1">
-        Sign-off <span className="text-stone-400">optional</span>
-      </p>
-      <div className="rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[14px] text-ink">
-        {INSIDE_SIGNOFF}
       </div>
     </div>
   );
@@ -615,34 +627,6 @@ function ConfettiPiece({
       }}
       className="absolute left-0 top-0 rounded-[2px]"
     />
-  );
-}
-
-// Front render "developing" — a flat 2D image (distinct from the 3D card)
-// that generates into existence: a bright scan line sweeps top→bottom and the
-// image resolves behind it. Driven by `progress` (0→1) on scroll.
-function FrontRevealCard({ progress }: { progress: MotionValue<number> }) {
-  const bottomInset = useTransform(progress, [0, 1], [100, 0]);
-  const clipPath = useMotionTemplate`inset(0% 0% ${bottomInset}% 0%)`;
-  const scanTopPct = useTransform(progress, [0, 1], [0, 100]);
-  const scanTop = useMotionTemplate`${scanTopPct}%`;
-  const scanO = useTransform(progress, [0, 0.04, 0.96, 1], [0, 1, 1, 0]);
-  return (
-    <div className="relative aspect-square w-[300px] overflow-hidden rounded-[12px] bg-gradient-to-br from-brand-muted to-stone-100 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70 sm:w-[340px]">
-      {/* The render resolving in, revealed top→down. */}
-      <motion.img
-        src={revealFront}
-        alt=""
-        style={{ clipPath }}
-        className="absolute inset-0 h-full w-full object-cover"
-      />
-      {/* The generation scan line — bright, glowing, at the reveal edge. */}
-      <motion.div
-        aria-hidden
-        style={{ top: scanTop, opacity: scanO }}
-        className="pointer-events-none absolute inset-x-0 h-[3px] -translate-y-1/2 bg-gradient-to-r from-transparent via-white to-transparent shadow-[0_0_20px_5px_rgba(255,255,255,0.85)]"
-      />
-    </div>
   );
 }
 
