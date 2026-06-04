@@ -231,14 +231,14 @@ export default function HeroScrollPocPage() {
                 value={SCENE_TEXT.slice(0, sceneLen)}
                 placeholder="e.g. Sarah at golden hour on an Italian terrace…"
                 live
-                minH={92}
+                grow
               />
               <SquareField
                 label="Front headline"
                 value={FRONT_TEXT.slice(0, frontLen)}
                 placeholder="Happy Anniversary"
                 live
-                minH={48}
+                minH={58}
               />
             </DesignSquare>
           </div>
@@ -250,15 +250,15 @@ export default function HeroScrollPocPage() {
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Design the inside</h1>
             <DesignSquare image={revealInside} renderProgress={insideRender}>
-              <SquareField label="Greeting" value={INSIDE_GREETING} minH={44} />
+              <SquareField label="Greeting" value={INSIDE_GREETING} minH={50} />
               <SquareField
                 label="Message"
                 value={INSIDE_MESSAGE.slice(0, insideLen)}
                 placeholder="Write a few words from the heart…"
                 live
-                minH={76}
+                grow
               />
-              <SquareField label="Sign-off" value={INSIDE_SIGNOFF} minH={44} />
+              <SquareField label="Sign-off" value={INSIDE_SIGNOFF} minH={50} />
             </DesignSquare>
           </div>
         </Layer>
@@ -509,8 +509,9 @@ function DesignSquare({
   const scanO = useTransform(renderProgress, [0, 0.04, 0.96, 1], [0, 1, 1, 0]);
   return (
     <div className="relative aspect-square w-[300px] overflow-hidden rounded-[12px] bg-white shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70 sm:w-[340px]">
-      {/* Text inputs — underneath, get painted over by the render. */}
-      <div className="absolute inset-0 flex flex-col justify-center gap-3.5 px-6">
+      {/* Text inputs — underneath, get painted over by the render. They fill
+          the square (the main field grows) with a small even margin. */}
+      <div className="absolute inset-0 flex flex-col gap-4 px-6 py-6">
         {children}
       </div>
       {/* The render paints over the inputs, revealed top→down. */}
@@ -550,9 +551,9 @@ function SquareField({
   const empty = value.length === 0;
   return (
     <div className={`flex flex-col ${grow ? 'flex-1' : ''}`}>
-      <p className="mb-1.5 text-[12px] font-medium text-stone-500">{label}</p>
+      <p className="mb-1.5 text-[14px] font-medium text-stone-500">{label}</p>
       <div
-        className={`overflow-hidden rounded-xl px-3.5 py-2.5 text-[15px] leading-relaxed ${
+        className={`overflow-hidden rounded-xl px-3.5 py-2.5 text-[17px] leading-relaxed ${
           grow ? 'flex-1' : ''
         } ${
           live
@@ -567,7 +568,7 @@ function SquareField({
           <span className="text-ink">
             {value}
             {live && (
-              <span className="ml-0.5 inline-block h-[16px] w-[2px] animate-pulse bg-brand align-middle" />
+              <span className="ml-0.5 inline-block h-[18px] w-[2px] animate-pulse bg-brand align-middle" />
             )}
           </span>
         )}
