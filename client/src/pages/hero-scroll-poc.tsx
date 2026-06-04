@@ -55,9 +55,6 @@ export default function HeroScrollPocPage() {
   const reduced = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref });
 
-  const [name, setName] = useState('');
-  const [selectedIdx, setSelectedIdx] = useState(-1);
-  const [pressed, setPressed] = useState(false);
   // Beat 4 — how many photos have "selected" in (0–3).
   const [photoSel, setPhotoSel] = useState(0);
   // Beat 5 — how many characters of the scene have "typed" in.
@@ -71,44 +68,22 @@ export default function HeroScrollPocPage() {
   // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
 
-    // Each content beat's animation runs across its crawl, starting as the card
-    // slows (crawl start) so type-in syncs with the deceleration. Centres:
-    // .22 / .40 / .58 (scene→front) / .76, then the finale.
-    // Photos "select in" across the crawl (centre .40).
-    const ps = clamp((v - 0.375) / (0.415 - 0.375), 0, 1);
+    // Three build beats animate across their crawl (slow zone). Centres:
+    // .27 (photos) / .50 (put them in the picture: scene→front) / .72 (inside).
+    const ps = clamp((v - 0.245) / (0.285 - 0.245), 0, 1);
     setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
 
-    // Design the front (centre .58) — scene types in first…
-    const ps5 = clamp((v - 0.53) / (0.585 - 0.53), 0, 1);
+    // Put them in the picture — scene types first…
+    const ps5 = clamp((v - 0.45) / (0.51 - 0.45), 0, 1);
     setSceneLen(Math.round(ps5 * SCENE_TEXT.length));
 
-    // …then the front headline types in.
-    const ps6 = clamp((v - 0.585) / (0.63 - 0.585), 0, 1);
+    // …then the front headline.
+    const ps6 = clamp((v - 0.51) / (0.55 - 0.51), 0, 1);
     setFrontLen(Math.round(ps6 * FRONT_TEXT.length));
 
-    // Add text on the inside (centre .76).
-    const ps7 = clamp((v - 0.735) / (0.775 - 0.735), 0, 1);
+    // Inside message (centre .72).
+    const ps7 = clamp((v - 0.695) / (0.74 - 0.695), 0, 1);
     setInsideLen(Math.round(ps7 * INSIDE_MESSAGE.length));
-
-
-    // Choose celebration (centre .22) — name stays "Sarah"; occasions toggle
-    // on approach, Anniversary "clicked" (pressed) as we pass.
-    const sub = clamp((v - 0.145) / (0.23 - 0.145), 0, 1);
-    if (sub <= 0) {
-      setName('');
-      setSelectedIdx(-1);
-      setPressed(false);
-      return;
-    }
-    setName(FINAL_NAME); // static "Sarah"
-    if (sub < 0.8) {
-      const steps = Math.floor((sub / 0.8) * 12);
-      setSelectedIdx(steps % OCC.length);
-      setPressed(false);
-    } else {
-      setSelectedIdx(ANNIVERSARY_IDX);
-      setPressed(sub > 0.9); // tap Anniversary near the end of the approach
-    }
   });
 
   // ── Unified timing ─────────────────────────────────────────────────
@@ -122,23 +97,17 @@ export default function HeroScrollPocPage() {
   // Beat 1 — intro: full at top, zooms through + fades.
   const z1 = useTransform(scrollYProgress, [0, 0.16], [0, 880]);
   const o1 = useTransform(scrollYProgress, [0, 0.08, 0.16], [1, 1, 0]);
-  // Four build beats now (front text merged into Design the front), evenly
-  // spaced at .22 / .40 / .58 / .76. Design the front has a wider crawl so the
-  // scene then the front headline both type in.
-  // Beat 2 — "Choose your celebration" + card (centre .22).
-  const zChoose = useTransform(scrollYProgress, [0.12, 0.195, 0.245, 0.32], [-720, -40, 40, 820]);
-  const oChoose = useTransform(scrollYProgress, [0.15, 0.195, 0.245, 0.315], [0, 1, 1, 0]);
-  // Confetti burst — fires out of the card as Anniversary is "clicked" (~.22).
-  const burst = useTransform(scrollYProgress, [0.215, 0.27], [0, 1]);
-  // Beat 3 — "Select your photo(s)" (centre .40).
-  const z4 = useTransform(scrollYProgress, [0.3, 0.375, 0.425, 0.5], [-720, -40, 40, 820]);
-  const o4 = useTransform(scrollYProgress, [0.305, 0.375, 0.425, 0.495], [0, 1, 1, 0]);
-  // Beat 4 — "Design the front" (centre .58, wider crawl: scene then front text).
-  const z5 = useTransform(scrollYProgress, [0.48, 0.53, 0.63, 0.68], [-720, -40, 40, 820]);
-  const o5 = useTransform(scrollYProgress, [0.485, 0.53, 0.63, 0.675], [0, 1, 1, 0]);
-  // Beat 5 — "Add text on the inside" (centre .76).
-  const z7 = useTransform(scrollYProgress, [0.66, 0.735, 0.785, 0.86], [-720, -40, 40, 820]);
-  const o7 = useTransform(scrollYProgress, [0.665, 0.735, 0.785, 0.855], [0, 1, 1, 0]);
+  // Three build beats: photos (.27) / put them in the picture (.50, wide) /
+  // inside (.72). Then the finale.
+  // Beat 2 — "Select your photo(s)" (centre .27).
+  const z4 = useTransform(scrollYProgress, [0.14, 0.245, 0.295, 0.4], [-720, -40, 40, 820]);
+  const o4 = useTransform(scrollYProgress, [0.17, 0.245, 0.295, 0.37], [0, 1, 1, 0]);
+  // Beat 3 — "Put them in the picture" (centre .50, wider crawl: scene+front).
+  const z5 = useTransform(scrollYProgress, [0.37, 0.45, 0.55, 0.63], [-720, -40, 40, 820]);
+  const o5 = useTransform(scrollYProgress, [0.4, 0.45, 0.55, 0.6], [0, 1, 1, 0]);
+  // Beat 4 — "Add text on the inside" (centre .72).
+  const z7 = useTransform(scrollYProgress, [0.59, 0.695, 0.745, 0.85], [-720, -40, 40, 820]);
+  const o7 = useTransform(scrollYProgress, [0.62, 0.695, 0.745, 0.82], [0, 1, 1, 0]);
   // Finale — a spinner spins as you scroll in (the studio's "creating your
   // card" moment), fades, then the finished card fades in (in sync with the
   // spinner), opens, then simply fades out into the regen screen (no zoom).
@@ -157,7 +126,7 @@ export default function HeroScrollPocPage() {
   const hintO = useTransform(scrollYProgress, [0, 0.07], [1, 0]);
 
   return (
-    <div ref={ref} className="relative" style={{ height: '1400vh' }}>
+    <div ref={ref} className="relative" style={{ height: '1200vh' }}>
       <div
         className="fixed inset-0 overflow-hidden"
         style={{
@@ -197,18 +166,6 @@ export default function HeroScrollPocPage() {
 
         <Layer z={z1} opacity={o1}>
           <HeadlineIntro reduced={!!reduced} />
-        </Layer>
-
-        {/* Headline + card are ONE unit — fade in and dolly together, text
-            above the asset. */}
-        <Layer z={zChoose} opacity={oChoose}>
-          <div className="flex flex-col items-center gap-7 sm:gap-9">
-            <h1 className={CHOOSE_CLASS}>Choose your celebration</h1>
-            <div className="relative">
-              <StudioCard name={name} selectedIdx={selectedIdx} pressed={pressed} />
-              <ConfettiBurst burst={burst} />
-            </div>
-          </div>
         </Layer>
 
         {/* Headline + photo picker as one unit — photos "select in" as it lands. */}
