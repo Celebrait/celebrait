@@ -137,7 +137,8 @@ export default function HeroScrollPocPage() {
   // Beat 5 — "Design the inside" (centre .72, wide crawl). Message types, then
   // the inside render paints over.
   const z7 = useTransform(scrollYProgress, [0.62, 0.66, 0.78, 0.82], [-720, -40, 40, 820]);
-  const o7 = useTransform(scrollYProgress, [0.615, 0.66, 0.78, 0.825], [0, 1, 1, 0]);
+  // Fades in only AFTER the Design-front render has cleared (o5 ends ~.635).
+  const o7 = useTransform(scrollYProgress, [0.64, 0.68, 0.78, 0.825], [0, 1, 1, 0]);
   const insideRender = useTransform(scrollYProgress, [0.71, 0.785], [0, 1]);
   // Finale — a spinner spins as you scroll in (the studio's "creating your
   // card" moment), fades, then the finished card fades in (in sync with the
@@ -507,7 +508,7 @@ function DesignSquare({
   const spinnerRot = useTransform(renderProgress, [0, 0.6], [0, 540]);
   const imageO = useTransform(renderProgress, [0.6, 0.601], [0, 1]);
   return (
-    <div className="relative aspect-square w-[300px] overflow-hidden rounded-[12px] bg-white shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70 sm:w-[340px]">
+    <div className="relative aspect-square w-[300px] overflow-hidden rounded-[8px] bg-white shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70 sm:w-[340px]">
       {/* Text inputs — fill the square (the main field grows). */}
       <div className="absolute inset-0 flex flex-col gap-4 px-6 py-6">
         {children}
@@ -516,7 +517,7 @@ function DesignSquare({
       <motion.div
         aria-hidden
         style={{ opacity: spinnerO }}
-        className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-[12px] bg-white"
+        className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-[8px] bg-white"
       >
         <motion.div style={{ rotate: spinnerRot }}>
           <Loader2 className="h-10 w-10 text-brand" strokeWidth={2} />
@@ -527,7 +528,7 @@ function DesignSquare({
         src={image}
         alt=""
         style={{ opacity: imageO }}
-        className="absolute inset-0 h-full w-full rounded-[12px] object-cover"
+        className="absolute inset-0 h-full w-full rounded-[8px] object-cover"
       />
     </div>
   );
