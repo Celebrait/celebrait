@@ -542,8 +542,10 @@ const CARD_W = 340; // px — fixed for the hinge geometry (POC: desktop-first)
 // Paper treatment for the finale card faces — a soft drop shadow + top-edge
 // highlight + hairline (gives it lift + thickness), plus a surface-shading
 // gradient and a faint grain so it reads as paper, not a flat sticker.
+// Drop shadow matches the build-step cards exactly; the inset highlight +
+// hairline add the paper edge.
 const CARD_SHADOW =
-  '0 30px 56px -22px rgba(15,23,42,0.55), 0 8px 16px -9px rgba(15,23,42,0.32), inset 0 1px 0 rgba(255,255,255,0.6), 0 0 0 1px rgba(15,23,42,0.07)';
+  '0 36px 90px -32px rgba(15,23,42,0.32), inset 0 1px 0 rgba(255,255,255,0.6), 0 0 0 1px rgba(15,23,42,0.07)';
 const PAPER_GRAIN =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E\")";
 
