@@ -671,17 +671,9 @@ function FloatingCard({
   openDeg,
   rot,
   opacity,
-  delay,
-  dur,
-  drift,
 }: (typeof FLOATING)[number]) {
   return (
-    <motion.div
-      className="absolute"
-      style={{ left: `${x}%`, top: `${y}%`, opacity }}
-      animate={{ y: [0, drift, 0] }}
-      transition={{ duration: dur, repeat: Infinity, ease: 'easeInOut', delay }}
-    >
+    <div className="absolute" style={{ left: `${x}%`, top: `${y}%`, opacity }}>
       <div
         className="relative"
         style={{
@@ -727,7 +719,7 @@ function FloatingCard({
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
