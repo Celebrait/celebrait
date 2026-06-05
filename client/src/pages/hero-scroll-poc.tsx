@@ -47,17 +47,17 @@ const INSIDE_MESSAGE =
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
-export default function HeroScrollPocPage() {
+// The studio flow — a sticky-pinned section that plays the build journey on
+// scroll: photos → put them in the picture → add your words → finale (spinner →
+// swipe-render → open → "Send it"). Exported so the marketing landing can mount
+// it below the hero. Transparent stage (the host page provides the background).
+export function StudioFlowSection() {
   const ref = useRef<HTMLDivElement>(null);
-  const reduced = useReducedMotion();
   const { scrollYProgress: rawProgress } = useScroll({
     target: ref,
     offset: ['start start', 'end end'],
   });
-  // The intro is now a normal hero section ABOVE; the dolly stage is sticky-
-  // pinned below it. This virtual progress crops the (removed) intro out of the
-  // timing so the flow starts at photos — every beat keeps its original 0→1
-  // numbers, they just play over [.13, 1] of the pinned scroll.
+  // Crop so the flow starts at the photos beat (beats keep their 0→1 numbers).
   const scrollYProgress = useTransform(rawProgress, [0, 1], [0.14, 1]);
 
   // Beat 4 — how many photos have "selected" in (0–3).
@@ -127,41 +127,11 @@ export default function HeroScrollPocPage() {
   const oSend = useTransform(scrollYProgress, [0.975, 0.995, 1], [0, 1, 1]);
 
   return (
-    <>
-      {/* Constant gradient backdrop — seamless across the hero + the stage. */}
+    <div ref={ref} className="relative" style={{ height: '1100vh' }}>
       <div
-        className="fixed inset-0 -z-10"
-        style={{ background: 'linear-gradient(180deg, #ffffff 0%, #f3f2fb 100%)' }}
-      />
-
-      {/* Floating card field — FIXED, always-on background across the whole page
-          (centre-masked). Desktop + a separate, sparser mobile set. */}
-      <FloatingCards cards={FLOATING_DESKTOP} mask={DESKTOP_MASK} className="hidden md:block" />
-      <FloatingCards cards={FLOATING_MOBILE} mask={MOBILE_MASK} className="md:hidden" />
-
-      {/* Hero — a normal landing section you just scroll past. */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center px-6">
-        <div className="relative z-10">
-          <HeadlineIntro reduced={!!reduced} />
-        </div>
-        <div className="absolute inset-x-0 bottom-10 flex justify-center">
-          <div className="flex flex-col items-center gap-1.5">
-            <div className="flex h-9 w-9 items-center justify-center text-cta">
-              <ScrollGlyph />
-            </div>
-            <span className="text-[10px] uppercase tracking-[0.15em] text-stone-500">
-              Scroll to begin
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* Dolly stage — sticky-pinned; the flow plays as you scroll through. */}
-      <div ref={ref} className="relative" style={{ height: '1100vh' }}>
-        <div
-          className="sticky top-0 h-screen overflow-hidden"
-          style={{ perspective: '1000px' }}
-        >
+        className="sticky top-0 h-screen overflow-hidden"
+        style={{ perspective: '1000px' }}
+      >
           {/* Blank card dollies in (spinner attached + loading) → render swipes
               in → opens → drops. */}
           <motion.div
@@ -217,9 +187,41 @@ export default function HeroScrollPocPage() {
         >
           <h1 className={CHOOSE_CLASS}>Send it</h1>
         </motion.div>
-
-        </div>
       </div>
+    </div>
+  );
+}
+
+// The standalone POC page: the floating-celebration hero + the flow below it.
+export default function HeroScrollPocPage() {
+  const reduced = useReducedMotion();
+  return (
+    <>
+      {/* Constant gradient backdrop — seamless across the hero + the stage. */}
+      <div
+        className="fixed inset-0 -z-10"
+        style={{ background: 'linear-gradient(180deg, #ffffff 0%, #f3f2fb 100%)' }}
+      />
+      {/* Floating celebration field — fixed, centre-masked (desktop + mobile). */}
+      <FloatingCards cards={FLOATING_DESKTOP} mask={DESKTOP_MASK} className="hidden md:block" />
+      <FloatingCards cards={FLOATING_MOBILE} mask={MOBILE_MASK} className="md:hidden" />
+      {/* Hero — a normal landing section you just scroll past. */}
+      <section className="relative flex min-h-screen flex-col items-center justify-center px-6">
+        <div className="relative z-10">
+          <HeadlineIntro reduced={!!reduced} />
+        </div>
+        <div className="absolute inset-x-0 bottom-10 flex justify-center">
+          <div className="flex flex-col items-center gap-1.5">
+            <div className="flex h-9 w-9 items-center justify-center text-cta">
+              <ScrollGlyph />
+            </div>
+            <span className="text-[10px] uppercase tracking-[0.15em] text-stone-500">
+              Scroll to begin
+            </span>
+          </div>
+        </div>
+      </section>
+      <StudioFlowSection />
     </>
   );
 }

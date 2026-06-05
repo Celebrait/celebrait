@@ -44,6 +44,7 @@ import { FaqSection } from '@/components/landing/faq-section';
 import { FinalCtaBand } from '@/components/landing/final-cta-band';
 import { HeroFloatingSection } from '@/components/landing/hero-floating-section';
 import { ImagineDescribeShipSection } from '@/components/landing/imagine-describe-ship-section';
+import { StudioFlowSection } from '@/pages/hero-scroll-poc';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { MarketingHeader } from '@/components/landing/marketing-header';
 import { PricingStripSection } from '@/components/landing/pricing-strip-section';
@@ -57,6 +58,7 @@ export default function Landing() {
       <PromoStrip />
       <main>
         <HeroFloatingSection />
+        <StudioFlowSection />
         <DemoVideoSection />
         <ImagineDescribeShipSection />
         <TestimonialCarouselSection />
