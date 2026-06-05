@@ -30,6 +30,7 @@ import {
   Check,
   Loader2,
 } from 'lucide-react';
+import { Card3DViewer } from '@/components/card-3d-viewer';
 import revealFront from '@/assets/hero-card-front.png';
 import revealInside from '@/assets/hero-card-inside.png';
 
@@ -125,6 +126,11 @@ export default function HeroScrollPocPage() {
   const yCard = useTransform(scrollYProgress, [0.975, 1], [0, 1100]);
   // "Send it" is revealed as the card drops away.
   const oSend = useTransform(scrollYProgress, [0.975, 0.995, 1], [0, 1, 1]);
+  // The purple swipe — a white "cover" wiped off left→right to reveal the 3D card.
+  const coverLeftInset = useTransform(swipeProgress, [0, 1], [0, 100]);
+  const coverClip = useMotionTemplate`inset(0% 0% 0% ${coverLeftInset}%)`;
+  const swipeLineLeft = useTransform(swipeProgress, [0, 1], ['0%', '100%']);
+  const swipeLineO = useTransform(swipeProgress, [0, 0.05, 0.95, 1], [0, 1, 1, 0]);
 
   return (
     <>
@@ -162,12 +168,46 @@ export default function HeroScrollPocPage() {
           className="sticky top-0 h-screen overflow-hidden"
           style={{ perspective: '1000px' }}
         >
-          {/* Blank card dollies in (spinner loading) → render swipes in → opens → drops. */}
+          {/* Blank card dollies in (spinner loading) → the white cover wipes off
+              to reveal the real 3D render → it opens → drops. */}
           <motion.div
             style={{ z: zCard, y: yCard, opacity: backdropO }}
             className="pointer-events-none absolute inset-0 flex items-center justify-center will-change-transform"
           >
-            <MagicCard swipe={swipeProgress} open={openProgress} />
+            <div className="relative mx-auto aspect-square w-full max-w-[380px] sm:max-w-[420px]">
+              {/* The real 3D card — proper thickness + cast shadow, opens on scroll. */}
+              <div
+                className="absolute top-[-30vh] bottom-[-30vh] left-[-25vw] right-[-25vw]"
+                style={{ filter: 'drop-shadow(0 26px 40px rgba(15,23,42,0.18))' }}
+              >
+                <Card3DViewer
+                  frontImageUrl={revealFront}
+                  insideImageUrl={revealInside}
+                  openProgress={openProgress}
+                  closedAngle={0}
+                  restYaw={-0.08}
+                  interactive={false}
+                  enableRotate={false}
+                  enableZoom={false}
+                  framingMargin={2.4}
+                  minDistance={2.2}
+                  className="h-full w-full"
+                />
+              </div>
+              {/* White "blank card" cover — wiped off left→right (the swipe). */}
+              <motion.div
+                style={{ clipPath: coverClip, boxShadow: CARD_SHADOW }}
+                className="absolute inset-0 overflow-hidden rounded-[6px] bg-white"
+              >
+                <CardSurface />
+              </motion.div>
+              {/* Glowing swipe edge. */}
+              <motion.div
+                aria-hidden
+                style={{ left: swipeLineLeft, opacity: swipeLineO }}
+                className="pointer-events-none absolute bottom-0 top-0 z-10 w-[4px] -translate-x-1/2 bg-white/90 shadow-[0_0_24px_7px_rgba(122,118,232,0.85)]"
+              />
+            </div>
           </motion.div>
 
           {/* Headline + photo picker as one unit — photos "select in" as it lands. */}
