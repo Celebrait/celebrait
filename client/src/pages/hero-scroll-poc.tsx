@@ -164,12 +164,25 @@ export default function HeroScrollPocPage() {
           className="sticky top-0 h-screen overflow-hidden"
           style={{ perspective: '1000px' }}
         >
-          {/* Blank card dollies in (spinner loading) → render swipes in → opens → drops. */}
+          {/* Blank card dollies in (spinner attached + loading) → render swipes
+              in → opens → drops. */}
           <motion.div
             style={{ z: zCard, y: yCard, opacity: backdropO }}
             className="pointer-events-none absolute inset-0 flex items-center justify-center will-change-transform"
           >
-            <MagicCard swipe={swipeProgress} open={openProgress} />
+            <div className="relative">
+              <MagicCard swipe={swipeProgress} open={openProgress} />
+              {/* Spinner attached to the blank card — zooms in with it, fades
+                  out as the render swipes in. */}
+              <motion.div
+                style={{ opacity: spinnerO }}
+                className="pointer-events-none absolute inset-0 flex items-center justify-center"
+              >
+                <motion.div style={{ rotate: spinnerRot }}>
+                  <Loader2 className="h-14 w-14 text-brand" strokeWidth={2} />
+                </motion.div>
+              </motion.div>
+            </div>
           </motion.div>
 
           {/* Headline + photo picker as one unit — photos "select in" as it lands. */}
@@ -198,17 +211,6 @@ export default function HeroScrollPocPage() {
             />
           </div>
         </Layer>
-
-        {/* Finale — a spinner spins as you scroll (the "creating your card"
-            moment), then the finished 3D card reveals + opens. */}
-        <motion.div
-          style={{ opacity: spinnerO }}
-          className="pointer-events-none absolute inset-0 flex items-center justify-center px-6"
-        >
-          <motion.div style={{ rotate: spinnerRot }}>
-            <Loader2 className="w-14 h-14 text-brand" strokeWidth={2} />
-          </motion.div>
-        </motion.div>
 
         {/* Finale — "Send it", revealed in the centre as the card drops away. */}
         <motion.div
