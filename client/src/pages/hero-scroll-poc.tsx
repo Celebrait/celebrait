@@ -137,10 +137,12 @@ export default function HeroScrollPocPage() {
         }}
       />
 
-      {/* Hero — a normal landing section you just scroll past, over a faded
-          field of floating card renders. */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6">
-        <FloatingCards />
+      {/* Floating card field — FIXED, an always-on background across the whole
+          page (centre-masked so it never crowds the content). */}
+      <FloatingCards />
+
+      {/* Hero — a normal landing section you just scroll past. */}
+      <section className="relative flex min-h-screen flex-col items-center justify-center px-6">
         <div className="relative z-10">
           <HeadlineIntro reduced={!!reduced} />
         </div>
@@ -671,9 +673,17 @@ function FloatingCard({
   openDeg,
   rot,
   opacity,
+  delay,
+  dur,
+  drift,
 }: (typeof FLOATING)[number]) {
   return (
-    <div className="absolute" style={{ left: `${x}%`, top: `${y}%`, opacity }}>
+    <motion.div
+      className="absolute"
+      style={{ left: `${x}%`, top: `${y}%`, opacity }}
+      animate={{ y: [0, drift, 0] }}
+      transition={{ duration: dur, repeat: Infinity, ease: 'easeInOut', delay }}
+    >
       <div
         className="relative"
         style={{
@@ -719,7 +729,7 @@ function FloatingCard({
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -730,7 +740,7 @@ function FloatingCards() {
     'radial-gradient(62% 56% at 50% 44%, transparent 0%, transparent 48%, #000 88%)';
   return (
     <div
-      className="pointer-events-none absolute inset-0 overflow-hidden"
+      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
       style={{ maskImage: mask, WebkitMaskImage: mask }}
     >
       {FLOATING.map((c, i) => (
