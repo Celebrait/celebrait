@@ -650,133 +650,73 @@ function MagicCard({
   );
 }
 
-// ── Floating card field (hero background) ───────────────────────────
-// Clearly-OPEN greeting cards (front + inside + fold) scattered around the
-// periphery (a centre mask keeps the headline clear). Distance is conveyed by a
-// single `depth` 0(far)→1(near) that drives SIZE + depth-of-field blur + shadow
-// + a touch of opacity — never random fades. Sized in vmin so it scales cleanly
-// on mobile (which gets its own smaller, collision-free set).
+// ── Floating celebration field (hero background) ────────────────────
+// Glossy 3D celebration emoji scattered around the periphery (a centre mask
+// keeps the headline clear). Distance is conveyed by a single `depth`
+// 0(far)→1(near) driving SIZE + depth-of-field blur + contact shadow + a touch
+// of opacity. Sized in vmin so it scales on mobile (own smaller set).
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-// Drop shadow scaled by proximity — nearer = deeper/larger. + paper edge.
-function depthShadow(depth: number) {
-  const y = Math.round(lerp(10, 26, depth));
-  const blur = Math.round(lerp(24, 64, depth));
-  const spread = Math.round(lerp(-12, -26, depth));
-  const a = lerp(0.14, 0.26, depth).toFixed(2);
-  return `0 ${y}px ${blur}px ${spread}px rgba(15,23,42,${a}), inset 0 1px 0 rgba(255,255,255,0.5), 0 0 0 1px rgba(15,23,42,0.06)`;
-}
-
-// { x,y: % position · depth: 0(far)→1(near) · openDeg: open state — ~25 = a
-//   barely-ajar peek, ~110–130 = part open, ~155–162 = fully open · yaw: turn
-//   spine toward viewer (see into fold) · tilt: z-rotate · rotX · delay }
+// { x,y: % position · depth: 0(far)→1(near) drives size/blur/shadow/opacity ·
+//   icon: celebration emoji (a consistent glossy 3D set) · tilt: z-rotate ·
+//   delay: bob phase }
 const FLOATING_DESKTOP = [
   // upper band — far + small, receding toward a horizon
-  { x: 31, y: 11, depth: 0.16, openDeg: 30, yaw: 13, tilt: -6, rotX: 9, delay: 0 },
-  { x: 69, y: 9, depth: 0.24, openDeg: 156, yaw: -11, tilt: 5, rotX: 8, delay: 1.4 },
-  { x: 88, y: 25, depth: 0.36, openDeg: 118, yaw: 14, tilt: -4, rotX: 7, delay: 0.6 },
-  { x: 12, y: 27, depth: 0.31, openDeg: 24, yaw: 11, tilt: 6, rotX: 8, delay: 2 },
+  { x: 31, y: 10, depth: 0.18, icon: '✨', tilt: -8, delay: 0 },
+  { x: 69, y: 9, depth: 0.26, icon: '🎈', tilt: 6, delay: 1.4 },
+  { x: 88, y: 24, depth: 0.4, icon: '🎁', tilt: -5, delay: 0.6 },
+  { x: 12, y: 26, depth: 0.32, icon: '🥂', tilt: 8, delay: 2 },
+  { x: 50, y: 7, depth: 0.22, icon: '🌟', tilt: 4, delay: 1.1 },
   // lower band — near + big, anchoring the composition
-  { x: 9, y: 71, depth: 0.85, openDeg: 160, yaw: 16, tilt: -7, rotX: 10, delay: 0.9 },
-  { x: 91, y: 67, depth: 0.78, openDeg: 112, yaw: -13, tilt: 5, rotX: 9, delay: 1.8 },
-  { x: 27, y: 90, depth: 0.6, openDeg: 34, yaw: 12, tilt: -5, rotX: 7, delay: 0.3 },
-  { x: 73, y: 92, depth: 0.7, openDeg: 150, yaw: 13, tilt: 6, rotX: 8, delay: 2.4 },
+  { x: 8, y: 70, depth: 0.85, icon: '🎉', tilt: -10, delay: 0.9 },
+  { x: 92, y: 66, depth: 0.78, icon: '🎂', tilt: 7, delay: 1.8 },
+  { x: 26, y: 90, depth: 0.62, icon: '🍾', tilt: -6, delay: 0.3 },
+  { x: 74, y: 91, depth: 0.7, icon: '🎊', tilt: 9, delay: 2.4 },
 ];
-// Mobile — 4 cards only, in the top/bottom thirds + hugging the edges.
+// Mobile — 5 icons in the top/bottom thirds + hugging the edges.
 const FLOATING_MOBILE = [
-  { x: 15, y: 12, depth: 0.36, openDeg: 28, yaw: 13, tilt: -5, rotX: 8, delay: 0 },
-  { x: 85, y: 15, depth: 0.46, openDeg: 156, yaw: -11, tilt: 5, rotX: 7, delay: 1.2 },
-  { x: 13, y: 86, depth: 0.78, openDeg: 118, yaw: 15, tilt: -6, rotX: 9, delay: 0.6 },
-  { x: 87, y: 88, depth: 0.66, openDeg: 32, yaw: -13, tilt: 6, rotX: 8, delay: 1.8 },
+  { x: 14, y: 11, depth: 0.4, icon: '🎈', tilt: -6, delay: 0 },
+  { x: 86, y: 14, depth: 0.5, icon: '🎉', tilt: 6, delay: 1.2 },
+  { x: 50, y: 7, depth: 0.34, icon: '✨', tilt: 4, delay: 1.4 },
+  { x: 12, y: 86, depth: 0.78, icon: '🎁', tilt: -7, delay: 0.6 },
+  { x: 88, y: 88, depth: 0.66, icon: '🥂', tilt: 7, delay: 1.8 },
 ];
 
-function FloatingCard({
+function FloatingIcon({
   x,
   y,
   depth,
-  openDeg,
-  yaw,
+  icon,
   tilt,
-  rotX,
   delay,
 }: (typeof FLOATING_DESKTOP)[number]) {
-  const size = `clamp(56px, ${lerp(13, 25, depth).toFixed(2)}vmin, 230px)`;
-  const blur = (1 - depth) * 2.6;
-  const opacity = 0.8 + depth * 0.15;
-  const drift = lerp(6, 13, depth) * (yaw >= 0 ? -1 : 1);
+  const size = `clamp(34px, ${lerp(8, 18, depth).toFixed(2)}vmin, 150px)`;
+  const blur = (1 - depth) * 2.2;
+  const opacity = 0.55 + depth * 0.35;
+  const drift = lerp(6, 14, depth) * (tilt >= 0 ? -1 : 1);
   const dur = 8 + depth * 4;
-  const shadow = depthShadow(depth);
+  // Soft contact shadow scaled by proximity grounds the object.
+  const sy = Math.round(lerp(6, 16, depth));
+  const sb = Math.round(lerp(10, 22, depth));
+  const sa = lerp(0.12, 0.22, depth).toFixed(2);
+  const filter = `${blur > 0.2 ? `blur(${blur.toFixed(1)}px) ` : ''}drop-shadow(0 ${sy}px ${sb}px rgba(15,23,42,${sa}))`;
   return (
     <motion.div
-      className="absolute"
+      className="absolute select-none"
       style={{ left: `${x}%`, top: `${y}%`, opacity }}
       animate={{ y: [0, drift, 0] }}
       transition={{ duration: dur, repeat: Infinity, ease: 'easeInOut', delay }}
     >
-      {/* centre on the point + depth-of-field blur (kept off the masked layer) */}
       <div
+        aria-hidden
         style={{
-          transform: 'translate(-50%, -50%)',
-          filter: blur > 0.2 ? `blur(${blur.toFixed(1)}px)` : undefined,
+          transform: `translate(-50%, -50%) rotate(${tilt}deg)`,
+          fontSize: size,
+          lineHeight: 1,
+          filter,
         }}
       >
-        <div style={{ perspective: 1300 }}>
-          {/* card box — 3D pose so you see into the open fold */}
-          <div
-            className="relative"
-            style={{
-              width: size,
-              height: size,
-              transformStyle: 'preserve-3d',
-              transform: `rotateX(${rotX}deg) rotateY(${yaw}deg) rotateZ(${tilt}deg)`,
-            }}
-          >
-            {/* inside plane (base) — inside render + cast shadow from the cover */}
-            <div
-              className="absolute inset-0 overflow-hidden rounded-[6px] bg-white"
-              style={{ boxShadow: shadow }}
-            >
-              <img
-                src={revealInside}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-              <CardSurface />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/40 via-black/12 to-transparent" />
-            </div>
-            {/* cover — hinged at the spine, ajar by openDeg */}
-            <div
-              className="absolute inset-0"
-              style={{
-                transformOrigin: 'left center',
-                transform: `rotateY(${-openDeg}deg)`,
-                transformStyle: 'preserve-3d',
-              }}
-            >
-              <div
-                className="absolute inset-0 overflow-hidden rounded-[6px] bg-white"
-                style={{ backfaceVisibility: 'hidden', boxShadow: shadow }}
-              >
-                <img
-                  src={revealFront}
-                  alt=""
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-                <CardSurface />
-              </div>
-              <div
-                className="absolute inset-0 overflow-hidden rounded-[6px] bg-white"
-                style={{
-                  backfaceVisibility: 'hidden',
-                  transform: 'rotateY(180deg)',
-                  boxShadow: shadow,
-                }}
-              >
-                <CardSurface />
-              </div>
-            </div>
-          </div>
-        </div>
+        {icon}
       </div>
     </motion.div>
   );
@@ -799,7 +739,7 @@ function FloatingCards({
       style={{ maskImage: mask, WebkitMaskImage: mask }}
     >
       {sorted.map((c, i) => (
-        <FloatingCard key={i} {...c} />
+        <FloatingIcon key={i} {...c} />
       ))}
     </div>
   );
