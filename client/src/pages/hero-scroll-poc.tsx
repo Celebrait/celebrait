@@ -535,6 +535,28 @@ function ConfettiPiece({
 // the cover casting a shadow on the inside-right. Pure CSS hinge, no 3D viewer.
 const CARD_W = 340; // px — fixed for the hinge geometry (POC: desktop-first)
 
+// Paper treatment for the finale card faces — a soft drop shadow + top-edge
+// highlight + hairline (gives it lift + thickness), plus a surface-shading
+// gradient and a faint grain so it reads as paper, not a flat sticker.
+const CARD_SHADOW =
+  '0 30px 56px -22px rgba(15,23,42,0.55), 0 8px 16px -9px rgba(15,23,42,0.32), inset 0 1px 0 rgba(255,255,255,0.6), 0 0 0 1px rgba(15,23,42,0.07)';
+const PAPER_GRAIN =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E\")";
+
+function CardSurface() {
+  return (
+    <>
+      {/* Form — light top-left → shade bottom-right. */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/25 via-transparent to-black/[0.12]" />
+      {/* Paper grain. */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.06] mix-blend-overlay"
+        style={{ backgroundImage: PAPER_GRAIN }}
+      />
+    </>
+  );
+}
+
 function MagicCard({
   swipe,
   open,
@@ -562,13 +584,17 @@ function MagicCard({
         className="relative"
         style={{ width: CARD_W, height: CARD_W, transformStyle: 'preserve-3d' }}
       >
-        {/* Inside-right — the inside render + the cast shadow. */}
-        <div className="absolute inset-0 overflow-hidden rounded-[6px] bg-white ring-1 ring-stone-200/70">
+        {/* Inside-right — the inside render + paper surface + the cast shadow. */}
+        <div
+          className="absolute inset-0 overflow-hidden rounded-[6px] bg-white"
+          style={{ boxShadow: CARD_SHADOW }}
+        >
           <img
             src={revealInside}
             alt=""
             className="absolute inset-0 h-full w-full object-cover"
           />
+          <CardSurface />
           <motion.div
             aria-hidden
             style={{ opacity: shadowO }}
@@ -585,10 +611,10 @@ function MagicCard({
             transformStyle: 'preserve-3d',
           }}
         >
-          {/* Front face — the render, swiped in. */}
+          {/* Front face — the render, swiped in, + paper surface. */}
           <div
-            className="absolute inset-0 overflow-hidden rounded-[6px] bg-white ring-1 ring-stone-200/70"
-            style={{ backfaceVisibility: 'hidden' }}
+            className="absolute inset-0 overflow-hidden rounded-[6px] bg-white"
+            style={{ backfaceVisibility: 'hidden', boxShadow: CARD_SHADOW }}
           >
             <motion.img
               src={revealFront}
@@ -596,17 +622,24 @@ function MagicCard({
               style={{ clipPath: frontClip }}
               className="absolute inset-0 h-full w-full object-cover"
             />
+            <CardSurface />
             <motion.div
               aria-hidden
               style={{ left: lineLeft, opacity: lineO }}
               className="pointer-events-none absolute bottom-0 top-0 w-[4px] -translate-x-1/2 bg-white/90 shadow-[0_0_24px_7px_rgba(122,118,232,0.85)]"
             />
           </div>
-          {/* Back face — the inside-left, WHITE. */}
+          {/* Back face — the inside-left, WHITE paper. */}
           <div
-            className="absolute inset-0 rounded-[6px] bg-white ring-1 ring-stone-200/70"
-            style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-          />
+            className="absolute inset-0 overflow-hidden rounded-[6px] bg-white"
+            style={{
+              backfaceVisibility: 'hidden',
+              transform: 'rotateY(180deg)',
+              boxShadow: CARD_SHADOW,
+            }}
+          >
+            <CardSurface />
+          </div>
         </motion.div>
       </div>
     </div>
