@@ -137,9 +137,10 @@ export default function HeroScrollPocPage() {
         }}
       />
 
-      {/* Floating card field — FIXED, an always-on background across the whole
-          page (centre-masked so it never crowds the content). */}
-      <FloatingCards />
+      {/* Floating card field — FIXED, always-on background across the whole page
+          (centre-masked). Desktop + a separate, sparser mobile set. */}
+      <FloatingCards cards={FLOATING_DESKTOP} mask={DESKTOP_MASK} className="hidden md:block" />
+      <FloatingCards cards={FLOATING_MOBILE} mask={MOBILE_MASK} className="md:hidden" />
 
       {/* Hero — a normal landing section you just scroll past. */}
       <section className="relative flex min-h-screen flex-col items-center justify-center px-6">
@@ -653,34 +654,61 @@ function MagicCard({
 }
 
 // ── Floating card field (hero background) ───────────────────────────
-// Faded, static card renders around the PERIPHERY (a centre mask keeps the
-// headline clear) — mostly closed with a couple open, varied sizes/tilts,
-// gently drifting. Hand-placed so they frame, not clutter.
-const FLOATING = [
-  { x: 6, y: 17, size: 140, openDeg: 0, rot: -7, opacity: 0.08, delay: 0, dur: 8, drift: 12 },
-  { x: 5, y: 48, size: 170, openDeg: 0, rot: 5, opacity: 0.07, delay: 1.2, dur: 9, drift: -14 },
-  { x: 11, y: 74, size: 128, openDeg: 138, rot: -6, opacity: 0.06, delay: 0.6, dur: 10, drift: 10 },
-  { x: 25, y: 89, size: 108, openDeg: 0, rot: 8, opacity: 0.07, delay: 2, dur: 8, drift: -10 },
-  { x: 33, y: 9, size: 98, openDeg: 0, rot: -5, opacity: 0.06, delay: 1.6, dur: 9, drift: 9 },
-  { x: 67, y: 8, size: 118, openDeg: 0, rot: 6, opacity: 0.07, delay: 0.3, dur: 10, drift: -11 },
-  { x: 94, y: 21, size: 128, openDeg: 0, rot: 7, opacity: 0.08, delay: 1, dur: 8, drift: 13 },
-  { x: 93, y: 52, size: 165, openDeg: 142, rot: -5, opacity: 0.07, delay: 0.8, dur: 9, drift: -12 },
-  { x: 95, y: 79, size: 124, openDeg: 0, rot: 5, opacity: 0.06, delay: 2.2, dur: 10, drift: 10 },
-  { x: 76, y: 88, size: 112, openDeg: 0, rot: -8, opacity: 0.07, delay: 1.4, dur: 8, drift: -9 },
-  { x: 86, y: 13, size: 92, openDeg: 0, rot: 4, opacity: 0.05, delay: 0.5, dur: 11, drift: 8 },
+// Clearly-OPEN greeting cards (front + inside + fold) scattered around the
+// periphery (a centre mask keeps the headline clear). Distance is conveyed by a
+// single `depth` 0(far)→1(near) that drives SIZE + depth-of-field blur + shadow
+// + a touch of opacity — never random fades. Sized in vmin so it scales cleanly
+// on mobile (which gets its own smaller, collision-free set).
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+// Drop shadow scaled by proximity — nearer = deeper/larger. + paper edge.
+function depthShadow(depth: number) {
+  const y = Math.round(lerp(10, 26, depth));
+  const blur = Math.round(lerp(24, 64, depth));
+  const spread = Math.round(lerp(-12, -26, depth));
+  const a = lerp(0.14, 0.26, depth).toFixed(2);
+  return `0 ${y}px ${blur}px ${spread}px rgba(15,23,42,${a}), inset 0 1px 0 rgba(255,255,255,0.5), 0 0 0 1px rgba(15,23,42,0.06)`;
+}
+
+// { x,y: % position · depth: 0(far)→1(near) · openDeg: ajar angle (120–145) ·
+//   yaw: turn spine toward viewer (see into the fold) · tilt: z-rotate ·
+//   rotX: slight above-view · delay: bob phase }
+const FLOATING_DESKTOP = [
+  // upper band — far + small, receding toward a horizon
+  { x: 31, y: 11, depth: 0.16, openDeg: 128, yaw: 13, tilt: -6, rotX: 9, delay: 0 },
+  { x: 69, y: 9, depth: 0.24, openDeg: 138, yaw: -11, tilt: 5, rotX: 8, delay: 1.4 },
+  { x: 88, y: 25, depth: 0.36, openDeg: 132, yaw: 14, tilt: -4, rotX: 7, delay: 0.6 },
+  { x: 12, y: 27, depth: 0.31, openDeg: 122, yaw: 11, tilt: 6, rotX: 8, delay: 2 },
+  // lower band — near + big, anchoring the composition
+  { x: 9, y: 71, depth: 0.85, openDeg: 142, yaw: 16, tilt: -7, rotX: 10, delay: 0.9 },
+  { x: 91, y: 67, depth: 0.78, openDeg: 130, yaw: -13, tilt: 5, rotX: 9, delay: 1.8 },
+  { x: 27, y: 90, depth: 0.6, openDeg: 136, yaw: 12, tilt: -5, rotX: 7, delay: 0.3 },
+  { x: 73, y: 92, depth: 0.7, openDeg: 126, yaw: 13, tilt: 6, rotX: 8, delay: 2.4 },
+];
+// Mobile — 4 cards only, in the top/bottom thirds + hugging the edges.
+const FLOATING_MOBILE = [
+  { x: 15, y: 12, depth: 0.36, openDeg: 130, yaw: 13, tilt: -5, rotX: 8, delay: 0 },
+  { x: 85, y: 15, depth: 0.46, openDeg: 138, yaw: -11, tilt: 5, rotX: 7, delay: 1.2 },
+  { x: 13, y: 86, depth: 0.78, openDeg: 134, yaw: 15, tilt: -6, rotX: 9, delay: 0.6 },
+  { x: 87, y: 88, depth: 0.66, openDeg: 126, yaw: -13, tilt: 6, rotX: 8, delay: 1.8 },
 ];
 
 function FloatingCard({
   x,
   y,
-  size,
+  depth,
   openDeg,
-  rot,
-  opacity,
+  yaw,
+  tilt,
+  rotX,
   delay,
-  dur,
-  drift,
-}: (typeof FLOATING)[number]) {
+}: (typeof FLOATING_DESKTOP)[number]) {
+  const size = `clamp(56px, ${lerp(13, 25, depth).toFixed(2)}vmin, 230px)`;
+  const blur = (1 - depth) * 2.6;
+  const opacity = 0.8 + depth * 0.15;
+  const drift = lerp(6, 13, depth) * (yaw >= 0 ? -1 : 1);
+  const dur = 8 + depth * 4;
+  const shadow = depthShadow(depth);
   return (
     <motion.div
       className="absolute"
@@ -688,48 +716,68 @@ function FloatingCard({
       animate={{ y: [0, drift, 0] }}
       transition={{ duration: dur, repeat: Infinity, ease: 'easeInOut', delay }}
     >
+      {/* centre on the point + depth-of-field blur (kept off the masked layer) */}
       <div
-        className="relative"
         style={{
-          perspective: 1200,
-          transform: `translate(-50%, -50%) rotate(${rot}deg)`,
+          transform: 'translate(-50%, -50%)',
+          filter: blur > 0.2 ? `blur(${blur.toFixed(1)}px)` : undefined,
         }}
       >
-        <div
-          className="relative"
-          style={{ width: size, height: size, transformStyle: 'preserve-3d' }}
-        >
-          {/* inside-right */}
-          <div className="absolute inset-0 overflow-hidden rounded-[5px] bg-white ring-1 ring-stone-200/50">
-            <img
-              src={revealInside}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          </div>
-          {/* cover — opened by openDeg */}
+        <div style={{ perspective: 1300 }}>
+          {/* card box — 3D pose so you see into the open fold */}
           <div
-            className="absolute inset-0"
+            className="relative"
             style={{
-              transformOrigin: 'left center',
-              transform: `rotateY(${-openDeg}deg)`,
+              width: size,
+              height: size,
               transformStyle: 'preserve-3d',
+              transform: `rotateX(${rotX}deg) rotateY(${yaw}deg) rotateZ(${tilt}deg)`,
             }}
           >
+            {/* inside plane (base) — inside render + cast shadow from the cover */}
             <div
-              className="absolute inset-0 overflow-hidden rounded-[5px] ring-1 ring-stone-200/50"
-              style={{ backfaceVisibility: 'hidden' }}
+              className="absolute inset-0 overflow-hidden rounded-[6px] bg-white"
+              style={{ boxShadow: shadow }}
             >
               <img
-                src={revealFront}
+                src={revealInside}
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover"
               />
+              <CardSurface />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/40 via-black/12 to-transparent" />
             </div>
+            {/* cover — hinged at the spine, ajar by openDeg */}
             <div
-              className="absolute inset-0 rounded-[5px] bg-white ring-1 ring-stone-200/50"
-              style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-            />
+              className="absolute inset-0"
+              style={{
+                transformOrigin: 'left center',
+                transform: `rotateY(${-openDeg}deg)`,
+                transformStyle: 'preserve-3d',
+              }}
+            >
+              <div
+                className="absolute inset-0 overflow-hidden rounded-[6px] bg-white"
+                style={{ backfaceVisibility: 'hidden', boxShadow: shadow }}
+              >
+                <img
+                  src={revealFront}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <CardSurface />
+              </div>
+              <div
+                className="absolute inset-0 overflow-hidden rounded-[6px] bg-white"
+                style={{
+                  backfaceVisibility: 'hidden',
+                  transform: 'rotateY(180deg)',
+                  boxShadow: shadow,
+                }}
+              >
+                <CardSurface />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -737,22 +785,34 @@ function FloatingCard({
   );
 }
 
-function FloatingCards() {
-  // Radial mask — fully transparent in the centre (so the headline is never
-  // crowded), fading the cards in only toward the edges.
-  const mask =
-    'radial-gradient(62% 56% at 50% 44%, transparent 0%, transparent 48%, #000 88%)';
+function FloatingCards({
+  cards,
+  mask,
+  className,
+}: {
+  cards: typeof FLOATING_DESKTOP;
+  mask: string;
+  className?: string;
+}) {
+  // Paint far→near so nearer cards sit in front.
+  const sorted = [...cards].sort((a, b) => a.depth - b.depth);
   return (
     <div
-      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
+      className={`pointer-events-none fixed inset-0 -z-10 overflow-hidden ${className ?? ''}`}
       style={{ maskImage: mask, WebkitMaskImage: mask }}
     >
-      {FLOATING.map((c, i) => (
+      {sorted.map((c, i) => (
         <FloatingCard key={i} {...c} />
       ))}
     </div>
   );
 }
+
+// Centre-clearing masks — wider/taller clear zone on mobile (tall narrow column).
+const DESKTOP_MASK =
+  'radial-gradient(60% 54% at 50% 47%, transparent 0%, transparent 46%, #000 86%)';
+const MOBILE_MASK =
+  'radial-gradient(92% 64% at 50% 44%, transparent 0%, transparent 56%, #000 92%)';
 
 function ScrollGlyph() {
   return (
