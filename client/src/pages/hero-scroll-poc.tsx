@@ -131,10 +131,7 @@ export default function HeroScrollPocPage() {
       {/* Constant gradient backdrop — seamless across the hero + the stage. */}
       <div
         className="fixed inset-0 -z-10"
-        style={{
-          background:
-            'radial-gradient(120% 90% at 50% 32%, #ffffff 0%, #f4f3fb 55%, #efeefb 100%)',
-        }}
+        style={{ background: 'linear-gradient(180deg, #ffffff 0%, #f3f2fb 100%)' }}
       />
 
       {/* Floating card field — FIXED, always-on background across the whole page
@@ -670,27 +667,27 @@ function depthShadow(depth: number) {
   return `0 ${y}px ${blur}px ${spread}px rgba(15,23,42,${a}), inset 0 1px 0 rgba(255,255,255,0.5), 0 0 0 1px rgba(15,23,42,0.06)`;
 }
 
-// { x,y: % position · depth: 0(far)→1(near) · openDeg: ajar angle (120–145) ·
-//   yaw: turn spine toward viewer (see into the fold) · tilt: z-rotate ·
-//   rotX: slight above-view · delay: bob phase }
+// { x,y: % position · depth: 0(far)→1(near) · openDeg: open state — ~25 = a
+//   barely-ajar peek, ~110–130 = part open, ~155–162 = fully open · yaw: turn
+//   spine toward viewer (see into fold) · tilt: z-rotate · rotX · delay }
 const FLOATING_DESKTOP = [
   // upper band — far + small, receding toward a horizon
-  { x: 31, y: 11, depth: 0.16, openDeg: 128, yaw: 13, tilt: -6, rotX: 9, delay: 0 },
-  { x: 69, y: 9, depth: 0.24, openDeg: 138, yaw: -11, tilt: 5, rotX: 8, delay: 1.4 },
-  { x: 88, y: 25, depth: 0.36, openDeg: 132, yaw: 14, tilt: -4, rotX: 7, delay: 0.6 },
-  { x: 12, y: 27, depth: 0.31, openDeg: 122, yaw: 11, tilt: 6, rotX: 8, delay: 2 },
+  { x: 31, y: 11, depth: 0.16, openDeg: 30, yaw: 13, tilt: -6, rotX: 9, delay: 0 },
+  { x: 69, y: 9, depth: 0.24, openDeg: 156, yaw: -11, tilt: 5, rotX: 8, delay: 1.4 },
+  { x: 88, y: 25, depth: 0.36, openDeg: 118, yaw: 14, tilt: -4, rotX: 7, delay: 0.6 },
+  { x: 12, y: 27, depth: 0.31, openDeg: 24, yaw: 11, tilt: 6, rotX: 8, delay: 2 },
   // lower band — near + big, anchoring the composition
-  { x: 9, y: 71, depth: 0.85, openDeg: 142, yaw: 16, tilt: -7, rotX: 10, delay: 0.9 },
-  { x: 91, y: 67, depth: 0.78, openDeg: 130, yaw: -13, tilt: 5, rotX: 9, delay: 1.8 },
-  { x: 27, y: 90, depth: 0.6, openDeg: 136, yaw: 12, tilt: -5, rotX: 7, delay: 0.3 },
-  { x: 73, y: 92, depth: 0.7, openDeg: 126, yaw: 13, tilt: 6, rotX: 8, delay: 2.4 },
+  { x: 9, y: 71, depth: 0.85, openDeg: 160, yaw: 16, tilt: -7, rotX: 10, delay: 0.9 },
+  { x: 91, y: 67, depth: 0.78, openDeg: 112, yaw: -13, tilt: 5, rotX: 9, delay: 1.8 },
+  { x: 27, y: 90, depth: 0.6, openDeg: 34, yaw: 12, tilt: -5, rotX: 7, delay: 0.3 },
+  { x: 73, y: 92, depth: 0.7, openDeg: 150, yaw: 13, tilt: 6, rotX: 8, delay: 2.4 },
 ];
 // Mobile — 4 cards only, in the top/bottom thirds + hugging the edges.
 const FLOATING_MOBILE = [
-  { x: 15, y: 12, depth: 0.36, openDeg: 130, yaw: 13, tilt: -5, rotX: 8, delay: 0 },
-  { x: 85, y: 15, depth: 0.46, openDeg: 138, yaw: -11, tilt: 5, rotX: 7, delay: 1.2 },
-  { x: 13, y: 86, depth: 0.78, openDeg: 134, yaw: 15, tilt: -6, rotX: 9, delay: 0.6 },
-  { x: 87, y: 88, depth: 0.66, openDeg: 126, yaw: -13, tilt: 6, rotX: 8, delay: 1.8 },
+  { x: 15, y: 12, depth: 0.36, openDeg: 28, yaw: 13, tilt: -5, rotX: 8, delay: 0 },
+  { x: 85, y: 15, depth: 0.46, openDeg: 156, yaw: -11, tilt: 5, rotX: 7, delay: 1.2 },
+  { x: 13, y: 86, depth: 0.78, openDeg: 118, yaw: 15, tilt: -6, rotX: 9, delay: 0.6 },
+  { x: 87, y: 88, depth: 0.66, openDeg: 32, yaw: -13, tilt: 6, rotX: 8, delay: 1.8 },
 ];
 
 function FloatingCard({
