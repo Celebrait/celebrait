@@ -42,7 +42,7 @@ import { BlogTeaserSection } from '@/components/landing/blog-teaser-section';
 import { DemoVideoSection } from '@/components/landing/demo-video-section';
 import { FaqSection } from '@/components/landing/faq-section';
 import { FinalCtaBand } from '@/components/landing/final-cta-band';
-import { HeroSection } from '@/components/landing/hero-section';
+import { HeroFloatingSection } from '@/components/landing/hero-floating-section';
 import { ImagineDescribeShipSection } from '@/components/landing/imagine-describe-ship-section';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { MarketingHeader } from '@/components/landing/marketing-header';
@@ -56,7 +56,7 @@ export default function Landing() {
       <MarketingHeader />
       <PromoStrip />
       <main>
-        <HeroSection />
+        <HeroFloatingSection />
         <DemoVideoSection />
         <ImagineDescribeShipSection />
         <TestimonialCarouselSection />
