@@ -27,6 +27,7 @@ import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { MarketingHeader } from '@/components/landing/marketing-header';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
+import { useAuthModal } from '@/components/auth/auth-modal';
 import {
   PRICING_TIERS,
   OVERNIGHT_DELIVERY,
@@ -61,10 +62,13 @@ const TIER_VISUALS: Record<TierId, {
 
 interface PriceCardProps {
   tier: PricingTier;
-  ctaHref: string;
+  /** Authed visitors link straight to the studio; everyone else opens
+   *  the auth modal (kept in-page rather than bounced to /login). */
+  authed: boolean;
 }
 
-function PriceCard({ tier, ctaHref }: PriceCardProps) {
+function PriceCard({ tier, authed }: PriceCardProps) {
+  const { openAuth } = useAuthModal();
   const visuals = TIER_VISUALS[tier.id];
   const Icon = visuals.icon;
   const priceLabel = formatPrice(tier.price, 'GBP');
@@ -147,8 +151,21 @@ function PriceCard({ tier, ctaHref }: PriceCardProps) {
         </div>
       )}
 
-      <Link href={ctaHref}>
+      {authed ? (
+        <Link href="/studio">
+          <Button
+            className={`w-full h-11 text-sm font-medium ${
+              tier.highlight
+                ? 'bg-brand hover:bg-brand-dark text-brand-foreground'
+                : 'bg-ink hover:bg-ink/90 text-white'
+            }`}
+          >
+            {tier.ctaLabel}
+          </Button>
+        </Link>
+      ) : (
         <Button
+          onClick={() => openAuth('/studio/new-card')}
           className={`w-full h-11 text-sm font-medium ${
             tier.highlight
               ? 'bg-brand hover:bg-brand-dark text-brand-foreground'
@@ -157,20 +174,15 @@ function PriceCard({ tier, ctaHref }: PriceCardProps) {
         >
           {tier.ctaLabel}
         </Button>
-      </Link>
+      )}
     </div>
   );
 }
 
 export default function PricingPage() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { openAuth } = useAuthModal();
   const showAuthedTreatment = !isLoading && isAuthenticated;
-
-  // CTA target — auth-aware. All three tiers funnel to the studio;
-  // payment selection happens at checkout, not here.
-  const ctaHref = showAuthedTreatment
-    ? '/studio'
-    : '/login?redirect=/studio/new-card';
 
   return (
     <div className="min-h-screen bg-surface-card">
@@ -195,7 +207,7 @@ export default function PricingPage() {
           {/* Price tiers */}
           <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
             {PRICING_TIERS.map((tier) => (
-              <PriceCard key={tier.id} tier={tier} ctaHref={ctaHref} />
+              <PriceCard key={tier.id} tier={tier} authed={showAuthedTreatment} />
             ))}
           </div>
 
@@ -250,11 +262,12 @@ export default function PricingPage() {
                 </Button>
               </Link>
             ) : (
-              <Link href="/login?redirect=/studio/new-card">
-                <Button className="bg-cta hover:bg-cta-hover text-cta-foreground h-12 px-8 text-base font-medium">
-                  Make my first card
-                </Button>
-              </Link>
+              <Button
+                onClick={() => openAuth('/studio/new-card')}
+                className="bg-cta hover:bg-cta-hover text-cta-foreground h-12 px-8 text-base font-medium"
+              >
+                Make my first card
+              </Button>
             )}
             <p className="text-xs text-ink-soft mt-4">
               Free to start. No card needed.

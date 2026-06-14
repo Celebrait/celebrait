@@ -43,6 +43,7 @@ import { RequireAuth, RequireAdmin } from "@/components/require-auth";
 
 // ---- Eager pages -----------------------------------------------------------
 // Critical-path or trivially small. Worth shipping in the main chunk.
+import { AuthModalProvider } from "@/components/auth/auth-modal";
 import Landing from "@/pages/landing";
 import LoginPage from "@/pages/login";
 import PricingPage from "@/pages/pricing";
@@ -319,8 +320,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <AuthModalProvider>
+          <Toaster />
+          <Router />
+        </AuthModalProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

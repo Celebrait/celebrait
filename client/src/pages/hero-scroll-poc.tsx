@@ -18,6 +18,7 @@ import {
   useMotionTemplate,
   useMotionValueEvent,
   useReducedMotion,
+  easeInOut,
   type MotionValue,
 } from 'framer-motion';
 import {
@@ -30,8 +31,17 @@ import {
   Check,
   Loader2,
 } from 'lucide-react';
+import { Link } from 'wouter';
+import { useAuth } from '@/hooks/use-auth';
+import { Button } from '@/components/ui/button';
+import { ScrollHint } from '@/components/landing/hero-floating-section';
 import revealFront from '@/assets/hero-card-front.png';
 import revealInside from '@/assets/hero-card-inside.png';
+import envelopeImg from '@/assets/envelope.png';
+import cakeIcon from '@/assets/icons/cake.png';
+import ringIcon from '@/assets/icons/ring.png';
+import presentIcon from '@/assets/icons/present.png';
+import heartIcon from '@/assets/icons/heart.png';
 
 const FINAL_NAME = 'Sarah';
 const ANNIVERSARY_IDX = 1; // 'Anniversary' in OCC
@@ -55,7 +65,11 @@ export function StudioFlowSection() {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress: rawProgress } = useScroll({
     target: ref,
-    offset: ['start start', 'end end'],
+    // 'start center' begins tracking while the section is still RISING into
+    // view, so the first beat's photos sweep UP FROM BELOW as they zoom in
+    // (instead of just popping once the section pins). End unchanged, so the
+    // finale still lands at the bottom.
+    offset: ['start center', 'end end'],
   });
   // Crop so the flow starts at the photos beat (beats keep their 0→1 numbers).
   const scrollYProgress = useTransform(rawProgress, [0, 1], [0.14, 1]);
@@ -75,19 +89,21 @@ export function StudioFlowSection() {
 
     // Three build beats animate across their crawl (slow zone). Centres:
     // .27 (photos) / .50 (put them in the picture: scene→front) / .72 (inside).
+    // Photos — selection comes in quick (reverted to the original feel).
     const ps = clamp((v - 0.245) / (0.285 - 0.245), 0, 1);
     setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
 
-    // Put them in the picture — scene types across the crawl (centre .50).
-    const ps5 = clamp((v - 0.45) / (0.53 - 0.45), 0, 1);
+    // Picture — scene starts typing just after the headline lands (~.42), and
+    // FINISHES with a beat to spare (.515) so the step hangs before exiting.
+    const ps5 = clamp((v - 0.435) / (0.515 - 0.435), 0, 1);
     setSceneLen(Math.round(ps5 * SCENE_TEXT.length));
 
-    // Add your words (centre .72) — front headline types first…
-    const ps6 = clamp((v - 0.66) / (0.70 - 0.66), 0, 1);
+    // Words — front headline types first, just after landing (~.65)…
+    const ps6 = clamp((v - 0.665) / (0.705 - 0.665), 0, 1);
     setFrontLen(Math.round(ps6 * FRONT_TEXT.length));
 
-    // …then the full inside message.
-    const ps7 = clamp((v - 0.70) / (0.78 - 0.70), 0, 1);
+    // …then the inside message, finishing at .76 to hang before exit.
+    const ps7 = clamp((v - 0.705) / (0.76 - 0.705), 0, 1);
     setInsideLen(Math.round(ps7 * INSIDE_MESSAGE.length));
   });
 
@@ -101,45 +117,79 @@ export function StudioFlowSection() {
   //
   // Three build beats: photos (.27) / put them in the picture (.50, wide) /
   // inside (.72). Then the finale.
-  // Beat 2 — "Select your photo(s)" (centre .27).
-  const z4 = useTransform(scrollYProgress, [0.14, 0.245, 0.295, 0.4], [-720, -40, 40, 820]);
-  const o4 = useTransform(scrollYProgress, [0.14, 0.205, 0.295, 0.37], [0, 1, 1, 0]);
-  // Beat 3 — "Put them in the picture" (centre .50, wider crawl: scene+front).
-  const z5 = useTransform(scrollYProgress, [0.37, 0.45, 0.55, 0.63], [-720, -40, 40, 820]);
-  const o5 = useTransform(scrollYProgress, [0.4, 0.45, 0.55, 0.6], [0, 1, 1, 0]);
+  // Beat 2 — "Select your photo(s)" (centre .27). Fades in by .17 and reaches
+  // readable size (−40) by .195 — most of which happens DURING the section's
+  // entry (see the 'start center' offset above), so the photos sweep up from
+  // below and zoom in as the user leaves the hero, rather than popping in.
+  const z4 = useTransform(scrollYProgress, [0.14, 0.195, 0.30, 0.4], [-720, -40, 40, 820]);
+  const o4 = useTransform(scrollYProgress, [0.14, 0.17, 0.30, 0.37], [0, 1, 1, 0]);
+  // Beat 3 — "Put them in the picture" (centre .50). Snappy approach (~.06,
+  // matching photos) so the asset HITS fast, then the crawl holds for reading.
+  const z5 = useTransform(scrollYProgress, [0.37, 0.42, 0.57, 0.61], [-720, -40, 40, 820]);
+  const o5 = useTransform(scrollYProgress, [0.37, 0.40, 0.57, 0.605], [0, 1, 1, 0]);
   // Beat 4 — "Add your words" (centre .72, wide crawl: front then message).
-  const z7 = useTransform(scrollYProgress, [0.59, 0.66, 0.78, 0.85], [-720, -40, 40, 820]);
-  const o7 = useTransform(scrollYProgress, [0.62, 0.66, 0.78, 0.82], [0, 1, 1, 0]);
-  // Finale — a spinner spins as you scroll in (the studio's "creating your
-  // card" moment), fades, then the finished card fades in (in sync with the
-  // spinner), opens, then simply fades out into the regen screen (no zoom).
-  // openProgress scrubs the hinge 1:1 with scroll.
-  // Blank card dollies in while the spinner loads → render SWIPES in → the
-  // cover OPENS (revealing the inside) → it drops off-screen to "Send it".
-  const spinnerRot = useTransform(scrollYProgress, [0.8, 0.89], [0, 540]);
-  const spinnerO = useTransform(scrollYProgress, [0.8, 0.82, 0.875, 0.89], [0, 1, 1, 0]);
-  const zCard = useTransform(scrollYProgress, [0.82, 0.88], [-720, 0]);
-  const backdropO = useTransform(scrollYProgress, [0.82, 0.865, 1], [0, 1, 1]);
-  const swipeProgress = useTransform(scrollYProgress, [0.885, 0.92], [0, 1]);
-  const openProgress = useTransform(scrollYProgress, [0.925, 0.97], [0, 1]);
-  const yCard = useTransform(scrollYProgress, [0.975, 1], [0, 1100]);
-  // "Send it" is revealed as the card drops away.
-  const oSend = useTransform(scrollYProgress, [0.975, 0.995, 1], [0, 1, 1]);
+  // Snappy approach (~.06) so it hits fast, then the wide crawl holds to read.
+  const z7 = useTransform(scrollYProgress, [0.59, 0.65, 0.79, 0.84], [-720, -40, 40, 820]);
+  const o7 = useTransform(scrollYProgress, [0.59, 0.63, 0.79, 0.83], [0, 1, 1, 0]);
+  // Finale — extended (1500vh section) + re-choreographed for dwell:
+  //   • dolly in (−720→0) + spinner            0.80–0.825
+  //   • render SWIPES in (front appears)        0.825–0.85
+  //   • FRONT DWELL (front held, zoom begins)   0.85–0.885
+  //   • cover OPENS (eased hinge)               0.885–0.915
+  //   • OPEN DWELL (inside held, zoom continues)0.915–0.955
+  //   • slower DROP (uncovers "Send it")        0.955–0.972
+  //   • "Send it" + envelope sit, then flick    0.972–1.0
+  // The "camera moves closer" is a continuous translateZ push-in (0→175)
+  // folded into zCard, running from arrival through the open dwell.
+  // Spinner appears AFTER the previous beat clears (~0.82) and fully fades out
+  // BEFORE the wipe starts (0.863), so the wipe never runs over the spinner.
+  const spinnerRot = useTransform(scrollYProgress, [0.825, 0.86], [0, 540]);
+  const spinnerO = useTransform(scrollYProgress, [0.828, 0.84, 0.85, 0.86], [0, 1, 1, 0]);
+  const zCard = useTransform(scrollYProgress, [0.80, 0.835, 0.955], [-720, 0, 175]);
+  // Card stays opaque to the end — it doesn't fade; the whole card (now showing
+  // the envelope) FLICKS off the top-right.
+  const backdropO = useTransform(scrollYProgress, [0.80, 0.83, 1], [0, 1, 1]);
+  const swipeProgress = useTransform(scrollYProgress, [0.863, 0.89], [0, 1]);
+  // Card OPENS → holds (read the inside) → CLOSES again (cover swings shut).
+  const openProgress = useTransform(scrollYProgress, [0.905, 0.93, 0.945, 0.965], [0, 1, 1, 0]);
+  // Then the envelope SWIPES in (right→left) over the closed front, inside the
+  // cover face — the card's front becomes the envelope. The final scroll flicks
+  // the whole card off the top-right.
+  const replaceProgress = useTransform(scrollYProgress, [0.965, 0.978], [0, 1]);
+  // The envelope HOLDS briefly (0.978→0.984) so it reads as "in the post",
+  // then flicks off well BEFORE the section ends (gone by ~0.994) and travels
+  // far enough to fully clear the top-right — leaving clean daylight before
+  // "Make your own" overlaps in, so the text never lands on the envelope.
+  const xEnv = useTransform(scrollYProgress, [0.984, 0.994], [0, 1200]);
+  const yEnv = useTransform(scrollYProgress, [0.984, 0.994], [0, -950]);
+  const rotEnv = useTransform(scrollYProgress, [0.984, 0.994], [0, 40]);
+  const scaleEnv = useTransform(scrollYProgress, [0.984, 0.994], [1, 1.1]);
 
   return (
-    <div ref={ref} className="relative" style={{ height: '1100vh' }}>
+    <div ref={ref} className="relative" style={{ height: '1000vh' }}>
       <div
         className="sticky top-0 h-screen overflow-hidden"
         style={{ perspective: '1000px' }}
       >
-          {/* Blank card dollies in (spinner attached + loading) → render swipes
-              in → opens → drops. */}
+          {/* Blank card dollies in → render swipes in → opens → closes → the
+              envelope swipes in over the front → the whole card flicks off. */}
           <motion.div
-            style={{ z: zCard, y: yCard, opacity: backdropO }}
+            style={{
+              z: zCard,
+              opacity: backdropO,
+              x: xEnv,
+              y: yEnv,
+              rotate: rotEnv,
+              scale: scaleEnv,
+            }}
             className="pointer-events-none absolute inset-0 flex items-center justify-center will-change-transform"
           >
             <div className="relative">
-              <MagicCard swipe={swipeProgress} open={openProgress} />
+              <MagicCard
+                swipe={swipeProgress}
+                open={openProgress}
+                replace={replaceProgress}
+              />
               {/* Spinner attached to the blank card — zooms in with it, fades
                   out as the render swipes in. */}
               <motion.div
@@ -180,31 +230,124 @@ export function StudioFlowSection() {
           </div>
         </Layer>
 
-        {/* Finale — "Send it", revealed in the centre as the card drops away. */}
+      </div>
+    </div>
+  );
+}
+
+// The pay-off after the scroll journey — a key decision moment: start now, or
+// learn more (pricing). The content is PINNED (sticky) and zoom-fades in PLACE
+// — no rise-from-below — exactly as the "Send it" finale clears. The -100vh
+// margin lines the pin up with the flow's end so they hand off in sync.
+export function MakeYourOwnSection() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const authed = !isLoading && isAuthenticated;
+  const reduced = useReducedMotion() ?? false;
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start start', 'end end'],
+  });
+  // Content stays invisible while the section rises (so you never see it come
+  // up), then — once pinned — RAPIDLY zooms + fades into place.
+  const riseZ = useTransform(scrollYProgress, [0, 0.16], [-1000, 0]);
+  const riseO = useTransform(scrollYProgress, [0, 0.08], [0, 1]);
+
+  return (
+    <div
+      ref={ref}
+      className="relative"
+      style={{ height: '150vh', marginTop: '-114vh' }}
+    >
+      <div className="sticky top-0 h-screen" style={{ perspective: '1000px' }}>
+        {/* Centred in the full viewport — same vertical position the flow
+            beats (photos … Send it) sit at, so the journey flows consistently. */}
+        <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+          <motion.div
+            style={reduced ? undefined : { z: riseZ, opacity: riseO }}
+            className="flex flex-col items-center will-change-transform"
+          >
+            <h2 className="font-display text-[40px] font-bold leading-[1.0] tracking-[-0.02em] text-ink sm:text-[54px] md:text-[64px]">
+              Make your own
+            </h2>
+            <p className="mt-5 max-w-[42ch] text-base leading-relaxed text-ink-soft md:text-lg">
+              Your photos, your words, their face in the moment — a card they'll keep.
+            </p>
+            {/* Two paths: start now, or learn more. */}
+            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
+              <Link href={authed ? '/studio' : '/login?redirect=/studio/new-card'}>
+                <Button className="h-12 bg-brand px-8 text-base font-medium text-brand-foreground hover:bg-brand-dark">
+                  {authed ? 'Open my studio' : 'Make my first card'}
+                </Button>
+              </Link>
+              <Link href="/pricing">
+                <Button
+                  variant="outline"
+                  className="h-12 border-stone-300 bg-white/70 px-7 text-base font-medium text-ink hover:bg-white"
+                >
+                  See pricing
+                </Button>
+              </Link>
+            </div>
+            <p className="mt-3 text-[13px] text-ink-soft">Free to start. No card needed.</p>
+          </motion.div>
+        </div>
+
+        {/* Green "keep scrolling" cue, pinned near the bottom (out of the
+            centred column so it doesn't drag the content upward). */}
         <motion.div
-          style={{ opacity: oSend }}
-          className="pointer-events-none absolute inset-0 flex items-center justify-center px-6"
+          style={reduced ? undefined : { opacity: riseO }}
+          className="absolute inset-x-0 bottom-12 flex justify-center"
         >
-          <h1 className={CHOOSE_CLASS}>Send it</h1>
+          <ScrollHint reduced={reduced} prefix="keep" suffix="— there's more" />
         </motion.div>
       </div>
     </div>
   );
 }
 
-// The standalone POC page: the floating-celebration hero + the flow below it.
-export default function HeroScrollPocPage() {
+// The always-on celebration background — a fixed gradient + the floating emoji
+// field (desktop + mobile sets, centre-masked). Mount once behind a page so the
+// objects persist across the WHOLE scroll. Sits at -z-10; pages that use it must
+// not paint an opaque background over it.
+export function CelebrationBackdrop() {
   const reduced = useReducedMotion();
+  const { scrollY } = useScroll();
+  // Fade the floating field DOWN (not out) as the user scrolls past the hero
+  // (step one) into the flow — full while reading the hero, then settling to a
+  // faint floor so it still adds depth without competing with the journey. The
+  // gradient stays. vh is read each scroll so the fade band tracks viewport
+  // resizes. Fades across ~0.4vh→1.0vh of scroll (leaving the hero → pinned
+  // into the first flow beat).
+  const FIELD_FLOOR = 0.28; // lingering opacity once into the flow
+  const fieldOpacity = useTransform(scrollY, (y) => {
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const t = clamp((y - vh * 0.4) / (vh * 1.0 - vh * 0.4), 0, 1);
+    return 1 - t * (1 - FIELD_FLOOR);
+  });
   return (
     <>
-      {/* Constant gradient backdrop — seamless across the hero + the stage. */}
       <div
         className="fixed inset-0 -z-10"
         style={{ background: 'linear-gradient(180deg, #ffffff 0%, #f3f2fb 100%)' }}
       />
-      {/* Floating celebration field — fixed, centre-masked (desktop + mobile). */}
-      <FloatingCards cards={FLOATING_DESKTOP} mask={DESKTOP_MASK} className="hidden md:block" />
-      <FloatingCards cards={FLOATING_MOBILE} mask={MOBILE_MASK} className="md:hidden" />
+      <motion.div
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{ opacity: reduced ? 1 : fieldOpacity }}
+      >
+        <FloatingCards cards={FLOATING_DESKTOP} mask={DESKTOP_MASK} className="hidden md:block" />
+        <FloatingCards cards={FLOATING_MOBILE} mask={MOBILE_MASK} className="md:hidden" />
+      </motion.div>
+    </>
+  );
+}
+
+// The standalone POC page: the always-on celebration backdrop + a hero + the flow.
+export default function HeroScrollPocPage() {
+  const reduced = useReducedMotion();
+  return (
+    <>
+      <CelebrationBackdrop />
       {/* Hero — a normal landing section you just scroll past. */}
       <section className="relative flex min-h-screen flex-col items-center justify-center px-6">
         <div className="relative z-10">
@@ -222,6 +365,7 @@ export default function HeroScrollPocPage() {
         </div>
       </section>
       <StudioFlowSection />
+      <MakeYourOwnSection />
     </>
   );
 }
@@ -232,7 +376,7 @@ const HEADLINE_CLASS =
 // Paired headline (above the studio card) — smaller than the solo hero
 // headlines so the headline + card fit the viewport together.
 const CHOOSE_CLASS =
-  'text-[30px] sm:text-[40px] md:text-[48px] font-semibold text-ink leading-[1.0] tracking-[-0.02em] text-center';
+  'font-display text-[30px] sm:text-[40px] md:text-[48px] font-bold text-ink leading-[1.0] tracking-[-0.02em] text-center';
 
 function Layer({
   z,
@@ -537,7 +681,11 @@ function ConfettiPiece({
 // then the cover OPENS on the spine (`open` 0→1) like a real card — revealing a
 // WHITE inside-left (the cover's back) and the message on the inside-right, with
 // the cover casting a shadow on the inside-right. Pure CSS hinge, no 3D viewer.
-const CARD_W = 340; // px — fixed for the hinge geometry (POC: desktop-first)
+// Responsive square box for the hinge — deliberately small now; the finale
+// pushes the "camera" in (translateZ) so it grows ~1.2× during the dwell.
+// Both width + height use the same expression so the box stays square; the
+// hinge geometry is relative so it scales cleanly.
+const CARD_SIZE = 'clamp(300px, 26vw, 400px)';
 
 // Paper treatment for the finale card faces — a soft drop shadow + top-edge
 // highlight + hairline (gives it lift + thickness), plus a surface-shading
@@ -566,9 +714,11 @@ function CardSurface() {
 function MagicCard({
   swipe,
   open,
+  replace,
 }: {
   swipe: MotionValue<number>;
   open: MotionValue<number>;
+  replace: MotionValue<number>;
 }) {
   // Front render swipe — left→right wipe with a glowing edge.
   const rightInset = useTransform(swipe, [0, 1], [100, 0]);
@@ -576,8 +726,17 @@ function MagicCard({
   const lineLeft = useTransform(swipe, [0, 1], ['0%', '100%']);
   const lineO = useTransform(swipe, [0, 0.05, 0.95, 1], [0, 1, 1, 0]);
 
-  // Cover hinge — swings open around the spine (left edge).
-  const coverRotY = useTransform(open, [0, 1], [0, -158]);
+  // Envelope replace-swipe — the SAME wipe, reversed (right→left): the envelope
+  // wipes IN over the front render, inside the same cover face, so the card's
+  // front literally becomes the envelope. Glowing edge travels the other way.
+  const replLeftInset = useTransform(replace, [0, 1], [100, 0]);
+  const replClip = useMotionTemplate`inset(0% 0% 0% ${replLeftInset}%)`;
+  const replLineLeft = useTransform(replace, [0, 1], ['100%', '0%']);
+  const replLineO = useTransform(replace, [0, 0.05, 0.95, 1], [0, 1, 1, 0]);
+
+  // Cover hinge — swings open around the spine (left edge). Eased (ease-in-out)
+  // so it accelerates then settles, rather than scrubbing linearly = smoother.
+  const coverRotY = useTransform(open, [0, 1], [0, -158], { ease: easeInOut });
   const coverTransform = useMotionTemplate`rotateY(${coverRotY}deg)`;
   // Shadow the opening cover casts across the inside.
   const shadowO = useTransform(open, [0, 0.25, 0.6, 1], [0, 0.5, 0.34, 0.24]);
@@ -588,7 +747,7 @@ function MagicCard({
           left around the spine — same as the 3D render, no recentering. */}
       <div
         className="relative"
-        style={{ width: CARD_W, height: CARD_W, transformStyle: 'preserve-3d' }}
+        style={{ width: CARD_SIZE, height: CARD_SIZE, transformStyle: 'preserve-3d' }}
       >
         {/* Inside-right — the inside render + paper surface + the cast shadow. */}
         <div
@@ -629,9 +788,28 @@ function MagicCard({
               className="absolute inset-0 h-full w-full object-cover"
             />
             <CardSurface />
+            {/* Envelope — wipes IN over the front (white face backs it so the
+                render never shows through the envelope's transparent areas). */}
+            <motion.div
+              style={{ clipPath: replClip }}
+              className="absolute inset-0 overflow-hidden bg-white"
+            >
+              <img
+                src={envelopeImg}
+                alt=""
+                className="absolute inset-0 h-full w-full scale-[1.16] object-cover"
+              />
+            </motion.div>
+            {/* Glow edge — initial render swipe (left→right). */}
             <motion.div
               aria-hidden
               style={{ left: lineLeft, opacity: lineO }}
+              className="pointer-events-none absolute bottom-0 top-0 w-[4px] -translate-x-1/2 bg-white/90 shadow-[0_0_24px_7px_rgba(122,118,232,0.85)]"
+            />
+            {/* Glow edge — envelope replace swipe (right→left). */}
+            <motion.div
+              aria-hidden
+              style={{ left: replLineLeft, opacity: replLineO }}
               className="pointer-events-none absolute bottom-0 top-0 w-[4px] -translate-x-1/2 bg-white/90 shadow-[0_0_24px_7px_rgba(122,118,232,0.85)]"
             />
           </div>
@@ -653,55 +831,61 @@ function MagicCard({
 }
 
 // ── Floating celebration field (hero background) ────────────────────
-// Glossy 3D celebration emoji scattered around the periphery (a centre mask
+// Glossy 3D celebration icons scattered around the periphery (a centre mask
 // keeps the headline clear). Distance is conveyed by a single `depth`
-// 0(far)→1(near) driving SIZE + depth-of-field blur + contact shadow + a touch
-// of opacity. Sized in vmin so it scales on mobile (own smaller set).
+// 0(far)→1(near) driving SIZE + contact shadow only — no blur or opacity
+// fade, so every object reads crisp. Sized in vmin so it scales on mobile.
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-// { x,y: % position · depth: 0(far)→1(near) drives size/blur/shadow/opacity ·
-//   icon: celebration emoji (a consistent glossy 3D set) · tilt: z-rotate ·
+// { x,y: % position · depth: 0(far)→1(near) drives size + contact shadow ·
+//   icon: celebration icon image · tilt: z-rotate ·
 //   delay: bob phase }
+// The ORIGINAL scatter that read well as all-cakes — an asymmetric,
+// depth-layered field (small/far up top at varied x; big/near anchoring
+// the lower corners) — now populated with the five icons distributed
+// across it (cake featured, no identical neighbours). The field is
+// offset below the ~120px header+promo bar (see FloatingCards), so these
+// original y values now sit just under it.
+// Four objects, each shown ONCE in a corner: ribbon top-left, ring
+// top-right, cake bottom-left, present bottom-right. The lower pair sit
+// nearer (bigger); the upper pair sit further back (smaller + a slight
+// depth fade). Same set on desktop + mobile. y values keep the upper band
+// below the ~120px header+promo bar (field offset under it — FloatingCards).
 const FLOATING_DESKTOP = [
-  // upper band — far + small, receding toward a horizon
-  { x: 31, y: 10, depth: 0.18, icon: '✨', tilt: -8, delay: 0 },
-  { x: 69, y: 9, depth: 0.26, icon: '🎈', tilt: 6, delay: 1.4 },
-  { x: 88, y: 24, depth: 0.4, icon: '🎁', tilt: -5, delay: 0.6 },
-  { x: 12, y: 26, depth: 0.32, icon: '🥂', tilt: 8, delay: 2 },
-  { x: 50, y: 7, depth: 0.22, icon: '🌟', tilt: 4, delay: 1.1 },
-  // lower band — near + big, anchoring the composition
-  { x: 8, y: 70, depth: 0.85, icon: '🎉', tilt: -10, delay: 0.9 },
-  { x: 92, y: 66, depth: 0.78, icon: '🎂', tilt: 7, delay: 1.8 },
-  { x: 26, y: 90, depth: 0.62, icon: '🍾', tilt: -6, delay: 0.3 },
-  { x: 74, y: 91, depth: 0.7, icon: '🎊', tilt: 9, delay: 2.4 },
+  // upper band — further back: smaller + slightly faded
+  { x: 16, y: 16, depth: 0.24, icon: heartIcon, tilt: -7, delay: 0 },
+  { x: 84, y: 14, depth: 0.24, icon: ringIcon, tilt: 6, delay: 1.5 },
+  // lower band — nearer + bigger, anchoring the composition
+  { x: 13, y: 74, depth: 0.92, icon: cakeIcon, tilt: -9, delay: 0.6 },
+  { x: 87, y: 70, depth: 0.9, icon: presentIcon, tilt: 8, delay: 1.9 },
 ];
-// Mobile — 5 icons in the top/bottom thirds + hugging the edges.
+// Mobile — same four.
 const FLOATING_MOBILE = [
-  { x: 14, y: 11, depth: 0.4, icon: '🎈', tilt: -6, delay: 0 },
-  { x: 86, y: 14, depth: 0.5, icon: '🎉', tilt: 6, delay: 1.2 },
-  { x: 50, y: 7, depth: 0.34, icon: '✨', tilt: 4, delay: 1.4 },
-  { x: 12, y: 86, depth: 0.78, icon: '🎁', tilt: -7, delay: 0.6 },
-  { x: 88, y: 88, depth: 0.66, icon: '🥂', tilt: 7, delay: 1.8 },
+  { x: 16, y: 11, depth: 0.32, icon: heartIcon, tilt: -6, delay: 0 },
+  { x: 85, y: 14, depth: 0.32, icon: ringIcon, tilt: 6, delay: 1.2 },
+  { x: 14, y: 84, depth: 0.88, icon: cakeIcon, tilt: -7, delay: 0.6 },
+  { x: 86, y: 86, depth: 0.84, icon: presentIcon, tilt: 7, delay: 1.8 },
 ];
 
 function FloatingIcon({
   x,
   y,
   depth,
-  icon,
   tilt,
   delay,
+  icon,
 }: (typeof FLOATING_DESKTOP)[number]) {
   const size = `clamp(34px, ${lerp(8, 18, depth).toFixed(2)}vmin, 150px)`;
-  const blur = (1 - depth) * 2.2;
-  const opacity = 0.55 + depth * 0.35;
   const drift = lerp(6, 14, depth) * (tilt >= 0 ? -1 : 1);
   const dur = 8 + depth * 4;
+  // Slight depth fade (no blur) — far/top objects sit back a touch, near/
+  // bottom read at full strength. Subtle: even the furthest stays legible.
+  const opacity = 0.72 + depth * 0.28;
   // Soft contact shadow scaled by proximity grounds the object.
   const sy = Math.round(lerp(6, 16, depth));
   const sb = Math.round(lerp(10, 22, depth));
   const sa = lerp(0.12, 0.22, depth).toFixed(2);
-  const filter = `${blur > 0.2 ? `blur(${blur.toFixed(1)}px) ` : ''}drop-shadow(0 ${sy}px ${sb}px rgba(15,23,42,${sa}))`;
+  const filter = `drop-shadow(0 ${sy}px ${sb}px rgba(15,23,42,${sa}))`;
   return (
     <motion.div
       className="absolute select-none"
@@ -709,17 +893,18 @@ function FloatingIcon({
       animate={{ y: [0, drift, 0] }}
       transition={{ duration: dur, repeat: Infinity, ease: 'easeInOut', delay }}
     >
-      <div
+      <img
+        src={icon}
+        alt=""
         aria-hidden
+        draggable={false}
         style={{
           transform: `translate(-50%, -50%) rotate(${tilt}deg)`,
-          fontSize: size,
-          lineHeight: 1,
+          height: size,
+          width: 'auto',
           filter,
         }}
-      >
-        {icon}
-      </div>
+      />
     </motion.div>
   );
 }
@@ -737,7 +922,10 @@ function FloatingCards({
   const sorted = [...cards].sort((a, b) => a.depth - b.depth);
   return (
     <div
-      className={`pointer-events-none fixed inset-0 -z-10 overflow-hidden ${className ?? ''}`}
+      // Start BELOW the fixed header + promo bar (~120px) so floating
+      // objects never hide behind them — the field packs into the
+      // visible area underneath instead.
+      className={`pointer-events-none fixed inset-x-0 bottom-0 top-[120px] -z-10 overflow-hidden ${className ?? ''}`}
       style={{ maskImage: mask, WebkitMaskImage: mask }}
     >
       {sorted.map((c, i) => (
@@ -750,8 +938,10 @@ function FloatingCards({
 // Centre-clearing masks — wider/taller clear zone on mobile (tall narrow column).
 const DESKTOP_MASK =
   'radial-gradient(60% 54% at 50% 47%, transparent 0%, transparent 46%, #000 86%)';
+// Full opacity (#000) reached by 74% radius so the corner icons render
+// crisp — the old 92% stop left them inside the fade ramp (washed out).
 const MOBILE_MASK =
-  'radial-gradient(92% 64% at 50% 44%, transparent 0%, transparent 56%, #000 92%)';
+  'radial-gradient(86% 60% at 50% 42%, transparent 0%, transparent 44%, #000 74%)';
 
 function ScrollGlyph() {
   return (

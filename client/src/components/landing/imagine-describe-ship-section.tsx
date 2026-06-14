@@ -59,6 +59,7 @@ import {
   Wifi,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { useAuthModal } from '@/components/auth/auth-modal';
 import { Button } from '@/components/ui/button';
 import { GestureHints } from '@/components/gesture-hints';
 
@@ -555,6 +556,7 @@ type RevealPhase = 'chat' | 'choice' | 'card';
 
 export function ImagineDescribeShipSection() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { openAuth } = useAuthModal();
   const showAuthedTreatment = !isLoading && isAuthenticated;
   const reduced = useReducedMotion() ?? false;
   const sectionRef = useRef<HTMLElement>(null);
@@ -642,7 +644,13 @@ export function ImagineDescribeShipSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative bg-surface-card py-16 md:py-20 lg:py-24"
+      // overflow-x-clip: the card's bleed wrapper below extends up to
+      // -40vw past each side (it assumed a now-removed sticky/overflow
+      // ancestor). The card is centred so that horizontal bleed is just
+      // offscreen empty canvas — clip it so it can't widen the document
+      // (was causing a ~9px horizontal scroll). `clip` (not hidden) keeps
+      // overflow-y visible so the intended vertical card bleed survives.
+      className="relative overflow-x-clip bg-surface-card py-16 md:py-20 lg:py-24"
     >
       {/* Single inner column — normal flow, no sticky, no fixed
           height. Headline at top, stage below (phone → card via
@@ -844,11 +852,12 @@ export function ImagineDescribeShipSection() {
                     </Button>
                   </Link>
                 ) : (
-                  <Link href="/login?redirect=/studio/new-card">
-                    <Button className="bg-brand hover:bg-brand-dark text-brand-foreground h-12 px-8 text-base font-medium">
-                      Make my first card
-                    </Button>
-                  </Link>
+                  <Button
+                    onClick={() => openAuth('/studio/new-card')}
+                    className="bg-brand hover:bg-brand-dark text-brand-foreground h-12 px-8 text-base font-medium"
+                  >
+                    Make my first card
+                  </Button>
                 )}
                 <p className="-mt-2 text-[13px] text-ink-soft">
                   Free to start. No card needed.

@@ -1,134 +1,28 @@
 // client/src/components/landing/hero-floating-section.tsx
 //
-// Hero v7 (2026-06) — floating celebration field. Replaces the studio-card
-// showcase hero with a clean, colourful field of floating 3D celebration
-// objects (emoji for now — swap for an image-based icon set later) around the
-// headline + CTA. The scroll flow that demos the studio lives further down /
-// is iterated separately; this is just the hero beat.
-//
-// The floating field is SCOPED to this section (absolute, masked centre) so it
-// never bleeds into the rest of the landing.
+// Hero v7 (2026-06) — the headline + CTA beat of the celebration experience.
+// The floating-card field is NOT here: it's a single always-on fixed backdrop
+// (`CelebrationBackdrop`) mounted once on the landing so the objects persist
+// across the whole page. This section is transparent and sits over it.
 
 import { Link } from 'wouter';
 import { motion, useReducedMotion } from 'framer-motion';
+import { ChevronUp } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { useAuthModal } from '@/components/auth/auth-modal';
 import { Button } from '@/components/ui/button';
-
-/* ─── Floating celebration field ─────────────────────────────────── */
-// Distance via a single `depth` 0(far)→1(near) driving size + DOF blur +
-// contact shadow + a touch of opacity. Sized in vmin so it scales on mobile
-// (own sparser set). Centre-masked so it never crowds the headline.
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-
-const FLOATING_DESKTOP = [
-  { x: 31, y: 12, depth: 0.18, icon: '✨', tilt: -8, delay: 0 },
-  { x: 69, y: 10, depth: 0.26, icon: '🎈', tilt: 6, delay: 1.4 },
-  { x: 87, y: 26, depth: 0.4, icon: '🎁', tilt: -5, delay: 0.6 },
-  { x: 13, y: 28, depth: 0.32, icon: '🥂', tilt: 8, delay: 2 },
-  { x: 50, y: 8, depth: 0.22, icon: '🌟', tilt: 4, delay: 1.1 },
-  { x: 9, y: 72, depth: 0.85, icon: '🎉', tilt: -10, delay: 0.9 },
-  { x: 91, y: 68, depth: 0.78, icon: '🎂', tilt: 7, delay: 1.8 },
-  { x: 27, y: 90, depth: 0.62, icon: '🍾', tilt: -6, delay: 0.3 },
-  { x: 73, y: 91, depth: 0.7, icon: '🎊', tilt: 9, delay: 2.4 },
-];
-const FLOATING_MOBILE = [
-  { x: 15, y: 13, depth: 0.4, icon: '🎈', tilt: -6, delay: 0 },
-  { x: 85, y: 16, depth: 0.5, icon: '🎉', tilt: 6, delay: 1.2 },
-  { x: 50, y: 9, depth: 0.34, icon: '✨', tilt: 4, delay: 1.4 },
-  { x: 13, y: 86, depth: 0.78, icon: '🎁', tilt: -7, delay: 0.6 },
-  { x: 87, y: 88, depth: 0.66, icon: '🥂', tilt: 7, delay: 1.8 },
-];
-
-function FloatingIcon({
-  x,
-  y,
-  depth,
-  icon,
-  tilt,
-  delay,
-}: (typeof FLOATING_DESKTOP)[number]) {
-  const size = `clamp(34px, ${lerp(8, 18, depth).toFixed(2)}vmin, 150px)`;
-  const blur = (1 - depth) * 2.2;
-  const opacity = 0.55 + depth * 0.35;
-  const drift = lerp(6, 14, depth) * (tilt >= 0 ? -1 : 1);
-  const dur = 8 + depth * 4;
-  const sy = Math.round(lerp(6, 16, depth));
-  const sb = Math.round(lerp(10, 22, depth));
-  const sa = lerp(0.12, 0.22, depth).toFixed(2);
-  const filter = `${blur > 0.2 ? `blur(${blur.toFixed(1)}px) ` : ''}drop-shadow(0 ${sy}px ${sb}px rgba(15,23,42,${sa}))`;
-  return (
-    <motion.div
-      className="absolute select-none"
-      style={{ left: `${x}%`, top: `${y}%`, opacity }}
-      animate={{ y: [0, drift, 0] }}
-      transition={{ duration: dur, repeat: Infinity, ease: 'easeInOut', delay }}
-    >
-      <div
-        aria-hidden
-        style={{
-          transform: `translate(-50%, -50%) rotate(${tilt}deg)`,
-          fontSize: size,
-          lineHeight: 1,
-          filter,
-        }}
-      >
-        {icon}
-      </div>
-    </motion.div>
-  );
-}
-
-function FloatingField({
-  cards,
-  mask,
-  className,
-}: {
-  cards: typeof FLOATING_DESKTOP;
-  mask: string;
-  className?: string;
-}) {
-  const sorted = [...cards].sort((a, b) => a.depth - b.depth);
-  return (
-    <div
-      className={`pointer-events-none absolute inset-0 overflow-hidden ${className ?? ''}`}
-      style={{ maskImage: mask, WebkitMaskImage: mask }}
-    >
-      {sorted.map((c, i) => (
-        <FloatingIcon key={i} {...c} />
-      ))}
-    </div>
-  );
-}
-
-const DESKTOP_MASK =
-  'radial-gradient(58% 56% at 50% 48%, transparent 0%, transparent 44%, #000 86%)';
-const MOBILE_MASK =
-  'radial-gradient(92% 66% at 50% 46%, transparent 0%, transparent 54%, #000 92%)';
-
-/* ─── Hero ───────────────────────────────────────────────────────── */
 
 export function HeroFloatingSection() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { openAuth } = useAuthModal();
   const showAuthedTreatment = !isLoading && isAuthenticated;
   const reduced = useReducedMotion() ?? false;
 
   return (
-    <section
-      className="relative flex min-h-[86vh] flex-col items-center justify-center overflow-hidden px-6 py-20"
-      style={{
-        background:
-          'linear-gradient(180deg, #ffffff 0%, #f8fafc 60%, #eef1f6 100%)',
-      }}
-    >
-      {/* Floating celebration field — scoped to the hero, centre-masked. */}
-      <FloatingField cards={FLOATING_DESKTOP} mask={DESKTOP_MASK} className="hidden md:block" />
-      <FloatingField cards={FLOATING_MOBILE} mask={MOBILE_MASK} className="md:hidden" />
-
+    <section className="relative flex min-h-[86vh] flex-col items-center justify-center px-6 py-20">
       <div className="relative z-10 flex max-w-[60ch] flex-col items-center text-center">
         {/* Headline — violet shimmer wave on "they'll keep". */}
-        <h1 className="text-[40px] font-semibold leading-[0.95] tracking-[-0.02em] text-ink sm:text-[54px] md:text-[64px] lg:text-[74px]">
-          Greetings cards
-          <br />
+        <h1 className="font-display text-[40px] font-bold leading-[0.95] tracking-[-0.02em] text-ink sm:text-[54px] md:text-[64px] lg:text-[74px]">
           <motion.span
             className="inline-block overflow-visible bg-clip-text px-1 leading-[1.05] pb-[0.12em] text-transparent"
             style={{
@@ -154,8 +48,10 @@ export function HeroFloatingSection() {
                   }
             }
           >
-            they'll keep.
+            Unbinnable
           </motion.span>
+          <br />
+          <span className="whitespace-nowrap">Greetings Cards</span>
         </h1>
 
         <p className="mt-5 text-base leading-relaxed text-ink-soft md:mt-6 md:text-xl">
@@ -208,17 +104,77 @@ export function HeroFloatingSection() {
               </Button>
             </Link>
           ) : (
-            <Link href="/login?redirect=/studio/new-card">
-              <Button className="h-12 bg-brand px-8 text-base font-medium text-brand-foreground hover:bg-brand-dark">
-                Make my first card
-              </Button>
-            </Link>
+            <Button
+              onClick={() => openAuth('/studio/new-card')}
+              className="h-12 bg-brand px-8 text-base font-medium text-brand-foreground hover:bg-brand-dark"
+            >
+              Make my first card
+            </Button>
           )}
-          <p className="-mt-2 text-[13px] text-ink-soft">
-            Free to start. No card needed.
-          </p>
+          <ScrollHint reduced={reduced} />
         </div>
       </div>
     </section>
+  );
+}
+
+// ── Scroll / swipe affordance ────────────────────────────────────────
+// A live "go" cue under the CTA. Desktop: a mouse outline with a green
+// wheel-dot travelling down (scroll). Mobile: a green chevron pulsing
+// up (swipe). The verb adapts per device. Green reads as an action
+// signal against the violet/pink brand.
+export function ScrollHint({
+  reduced,
+  prefix = 'or start',
+  suffix = 'to experience',
+}: {
+  reduced: boolean;
+  prefix?: string;
+  suffix?: string;
+}) {
+  return (
+    <div className="-mt-1 flex flex-col items-center gap-2.5">
+      <p className="text-[13px] text-ink-soft">
+        {prefix}{' '}
+        <span className="font-medium text-cta-hover">
+          <span className="md:hidden">swiping</span>
+          <span className="hidden md:inline">scrolling</span>
+        </span>{' '}
+        {suffix}
+      </p>
+
+      {/* Desktop — mouse with an animated scroll-wheel dot */}
+      <div className="hidden md:block" aria-hidden>
+        <div className="relative h-9 w-[23px] rounded-full border-2 border-cta/70 shadow-[0_0_18px_-4px_rgba(95,217,74,0.55)]">
+          <motion.span
+            className="absolute left-1/2 top-1.5 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-cta"
+            initial={{ y: 0, opacity: 1 }}
+            animate={reduced ? undefined : { y: [0, 11, 0], opacity: [1, 0.15, 1] }}
+            transition={
+              reduced
+                ? undefined
+                : { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
+            }
+          />
+        </div>
+      </div>
+
+      {/* Mobile — swipe-up chevrons */}
+      <div className="md:hidden" aria-hidden>
+        <motion.div
+          className="text-cta drop-shadow-[0_0_10px_rgba(95,217,74,0.5)]"
+          initial={{ y: 0, opacity: 0.7 }}
+          animate={reduced ? undefined : { y: [4, -5, 4], opacity: [0.45, 1, 0.45] }}
+          transition={
+            reduced
+              ? undefined
+              : { duration: 1.5, repeat: Infinity, ease: 'easeInOut' }
+          }
+        >
+          <ChevronUp className="-mb-3 h-5 w-5" strokeWidth={2.75} />
+          <ChevronUp className="h-5 w-5 opacity-60" strokeWidth={2.75} />
+        </motion.div>
+      </div>
+    </div>
   );
 }

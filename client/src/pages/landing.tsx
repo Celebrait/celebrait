@@ -44,7 +44,7 @@ import { FaqSection } from '@/components/landing/faq-section';
 import { FinalCtaBand } from '@/components/landing/final-cta-band';
 import { HeroFloatingSection } from '@/components/landing/hero-floating-section';
 import { ImagineDescribeShipSection } from '@/components/landing/imagine-describe-ship-section';
-import { StudioFlowSection } from '@/pages/hero-scroll-poc';
+import { CelebrationBackdrop, StudioFlowSection, MakeYourOwnSection } from '@/pages/hero-scroll-poc';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { MarketingHeader } from '@/components/landing/marketing-header';
 import { PricingStripSection } from '@/components/landing/pricing-strip-section';
@@ -53,14 +53,21 @@ import { TestimonialCarouselSection } from '@/components/landing/testimonial-car
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-surface-card">
+    <div className="relative min-h-screen">
+      {/* Always-on celebration field — a single fixed -z-10 backdrop so the
+          floating objects persist behind the WHOLE page (hero + flow are
+          transparent and sit over it). */}
+      <CelebrationBackdrop />
+      {/* Opaque header at the top; promo strip pinned just below it. Both fixed. */}
       <MarketingHeader />
       <PromoStrip />
-      <main>
+      {/* Offset content below both fixed bars (80px header + 40px strip). */}
+      <main className="pt-[120px]">
         <HeroFloatingSection />
         <StudioFlowSection />
-        <DemoVideoSection />
+        <MakeYourOwnSection />
         <ImagineDescribeShipSection />
+        <DemoVideoSection />
         <TestimonialCarouselSection />
         <PricingStripSection />
         <FaqSection />

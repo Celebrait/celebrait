@@ -8,10 +8,12 @@
 
 import { Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
+import { useAuthModal } from '@/components/auth/auth-modal';
 import { Button } from '@/components/ui/button';
 
 export function FinalCtaBand() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { openAuth } = useAuthModal();
   const showAuthedTreatment = !isLoading && isAuthenticated;
 
   return (
@@ -36,11 +38,12 @@ export function FinalCtaBand() {
               </Button>
             </Link>
           ) : (
-            <Link href="/login?redirect=/studio/new-card">
-              <Button className="bg-white hover:bg-stone-50 text-brand h-12 px-8 text-base font-medium">
-                Make my first card
-              </Button>
-            </Link>
+            <Button
+              onClick={() => openAuth('/studio/new-card')}
+              className="bg-white hover:bg-stone-50 text-brand h-12 px-8 text-base font-medium"
+            >
+              Make my first card
+            </Button>
           )}
           {!showAuthedTreatment && (
             <span className="text-xs text-white/70">
