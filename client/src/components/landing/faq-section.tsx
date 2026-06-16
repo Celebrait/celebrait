@@ -62,7 +62,7 @@ const FAQS: FaqEntry[] = [
 
 export function FaqSection() {
   return (
-    <section id="faq" className="relative bg-surface-card py-24 md:py-32">
+    <section id="faq" className="relative py-24 md:py-32">
       <div className="max-w-3xl mx-auto px-6 md:px-10">
         <div className="text-center mb-12 md:mb-16">
           <p className="text-[11px] uppercase tracking-[0.22em] text-accent-coral-dark font-semibold mb-4">

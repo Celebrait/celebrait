@@ -76,7 +76,7 @@ function StripTier({ tier }: { tier: PricingTier }) {
 
 export function PricingStripSection() {
   return (
-    <section className="py-20 md:py-28 bg-surface">
+    <section className="py-20 md:py-28">
       <div className="max-w-6xl mx-auto px-6 md:px-10">
         {/* Header */}
         <div className="text-center mb-12 md:mb-14 max-w-2xl mx-auto">

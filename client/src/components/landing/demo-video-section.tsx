@@ -30,7 +30,7 @@ import studioDashboardPoster from '@/assets/studio-dashboard-poster.png';
 
 export function DemoVideoSection() {
   return (
-    <section className="relative bg-surface-card py-16 md:py-20 lg:py-24">
+    <section className="relative py-16 md:py-20 lg:py-24">
       <div className="max-w-5xl mx-auto px-6 md:px-10">
         {/* Header — eyebrow + headline only. Sub-paragraph dropped
             (Kevin call 2026-05-06). */}
