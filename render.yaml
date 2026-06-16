@@ -21,7 +21,10 @@ services:
     plan: free                 # plenty for testing; sleeps when idle (~30s cold start)
     region: frankfurt          # closest Render region to UK users
     branch: claude/nice-rosalind-171f52
-    buildCommand: npm install && npm run build
+    # --include=dev forces dev dependencies (vite, esbuild, tailwind, tsc) to
+    # install even though NODE_ENV=production — they're needed to BUILD. The
+    # built output runs on prod deps only.
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /
     autoDeploy: true           # re-deploys automatically on every push to the branch
