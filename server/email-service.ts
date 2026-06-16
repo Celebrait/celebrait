@@ -81,15 +81,24 @@ function createSmtpTransporter() {
   });
 }
 
+// Email is OPTIONAL at boot. If BREVO_API_KEY is absent the app still
+// starts — outbound email is simply disabled (SMTP is used instead when
+// its creds are present; otherwise sends become a logged no-op). This lets
+// staging/preview servers run without email configured. Don't crash here.
 const brevoApiKey = process.env.BREVO_API_KEY;
 if (!brevoApiKey) {
-  throw new Error('BREVO_API_KEY environment variable must be set');
+  console.warn(
+    '[EMAIL] BREVO_API_KEY not set — Brevo API email disabled. ' +
+      'SMTP is used if BREVO_SMTP_USER/KEY are set; otherwise email sends are skipped.',
+  );
+} else {
+  console.log('Brevo API Key configured: Present');
 }
 
-console.log('Brevo API Key configured:', brevoApiKey ? 'Present' : 'Missing');
-
 const apiInstance = new brevo.TransactionalEmailsApi();
-apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, brevoApiKey);
+if (brevoApiKey) {
+  apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, brevoApiKey);
+}
 
 // Domain defaults are UK — Celebrait launches UK-only (V1, founder
 // direction 2026-05-27). Both can be overridden via env for staging
@@ -163,6 +172,12 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
 }
 
 async function sendEmailViaBrevoApi(params: EmailParams): Promise<boolean> {
+  // No Brevo API key + no SMTP fallback → email is disabled. No-op so the
+  // app's happy paths (which call sendEmail and tolerate a false) keep working.
+  if (!brevoApiKey) {
+    console.warn(`[EMAIL] skipped (no Brevo API key) — would have sent to ${params.to}: "${params.subject}"`);
+    return false;
+  }
   try {
     const msg = new brevo.SendSmtpEmail();
     msg.to = [{ email: params.to }];
