@@ -142,10 +142,20 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
 
   const from = params.from ?? FROM_EMAIL;
   const fromName = params.fromName ?? FROM_NAME;
+
+  // Prefer Brevo's HTTPS API (port 443). Many hosts block outbound SMTP
+  // ports (Render does) — there transporter.sendMail() hangs until timeout,
+  // which is what made OTP login spin forever. SMTP is only a fallback for
+  // when no API key is configured.
+  if (brevoApiKey) {
+    return sendEmailViaBrevoApi({ ...params, from, fromName });
+  }
+
   try {
     const transporter = createSmtpTransporter();
     if (!transporter) {
-      return sendEmailViaBrevoApi({ ...params, from, fromName });
+      console.warn(`[EMAIL] no transport configured — skipping send to ${params.to}`);
+      return false;
     }
     const mailOptions: any = {
       from: `"${fromName}" <${from}>`,
@@ -277,24 +287,15 @@ function chassis(opts: {
 
 // ── OTP (auth) ───────────────────────────────────────────────────────
 export async function sendOtpEmail(email: string, code: string): Promise<boolean> {
-  const transporter = createSmtpTransporter();
-  if (!transporter) {
-    console.error('[OTP] SMTP not configured — OTP email cannot be sent');
-    return false;
-  }
-  try {
-    await transporter.sendMail({
-      from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
-      to: email,
-      subject: `${code} is your Celebrait verification code`,
-      text: `Your verification code is ${code}. It expires in 10 minutes.`,
-      html: otpHtml(code),
-    });
-    return true;
-  } catch (err) {
-    console.error('[OTP] send failed:', err);
-    return false;
-  }
+  // Route through sendEmail so it uses the same transport policy (HTTPS API
+  // preferred). Previously this was SMTP-only with no fallback, so on hosts
+  // that block SMTP the login code never sent and the UI hung.
+  return sendEmail({
+    to: email,
+    subject: `${code} is your Celebrait verification code`,
+    text: `Your verification code is ${code}. It expires in 10 minutes.`,
+    html: otpHtml(code),
+  });
 }
 
 function otpHtml(code: string): string {
