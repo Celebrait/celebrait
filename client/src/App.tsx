@@ -57,7 +57,6 @@ import NotFound from "@/pages/not-found";
 
 const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
 const TermsOfService = lazy(() => import("@/pages/terms-of-service"));
-const WelcomeIntroPreview = lazy(() => import("@/pages/welcome-intro-preview"));
 
 // Studio shell + pages
 const StudioLayout = lazy(() => import("@/layouts/studio-layout"));
@@ -128,7 +127,6 @@ function Router() {
           <Route path="/hero-poc" component={HeroScrollPocPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/pricing" component={PricingPage} />
-          <Route path="/welcome-intro" component={WelcomeIntroPreview} />
           <Route path="/privacy-policy" component={PrivacyPolicy} />
           <Route path="/terms-of-service" component={TermsOfService} />
           <Route path="/studio">
