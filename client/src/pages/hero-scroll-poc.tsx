@@ -10,13 +10,12 @@
 // Pure DOM + framer-motion: CSS perspective does the dolly; the studio card is
 // a live clone (not a screenshot) so it can animate. Isolated /hero-poc.
 
-import { useRef, useState } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import {
   motion,
   useScroll,
   useTransform,
   useMotionTemplate,
-  useMotionValueEvent,
   useReducedMotion,
   easeInOut,
   type MotionValue,
@@ -74,38 +73,13 @@ export function StudioFlowSection() {
   // Crop so the flow starts at the photos beat (beats keep their 0→1 numbers).
   const scrollYProgress = useTransform(rawProgress, [0, 1], [0.14, 1]);
 
-  // Beat 4 — how many photos have "selected" in (0–3).
-  const [photoSel, setPhotoSel] = useState(0);
-  // Beat 5 — how many characters of the scene have "typed" in.
-  const [sceneLen, setSceneLen] = useState(0);
-  // Beat 6 — how many characters of the front headline have "typed" in.
-  const [frontLen, setFrontLen] = useState(0);
-  // Beat 7 — how many characters of the inside message have "typed" in.
-  const [insideLen, setInsideLen] = useState(0);
-
-  // Drive the studio card as we approach beat 3: name + occasion toggle IN
-  // SYNC while cycling, land on Sarah + Anniversary, then "press" Anniversary.
-  useMotionValueEvent(scrollYProgress, 'change', (v) => {
-
-    // Three build beats animate across their crawl (slow zone). Centres:
-    // .27 (photos) / .50 (put them in the picture: scene→front) / .72 (inside).
-    // Photos — selection comes in quick (reverted to the original feel).
-    const ps = clamp((v - 0.245) / (0.285 - 0.245), 0, 1);
-    setPhotoSel(Math.min(SELECT_ORDER.length, Math.floor(ps * (SELECT_ORDER.length + 1))));
-
-    // Picture — scene starts typing just after the headline lands (~.42), and
-    // FINISHES with a beat to spare (.515) so the step hangs before exiting.
-    const ps5 = clamp((v - 0.435) / (0.515 - 0.435), 0, 1);
-    setSceneLen(Math.round(ps5 * SCENE_TEXT.length));
-
-    // Words — front headline types first, just after landing (~.65)…
-    const ps6 = clamp((v - 0.665) / (0.705 - 0.665), 0, 1);
-    setFrontLen(Math.round(ps6 * FRONT_TEXT.length));
-
-    // …then the inside message, finishing at .76 to hang before exit.
-    const ps7 = clamp((v - 0.705) / (0.76 - 0.705), 0, 1);
-    setInsideLen(Math.round(ps7 * INSIDE_MESSAGE.length));
-  });
+  // PERF: the photo-selection + typing reveals used to live here as React
+  // state updated on every scroll frame, which re-rendered the ENTIRE section
+  // (all three beat cards + the finale) per character — the main source of
+  // mobile scroll-jank. They now live INSIDE each card, driven imperatively
+  // off this `scrollYProgress` motion value (direct DOM writes, no setState),
+  // so the scroll scrub does ZERO React re-renders. See PhotoCard /
+  // PictureCard / WordsCard.
 
   // ── Unified timing ─────────────────────────────────────────────────
   // Every content beat shares ONE motion profile so the journey reads as one
@@ -207,7 +181,7 @@ export function StudioFlowSection() {
         <Layer z={z4} opacity={o4}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Select your photo(s)</h1>
-            <PhotoCard selected={photoSel} />
+            <PhotoCard progress={scrollYProgress} />
           </div>
         </Layer>
 
@@ -215,7 +189,7 @@ export function StudioFlowSection() {
         <Layer z={z5} opacity={o5}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Put them in the picture</h1>
-            <PictureCard scene={SCENE_TEXT.slice(0, sceneLen)} />
+            <PictureCard progress={scrollYProgress} />
           </div>
         </Layer>
 
@@ -223,10 +197,7 @@ export function StudioFlowSection() {
         <Layer z={z7} opacity={o7}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Add your words</h1>
-            <WordsCard
-              front={FRONT_TEXT.slice(0, frontLen)}
-              message={INSIDE_MESSAGE.slice(0, insideLen)}
-            />
+            <WordsCard progress={scrollYProgress} />
           </div>
         </Layer>
 
@@ -313,15 +284,24 @@ export function MakeYourOwnSection() {
 export function CelebrationBackdrop() {
   const reduced = useReducedMotion();
   const { scrollY } = useScroll();
+  // Cache the viewport height (refreshed on resize) instead of reading
+  // window.innerHeight on every scroll frame inside the transform — keeps the
+  // per-frame fade computation a cheap ref read, no layout access.
+  const vhRef = useRef(typeof window !== 'undefined' ? window.innerHeight : 800);
+  useEffect(() => {
+    const onResize = () => {
+      vhRef.current = window.innerHeight;
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
   // Fade the floating field DOWN (not out) as the user scrolls past the hero
   // (step one) into the flow — full while reading the hero, then settling to a
-  // faint floor so it still adds depth without competing with the journey. The
-  // gradient stays. vh is read each scroll so the fade band tracks viewport
-  // resizes. Fades across ~0.4vh→1.0vh of scroll (leaving the hero → pinned
-  // into the first flow beat).
+  // faint floor so it still adds depth without competing with the journey.
+  // Fades across ~0.4vh→1.0vh of scroll (leaving the hero → into the flow).
   const FIELD_FLOOR = 0.28; // lingering opacity once into the flow
   const fieldOpacity = useTransform(scrollY, (y) => {
-    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const vh = vhRef.current;
     const t = clamp((y - vh * 0.4) / (vh * 1.0 - vh * 0.4), 0, 1);
     return 1 - t * (1 - FIELD_FLOOR);
   });
@@ -520,103 +500,164 @@ const PHOTOS = [
 ];
 const SELECT_ORDER = [0, 4, 2];
 
-function PhotoCard({ selected }: { selected: number }) {
-  const isSelected = (i: number) => {
-    const pos = SELECT_ORDER.indexOf(i);
-    return pos !== -1 && pos < selected;
-  };
+// Photos "select in" as the beat lands. Imperative: subscribes to the scroll
+// value and toggles tile classes / the count text directly on the DOM — no
+// React state, so it never re-renders during the scrub. memo() keeps it inert
+// even if a parent re-renders (the `progress` prop is a stable motion value).
+const PhotoCard = memo(function PhotoCard({ progress }: { progress: MotionValue<number> }) {
+  const tilesRef = useRef<HTMLDivElement>(null);
+  const countRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const apply = (v: number) => {
+      const ps = clamp((v - 0.245) / (0.285 - 0.245), 0, 1);
+      const selected = Math.min(
+        SELECT_ORDER.length,
+        Math.floor(ps * (SELECT_ORDER.length + 1)),
+      );
+      const tiles = tilesRef.current?.children;
+      if (tiles) {
+        for (let i = 0; i < tiles.length; i++) {
+          const pos = SELECT_ORDER.indexOf(i);
+          const sel = pos !== -1 && pos < selected;
+          const tile = tiles[i] as HTMLElement;
+          tile.classList.toggle('ring-brand', sel);
+          tile.classList.toggle('ring-transparent', !sel);
+          tile.style.opacity = selected > 0 && !sel ? '0.6' : '1';
+          const chk = tile.querySelector('[data-check]') as HTMLElement | null;
+          if (chk) {
+            chk.style.opacity = sel ? '1' : '0';
+            chk.style.transform = sel ? 'scale(1)' : 'scale(0.5)';
+          }
+        }
+      }
+      if (countRef.current) {
+        countRef.current.textContent = selected > 0 ? `Sarah — ${selected} selected` : '';
+      }
+    };
+    apply(progress.get());
+    return progress.on('change', apply);
+  }, [progress]);
+
   return (
     <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
-      <div className="grid grid-cols-3 gap-2.5">
-        {PHOTOS.map((g, i) => {
-          const sel = isSelected(i);
-          return (
+      <div ref={tilesRef} className="grid grid-cols-3 gap-2.5">
+        {PHOTOS.map((g, i) => (
+          <div
+            key={i}
+            style={{ opacity: 1 }}
+            className={`relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br ${g} ring-2 ring-transparent transition-all duration-200`}
+          >
+            <span className="absolute inset-0 flex items-center justify-center">
+              <User className="w-7 h-7 text-white/75" strokeWidth={1.75} />
+            </span>
             <div
-              key={i}
-              className={`relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br ${g} ring-2 transition-all duration-200 ${
-                sel ? 'ring-brand' : 'ring-transparent'
-              } ${selected > 0 && !sel ? 'opacity-60' : 'opacity-100'}`}
+              data-check
+              style={{ opacity: 0, transform: 'scale(0.5)' }}
+              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-brand flex items-center justify-center shadow-md transition-all duration-200"
             >
-              <span className="absolute inset-0 flex items-center justify-center">
-                <User className="w-7 h-7 text-white/75" strokeWidth={1.75} />
-              </span>
-              <motion.div
-                initial={false}
-                animate={{ opacity: sel ? 1 : 0, scale: sel ? 1 : 0.5 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-brand flex items-center justify-center shadow-md"
-              >
-                <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-              </motion.div>
+              <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
 
-      <p className="text-[13px] mt-4 h-5 text-center font-semibold text-ink">
-        {selected > 0 ? `Sarah — ${selected} selected` : ''}
-      </p>
+      <p ref={countRef} className="text-[13px] mt-4 h-5 text-center font-semibold text-ink"></p>
     </div>
   );
-}
+});
 
-// "Put them in the picture" — just the scene description, types itself in.
-function PictureCard({ scene }: { scene: string }) {
-  const empty = scene.length === 0;
+// "Put them in the picture" — the scene description types itself in.
+// Imperative: writes characters straight to a ref's textContent off the scroll
+// value (no setState), so typing causes zero re-renders.
+const PictureCard = memo(function PictureCard({ progress }: { progress: MotionValue<number> }) {
+  const placeholderRef = useRef<HTMLSpanElement>(null);
+  const typedRef = useRef<HTMLSpanElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const apply = (v: number) => {
+      const t = clamp((v - 0.435) / (0.515 - 0.435), 0, 1);
+      const n = Math.round(t * SCENE_TEXT.length);
+      if (textRef.current) textRef.current.textContent = SCENE_TEXT.slice(0, n);
+      const empty = n === 0;
+      if (placeholderRef.current) placeholderRef.current.style.display = empty ? '' : 'none';
+      if (typedRef.current) typedRef.current.style.display = empty ? 'none' : '';
+    };
+    apply(progress.get());
+    return progress.on('change', apply);
+  }, [progress]);
+
   return (
     <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
       <p className="mb-1.5 text-[13px] text-ink">The picture</p>
       <div className="h-[150px] overflow-hidden rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[15px] leading-relaxed text-ink">
-        {empty ? (
-          <span className="text-stone-400">
-            e.g. Sarah at golden hour on an Italian terrace…
-          </span>
-        ) : (
-          <span>
-            {scene}
-            <span className="ml-0.5 inline-block h-[16px] w-[2px] animate-pulse bg-brand align-middle" />
-          </span>
-        )}
+        <span ref={placeholderRef} className="text-stone-400">
+          e.g. Sarah at golden hour on an Italian terrace…
+        </span>
+        <span ref={typedRef} style={{ display: 'none' }}>
+          <span ref={textRef}></span>
+          <span className="ml-0.5 inline-block h-[16px] w-[2px] animate-pulse bg-brand align-middle" />
+        </span>
       </div>
     </div>
   );
-}
+});
 
-// "Add your words" — what's on the front (headline) + what's on the inside
-// (the full message). Front types first, then the message.
-function WordsCard({ front, message }: { front: string; message: string }) {
-  const fEmpty = front.length === 0;
-  const mEmpty = message.length === 0;
+// "Add your words" — front headline types first, then the inside message.
+// Imperative (same pattern as PictureCard): two ref-driven typed fields,
+// zero re-renders during the scrub.
+const WordsCard = memo(function WordsCard({ progress }: { progress: MotionValue<number> }) {
+  const fPlace = useRef<HTMLSpanElement>(null);
+  const fTyped = useRef<HTMLSpanElement>(null);
+  const fText = useRef<HTMLSpanElement>(null);
+  const mPlace = useRef<HTMLSpanElement>(null);
+  const mTyped = useRef<HTMLSpanElement>(null);
+  const mText = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const apply = (v: number) => {
+      const t6 = clamp((v - 0.665) / (0.705 - 0.665), 0, 1);
+      const fn = Math.round(t6 * FRONT_TEXT.length);
+      const t7 = clamp((v - 0.705) / (0.76 - 0.705), 0, 1);
+      const mn = Math.round(t7 * INSIDE_MESSAGE.length);
+      if (fText.current) fText.current.textContent = FRONT_TEXT.slice(0, fn);
+      const fEmpty = fn === 0;
+      if (fPlace.current) fPlace.current.style.display = fEmpty ? '' : 'none';
+      if (fTyped.current) fTyped.current.style.display = fEmpty ? 'none' : '';
+      if (mText.current) mText.current.textContent = INSIDE_MESSAGE.slice(0, mn);
+      const mEmpty = mn === 0;
+      if (mPlace.current) mPlace.current.style.display = mEmpty ? '' : 'none';
+      if (mTyped.current) mTyped.current.style.display = mEmpty ? 'none' : '';
+    };
+    apply(progress.get());
+    return progress.on('change', apply);
+  }, [progress]);
+
   return (
     <div className="w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70">
       {/* What's on the front? */}
       <p className="mb-1.5 text-[13px] text-ink">What's on the front?</p>
       <div className="flex min-h-[46px] items-center rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[15px]">
-        {fEmpty ? (
-          <span className="text-stone-400">Happy Anniversary</span>
-        ) : (
-          <span className="font-medium text-ink">
-            {front}
-            <span className="ml-0.5 inline-block h-[16px] w-[2px] animate-pulse bg-brand align-middle" />
-          </span>
-        )}
+        <span ref={fPlace} className="text-stone-400">Happy Anniversary</span>
+        <span ref={fTyped} style={{ display: 'none' }} className="font-medium text-ink">
+          <span ref={fText}></span>
+          <span className="ml-0.5 inline-block h-[16px] w-[2px] animate-pulse bg-brand align-middle" />
+        </span>
       </div>
 
       {/* What's on the inside? */}
       <p className="mb-1.5 mt-4 text-[13px] text-ink">What's on the inside?</p>
       <div className="h-[120px] overflow-hidden rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed text-ink">
-        {mEmpty ? (
-          <span className="text-stone-400">Write a few words from the heart…</span>
-        ) : (
-          <span>
-            {message}
-            <span className="ml-0.5 inline-block h-[15px] w-[2px] animate-pulse bg-brand align-middle" />
-          </span>
-        )}
+        <span ref={mPlace} className="text-stone-400">Write a few words from the heart…</span>
+        <span ref={mTyped} style={{ display: 'none' }}>
+          <span ref={mText}></span>
+          <span className="ml-0.5 inline-block h-[15px] w-[2px] animate-pulse bg-brand align-middle" />
+        </span>
       </div>
     </div>
   );
-}
+});
 
 // Confetti pieces — deterministic spread (index-based, no RNG) so it's stable.
 const CONFETTI_COLORS = ['#7a76e8', '#e8519b', '#f5c542', '#5ad19a', '#5c57d4'];
