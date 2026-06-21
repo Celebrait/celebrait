@@ -122,7 +122,7 @@ function Station({
   // model. Reduced-motion users just get a clean fade, no z/translate.
   const target = reduced
     ? { opacity: inView ? 1 : 0 }
-    : { opacity: inView ? 1 : 0, z: inView ? 0 : -300, y: inView ? 0 : 34 };
+    : { opacity: inView ? 1 : 0, z: inView ? 0 : -650, y: inView ? 0 : 40 };
   return (
     <section
       ref={ref}
