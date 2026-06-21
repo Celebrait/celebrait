@@ -1,14 +1,16 @@
 // client/src/pages/flow-v2-preview.tsx
 //
-// PREVIEW (/flow-v2) — prototype of the "snap-station + autoplay" hero-flow
-// model from the smoothness audit (P1). Each step is a full-viewport station;
-// a single swipe/scroll SNAPS to the next (native CSS scroll-snap, momentum-
-// respecting — not scroll-jacking). On arrival, the step's content AUTOPLAYS
-// at a readable, time-based pace, so the read is guaranteed regardless of how
-// fast you scroll. Self-contained; does NOT touch the live StudioFlowSection.
+// PREVIEW (/flow-v2) — prototype of the "snap + autoplay + in-place zoom"
+// hero-flow model (audit P1, option B). A single swipe/scroll advances one
+// step (native scroll-snap on an INVISIBLE track, so momentum + one-swipe-
+// per-step come for free). The step content lives in a FIXED, centred stage
+// that zooms the new step in from depth (translateZ, toward you) and crossfades
+// — NO vertical travel, so it reads as the camera dollying in, like the live
+// flow, not "rising from below". Each step autoplays its reveal on arrival.
+// Self-contained; does not touch the live StudioFlowSection.
 
 import { useEffect, useRef, useState } from 'react';
-import { motion, useInView, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
 import { User, Check, ChevronUp } from 'lucide-react';
 import revealFront from '@/assets/hero-card-front.png';
 
@@ -19,6 +21,7 @@ const INSIDE =
   "Twenty-five years, and you still make me laugh like it's day one. Here's to every adventure still to come.";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+const GRADIENT = 'linear-gradient(180deg,#ffffff 0%,#f3f2fb 100%)';
 const CARD =
   'w-[340px] sm:w-[380px] rounded-[28px] bg-white px-6 py-7 shadow-[0_36px_90px_-32px_rgba(15,23,42,0.32)] ring-1 ring-stone-200/70';
 const HEAD =
@@ -32,18 +35,17 @@ const PHOTO_GRADIENTS = [
   'from-stone-200 to-stone-300',
 ];
 const SELECT_ORDER = [0, 4, 2];
+const STEP_COUNT = 4;
 
 // Time-based typewriter — writes to a ref imperatively (no per-char re-render).
-// Starts `delay` ms after `play` flips true; reduced-motion shows it instantly.
+// Starts `delay` ms after mount; reduced-motion shows it instantly.
 function Typewriter({
   text,
-  play,
   speed = 28,
   delay = 0,
   reduced,
 }: {
   text: string;
-  play: boolean;
   speed?: number;
   delay?: number;
   reduced: boolean;
@@ -52,10 +54,6 @@ function Typewriter({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (!play) {
-      el.textContent = '';
-      return;
-    }
     if (reduced) {
       el.textContent = text;
       return;
@@ -74,7 +72,7 @@ function Typewriter({
       window.clearTimeout(start);
       window.clearInterval(interval);
     };
-  }, [text, play, speed, delay, reduced]);
+  }, [text, speed, delay, reduced]);
   return <span ref={ref} />;
 }
 
@@ -84,7 +82,7 @@ const Caret = () => (
 
 function SwipeHint() {
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-8 flex flex-col items-center gap-1 text-ink-soft/70">
+    <div className="pointer-events-none absolute inset-x-0 bottom-8 z-20 flex flex-col items-center gap-1 text-ink-soft/70">
       <motion.div
         animate={{ y: [3, -4, 3] }}
         transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -96,70 +94,29 @@ function SwipeHint() {
   );
 }
 
-// Generic station: full-viewport, snap-aligned, reports when it's the active
-// one, and fades/lifts its content in on arrival. `children(active)` passes the
-// in-view flag so each card can autoplay only while it's the current step.
-function Station({
-  index,
-  setActive,
-  last,
-  children,
-}: {
-  index: number;
-  setActive: (i: number) => void;
-  last?: boolean;
-  children: (active: boolean) => React.ReactNode;
-}) {
+// Invisible full-viewport scroll-snap target. Its only job is to report when it
+// becomes the centred one, so the fixed stage knows which step to show.
+function Sentinel({ index, setActive }: { index: number; setActive: (i: number) => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { amount: 0.55 });
-  const reduced = useReducedMotion() ?? false;
+  const inView = useInView(ref, { amount: 0.5 });
   useEffect(() => {
     if (inView) setActive(index);
   }, [inView, index, setActive]);
-  // Zoom-in on arrival: content sits pushed back in 3D space + faded when the
-  // station isn't the current one, then dollies to z:0 as it becomes active —
-  // keeping the premium "camera moves in to greet you" feel within the snap
-  // model. Reduced-motion users just get a clean fade, no z/translate.
-  const target = reduced
-    ? { opacity: inView ? 1 : 0 }
-    : { opacity: inView ? 1 : 0, z: inView ? 0 : -650, y: inView ? 0 : 40 };
-  return (
-    <section
-      ref={ref}
-      className="relative flex h-[100dvh] snap-start snap-always flex-col items-center justify-center px-6"
-      style={{ perspective: '1100px' }}
-    >
-      <motion.div
-        animate={target}
-        transition={{ duration: 0.6, ease: EASE }}
-        className="flex flex-col items-center gap-8 will-change-transform"
-      >
-        {children(inView)}
-      </motion.div>
-      {!last && <SwipeHint />}
-    </section>
-  );
+  return <div ref={ref} className="h-[100dvh] snap-start snap-always" />;
 }
 
-function PhotoStation({ active, reduced }: { active: boolean; reduced: boolean }) {
-  const [sel, setSel] = useState(0);
+// Photo step — auto-selects on mount (it only mounts while it's the active step).
+function PhotoStep({ reduced }: { reduced: boolean }) {
+  const [sel, setSel] = useState(reduced ? SELECT_ORDER.length : 0);
   useEffect(() => {
-    if (!active) {
-      setSel(0);
-      return;
-    }
-    if (reduced) {
-      setSel(SELECT_ORDER.length);
-      return;
-    }
+    if (reduced) return;
     const ts = [
-      window.setTimeout(() => setSel(1), 400),
-      window.setTimeout(() => setSel(2), 700),
-      window.setTimeout(() => setSel(3), 1000),
+      window.setTimeout(() => setSel(1), 550),
+      window.setTimeout(() => setSel(2), 850),
+      window.setTimeout(() => setSel(3), 1150),
     ];
     return () => ts.forEach(clearTimeout);
-  }, [active, reduced]);
-
+  }, [reduced]);
   return (
     <div className={CARD}>
       <div className="grid grid-cols-3 gap-2.5">
@@ -193,77 +150,96 @@ function PhotoStation({ active, reduced }: { active: boolean; reduced: boolean }
   );
 }
 
+function renderStep(i: number, reduced: boolean) {
+  switch (i) {
+    case 0:
+      return (
+        <>
+          <h1 className={HEAD}>Select your photo(s)</h1>
+          <PhotoStep reduced={reduced} />
+        </>
+      );
+    case 1:
+      return (
+        <>
+          <h1 className={HEAD}>Put them in the picture</h1>
+          <div className={CARD}>
+            <p className="mb-1.5 text-[13px] text-ink">The picture</p>
+            <div className="h-[150px] overflow-hidden rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[15px] leading-relaxed text-ink">
+              <Typewriter text={SCENE} delay={450} reduced={reduced} />
+              <Caret />
+            </div>
+          </div>
+        </>
+      );
+    case 2:
+      return (
+        <>
+          <h1 className={HEAD}>Add your words</h1>
+          <div className={CARD}>
+            <p className="mb-1.5 text-[13px] text-ink">What's on the front?</p>
+            <div className="flex min-h-[46px] items-center rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[15px] font-medium text-ink">
+              <Typewriter text={FRONT} delay={450} reduced={reduced} />
+              <Caret />
+            </div>
+            <p className="mb-1.5 mt-4 text-[13px] text-ink">What's on the inside?</p>
+            <div className="h-[120px] overflow-hidden rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed text-ink">
+              <Typewriter text={INSIDE} delay={1700} reduced={reduced} />
+              <Caret />
+            </div>
+          </div>
+        </>
+      );
+    default:
+      return (
+        <>
+          <h1 className={HEAD}>
+            And we bring it
+            <br />
+            to life.
+          </h1>
+          <img
+            src={revealFront}
+            alt=""
+            className="w-[300px] rounded-[14px] shadow-[0_40px_90px_-30px_rgba(15,23,42,0.45)] sm:w-[340px]"
+          />
+        </>
+      );
+  }
+}
+
 export default function FlowV2Preview() {
   const reduced = useReducedMotion() ?? false;
-  const [, setActive] = useState(0);
+  const [active, setActive] = useState(0);
 
   return (
-    <div
-      className="fixed inset-0 snap-y snap-mandatory overflow-y-scroll"
-      style={{ background: 'linear-gradient(180deg,#ffffff 0%,#f3f2fb 100%)' }}
-    >
-      <Station index={0} setActive={setActive}>
-        {(active) => (
-          <>
-            <h1 className={HEAD}>Select your photo(s)</h1>
-            <PhotoStation active={active} reduced={reduced} />
-          </>
-        )}
-      </Station>
+    <div className="fixed inset-0 overflow-hidden" style={{ background: GRADIENT }}>
+      {/* Visual stage — fixed + centred. The active step zooms in from depth
+          (translateZ) and crossfades; the previous one drifts toward you and
+          fades. No vertical travel → reads as a dolly toward the viewer. */}
+      <div className="pointer-events-none absolute inset-0" style={{ perspective: '1100px' }}>
+        <AnimatePresence>
+          <motion.div
+            key={active}
+            className="absolute inset-0 flex flex-col items-center justify-center gap-8 px-6 will-change-transform"
+            initial={reduced ? { opacity: 0 } : { opacity: 0, z: -680 }}
+            animate={reduced ? { opacity: 1 } : { opacity: 1, z: 0 }}
+            exit={reduced ? { opacity: 0 } : { opacity: 0, z: 160 }}
+            transition={{ duration: 0.65, ease: EASE }}
+          >
+            {renderStep(active, reduced)}
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
-      <Station index={1} setActive={setActive}>
-        {(active) => (
-          <>
-            <h1 className={HEAD}>Put them in the picture</h1>
-            <div className={CARD}>
-              <p className="mb-1.5 text-[13px] text-ink">The picture</p>
-              <div className="h-[150px] overflow-hidden rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[15px] leading-relaxed text-ink">
-                <Typewriter text={SCENE} play={active} reduced={reduced} />
-                {active && <Caret />}
-              </div>
-            </div>
-          </>
-        )}
-      </Station>
+      {/* Invisible scroll track — native snap drives which step is active. */}
+      <div className="absolute inset-0 snap-y snap-mandatory overflow-y-scroll">
+        {Array.from({ length: STEP_COUNT }).map((_, i) => (
+          <Sentinel key={i} index={i} setActive={setActive} />
+        ))}
+      </div>
 
-      <Station index={2} setActive={setActive}>
-        {(active) => (
-          <>
-            <h1 className={HEAD}>Add your words</h1>
-            <div className={CARD}>
-              <p className="mb-1.5 text-[13px] text-ink">What's on the front?</p>
-              <div className="flex min-h-[46px] items-center rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[15px] font-medium text-ink">
-                <Typewriter text={FRONT} play={active} reduced={reduced} />
-                {active && <Caret />}
-              </div>
-              <p className="mb-1.5 mt-4 text-[13px] text-ink">What's on the inside?</p>
-              <div className="h-[120px] overflow-hidden rounded-xl border-2 border-brand/50 bg-stone-50 px-3.5 py-3 text-[14px] leading-relaxed text-ink">
-                <Typewriter text={INSIDE} play={active} delay={1400} reduced={reduced} />
-                {active && <Caret />}
-              </div>
-            </div>
-          </>
-        )}
-      </Station>
-
-      <Station index={3} setActive={setActive} last>
-        {(active) => (
-          <>
-            <h1 className={HEAD}>
-              And we bring it
-              <br />
-              to life.
-            </h1>
-            <motion.img
-              src={revealFront}
-              alt=""
-              animate={{ opacity: active ? 1 : 0, scale: active ? 1 : 0.94 }}
-              transition={{ duration: 0.6, ease: EASE }}
-              className="w-[300px] rounded-[14px] shadow-[0_40px_90px_-30px_rgba(15,23,42,0.45)] sm:w-[340px]"
-            />
-          </>
-        )}
-      </Station>
+      {active < STEP_COUNT - 1 && <SwipeHint />}
     </div>
   );
 }
