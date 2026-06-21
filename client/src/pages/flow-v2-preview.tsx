@@ -217,15 +217,15 @@ export default function FlowV2Preview() {
       {/* Visual stage — fixed + centred. The active step zooms in from depth
           (translateZ) and crossfades; the previous one drifts toward you and
           fades. No vertical travel → reads as a dolly toward the viewer. */}
-      <div className="pointer-events-none absolute inset-0" style={{ perspective: '1100px' }}>
+      <div className="pointer-events-none absolute inset-0" style={{ perspective: '820px' }}>
         <AnimatePresence>
           <motion.div
             key={active}
             className="absolute inset-0 flex flex-col items-center justify-center gap-8 px-6 will-change-transform"
-            initial={reduced ? { opacity: 0 } : { opacity: 0, z: -680 }}
+            initial={reduced ? { opacity: 0 } : { opacity: 0, z: -900 }}
             animate={reduced ? { opacity: 1 } : { opacity: 1, z: 0 }}
-            exit={reduced ? { opacity: 0 } : { opacity: 0, z: 160 }}
-            transition={{ duration: 0.65, ease: EASE }}
+            exit={reduced ? { opacity: 0 } : { opacity: 0, z: 520 }}
+            transition={{ duration: 0.62, ease: EASE }}
           >
             {renderStep(active, reduced)}
           </motion.div>
