@@ -13,6 +13,8 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
 import { User, Check, ChevronUp } from 'lucide-react';
 import revealFront from '@/assets/hero-card-front.png';
+import revealInside from '@/assets/hero-card-inside.png';
+import envelopeImg from '@/assets/envelope.png';
 
 const SCENE =
   'Sarah on a sunlit terrace in Positano, laughing with a glass of wine as the sea glows gold behind her.';
@@ -150,6 +152,88 @@ function PhotoStep({ reduced }: { reduced: boolean }) {
   );
 }
 
+// Finale — autoplays on arrival: card front → opens (read inside) → closes →
+// envelope covers it → the whole thing flies off-screen GETTING SMALLER
+// (recedes into the distance), then "Make your own" fades in.
+// phases: 0 front · 1 open · 2 closed+envelope · 3 fly away · 4 done
+function FinaleStep({ reduced }: { reduced: boolean }) {
+  const [phase, setPhase] = useState(0);
+  useEffect(() => {
+    if (reduced) {
+      setPhase(4);
+      return;
+    }
+    const ts = [
+      window.setTimeout(() => setPhase(1), 800),
+      window.setTimeout(() => setPhase(2), 2600),
+      window.setTimeout(() => setPhase(3), 3500),
+      window.setTimeout(() => setPhase(4), 4400),
+    ];
+    return () => ts.forEach(clearTimeout);
+  }, [reduced]);
+
+  return (
+    <div className="relative flex flex-col items-center gap-9">
+      <motion.div
+        // The card+envelope unit. On fly-away it shrinks + drifts up-right +
+        // fades — receding into the distance (smaller as it goes), not growing.
+        animate={
+          phase >= 3
+            ? { x: 180, y: -260, scale: 0.08, opacity: 0 }
+            : { x: 0, y: 0, scale: 1, opacity: 1 }
+        }
+        transition={{ duration: 0.85, ease: [0.4, 0, 0.2, 1] }}
+        style={{ perspective: '1000px' }}
+      >
+        <div
+          className="relative"
+          style={{ width: 300, height: 300, transformStyle: 'preserve-3d' }}
+        >
+          {/* Inside (revealed when the cover opens) */}
+          <img
+            src={revealInside}
+            alt=""
+            className="absolute inset-0 h-full w-full rounded-[10px] object-cover shadow-[0_30px_70px_-28px_rgba(15,23,42,0.45)]"
+          />
+          {/* Cover (front) — hinges open during the read, then closes */}
+          <motion.div
+            className="absolute inset-0"
+            style={{ transformOrigin: 'left center', transformStyle: 'preserve-3d' }}
+            animate={{ rotateY: phase === 1 ? -158 : 0 }}
+            transition={{ duration: 0.7, ease: EASE }}
+          >
+            <img
+              src={revealFront}
+              alt=""
+              className="absolute inset-0 h-full w-full rounded-[10px] object-cover shadow-[0_30px_70px_-28px_rgba(15,23,42,0.45)]"
+              style={{ backfaceVisibility: 'hidden' }}
+            />
+          </motion.div>
+          {/* Envelope — covers the closed front before it flies off */}
+          <motion.img
+            src={envelopeImg}
+            alt=""
+            className="absolute inset-0 h-full w-full scale-[1.16] rounded-[10px] object-cover"
+            animate={{ opacity: phase >= 2 ? 1 : 0 }}
+            transition={{ duration: 0.3, ease: EASE }}
+          />
+        </div>
+      </motion.div>
+
+      <motion.div
+        className="flex flex-col items-center gap-3"
+        animate={{ opacity: phase >= 4 ? 1 : 0, y: phase >= 4 ? 0 : 12 }}
+        transition={{ duration: 0.5, ease: EASE }}
+      >
+        <h1 className={HEAD}>Make their day.</h1>
+        <button className="rounded-full bg-brand px-7 py-3 text-base font-medium text-brand-foreground">
+          Make my first card
+        </button>
+      </motion.div>
+    </div>
+  );
+}
+
 function renderStep(i: number, reduced: boolean) {
   switch (i) {
     case 0:
@@ -191,20 +275,7 @@ function renderStep(i: number, reduced: boolean) {
         </>
       );
     default:
-      return (
-        <>
-          <h1 className={HEAD}>
-            And we bring it
-            <br />
-            to life.
-          </h1>
-          <img
-            src={revealFront}
-            alt=""
-            className="w-[300px] rounded-[14px] shadow-[0_40px_90px_-30px_rgba(15,23,42,0.45)] sm:w-[340px]"
-          />
-        </>
-      );
+      return <FinaleStep reduced={reduced} />;
   }
 }
 
@@ -222,8 +293,16 @@ export default function FlowV2Preview() {
           <motion.div
             key={active}
             className="absolute inset-0 flex flex-col items-center justify-center gap-8 px-6 will-change-transform"
-            initial={reduced ? { opacity: 0 } : { opacity: 0, z: -900 }}
-            animate={reduced ? { opacity: 1 } : { opacity: 1, z: 0 }}
+            // Step 0 (photos) zooms UP FROM BELOW (rise + dolly) — the entrance
+            // you liked. Every later step zooms in from depth, in place.
+            initial={
+              reduced
+                ? { opacity: 0 }
+                : active === 0
+                  ? { opacity: 0, y: 170, z: -320 }
+                  : { opacity: 0, z: -900 }
+            }
+            animate={reduced ? { opacity: 1 } : { opacity: 1, y: 0, z: 0 }}
             exit={reduced ? { opacity: 0 } : { opacity: 0, z: 520 }}
             transition={{ duration: 0.62, ease: EASE }}
           >
