@@ -112,18 +112,27 @@ function Station({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { amount: 0.55 });
+  const reduced = useReducedMotion() ?? false;
   useEffect(() => {
     if (inView) setActive(index);
   }, [inView, index, setActive]);
+  // Zoom-in on arrival: content sits pushed back in 3D space + faded when the
+  // station isn't the current one, then dollies to z:0 as it becomes active —
+  // keeping the premium "camera moves in to greet you" feel within the snap
+  // model. Reduced-motion users just get a clean fade, no z/translate.
+  const target = reduced
+    ? { opacity: inView ? 1 : 0 }
+    : { opacity: inView ? 1 : 0, z: inView ? 0 : -300, y: inView ? 0 : 34 };
   return (
     <section
       ref={ref}
       className="relative flex h-[100dvh] snap-start snap-always flex-col items-center justify-center px-6"
+      style={{ perspective: '1100px' }}
     >
       <motion.div
-        animate={{ opacity: inView ? 1 : 0.25, y: inView ? 0 : 26 }}
-        transition={{ duration: 0.5, ease: EASE }}
-        className="flex flex-col items-center gap-8"
+        animate={target}
+        transition={{ duration: 0.6, ease: EASE }}
+        className="flex flex-col items-center gap-8 will-change-transform"
       >
         {children(inView)}
       </motion.div>
