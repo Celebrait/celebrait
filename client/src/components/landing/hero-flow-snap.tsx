@@ -205,7 +205,10 @@ export function HeroFlowSnap() {
               reduced
                 ? { opacity: 0 }
                 : active === 0
-                  ? { opacity: 0, y: 170, z: -320 }
+                  ? // Photos sweep UP FROM BELOW (big rise, light zoom) —
+                    // the original entrance, distinct from the other steps'
+                    // zoom-from-behind.
+                    { opacity: 0, y: 360, z: -120 }
                   : { opacity: 0, z: -900 }
             }
             animate={reduced ? { opacity: 1 } : { opacity: 1, y: 0, z: 0 }}
