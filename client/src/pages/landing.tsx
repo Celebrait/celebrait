@@ -43,6 +43,7 @@ import { DemoVideoSection } from '@/components/landing/demo-video-section';
 import { FaqSection } from '@/components/landing/faq-section';
 import { FinalCtaBand } from '@/components/landing/final-cta-band';
 import { HeroFloatingSection } from '@/components/landing/hero-floating-section';
+import { StudioBuildSteps } from '@/components/landing/studio-build-steps';
 import { ImagineDescribeShipSection } from '@/components/landing/imagine-describe-ship-section';
 import { CelebrationBackdrop, StudioFlowSection, MakeYourOwnSection } from '@/pages/hero-scroll-poc';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
@@ -64,6 +65,9 @@ export default function Landing() {
       {/* Offset content below both fixed bars (80px header + 40px strip). */}
       <main className="pt-[120px]">
         <HeroFloatingSection />
+        {/* Build steps — pure scroll, gentle fade + slight zoom in, autoplay. */}
+        <StudioBuildSteps />
+        {/* Card finale — loads → reveals → opens → closes → envelope → flick. */}
         <StudioFlowSection />
         <MakeYourOwnSection />
         <ImagineDescribeShipSection />
