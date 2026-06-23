@@ -105,6 +105,12 @@ export function StudioFlowSection() {
   // Snappy approach (~.06) so it hits fast, then the wide crawl holds to read.
   const z7 = useTransform(scrollYProgress, [0.59, 0.65, 0.79, 0.84], [-720, -40, 40, 820]);
   const o7 = useTransform(scrollYProgress, [0.59, 0.63, 0.79, 0.83], [0, 1, 1, 0]);
+  // Each beat also RISES slightly from below as it approaches (a "zoom up"),
+  // not just a depth dolly — gives picture + words the same lift photos get
+  // from the section's entry offset.
+  const y4 = useTransform(scrollYProgress, [0.14, 0.21], [120, 0]);
+  const y5 = useTransform(scrollYProgress, [0.37, 0.44], [120, 0]);
+  const y7 = useTransform(scrollYProgress, [0.59, 0.66], [120, 0]);
   // Finale — extended (1500vh section) + re-choreographed for dwell:
   //   • dolly in (−720→0) + spinner            0.80–0.825
   //   • render SWIPES in (front appears)        0.825–0.85
@@ -140,7 +146,7 @@ export function StudioFlowSection() {
   const scaleEnv = useTransform(scrollYProgress, [0.984, 0.994], [1, 1.1]);
 
   return (
-    <div ref={ref} className="relative" style={{ height: '1000vh' }}>
+    <div ref={ref} className="relative" style={{ height: '750vh' }}>
       <div
         className="sticky top-0 h-screen overflow-hidden"
         style={{ perspective: '1000px' }}
@@ -178,7 +184,7 @@ export function StudioFlowSection() {
           </motion.div>
 
           {/* Headline + photo picker as one unit — photos "select in" as it lands. */}
-        <Layer z={z4} opacity={o4}>
+        <Layer z={z4} y={y4} opacity={o4}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Select your photo(s)</h1>
             <PhotoCard progress={scrollYProgress} />
@@ -186,7 +192,7 @@ export function StudioFlowSection() {
         </Layer>
 
         {/* Put them in the picture — scene description types in. */}
-        <Layer z={z5} opacity={o5}>
+        <Layer z={z5} y={y5} opacity={o5}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Put them in the picture</h1>
             <PictureCard progress={scrollYProgress} />
@@ -194,7 +200,7 @@ export function StudioFlowSection() {
         </Layer>
 
         {/* Add your words — front headline then the full inside message. */}
-        <Layer z={z7} opacity={o7}>
+        <Layer z={z7} y={y7} opacity={o7}>
           <div className="flex flex-col items-center gap-7 sm:gap-9">
             <h1 className={CHOOSE_CLASS}>Add your words</h1>
             <WordsCard progress={scrollYProgress} />
@@ -360,16 +366,18 @@ const CHOOSE_CLASS =
 
 function Layer({
   z,
+  y,
   opacity,
   children,
 }: {
   z: MotionValue<number>;
+  y?: MotionValue<number>;
   opacity: MotionValue<number>;
   children: React.ReactNode;
 }) {
   return (
     <motion.div
-      style={{ z, opacity }}
+      style={{ z, y, opacity }}
       className="absolute inset-0 flex items-center justify-center px-6 will-change-transform"
     >
       {children}
