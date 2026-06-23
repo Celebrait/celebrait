@@ -42,7 +42,9 @@ import { BlogTeaserSection } from '@/components/landing/blog-teaser-section';
 import { DemoVideoSection } from '@/components/landing/demo-video-section';
 import { FaqSection } from '@/components/landing/faq-section';
 import { FinalCtaBand } from '@/components/landing/final-cta-band';
+import { useEffect } from 'react';
 import { HeroFloatingSection } from '@/components/landing/hero-floating-section';
+import { HeroFlowSnap } from '@/components/landing/hero-flow-snap';
 import { ImagineDescribeShipSection } from '@/components/landing/imagine-describe-ship-section';
 import { CelebrationBackdrop, StudioFlowSection, MakeYourOwnSection } from '@/pages/hero-scroll-poc';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
@@ -52,6 +54,18 @@ import { PromoStrip } from '@/components/landing/promo-strip';
 import { TestimonialCarouselSection } from '@/components/landing/testimonial-carousel-section';
 
 export default function Landing() {
+  // Gentle page-level snap — only HeroFlowSnap's step markers carry snap-align,
+  // so the hero, finale, and marketing sections scroll freely while the build
+  // steps snap one-per-swipe.
+  useEffect(() => {
+    const el = document.documentElement;
+    const prev = el.style.scrollSnapType;
+    el.style.scrollSnapType = 'y proximity';
+    return () => {
+      el.style.scrollSnapType = prev;
+    };
+  }, []);
+
   return (
     <div className="relative min-h-screen">
       {/* Always-on celebration field — a single fixed -z-10 backdrop so the
@@ -64,6 +78,9 @@ export default function Landing() {
       {/* Offset content below both fixed bars (80px header + 40px strip). */}
       <main className="pt-[120px]">
         <HeroFloatingSection />
+        {/* Build steps — snap + autoplay + dolly (photos → picture → words). */}
+        <HeroFlowSnap />
+        {/* Card finale — loads → reveals → opens → closes → envelope → flick. */}
         <StudioFlowSection />
         <MakeYourOwnSection />
         <ImagineDescribeShipSection />

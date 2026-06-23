@@ -70,42 +70,14 @@ export function StudioFlowSection() {
     // finale still lands at the bottom.
     offset: ['start center', 'end end'],
   });
-  // Crop so the flow starts at the photos beat (beats keep their 0→1 numbers).
-  const scrollYProgress = useTransform(rawProgress, [0, 1], [0.14, 1]);
+  // FINALE-ONLY section. The build steps (photos / picture / words) now live in
+  // HeroFlowSnap above (snap + autoplay). This section is just the card pay-off:
+  // crop the section's scroll onto the finale beat range (~0.79→1.0) so the card
+  // LOADS (spinner) + reveals as the section enters, opens/closes, becomes the
+  // envelope, and flicks off as the section ends → hands to MakeYourOwn.
+  const scrollYProgress = useTransform(rawProgress, [0, 1], [0.79, 1]);
 
-  // PERF: the photo-selection + typing reveals used to live here as React
-  // state updated on every scroll frame, which re-rendered the ENTIRE section
-  // (all three beat cards + the finale) per character — the main source of
-  // mobile scroll-jank. They now live INSIDE each card, driven imperatively
-  // off this `scrollYProgress` motion value (direct DOM writes, no setState),
-  // so the scroll scrub does ZERO React re-renders. See PhotoCard /
-  // PictureCard / WordsCard.
-
-  // ── Unified timing ─────────────────────────────────────────────────
-  // Every content beat shares ONE motion profile so the journey reads as one
-  // continuous dolly: fast approach (−720→−40) → slow crawl (−40→40, the
-  // readable beat where content animates) → fast exit (40→820). Crawl centres
-  // are evenly spaced (~.135 apart) at .22 / .355 / .49 / .625 / .76; opacity
-  // is held tight to each crawl with a ~.01 overlap at every seam (no white
-  // gap — a faint crossfade). The finale (3D card) lands + opens, no dolly.
-  //
-  // Three build beats: photos (.27) / put them in the picture (.50, wide) /
-  // inside (.72). Then the finale.
-  // Beat 2 — "Select your photo(s)" (centre .27). Fades in by .17 and reaches
-  // readable size (−40) by .195 — most of which happens DURING the section's
-  // entry (see the 'start center' offset above), so the photos sweep up from
-  // below and zoom in as the user leaves the hero, rather than popping in.
-  const z4 = useTransform(scrollYProgress, [0.14, 0.195, 0.30, 0.4], [-720, -40, 40, 820]);
-  const o4 = useTransform(scrollYProgress, [0.14, 0.17, 0.30, 0.37], [0, 1, 1, 0]);
-  // Beat 3 — "Put them in the picture" (centre .50). Snappy approach (~.06,
-  // matching photos) so the asset HITS fast, then the crawl holds for reading.
-  const z5 = useTransform(scrollYProgress, [0.37, 0.42, 0.57, 0.61], [-720, -40, 40, 820]);
-  const o5 = useTransform(scrollYProgress, [0.37, 0.40, 0.57, 0.605], [0, 1, 1, 0]);
-  // Beat 4 — "Add your words" (centre .72, wide crawl: front then message).
-  // Snappy approach (~.06) so it hits fast, then the wide crawl holds to read.
-  const z7 = useTransform(scrollYProgress, [0.59, 0.65, 0.79, 0.84], [-720, -40, 40, 820]);
-  const o7 = useTransform(scrollYProgress, [0.59, 0.63, 0.79, 0.83], [0, 1, 1, 0]);
-  // Finale — extended (1500vh section) + re-choreographed for dwell:
+  // Finale beats (numbers unchanged — the crop above maps the section onto them):
   //   • dolly in (−720→0) + spinner            0.80–0.825
   //   • render SWIPES in (front appears)        0.825–0.85
   //   • FRONT DWELL (front held, zoom begins)   0.85–0.885
@@ -140,7 +112,7 @@ export function StudioFlowSection() {
   const scaleEnv = useTransform(scrollYProgress, [0.984, 0.994], [1, 1.1]);
 
   return (
-    <div ref={ref} className="relative" style={{ height: '1000vh' }}>
+    <div ref={ref} className="relative" style={{ height: '450vh', marginTop: '-60vh' }}>
       <div
         className="sticky top-0 h-screen overflow-hidden"
         style={{ perspective: '1000px' }}
@@ -176,31 +148,6 @@ export function StudioFlowSection() {
               </motion.div>
             </div>
           </motion.div>
-
-          {/* Headline + photo picker as one unit — photos "select in" as it lands. */}
-        <Layer z={z4} opacity={o4}>
-          <div className="flex flex-col items-center gap-7 sm:gap-9">
-            <h1 className={CHOOSE_CLASS}>Select your photo(s)</h1>
-            <PhotoCard progress={scrollYProgress} />
-          </div>
-        </Layer>
-
-        {/* Put them in the picture — scene description types in. */}
-        <Layer z={z5} opacity={o5}>
-          <div className="flex flex-col items-center gap-7 sm:gap-9">
-            <h1 className={CHOOSE_CLASS}>Put them in the picture</h1>
-            <PictureCard progress={scrollYProgress} />
-          </div>
-        </Layer>
-
-        {/* Add your words — front headline then the full inside message. */}
-        <Layer z={z7} opacity={o7}>
-          <div className="flex flex-col items-center gap-7 sm:gap-9">
-            <h1 className={CHOOSE_CLASS}>Add your words</h1>
-            <WordsCard progress={scrollYProgress} />
-          </div>
-        </Layer>
-
       </div>
     </div>
   );

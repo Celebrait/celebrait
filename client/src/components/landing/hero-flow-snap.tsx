@@ -13,7 +13,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
 import { User, Check } from 'lucide-react';
-import revealFront from '@/assets/hero-card-front.png';
 
 const SCENE =
   'Sarah on a sunlit terrace in Positano, laughing with a glass of wine as the sea glows gold behind her.';
@@ -35,7 +34,7 @@ const PHOTO_GRADIENTS = [
   'from-stone-200 to-stone-300',
 ];
 const SELECT_ORDER = [0, 4, 2];
-const STEP_COUNT = 4; // photos · picture · words · card-hits
+const STEP_COUNT = 3; // photos · picture · words (the card finale is a separate section)
 
 function Typewriter({
   text,
@@ -163,15 +162,7 @@ function renderStep(i: number, reduced: boolean) {
         </>
       );
     default:
-      // The card HITS — dollies in (via the stage) and holds. Everything from
-      // here on (open / envelope / etc.) is the next iteration.
-      return (
-        <img
-          src={revealFront}
-          alt=""
-          className="w-[clamp(300px,40vw,440px)] rounded-[14px] shadow-[0_44px_100px_-30px_rgba(15,23,42,0.5)]"
-        />
-      );
+      return null;
   }
 }
 
