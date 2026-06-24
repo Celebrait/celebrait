@@ -126,11 +126,11 @@ export default function ChatStudio() {
   useEffect(() => { bot("Hi — I'm your card-maker. Let's make something they'll keep. Who's this card for?"); }, []); // eslint-disable-line
   useEffect(() => { threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: 'smooth' }); }, [messages, typing, chips]);
 
-  /* ── free-text answers ── */
-  function handleSend(raw: string) {
+  /* ── free-text answers (label = what shows in the user bubble; raw = value) ── */
+  function handleSend(raw: string, label?: string) {
     const v = raw.trim();
     if (!v || typing) return;
-    push('user', v);
+    push('user', label ?? v);
     setInput('');
     setChips([]);
 
@@ -152,6 +152,16 @@ export default function ChatStudio() {
           setPhase('photoMode');
           setChips([{ label: `Just ${draft.name || 'them'}`, value: 'one_person' }, { label: 'A group photo', value: 'group' }]);
         });
+        break;
+
+      case 'photoMode':
+        up({ photoMode: v === 'group' ? 'group' : 'one_person' });
+        bot(
+          v === 'group'
+            ? 'Add one photo with everyone in it.'
+            : `Add a photo of ${draft.name || 'them'} — a few angles help the likeness.`,
+          () => { setPhase('photo'); setCanvas('photo'); },
+        );
         break;
 
       case 'scene': // user typed their own scene
@@ -346,7 +356,7 @@ export default function ChatStudio() {
   function onChip(c: Chip) {
     if (phase === 'photoMode' || phase === 'occasion') {
       if (c.value === '__custom__') { push('user', c.label); setChips([]); bot('Tell me the occasion in your own words.'); return; }
-      handleSend(c.value);
+      handleSend(c.value, c.label);
       return;
     }
     if (phase === 'scene') {
@@ -377,7 +387,7 @@ export default function ChatStudio() {
     if (phase === 'insideFork') { push('user', c.label); setChips([]); chooseInside(c.value === '__blank__' ? 'blank' : 'write'); return; }
     if (phase === 'review' && c.value === '__generate__') { push('user', c.label); runGenerate(); return; }
     if (phase === 'frontText' && c.value === '__default__') { handleSend(defaultFront(draft)); return; }
-    handleSend(c.value);
+    handleSend(c.value, c.label);
   }
 
   /* ───────────── render ───────────── */
