@@ -42,7 +42,11 @@ import { openai } from './utils/shared';
 // null values. Matches the hardcoded behaviour this function had before
 // Phase 4b so existing cards keep generating unchanged.
 const FALLBACK_PROVIDER = 'openai';
-const FALLBACK_QUALITY = 'high' as const;
+// Default to 'medium' when a slot has no quality set in the Prompt Lab —
+// matches the intended config and is much faster than 'high' (high gpt-
+// image is ~1-5 min/image; medium ~30-60s). Slots with an explicit
+// quality in prompt_active still win; this only covers the unset case.
+const FALLBACK_QUALITY = 'medium' as const;
 const FALLBACK_SIZE = '1024x1024';
 
 // Regens are pinned to Gemini regardless of what the prompt_active
