@@ -21,6 +21,9 @@ interface GestureHintsProps {
    *  Card3DViewer has `enableZoom={false}` (e.g. the marketing
    *  hero) so the hint copy isn't a lie. Default false. */
   hideZoomHint?: boolean;
+  /** Hide the "Drag to rotate" hint — for open/close-only surfaces
+   *  (`enableRotate={false}`) so we don't promise rotation. Default false. */
+  hideRotateHint?: boolean;
   /** Render the hints STATICALLY — no mount fade-in, no fade-out
    *  when the card opens, always at full opacity. Used in modal
    *  contexts where the hints belong as fixed guidance (and where a
@@ -33,6 +36,7 @@ export function GestureHints({
   open,
   mountDelayMs = 900,
   hideZoomHint = false,
+  hideRotateHint = false,
   alwaysVisible = false,
 }: GestureHintsProps) {
   const [visible, setVisible] = useState(false);
@@ -48,9 +52,11 @@ export function GestureHints({
       <Hint label="Tap to open">
         <TapGlyph />
       </Hint>
-      <Hint label="Drag to rotate">
-        <DragGlyph />
-      </Hint>
+      {!hideRotateHint && (
+        <Hint label="Drag to rotate">
+          <DragGlyph />
+        </Hint>
+      )}
       {!hideZoomHint && (
         <Hint label="Scroll to zoom" hideOnMobile>
           <ZoomGlyph />

@@ -560,7 +560,11 @@ function RevealView({
   // Ready = server says done and both image URLs have landed on the
   // client. `frontUrl` alone isn't enough (server persists it mid-gen;
   // client deliberately waits for the complete picture).
-  const isReady = status === 'completed' && !!frontUrl && !!insideUrl;
+  // Blank-inside cards generate NO inside image, so don't gate readiness on
+  // insideUrl — otherwise isReady never flips and the wait-stage spinner hangs
+  // forever (the "card finished generating but a purple spinner stayed" bug).
+  const isReady =
+    status === 'completed' && !!frontUrl && (insideMode !== 'write' || !!insideUrl);
 
   // Generation stage — drives the GenerationWaitStage status copy so
   // the user sees actual progress ("Drawing the front" → "Now writing
@@ -770,6 +774,8 @@ function RevealView({
                     insideImageUrl={insideUrl}
                     open={open}
                     onOpenChange={setOpen}
+                    enableRotate={false}
+                    enableZoom={false}
                     className="w-full h-full"
                   />
                 </div>
@@ -883,7 +889,7 @@ function RevealView({
                     // landed, before they were ever seen).
                     style={{ height: open ? 0 : 72 }}
                   >
-                    <GestureHints open={open} mountDelayMs={450} />
+                    <GestureHints open={open} mountDelayMs={450} hideRotateHint hideZoomHint />
                   </div>
                 </motion.div>
 
