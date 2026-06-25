@@ -373,6 +373,10 @@ export default function ChatStudio() {
       if (data.phase) setBsPhase(data.phase);
       if (data.finalScene) {
         setProposedScene(data.finalScene);
+        // Present the actual composed scene as its own bubble so the user
+        // can READ it before signing off (the reply is only an intro; the
+        // clean scene comes back separately in finalScene).
+        push('bot', `“${data.finalScene}”`);
         setChips([
           { label: 'Use this scene ✓', value: '__use__', kind: 'primary' },
           { label: 'Tweak it', value: '__change__', kind: 'ghost' },
