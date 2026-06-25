@@ -170,6 +170,12 @@ export class OpenAIImageProvider implements ImageProvider {
           ...formData.getHeaders(),
         },
         body: formData as any,
+        // Historically this fetch had NO timeout → a stalled OpenAI
+        // request hung the card forever (cycling wait-stage quotes,
+        // nothing happening). Abort after 6 min so a true stall surfaces
+        // as a failure → retry. gpt-image 'high' is ~5 min worst case, so
+        // this only fires on a genuine hang, not a legitimately-slow gen.
+        signal: AbortSignal.timeout(6 * 60 * 1000),
       });
       console.log(
         `[PROVIDER:openai] ← ${response.status} ${response.statusText} (${Date.now() - startTime}ms)`,
