@@ -87,7 +87,7 @@ interface Chip { label: string; value: string; kind?: 'primary' | 'ghost' | 'opt
 type Phase =
   | 'name' | 'occasion' | 'photoMode' | 'photo'
   | 'scene' | 'sceneBrief' | 'scenePick' | 'bsChat'
-  | 'frontText' | 'generating' | 'revealFront'
+  | 'frontText' | 'frontConfirm' | 'generating' | 'revealFront'
   | 'insideFork' | 'insideMessage' | 'insideRetry' | 'reveal'
   | 'givingFormat' | 'givingDestination' | 'done';
 type CanvasMode = 'empty' | 'photo' | 'generating' | 'card' | 'giving';
@@ -250,10 +250,10 @@ export default function ChatStudio() {
         if (d.occasion) goPhotoMode(d);
         break;
       case 'photoMode':
-        if (d.photoMode && stepComplete) goPhoto();
+        if (d.photoMode && stepComplete) goPhoto(d);
         break;
       case 'frontText':
-        if (stepComplete || d.front.mode === 'none' || d.front.text) void goGenerateFront(d);
+        if (stepComplete || d.front.mode === 'none' || d.front.text) goConfirmFront(d);
         break;
       case 'insideMessage':
         if (d.inside.message) void goGenerateInside(d);
@@ -270,9 +270,22 @@ export default function ChatStudio() {
   }
   function goPhotoMode(d: Draft) {
     setPhase('photoMode');
-    setChips([{ label: `Just ${d.name || 'them'}`, value: 'one_person' }, { label: 'A group photo', value: 'group' }]);
+    setChips([
+      { label: `Just ${d.name || 'them'}`, value: 'one_person' },
+      { label: 'A group photo', value: 'group' },
+    ]);
   }
-  function goPhoto() { setPhase('photo'); setCanvas('photo'); }
+  // Opens the upload widget AND explains what's happening + how to use it.
+  // Used by both the pill path and the typed (LLM) path so the guidance
+  // always shows.
+  function goPhoto(d: Draft) {
+    setPhase('photo'); setCanvas('photo');
+    bot(
+      d.photoMode === 'group'
+        ? `Now the photo — I'll use it to build the artwork, so upload one clear shot with everyone's face visible. Tap the Upload box that's just appeared, add your photo, then hit “Use these”.`
+        : `Now the photo — I'll use it to create ${d.name || 'their'} likeness in the artwork, so a clear face shot matters most (a couple of angles help the resemblance). Tap the Upload box that's just appeared, add a few photos, then hit “Use these”.`,
+    );
+  }
 
   /* ── free-text composer submit ── */
   function handleSend(raw: string, label?: string) {
@@ -390,6 +403,18 @@ export default function ChatStudio() {
       setChips([
         { label: `Use “${defaultFront(d)}”`, value: '__default__', kind: 'primary' },
         { label: 'Skip the headline', value: '__skipfront__', kind: 'ghost' },
+      ]);
+    });
+  }
+  // A light "ready?" gate before the ~20–30s front draw, so it never
+  // just fires off unprompted (and sets the time expectation).
+  function goConfirmFront(d: Draft) {
+    const frontDesc = d.front.mode === 'none' ? 'no headline' : `“${d.front.text || defaultFront(d)}”`;
+    bot(`Ready to draw the front (${frontDesc})? It takes about 20–30 seconds.`, () => {
+      setPhase('frontConfirm');
+      setChips([
+        { label: 'Draw the front ✓', value: '__drawfront__', kind: 'primary' },
+        { label: 'Change the headline', value: '__changefront__', kind: 'ghost' },
       ]);
     });
   }
@@ -569,14 +594,14 @@ export default function ChatStudio() {
       push('user', c.label); setChips([]);
       const d = { ...draft, occasion: c.value };
       setDraft(d);
-      bot(`A ${labelFor(d)} card — lovely.`, () => goPhotoMode(d));
+      bot(`A ${labelFor(d)} card — lovely. Who'll be on it — just ${d.name || 'them'}, or ${d.name || 'them'} with others in a group photo?`, () => goPhotoMode(d));
       return;
     }
     if (phase === 'photoMode') {
       push('user', c.label); setChips([]);
       const d = { ...draft, photoMode: (c.value === 'group' ? 'group' : 'one_person') as Draft['photoMode'] };
       setDraft(d);
-      bot(c.value === 'group' ? 'Add one photo with everyone in it.' : `Add a photo of ${d.name || 'them'} — a few angles help the likeness.`, () => goPhoto());
+      goPhoto(d);
       return;
     }
     if (phase === 'scene') {
@@ -611,8 +636,12 @@ export default function ChatStudio() {
       return;
     }
     if (phase === 'frontText') {
-      if (c.value === '__default__') { const d = { ...draft, front: { mode: 'write' as const, text: defaultFront(draft) } }; setDraft(d); push('user', c.label); setChips([]); bot(`“${defaultFront(draft)}” on the front. Let's draw it.`, () => goGenerateFront(d)); return; }
-      if (c.value === '__skipfront__') { const d = { ...draft, front: { mode: 'none' as const, text: '' } }; setDraft(d); push('user', c.label); setChips([]); bot('Done — the scene will speak for itself.', () => goGenerateFront(d)); return; }
+      if (c.value === '__default__') { const d = { ...draft, front: { mode: 'write' as const, text: defaultFront(draft) } }; setDraft(d); push('user', c.label); setChips([]); bot(`“${defaultFront(draft)}” on the front.`, () => goConfirmFront(d)); return; }
+      if (c.value === '__skipfront__') { const d = { ...draft, front: { mode: 'none' as const, text: '' } }; setDraft(d); push('user', c.label); setChips([]); bot('No headline — the scene will speak for itself.', () => goConfirmFront(d)); return; }
+    }
+    if (phase === 'frontConfirm') {
+      if (c.value === '__drawfront__') { push('user', 'Draw the front'); setChips([]); void goGenerateFront(draft); return; }
+      if (c.value === '__changefront__') { push('user', 'Change the headline'); setChips([]); goFrontText(draft); return; }
     }
     if (phase === 'revealFront') {
       if (c.value === '__approvefront__') { push('user', 'Love it — do the inside'); setChips([]); goInsideFork(draft); return; }
