@@ -1,79 +1,77 @@
 // client/src/pages/chat-studio.tsx
 //
-// PROTOTYPE (/studio-chat) — the full studio creation flow as a chat + canvas
-// experience, mirroring the real maker (see memory next_chat_canvas_studio).
-// Selector pills render INLINE in the thread under the bot's message (like the
-// studio brainstorm chat); only free text sits in the footer composer. The
-// scene step offers BOTH real helpers, each with its own conversational flow:
-//   • "Suggest scenes" — type a rough brief → 3 options → pick or re-roll
-//   • "Brainstorm"      — a guided multi-turn that drafts a scene to refine/use
-// Generation is STUBBED (sample renders + keyword refine). Real endpoints get
-// wired if the feel holds. The real studio + landing are untouched.
+// /studio-chat — the chat-driven studio, now wired to REAL backend.
+// Auth-gated (RequireAuth in App.tsx). On entry it creates a real draft
+// and autosaves the CardDraftState as the conversation fills it in.
+//
+// REAL now:
+//   • Conversation        → POST /api/studio/chat (gpt-4o-mini): the bot
+//                           reads free text and extracts name/occasion/
+//                           photoMode/front/inside, so it talks like real AI.
+//   • "Suggest scenes"    → POST /api/studio/scene-suggestions (the exact
+//                           studio endpoint — 3 tailored options).
+//   • "Brainstorm with me"→ POST /api/studio/brainstorm (the exact studio
+//                           5-phase guided chat — identical behaviour).
+//   • Draft               → POST /api/studio/drafts + PATCH autosave.
+//
+// STILL STUBBED (next increment): photo upload (local preview), card
+// generation (sample renders + keyword refine), and the full-screen
+// mobile/photo-modal/cards-in-thread layout + front-first gen sequencing.
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Sparkles, Send, Loader2, Check, ArrowRight, Upload, X, RefreshCw, Wand2,
+  Sparkles, Send, Loader2, Check, ArrowRight, Upload, X, RefreshCw, Wand2, Lightbulb, SkipForward,
 } from 'lucide-react';
 import { Link } from 'wouter';
+import { apiRequest } from '@/lib/queryClient';
 import frontImg from '@/assets/hero-card-front.png';
 import insideImg from '@/assets/hero-card-inside.png';
 
 /* ───────────── draft model (mirrors CardDraftState) ───────────── */
 interface Draft {
   name: string;
-  occasion: string;
+  occasion: string;        // a key: birthday | anniversary | ...
+  occasionLabel: string;   // freeform label when occasion === 'other'
   photoMode: 'one_person' | 'group';
-  photos: string[];
+  photos: string[];        // local previews (stub upload for now)
+  photoIds: number[];      // real photo ids once upload is wired
   scene: string;
   front: { mode: 'write' | 'none'; text: string };
   inside: { mode: 'write' | 'blank'; message: string };
   delivery: { format?: 'digital' | 'printed' | 'both'; destination?: 'recipient' | 'sender' };
 }
 const EMPTY_DRAFT: Draft = {
-  name: '', occasion: '', photoMode: 'one_person', photos: [], scene: '',
+  name: '', occasion: '', occasionLabel: '', photoMode: 'one_person', photos: [], photoIds: [], scene: '',
   front: { mode: 'write', text: '' }, inside: { mode: 'write', message: '' }, delivery: {},
 };
 
-/* ───────────── helpers ───────────── */
-const OCCASIONS = [
+/* ───────────── occasion labels ───────────── */
+const OCCASION_PILLS = [
   { key: 'birthday', label: 'Birthday' }, { key: 'anniversary', label: 'Anniversary' },
   { key: 'wedding', label: 'Wedding' }, { key: 'graduation', label: 'Graduation' },
   { key: 'engagement', label: 'Engagement' }, { key: 'newbaby', label: 'New baby' },
 ];
+const OCC_LABELS: Record<string, string> = {
+  birthday: 'birthday', anniversary: 'anniversary', wedding: 'wedding', graduation: 'graduation',
+  engagement: 'engagement', newbaby: 'new baby', christmas: 'Christmas', valentines: "Valentine's",
+  thankyou: 'thank you', sympathy: 'sympathy', other: 'occasion',
+};
 const OCC_PHRASE: Record<string, string> = {
   birthday: 'Happy Birthday', anniversary: 'Happy Anniversary', wedding: 'Congratulations',
   graduation: 'Congratulations', engagement: 'Congratulations', newbaby: 'Congratulations',
+  christmas: 'Merry Christmas', valentines: 'Happy Valentine\'s Day', thankyou: 'Thank You',
 };
-function labelFor(occ: string): string {
-  return OCCASIONS.find((o) => o.key === occ)?.label.toLowerCase() ?? occ;
+function labelFor(d: Draft): string {
+  if (d.occasion === 'other' && d.occasionLabel) return d.occasionLabel;
+  return OCC_LABELS[d.occasion] ?? d.occasion;
 }
 function defaultFront(d: Draft): string {
-  const phrase = OCC_PHRASE[d.occasion] ?? `Happy ${d.occasion}`;
+  const phrase = OCC_PHRASE[d.occasion] ?? `Happy ${labelFor(d)}`;
   return d.name ? `${phrase}, ${d.name}` : phrase;
 }
 const MAX_PHOTOS = { one_person: 5, group: 1 } as const;
 
-const SCENE_SCAFFOLDS = [
-  (who: string, place: string) => `${who} ${place}, bathed in golden-hour light, mid-laugh`,
-  (who: string, place: string) => `${who} ${place} at dusk — candlelit and warm`,
-  (who: string, place: string) => `${who} ${place} in soft morning light, flowers everywhere`,
-  (who: string, place: string) => `${who} ${place} under string lights, glasses raised`,
-  (who: string, place: string) => `${who} ${place}, the city glowing behind them`,
-  (who: string, place: string) => `${who} ${place} on a quiet evening, just the two of them`,
-];
-function defaultPlace(occ: string): string {
-  return (
-    { birthday: 'at a rooftop party', anniversary: 'on a candlelit terrace', wedding: 'in a sunlit garden', graduation: 'on campus, caps in the air' } as Record<string, string>
-  )[occ] || 'somewhere they love';
-}
-function makeSuggestions(brief: string, d: Draft, salt: number): string[] {
-  const who = d.name || 'They';
-  const raw = brief && !/surprise/i.test(brief) ? brief.trim() : defaultPlace(d.occasion);
-  const place = /^(on|in|at|by|under|beside|near)\b/i.test(raw) ? raw : `at ${raw}`;
-  const start = (salt * 3) % SCENE_SCAFFOLDS.length;
-  return [0, 1, 2].map((i) => SCENE_SCAFFOLDS[(start + i) % SCENE_SCAFFOLDS.length](who, place));
-}
 function refineFilter(text: string): string {
   const t = text.toLowerCase();
   if (/sunset|warm|gold|orange|amber|autumn|cosy|cozy/.test(t)) return 'saturate(1.25) sepia(0.22) hue-rotate(-12deg) brightness(1.05)';
@@ -90,16 +88,31 @@ interface Msg { id: number; role: Role; text: string }
 interface Chip { label: string; value: string; kind?: 'primary' | 'ghost' | 'option' }
 type Phase =
   | 'name' | 'occasion' | 'photoMode' | 'photo'
-  | 'scene' | 'sceneBrief' | 'scenePick'
-  | 'bsWhere' | 'bsDoing' | 'bsMood' | 'bsConfirm' | 'bsTweak'
+  | 'scene' | 'sceneBrief' | 'scenePick' | 'bsChat'
   | 'frontText' | 'insideFork' | 'insideMessage'
   | 'review' | 'generating' | 'reveal'
   | 'givingFormat' | 'givingDestination' | 'done';
 type CanvasMode = 'empty' | 'photo' | 'generating' | 'card' | 'giving';
+
+// Brainstorm sub-flow (mirrors the studio's /api/studio/brainstorm machine).
+type BsPhase = 'initial_scene' | 'scene_specifics' | 'activity' | 'clothing' | 'summary' | 'change_request';
+type BsAction = 'reply' | 'ideas' | 'more_ideas' | 'choose_option' | 'skip' | 'change_request' | 'tweak';
+interface BsHistory { role: 'user' | 'assistant'; content: string }
+function bsKey(p: BsPhase): keyof BsCollected | null {
+  return p === 'initial_scene' ? 'initialScene'
+    : p === 'scene_specifics' ? 'sceneSpecifics'
+    : p === 'activity' ? 'activity'
+    : p === 'clothing' ? 'clothing' : null;
+}
+interface BsCollected { initialScene?: string; sceneSpecifics?: string; activity?: string; clothing?: string }
+
 let nextId = 1;
 
 export default function ChatStudio() {
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  const [cardId, setCardId] = useState<number | null>(null);
+  const baseStateRef = useRef<any>(null); // server's valid CardDraftState to merge onto
+
   const [messages, setMessages] = useState<Msg[]>([]);
   const [phase, setPhase] = useState<Phase>('name');
   const [chips, setChips] = useState<Chip[]>([]);
@@ -110,23 +123,157 @@ export default function ChatStudio() {
   const [cardSide, setCardSide] = useState<'front' | 'inside'>('front');
   const [genStage, setGenStage] = useState(0);
   const [revKey, setRevKey] = useState(0);
+
+  // scene-suggestions
   const [brief, setBrief] = useState('');
-  const [reroll, setReroll] = useState(0);
-  const [bs, setBs] = useState<{ where?: string; doing?: string; mood?: string }>({});
+  // brainstorm sub-flow
+  const [bsPhase, setBsPhase] = useState<BsPhase>('initial_scene');
+  const [bsCollected, setBsCollected] = useState<BsCollected>({});
+  const [bsHistory, setBsHistory] = useState<BsHistory[]>([]);
+  const [bsAwaiting, setBsAwaiting] = useState<'reply' | 'tweak'>('reply');
+  const [proposedScene, setProposedScene] = useState('');
+
   const threadRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const push = (role: Role, text: string) => setMessages((m) => [...m, { id: nextId++, role, text }]);
-  const bot = (text: string, after?: () => void, delay = 650) => {
-    setTyping(true);
-    window.setTimeout(() => { setTyping(false); push('bot', text); after?.(); }, delay);
-  };
   const up = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
 
-  useEffect(() => { bot("Hi — I'm your card-maker. Let's make something they'll keep. Who's this card for?"); }, []); // eslint-disable-line
+  /* ── create the real draft on mount ── */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiRequest('POST', '/api/studio/drafts');
+        const { id } = await res.json();
+        if (cancelled) return;
+        setCardId(id);
+        // Pull the server's empty state so autosave merges onto a valid shape.
+        const g = await apiRequest('GET', `/api/studio/drafts/${id}`);
+        const data = await g.json();
+        baseStateRef.current = data?.state ?? { version: 1 };
+      } catch {
+        // Non-fatal — the conversation still works; autosave/scene-suggest
+        // just won't persist. Surfaced softly if scene-suggest fails.
+      }
+    })();
+    push('bot', "Hi — I'm your card-maker. Let's make something they'll keep. Who's this card for?");
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => { threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: 'smooth' }); }, [messages, typing, chips]);
 
-  /* ── free-text answers (label = what shows in the user bubble; raw = value) ── */
+  /* ── autosave (debounced) ── */
+  function buildState(d: Draft) {
+    const base = baseStateRef.current ?? { version: 1 };
+    return {
+      ...base,
+      version: 1,
+      recipient: { ...(base.recipient ?? {}), name: d.name || undefined, occasion: d.occasion || undefined },
+      photos: { ...(base.photos ?? {}), mode: d.photoMode, photoIds: d.photoIds },
+      scene: { ...(base.scene ?? {}), description: d.scene || undefined },
+      front: { ...(base.front ?? {}), mode: d.front.mode, text: d.front.mode === 'none' ? undefined : (d.front.text || undefined) },
+      inside: d.inside.mode === 'blank'
+        ? { ...(base.inside ?? {}), mode: 'blank' }
+        : { ...(base.inside ?? {}), mode: 'write', write: { ...((base.inside ?? {}).write ?? {}), message: d.inside.message || undefined } },
+      delivery: { ...(base.delivery ?? {}), ...d.delivery },
+    };
+  }
+  const saveTimer = useRef<number | null>(null);
+  useEffect(() => {
+    if (!cardId) return;
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      apiRequest('PATCH', `/api/studio/drafts/${cardId}`, { state: buildState(draft) }).catch(() => {});
+    }, 600);
+    return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
+  }, [draft, cardId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Immediate flush (await) before reads that depend on persisted state.
+  async function flushSave() {
+    if (!cardId) return;
+    try { await apiRequest('PATCH', `/api/studio/drafts/${cardId}`, { state: buildState(draft) }); } catch { /* noop */ }
+  }
+
+  function chatHistory(): BsHistory[] {
+    return messages.slice(-10).map((m) => ({ role: m.role === 'user' ? 'user' as const : 'assistant' as const, content: m.text }));
+  }
+
+  /* ── merge LLM-captured fields into a fresh draft object ── */
+  function mergeCaptured(cap: any): Draft {
+    const d: Draft = { ...draft, front: { ...draft.front }, inside: { ...draft.inside }, delivery: { ...draft.delivery } };
+    if (cap.name) d.name = cap.name;
+    if (cap.occasion) d.occasion = cap.occasion;
+    if (cap.occasionLabel) d.occasionLabel = cap.occasionLabel;
+    if (cap.photoMode) d.photoMode = cap.photoMode;
+    if (cap.frontMode || cap.frontText) {
+      d.front = { mode: cap.frontMode ?? 'write', text: cap.frontText ?? d.front.text };
+    }
+    if (cap.insideMode || cap.insideMessage) {
+      d.inside = { mode: cap.insideMode ?? d.inside.mode, message: cap.insideMessage ?? d.inside.message };
+    }
+    return d;
+  }
+
+  /* ── LLM conversation turn ── */
+  const CHAT_STEP: Partial<Record<Phase, string>> = {
+    name: 'name', occasion: 'occasion', photoMode: 'photoMode', frontText: 'front', insideMessage: 'inside',
+  };
+  async function runChatTurn(userMessage: string) {
+    setTyping(true);
+    try {
+      const res = await apiRequest('POST', '/api/studio/chat', {
+        step: CHAT_STEP[phase] ?? 'freeform',
+        userMessage,
+        history: chatHistory(),
+        draft: { name: draft.name, occasion: draft.occasion, photoMode: draft.photoMode, frontText: draft.front.text, insideMode: draft.inside.mode },
+      });
+      const data = await res.json(); // { reply, captured, stepComplete }
+      const merged = mergeCaptured(data.captured ?? {});
+      setDraft(merged);
+      setTyping(false);
+      if (data.reply) push('bot', data.reply);
+      advanceAfterChat(merged, data.stepComplete === true);
+    } catch {
+      setTyping(false);
+      push('bot', 'Sorry — I hit a snag there. Could you say that again?');
+    }
+  }
+
+  function advanceAfterChat(d: Draft, stepComplete: boolean) {
+    switch (phase) {
+      case 'name':
+        if (d.name && d.occasion) { goPhotoMode(d); }
+        else if (d.name) { setPhase('occasion'); setChips(occasionChips()); }
+        break;
+      case 'occasion':
+        if (d.occasion) goPhotoMode(d);
+        break;
+      case 'photoMode':
+        if (d.photoMode && stepComplete) goPhoto();
+        break;
+      case 'frontText':
+        if (stepComplete || d.front.mode === 'none' || d.front.text) goInsideFork(d);
+        break;
+      case 'insideMessage':
+        if (d.inside.message) goReview(d);
+        break;
+      default: break;
+    }
+  }
+
+  function occasionChips(): Chip[] {
+    return [
+      ...OCCASION_PILLS.map((o) => ({ label: o.label, value: o.key })),
+      { label: 'Something else', value: '__custom__', kind: 'ghost' as const },
+    ];
+  }
+  function goPhotoMode(d: Draft) {
+    setPhase('photoMode');
+    setChips([{ label: `Just ${d.name || 'them'}`, value: 'one_person' }, { label: 'A group photo', value: 'group' }]);
+  }
+  function goPhoto() { setPhase('photo'); setCanvas('photo'); }
+
+  /* ── free-text composer submit ── */
   function handleSend(raw: string, label?: string) {
     const v = raw.trim();
     if (!v || typing) return;
@@ -134,117 +281,43 @@ export default function ChatStudio() {
     setInput('');
     setChips([]);
 
-    switch (phase) {
-      case 'name':
-        up({ name: v });
-        bot("What's the celebration?", () => {
-          setPhase('occasion');
-          setChips([
-            ...OCCASIONS.map((o) => ({ label: o.label, value: o.key })),
-            { label: 'Something else', value: '__custom__', kind: 'ghost' as const },
-          ]);
-        });
-        break;
-
-      case 'occasion':
-        up({ occasion: v });
-        bot(`A ${labelFor(v)} card — lovely. Who's in the photo: just ${draft.name || 'them'}, or a group?`, () => {
-          setPhase('photoMode');
-          setChips([{ label: `Just ${draft.name || 'them'}`, value: 'one_person' }, { label: 'A group photo', value: 'group' }]);
-        });
-        break;
-
-      case 'photoMode':
-        up({ photoMode: v === 'group' ? 'group' : 'one_person' });
-        bot(
-          v === 'group'
-            ? 'Add one photo with everyone in it.'
-            : `Add a photo of ${draft.name || 'them'} — a few angles help the likeness.`,
-          () => { setPhase('photo'); setCanvas('photo'); },
-        );
-        break;
-
-      case 'scene': // user typed their own scene
-        up({ scene: v });
-        bot('Beautiful.', goFrontText);
-        break;
-
-      case 'sceneBrief':
-        setBrief(v);
-        setReroll(0);
-        bot('Here are three to start — tap one, or get three more:', () => {
-          setPhase('scenePick');
-          setChips(suggestionChips(makeSuggestions(v, draft, 0)));
-        });
-        break;
-
-      case 'bsWhere':
-        setBs((b) => ({ ...b, where: v }));
-        bot('And what are they doing there?', () => setPhase('bsDoing'));
-        break;
-
-      case 'bsDoing':
-        setBs((b) => ({ ...b, doing: v }));
-        bot('Lovely. Last one — the mood or time of day? (golden hour, cosy evening, bright morning…)', () => setPhase('bsMood'));
-        break;
-
-      case 'bsMood': {
-        const composed = composeBs({ ...bs, mood: v });
-        bot(`Here's the scene:\n“${composed}”\n\nUse it, or keep tweaking?`, () => {
-          setPhase('bsConfirm');
-          setChips([
-            { label: 'Use this scene ✓', value: composed, kind: 'primary' },
-            { label: 'Keep tweaking', value: '__tweak__', kind: 'ghost' },
-          ]);
-        });
-        break;
-      }
-
-      case 'bsTweak': {
-        const composed = `${composeBs(bs)} — ${v}`;
-        bot(`Updated:\n“${composed}”\n\nUse it, or tweak again?`, () => {
-          setPhase('bsConfirm');
-          setChips([
-            { label: 'Use this scene ✓', value: composed, kind: 'primary' },
-            { label: 'Keep tweaking', value: '__tweak__', kind: 'ghost' },
-          ]);
-        });
-        break;
-      }
-
-      case 'frontText': {
-        if (/^skip|no headline|leave it|none$/i.test(v)) {
-          up({ front: { mode: 'none', text: '' } });
-          bot('Done — the scene will speak for itself.', goInsideFork);
-          break;
-        }
-        up({ front: { mode: 'write', text: v } });
-        bot(`“${v}” on the front. Nice.`, goInsideFork);
-        break;
-      }
-
-      case 'insideMessage':
-        up({ inside: { mode: 'write', message: v } });
-        goReview();
-        break;
-
-      case 'reveal':
-        if (/^love it|perfect|keep it|looks great|yes$/i.test(v)) { afterApprove(); break; }
-        refine(v);
-        break;
-
-      default:
-        break;
+    // LLM-driven steps.
+    if (phase === 'name' || phase === 'occasion' || phase === 'photoMode' || phase === 'frontText' || phase === 'insideMessage') {
+      void runChatTurn(v);
+      return;
     }
+    // Scene: user typed their own description.
+    if (phase === 'scene') { const d = { ...draft, scene: v }; setDraft(d); bot('Beautiful — that works.', () => goFrontText(d)); return; }
+    // Scene-suggestions: user typed a brief.
+    if (phase === 'sceneBrief') { setBrief(v); void fetchSuggestions(v); return; }
+    // Brainstorm: free text drives the guided machine.
+    if (phase === 'bsChat') { void bsTurn(bsAwaiting, v); setBsAwaiting('reply'); return; }
   }
 
-  function composeBs(b: { where?: string; doing?: string; mood?: string }): string {
-    const who = draft.name || 'They';
-    let s = who;
-    if (b.doing) s += ` ${b.doing}`;
-    if (b.where) s += `, ${b.where}`;
-    if (b.mood) s += `, ${b.mood}`;
-    return s;
+  // Simple scripted bot line (used for deterministic transitions, NOT the LLM).
+  function bot(text: string, after?: () => void, delay = 450) {
+    setTyping(true);
+    window.setTimeout(() => { setTyping(false); push('bot', text); after?.(); }, delay);
+  }
+
+  /* ── scene-suggestions (real) ── */
+  async function fetchSuggestions(briefText: string) {
+    setTyping(true);
+    await flushSave(); // ensure recipient + occasion are persisted for the endpoint
+    try {
+      const res = await apiRequest('POST', '/api/studio/scene-suggestions', { cardId, brief: briefText });
+      const data = await res.json(); // { suggestions: [{id,text}] }
+      const opts: string[] = (data.suggestions ?? []).map((s: any) => s.text).filter(Boolean);
+      setTyping(false);
+      if (!opts.length) { push('bot', "Hmm, I couldn't spin those up. Want to describe the scene yourself instead?"); setPhase('scene'); return; }
+      push('bot', 'Here are three to start — tap one, or get three more:');
+      setPhase('scenePick');
+      setChips(suggestionChips(opts));
+    } catch {
+      setTyping(false);
+      push('bot', "I couldn't reach the scene helper just now — you can type the scene yourself and we'll roll with it.");
+      setPhase('scene');
+    }
   }
   function suggestionChips(opts: string[]): Chip[] {
     return [
@@ -253,59 +326,94 @@ export default function ChatStudio() {
     ];
   }
 
-  /* ── photo widget (canvas) ── */
-  function addPhotos(files: FileList | null) {
-    if (!files) return;
-    const room = MAX_PHOTOS[draft.photoMode] - draft.photos.length;
-    Array.from(files).slice(0, room).forEach((f) => setDraft((d) => ({ ...d, photos: [...d.photos, URL.createObjectURL(f)] })));
+  /* ── brainstorm (real — mirrors the studio machine) ── */
+  function startBrainstorm() {
+    const opener = "Let's set the scene together. Where does the moment take place — a city, a beach, a back garden, grandma's kitchen?";
+    setBsPhase('initial_scene'); setBsCollected({}); setBsAwaiting('reply'); setProposedScene('');
+    setBsHistory([{ role: 'assistant', content: opener }]);
+    setPhase('bsChat');
+    bot(opener, () => setChips([{ label: '💡 Give me ideas', value: '__ideas__', kind: 'ghost' }]));
   }
-  function photosDone() {
-    setCanvas('empty');
-    bot(`Got it — that's ${draft.name || 'them'} sorted. Now the scene for the front of ${draft.name ? `${draft.name}'s` : 'the'} ${labelFor(draft.occasion)} card. Describe it, or I can help:`, () => {
+  async function bsTurn(action: BsAction, userInput?: string) {
+    setTyping(true);
+    // Stash the answer for the current phase when replying/choosing.
+    let collectedToSend = bsCollected;
+    if ((action === 'reply' || action === 'choose_option') && userInput) {
+      const k = bsKey(bsPhase);
+      if (k) { collectedToSend = { ...bsCollected, [k]: userInput }; setBsCollected(collectedToSend); }
+    }
+    try {
+      const res = await apiRequest('POST', '/api/studio/brainstorm', {
+        recipientName: draft.name, occasion: draft.occasion || 'other',
+        currentSceneText: draft.scene || '',
+        history: bsHistory,
+        action, userInput, currentPhase: bsPhase, collectedInfo: collectedToSend,
+        photoMode: draft.photoMode,
+      });
+      const data = await res.json(); // { reply, phase, suggestions?, finalScene? }
+      setTyping(false);
+      if (data.reply) push('bot', data.reply);
+      setBsHistory((h) => [...h, ...(userInput ? [{ role: 'user' as const, content: userInput }] : []), { role: 'assistant' as const, content: data.reply ?? '' }]);
+      if (data.phase) setBsPhase(data.phase);
+      if (data.finalScene) {
+        setProposedScene(data.finalScene);
+        setChips([
+          { label: 'Use this scene ✓', value: '__use__', kind: 'primary' },
+          { label: 'Tweak it', value: '__change__', kind: 'ghost' },
+        ]);
+      } else if (Array.isArray(data.suggestions) && data.suggestions.length) {
+        setChips([
+          ...data.suggestions.map((s: string) => ({ label: s, value: s, kind: 'option' as const })),
+          { label: '↻ More ideas', value: '__more__', kind: 'ghost' },
+          { label: 'Skip — you choose', value: '__skip__', kind: 'ghost' },
+        ]);
+      } else {
+        setChips([
+          { label: '💡 Ideas', value: '__ideas__', kind: 'ghost' },
+          { label: 'Skip — you choose', value: '__skip__', kind: 'ghost' },
+        ]);
+      }
+    } catch {
+      setTyping(false);
+      push('bot', "I lost the thread there — want to type the scene yourself instead?");
       setPhase('scene');
-      setChips([
-        { label: '✨ Suggest scenes', value: '__suggest__' },
-        { label: '💬 Brainstorm with me', value: '__brainstorm__' },
-      ]);
-    });
+    }
   }
 
   /* ── transitions ── */
-  function goFrontText() {
-    bot(`What should the front say? I'll go with “${defaultFront(draft)}” unless you'd rather change it or skip the headline.`, () => {
+  function goFrontText(d: Draft) {
+    bot(`What should the front say? I'll go with “${defaultFront(d)}” unless you'd like something else — or skip the headline.`, () => {
       setPhase('frontText');
       setChips([
-        { label: `Use “${defaultFront(draft)}”`, value: '__default__', kind: 'primary' },
-        { label: 'Skip the headline', value: 'skip', kind: 'ghost' },
+        { label: `Use “${defaultFront(d)}”`, value: '__default__', kind: 'primary' },
+        { label: 'Skip the headline', value: '__skipfront__', kind: 'ghost' },
       ]);
     });
   }
-  function goInsideFork() {
-    bot(`And inside ${draft.name ? `${draft.name}'s` : 'the'} card — write a message, or leave it blank to handwrite yourself?`, () => {
+  function goInsideFork(d: Draft) {
+    bot(`And inside ${d.name ? `${d.name}'s` : 'the'} card — shall I write a message, or leave it blank for your own handwriting?`, () => {
       setPhase('insideFork');
       setChips([{ label: 'Write a message', value: '__write__' }, { label: 'Leave it blank', value: '__blank__', kind: 'ghost' }]);
     });
   }
-  function chooseInside(mode: 'write' | 'blank') {
-    if (mode === 'blank') { up({ inside: { mode: 'blank', message: '' } }); bot("Lovely — blank inside, ready for your handwriting. (We'll print + post it to you.)", goReview); return; }
-    bot('What should it say inside?', () => setPhase('insideMessage'));
-  }
-  function goReview() {
+  function goReview(d: Draft) {
     setPhase('review');
     const lines = [
-      `For: ${draft.name} · ${labelFor(draft.occasion)}`,
-      `Photo: ${draft.photos.length || 1} of ${draft.photoMode === 'group' ? 'the group' : draft.name}`,
-      `Scene: ${draft.scene}`,
-      `Front: ${draft.front.mode === 'none' ? '(no headline)' : draft.front.text || defaultFront(draft)}`,
-      `Inside: ${draft.inside.mode === 'blank' ? '(blank — handwrite)' : draft.inside.message}`,
+      `For: ${d.name} · ${labelFor(d)}`,
+      `Photo: ${d.photos.length || 1} of ${d.photoMode === 'group' ? 'the group' : d.name}`,
+      `Scene: ${d.scene}`,
+      `Front: ${d.front.mode === 'none' ? '(no headline)' : d.front.text || defaultFront(d)}`,
+      `Inside: ${d.inside.mode === 'blank' ? '(blank — handwrite)' : d.inside.message}`,
     ];
     bot(`Here's the plan:\n${lines.join('\n')}\n\nNothing gets sent until you say so. Ready to make it?`, () => {
-      setChips([{ label: `Make ${draft.name}'s card ✓`, value: '__generate__', kind: 'primary' }]);
+      setChips([{ label: `Make ${d.name}'s card ✓`, value: '__generate__', kind: 'primary' }]);
     });
   }
+
+  /* ── generation (STILL STUBBED — real /generate next increment) ── */
   function runGenerate() {
     setChips([]); setPhase('generating'); setCanvas('generating'); setGenStage(0);
-    bot('Making it now — about 45 seconds…');
+    push('bot', 'Making it now — about 45 seconds…');
     [900, 2000, 3100].forEach((t, i) => window.setTimeout(() => setGenStage(i + 1), t));
     window.setTimeout(() => {
       setFilter('none'); setCardSide('front'); setRevKey((k) => k + 1); setCanvas('card'); setPhase('reveal');
@@ -320,7 +428,7 @@ export default function ChatStudio() {
   }
   function refine(instruction: string) {
     setChips([]);
-    bot('Refining — keeping their face, the composition and the words, just changing what you asked…');
+    push('bot', 'Refining — keeping their face, the composition and the words, just changing what you asked…');
     setCanvas('generating'); setGenStage(1);
     window.setTimeout(() => {
       setFilter(refineFilter(instruction)); setRevKey((k) => k + 1); setCanvas('card');
@@ -352,49 +460,98 @@ export default function ChatStudio() {
     bot(dest === 'recipient' ? `Straight to ${draft.name} it is. That's everything — ready when you are.` : `To you first, so you can add the finishing touch. All set!`, () => setPhase('done'));
   }
 
+  /* ── photo widget (stub upload) ── */
+  function addPhotos(files: FileList | null) {
+    if (!files) return;
+    const room = MAX_PHOTOS[draft.photoMode] - draft.photos.length;
+    Array.from(files).slice(0, room).forEach((f) => setDraft((d) => ({ ...d, photos: [...d.photos, URL.createObjectURL(f)] })));
+  }
+  function photosDone() {
+    setCanvas('empty');
+    bot(`Lovely — that's ${draft.name || 'them'} sorted. Now the scene for the front of ${draft.name ? `${draft.name}'s` : 'the'} ${labelFor(draft)} card. Describe it, or I can help:`, () => {
+      setPhase('scene');
+      setChips([
+        { label: '✨ Suggest scenes', value: '__suggest__' },
+        { label: '💬 Brainstorm with me', value: '__brainstorm__' },
+      ]);
+    });
+  }
+
   /* ── chip dispatch ── */
   function onChip(c: Chip) {
-    if (phase === 'photoMode' || phase === 'occasion') {
+    // Occasion pills (LLM step, but pills are deterministic).
+    if (phase === 'occasion') {
       if (c.value === '__custom__') { push('user', c.label); setChips([]); bot('Tell me the occasion in your own words.'); return; }
-      handleSend(c.value, c.label);
+      push('user', c.label); setChips([]);
+      const d = { ...draft, occasion: c.value };
+      setDraft(d);
+      bot(`A ${labelFor(d)} card — lovely.`, () => goPhotoMode(d));
+      return;
+    }
+    if (phase === 'photoMode') {
+      push('user', c.label); setChips([]);
+      const d = { ...draft, photoMode: (c.value === 'group' ? 'group' : 'one_person') as Draft['photoMode'] };
+      setDraft(d);
+      bot(c.value === 'group' ? 'Add one photo with everyone in it.' : `Add a photo of ${d.name || 'them'} — a few angles help the likeness.`, () => goPhoto());
       return;
     }
     if (phase === 'scene') {
       push('user', c.label); setChips([]);
       if (c.value === '__suggest__') { bot("Give me a rough idea — a place, a vibe, anything — and I'll spin up three options. Or say “surprise me”.", () => setPhase('sceneBrief')); return; }
-      bot("Love it. I'll ask two quick questions, then draft a scene you can tweak. First — where's the moment?", () => setPhase('bsWhere'));
+      startBrainstorm();
       return;
     }
     if (phase === 'scenePick') {
-      if (c.value === '__reroll__') {
-        push('user', 'Try another three'); setChips([]);
-        const n = reroll + 1; setReroll(n);
-        bot('Three more:', () => setChips(suggestionChips(makeSuggestions(brief, draft, n))));
+      if (c.value === '__reroll__') { push('user', 'Try another three'); setChips([]); void fetchSuggestions(brief); return; }
+      push('user', c.label); setChips([]);
+      const d = { ...draft, scene: c.value };
+      setDraft(d);
+      bot("Beautiful — that's the one.", () => goFrontText(d));
+      return;
+    }
+    if (phase === 'bsChat') {
+      if (c.value === '__ideas__') { push('user', 'Give me ideas'); setChips([]); void bsTurn('ideas'); return; }
+      if (c.value === '__more__') { push('user', 'More ideas'); setChips([]); void bsTurn('more_ideas'); return; }
+      if (c.value === '__skip__') { push('user', 'Skip — you choose'); setChips([]); void bsTurn('skip'); return; }
+      if (c.value === '__change__') { push('user', 'Tweak it'); setChips([]); setBsAwaiting('tweak'); void bsTurn('change_request'); return; }
+      if (c.value === '__use__') {
+        push('user', 'Use this scene'); setChips([]);
+        const d = { ...draft, scene: proposedScene };
+        setDraft(d);
+        bot('Locked in.', () => goFrontText(d));
         return;
       }
+      // an option suggestion was tapped
       push('user', c.label); setChips([]);
-      up({ scene: c.value });
-      bot("Beautiful — that's the one.", goFrontText);
+      void bsTurn('choose_option', c.value);
       return;
     }
-    if (phase === 'bsConfirm') {
-      if (c.value === '__tweak__') { push('user', c.label); setChips([]); bot('What would you change?', () => setPhase('bsTweak')); return; }
-      push('user', 'Use this scene'); setChips([]);
-      up({ scene: c.value });
-      bot('Locked in.', goFrontText);
+    if (phase === 'frontText') {
+      if (c.value === '__default__') { const d = { ...draft, front: { mode: 'write' as const, text: defaultFront(draft) } }; setDraft(d); push('user', c.label); setChips([]); bot(`“${defaultFront(draft)}” on the front. Nice.`, () => goInsideFork(d)); return; }
+      if (c.value === '__skipfront__') { const d = { ...draft, front: { mode: 'none' as const, text: '' } }; setDraft(d); push('user', c.label); setChips([]); bot('Done — the scene will speak for itself.', () => goInsideFork(d)); return; }
+    }
+    if (phase === 'insideFork') {
+      push('user', c.label); setChips([]);
+      if (c.value === '__blank__') { const d = { ...draft, inside: { mode: 'blank' as const, message: '' } }; setDraft(d); bot("Lovely — blank inside, ready for your handwriting. (We'll print + post it to you.)", () => goReview(d)); return; }
+      bot('What should it say inside?', () => setPhase('insideMessage'));
       return;
     }
-    if (phase === 'insideFork') { push('user', c.label); setChips([]); chooseInside(c.value === '__blank__' ? 'blank' : 'write'); return; }
     if (phase === 'review' && c.value === '__generate__') { push('user', c.label); runGenerate(); return; }
-    if (phase === 'frontText' && c.value === '__default__') { handleSend(defaultFront(draft)); return; }
-    handleSend(c.value, c.label);
+    if (phase === 'reveal') {
+      if (c.value === 'Love it') { push('user', c.label); afterApprove(); return; }
+      push('user', c.label); refine(c.value); return;
+    }
   }
 
   /* ───────────── render ───────────── */
+  const canvasHidden = canvas === 'empty'; // mobile: full-screen chat until there's something to show
   return (
     <div className="flex h-[100dvh] flex-col bg-surface md:flex-row">
-      {/* CANVAS */}
-      <div className="relative flex shrink-0 items-center justify-center overflow-hidden border-b border-stone-200 bg-[linear-gradient(180deg,#ffffff,#f3f2fb)] md:order-2 md:flex-1 md:border-b-0 md:border-l" style={{ minHeight: '40dvh' }}>
+      {/* CANVAS — hidden on mobile while empty (full-screen chat); always shown on desktop */}
+      <div
+        className={`relative shrink-0 items-center justify-center overflow-hidden border-stone-200 bg-[linear-gradient(180deg,#ffffff,#f3f2fb)] md:order-2 md:flex md:flex-1 md:border-b-0 md:border-l ${canvasHidden ? 'hidden md:flex' : 'flex border-b'}`}
+        style={canvasHidden ? undefined : { minHeight: '40dvh' }}
+      >
         <Canvas
           mode={canvas} draft={draft} filter={filter} cardSide={cardSide} genStage={genStage} revKey={revKey}
           onAddPhotos={addPhotos} onRemovePhoto={(i) => setDraft((d) => ({ ...d, photos: d.photos.filter((_, k) => k !== i) }))}
@@ -426,7 +583,6 @@ export default function ChatStudio() {
               </div>
             </div>
           )}
-          {/* Selector pills — INLINE under the latest bot message, like the brainstorm chat. */}
           {!typing && chips.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pl-1 pt-0.5">
               {chips.map((c) => (
@@ -439,7 +595,9 @@ export default function ChatStudio() {
                   {/love it|use this/i.test(c.label) ? <Check className="h-3 w-3 shrink-0" strokeWidth={2.5} />
                     : /generate|make .*card/i.test(c.label) ? <Sparkles className="h-3 w-3 shrink-0" strokeWidth={2} />
                     : /brainstorm/i.test(c.label) ? <Wand2 className="h-3 w-3 shrink-0" strokeWidth={2} />
-                    : /try another/i.test(c.label) ? <RefreshCw className="h-3 w-3 shrink-0" strokeWidth={2} /> : null}
+                    : /ideas/i.test(c.label) ? <Lightbulb className="h-3 w-3 shrink-0" strokeWidth={2} />
+                    : /skip/i.test(c.label) ? <SkipForward className="h-3 w-3 shrink-0" strokeWidth={2} />
+                    : /try another|more ideas/i.test(c.label) ? <RefreshCw className="h-3 w-3 shrink-0" strokeWidth={2} /> : null}
                   {c.label}
                 </button>
               ))}
@@ -450,7 +608,7 @@ export default function ChatStudio() {
         {/* composer — text only; pills live in the thread */}
         <div className="border-t border-stone-200 px-4 py-3">
           {phase === 'done' ? (
-            <Link href="/login?redirect=/studio/new-card">
+            <Link href="/studio/new-card">
               <button className="flex w-full items-center justify-center gap-2 rounded-full bg-brand px-5 py-3 text-[15px] font-medium text-brand-foreground transition-colors hover:bg-brand-dark">
                 Make it for real <ArrowRight className="h-4 w-4" strokeWidth={2.25} />
               </button>
@@ -568,18 +726,16 @@ function Canvas({
 
 /* ───────────── small helpers ───────────── */
 function showComposer(p: Phase): boolean {
-  return ['name', 'occasion', 'scene', 'sceneBrief', 'bsWhere', 'bsDoing', 'bsMood', 'bsTweak', 'frontText', 'insideMessage', 'reveal'].includes(p);
+  return ['name', 'occasion', 'photoMode', 'scene', 'sceneBrief', 'bsChat', 'frontText', 'insideMessage', 'reveal'].includes(p);
 }
 function placeholderFor(p: Phase): string {
   switch (p) {
     case 'name': return 'e.g. Mum, Sarah, Dad…';
     case 'occasion': return 'Type the occasion…';
+    case 'photoMode': return 'Just them, or a group?';
     case 'scene': return 'Describe the scene…';
     case 'sceneBrief': return 'A place, a vibe… or “surprise me”';
-    case 'bsWhere': return 'Where is the moment?';
-    case 'bsDoing': return 'What are they doing?';
-    case 'bsMood': return 'Mood or time of day…';
-    case 'bsTweak': return 'What would you change?';
+    case 'bsChat': return 'Type your answer…';
     case 'frontText': return 'What should the front say?';
     case 'insideMessage': return 'Your message inside…';
     case 'reveal': return 'Tell me a tweak, or “love it”…';

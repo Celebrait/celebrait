@@ -128,7 +128,11 @@ function Router() {
           <Route path="/hero-poc" component={HeroScrollPocPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/pricing" component={PricingPage} />
-          <Route path="/studio-chat" component={ChatStudio} />
+          <Route path="/studio-chat">
+            <RequireAuth>
+              <ChatStudio />
+            </RequireAuth>
+          </Route>
           <Route path="/privacy-policy" component={PrivacyPolicy} />
           <Route path="/terms-of-service" component={TermsOfService} />
           <Route path="/studio">
