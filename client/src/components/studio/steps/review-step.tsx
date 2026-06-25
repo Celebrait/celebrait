@@ -857,7 +857,10 @@ function RevealView({
                   animate={{ opacity: isInteracting ? 0 : 1 }}
                   transition={{
                     duration: 0.5,
-                    delay: hasInteracted || isInteracting ? 0 : 1.2,
+                    // Appear soon after the card settles. The old 1.2s delay
+                    // meant mobile users tapped the card before the hints ever
+                    // showed; 0.5s gets them on screen first.
+                    delay: isInteracting ? 0 : 0.5,
                   }}
                   style={{ pointerEvents: isInteracting ? 'none' : 'auto' }}
                   className="mt-6"
@@ -874,9 +877,13 @@ function RevealView({
                       the layout still. */}
                   <div
                     className="flex justify-center items-start overflow-hidden transition-[height] duration-500 ease-out"
-                    style={{ height: hasInteracted ? 0 : 72 }}
+                    // Collapse the slot only once the card actually OPENS — not
+                    // on any touch contact (pointerDown sets hasInteracted,
+                    // which on mobile killed the hints the instant a finger
+                    // landed, before they were ever seen).
+                    style={{ height: open ? 0 : 72 }}
                   >
-                    <GestureHints open={open || hasInteracted} />
+                    <GestureHints open={open} mountDelayMs={450} />
                   </div>
                 </motion.div>
 
