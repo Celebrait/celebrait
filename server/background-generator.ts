@@ -249,6 +249,23 @@ function maybeThrowTestFailure(providerId: string): void {
  *  fast. With both initial-gen sides stubbed (front + inside) the total
  *  E2E "create a card" flow is ~3-4s rather than ~45s real. */
 const STUB_DELAY_MS = 1500;
+
+// Hard watchdog on a single provider gen so a stuck call can NEVER hang
+// the card forever (the "cycling quotes with nothing happening" symptom).
+// Generous on purpose: gpt-image high-quality is ~5 min worst case (see
+// the regen poll timeout), so this only fires on a TRUE hang, not a
+// legitimately-slow gen. On fire it rejects → the gen's catch flips the
+// card to failed/inside-failed → the user gets the retry screen instead
+// of an eternal wait.
+const PROVIDER_WATCHDOG_MS = 6 * 60 * 1000;
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${Math.round(ms / 1000)}s`)), ms),
+    ),
+  ]);
+}
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export interface BackgroundGenerationParams {
@@ -617,11 +634,15 @@ export async function generateStudioCard(
         });
         console.log(`[STUDIO_GEN] STUB front for card ${cardId} (no provider call, $0)`);
       } else {
-        frontImageUrl = await generateViaActiveConfig({
-          cardId,
-          resolved: resolvedFront,
-          referenceImages,
-        });
+        frontImageUrl = await withTimeout(
+          generateViaActiveConfig({
+            cardId,
+            resolved: resolvedFront,
+            referenceImages,
+          }),
+          PROVIDER_WATCHDOG_MS,
+          'Front generation',
+        );
       }
       frontStoredUrl = await savePngFiles(frontImageUrl, cardId, 'front');
 
@@ -699,11 +720,15 @@ export async function generateStudioCard(
           });
           console.log(`[STUDIO_GEN] STUB inside for card ${cardId} (no provider call, $0)`);
         } else {
-          insideImageUrl = await generateViaActiveConfig({
-            cardId,
-            resolved: resolvedInside,
-            referenceImages: [frontForInside],
-          });
+          insideImageUrl = await withTimeout(
+            generateViaActiveConfig({
+              cardId,
+              resolved: resolvedInside,
+              referenceImages: [frontForInside],
+            }),
+            PROVIDER_WATCHDOG_MS,
+            'Inside generation',
+          );
         }
         insideStoredUrl = await savePngFiles(insideImageUrl, cardId, 'inside');
       }
