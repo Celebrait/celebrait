@@ -50,7 +50,7 @@ interface AuthFormProps {
 export function authHeadingCopy(step: AuthStep, email?: string) {
   if (step === 'email') {
     return {
-      heading: "Make something they'll keep.",
+      heading: "Make a card they'll keep.",
       subline: "We'll email you a 6-digit code. No passwords, ever.",
     };
   }
