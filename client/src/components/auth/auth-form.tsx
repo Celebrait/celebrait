@@ -38,6 +38,10 @@ interface AuthFormProps {
   /** Show the "Continue with Google" button + divider. Default true.
    *  Pass false to hide if the surface only wants OTP. */
   showGoogle?: boolean;
+  /** Primary-button accent. 'cta' (green) is the default brand action
+   *  colour used in the auth modal; /login passes 'brand' so the sign-in
+   *  button reads violet to match the homepage. */
+  accent?: 'cta' | 'brand';
 }
 
 /** Step-aware heading copy. Exported so parent surfaces (e.g. /login)
@@ -66,8 +70,15 @@ export function AuthForm({
   defaultRedirect = '/studio',
   onStepChange,
   showGoogle = true,
+  accent = 'cta',
 }: AuthFormProps) {
   const [, setLocation] = useLocation();
+  // Primary-button accent classes. Green CTA by default (brand action
+  // colour); /login opts into violet to match the homepage hero.
+  const accentBtn =
+    accent === 'brand'
+      ? 'bg-brand hover:bg-brand-dark text-brand-foreground'
+      : 'bg-cta hover:bg-cta-hover text-cta-foreground';
   const { user, isAuthenticated, isLoading, sendOtp, isSendingOtp, verifyOtp, isVerifyingOtp } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -277,7 +288,7 @@ export function AuthForm({
           <Button
             onClick={handleSendCode}
             disabled={isSendingOtp}
-            className="w-full h-11 bg-cta hover:bg-cta-hover text-cta-foreground font-medium"
+            className={`w-full h-11 ${accentBtn} font-medium`}
             data-testid="btn-send-code"
           >
             {isSendingOtp ? 'Sending code…' : 'Send me a code'}
@@ -315,7 +326,7 @@ export function AuthForm({
           <Button
             onClick={handleVerifyCode}
             disabled={isVerifyingOtp}
-            className="w-full h-11 bg-cta hover:bg-cta-hover text-cta-foreground font-medium"
+            className={`w-full h-11 ${accentBtn} font-medium`}
             data-testid="btn-verify-code"
           >
             {isVerifyingOtp ? 'Verifying…' : 'Sign in'}
@@ -357,7 +368,7 @@ export function AuthForm({
           <Button
             onClick={handleWelcomeSubmit}
             disabled={isSavingProfile || !firstName.trim()}
-            className="w-full h-11 bg-cta hover:bg-cta-hover text-cta-foreground font-medium"
+            className={`w-full h-11 ${accentBtn} font-medium`}
             data-testid="btn-welcome-continue"
           >
             {isSavingProfile ? (
