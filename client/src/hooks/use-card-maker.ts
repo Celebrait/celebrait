@@ -104,6 +104,9 @@ interface UseCardMakerResult {
    *  on the server; the polling loop picks up subsequent status
    *  transitions automatically. */
   startGeneration: () => Promise<void>;
+  /** FRONT-FIRST step 2 — generate the inside after the user approves
+   *  the front (the inside message is already collected up front). */
+  startInsideGeneration: () => Promise<void>;
   /** True while the POST to /generate is in flight. Separate from
    *  status==='generating' — this is the single-round-trip submit,
    *  the status field tracks the whole background job. */
@@ -230,7 +233,11 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
   // — that was the double-poll. This interval still covers initial-gen
   // and an orphaned in-flight attempt picked up on a fresh page load.
   const shouldPoll =
-    (status === 'generating' || hasInflightAttempt) && !isManualRegenActive;
+    (status === 'generating' ||
+      status === 'generating-front' ||
+      status === 'generating-inside' ||
+      hasInflightAttempt) &&
+    !isManualRegenActive;
   useEffect(() => {
     if (!shouldPoll) return;
     let cancelled = false;
@@ -344,7 +351,36 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
         saveTimerRef.current = null;
         await runSave(stateRef.current);
       }
-      const res = await apiRequest('POST', `/api/studio/drafts/${cardId}/generate`, {});
+      // FRONT-FIRST: generate the front only. The card lands at
+      // 'front-ready'; the user approves/iterates the front, then the
+      // inside is generated via startInsideGeneration. (Send no mode to
+      // fall back to the legacy single-job 'full' path.)
+      const res = await apiRequest('POST', `/api/studio/drafts/${cardId}/generate`, {
+        mode: 'front',
+      });
+      const data = (await res.json()) as { id: number; status: string };
+      setStatus(data.status);
+    } finally {
+      setIsStartingGeneration(false);
+    }
+  }, [cardId, runSave]);
+
+  // FRONT-FIRST step 2 — generate the inside after the user approves the
+  // front. The inside message is already in the draft (collected in the
+  // Inside step), so this just flushes + triggers generate-inside.
+  const startInsideGeneration = useCallback(async (): Promise<void> => {
+    setIsStartingGeneration(true);
+    try {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+        await runSave(stateRef.current);
+      }
+      const res = await apiRequest(
+        'POST',
+        `/api/studio/drafts/${cardId}/generate-inside`,
+        {},
+      );
       const data = (await res.json()) as { id: number; status: string };
       setStatus(data.status);
     } finally {
@@ -481,6 +517,7 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
     scheduleSave,
     flushSave,
     startGeneration,
+    startInsideGeneration,
     isStartingGeneration,
     attempts,
     isRegenerating,

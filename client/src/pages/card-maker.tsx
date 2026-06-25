@@ -154,6 +154,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     scheduleSave,
     flushSave,
     startGeneration,
+    startInsideGeneration,
     isStartingGeneration,
     attempts,
     isRegenerating,
@@ -519,6 +520,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 regenError={regenError}
                 onRegenerate={regenerate}
                 onSelectAttempt={selectAttempt}
+                onStartInsideGeneration={startInsideGeneration}
                 failure={failure}
               />
             )}
