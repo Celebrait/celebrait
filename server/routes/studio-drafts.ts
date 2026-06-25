@@ -70,7 +70,19 @@ function imageDiskPath(storedPath: string | null | undefined): string | null {
 // Server-side mirror of the client's readiness gates. The UI blocks Next
 // until each step is complete, but the server shouldn't trust that — a
 // crafted POST could skip straight to /generate with a half-filled state.
-function isDraftReadyToGenerate(state: CardDraftState): { ok: boolean; reason?: string } {
+// FRONT-FIRST rollout flag. When '1', /generate produces the front only
+// and the inside is a separate, post-approval step. Default OFF so the
+// backend can ship before the studio + chat surfaces understand the new
+// statuses (generating-front / front-ready / generating-inside). Flip to
+// '1' on Render once those client surfaces are live.
+const FRONT_FIRST_GEN = process.env.FRONT_FIRST_GEN === '1';
+
+// Front-first split: the FRONT can generate as soon as recipient/photo/
+// scene are set — the inside message is collected AFTER the front is
+// revealed, so it must NOT gate the front gen. Style validation removed
+// 2026-05-17 (parked for Premium; V1 locks to 'animated'). See
+// next_celebrait_premium.md.
+function isReadyToGenerateFront(state: CardDraftState): { ok: boolean; reason?: string } {
   if (!state.recipient?.name?.trim() || !state.recipient?.occasion?.trim()) {
     return { ok: false, reason: 'Recipient name + occasion required' };
   }
@@ -80,21 +92,31 @@ function isDraftReadyToGenerate(state: CardDraftState): { ok: boolean; reason?: 
   if (!state.scene?.description?.trim()) {
     return { ok: false, reason: 'Scene description required' };
   }
-  // Style validation removed 2026-05-17 — the Style step is parked for
-  // Celebrait Premium; V1 locks to the 'animated' (warm illustrated)
-  // default, which the generation pipeline applies when state.style is
-  // absent. See next_celebrait_premium.md.
+  // The front headline always derives from name+occasion (deriveDefault
+  // FrontText), so no separate front-text gate is needed here.
+  return { ok: true };
+}
+
+// The inside half — gates the SECOND step (generate-inside), collected
+// after the front is approved.
+function isInsideDecisionReady(state: CardDraftState): { ok: boolean; reason?: string } {
   const insideMode = state.inside?.mode;
-  if (insideMode === 'blank') {
-    // Blank is always ready.
-  } else if (insideMode === 'write') {
+  if (insideMode === 'blank') return { ok: true }; // blank is always ready
+  if (insideMode === 'write') {
     if (!state.inside?.write?.message?.trim()) {
       return { ok: false, reason: 'Inside message required for Write mode' };
     }
-  } else {
-    return { ok: false, reason: 'Inside mode (write or blank) required' };
+    return { ok: true };
   }
-  return { ok: true };
+  return { ok: false, reason: 'Inside mode (write or blank) required' };
+}
+
+// Legacy combined gate (used by the 'full' single-job path) — both
+// halves must pass.
+function isDraftReadyToGenerate(state: CardDraftState): { ok: boolean; reason?: string } {
+  const front = isReadyToGenerateFront(state);
+  if (!front.ok) return front;
+  return isInsideDecisionReady(state);
 }
 
 export function registerStudioDraftRoutes(app: Express): void {
@@ -245,11 +267,12 @@ export function registerStudioDraftRoutes(app: Express): void {
           createdAt: a.createdAt,
         }));
 
-      // Failure block — only included when the card actually failed.
-      // Lets the client cleanly switch on `failure ? <Panel> : ...`
-      // without picking through individual nullable fields.
+      // Failure block — included when the card failed outright ('failed')
+      // OR the inside step failed while the front survived
+      // ('inside-failed'). Both populate the same card-level failure*
+      // columns, so the client renders one <GenerationErrorPanel> path.
       const failure =
-        row.status === 'failed'
+        row.status === 'failed' || row.status === 'inside-failed'
           ? {
               kind: row.failureKind,
               message: row.failureMessage,
@@ -483,9 +506,22 @@ export function registerStudioDraftRoutes(app: Express): void {
         return res.status(400).json({ message: 'Draft has no valid state' });
       }
 
-      // Readiness gates — mirror the client-side isXStepReady checks so
-      // the server doesn't trust a malicious client bypassing the UI.
-      const ready = isDraftReadyToGenerate(state);
+      // FRONT-FIRST flag. When on, /generate renders the FRONT only
+      // (→ 'front-ready'); the inside is generated later via
+      // /generate-inside after the user approves the front. Off = the
+      // legacy single-job 'full' path (front + inside → 'completed').
+      // Kept behind a flag so the backend can deploy before the client
+      // surfaces learn the new states — see the front-first plan.
+      const frontFirst = FRONT_FIRST_GEN;
+      const genMode: 'front' | 'full' = frontFirst ? 'front' : 'full';
+      const startStatus = frontFirst ? 'generating-front' : 'generating';
+
+      // Readiness — mirror the client gates so a crafted POST can't skip
+      // ahead. Front-first only needs the front half (no inside message
+      // yet); the legacy path needs both halves.
+      const ready = frontFirst
+        ? isReadyToGenerateFront(state)
+        : isDraftReadyToGenerate(state);
       if (!ready.ok) {
         return res.status(400).json({ message: ready.reason });
       }
@@ -493,8 +529,9 @@ export function registerStudioDraftRoutes(app: Express): void {
       // Daily cap check. Limit is a rolling 24h window based on
       // generation_log rows (see server/rate-limits.ts). We check
       // BEFORE flipping status so a rate-limited request leaves the
-      // draft in 'draft' state — the user can try again tomorrow
-      // without needing a reset.
+      // draft in 'draft' state. NOTE: the later /generate-inside step
+      // deliberately SKIPS this cap — once you've made the front you've
+      // committed to the card, so we don't dead-end the inside.
       const rate = await checkDailyGenerationLimit(userId);
       if (!rate.allowed) {
         return res.status(429).json({
@@ -505,27 +542,97 @@ export function registerStudioDraftRoutes(app: Express): void {
         });
       }
 
-      // Flip to 'generating' BEFORE dispatching so a refresh during the
-      // gap between response and job start shows the right status.
+      // Flip status BEFORE dispatching so a refresh during the gap
+      // between response and job start shows the right status.
       await db
         .update(cards)
-        .set({ status: 'generating' })
+        .set({ status: startStatus })
         .where(and(eq(cards.id, id), eq(cards.userId, userId)));
 
       // Fire-and-forget. generateStudioCard does its own error handling
-      // (sets status='failed' and logs). Not awaited by the request.
+      // (sets the failure status + logs). Not awaited by the request.
       setImmediate(() => {
-        generateStudioCard(id).catch((err) => {
+        generateStudioCard(id, genMode).catch((err) => {
           console.error(`[STUDIO] generateStudioCard threw for card ${id}:`, err);
         });
       });
 
-      res.json({ id, status: 'generating' });
+      res.json({ id, status: startStatus });
     } catch (err: any) {
       console.error('[STUDIO] generate start error:', err);
       res.status(500).json({ message: 'Could not start generation' });
     }
   });
+
+  // ── POST /api/studio/drafts/:id/generate-inside ──────────────────
+  // Front-first step 2: generate the inside AFTER the user has approved
+  // the front. Only valid from 'front-ready' (or 'inside-failed' to
+  // retry). The inside is built from the already-persisted front, so no
+  // photos/scene re-run — just the inside decision (write+message or
+  // blank). Deliberately SKIPS the daily cap (the front already counted;
+  // committing to the card shouldn't dead-end at the inside).
+  app.post(
+    '/api/studio/drafts/:id/generate-inside',
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+      const id = parseInt(req.params.id, 10);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+
+      try {
+        const rows = await db
+          .select({
+            id: cards.id,
+            userId: cards.userId,
+            status: cards.status,
+            conversationData: cards.conversationData,
+          })
+          .from(cards)
+          .where(eq(cards.id, id))
+          .limit(1);
+
+        const row = rows[0];
+        if (!row) return res.status(404).json({ message: 'Draft not found' });
+        if (row.userId !== userId) return res.status(403).json({ message: 'Not your draft' });
+
+        // Only a front-ready (or previously inside-failed) card can start
+        // the inside. Anything else is the wrong moment.
+        if (row.status !== 'front-ready' && row.status !== 'inside-failed') {
+          return res.status(409).json({
+            message: `Card is ${row.status}; the inside starts from 'front-ready'`,
+          });
+        }
+
+        const state = row.conversationData as CardDraftState | null;
+        if (!state || state.version !== 1) {
+          return res.status(400).json({ message: 'Draft has no valid state' });
+        }
+
+        const ready = isInsideDecisionReady(state);
+        if (!ready.ok) {
+          return res.status(400).json({ message: ready.reason });
+        }
+
+        await db
+          .update(cards)
+          .set({ status: 'generating-inside' })
+          .where(and(eq(cards.id, id), eq(cards.userId, userId)));
+
+        setImmediate(() => {
+          generateStudioCard(id, 'inside').catch((err) => {
+            console.error(`[STUDIO] generateStudioCard(inside) threw for card ${id}:`, err);
+          });
+        });
+
+        res.json({ id, status: 'generating-inside' });
+      } catch (err: any) {
+        console.error('[STUDIO] generate-inside start error:', err);
+        res.status(500).json({ message: 'Could not start inside generation' });
+      }
+    },
+  );
 
   // ── POST /api/studio/drafts/:id/retry ────────────────────────────
   // Reset a failed draft back to 'draft' status so the user can hit
@@ -614,10 +721,20 @@ export function registerStudioDraftRoutes(app: Express): void {
         const row = rows[0];
         if (!row) return res.status(404).json({ message: 'Card not found' });
         if (row.userId !== userId) return res.status(403).json({ message: 'Not your card' });
-        if (row.status !== 'completed') {
+        // Per-side allowed states. FRONT can be iterated in the front-
+        // first 'front-ready' state (front exists, inside not yet made)
+        // and after an 'inside-failed', as well as on a 'completed' card.
+        // INSIDE can only be regenerated once it exists, i.e. 'completed'
+        // (before that the inside is generated via /generate-inside, not
+        // regenerated).
+        const allowedRegenStates =
+          side === 'front'
+            ? ['front-ready', 'completed', 'inside-failed']
+            : ['completed'];
+        if (!allowedRegenStates.includes(row.status ?? '')) {
           return res
             .status(409)
-            .json({ message: `Card is ${row.status}; only completed cards can regen` });
+            .json({ message: `Card is ${row.status}; cannot regen ${side} now` });
         }
 
         // Hard cap: count existing attempts on this side and reject
