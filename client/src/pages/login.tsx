@@ -1,24 +1,18 @@
 // client/src/pages/login.tsx
 //
-// Branded split sign-in — matched to the homepage (2026-06-25 redesign).
+// Branded centred sign-in — matched to the homepage (2026-06-25).
 //
 //   • Page background: the homepage's white→lilac wash + the floating
 //     celebration icons (heart/ring/cake/present/celebrate/ribbon),
 //     faint + drifting, so /login feels like the same world as `/`.
-//   • Left: the sign-in box. Primary button is violet (brand), matching
-//     the homepage hero CTA (AuthForm accent="brand").
-//   • Right: an engaging violet panel — the card poster + a violet
-//     shimmer headline + a rotating line of real site taglines.
-//
-// Mobile: the right panel hides; the form box fills. The floating icons
-// stay as a quiet backdrop.
+//   • A single centred sign-in box sits over the field. Primary button
+//     is violet (brand), matching the homepage hero CTA.
 
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { AuthForm, authHeadingCopy, type AuthStep } from '@/components/auth/auth-form';
 import { toast } from '@/hooks/use-toast';
 import logoSrc from '@/assets/Logo2.png';
-import fathersDayFront from '@/assets/fathers-day-front.png';
 import heartIcon from '@/assets/icons/heart.png';
 import ringIcon from '@/assets/icons/ring.png';
 import cakeIcon from '@/assets/icons/cake.png';
@@ -68,23 +62,15 @@ const GOOGLE_ERROR_COPY: Record<string, { title: string; description: string }> 
 };
 
 // The floating celebration field — same icons as the homepage backdrop,
-// here static (no scroll coupling) and confined behind the boxed card.
+// here static (no scroll coupling) and spread around the centred box.
 // Top icons sit smaller + fainter (depth), bottom icons larger + warmer.
 const FLOAT_ICONS = [
-  { src: heartIcon, pos: 'top-[9%] left-[5%]', size: 74, opacity: 0.5, tilt: -8, delay: 0 },
-  { src: ringIcon, pos: 'top-[13%] right-[6%]', size: 68, opacity: 0.5, tilt: 7, delay: 1.4 },
-  { src: celebrateIcon, pos: 'top-[44%] left-[2%]', size: 60, opacity: 0.4, tilt: -5, delay: 2.2, hideSm: true },
-  { src: ribbonIcon, pos: 'top-[40%] right-[2%]', size: 60, opacity: 0.4, tilt: 6, delay: 0.8, hideSm: true },
-  { src: cakeIcon, pos: 'bottom-[8%] left-[8%]', size: 116, opacity: 0.72, tilt: -9, delay: 0.6 },
-  { src: presentIcon, pos: 'bottom-[11%] right-[7%]', size: 110, opacity: 0.7, tilt: 8, delay: 1.9 },
-];
-
-// Real lines from the site, cycled on the hero panel.
-const TAGLINES = [
-  '100% creative control.',
-  'Impossible to forget.',
-  'For the people who matter.',
-  'In their hands by Friday.',
+  { src: heartIcon, pos: 'top-[10%] left-[8%]', size: 74, opacity: 0.5, tilt: -8, delay: 0 },
+  { src: ringIcon, pos: 'top-[14%] right-[9%]', size: 68, opacity: 0.5, tilt: 7, delay: 1.4 },
+  { src: celebrateIcon, pos: 'top-[46%] left-[6%]', size: 60, opacity: 0.4, tilt: -5, delay: 2.2, hideSm: true },
+  { src: ribbonIcon, pos: 'top-[42%] right-[6%]', size: 60, opacity: 0.4, tilt: 6, delay: 0.8, hideSm: true },
+  { src: cakeIcon, pos: 'bottom-[10%] left-[11%]', size: 112, opacity: 0.7, tilt: -9, delay: 0.6 },
+  { src: presentIcon, pos: 'bottom-[13%] right-[10%]', size: 108, opacity: 0.68, tilt: 8, delay: 1.9 },
 ];
 
 function FloatingField({ reduced }: { reduced: boolean }) {
@@ -104,31 +90,6 @@ function FloatingField({ reduced }: { reduced: boolean }) {
           }
         />
       ))}
-    </div>
-  );
-}
-
-function RotatingTagline({ reduced }: { reduced: boolean }) {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    if (reduced) return;
-    const t = window.setInterval(() => setI((x) => (x + 1) % TAGLINES.length), 2800);
-    return () => window.clearInterval(t);
-  }, [reduced]);
-  return (
-    <div className="relative mt-7 h-6 w-full text-center">
-      <AnimatePresence mode="wait">
-        <motion.p
-          key={i}
-          className="absolute inset-x-0 text-[15px] font-medium text-brand-dark"
-          initial={reduced ? { opacity: 1 } : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={reduced ? { opacity: 0 } : { opacity: 0, y: -8 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-        >
-          {TAGLINES[i]}
-        </motion.p>
-      </AnimatePresence>
     </div>
   );
 }
@@ -155,109 +116,42 @@ export default function LoginPage() {
 
   return (
     <div
-      className="relative flex min-h-screen items-center justify-center overflow-hidden"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10"
       style={{ background: 'linear-gradient(180deg, #ffffff 0%, #f3f2fb 100%)' }}
     >
-      {/* Homepage floating-icon field, behind the card. */}
+      {/* Homepage floating-icon field, behind the box. */}
       <FloatingField reduced={reduced} />
 
-      {/* The boxed container card — 50/50 on desktop, form-only on mobile. */}
+      {/* Single centred sign-in box. */}
       <div
-        className="relative z-10 mx-4 my-8 grid w-full max-w-[1040px] grid-cols-1 overflow-hidden rounded-2xl border border-stone-200 bg-surface-card md:mx-12 md:my-12 md:grid-cols-2 md:rounded-3xl"
+        className="relative z-10 w-full max-w-[440px] rounded-2xl border border-stone-200 bg-surface-card p-8 sm:p-10 md:rounded-3xl"
         style={{
           boxShadow: '0 30px 80px -30px rgba(15,23,42,0.18), 0 12px 24px -12px rgba(15,23,42,0.08)',
-          minHeight: '620px',
         }}
       >
-        {/* ── Form pane ───────────────────────────────────────────── */}
-        <div className="flex flex-col p-8 md:p-12 lg:p-14">
-          <img src={logoSrc} alt="Celebrait" className="h-8 self-start" />
+        <img src={logoSrc} alt="Celebrait" className="h-8" />
 
-          <div className="mt-12 flex flex-1 flex-col justify-center md:mt-14">
-            <div className="mb-8">
-              <h1 className="text-3xl font-semibold leading-[1.1] tracking-tight text-ink md:text-4xl">
-                {heading}
-              </h1>
-              <p className="mt-3 max-w-[36ch] text-sm text-ink-soft">{subline}</p>
-            </div>
-
-            {/* accent="brand" → the violet sign-in button (matches homepage). */}
-            <AuthForm onStepChange={setStep} accent="brand" />
-
-            <p className="mt-6 text-[11px] text-stone-400">
-              By continuing you agree to our{' '}
-              <a href="/terms-of-service" className="underline-offset-2 hover:text-stone-600 hover:underline">
-                Terms
-              </a>{' '}
-              and{' '}
-              <a href="/privacy-policy" className="underline-offset-2 hover:text-stone-600 hover:underline">
-                Privacy Policy
-              </a>
-              .
-            </p>
-          </div>
+        <div className="mb-8 mt-10">
+          <h1 className="text-3xl font-semibold leading-[1.1] tracking-tight text-ink">
+            {heading}
+          </h1>
+          <p className="mt-3 max-w-[36ch] text-sm text-ink-soft">{subline}</p>
         </div>
 
-        {/* ── Hero pane — violet, engaging, site copy ──────────────── */}
-        <div
-          className="relative hidden items-center justify-center overflow-hidden p-10 md:flex lg:p-14"
-          style={{
-            background:
-              'radial-gradient(820px 620px at 50% 32%, #faf8ff 0%, #f1edfe 52%, #e7e1fb 100%)',
-          }}
-        >
-          <div className="relative flex w-full max-w-[440px] flex-col items-center text-center">
-            {/* Violet shimmer headline — the homepage's signature move. */}
-            <h2 className="font-display text-[30px] font-bold leading-[1.05] tracking-[-0.02em] text-ink md:text-[36px]">
-              Cards they'll{' '}
-              <motion.span
-                className="inline-block bg-clip-text px-0.5 text-transparent"
-                style={{
-                  backgroundImage:
-                    'linear-gradient(90deg, #5c57d4 0%, #7a76e8 35%, #a78bfa 50%, #7a76e8 65%, #5c57d4 100%)',
-                  backgroundSize: '220% 100%',
-                  backgroundRepeat: 'no-repeat',
-                }}
-                initial={{ backgroundPosition: '0% 0%' }}
-                animate={reduced ? undefined : { backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'] }}
-                transition={
-                  reduced
-                    ? undefined
-                    : { duration: 5, repeat: Infinity, repeatDelay: 3, ease: 'easeInOut', delay: 0.6 }
-                }
-              >
-                keep.
-              </motion.span>
-            </h2>
+        {/* accent="brand" → the violet sign-in button (matches homepage). */}
+        <AuthForm onStepChange={setStep} accent="brand" />
 
-            {/* Floating card poster. */}
-            <motion.div
-              className="relative mt-9 aspect-square w-[min(82%,320px)]"
-              initial={{ y: 0 }}
-              animate={reduced ? undefined : { y: [0, -10, 0] }}
-              transition={reduced ? undefined : { duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <img
-                src={fathersDayFront}
-                alt="A Celebrait greeting card"
-                className="absolute inset-0 h-full w-full rounded-2xl object-cover"
-                style={{
-                  boxShadow: '0 30px 60px -20px rgba(92,87,212,0.40), 0 12px 24px -12px rgba(15,23,42,0.16)',
-                }}
-                // @ts-expect-error — fetchpriority is valid HTML, types lag
-                fetchpriority="high"
-              />
-              <div
-                aria-hidden
-                className="absolute -bottom-5 left-1/2 h-5 w-[78%] -translate-x-1/2 rounded-[50%] opacity-50 blur-2xl"
-                style={{ background: 'radial-gradient(closest-side, rgba(92,87,212,0.45), transparent 70%)' }}
-              />
-            </motion.div>
-
-            {/* Rotating real-site taglines. */}
-            <RotatingTagline reduced={reduced} />
-          </div>
-        </div>
+        <p className="mt-6 text-[11px] text-stone-400">
+          By continuing you agree to our{' '}
+          <a href="/terms-of-service" className="underline-offset-2 hover:text-stone-600 hover:underline">
+            Terms
+          </a>{' '}
+          and{' '}
+          <a href="/privacy-policy" className="underline-offset-2 hover:text-stone-600 hover:underline">
+            Privacy Policy
+          </a>
+          .
+        </p>
       </div>
     </div>
   );
