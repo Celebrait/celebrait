@@ -512,7 +512,11 @@ export function registerStudioDraftRoutes(app: Express): void {
       // legacy single-job 'full' path (front + inside → 'completed').
       // Kept behind a flag so the backend can deploy before the client
       // surfaces learn the new states — see the front-first plan.
-      const frontFirst = FRONT_FIRST_GEN;
+      // Per-request opt-in lets a single surface adopt front-first
+      // independently of the global flag: the chat studio passes body
+      // {mode:'front'} so it can go front-first NOW, while the stepper
+      // studio stays legacy until its reveal learns the new states.
+      const frontFirst = req.body?.mode === 'front' || FRONT_FIRST_GEN;
       const genMode: 'front' | 'full' = frontFirst ? 'front' : 'full';
       const startStatus = frontFirst ? 'generating-front' : 'generating';
 

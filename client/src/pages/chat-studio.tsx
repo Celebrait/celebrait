@@ -25,8 +25,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
-import frontImg from '@/assets/hero-card-front.png';
-import insideImg from '@/assets/hero-card-inside.png';
 
 /* ───────────── draft model (mirrors CardDraftState) ───────────── */
 interface Draft {
@@ -72,14 +70,14 @@ function defaultFront(d: Draft): string {
 }
 const MAX_PHOTOS = { one_person: 5, group: 1 } as const;
 
-function refineFilter(text: string): string {
-  const t = text.toLowerCase();
-  if (/sunset|warm|gold|orange|amber|autumn|cosy|cozy/.test(t)) return 'saturate(1.25) sepia(0.22) hue-rotate(-12deg) brightness(1.05)';
-  if (/cool|blue|night|moon|cold|wintry/.test(t)) return 'saturate(1.05) hue-rotate(16deg) brightness(0.95)';
-  if (/bright|vibrant|pop|vivid|bold/.test(t)) return 'saturate(1.5) brightness(1.07)';
-  if (/soft|dream|pastel|gentle|romantic/.test(t)) return 'saturate(0.9) brightness(1.07) contrast(0.94)';
-  if (/dark|moody|dramatic/.test(t)) return 'saturate(1.1) brightness(0.82) contrast(1.12)';
-  return 'saturate(1.18) brightness(1.03)';
+const sleep = (ms: number) => new Promise((r) => window.setTimeout(r, ms));
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result as string);
+    fr.onerror = reject;
+    fr.readAsDataURL(file);
+  });
 }
 
 /* ───────────── chat types ───────────── */
@@ -89,8 +87,8 @@ interface Chip { label: string; value: string; kind?: 'primary' | 'ghost' | 'opt
 type Phase =
   | 'name' | 'occasion' | 'photoMode' | 'photo'
   | 'scene' | 'sceneBrief' | 'scenePick' | 'bsChat'
-  | 'frontText' | 'insideFork' | 'insideMessage'
-  | 'review' | 'generating' | 'reveal'
+  | 'frontText' | 'generating' | 'revealFront'
+  | 'insideFork' | 'insideMessage' | 'insideRetry' | 'reveal'
   | 'givingFormat' | 'givingDestination' | 'done';
 type CanvasMode = 'empty' | 'photo' | 'generating' | 'card' | 'giving';
 
@@ -123,6 +121,9 @@ export default function ChatStudio() {
   const [cardSide, setCardSide] = useState<'front' | 'inside'>('front');
   const [genStage, setGenStage] = useState(0);
   const [revKey, setRevKey] = useState(0);
+  // Real rendered images from the server (front-first: front lands, then inside).
+  const [serverFront, setServerFront] = useState<string | null>(null);
+  const [serverInside, setServerInside] = useState<string | null>(null);
 
   // scene-suggestions
   const [brief, setBrief] = useState('');
@@ -252,10 +253,10 @@ export default function ChatStudio() {
         if (d.photoMode && stepComplete) goPhoto();
         break;
       case 'frontText':
-        if (stepComplete || d.front.mode === 'none' || d.front.text) goInsideFork(d);
+        if (stepComplete || d.front.mode === 'none' || d.front.text) void goGenerateFront(d);
         break;
       case 'insideMessage':
-        if (d.inside.message) goReview(d);
+        if (d.inside.message) void goGenerateInside(d);
         break;
       default: break;
     }
@@ -292,6 +293,8 @@ export default function ChatStudio() {
     if (phase === 'sceneBrief') { setBrief(v); void fetchSuggestions(v); return; }
     // Brainstorm: free text drives the guided machine.
     if (phase === 'bsChat') { void bsTurn(bsAwaiting, v); setBsAwaiting('reply'); return; }
+    // Front reveal: a typed tweak refines the front.
+    if (phase === 'revealFront') { void refineFront(v); return; }
   }
 
   // Simple scripted bot line (used for deterministic transitions, NOT the LLM).
@@ -396,50 +399,119 @@ export default function ChatStudio() {
       setChips([{ label: 'Write a message', value: '__write__' }, { label: 'Leave it blank', value: '__blank__', kind: 'ghost' }]);
     });
   }
-  function goReview(d: Draft) {
-    setPhase('review');
-    const lines = [
-      `For: ${d.name} · ${labelFor(d)}`,
-      `Photo: ${d.photos.length || 1} of ${d.photoMode === 'group' ? 'the group' : d.name}`,
-      `Scene: ${d.scene}`,
-      `Front: ${d.front.mode === 'none' ? '(no headline)' : d.front.text || defaultFront(d)}`,
-      `Inside: ${d.inside.mode === 'blank' ? '(blank — handwrite)' : d.inside.message}`,
-    ];
-    bot(`Here's the plan:\n${lines.join('\n')}\n\nNothing gets sent until you say so. Ready to make it?`, () => {
-      setChips([{ label: `Make ${d.name}'s card ✓`, value: '__generate__', kind: 'primary' }]);
-    });
+  /* ── REAL generation (front-first) ──
+     /generate {mode:'front'} → poll to 'front-ready' → reveal + iterate
+     the front → approve → /generate-inside → poll to 'completed'. */
+  async function pollDraft(predicate: (d: any) => boolean, timeoutMs = 150000): Promise<any | null> {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      try {
+        const res = await apiRequest('GET', `/api/studio/drafts/${cardId}`);
+        const data = await res.json();
+        if (predicate(data)) return data;
+      } catch { /* transient — keep polling */ }
+      await sleep(2000);
+    }
+    return null;
   }
 
-  /* ── generation (STILL STUBBED — real /generate next increment) ── */
-  function runGenerate() {
-    setChips([]); setPhase('generating'); setCanvas('generating'); setGenStage(0);
-    push('bot', 'Making it now — about 45 seconds…');
-    [900, 2000, 3100].forEach((t, i) => window.setTimeout(() => setGenStage(i + 1), t));
-    window.setTimeout(() => {
-      setFilter('none'); setCardSide('front'); setRevKey((k) => k + 1); setCanvas('card'); setPhase('reveal');
-      bot("Here's their card. 🎉 Love it, or want to tweak it? Tell me — e.g. “make it sunset”, “add more flowers”.", () => {
-        setChips([
-          { label: 'Love it ✓', value: 'Love it', kind: 'primary' },
-          { label: 'Make it sunset', value: 'make it sunset', kind: 'ghost' },
-          { label: 'Softer + dreamier', value: 'softer and dreamier', kind: 'ghost' },
-        ]);
-      });
-    }, 4200);
+  function frontRevealChips() {
+    setChips([
+      { label: 'Love it — do the inside ✓', value: '__approvefront__', kind: 'primary' },
+      { label: 'Make it warmer', value: 'make it warmer', kind: 'ghost' },
+      { label: 'Brighter + bolder', value: 'brighter and bolder', kind: 'ghost' },
+    ]);
   }
-  function refine(instruction: string) {
+  function frontRetryChips() {
+    setPhase('revealFront');
+    setChips([{ label: 'Try again', value: '__regenfront__', kind: 'primary' }]);
+  }
+  function insideRetryChips() {
+    setPhase('insideRetry');
+    setChips([{ label: 'Try the inside again', value: '__geninside__', kind: 'primary' }]);
+  }
+
+  async function goGenerateFront(d: Draft) {
     setChips([]);
-    push('bot', 'Refining — keeping their face, the composition and the words, just changing what you asked…');
+    if (!d.photoIds.length) {
+      bot("I need at least one photo before I can draw the front — let's add one.", () => { setPhase('photo'); setCanvas('photo'); });
+      return;
+    }
+    setPhase('generating'); setCanvas('generating'); setGenStage(0); setCardSide('front');
+    push('bot', 'Drawing the front now — about 20–30 seconds…');
+    window.setTimeout(() => setGenStage(1), 6000);
+    await flushSave();
+    try {
+      try {
+        await apiRequest('POST', `/api/studio/drafts/${cardId}/generate`, { mode: 'front' });
+      } catch (e: any) {
+        // A prior attempt left the card 'failed' (not 'draft'); reset it
+        // via /retry, then start fresh. Other errors bubble up.
+        if (/is failed/i.test(e?.message ?? '')) {
+          await apiRequest('POST', `/api/studio/drafts/${cardId}/retry`);
+          await apiRequest('POST', `/api/studio/drafts/${cardId}/generate`, { mode: 'front' });
+        } else {
+          throw e;
+        }
+      }
+    } catch (e: any) {
+      setCanvas('empty');
+      bot(e?.message ? `Couldn't start that: ${e.message}` : "Couldn't start the generation. Try again?", frontRetryChips);
+      return;
+    }
+    const data = await pollDraft((x) => x.status === 'front-ready' || x.status === 'failed');
+    if (!data || data.status === 'failed') {
+      setCanvas('empty');
+      bot(data?.failure?.message ? `That didn't land: ${data.failure.message}` : "That didn't land. Want to try again?", frontRetryChips);
+      return;
+    }
+    setServerFront(data.frontImageUrl);
+    setRevKey((k) => k + 1); setCanvas('card'); setPhase('revealFront');
+    bot("Here's the front. Love it, or want to tweak it? (e.g. “make it warmer”, “add flowers”)", frontRevealChips);
+  }
+
+  async function refineFront(instruction: string) {
+    const prev = serverFront;
+    setChips([]);
+    push('bot', 'Refining the front — keeping their face + composition, just changing what you asked…');
     setCanvas('generating'); setGenStage(1);
-    window.setTimeout(() => {
-      setFilter(refineFilter(instruction)); setRevKey((k) => k + 1); setCanvas('card');
-      bot("Updated — how's that? Tweak again, or say “love it”.", () => {
-        setChips([
-          { label: 'Love it ✓', value: 'Love it', kind: 'primary' },
-          { label: 'A bit warmer', value: 'a bit warmer', kind: 'ghost' },
-          { label: 'Brighter + bolder', value: 'brighter and bolder', kind: 'ghost' },
-        ]);
-      });
-    }, 1400);
+    try {
+      await apiRequest('POST', `/api/studio/drafts/${cardId}/regenerate`, { side: 'front', tweak: instruction });
+    } catch {
+      setCanvas('card'); bot("Couldn't start that tweak — try another?", frontRevealChips); return;
+    }
+    const data = await pollDraft((x) =>
+      (x.regenFailures ?? []).some((f: any) => f.side === 'front') ||
+      (!!x.frontImageUrl && x.frontImageUrl !== prev),
+    );
+    if (!data || (data.regenFailures ?? []).some((f: any) => f.side === 'front')) {
+      setCanvas('card'); bot("That tweak didn't land — want to try a different one?", frontRevealChips); return;
+    }
+    setServerFront(data.frontImageUrl); setRevKey((k) => k + 1); setCanvas('card');
+    bot("Updated — how's that? Tweak again, or do the inside.", frontRevealChips);
+  }
+
+  async function goGenerateInside(d: Draft) {
+    setChips([]); setPhase('generating'); setCanvas('generating'); setGenStage(2); setCardSide('front');
+    push('bot', d.inside.mode === 'blank' ? 'Setting up the blank inside…' : 'Writing the inside now…');
+    window.setTimeout(() => setGenStage(3), 8000);
+    await flushSave();
+    try {
+      await apiRequest('POST', `/api/studio/drafts/${cardId}/generate-inside`);
+    } catch (e: any) {
+      setCanvas('card'); setCardSide('front');
+      bot(e?.message ? `Couldn't start the inside: ${e.message}` : "Couldn't start the inside. Try again?", insideRetryChips);
+      return;
+    }
+    const data = await pollDraft((x) => x.status === 'completed' || x.status === 'inside-failed');
+    if (!data || data.status === 'inside-failed') {
+      setCanvas('card'); setCardSide('front');
+      bot(data?.failure?.message ? `The inside didn't land: ${data.failure.message}` : "The inside didn't land. Try again?", insideRetryChips);
+      return;
+    }
+    setServerInside(data.insideImageUrl);
+    setCardSide(d.inside.mode === 'write' ? 'inside' : 'front'); setRevKey((k) => k + 1); setCanvas('card');
+    bot("And the inside's done — the full card's ready. 🎉", afterApprove);
   }
   function afterApprove() {
     setChips([]);
@@ -460,11 +532,23 @@ export default function ChatStudio() {
     bot(dest === 'recipient' ? `Straight to ${draft.name} it is. That's everything — ready when you are.` : `To you first, so you can add the finishing touch. All set!`, () => setPhase('done'));
   }
 
-  /* ── photo widget (stub upload) ── */
-  function addPhotos(files: FileList | null) {
+  /* ── photo widget (REAL upload — base64 → POST /api/photos/upload) ── */
+  async function addPhotos(files: FileList | null) {
     if (!files) return;
     const room = MAX_PHOTOS[draft.photoMode] - draft.photos.length;
-    Array.from(files).slice(0, room).forEach((f) => setDraft((d) => ({ ...d, photos: [...d.photos, URL.createObjectURL(f)] })));
+    for (const f of Array.from(files).slice(0, room)) {
+      const dataUrl = await readFileAsDataUrl(f);
+      // Optimistic preview immediately; the real id lands when upload returns.
+      setDraft((d) => ({ ...d, photos: [...d.photos, dataUrl] }));
+      try {
+        const res = await apiRequest('POST', '/api/photos/upload', { imageBase64: dataUrl, filename: f.name });
+        const photo = await res.json();
+        if (photo?.id) setDraft((d) => ({ ...d, photoIds: [...d.photoIds, photo.id] }));
+      } catch {
+        // Upload failed — the preview stays but there's no id; the
+        // generation gate will catch a photo-less draft and prompt.
+      }
+    }
   }
   function photosDone() {
     setCanvas('empty');
@@ -527,20 +611,21 @@ export default function ChatStudio() {
       return;
     }
     if (phase === 'frontText') {
-      if (c.value === '__default__') { const d = { ...draft, front: { mode: 'write' as const, text: defaultFront(draft) } }; setDraft(d); push('user', c.label); setChips([]); bot(`“${defaultFront(draft)}” on the front. Nice.`, () => goInsideFork(d)); return; }
-      if (c.value === '__skipfront__') { const d = { ...draft, front: { mode: 'none' as const, text: '' } }; setDraft(d); push('user', c.label); setChips([]); bot('Done — the scene will speak for itself.', () => goInsideFork(d)); return; }
+      if (c.value === '__default__') { const d = { ...draft, front: { mode: 'write' as const, text: defaultFront(draft) } }; setDraft(d); push('user', c.label); setChips([]); bot(`“${defaultFront(draft)}” on the front. Let's draw it.`, () => goGenerateFront(d)); return; }
+      if (c.value === '__skipfront__') { const d = { ...draft, front: { mode: 'none' as const, text: '' } }; setDraft(d); push('user', c.label); setChips([]); bot('Done — the scene will speak for itself.', () => goGenerateFront(d)); return; }
+    }
+    if (phase === 'revealFront') {
+      if (c.value === '__approvefront__') { push('user', 'Love it — do the inside'); setChips([]); goInsideFork(draft); return; }
+      if (c.value === '__regenfront__') { push('user', 'Try again'); setChips([]); void goGenerateFront(draft); return; }
+      push('user', c.label); void refineFront(c.value); return; // a tweak pill
     }
     if (phase === 'insideFork') {
       push('user', c.label); setChips([]);
-      if (c.value === '__blank__') { const d = { ...draft, inside: { mode: 'blank' as const, message: '' } }; setDraft(d); bot("Lovely — blank inside, ready for your handwriting. (We'll print + post it to you.)", () => goReview(d)); return; }
+      if (c.value === '__blank__') { const d = { ...draft, inside: { mode: 'blank' as const, message: '' } }; setDraft(d); bot("Lovely — blank inside, ready for your handwriting.", () => goGenerateInside(d)); return; }
       bot('What should it say inside?', () => setPhase('insideMessage'));
       return;
     }
-    if (phase === 'review' && c.value === '__generate__') { push('user', c.label); runGenerate(); return; }
-    if (phase === 'reveal') {
-      if (c.value === 'Love it') { push('user', c.label); afterApprove(); return; }
-      push('user', c.label); refine(c.value); return;
-    }
+    if (phase === 'insideRetry' && c.value === '__geninside__') { push('user', 'Try the inside again'); setChips([]); void goGenerateInside(draft); return; }
   }
 
   /* ───────────── render ───────────── */
@@ -554,7 +639,8 @@ export default function ChatStudio() {
       >
         <Canvas
           mode={canvas} draft={draft} filter={filter} cardSide={cardSide} genStage={genStage} revKey={revKey}
-          onAddPhotos={addPhotos} onRemovePhoto={(i) => setDraft((d) => ({ ...d, photos: d.photos.filter((_, k) => k !== i) }))}
+          frontUrl={serverFront} insideUrl={serverInside}
+          onAddPhotos={addPhotos} onRemovePhoto={(i) => setDraft((d) => ({ ...d, photos: d.photos.filter((_, k) => k !== i), photoIds: d.photoIds.filter((_, k) => k !== i) }))}
           onPhotosDone={photosDone} onFlip={() => setCardSide((s) => (s === 'front' ? 'inside' : 'front'))}
           onFormat={chooseFormat} onDestination={chooseDestination} fileRef={fileRef}
         />
@@ -629,10 +715,11 @@ export default function ChatStudio() {
 
 /* ───────────── canvas ───────────── */
 function Canvas({
-  mode, draft, filter, cardSide, genStage, revKey,
+  mode, draft, filter, cardSide, genStage, revKey, frontUrl, insideUrl,
   onAddPhotos, onRemovePhoto, onPhotosDone, onFlip, onFormat, onDestination, fileRef,
 }: {
   mode: CanvasMode; draft: Draft; filter: string; cardSide: 'front' | 'inside'; genStage: number; revKey: number;
+  frontUrl: string | null; insideUrl: string | null;
   onAddPhotos: (f: FileList | null) => void; onRemovePhoto: (i: number) => void; onPhotosDone: () => void;
   onFlip: () => void; onFormat: (f: Draft['delivery']['format']) => void; onDestination: (d: 'recipient' | 'sender') => void;
   fileRef: React.RefObject<HTMLInputElement>;
@@ -706,7 +793,7 @@ function Canvas({
           <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex h-full w-full items-center justify-center rounded-[16px] border border-dashed border-stone-300 text-center text-[13px] text-ink-soft">Your card will appear here ✨</motion.div>
         )}
         {mode === 'card' && (
-          <motion.img key={'card' + cardSide + revKey} src={cardSide === 'front' ? frontImg : insideImg} alt="" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }} style={{ filter }} className="h-full w-full rounded-[16px] object-cover shadow-[0_40px_90px_-30px_rgba(15,23,42,0.45)]" />
+          <motion.img key={'card' + cardSide + revKey} src={cardSide === 'front' ? (frontUrl ?? '') : (insideUrl ?? frontUrl ?? '')} alt="" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }} style={{ filter }} className="h-full w-full rounded-[16px] object-cover shadow-[0_40px_90px_-30px_rgba(15,23,42,0.45)]" />
         )}
       </AnimatePresence>
       {mode === 'generating' && (
@@ -715,7 +802,7 @@ function Canvas({
           <p className="text-[13px] font-medium text-ink-soft">{STAGES[Math.min(genStage, STAGES.length - 1)]}</p>
         </div>
       )}
-      {mode === 'card' && draft.inside.mode === 'write' && (
+      {mode === 'card' && !!insideUrl && (
         <button onClick={onFlip} className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white/85 px-3.5 py-1.5 text-[12px] font-medium text-ink shadow-sm backdrop-blur transition-colors hover:bg-white">
           {cardSide === 'front' ? 'See inside →' : '← See front'}
         </button>
@@ -726,7 +813,7 @@ function Canvas({
 
 /* ───────────── small helpers ───────────── */
 function showComposer(p: Phase): boolean {
-  return ['name', 'occasion', 'photoMode', 'scene', 'sceneBrief', 'bsChat', 'frontText', 'insideMessage', 'reveal'].includes(p);
+  return ['name', 'occasion', 'photoMode', 'scene', 'sceneBrief', 'bsChat', 'frontText', 'insideMessage', 'revealFront'].includes(p);
 }
 function placeholderFor(p: Phase): string {
   switch (p) {
@@ -738,7 +825,7 @@ function placeholderFor(p: Phase): string {
     case 'bsChat': return 'Type your answer…';
     case 'frontText': return 'What should the front say?';
     case 'insideMessage': return 'Your message inside…';
-    case 'reveal': return 'Tell me a tweak, or “love it”…';
+    case 'revealFront': return 'Tell me a tweak, or tap “Love it”…';
     default: return 'Type your answer…';
   }
 }
