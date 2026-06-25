@@ -609,7 +609,7 @@ export async function generateStudioCard(
 
       console.log(
         `[STUDIO_GEN] Front: provider=${resolvedFront.provider ?? 'openai(fallback)'} ` +
-          `quality=${resolvedFront.quality ?? 'high(fallback)'} ` +
+          `quality=${resolvedFront.quality ?? `${FALLBACK_QUALITY}(fallback)`} ` +
           `variant=${resolvedFront.variant ?? 'null'} ` +
           `templateId=${resolvedFront.templateId} v=${resolvedFront.templateVersion}`,
       );
@@ -699,7 +699,7 @@ export async function generateStudioCard(
       if (resolvedInside) {
         console.log(
           `[STUDIO_GEN] Inside (${insideMode}): provider=${resolvedInside.provider ?? 'openai(fallback)'} ` +
-            `quality=${resolvedInside.quality ?? 'high(fallback)'} ` +
+            `quality=${resolvedInside.quality ?? `${FALLBACK_QUALITY}(fallback)`} ` +
             `templateId=${resolvedInside.templateId} v=${resolvedInside.templateVersion}`,
         );
 
