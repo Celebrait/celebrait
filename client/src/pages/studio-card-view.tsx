@@ -98,9 +98,19 @@ export default function StudioCardViewPage() {
     return <NotFoundView />;
   }
 
-  // Unfinished drafts go back into the maker. Everything else renders
-  // the viewer here.
-  if (data.status === 'draft' || data.status === 'generating' || data.status === 'failed') {
+  // Unfinished drafts go back into the maker. This includes the
+  // front-first in-progress states (front-ready / generating-front /
+  // generating-inside / inside-failed) — those are mid-flow cards that
+  // belong in the maker's reveal, not this completed-card viewer.
+  if (
+    data.status === 'draft' ||
+    data.status === 'generating' ||
+    data.status === 'generating-front' ||
+    data.status === 'front-ready' ||
+    data.status === 'generating-inside' ||
+    data.status === 'inside-failed' ||
+    data.status === 'failed'
+  ) {
     return <Redirect to={`/studio/card/${cardId}/edit`} />;
   }
 
