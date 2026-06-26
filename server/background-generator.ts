@@ -506,6 +506,28 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
 //   draft → generating → completed (happy path)
 //                     → failed     (provider error / safety block / etc.)
 
+// Post-completion artifacts: print-resolution upscale + the card-ready
+// email + address-book upsert. Run inline by the legacy 'full' gen, and
+// by the /finalize step when a front-first card is signed off. All
+// non-fatal — generation already succeeded; these are icing.
+export async function finalizeCardArtifacts(
+  cardId: number,
+  state: CardDraftState,
+  userId: string | null,
+): Promise<void> {
+  await generatePrintResolutionFiles(cardId);
+  try {
+    await sendCardReadyEmailForCard(cardId, state, userId);
+  } catch (mailErr) {
+    console.error(`[STUDIO_GEN] card-ready email failed for ${cardId}:`, mailErr);
+  }
+  try {
+    await upsertAddressBookFromCard(cardId);
+  } catch (abErr) {
+    console.error(`[STUDIO_GEN] address-book upsert failed for ${cardId}:`, abErr);
+  }
+}
+
 export async function generateStudioCard(
   cardId: number,
   mode: 'front' | 'inside' | 'full' = 'full',
@@ -738,35 +760,24 @@ export async function generateStudioCard(
       }
 
       // ── Persist + finalise ───────────────────────────────────────
+      // FRONT-FIRST: a standalone inside gen stops at 'inside-ready' so
+      // the user can preview/tweak/sign off the inside before the card
+      // assembles (mirrors the front-ready step). The finalize artifacts
+      // (print-res + emails + address book) run later via /finalize. The
+      // legacy 'full' path completes + finalizes inline, as before.
+      const finalStatus = mode === 'inside' ? 'inside-ready' : 'completed';
       await storage.updateCard(cardId, {
         // mode='inside' already has frontImageUrl on the row; only set
         // it from the local var in the combined 'full' path.
         ...(frontStoredUrl && mode === 'full' ? { frontImageUrl: frontStoredUrl } : {}),
         insideImageUrl: insideStoredUrl,
-        status: 'completed',
+        status: finalStatus,
       });
 
-      console.log(`[STUDIO_GEN] Card ${cardId} completed`);
+      console.log(`[STUDIO_GEN] Card ${cardId} ${finalStatus}`);
 
-      // Print-resolution upscale — non-fatal, same as the legacy flow.
-      await generatePrintResolutionFiles(cardId);
-
-      // ── Notify the sender that their card is ready ─────────────────
-      // Studio's biggest funnel-recovery email: the user kicked off a
-      // generation and may have navigated away. Non-fatal.
-      try {
-        await sendCardReadyEmailForCard(cardId, state, row.userId);
-      } catch (mailErr) {
-        console.error(`[STUDIO_GEN] card-ready email failed for ${cardId}:`, mailErr);
-      }
-
-      // ── Auto-save the recipient into the address book ──────────────
-      // First-card-for-Mum lands her in /studio/people/address-book.
-      // Fire-and-forget — failure is a QoL dip, not a gen failure.
-      try {
-        await upsertAddressBookFromCard(cardId);
-      } catch (abErr) {
-        console.error(`[STUDIO_GEN] address-book upsert failed for ${cardId}:`, abErr);
+      if (finalStatus === 'completed') {
+        await finalizeCardArtifacts(cardId, state, row.userId);
       }
     }
   } catch (err: any) {

@@ -107,6 +107,9 @@ interface UseCardMakerResult {
   /** FRONT-FIRST step 2 — generate the inside after the user approves
    *  the front (the inside message is already collected up front). */
   startInsideGeneration: () => Promise<void>;
+  /** FRONT-FIRST step 3 — sign off the inside ('inside-ready' →
+   *  'completed') so the reveal assembles the 3D card. */
+  finalizeCard: () => Promise<void>;
   /** True while the POST to /generate is in flight. Separate from
    *  status==='generating' — this is the single-round-trip submit,
    *  the status field tracks the whole background job. */
@@ -388,6 +391,14 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
     }
   }, [cardId, runSave]);
 
+  // FRONT-FIRST step 3 — sign off the inside ('inside-ready' → 'completed').
+  // Flips status so the reveal proceeds to the 3D assemble.
+  const finalizeCard = useCallback(async (): Promise<void> => {
+    const res = await apiRequest('POST', `/api/studio/drafts/${cardId}/finalize`, {});
+    const data = (await res.json()) as { id: number; status: string };
+    setStatus(data.status);
+  }, [cardId]);
+
   // ── Regen ────────────────────────────────────────────────────────
   // The server-side regen route changed 2026-05-15 to return the new
   // attemptId IMMEDIATELY (after creating the row in 'generating'
@@ -518,6 +529,7 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
     flushSave,
     startGeneration,
     startInsideGeneration,
+    finalizeCard,
     isStartingGeneration,
     attempts,
     isRegenerating,

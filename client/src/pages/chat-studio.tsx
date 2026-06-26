@@ -532,7 +532,9 @@ export default function ChatStudio() {
       bot(e?.message ? `Couldn't start the inside: ${e.message}` : "Couldn't start the inside. Try again?", insideRetryChips);
       return;
     }
-    const data = await pollDraft((x) => x.status === 'completed' || x.status === 'inside-failed');
+    // Inside gen now stops at 'inside-ready' (the studio adds a sign-off
+    // step there); the chat treats inside-ready as done and reveals it.
+    const data = await pollDraft((x) => x.status === 'inside-ready' || x.status === 'completed' || x.status === 'inside-failed');
     if (!data || data.status === 'inside-failed') {
       setCanvas('card'); setCardSide('front');
       bot(data?.failure?.message ? `The inside didn't land: ${data.failure.message}` : "The inside didn't land. Try again?", insideRetryChips);
@@ -540,6 +542,9 @@ export default function ChatStudio() {
     }
     setServerInside(data.insideImageUrl);
     setCardSide(d.inside.mode === 'write' ? 'inside' : 'front'); setRevKey((k) => k + 1); setCanvas('card');
+    // Finalize so the card reaches 'completed' (print-res + emails). The
+    // chat has no separate assemble step, so sign off implicitly here.
+    apiRequest('POST', `/api/studio/drafts/${cardId}/finalize`, {}).catch(() => {});
     bot("And the inside's done — the full card's ready. 🎉", afterApprove);
   }
   function afterApprove() {

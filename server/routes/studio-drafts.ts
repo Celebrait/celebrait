@@ -33,6 +33,7 @@ import { sendSenderCardOpenedEmail } from '../email-service';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import {
   generateStudioCard,
+  finalizeCardArtifacts,
   createRegenAttemptRow,
   runRegenAttempt,
   regenerateStudioCardSide,
@@ -638,6 +639,70 @@ export function registerStudioDraftRoutes(app: Express): void {
     },
   );
 
+  // ── POST /api/studio/drafts/:id/finalize ─────────────────────────
+  // Front-first step 3: the user has previewed + signed off the inside.
+  // Flip 'inside-ready' → 'completed' and run the finalize artifacts
+  // (print-res + card-ready email + address-book). This is the moment the
+  // card is actually DONE (so emails etc. fire here, not before sign-off).
+  app.post(
+    '/api/studio/drafts/:id/finalize',
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+      const id = parseInt(req.params.id, 10);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+
+      try {
+        const rows = await db
+          .select({
+            id: cards.id,
+            userId: cards.userId,
+            status: cards.status,
+            conversationData: cards.conversationData,
+          })
+          .from(cards)
+          .where(eq(cards.id, id))
+          .limit(1);
+
+        const row = rows[0];
+        if (!row) return res.status(404).json({ message: 'Draft not found' });
+        if (row.userId !== userId) return res.status(403).json({ message: 'Not your draft' });
+        // Idempotent: already-completed cards just succeed (a double-tap
+        // on sign-off shouldn't error).
+        if (row.status === 'completed') return res.json({ id, status: 'completed' });
+        if (row.status !== 'inside-ready') {
+          return res.status(409).json({
+            message: `Card is ${row.status}; finalize only from 'inside-ready'`,
+          });
+        }
+
+        const state = row.conversationData as CardDraftState | null;
+
+        await db
+          .update(cards)
+          .set({ status: 'completed' })
+          .where(and(eq(cards.id, id), eq(cards.userId, userId)));
+
+        // Fire-and-forget the artifacts — the card is already complete +
+        // viewable; print-res/email/address-book are non-blocking icing.
+        if (state && state.version === 1) {
+          setImmediate(() => {
+            finalizeCardArtifacts(id, state, row.userId).catch((err) => {
+              console.error(`[STUDIO] finalizeCardArtifacts threw for card ${id}:`, err);
+            });
+          });
+        }
+
+        res.json({ id, status: 'completed' });
+      } catch (err: any) {
+        console.error('[STUDIO] finalize error:', err);
+        res.status(500).json({ message: 'Could not finalize card' });
+      }
+    },
+  );
+
   // ── POST /api/studio/drafts/:id/retry ────────────────────────────
   // Reset a failed draft back to 'draft' status so the user can hit
   // Generate again without losing any of their inputs. Only valid
@@ -733,8 +798,8 @@ export function registerStudioDraftRoutes(app: Express): void {
         // regenerated).
         const allowedRegenStates =
           side === 'front'
-            ? ['front-ready', 'completed', 'inside-failed']
-            : ['completed'];
+            ? ['front-ready', 'inside-ready', 'completed', 'inside-failed']
+            : ['inside-ready', 'completed'];
         if (!allowedRegenStates.includes(row.status ?? '')) {
           return res
             .status(409)

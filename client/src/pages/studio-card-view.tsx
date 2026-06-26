@@ -108,6 +108,7 @@ export default function StudioCardViewPage() {
     data.status === 'generating-front' ||
     data.status === 'front-ready' ||
     data.status === 'generating-inside' ||
+    data.status === 'inside-ready' ||
     data.status === 'inside-failed' ||
     data.status === 'failed'
   ) {

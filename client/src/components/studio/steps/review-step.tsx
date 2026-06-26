@@ -87,6 +87,9 @@ interface ReviewStepProps {
   /** FRONT-FIRST: generate the inside after the user approves the front.
    *  Called from the front-ready approval bar. */
   onStartInsideGeneration?: () => Promise<void>;
+  /** FRONT-FIRST: sign off the inside ('inside-ready' → 'completed') so
+   *  the card assembles into the 3D reveal. */
+  onFinalize?: () => Promise<void>;
   /** Called when the user hits "Try again" from the FailedView. Parent
    *  does the two-step dance: POST /retry to flip status from failed →
    *  draft, then call startGeneration so the draft actually runs again.
@@ -123,6 +126,7 @@ export function ReviewStep({
   onChange,
   onGenerate,
   onStartInsideGeneration,
+  onFinalize,
   onRetry,
   isGenerating,
   generatedFrontUrl,
@@ -149,6 +153,7 @@ export function ReviewStep({
     status === 'generating-front' ||
     status === 'front-ready' ||
     status === 'generating-inside' ||
+    status === 'inside-ready' ||
     status === 'inside-failed';
 
   if (inReveal) {
@@ -174,6 +179,7 @@ export function ReviewStep({
         onJumpToStepFromRegenFailure={onJumpToStepFromRegenFailure}
         onUpdateInputs={onUpdateInputs}
         onStartInsideGeneration={onStartInsideGeneration}
+        onFinalize={onFinalize}
         failure={failure ?? null}
       />
     );
@@ -607,6 +613,7 @@ function RevealView({
   onJumpToStepFromRegenFailure,
   onUpdateInputs,
   onStartInsideGeneration,
+  onFinalize,
   failure,
 }: {
   cardId: number;
@@ -634,6 +641,8 @@ function RevealView({
   onUpdateInputs?: (patch: Partial<CardDraftState>) => Promise<void>;
   /** FRONT-FIRST: generate the inside after the front is approved. */
   onStartInsideGeneration?: () => Promise<void>;
+  /** FRONT-FIRST: sign off the inside → assemble (3D reveal). */
+  onFinalize?: () => Promise<void>;
   /** Failure metadata (inside-failed) — shown on the inside-failed stage. */
   failure?: import('@/hooks/use-card-maker').DraftFailureDTO | null;
 }) {
@@ -807,6 +816,32 @@ function RevealView({
             ? 'Looks good — finish the card →'
             : 'Looks good — write the inside →'
         }
+      />
+    );
+  }
+
+  // Inside-ready: mirror the front step — the whole card is now generated,
+  // so review BOTH sides (inside + front), tweak either, and sign off →
+  // finalize → the 3D assemble. Same proven RegenEditMode workbench.
+  if (status === 'inside-ready' && onRegenerate && onSelectAttempt) {
+    return (
+      <RegenEditMode
+        state={state}
+        frontUrl={frontUrl}
+        insideUrl={insideUrl}
+        attempts={attempts}
+        isRegenerating={isRegenerating}
+        regenError={regenError ?? null}
+        hasInside
+        onRegenerate={onRegenerate}
+        onSelectAttempt={onSelectAttempt}
+        onExit={() => {
+          void onFinalize?.();
+        }}
+        onJumpToStepFromRegenFailure={onJumpToStepFromRegenFailure}
+        onUpdateInputs={onUpdateInputs ?? (async () => {})}
+        title="Here's the inside"
+        finishLabel="Looks good — assemble the card →"
       />
     );
   }
