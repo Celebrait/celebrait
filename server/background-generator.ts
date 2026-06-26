@@ -1534,7 +1534,17 @@ export async function runRegenAttempt(
         // /drafts projection (regenFailures), not the POST response —
         // this column is the only failure signal the client gets. See
         // next_regen_interaction_polish.md (G1).
-        errorCode: err?.kind ?? err?.code ?? 'server',
+        // When the error has no meaningful typed kind ('unknown'/missing),
+        // fall back to the raw message (truncated) so the client's
+        // "technical details" shows something actionable — e.g. a
+        // deprecated-Gemini-model 404 or "GEMINI_API_KEY not configured" —
+        // instead of a useless "unknown".
+        errorCode:
+          err?.kind && err.kind !== 'unknown'
+            ? err.kind
+            : typeof err?.message === 'string' && err.message.trim()
+              ? err.message.slice(0, 300)
+              : (err?.code ?? err?.kind ?? 'server'),
       })
       .where(eq(cardAttempts.id, attemptId))
       .catch(() => {});
