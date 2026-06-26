@@ -90,6 +90,10 @@ interface RegenEditModeProps {
    *  front-first flow to show 'Looks good — write the inside →', so onExit
    *  means "approve this front + generate the inside". */
   finishLabel?: string;
+  /** When set, that side is a read-only REMINDER — its preview shows but
+   *  its version rail + tweak box are hidden (already signed off). Used by
+   *  the inside-ready step: lock the front, edit only the inside. */
+  lockedSide?: 'front' | 'inside';
 }
 
 /** Soft cap — show the "sometimes the first one was the one" nudge
@@ -113,6 +117,7 @@ export function RegenEditMode({
   onJumpToStepFromRegenFailure,
   title = 'Tweak your card',
   finishLabel,
+  lockedSide,
 }: RegenEditModeProps) {
   // Per-side tweak text. Blank = "leave that side as-is" (no regen).
   const [tweakFront, setTweakFront] = useState('');
@@ -455,12 +460,18 @@ export function RegenEditMode({
             hasInside
             regeneratingSide={frontBusy ? 'front' : null}
           />
-          <VersionRail
-            attempts={completedFront}
-            side="front"
-            onSelect={handleSelect}
-            disabled={anyBusy}
-          />
+          {lockedSide === 'front' ? (
+            <p className="mt-1.5 text-center text-[11px] text-stone-400">
+              Front — signed off ✓
+            </p>
+          ) : (
+            <VersionRail
+              attempts={completedFront}
+              side="front"
+              onSelect={handleSelect}
+              disabled={anyBusy}
+            />
+          )}
         </div>
         {hasInside && (
           <div>
@@ -471,12 +482,18 @@ export function RegenEditMode({
               hasInside
               regeneratingSide={insideBusy ? 'inside' : null}
             />
-            <VersionRail
-              attempts={completedInside}
-              side="inside"
-              onSelect={handleSelect}
-              disabled={anyBusy}
-            />
+            {lockedSide === 'inside' ? (
+              <p className="mt-1.5 text-center text-[11px] text-stone-400">
+                Inside — signed off ✓
+              </p>
+            ) : (
+              <VersionRail
+                attempts={completedInside}
+                side="inside"
+                onSelect={handleSelect}
+                disabled={anyBusy}
+              />
+            )}
           </div>
         )}
       </div>
@@ -575,25 +592,27 @@ export function RegenEditMode({
               {/* Tweak boxes — one per side, blank = leave that side as-is. */}
               <p className="text-sm text-ink font-medium mb-2">
                 Tell us what to change.{' '}
-                {hasInside && (
+                {hasInside && !lockedSide && (
                   <span className="text-stone-500 font-normal">
                     Leave a box blank to keep that side as it is.
                   </span>
                 )}
               </p>
               <div className="mb-4 space-y-3">
-                <SidedTweakInput
-                  label="Front"
-                  value={tweakFront}
-                  onChange={setTweakFront}
-                  placeholder='e.g. "make it more autumnal" or "swap the dog for a cat"'
-                  onSubmit={handleSubmit}
-                  inputRef={frontTextareaRef}
-                  disabled={anyBusy}
-                  autoFocus={autoFocusTweak}
-                  testId="input-regen-tweak-front"
-                />
-                {hasInside && (
+                {lockedSide !== 'front' && (
+                  <SidedTweakInput
+                    label="Front"
+                    value={tweakFront}
+                    onChange={setTweakFront}
+                    placeholder='e.g. "make it more autumnal" or "swap the dog for a cat"'
+                    onSubmit={handleSubmit}
+                    inputRef={frontTextareaRef}
+                    disabled={anyBusy}
+                    autoFocus={autoFocusTweak}
+                    testId="input-regen-tweak-front"
+                  />
+                )}
+                {hasInside && lockedSide !== 'inside' && (
                   <SidedTweakInput
                     label="Inside"
                     value={tweakInside}

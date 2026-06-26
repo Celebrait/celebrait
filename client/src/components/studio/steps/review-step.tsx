@@ -842,6 +842,7 @@ function RevealView({
         onUpdateInputs={onUpdateInputs ?? (async () => {})}
         title="Here's the inside"
         finishLabel="Looks good — assemble the card →"
+        lockedSide="front"
       />
     );
   }
