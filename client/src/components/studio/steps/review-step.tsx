@@ -174,6 +174,7 @@ export function ReviewStep({
         onJumpToStepFromRegenFailure={onJumpToStepFromRegenFailure}
         onUpdateInputs={onUpdateInputs}
         onStartInsideGeneration={onStartInsideGeneration}
+        failure={failure ?? null}
       />
     );
   }
@@ -540,11 +541,13 @@ function FrontFirstStage({
   occasion,
   insideMode,
   onStartInsideGeneration,
+  failure,
 }: {
   status: string;
   occasion: string | null;
   insideMode: 'write' | 'blank' | null;
   onStartInsideGeneration?: () => Promise<void>;
+  failure?: import('@/hooks/use-card-maker').DraftFailureDTO | null;
 }) {
   if (status === 'generating-front' || status === 'generating-inside') {
     return (
@@ -567,6 +570,17 @@ function FrontFirstStage({
       <p className="text-sm text-stone-600">
         Your front is safe — let's just try the inside again.
       </p>
+      {failure && (failure.kind || failure.message) && (
+        <div className="mx-auto max-w-sm rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-left text-xs text-stone-600">
+          <p className="font-semibold uppercase tracking-wide text-stone-500">
+            {failure.kind ?? 'error'}
+          </p>
+          {failure.message && <p className="mt-1 break-words">{failure.message}</p>}
+          {failure.modelExplanation && (
+            <p className="mt-1 break-words text-stone-500">{failure.modelExplanation}</p>
+          )}
+        </div>
+      )}
       <button
         onClick={() => onStartInsideGeneration?.()}
         className="rounded-full bg-brand px-6 py-3 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-dark"
@@ -593,6 +607,7 @@ function RevealView({
   onJumpToStepFromRegenFailure,
   onUpdateInputs,
   onStartInsideGeneration,
+  failure,
 }: {
   cardId: number;
   frontUrl: string | null;
@@ -619,6 +634,8 @@ function RevealView({
   onUpdateInputs?: (patch: Partial<CardDraftState>) => Promise<void>;
   /** FRONT-FIRST: generate the inside after the front is approved. */
   onStartInsideGeneration?: () => Promise<void>;
+  /** Failure metadata (inside-failed) — shown on the inside-failed stage. */
+  failure?: import('@/hooks/use-card-maker').DraftFailureDTO | null;
 }) {
   // Ready = server says done and both image URLs have landed on the
   // client. `frontUrl` alone isn't enough (server persists it mid-gen;
@@ -805,6 +822,7 @@ function RevealView({
         occasion={state.recipient?.occasion ?? null}
         insideMode={insideMode}
         onStartInsideGeneration={onStartInsideGeneration}
+        failure={failure}
       />
     );
   }
