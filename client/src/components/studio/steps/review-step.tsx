@@ -531,34 +531,21 @@ function _legacyBuildNarration(state: CardDraftState): {
  * play with.
  */
 // ── FrontFirstStage ──────────────────────────────────────────────────
-// The studio front-first surface: shows the front the moment it lands,
-// lets the user approve it (→ generate the inside) or tweak it (front
-// regen), and covers the inside-gen wait + inside-failure retry. The
-// finished card still reveals via the existing 3D ceremony in RevealView
-// once status flips to 'completed'. Additive — only reached for the
-// front-first statuses.
+// The front-first WAIT + error states: front-gen wait, inside-gen wait,
+// and the inside-failure retry. The front-ready PREVIEW + tweak is the
+// proven RegenEditMode workbench (rendered separately in RevealView).
+// The finished card reveals via the existing 3D ceremony at 'completed'.
 function FrontFirstStage({
   status,
-  frontUrl,
   occasion,
   insideMode,
-  isRegenerating,
-  onRegenerate,
   onStartInsideGeneration,
 }: {
   status: string;
-  frontUrl: string | null;
   occasion: string | null;
   insideMode: 'write' | 'blank' | null;
-  isRegenerating: CardSide | null;
-  onRegenerate?: (side: CardSide, tweak?: string) => Promise<void>;
   onStartInsideGeneration?: () => Promise<void>;
 }) {
-  const [tweak, setTweak] = useState('');
-  const [showTweak, setShowTweak] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const regenningFront = isRegenerating === 'front';
-
   if (status === 'generating-front' || status === 'generating-inside') {
     return (
       <div className="h-[60vh] sm:h-[68vh] w-full relative">
@@ -573,109 +560,19 @@ function FrontFirstStage({
     );
   }
 
-  if (status === 'inside-failed') {
-    return (
-      <div className="max-w-md mx-auto py-16 text-center space-y-5">
-        <p className="text-lg font-semibold text-ink">The inside didn't come out</p>
-        <p className="text-sm text-stone-600">
-          Your front is safe — let's just try the inside again.
-        </p>
-        <button
-          onClick={() => onStartInsideGeneration?.()}
-          className="rounded-full bg-brand px-6 py-3 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-dark"
-        >
-          Try the inside again
-        </button>
-      </div>
-    );
-  }
-
-  // front-ready
+  // inside-failed
   return (
-    <div className="max-w-md mx-auto py-8 space-y-6">
-      <div className="text-center space-y-1">
-        <p className="text-lg font-semibold text-ink">Here's the front</p>
-        <p className="text-sm text-stone-600">
-          Happy with it? We'll write the inside next — or tweak the front first.
-        </p>
-      </div>
-
-      <div className="relative aspect-square w-full overflow-hidden rounded-2xl shadow-[0_30px_60px_-20px_rgba(15,23,42,0.32)]">
-        {frontUrl && (
-          <img src={frontUrl} alt="Card front" className="h-full w-full object-cover" />
-        )}
-        {regenningFront && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/75 backdrop-blur-sm">
-            <Loader2 className="h-8 w-8 animate-spin text-brand" strokeWidth={2} />
-            <p className="text-sm text-stone-600">Refining the front…</p>
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-3">
-        <button
-          disabled={busy || regenningFront}
-          onClick={async () => {
-            setBusy(true);
-            try {
-              await onStartInsideGeneration?.();
-            } finally {
-              setBusy(false);
-            }
-          }}
-          className="w-full rounded-full bg-brand px-6 py-3.5 text-[15px] font-medium text-brand-foreground transition-colors hover:bg-brand-dark disabled:opacity-50"
-        >
-          {busy
-            ? 'Starting…'
-            : insideMode === 'blank'
-              ? 'Looks good — finish the card →'
-              : 'Looks good — write the inside →'}
-        </button>
-
-        {!showTweak ? (
-          <button
-            onClick={() => setShowTweak(true)}
-            disabled={regenningFront}
-            className="w-full text-sm text-brand transition-colors hover:text-brand-dark disabled:opacity-50"
-          >
-            Tweak the front
-          </button>
-        ) : (
-          <div className="space-y-2">
-            <textarea
-              value={tweak}
-              onChange={(e) => setTweak(e.target.value)}
-              placeholder="e.g. warmer light, add flowers, make it brighter…"
-              rows={2}
-              className="w-full resize-none rounded-xl border border-stone-300 px-3 py-2 text-sm text-ink outline-none focus:border-brand"
-            />
-            <div className="flex gap-2">
-              <button
-                disabled={!tweak.trim() || regenningFront}
-                onClick={async () => {
-                  const t = tweak.trim();
-                  if (!t) return;
-                  setShowTweak(false);
-                  setTweak('');
-                  await onRegenerate?.('front', t);
-                }}
-                className="flex-1 rounded-full bg-brand px-4 py-2.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-dark disabled:opacity-50"
-              >
-                Apply tweak
-              </button>
-              <button
-                onClick={() => {
-                  setShowTweak(false);
-                  setTweak('');
-                }}
-                className="rounded-full border border-stone-200 px-4 py-2.5 text-sm text-stone-600 transition-colors hover:bg-stone-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+    <div className="max-w-md mx-auto py-16 text-center space-y-5">
+      <p className="text-lg font-semibold text-ink">The inside didn't come out</p>
+      <p className="text-sm text-stone-600">
+        Your front is safe — let's just try the inside again.
+      </p>
+      <button
+        onClick={() => onStartInsideGeneration?.()}
+        className="rounded-full bg-brand px-6 py-3 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-dark"
+      >
+        Try the inside again
+      </button>
     </div>
   );
 }
@@ -866,20 +763,47 @@ function RevealView({
   // completed and never enter these. Front-first cards pass through here
   // (front preview + approve/iterate) BEFORE the existing completed-card
   // 3D ceremony below, which still runs unchanged at status 'completed'.
+  // Front-ready: reuse the PROVEN regen workbench (RegenEditMode) scoped
+  // to the front — version rail, attempt select, Gemini tweak, error
+  // panel — instead of a bespoke control. Its commit action ("write the
+  // inside") triggers the inside generation.
+  if (status === 'front-ready' && onRegenerate && onSelectAttempt) {
+    return (
+      <RegenEditMode
+        state={state}
+        frontUrl={frontUrl}
+        insideUrl={null}
+        attempts={attempts}
+        isRegenerating={isRegenerating}
+        regenError={regenError ?? null}
+        hasInside={false}
+        onRegenerate={onRegenerate}
+        onSelectAttempt={onSelectAttempt}
+        onExit={() => {
+          void onStartInsideGeneration?.();
+        }}
+        onJumpToStepFromRegenFailure={onJumpToStepFromRegenFailure}
+        onUpdateInputs={onUpdateInputs ?? (async () => {})}
+        title="Here's the front"
+        finishLabel={
+          insideMode === 'blank'
+            ? 'Looks good — finish the card →'
+            : 'Looks good — write the inside →'
+        }
+      />
+    );
+  }
+
   if (
     status === 'generating-front' ||
-    status === 'front-ready' ||
     status === 'generating-inside' ||
     status === 'inside-failed'
   ) {
     return (
       <FrontFirstStage
         status={status}
-        frontUrl={frontUrl}
         occasion={state.recipient?.occasion ?? null}
         insideMode={insideMode}
-        isRegenerating={isRegenerating}
-        onRegenerate={onRegenerate}
         onStartInsideGeneration={onStartInsideGeneration}
       />
     );

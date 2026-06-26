@@ -82,6 +82,14 @@ interface RegenEditModeProps {
    *  callers still pass it and a future input-changing intent would want
    *  it. */
   onUpdateInputs: (patch: Partial<CardDraftState>) => Promise<void>;
+  /** Header title override. Default 'Tweak your card'. */
+  title?: string;
+  /** Override for the finish/commit action label ('Use this card' /
+   *  'Use this version'). When set, the header "Back to your card" exit is
+   *  hidden and the commit buttons read as a forward step — used by the
+   *  front-first flow to show 'Looks good — write the inside →', so onExit
+   *  means "approve this front + generate the inside". */
+  finishLabel?: string;
 }
 
 /** Soft cap — show the "sometimes the first one was the one" nudge
@@ -103,6 +111,8 @@ export function RegenEditMode({
   onSelectAttempt,
   onExit,
   onJumpToStepFromRegenFailure,
+  title = 'Tweak your card',
+  finishLabel,
 }: RegenEditModeProps) {
   // Per-side tweak text. Blank = "leave that side as-is" (no regen).
   const [tweakFront, setTweakFront] = useState('');
@@ -376,22 +386,26 @@ export function RegenEditMode({
       <div className="flex items-start justify-between gap-3 py-4 mb-1">
         <div className="min-w-0">
           <h1 className="text-lg sm:text-xl font-semibold text-ink leading-tight">
-            Tweak your card
+            {title}
           </h1>
           <p className="text-xs text-stone-500 truncate mt-0.5">
             {subtitleSubject}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onExit}
-          className="inline-flex items-center gap-1.5 text-sm text-stone-600 hover:text-ink transition-colors shrink-0 pt-1"
-          data-testid="btn-regen-exit"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="hidden sm:inline">Back to your card</span>
-          <span className="sm:hidden">Back</span>
-        </button>
+        {/* In the front-first context (finishLabel set) there's no card to
+            go "back" to yet — the forward action is the commit button. */}
+        {!finishLabel && (
+          <button
+            type="button"
+            onClick={onExit}
+            className="inline-flex items-center gap-1.5 text-sm text-stone-600 hover:text-ink transition-colors shrink-0 pt-1"
+            data-testid="btn-regen-exit"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Back to your card</span>
+            <span className="sm:hidden">Back</span>
+          </button>
+        )}
       </div>
 
       {/* One-line nudge + the "How tweaking works" module (detail one tap
@@ -526,7 +540,7 @@ export function RegenEditMode({
                   data-testid="btn-decision-use"
                 >
                   <Check className="w-4 h-4 mr-1.5" strokeWidth={2.5} />
-                  Use this version
+                  {finishLabel ?? 'Use this version'}
                 </Button>
                 <Button
                   type="button"
@@ -649,7 +663,7 @@ export function RegenEditMode({
                     ) : committing ? (
                       <>
                         <Check className="w-4 h-4 mr-1.5" strokeWidth={2.5} />
-                        Use this card
+                        {finishLabel ?? 'Use this card'}
                       </>
                     ) : (
                       'Make a new version'
