@@ -177,10 +177,20 @@ export function isStubMode(): boolean {
 }
 
 /** Runtime toggle for stub mode. Used by the dev panel. No-op in
- *  production. Doesn't persist across restarts (boot reads env again). */
+ *  production UNLESS ALLOW_STUB_TOGGLE=1 — that opt-in lets a TEST server
+ *  (which runs NODE_ENV=production on Render) use the live admin toggle so
+ *  you can flip stub on/off without a redeploy. A real prod deploy leaves
+ *  the flag unset, keeping the guard. Doesn't persist across instance
+ *  restarts (boot re-reads DEV_STUB_AI). */
 export function setStubMode(on: boolean): void {
-  if (process.env.NODE_ENV === 'production') {
-    console.warn('[STUDIO_GEN] Ignored stub-mode toggle attempt in production');
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.ALLOW_STUB_TOGGLE !== '1'
+  ) {
+    console.warn(
+      '[STUDIO_GEN] Ignored stub-mode toggle in production ' +
+        '(set ALLOW_STUB_TOGGLE=1 to allow it on a test server)',
+    );
     return;
   }
   stubModeOn = on;
