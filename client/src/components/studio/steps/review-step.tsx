@@ -44,6 +44,11 @@ import {
   type GenerationStage,
 } from '@/components/studio/generation-wait';
 import { RegenEditMode } from '@/components/studio/regen-controls';
+import {
+  CardOuterSpread,
+  CardInnerSpread,
+  CardPrintStrip,
+} from '@/components/studio/card-print-template';
 import { GenerationErrorPanel } from '@/components/studio/generation-error-panel';
 import type { CardAttemptDTO } from '@/hooks/use-card-maker';
 import type { CardSide } from '@shared/schema';
@@ -816,6 +821,7 @@ function RevealView({
             ? 'Looks good — finish the card →'
             : 'Looks good — write the inside →'
         }
+        renderPreview={({ frontUrl: fUrl }) => <CardOuterSpread frontUrl={fUrl} />}
       />
     );
   }
@@ -843,6 +849,7 @@ function RevealView({
         title="Here's the inside"
         finishLabel="Looks good — assemble the card →"
         lockedSide="front"
+        renderPreview={({ insideUrl: iUrl }) => <CardInnerSpread insideUrl={iUrl} />}
       />
     );
   }
@@ -897,6 +904,14 @@ function RevealView({
         className="max-w-3xl mx-auto"
         data-testid={showReveal ? 'review-completed' : 'review-generating'}
       >
+        {/* Print-file reminder above the 3D card — "here's how it's
+            produced". Only once revealed + both sides exist. (Easy to
+            remove if it crowds the reveal — see card-print-template.) */}
+        {showReveal && frontUrl && insideUrl && (
+          <div className="mb-4">
+            <CardPrintStrip frontUrl={frontUrl} insideUrl={insideUrl} />
+          </div>
+        )}
         {/* Stage — constant dimensions across narration → card reveal
             so it reads as one continuous surface. The reveal is its
             own moment; the Giving Moment is a separate screen

@@ -94,6 +94,11 @@ interface RegenEditModeProps {
    *  its version rail + tweak box are hidden (already signed off). Used by
    *  the inside-ready step: lock the front, edit only the inside. */
   lockedSide?: 'front' | 'inside';
+  /** Replace the default thumb previews with a custom node (e.g. the
+   *  print-style spread). Receives the currently-displayed image URLs so
+   *  it reflects the selected version. The version rails for editable
+   *  sides still render beneath it. */
+  renderPreview?: (args: { frontUrl: string | null; insideUrl: string | null }) => React.ReactNode;
 }
 
 /** Soft cap — show the "sometimes the first one was the one" nudge
@@ -118,6 +123,7 @@ export function RegenEditMode({
   title = 'Tweak your card',
   finishLabel,
   lockedSide,
+  renderPreview,
 }: RegenEditModeProps) {
   // Per-side tweak text. Blank = "leave that side as-is" (no regen).
   const [tweakFront, setTweakFront] = useState('');
@@ -448,6 +454,31 @@ export function RegenEditMode({
           call). Two independent thumbs so each spins on its own when both
           sides regenerate at once. Each column carries its own version
           rail beneath. Single column when the card has no inside. */}
+      {renderPreview ? (
+        <div className="mb-5">
+          {renderPreview({ frontUrl: displayedFrontUrl, insideUrl: displayedInsideUrl })}
+          {(completedFront.length > 1 || completedInside.length > 1) && (
+            <div className="mt-3 flex flex-wrap items-start justify-center gap-x-8 gap-y-2">
+              {lockedSide !== 'front' && completedFront.length > 1 && (
+                <VersionRail
+                  attempts={completedFront}
+                  side="front"
+                  onSelect={handleSelect}
+                  disabled={anyBusy}
+                />
+              )}
+              {hasInside && lockedSide !== 'inside' && completedInside.length > 1 && (
+                <VersionRail
+                  attempts={completedInside}
+                  side="inside"
+                  onSelect={handleSelect}
+                  disabled={anyBusy}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
       <div
         className={`grid ${hasInside ? 'grid-cols-2' : 'grid-cols-1'} gap-3 mb-5`}
         data-testid="regen-previews"
@@ -497,6 +528,7 @@ export function RegenEditMode({
           </div>
         )}
       </div>
+      )}
 
       {/* Image preload — hidden <img> tags so rail clicks feel instant. */}
       <div
