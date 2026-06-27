@@ -78,7 +78,7 @@ export default function StudioAddressBookPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user/address-book'] });
-      toast({ title: 'Gone — you can always add them back.' });
+      toast({ title: 'Gone — you can always add them back.', variant: 'success' });
     },
     onError: (err: any) => {
       toast({

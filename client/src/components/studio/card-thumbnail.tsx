@@ -87,7 +87,7 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
-      toast({ title: 'Card deleted' });
+      toast({ title: 'Card deleted', variant: 'success' });
     },
     onError: (err: any) => {
       toast({

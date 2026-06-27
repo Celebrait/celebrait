@@ -157,7 +157,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
-      toast({ title: 'Draft deleted' });
+      toast({ title: 'Draft deleted', variant: 'success' });
     },
     onError: (err: any) => {
       toast({

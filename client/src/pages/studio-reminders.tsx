@@ -101,7 +101,7 @@ export default function StudioRemindersPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user/reminders'] });
-      toast({ title: 'Skipping this year — we\'ll be back next year.' });
+      toast({ title: 'Skipping this year — we\'ll be back next year.', variant: 'success' });
     },
     onError: (err: any) => {
       toast({
@@ -119,7 +119,7 @@ export default function StudioRemindersPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user/reminders'] });
-      toast({ title: 'Reminders back on.' });
+      toast({ title: 'Reminders back on.', variant: 'success' });
     },
     onError: (err: any) => {
       toast({

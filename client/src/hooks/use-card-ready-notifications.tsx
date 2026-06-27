@@ -101,7 +101,8 @@ export function useCardReadyNotifications() {
         : 'Your card has arrived. Open it to see the reveal.';
 
       toast({
-        title: '🎉 Your card is ready',
+        title: 'Your card is ready',
+        variant: 'success',
         description,
         // ToastAction = the engagement path. Click marks-seen + nav.
         // Dismissal via X leaves notifiedAt null on the server, so

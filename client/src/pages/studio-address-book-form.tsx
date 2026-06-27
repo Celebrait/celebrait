@@ -260,7 +260,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
       // Studio Home "Coming up" widget picks up a freshly-added birthday
       // on the next render. Without this, the widget shows stale cache.
       queryClient.invalidateQueries({ queryKey: ['/api/user/reminders'] });
-      toast({ title: `${name.trim()} added` });
+      toast({ title: `${name.trim()} added`, variant: 'success' });
       setLocation('/studio/people/address-book');
     },
     onError: async (err: any) => {
@@ -360,6 +360,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
       const savedName = name.trim();
       toast({
         title: savedName ? `Saved — ${savedName}'s all set` : 'Saved',
+        variant: 'success',
       });
       setLocation('/studio/people/address-book');
     },
