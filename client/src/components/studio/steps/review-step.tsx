@@ -42,6 +42,7 @@ import { useTexture } from '@react-three/drei';
 import { GestureHints } from '@/components/gesture-hints';
 import {
   GenerationWaitStage,
+  AssemblingCard,
   type GenerationStage,
 } from '@/components/studio/generation-wait';
 import { RegenEditMode } from '@/components/studio/regen-controls';
@@ -552,12 +553,14 @@ function FrontFirstStage({
   status,
   occasion,
   insideMode,
+  photoCount,
   onStartInsideGeneration,
   failure,
 }: {
   status: string;
   occasion: string | null;
   insideMode: 'write' | 'blank' | null;
+  photoCount?: number;
   onStartInsideGeneration?: () => Promise<void>;
   failure?: import('@/hooks/use-card-maker').DraftFailureDTO | null;
 }) {
@@ -569,6 +572,7 @@ function FrontFirstStage({
             occasion={occasion}
             stage={status === 'generating-front' ? 'front' : 'inside'}
             hasInside={insideMode === 'write'}
+            photoCount={photoCount}
           />
         </div>
       </div>
@@ -985,6 +989,7 @@ function RevealView({
         status={status}
         occasion={state.recipient?.occasion ?? null}
         insideMode={insideMode}
+        photoCount={state.photos?.photoIds?.length ?? 0}
         onStartInsideGeneration={onStartInsideGeneration}
         failure={failure}
       />
@@ -1085,12 +1090,13 @@ function RevealView({
                 </div>
               </motion.div>
             ) : (
-              /* Generation wait stage — spinner + "on this day" feed.
-                 Replaces the older NarrationStage (personalised
-                 typographic narration). Simpler read, still filled
-                 with interesting content during the 45s wait. Exits
-                 with a slow dissolve + gentle rise when showReveal
-                 flips so the handoff doesn't feel yanked. */
+              /* Pre-reveal wait. When the card is still GENERATING a side
+                 (legacy combined path: front/inside), show the full
+                 wait — bar + quiet stages + celebration quotes. When
+                 we're just ASSEMBLING (both sides done, status flipped
+                 to completed → stage 'finishing'/'ready'), it's a quick
+                 composite, not a gen — so show a plain spinner instead
+                 of the 90s-style quotes screen (Kevin, 2026-06-27). */
               <motion.div
                 key="wait"
                 className="absolute inset-0 flex items-center justify-center"
@@ -1099,11 +1105,17 @@ function RevealView({
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.9, ease: 'easeInOut' }}
               >
-                <GenerationWaitStage
-                  occasion={state.recipient?.occasion ?? null}
-                  stage={generationStage}
-                  hasInside={expectsInsideImage}
-                />
+                {generationStage === 'finishing' ||
+                generationStage === 'ready' ? (
+                  <AssemblingCard />
+                ) : (
+                  <GenerationWaitStage
+                    occasion={state.recipient?.occasion ?? null}
+                    stage={generationStage}
+                    hasInside={expectsInsideImage}
+                    photoCount={state.photos?.photoIds?.length ?? 0}
+                  />
+                )}
               </motion.div>
             )}
           </AnimatePresence>
