@@ -31,6 +31,7 @@ import {
   Type,
   RefreshCw,
   Loader2,
+  Printer,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -632,6 +633,10 @@ function FrontFirstReview({
   onEdit: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  // Toggle the hero between the full card image and the print-ready
+  // spread — tap the small one to swap it up.
+  const [heroView, setHeroView] = useState<'image' | 'print'>('image');
+  const showingPrint = heroView === 'print';
   return (
     <div className="mx-auto max-w-xl py-6">
       <div className="mb-5 text-center">
@@ -639,11 +644,36 @@ function FrontFirstReview({
         {subject && <p className="mt-0.5 text-sm text-stone-500">{subject}</p>}
       </div>
 
-      <div className="mx-auto aspect-square w-full max-w-[320px] overflow-hidden rounded-2xl border border-stone-200 bg-stone-100 shadow-[0_30px_60px_-22px_rgba(15,23,42,0.30)]">
-        {heroUrl && <img src={heroUrl} alt="Your card" className="h-full w-full object-cover" />}
+      <div className="mx-auto w-full max-w-[320px]">
+        {showingPrint ? (
+          printVisual
+        ) : (
+          <div className="aspect-square w-full overflow-hidden rounded-2xl border border-stone-200 bg-stone-100 shadow-[0_30px_60px_-22px_rgba(15,23,42,0.30)]">
+            {heroUrl && <img src={heroUrl} alt="Your card" className="h-full w-full object-cover" />}
+          </div>
+        )}
       </div>
 
-      <div className="mt-4 flex justify-center">{printVisual}</div>
+      <button
+        type="button"
+        onClick={() => setHeroView((v) => (v === 'print' ? 'image' : 'print'))}
+        className="mx-auto mt-4 flex flex-col items-center"
+        aria-label={showingPrint ? 'Show the full image' : 'Show the print-ready layout'}
+      >
+        <div className="w-[84px] transition-transform hover:scale-[1.06]">
+          {showingPrint ? (
+            <div className="aspect-square w-full overflow-hidden rounded-lg border border-stone-300 bg-stone-100">
+              {heroUrl && <img src={heroUrl} alt="" className="h-full w-full object-cover" />}
+            </div>
+          ) : (
+            printVisual
+          )}
+        </div>
+        <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-stone-400">
+          <Printer className="h-3 w-3" strokeWidth={1.75} />
+          {showingPrint ? 'Tap for the full image' : 'Print-ready · tap to view'}
+        </span>
+      </button>
 
       <div className="mt-7 flex flex-col items-center gap-3">
         <button

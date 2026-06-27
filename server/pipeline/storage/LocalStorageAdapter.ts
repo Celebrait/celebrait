@@ -151,6 +151,15 @@ export async function loadStoredImageAsBase64(storedUrl: string): Promise<string
  * Non-fatal: logs errors but does not throw, so main generation always succeeds.
  */
 export async function generatePrintResolutionFiles(cardId: number): Promise<void> {
+  // Print-resolution upscaling (sharp → 3000×3000) is memory-heavy and can
+  // OOM a small instance (Render free = 512MB), crashing the whole process
+  // mid-request → a 502 on whatever triggered it (select-attempt, regen,
+  // finalize). It's only needed for real print FULFILMENT, so disable it
+  // where that never happens (the test server) via DISABLE_PRINT_RES=1.
+  if (process.env.DISABLE_PRINT_RES === '1') {
+    console.log(`[STORAGE] print-res skipped for card ${cardId} (DISABLE_PRINT_RES=1)`);
+    return;
+  }
   try {
     const sharp = (await import('sharp')).default;
 
