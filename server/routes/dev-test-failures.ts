@@ -24,7 +24,8 @@
 //                                        panel render.
 //
 // Hard guards:
-//   - All endpoints 404 in production (NODE_ENV check)
+//   - All endpoints 404 in production UNLESS ALLOW_STUB_TOGGLE=1 (set on
+//     the TEST server only — never in real prod). See devPanelBlocked().
 //   - inject-failure 400s if stub mode is OFF (real provider calls would
 //     burn tokens before consuming the injection — only safe inside the
 //     stub path)
@@ -58,10 +59,12 @@ function isProd(): boolean {
   return process.env.NODE_ENV === 'production';
 }
 
-// The stub-mode toggle (only) is allowed in production when opted in via
-// ALLOW_STUB_TOGGLE=1 — so a TEST server can flip stub live. The failure-
-// injection endpoints stay strictly dev-only.
-function stubToggleBlocked(): boolean {
+// The whole dev panel (stub toggle + failure injection + spawn) is allowed
+// in production when opted in via ALLOW_STUB_TOGGLE=1 — so a TEST server can
+// exercise stub mode and error-state UI live. In real prod (flag unset) every
+// endpoint here 404s. inject-failure still self-guards on stub mode, and
+// spawn still requires auth + a photo, so the surface stays tightly bounded.
+function devPanelBlocked(): boolean {
   return isProd() && process.env.ALLOW_STUB_TOGGLE !== '1';
 }
 
@@ -73,13 +76,13 @@ function getUserId(req: Request): string | null {
 export function registerDevTestFailureRoutes(app: Express): void {
   // ── GET /api/dev/stub-mode ───────────────────────────────────────────
   app.get('/api/dev/stub-mode', (_req: Request, res: Response) => {
-    if (stubToggleBlocked()) return res.status(404).json({ message: 'Not found' });
+    if (devPanelBlocked()) return res.status(404).json({ message: 'Not found' });
     res.json({ on: isStubMode() });
   });
 
   // ── POST /api/dev/stub-mode ──────────────────────────────────────────
   app.post('/api/dev/stub-mode', (req: Request, res: Response) => {
-    if (stubToggleBlocked()) return res.status(404).json({ message: 'Not found' });
+    if (devPanelBlocked()) return res.status(404).json({ message: 'Not found' });
     const { on } = req.body as { on: boolean };
     if (typeof on !== 'boolean') {
       return res
@@ -92,7 +95,7 @@ export function registerDevTestFailureRoutes(app: Express): void {
 
   // ── POST /api/dev/inject-failure ─────────────────────────────────────
   app.post('/api/dev/inject-failure', (req: Request, res: Response) => {
-    if (isProd()) return res.status(404).json({ message: 'Not found' });
+    if (devPanelBlocked()) return res.status(404).json({ message: 'Not found' });
 
     if (!isStubMode()) {
       return res.status(400).json({
@@ -127,7 +130,7 @@ export function registerDevTestFailureRoutes(app: Express): void {
     '/api/dev/spawn-test-card',
     isAuthenticated,
     async (req: Request, res: Response) => {
-      if (isProd()) return res.status(404).json({ message: 'Not found' });
+      if (devPanelBlocked()) return res.status(404).json({ message: 'Not found' });
 
       const userId = getUserId(req);
       if (!userId) {
