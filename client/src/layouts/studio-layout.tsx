@@ -40,6 +40,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 import { useAuth } from '@/hooks/use-auth';
 import logoSrc from '../assets/Logo2.png';
 import { FabNewCard } from '@/components/studio/fab-new-card';
+import { StudioHints } from '@/components/studio/studio-hints';
 import { DevTestFailurePanel } from '@/components/dev/dev-test-failure-panel';
 import { useCardReadyNotifications } from '@/hooks/use-card-ready-notifications';
 import { useWelcomeNotification } from '@/hooks/use-welcome-notification';
@@ -51,6 +52,9 @@ interface NavItem {
   /** When true, rendered greyed-out and unclickable. Used for sections
    *  that are scaffolded but not yet populated (People → Week 2). */
   disabled?: boolean;
+  /** First-run hint anchor id (see studio-hints.tsx). When set, the Link
+   *  carries `data-hint` so a coachmark can point at it. */
+  hint?: string;
 }
 
 interface NavSection {
@@ -67,7 +71,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'Cards',
     items: [
       { label: 'Home', href: '/studio', icon: HomeIcon },
-      { label: 'Drafts', href: '/studio/drafts', icon: FileEdit },
+      { label: 'Drafts', href: '/studio/drafts', icon: FileEdit, hint: 'drafts' },
       // Ready = generated but not purchased. Split out from Sent
       // 2026-04-24 so "Sent" means the card's actually on its way.
       { label: 'Ready', href: '/studio/ready', icon: Package },
@@ -78,7 +82,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'People',
     items: [
       // Week 2 (2026-04-29): Address book + Reminders both live.
-      { label: 'Address book', href: '/studio/people/address-book', icon: Users },
+      { label: 'Address book', href: '/studio/people/address-book', icon: Users, hint: 'people' },
       { label: 'Reminders', href: '/studio/people/reminders', icon: Bell },
     ],
   },
@@ -113,6 +117,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
           className="flex items-center justify-center gap-2 w-full bg-brand hover:bg-brand-dark text-white rounded-full py-2.5 text-sm font-semibold transition-colors shadow-sm"
           data-testid="nav-new-card-cta"
+          data-hint="new-card"
         >
           <Plus className="w-4 h-4" strokeWidth={2.5} />
           New card
@@ -159,6 +164,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
                     : 'text-stone-700 hover:bg-stone-50'
                 }`}
                 data-testid={`nav-${item.href}`}
+                data-hint={item.hint}
               >
                 <Icon className="w-4 h-4" />
                 {item.label}
@@ -276,6 +282,11 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
 
       {/* ─── FAB (conditional, outside the column so it's always relative to the viewport) ─── */}
       {showFab && <FabNewCard />}
+
+      {/* First-run coachmarks pointing at the key studio touchpoints.
+          Self-suppresses on the maker/viewer/checkout surfaces and once
+          each hint has been seen. */}
+      <StudioHints />
 
       {/* ─── Dev-only test failure panel ─────────────────────────────
           Lets Kevin inject synthetic ProviderErrors into the next
