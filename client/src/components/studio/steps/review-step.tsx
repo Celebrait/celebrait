@@ -1117,7 +1117,9 @@ function RevealView({
         {/* Post-reveal CTA stack — confirmation, Send CTA, gesture
             hints, regen entry. Only fires once showReveal flips so the
             entry doesn't race the card's materialise animation. */}
-        <div className="relative z-30 max-w-xl mx-auto px-4 pt-2 text-center">
+        {/* -mt lifts the whole CTA group (hint + button) up toward the
+            fixed 3D card above, as one unit (Kevin 2026-06-27). */}
+        <div className="relative z-30 -mt-8 max-w-xl mx-auto px-4 pt-2 text-center">
           <AnimatePresence mode="wait">
             {showReveal && (
               <motion.div
@@ -1144,7 +1146,7 @@ function RevealView({
                     delay: isInteracting ? 0 : 0.5,
                   }}
                   style={{ pointerEvents: isInteracting ? 'none' : 'auto' }}
-                  className="-mt-2"
+                  className="mt-6"
                 >
                   {/* Reserved-height slot so the hint fading in (~450ms
                       after mount) doesn't shove the CTA down. Collapses
