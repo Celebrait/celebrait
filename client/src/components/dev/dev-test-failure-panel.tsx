@@ -75,9 +75,9 @@ const FAILURE_KINDS: Array<{
 ];
 
 export function DevTestFailurePanel() {
-  // Only render in dev mode. Vite tree-shakes the inverse branch so this
-  // entire component is removed from production bundles.
-  if (!import.meta.env.DEV) return null;
+  // Always mount; the inner component decides visibility. It shows in
+  // local dev, OR wherever the stub-toggle endpoint is enabled
+  // (ALLOW_STUB_TOGGLE=1) — so a TEST server gets the live stub toggle.
   return <DevTestFailurePanelInner />;
 }
 
@@ -97,6 +97,9 @@ function DevTestFailurePanelInner() {
       return res.json() as Promise<{ on: boolean }>;
     },
     staleTime: 30_000,
+    // 404 here = endpoint disabled (prod without ALLOW_STUB_TOGGLE) → don't
+    // retry-spam; the panel just stays hidden.
+    retry: false,
   });
 
   const stubModeOn = stubModeQuery.data?.on ?? false;
@@ -202,6 +205,12 @@ function DevTestFailurePanelInner() {
     },
   });
 
+  // Visible in local dev, OR wherever the stub-toggle endpoint responds
+  // (test server with ALLOW_STUB_TOGGLE=1). Otherwise the GET 404s and the
+  // panel stays hidden. The failure-injection buttons remain dev-only.
+  const enabled = import.meta.env.DEV || stubModeQuery.isSuccess;
+  if (!enabled) return null;
+
   return (
     <div
       className="fixed bottom-4 right-4 z-50 select-none"
@@ -247,6 +256,11 @@ function DevTestFailurePanelInner() {
           </div>
 
           {/* Armed indicator */}
+          {/* Failure injection, spawn, email-tester — strictly dev-only
+              (those endpoints 404 in production). On a test server only the
+              stub toggle above is shown. */}
+          {import.meta.env.DEV && (
+            <>
           {armedKind && stubModeOn && (
             <div className="px-4 py-2 bg-amber-500/20 border-b border-amber-500/30 text-xs text-amber-200">
               Armed: <span className="font-mono font-semibold">{armedKind}</span>
@@ -360,6 +374,8 @@ function DevTestFailurePanelInner() {
               </p>
             )}
           </div>
+            </>
+          )}
         </div>
       ) : (
         <button

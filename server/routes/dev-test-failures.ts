@@ -58,6 +58,13 @@ function isProd(): boolean {
   return process.env.NODE_ENV === 'production';
 }
 
+// The stub-mode toggle (only) is allowed in production when opted in via
+// ALLOW_STUB_TOGGLE=1 — so a TEST server can flip stub live. The failure-
+// injection endpoints stay strictly dev-only.
+function stubToggleBlocked(): boolean {
+  return isProd() && process.env.ALLOW_STUB_TOGGLE !== '1';
+}
+
 function getUserId(req: Request): string | null {
   const id = (req as any).session?.otpUserId;
   return typeof id === 'string' && id.length > 0 ? id : null;
@@ -66,13 +73,13 @@ function getUserId(req: Request): string | null {
 export function registerDevTestFailureRoutes(app: Express): void {
   // ── GET /api/dev/stub-mode ───────────────────────────────────────────
   app.get('/api/dev/stub-mode', (_req: Request, res: Response) => {
-    if (isProd()) return res.status(404).json({ message: 'Not found' });
+    if (stubToggleBlocked()) return res.status(404).json({ message: 'Not found' });
     res.json({ on: isStubMode() });
   });
 
   // ── POST /api/dev/stub-mode ──────────────────────────────────────────
   app.post('/api/dev/stub-mode', (req: Request, res: Response) => {
-    if (isProd()) return res.status(404).json({ message: 'Not found' });
+    if (stubToggleBlocked()) return res.status(404).json({ message: 'Not found' });
     const { on } = req.body as { on: boolean };
     if (typeof on !== 'boolean') {
       return res
