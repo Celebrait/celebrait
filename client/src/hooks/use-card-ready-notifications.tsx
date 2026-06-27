@@ -96,53 +96,28 @@ export function useCardReadyNotifications() {
   // ── Toast on newly-arrived unread events ───────────────────────────
   useEffect(() => {
     if (!enabled) return;
-    for (const n of unread) {
-      const key = `${n.cardId}:${n.status}`;
-      if (toastedRef.current.has(key)) continue;
 
-      // Don't nudge about a card the user is already looking at or
-      // editing — the maker/view surface already shows that state. Mark
-      // it consumed so we also don't nudge after they leave (they've
-      // seen it). A later state transition is a fresh key.
-      if (location.includes(`/card/${n.cardId}`)) {
-        toastedRef.current.add(key);
-        continue;
-      }
+    // Ignore anything for a card the user is already looking at / editing —
+    // that surface already shows the state.
+    const relevant = unread.filter(
+      (n) => !location.includes(`/card/${n.cardId}`),
+    );
+
+    // ── Completed: one-shot reveal celebrations. Fire individually
+    //    (server-deduped via notifiedAt, so they rarely pile up). ──────
+    for (const n of relevant) {
+      if (n.status !== 'completed') continue;
+      const key = `${n.cardId}:completed`;
+      if (toastedRef.current.has(key)) continue;
       toastedRef.current.add(key);
 
       const who = n.recipientName?.trim() || null;
-
-      // Front-first await-sign-off nudges — the card is paused waiting
-      // for the user to come approve a side. Routes back into the maker.
-      if (n.status === 'front-ready' || n.status === 'inside-ready') {
-        const side = n.status === 'front-ready' ? 'front' : 'inside';
-        toast({
-          title: who ? `${who}'s ${side} is ready` : `Your ${side} is ready`,
-          description: `Come take a look and sign off the ${side}.`,
-          variant: 'info',
-          action: (
-            <ToastAction
-              altText={`Review the ${side}`}
-              onClick={() => navigate(`/studio/card/${n.cardId}/edit`)}
-            >
-              Review it
-            </ToastAction>
-          ),
-        });
-        continue;
-      }
-
-      // Completed — the one-shot reveal celebration.
       toast({
         title: 'Your card is ready',
         variant: 'success',
         description: who
           ? `${who}'s card has arrived. Open it to see the reveal.`
           : 'Your card has arrived. Open it to see the reveal.',
-        // ToastAction = the engagement path. Click marks-seen + nav.
-        // Dismissal via X leaves notifiedAt null on the server, so
-        // the toast re-fires on next mount — correct behaviour for
-        // "there's still a card waiting for you, here's another nudge."
         action: (
           <ToastAction
             altText="View card"
@@ -155,6 +130,60 @@ export function useCardReadyNotifications() {
           </ToastAction>
         ),
       });
+    }
+
+    // ── Await-sign-off (front-ready / inside-ready): COLLAPSE to a single
+    //    toast. A user with several half-made cards should get one gentle
+    //    nudge, not a wall. These are live-state reminders with no server
+    //    dedupe, so we key on the exact SET of waiting cards — a new
+    //    arrival re-nudges, the same set stays quiet for the session.
+    //    (Longer term these belong in the Tier-2 bell, not a toast.) ────
+    const awaiting = relevant.filter(
+      (n) => n.status === 'front-ready' || n.status === 'inside-ready',
+    );
+    if (awaiting.length > 0) {
+      const sig =
+        'awaiting:' +
+        awaiting
+          .map((n) => `${n.cardId}:${n.status}`)
+          .sort()
+          .join(',');
+      if (!toastedRef.current.has(sig)) {
+        toastedRef.current.add(sig);
+        // Feed is ordered newest-first, so awaiting[0] is the most recent.
+        const newest = awaiting[0];
+        if (awaiting.length === 1) {
+          const side = newest.status === 'front-ready' ? 'front' : 'inside';
+          const who = newest.recipientName?.trim() || null;
+          toast({
+            title: who ? `${who}'s ${side} is ready` : `Your ${side} is ready`,
+            description: `Come take a look and sign off the ${side}.`,
+            variant: 'info',
+            action: (
+              <ToastAction
+                altText={`Review the ${side}`}
+                onClick={() => navigate(`/studio/card/${newest.cardId}/edit`)}
+              >
+                Review it
+              </ToastAction>
+            ),
+          });
+        } else {
+          toast({
+            title: `${awaiting.length} cards waiting for you`,
+            description: 'A few cards are ready to review and sign off.',
+            variant: 'info',
+            action: (
+              <ToastAction
+                altText="Review the newest"
+                onClick={() => navigate(`/studio/card/${newest.cardId}/edit`)}
+              >
+                Review
+              </ToastAction>
+            ),
+          });
+        }
+      }
     }
   }, [unread, enabled, toast, queryClient, navigate, location]);
 
