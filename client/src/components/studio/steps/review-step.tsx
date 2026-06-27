@@ -1144,7 +1144,7 @@ function RevealView({
                     delay: isInteracting ? 0 : 0.5,
                   }}
                   style={{ pointerEvents: isInteracting ? 'none' : 'auto' }}
-                  className="mt-6"
+                  className="-mt-2"
                 >
                   {/* Reserved-height slot so the hint fading in (~450ms
                       after mount) doesn't shove the CTA down. Collapses
