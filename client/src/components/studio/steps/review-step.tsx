@@ -648,9 +648,12 @@ function FrontFirstReview({
         {subject && <p className="mt-0.5 text-sm text-stone-500">{subject}</p>}
       </div>
 
-      <div className="mx-auto w-full max-w-[320px]">
+      {/* Fixed square footprint so toggling image ↔ print never moves
+          the CTAs below. The landscape print spread centres vertically
+          inside the square; the full image fills it. */}
+      <div className="mx-auto flex aspect-square w-full max-w-[320px] items-center justify-center">
         {showingPrint ? (
-          printVisual
+          <div className="w-full">{printVisual}</div>
         ) : (
           <div className="aspect-square w-full overflow-hidden rounded-lg border border-stone-200 bg-stone-100 shadow-[0_30px_60px_-22px_rgba(15,23,42,0.30)]">
             {heroUrl && <img src={heroUrl} alt="Your card" className="h-full w-full object-cover" />}
@@ -664,13 +667,13 @@ function FrontFirstReview({
         className="mx-auto mt-4 flex flex-col items-center"
         aria-label={showingPrint ? 'Show the full image' : 'Show the print-ready layout'}
       >
-        <div className="w-[84px] transition-transform hover:scale-[1.06]">
+        <div className="flex aspect-square w-[84px] items-center justify-center transition-transform hover:scale-[1.06]">
           {showingPrint ? (
             <div className="aspect-square w-full overflow-hidden rounded-md border border-stone-300 bg-stone-100">
               {heroUrl && <img src={heroUrl} alt="" className="h-full w-full object-cover" />}
             </div>
           ) : (
-            printVisual
+            <div className="w-full">{printVisual}</div>
           )}
         </div>
         <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-stone-400">
