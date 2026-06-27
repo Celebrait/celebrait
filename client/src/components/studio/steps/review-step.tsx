@@ -29,7 +29,6 @@ import {
   MessageSquare,
   FileText,
   Type,
-  RefreshCw,
   Loader2,
   Printer,
 } from 'lucide-react';
@@ -49,7 +48,6 @@ import { RegenEditMode } from '@/components/studio/regen-controls';
 import {
   CardOuterSpread,
   CardInnerSpread,
-  CardPrintStrip,
 } from '@/components/studio/card-print-template';
 import { GenerationErrorPanel } from '@/components/studio/generation-error-panel';
 import type { CardAttemptDTO } from '@/hooks/use-card-maker';
@@ -1033,14 +1031,6 @@ function RevealView({
         className="max-w-3xl mx-auto"
         data-testid={showReveal ? 'review-completed' : 'review-generating'}
       >
-        {/* Print-file reminder above the 3D card — "here's how it's
-            produced". Only once revealed + both sides exist. (Easy to
-            remove if it crowds the reveal — see card-print-template.) */}
-        {showReveal && frontUrl && insideUrl && (
-          <div className="mb-4">
-            <CardPrintStrip frontUrl={frontUrl} insideUrl={insideUrl} />
-          </div>
-        )}
         {/* Stage — constant dimensions across narration → card reveal
             so it reads as one continuous surface. The reveal is its
             own moment; the Giving Moment is a separate screen
@@ -1140,11 +1130,39 @@ function RevealView({
                     narration's own ready line carries that beat
                     pre-reveal. */}
 
+                {/* "Tap to open" hint — sits directly under the 3D card,
+                    ABOVE the Send CTA. Only the open hint shows (rotate +
+                    zoom disabled). Collapses once the card is opened.
+                    There is intentionally NO tweak/regen entry on the
+                    final reveal — tweaking happens only at the front and
+                    inside review steps (Kevin 2026-06-27). */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: isInteracting ? 0 : 1 }}
+                  transition={{
+                    duration: 0.5,
+                    delay: isInteracting ? 0 : 0.5,
+                  }}
+                  style={{ pointerEvents: isInteracting ? 'none' : 'auto' }}
+                  className="mt-6"
+                >
+                  {/* Reserved-height slot so the hint fading in (~450ms
+                      after mount) doesn't shove the CTA down. Collapses
+                      to 0 only once the card actually OPENS. */}
+                  <div
+                    className="flex justify-center items-start overflow-hidden transition-[height] duration-500 ease-out"
+                    style={{ height: open ? 0 : 72 }}
+                  >
+                    <GestureHints open={open} mountDelayMs={450} hideRotateHint hideZoomHint />
+                  </div>
+                </motion.div>
+
+                {/* Send CTA */}
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.9 }}
-                  className="mt-8 flex flex-col items-center gap-7"
+                  className="mt-2 flex flex-col items-center"
                 >
                   <Button
                     onClick={() =>
@@ -1165,81 +1183,7 @@ function RevealView({
                   >
                     Send this card
                   </Button>
-                  {/* Caption beneath ("Choose digital or print next") was
-                      removed 2026-04-25 — the 3D card has just appeared,
-                      meta-instructing the user about UI yet to come dilutes
-                      the moment. Buy button speaks for itself. */}
                 </motion.div>
-
-                {/* Gesture hints — sit close to the Buy CTA where they
-                    were before regen was inserted. Reads better up here:
-                    the hints are about the 3D card immediately above,
-                    so keeping them adjacent makes the spatial story
-                    obvious. They self-collapse once the user has played
-                    with the card. */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: isInteracting ? 0 : 1 }}
-                  transition={{
-                    duration: 0.5,
-                    // Appear soon after the card settles. The old 1.2s delay
-                    // meant mobile users tapped the card before the hints ever
-                    // showed; 0.5s gets them on screen first.
-                    delay: isInteracting ? 0 : 0.5,
-                  }}
-                  style={{ pointerEvents: isInteracting ? 'none' : 'auto' }}
-                  className="mt-6"
-                >
-                  {/* Reserved-height slot so the regen entry below
-                      doesn't get pushed when GestureHints fades in
-                      (~900ms after mount). Using `height` not
-                      `maxHeight` because hints render NOTHING until
-                      their internal mount-delay fires — maxHeight
-                      lets the wrapper shrink-to-fit during that gap,
-                      so the hints' eventual appearance grows the
-                      container from 0 → 72 and snaps everything
-                      below down. Reserving height up front keeps
-                      the layout still. */}
-                  <div
-                    className="flex justify-center items-start overflow-hidden transition-[height] duration-500 ease-out"
-                    // Collapse the slot only once the card actually OPENS — not
-                    // on any touch contact (pointerDown sets hasInteracted,
-                    // which on mobile killed the hints the instant a finger
-                    // landed, before they were ever seen).
-                    style={{ height: open ? 0 : 72 }}
-                  >
-                    <GestureHints open={open} mountDelayMs={450} hideRotateHint hideZoomHint />
-                  </div>
-                </motion.div>
-
-                {/* Regen entry — small pill that flips the whole surface
-                    into edit mode. Lives at the bottom of the post-reveal
-                    stack so it reads as a quiet safety net, not a
-                    parallel CTA. Audit warning (2026-04-26): don't
-                    promote this above the Buy CTA in any future polish
-                    pass — the hierarchy here is intentional. */}
-                {onRegenerate && onSelectAttempt && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: isInteracting ? 0 : 1 }}
-                    transition={{
-                      duration: 0.5,
-                      delay: hasInteracted || isInteracting ? 0 : 1.5,
-                    }}
-                    style={{ pointerEvents: isInteracting ? 'none' : 'auto' }}
-                    className="mt-8 flex justify-center"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setEditMode(true)}
-                      className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white/60 hover:bg-white hover:border-brand/40 px-4 py-2 text-sm text-ink-soft hover:text-brand-dark transition-all"
-                      data-testid="btn-regen-open"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5 text-stone-400" />
-                      Think this could be better? Tweak it.
-                    </button>
-                  </motion.div>
-                )}
               </motion.div>
             )}
           </AnimatePresence>
