@@ -602,6 +602,76 @@ function FrontFirstStage({
   );
 }
 
+function frontFirstSubject(state: CardDraftState): string | null {
+  const name = state.recipient?.name?.trim();
+  if (!name) return null;
+  const occ = state.recipient?.occasion?.trim();
+  return occ ? `${name}'s ${occ} card` : `${name}'s card`;
+}
+
+// ── FrontFirstReview ─────────────────────────────────────────────────
+// The DEFAULT front-first review surface: big card image (hero) + a small
+// print-ready spread (secondary) + a primary sign-off and a quiet "Make a
+// change" that opens the edit workbench. Editing is deliberately behind a
+// button so the step reads as "look at your card", not "edit your card".
+function FrontFirstReview({
+  title,
+  subject,
+  heroUrl,
+  printVisual,
+  approveLabel,
+  onApprove,
+  onEdit,
+}: {
+  title: string;
+  subject: string | null;
+  heroUrl: string | null;
+  printVisual: React.ReactNode;
+  approveLabel: string;
+  onApprove?: () => Promise<void>;
+  onEdit: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="mx-auto max-w-xl py-6">
+      <div className="mb-5 text-center">
+        <p className="text-lg font-semibold text-ink">{title}</p>
+        {subject && <p className="mt-0.5 text-sm text-stone-500">{subject}</p>}
+      </div>
+
+      <div className="mx-auto aspect-square w-full max-w-[320px] overflow-hidden rounded-2xl border border-stone-200 bg-stone-100 shadow-[0_30px_60px_-22px_rgba(15,23,42,0.30)]">
+        {heroUrl && <img src={heroUrl} alt="Your card" className="h-full w-full object-cover" />}
+      </div>
+
+      <div className="mt-4 flex justify-center">{printVisual}</div>
+
+      <div className="mt-7 flex flex-col items-center gap-3">
+        <button
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await onApprove?.();
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="w-full max-w-[320px] rounded-full bg-brand px-6 py-3.5 text-[15px] font-medium text-brand-foreground transition-colors hover:bg-brand-dark disabled:opacity-50"
+        >
+          {busy ? 'One sec…' : approveLabel}
+        </button>
+        <button
+          onClick={onEdit}
+          className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 px-4 py-2 text-[13px] text-stone-600 transition-colors hover:bg-stone-50"
+        >
+          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+          Make a change
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function RevealView({
   cardId,
   frontUrl,
@@ -773,6 +843,9 @@ function RevealView({
   // Done button inside RegenEditMode. Keeps state local so leaving
   // and re-entering edit mode resets the textarea + target.
   const [editMode, setEditMode] = useState(false);
+  // Front-first review surfaces default to "look at your card"; this flips
+  // to the tweak workbench when the user taps "Make a change".
+  const [frontFirstEditing, setFrontFirstEditing] = useState(false);
   const interactTimerRef = useRef<number | null>(null);
 
   const startInteract = () => {
@@ -799,57 +872,75 @@ function RevealView({
   // panel — instead of a bespoke control. Its commit action ("write the
   // inside") triggers the inside generation.
   if (status === 'front-ready' && onRegenerate && onSelectAttempt) {
+    if (frontFirstEditing) {
+      return (
+        <RegenEditMode
+          state={state}
+          frontUrl={frontUrl}
+          insideUrl={null}
+          attempts={attempts}
+          isRegenerating={isRegenerating}
+          regenError={regenError ?? null}
+          hasInside={false}
+          onRegenerate={onRegenerate}
+          onSelectAttempt={onSelectAttempt}
+          onExit={() => setFrontFirstEditing(false)}
+          onJumpToStepFromRegenFailure={onJumpToStepFromRegenFailure}
+          onUpdateInputs={onUpdateInputs ?? (async () => {})}
+          title="Tweak the front"
+        />
+      );
+    }
     return (
-      <RegenEditMode
-        state={state}
-        frontUrl={frontUrl}
-        insideUrl={null}
-        attempts={attempts}
-        isRegenerating={isRegenerating}
-        regenError={regenError ?? null}
-        hasInside={false}
-        onRegenerate={onRegenerate}
-        onSelectAttempt={onSelectAttempt}
-        onExit={() => {
-          void onStartInsideGeneration?.();
-        }}
-        onJumpToStepFromRegenFailure={onJumpToStepFromRegenFailure}
-        onUpdateInputs={onUpdateInputs ?? (async () => {})}
+      <FrontFirstReview
         title="Here's the front"
-        finishLabel={
+        subject={frontFirstSubject(state)}
+        heroUrl={frontUrl}
+        printVisual={<CardOuterSpread frontUrl={frontUrl} />}
+        approveLabel={
           insideMode === 'blank'
             ? 'Looks good — finish the card →'
             : 'Looks good — write the inside →'
         }
-        renderPreview={({ frontUrl: fUrl }) => <CardOuterSpread frontUrl={fUrl} />}
+        onApprove={onStartInsideGeneration}
+        onEdit={() => setFrontFirstEditing(true)}
       />
     );
   }
 
-  // Inside-ready: mirror the front step — the whole card is now generated,
-  // so review BOTH sides (inside + front), tweak either, and sign off →
-  // finalize → the 3D assemble. Same proven RegenEditMode workbench.
+  // Inside-ready: mirror the front step — big inside image + the print
+  // spread; tweak is inside-only (front already signed off) and lives
+  // behind "Make a change". Sign off → finalize → the 3D assemble.
   if (status === 'inside-ready' && onRegenerate && onSelectAttempt) {
+    if (frontFirstEditing) {
+      return (
+        <RegenEditMode
+          state={state}
+          frontUrl={frontUrl}
+          insideUrl={insideUrl}
+          attempts={attempts}
+          isRegenerating={isRegenerating}
+          regenError={regenError ?? null}
+          hasInside
+          lockedSide="front"
+          onRegenerate={onRegenerate}
+          onSelectAttempt={onSelectAttempt}
+          onExit={() => setFrontFirstEditing(false)}
+          onJumpToStepFromRegenFailure={onJumpToStepFromRegenFailure}
+          onUpdateInputs={onUpdateInputs ?? (async () => {})}
+          title="Tweak the inside"
+        />
+      );
+    }
     return (
-      <RegenEditMode
-        state={state}
-        frontUrl={frontUrl}
-        insideUrl={insideUrl}
-        attempts={attempts}
-        isRegenerating={isRegenerating}
-        regenError={regenError ?? null}
-        hasInside
-        onRegenerate={onRegenerate}
-        onSelectAttempt={onSelectAttempt}
-        onExit={() => {
-          void onFinalize?.();
-        }}
-        onJumpToStepFromRegenFailure={onJumpToStepFromRegenFailure}
-        onUpdateInputs={onUpdateInputs ?? (async () => {})}
+      <FrontFirstReview
         title="Here's the inside"
-        finishLabel="Looks good — assemble the card →"
-        lockedSide="front"
-        renderPreview={({ insideUrl: iUrl }) => <CardInnerSpread insideUrl={iUrl} />}
+        subject={frontFirstSubject(state)}
+        heroUrl={insideUrl}
+        printVisual={<CardInnerSpread insideUrl={insideUrl} />}
+        approveLabel="Looks good — assemble the card →"
+        onApprove={onFinalize}
+        onEdit={() => setFrontFirstEditing(true)}
       />
     );
   }

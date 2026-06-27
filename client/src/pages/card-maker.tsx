@@ -363,6 +363,11 @@ function CardMakerInner({ cardId }: { cardId: number }) {
   const isRevealMode =
     currentStep === 5 &&
     (status === 'generating' ||
+      status === 'generating-front' ||
+      status === 'front-ready' ||
+      status === 'generating-inside' ||
+      status === 'inside-ready' ||
+      status === 'inside-failed' ||
       status === 'completed' ||
       status === 'failed' ||
       isStartingGeneration);
