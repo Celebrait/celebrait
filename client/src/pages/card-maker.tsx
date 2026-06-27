@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
 import { useCardMaker } from '@/hooks/use-card-maker';
+import { useMarkCardSeen } from '@/hooks/use-card-ready-notifications';
 import { Stepper } from '@/components/studio/stepper';
 import {
   RecipientStep,
@@ -166,6 +167,19 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     currentStep,
     totalSteps,
   } = useCardMaker({ cardId });
+
+  // When a card reveals as completed IN THE MAKER, mark its "ready"
+  // notification seen so the 30s cross-app poll doesn't fire a redundant
+  // "your card is ready" toast for the card the user is already looking
+  // at. Fires once per cardId (server-side mark is idempotent anyway).
+  const markCardSeen = useMarkCardSeen();
+  const seenFiredRef = useRef(false);
+  useEffect(() => {
+    if (status === 'completed' && !seenFiredRef.current) {
+      seenFiredRef.current = true;
+      markCardSeen(cardId);
+    }
+  }, [status, cardId, markCardSeen]);
 
   // Hooks must run every render — keep them above the isLoading /
   // loadError early returns. stateRef backs the delayed re-check in

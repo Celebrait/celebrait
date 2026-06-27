@@ -42,6 +42,9 @@ import { ToastAction } from '@/components/ui/toast';
 
 interface UnreadNotification {
   cardId: number;
+  /** 'completed' (reveal celebration) | 'front-ready' | 'inside-ready'
+   *  (front-first await-sign-off nudges). */
+  status: string;
   recipientName: string | null;
   occasion: string | null;
   frontImageUrl: string | null;
@@ -61,12 +64,14 @@ export function useCardReadyNotifications() {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
 
-  // Track which cardIds we've already toasted so a single ready card
-  // doesn't fire a new toast on every poll. Pure dedupe ledger — kept
-  // in a ref so it never causes a re-render.
-  const toastedRef = useRef<Set<number>>(new Set());
+  // Track which (cardId + status) events we've already toasted so a card
+  // sitting in an actionable state doesn't re-fire on every 30s poll.
+  // Keyed by `${cardId}:${status}` so a card that moves front-ready →
+  // inside-ready → completed earns a fresh nudge at each stage. Pure
+  // dedupe ledger — kept in a ref so it never causes a re-render.
+  const toastedRef = useRef<Set<string>>(new Set());
 
   const enabled = isAuthenticated && !isAuthLoading;
 
@@ -92,18 +97,48 @@ export function useCardReadyNotifications() {
   useEffect(() => {
     if (!enabled) return;
     for (const n of unread) {
-      if (toastedRef.current.has(n.cardId)) continue;
-      toastedRef.current.add(n.cardId);
+      const key = `${n.cardId}:${n.status}`;
+      if (toastedRef.current.has(key)) continue;
 
-      const who = n.recipientName ? `for ${n.recipientName}` : '';
-      const description = who
-        ? `The card ${who} has arrived. Open it to see the reveal.`
-        : 'Your card has arrived. Open it to see the reveal.';
+      // Don't nudge about a card the user is already looking at or
+      // editing — the maker/view surface already shows that state. Mark
+      // it consumed so we also don't nudge after they leave (they've
+      // seen it). A later state transition is a fresh key.
+      if (location.includes(`/card/${n.cardId}`)) {
+        toastedRef.current.add(key);
+        continue;
+      }
+      toastedRef.current.add(key);
 
+      const who = n.recipientName?.trim() || null;
+
+      // Front-first await-sign-off nudges — the card is paused waiting
+      // for the user to come approve a side. Routes back into the maker.
+      if (n.status === 'front-ready' || n.status === 'inside-ready') {
+        const side = n.status === 'front-ready' ? 'front' : 'inside';
+        toast({
+          title: who ? `${who}'s ${side} is ready` : `Your ${side} is ready`,
+          description: `Come take a look and sign off the ${side}.`,
+          variant: 'info',
+          action: (
+            <ToastAction
+              altText={`Review the ${side}`}
+              onClick={() => navigate(`/studio/card/${n.cardId}/edit`)}
+            >
+              Review it
+            </ToastAction>
+          ),
+        });
+        continue;
+      }
+
+      // Completed — the one-shot reveal celebration.
       toast({
         title: 'Your card is ready',
         variant: 'success',
-        description,
+        description: who
+          ? `${who}'s card has arrived. Open it to see the reveal.`
+          : 'Your card has arrived. Open it to see the reveal.',
         // ToastAction = the engagement path. Click marks-seen + nav.
         // Dismissal via X leaves notifiedAt null on the server, so
         // the toast re-fires on next mount — correct behaviour for
@@ -121,7 +156,7 @@ export function useCardReadyNotifications() {
         ),
       });
     }
-  }, [unread, enabled, toast, queryClient, navigate]);
+  }, [unread, enabled, toast, queryClient, navigate, location]);
 
   // ── Tab-title flicker when tab is in background AND has unread ─────
   useEffect(() => {
@@ -134,8 +169,8 @@ export function useCardReadyNotifications() {
         const count = unread.length;
         document.title =
           count === 1
-            ? '🎉 Card ready — Celebrait'
-            : `🎉 ${count} cards ready — Celebrait`;
+            ? '✨ Something’s waiting — Celebrait'
+            : `✨ ${count} waiting — Celebrait`;
       } else if (focused) {
         document.title = originalTitle;
       }

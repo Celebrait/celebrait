@@ -42,6 +42,7 @@ import logoSrc from '../assets/Logo2.png';
 import { FabNewCard } from '@/components/studio/fab-new-card';
 import { DevTestFailurePanel } from '@/components/dev/dev-test-failure-panel';
 import { useCardReadyNotifications } from '@/hooks/use-card-ready-notifications';
+import { useWelcomeNotification } from '@/hooks/use-welcome-notification';
 
 interface NavItem {
   label: string;
@@ -199,6 +200,8 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
   // here so it runs across every Studio surface (dashboard, address
   // book, drafts, sent, etc.) without per-page setup.
   useCardReadyNotifications();
+  // One-time "welcome to your studio" greeting on a new user's first visit.
+  useWelcomeNotification();
 
   const initials = user?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?';
   const showFab = !HIDE_FAB_ON.some((rx) => rx.test(location));
