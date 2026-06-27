@@ -652,7 +652,7 @@ function FrontFirstReview({
         {showingPrint ? (
           printVisual
         ) : (
-          <div className="aspect-square w-full overflow-hidden rounded-2xl border border-stone-200 bg-stone-100 shadow-[0_30px_60px_-22px_rgba(15,23,42,0.30)]">
+          <div className="aspect-square w-full overflow-hidden rounded-lg border border-stone-200 bg-stone-100 shadow-[0_30px_60px_-22px_rgba(15,23,42,0.30)]">
             {heroUrl && <img src={heroUrl} alt="Your card" className="h-full w-full object-cover" />}
           </div>
         )}
@@ -666,7 +666,7 @@ function FrontFirstReview({
       >
         <div className="w-[84px] transition-transform hover:scale-[1.06]">
           {showingPrint ? (
-            <div className="aspect-square w-full overflow-hidden rounded-lg border border-stone-300 bg-stone-100">
+            <div className="aspect-square w-full overflow-hidden rounded-md border border-stone-300 bg-stone-100">
               {heroUrl && <img src={heroUrl} alt="" className="h-full w-full object-cover" />}
             </div>
           ) : (

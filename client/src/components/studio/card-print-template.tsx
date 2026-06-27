@@ -13,8 +13,9 @@ import logoSrc from '@/assets/Logo2.png';
 const cell = 'relative aspect-square flex-1 overflow-hidden bg-stone-100';
 
 // The spreads fill their container so the same node works big (hero) or
-// small (toggle thumbnail). Rounding scales with the size via `rounded`.
-const spread = 'flex w-full overflow-hidden rounded-lg border border-stone-300';
+// small (toggle thumbnail). Corners kept restrained to echo the 3D card's
+// subtle rounding (Kevin 2026-06-27) — not a soft "rounded card" look.
+const spread = 'flex w-full overflow-hidden rounded-md border border-stone-300';
 
 /** Front step — outer spread: back of card (logo) + front of card. */
 export function CardOuterSpread({ frontUrl }: { frontUrl: string | null }) {
