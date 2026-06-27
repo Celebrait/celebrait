@@ -159,6 +159,20 @@ export function StudioHints() {
     }
 
     const evaluate = () => {
+      // Wait for the first-arrival welcome to be dismissed before any
+      // coachmarks appear — otherwise a hint could surface behind the
+      // welcome's backdrop. (welcome-moment.tsx sets this flag on close.)
+      let welcomed = true;
+      try {
+        welcomed = localStorage.getItem('celebrait:welcome:v1') === '1';
+      } catch {
+        welcomed = true; // storage blocked — don't block hints on it
+      }
+      if (!welcomed) {
+        setActiveId(null);
+        setRect(null);
+        return;
+      }
       for (const h of HINTS) {
         if (seen.has(h.id)) continue;
         const r = findVisibleTarget(h.id);

@@ -41,9 +41,9 @@ import { useAuth } from '@/hooks/use-auth';
 import logoSrc from '../assets/Logo2.png';
 import { FabNewCard } from '@/components/studio/fab-new-card';
 import { StudioHints } from '@/components/studio/studio-hints';
+import { WelcomeMoment } from '@/components/studio/welcome-moment';
 import { DevTestFailurePanel } from '@/components/dev/dev-test-failure-panel';
 import { useCardReadyNotifications } from '@/hooks/use-card-ready-notifications';
-import { useWelcomeNotification } from '@/hooks/use-welcome-notification';
 
 interface NavItem {
   label: string;
@@ -206,8 +206,6 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
   // here so it runs across every Studio surface (dashboard, address
   // book, drafts, sent, etc.) without per-page setup.
   useCardReadyNotifications();
-  // One-time "welcome to your studio" greeting on a new user's first visit.
-  useWelcomeNotification();
 
   const initials = user?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?';
   const showFab = !HIDE_FAB_ON.some((rx) => rx.test(location));
@@ -282,6 +280,10 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
 
       {/* ─── FAB (conditional, outside the column so it's always relative to the viewport) ─── */}
       {showFab && <FabNewCard />}
+
+      {/* First-arrival focal greeting (centred + soft backdrop). Shows
+          once, then the hints walkthrough takes over. */}
+      <WelcomeMoment />
 
       {/* First-run coachmarks pointing at the key studio touchpoints.
           Self-suppresses on the maker/viewer/checkout surfaces and once
