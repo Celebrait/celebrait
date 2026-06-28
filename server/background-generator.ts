@@ -23,6 +23,7 @@ import {
   loadStoredImageAsBase64,
   generatePrintResolutionFiles,
 } from './pipeline/storage/LocalStorageAdapter';
+import { publicImageUrl } from './image-storage';
 import {
   cards,
   cardAttempts,
@@ -707,7 +708,7 @@ export async function generateStudioCard(
           throw new Error('Cannot generate inside before front exists');
         }
         frontStoredUrl = row.frontImagePath
-          ? `/images/${row.frontImagePath}`
+          ? publicImageUrl(row.frontImagePath)
           : row.frontImageUrl!;
       }
 
@@ -1084,7 +1085,7 @@ async function ensureInitialAttemptRow(
     await db
       .update(cardAttempts)
       .set({
-        imageUrl: `/images/${snapshotted}`,
+        imageUrl: publicImageUrl(snapshotted),
         imagePath: snapshotted,
       })
       .where(eq(cardAttempts.id, inserted.id));

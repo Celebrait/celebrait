@@ -30,6 +30,7 @@ import {
   type CardAttemptListItem,
 } from '@shared/schema';
 import { sendSenderCardOpenedEmail } from '../email-service';
+import { publicImageUrl } from '../image-storage';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import {
   generateStudioCard,
@@ -208,10 +209,10 @@ export function registerStudioDraftRoutes(app: Express): void {
       // storage.getUserCardsForGrid — keep them aligned so all
       // dashboard surfaces resolve the same.
       const frontUrl = row.frontImagePath
-        ? `/images/${row.frontImagePath}`
+        ? publicImageUrl(row.frontImagePath)
         : row.frontImageUrl;
       const insideUrl = row.insideImagePath
-        ? `/images/${row.insideImagePath}`
+        ? publicImageUrl(row.insideImagePath)
         : row.insideImageUrl;
 
       // Attempts (regen history) — slim projection. Failed attempts
@@ -260,7 +261,7 @@ export function registerStudioDraftRoutes(app: Express): void {
           attemptNumber: a.attemptNumber,
           status: a.status,
           imageUrl: a.imagePath
-            ? `/images/${a.imagePath}`
+            ? publicImageUrl(a.imagePath)
             : (a.imageUrl ?? ''),
           isSelected:
             (a.side === 'front' && a.id === row.selectedFrontAttemptId) ||
@@ -966,7 +967,7 @@ export function registerStudioDraftRoutes(app: Express): void {
         }
 
         const url = attempt.imagePath
-          ? `/images/${attempt.imagePath}`
+          ? publicImageUrl(attempt.imagePath)
           : attempt.imageUrl!;
         const set =
           attempt.side === 'front'

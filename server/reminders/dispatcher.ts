@@ -25,6 +25,7 @@
 
 import { and, desc, eq, ilike, sql } from 'drizzle-orm';
 import { db } from '../db';
+import { publicImageUrl } from '../image-storage';
 import {
   addressBookEntries,
   recipientOccasions,
@@ -406,7 +407,7 @@ async function findLastSentCardImageUrl(
   const row = rows[0];
   if (!row) return null;
   return row.frontImagePath
-    ? `/images/${row.frontImagePath}`
+    ? publicImageUrl(row.frontImagePath)
     : row.frontImageUrl;
 }
 

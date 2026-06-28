@@ -58,6 +58,7 @@
     "@types/pdfkit": "^0.17.3",
     "@vladmandic/face-api": "^1.7.15",
     "archiver": "^7.0.1",
+    "aws4fetch": "^1.0.20",
     "canvas": "^3.1.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

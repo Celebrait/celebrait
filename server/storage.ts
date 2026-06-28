@@ -4,6 +4,7 @@ import { neon } from "@neondatabase/serverless";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { cards, orders, photos, type Card, type CardGridItem, type InsertCard, type Order, type InsertOrder, type Photo, type InsertPhoto, type User } from "@shared/schema";
 import { users } from "@shared/models/auth";
+import { publicImageUrl } from "./image-storage";
 
 const db = drizzle(neon(process.env.DATABASE_URL!));
 
@@ -154,7 +155,7 @@ export class DatabaseStorage implements IStorage {
       // legacy rows. Some cards have only one populated; never assume
       // both — that's why the dashboard was showing empty thumbnails.
       frontImageUrl: r.frontImagePath
-        ? `/images/${r.frontImagePath}`
+        ? publicImageUrl(r.frontImagePath)
         : (r.frontImageUrl ?? null),
       hasPaidOrder: Boolean(r.hasPaidOrder),
       draftStep:

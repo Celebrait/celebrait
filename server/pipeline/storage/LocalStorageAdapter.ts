@@ -14,7 +14,9 @@ import {
   getImageUrl,
   getStoredImage,
   storePngWithSharp,
+  publicImageUrl,
 } from '../../image-storage';
+import { isR2Enabled, r2Get } from '../../r2-storage';
 
 /**
  * Save a generated image to the canonical filename. Returns the
@@ -86,7 +88,7 @@ export async function savePngFilesForAttempt(
       storeImageToCustomFilename(imageUrl, attemptFilename),
       storeImageToCustomFilename(imageUrl, canonical),
     ]);
-    return { url: `/images/${attemptFilename}`, attemptFilename };
+    return { url: publicImageUrl(attemptFilename), attemptFilename };
   } catch (err) {
     console.error(
       `[BG_GEN] Per-attempt PNG save failed for ${side} a${attemptId}, falling back to base64:`,
@@ -136,6 +138,20 @@ export async function snapshotCanonicalToAttempt(
  * Otherwise returns the input unchanged (already a data URL).
  */
 export async function loadStoredImageAsBase64(storedUrl: string): Promise<string> {
+  // Already a data URL — nothing to load.
+  if (storedUrl.startsWith('data:')) return storedUrl;
+
+  if (isR2Enabled()) {
+    // Resolve to the object key. Callers pass either a bare key/filename,
+    // a legacy `/images/<key>` path, or the R2 public URL itself.
+    let key = storedUrl;
+    if (key.startsWith('/images/')) key = key.slice('/images/'.length);
+    else if (/^https?:/i.test(key)) key = key.split('/').pop() ?? key;
+    const buf = await r2Get(key);
+    if (!buf) throw new Error(`R2 image not found: ${key}`);
+    return `data:image/png;base64,${buf.toString('base64')}`;
+  }
+
   if (storedUrl.startsWith('/images/')) {
     const fs = await import('fs');
     const path = await import('path');

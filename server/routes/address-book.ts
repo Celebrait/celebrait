@@ -39,6 +39,7 @@ import {
   cards,
 } from '@shared/schema';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
+import { publicImageUrl } from '../image-storage';
 
 function getUserId(req: Request): string | null {
   const id = (req as any).session?.otpUserId;
@@ -99,7 +100,7 @@ async function findLastSentCardForName(
   const row = rows[0];
   if (!row) return null;
   const url = row.frontImagePath
-    ? `/images/${row.frontImagePath}`
+    ? publicImageUrl(row.frontImagePath)
     : row.frontImageUrl;
   if (!url) return null;
   // createdAt is non-null in the schema (defaultNow().notNull()) but

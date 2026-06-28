@@ -1,9 +1,28 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { createCanvas, loadImage } from 'canvas';
+import { isR2Enabled, r2Put, r2Get, r2Copy, r2PublicUrl } from './r2-storage';
 
 const IMAGES_DIR = path.join(process.cwd(), 'stored_images');
 const TEMP_DIR = path.join(process.cwd(), 'temp_images');
+
+/**
+ * Browser-facing URL for a stored image. Accepts a bare filename, a
+ * legacy `/images/<name>` path, or an already-absolute http(s)/data URL.
+ *   • R2 enabled  → the Cloudflare public bucket URL (CDN-cached)
+ *   • R2 disabled → the local `/images/<name>` path (served by Express)
+ * This is the single source of truth for image URLs — every site that
+ * used to hand-build `/images/${x}` should call this so the same code
+ * works in both modes.
+ */
+export function publicImageUrl(pathOrName: string): string {
+  if (!pathOrName) return pathOrName;
+  if (/^(https?:|data:)/i.test(pathOrName)) return pathOrName;
+  const name = pathOrName.startsWith('/images/')
+    ? pathOrName.slice('/images/'.length)
+    : pathOrName;
+  return isR2Enabled() ? r2PublicUrl(name) : `/images/${name}`;
+}
 
 // Ensure directories exist
 async function ensureDirectories() {
@@ -41,15 +60,22 @@ export async function storeImageFromBase64(
     
     // Generate filename with card ID and type
     const filename = `card_${cardId}_${imageType}.png`;
+
+    if (isR2Enabled()) {
+      await r2Put(filename, imageBuffer, 'image/png');
+      console.log(`[STORAGE] Stored ${imageType} image for card ${cardId} → R2: ${filename} (${imageBuffer.length} bytes)`);
+      return { filename, filepath: filename, size: imageBuffer.length, format: 'png' };
+    }
+
     const filepath = path.join(IMAGES_DIR, filename);
-    
+
     // Write PNG file to disk
     await fs.writeFile(filepath, imageBuffer);
-    
+
     const stats = await fs.stat(filepath);
-    
+
     console.log(`[STORAGE] Stored ${imageType} image for card ${cardId}: ${filename} (${stats.size} bytes)`);
-    
+
     return {
       filename,
       filepath,
@@ -66,16 +92,17 @@ export async function storeImageFromBase64(
  * Get stored image as buffer for serving
  */
 export async function getStoredImage(cardId: number, imageType: 'front' | 'inside'): Promise<Buffer | null> {
+  const filename = `card_${cardId}_${imageType}.png`;
   try {
-    const filename = `card_${cardId}_${imageType}.png`;
+    if (isR2Enabled()) {
+      return await r2Get(filename);
+    }
     const filepath = path.join(IMAGES_DIR, filename);
-    
     const imageBuffer = await fs.readFile(filepath);
     console.log(`[STORAGE] Retrieved ${imageType} image for card ${cardId}: ${imageBuffer.length} bytes`);
-    
     return imageBuffer;
   } catch (error) {
-    console.log(`[STORAGE] Image not found: card_${cardId}_${imageType}.png`);
+    console.log(`[STORAGE] Image not found: ${filename}`);
     return null;
   }
 }
@@ -340,11 +367,11 @@ export async function getStorageStats(): Promise<{
  * Get file URL for serving static images
  */
 export function getImageUrl(cardId: number, imageType: 'front' | 'inside' | 'print'): string {
-  const filename = imageType === 'print' 
+  const filename = imageType === 'print'
     ? `card_${cardId}_print_5x5.png`
     : `card_${cardId}_${imageType}.png`;
-  
-  return `/images/${filename}`;
+
+  return publicImageUrl(filename);
 }
 
 /**
@@ -394,6 +421,13 @@ export async function storePngWithSharp(
     
     // Generate filename
     const filename = `card_${cardId}_${imageType}.png`;
+
+    if (isR2Enabled()) {
+      await r2Put(filename, pngBuffer, 'image/png');
+      console.log(`[PNG_STORAGE] Stored sharp-processed PNG for card ${cardId} → R2: ${filename} (${pngBuffer.length} bytes)`);
+      return { filename, filepath: filename, size: pngBuffer.length, format: 'png' };
+    }
+
     const filepath = path.join(IMAGES_DIR, filename);
 
     // Write PNG file to disk
@@ -428,6 +462,13 @@ export async function storeImageToCustomFilename(
 ): Promise<StoredImage> {
   const cleanBase64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
   const imageBuffer = Buffer.from(cleanBase64, 'base64');
+
+  if (isR2Enabled()) {
+    await r2Put(filename, imageBuffer, 'image/png');
+    console.log(`[STORAGE] Stored ${filename} → R2 (${imageBuffer.length} bytes)`);
+    return { filename, filepath: filename, size: imageBuffer.length, format: 'png' };
+  }
+
   const filepath = path.join(IMAGES_DIR, filename);
   await fs.writeFile(filepath, imageBuffer);
   const stats = await fs.stat(filepath);
@@ -449,6 +490,11 @@ export async function copyStoredFile(
   destFilename: string,
 ): Promise<boolean> {
   try {
+    if (isR2Enabled()) {
+      const ok = await r2Copy(srcFilename, destFilename);
+      if (ok) console.log(`[STORAGE] Copied ${srcFilename} → ${destFilename} (R2)`);
+      return ok;
+    }
     const src = path.join(IMAGES_DIR, srcFilename);
     const dest = path.join(IMAGES_DIR, destFilename);
     await fs.copyFile(src, dest);

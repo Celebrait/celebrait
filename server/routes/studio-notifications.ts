@@ -40,6 +40,7 @@ import { and, desc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { cards } from '@shared/schema';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
+import { publicImageUrl } from '../image-storage';
 
 function getUserId(req: Request): string | null {
   const id = (req as any).session?.otpUserId;
@@ -142,7 +143,7 @@ export function registerStudioNotificationRoutes(app: Express) {
           recipientName: r.recipientName?.trim() || null,
           occasion: r.occasion || null,
           frontImageUrl: r.frontImagePath
-            ? `/images/${r.frontImagePath}`
+            ? publicImageUrl(r.frontImagePath)
             : r.frontImageUrl,
           createdAt: r.createdAt,
         }));
