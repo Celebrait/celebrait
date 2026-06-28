@@ -301,17 +301,17 @@ function HintPopover({
       <div
         role="dialog"
         aria-label={hint.title}
-        className="fixed z-[91] w-[264px] rounded-2xl border border-stone-200 bg-white p-4 shadow-[0_18px_44px_-16px_rgba(15,23,42,0.32)]"
+        className="fixed z-[91] w-[264px] rounded-2xl bg-brand-dark p-4 text-white shadow-[0_18px_44px_-16px_rgba(60,52,137,0.6)]"
         style={{ left: clampedLeft, top, transform: translate }}
         data-testid={`studio-hint-${hint.id}`}
       >
         <div className="flex items-start gap-3">
-          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-light text-brand-dark">
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/20 text-white">
             <Lightbulb className="h-[18px] w-[18px]" strokeWidth={2} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-ink">{hint.title}</p>
-            <p className="mt-0.5 text-[13px] leading-snug text-ink-soft">
+            <p className="text-sm font-semibold text-white">{hint.title}</p>
+            <p className="mt-0.5 text-[13px] leading-snug text-white/85">
               {hint.body}
             </p>
           </div>
@@ -319,27 +319,27 @@ function HintPopover({
             type="button"
             onClick={onDismiss}
             aria-label="Dismiss"
-            className="-mr-1 -mt-1 rounded-md p-1 text-stone-400 transition-colors hover:text-ink"
+            className="-mr-1 -mt-1 rounded-md p-1 text-white/60 transition-colors hover:text-white"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
         <div className="mt-3 flex items-center justify-between">
-          <span className="text-[11px] text-stone-400">
+          <span className="text-[11px] text-white/60">
             Tip {step} of {total}
           </span>
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={onSkip}
-              className="text-[12px] text-stone-400 transition-colors hover:text-ink-soft"
+              className="text-[12px] text-white/70 transition-colors hover:text-white"
             >
               Skip tips
             </button>
             <button
               type="button"
               onClick={onDismiss}
-              className="rounded-full bg-brand px-3.5 py-1.5 text-[12px] font-medium text-brand-foreground transition-colors hover:bg-brand-dark"
+              className="rounded-full bg-white px-3.5 py-1.5 text-[12px] font-semibold text-brand-dark transition-colors hover:bg-white/90"
             >
               Got it
             </button>

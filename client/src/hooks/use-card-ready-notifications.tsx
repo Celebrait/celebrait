@@ -103,33 +103,62 @@ export function useCardReadyNotifications() {
       (n) => !location.includes(`/card/${n.cardId}`),
     );
 
-    // ── Completed: one-shot reveal celebrations. Fire individually
-    //    (server-deduped via notifiedAt, so they rarely pile up). ──────
-    for (const n of relevant) {
-      if (n.status !== 'completed') continue;
+    // ── Completed reveals. One finished card = an individual celebration;
+    //    several at once = a single "N cards are ready" summary so a pile
+    //    of freshly-finished cards doesn't bury the screen on entry. ────
+    const completed = relevant.filter((n) => n.status === 'completed');
+    if (completed.length === 1) {
+      const n = completed[0];
       const key = `${n.cardId}:completed`;
-      if (toastedRef.current.has(key)) continue;
-      toastedRef.current.add(key);
-
-      const who = n.recipientName?.trim() || null;
-      toast({
-        title: 'Your card is ready',
-        variant: 'success',
-        description: who
-          ? `${who}'s card has arrived. Open it to see the reveal.`
-          : 'Your card has arrived. Open it to see the reveal.',
-        action: (
-          <ToastAction
-            altText="View card"
-            onClick={() => {
-              void markSeen([n.cardId], queryClient);
-              navigate(`/studio/card/${n.cardId}`);
-            }}
-          >
-            View it
-          </ToastAction>
-        ),
-      });
+      if (!toastedRef.current.has(key)) {
+        toastedRef.current.add(key);
+        const who = n.recipientName?.trim() || null;
+        toast({
+          title: 'Your card is ready',
+          variant: 'success',
+          description: who
+            ? `${who}'s card has arrived. Open it to see the reveal.`
+            : 'Your card has arrived. Open it to see the reveal.',
+          action: (
+            <ToastAction
+              altText="View card"
+              onClick={() => {
+                void markSeen([n.cardId], queryClient);
+                navigate(`/studio/card/${n.cardId}`);
+              }}
+            >
+              View it
+            </ToastAction>
+          ),
+        });
+      }
+    } else if (completed.length > 1) {
+      const sig =
+        'ready:' +
+        completed
+          .map((n) => n.cardId)
+          .sort()
+          .join(',');
+      if (!toastedRef.current.has(sig)) {
+        toastedRef.current.add(sig);
+        const ids = completed.map((n) => n.cardId);
+        toast({
+          title: `${completed.length} cards are ready`,
+          variant: 'success',
+          description: 'A few of your cards have finished. Open them to see the reveals.',
+          action: (
+            <ToastAction
+              altText="View finished cards"
+              onClick={() => {
+                void markSeen(ids, queryClient);
+                navigate('/studio/ready');
+              }}
+            >
+              View them
+            </ToastAction>
+          ),
+        });
+      }
     }
 
     // ── Await-sign-off (front-ready / inside-ready): COLLAPSE to a single
