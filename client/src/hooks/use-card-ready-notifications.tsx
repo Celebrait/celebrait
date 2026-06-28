@@ -1,36 +1,28 @@
 // client/src/hooks/use-card-ready-notifications.tsx
 //
-// In-app "your card is ready" notification driver. Mounted once at
-// the Studio layout level. Responsible for three user-facing effects:
+// Studio notifications driver (Tier 2). Mounted once via the header
+// <NotificationBell />. Responsibilities:
 //
-//   1. Polling for unread "your card is ready" events. Reads from
-//      /api/studio/notifications/unread every 30s while the user is
-//      anywhere under /studio/*. Cheap query — single indexed select
-//      against `cards` — and only runs when the user is authenticated.
+//   1. Poll /api/studio/notifications/unread every 30s while signed in.
+//      Returns the unread feed — completed reveals + front-first
+//      await-sign-off states (front-ready / inside-ready) — newest first.
 //
-//   2. Toast on first sight of a newly-arrived unread event. Each
-//      cardId is toasted at most once per component mount (a session
-//      dedupe ledger lives in a ref). The toast carries a "View it"
-//      action button that marks the notification seen and routes to
-//      the card view page. Dismissing via X leaves `notifiedAt` null
-//      — the toast re-fires on next page mount/refresh, which is the
-//      right behaviour for "there's still a card waiting for you."
+//   2. Expose that feed (`items` + `unreadCount`) for the BELL, which is
+//      the calm, persistent home for this state. A returning user with
+//      work in flight just sees a quiet badge — NOT a wall of toasts.
 //
-//   3. Tab-title flicker when the tab is in the background AND unread
-//      events are present. Restores on focus. Works alongside the
-//      drop-off email — email covers tab-closed, this covers
-//      still-open-on-another-tab.
+//   3. Toast ONLY on genuine transitions that happen WHILE the user is in
+//      the app (a card finishing, a front becoming ready). The backlog
+//      present on entry is never toasted — it lives in the bell. This is
+//      the key behaviour change from the Tier-1 "toast everything on
+//      entry" model that buried the screen.
 //
-// What this hook intentionally does NOT do:
-//   • Browser push notifications (Notification API + service worker).
-//     Requires HTTPS, permission prompt, more infrastructure. Deferred
-//     until there's signal from real users.
-//   • Real-time push via SSE/WebSocket. 30s polling is fine pre-launch
-//     and adds nothing the user can perceive. Revisit if cost reports
-//     show this as a hot endpoint.
-//   • Auto-mark-on-display. The toast is the celebration moment —
-//     we only stamp `notifiedAt` when the user engages (action button
-//     click, or card-view page mount). Dismissal via X is informal.
+//   4. Tab-title flicker when backgrounded with unread items.
+//
+// Intentionally NOT done: browser push / SSE. 30s polling is fine
+// pre-launch. The "seen" model is still the single `cards.notifiedAt`
+// column (completed only); await states clear themselves when the card
+// advances. A generic notifications table is the durable upgrade.
 
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
@@ -40,10 +32,10 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 
-interface UnreadNotification {
+export interface StudioNotification {
   cardId: number;
   /** 'completed' (reveal celebration) | 'front-ready' | 'inside-ready'
-   *  (front-first await-sign-off nudges). */
+   *  (front-first await-sign-off states). */
   status: string;
   recipientName: string | null;
   occasion: string | null;
@@ -52,7 +44,7 @@ interface UnreadNotification {
 }
 
 interface UnreadResponse {
-  unread: UnreadNotification[];
+  unread: StudioNotification[];
 }
 
 const POLL_INTERVAL_MS = 30_000;
@@ -60,18 +52,17 @@ const POLL_INTERVAL_MS = 30_000;
 const ENDPOINT = '/api/studio/notifications/unread';
 const SEEN_ENDPOINT = '/api/studio/notifications/seen';
 
-export function useCardReadyNotifications() {
+export function useStudioNotifications() {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [location, navigate] = useLocation();
 
-  // Track which (cardId + status) events we've already toasted so a card
-  // sitting in an actionable state doesn't re-fire on every 30s poll.
-  // Keyed by `${cardId}:${status}` so a card that moves front-ready →
-  // inside-ready → completed earns a fresh nudge at each stage. Pure
-  // dedupe ledger — kept in a ref so it never causes a re-render.
-  const toastedRef = useRef<Set<string>>(new Set());
+  // Keys (cardId:status) known as of the previous poll. Anything not in
+  // here on a later poll is a genuine NEW transition worth a toast. Seeded
+  // on the first poll so the entry backlog is silent (bell-only).
+  const knownKeysRef = useRef<Set<string>>(new Set());
+  const initializedRef = useRef(false);
 
   const enabled = isAuthenticated && !isAuthLoading;
 
@@ -80,39 +71,41 @@ export function useCardReadyNotifications() {
     enabled,
     refetchInterval: POLL_INTERVAL_MS,
     refetchOnWindowFocus: false,
-    // Match staleTime to poll interval. Without this, every navigation
-    // inside /studio/* re-fires the endpoint (staleTime: 0 = always
-    // stale on mount). The hook is mounted at the layout level so it
-    // technically only mounts once per app load — but staleTime: 0 is
-    // still wrong in spirit: we already KNOW the data is fresh for
-    // ~30s because that's how often we poll. This makes any future
-    // sibling consumer of the same query key a free read.
     staleTime: POLL_INTERVAL_MS,
   });
 
-  const unread = data?.unread ?? [];
-  const hasUnread = unread.length > 0;
+  const items = data?.unread ?? [];
+  const unreadCount = items.length;
+  const hasUnread = unreadCount > 0;
 
-  // ── Toast on newly-arrived unread events ───────────────────────────
+  // ── Toast ONLY on genuine new transitions (not the entry backlog) ──
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !data) return;
+    const current = data.unread;
+    const currentKeys = new Set(current.map((n) => `${n.cardId}:${n.status}`));
 
-    // Ignore anything for a card the user is already looking at / editing —
-    // that surface already shows the state.
-    const relevant = unread.filter(
-      (n) => !location.includes(`/card/${n.cardId}`),
-    );
+    // First poll → seed the ledger and stay silent. The bell shows the
+    // backlog; we don't toast a user about state that was already there.
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      knownKeysRef.current = currentKeys;
+      return;
+    }
 
-    // ── Completed reveals. One finished card = an individual celebration;
-    //    several at once = a single "N cards are ready" summary so a pile
-    //    of freshly-finished cards doesn't bury the screen on entry. ────
-    const completed = relevant.filter((n) => n.status === 'completed');
-    if (completed.length === 1) {
-      const n = completed[0];
-      const key = `${n.cardId}:completed`;
-      if (!toastedRef.current.has(key)) {
-        toastedRef.current.add(key);
-        const who = n.recipientName?.trim() || null;
+    // Items that appeared since the last poll (and aren't for the card the
+    // user is already on) = real-time transitions worth a single toast.
+    const fresh = current.filter((n) => {
+      const key = `${n.cardId}:${n.status}`;
+      return (
+        !knownKeysRef.current.has(key) &&
+        !location.includes(`/card/${n.cardId}`)
+      );
+    });
+    knownKeysRef.current = currentKeys;
+
+    for (const n of fresh) {
+      const who = n.recipientName?.trim() || null;
+      if (n.status === 'completed') {
         toast({
           title: 'Your card is ready',
           variant: 'success',
@@ -131,128 +124,57 @@ export function useCardReadyNotifications() {
             </ToastAction>
           ),
         });
-      }
-    } else if (completed.length > 1) {
-      const sig =
-        'ready:' +
-        completed
-          .map((n) => n.cardId)
-          .sort()
-          .join(',');
-      if (!toastedRef.current.has(sig)) {
-        toastedRef.current.add(sig);
-        const ids = completed.map((n) => n.cardId);
+      } else {
+        const side = n.status === 'front-ready' ? 'front' : 'inside';
         toast({
-          title: `${completed.length} cards are ready`,
-          variant: 'success',
-          description: 'A few of your cards have finished. Open them to see the reveals.',
+          title: who ? `${who}'s ${side} is ready` : `Your ${side} is ready`,
+          description: `Come take a look and sign off the ${side}.`,
+          variant: 'info',
           action: (
             <ToastAction
-              altText="View finished cards"
-              onClick={() => {
-                void markSeen(ids, queryClient);
-                navigate('/studio/ready');
-              }}
+              altText={`Review the ${side}`}
+              onClick={() => navigate(`/studio/card/${n.cardId}/edit`)}
             >
-              View them
+              Review it
             </ToastAction>
           ),
         });
       }
     }
+  }, [data, enabled, toast, queryClient, navigate, location]);
 
-    // ── Await-sign-off (front-ready / inside-ready): COLLAPSE to a single
-    //    toast. A user with several half-made cards should get one gentle
-    //    nudge, not a wall. These are live-state reminders with no server
-    //    dedupe, so we key on the exact SET of waiting cards — a new
-    //    arrival re-nudges, the same set stays quiet for the session.
-    //    (Longer term these belong in the Tier-2 bell, not a toast.) ────
-    const awaiting = relevant.filter(
-      (n) => n.status === 'front-ready' || n.status === 'inside-ready',
-    );
-    if (awaiting.length > 0) {
-      const sig =
-        'awaiting:' +
-        awaiting
-          .map((n) => `${n.cardId}:${n.status}`)
-          .sort()
-          .join(',');
-      if (!toastedRef.current.has(sig)) {
-        toastedRef.current.add(sig);
-        // Feed is ordered newest-first, so awaiting[0] is the most recent.
-        const newest = awaiting[0];
-        if (awaiting.length === 1) {
-          const side = newest.status === 'front-ready' ? 'front' : 'inside';
-          const who = newest.recipientName?.trim() || null;
-          toast({
-            title: who ? `${who}'s ${side} is ready` : `Your ${side} is ready`,
-            description: `Come take a look and sign off the ${side}.`,
-            variant: 'info',
-            action: (
-              <ToastAction
-                altText={`Review the ${side}`}
-                onClick={() => navigate(`/studio/card/${newest.cardId}/edit`)}
-              >
-                Review it
-              </ToastAction>
-            ),
-          });
-        } else {
-          toast({
-            title: `${awaiting.length} cards waiting for you`,
-            description: 'A few cards are ready to review and sign off.',
-            variant: 'info',
-            action: (
-              <ToastAction
-                altText="Review the newest"
-                onClick={() => navigate(`/studio/card/${newest.cardId}/edit`)}
-              >
-                Review
-              </ToastAction>
-            ),
-          });
-        }
-      }
-    }
-  }, [unread, enabled, toast, queryClient, navigate, location]);
-
-  // ── Tab-title flicker when tab is in background AND has unread ─────
+  // ── Tab-title flicker when backgrounded AND has unread ─────────────
   useEffect(() => {
     if (!enabled) return;
     const originalTitle = 'Celebrait';
-
     const apply = () => {
       const focused = document.visibilityState === 'visible';
       if (!focused && hasUnread) {
-        const count = unread.length;
         document.title =
-          count === 1
+          unreadCount === 1
             ? '✨ Something’s waiting — Celebrait'
-            : `✨ ${count} waiting — Celebrait`;
+            : `✨ ${unreadCount} waiting — Celebrait`;
       } else if (focused) {
         document.title = originalTitle;
       }
     };
-
     apply();
     document.addEventListener('visibilitychange', apply);
     return () => {
       document.removeEventListener('visibilitychange', apply);
       document.title = originalTitle;
     };
-  }, [hasUnread, unread.length, enabled]);
+  }, [hasUnread, unreadCount, enabled]);
 
-  return { unread, hasUnread };
+  return { items, unreadCount, hasUnread };
 }
 
 /** Fire-and-forget mark-seen with optimistic cache update. Used by the
- *  toast action button and the card-view page on mount. */
+ *  bell, the card-ready toast, and the card-view page on mount. */
 async function markSeen(
   cardIds: number[],
   queryClient: QueryClient,
 ): Promise<void> {
-  // Optimistic update — drop the marked IDs from the unread list so
-  // the UI reflects engagement immediately without waiting for poll.
   queryClient.setQueryData<UnreadResponse>([ENDPOINT], (prev) => {
     if (!prev) return prev;
     return { unread: prev.unread.filter((n) => !cardIds.includes(n.cardId)) };
@@ -260,23 +182,15 @@ async function markSeen(
 
   try {
     await apiRequest('POST', SEEN_ENDPOINT, { cardIds });
-    // Invalidate the dashboard cards query so the "Just finished"
-    // violet treatment on this card's tile clears the next time the
-    // user lands on the Ready / Home page. Without this the tile
-    // would keep its glow until the user did a hard refresh or the
-    // query's natural staleTime expired.
     queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
   } catch (err) {
-    // Next poll re-fetches authoritative state, so a swallowed error
-    // costs at most one stale 30s window.
     console.warn('[notifications] mark-seen failed', err);
   }
 }
 
-/** Helper for surfaces that want to explicitly stamp a card as seen
- *  — typically the card-view page on mount. Safe to call on every
- *  mount: the server filter `WHERE notifiedAt IS NULL` makes already-
- *  seen marks a no-op. */
+/** Stamp a card's "ready" notification seen — used by the card-view page
+ *  on mount and the maker when it reveals a completed card. Idempotent
+ *  (server filters on notifiedAt IS NULL). */
 export function useMarkCardSeen() {
   const queryClient = useQueryClient();
   return (cardId: number) => {

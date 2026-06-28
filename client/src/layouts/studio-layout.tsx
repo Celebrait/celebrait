@@ -42,8 +42,8 @@ import logoSrc from '../assets/Logo2.png';
 import { FabNewCard } from '@/components/studio/fab-new-card';
 import { StudioHints } from '@/components/studio/studio-hints';
 import { WelcomeMoment } from '@/components/studio/welcome-moment';
+import { NotificationBell } from '@/components/studio/notification-bell';
 import { DevTestFailurePanel } from '@/components/dev/dev-test-failure-panel';
-import { useCardReadyNotifications } from '@/hooks/use-card-ready-notifications';
 
 interface NavItem {
   label: string;
@@ -200,12 +200,9 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Layout-level driver for "your card is ready" in-app notifications.
-  // Polls /api/studio/notifications/unread every 30s, toasts on new
-  // unread, flickers the tab title when backgrounded. Mounted once
-  // here so it runs across every Studio surface (dashboard, address
-  // book, drafts, sent, etc.) without per-page setup.
-  useCardReadyNotifications();
+  // The notification polling + toasts now live inside <NotificationBell />
+  // (mounted in the header below), so the bell and its driver share one
+  // query and one mount point across every Studio surface.
 
   const initials = user?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?';
   const showFab = !HIDE_FAB_ON.some((rx) => rx.test(location));
@@ -245,8 +242,10 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
             <img src={logoSrc} alt="Celebrait" className="h-8 object-contain" />
           </Link>
 
-          {/* Spacer pushes avatar + logout to the right */}
+          {/* Spacer pushes the bell + avatar + logout to the right */}
           <div className="flex-1" />
+
+          <NotificationBell />
 
           <div className="flex items-center gap-2 bg-stone-50 rounded-full pl-1 pr-3 py-1">
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white text-xs font-semibold">
