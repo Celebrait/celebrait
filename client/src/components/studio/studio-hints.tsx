@@ -290,7 +290,7 @@ function HintPopover({
           stays clickable (clicking it also dismisses the hint). */}
       <div
         aria-hidden
-        className="fixed z-[90] rounded-xl ring-2 ring-brand/60 ring-offset-2 ring-offset-transparent transition-all"
+        className="pointer-events-none fixed z-[90] rounded-xl ring-2 ring-brand/60 ring-offset-2 ring-offset-transparent transition-all"
         style={{
           left: rect.left - 4,
           top: rect.top - 4,
