@@ -111,6 +111,15 @@ export function StudioFlowSection() {
   const rotEnv = useTransform(scrollYProgress, [0.984, 0.994], [0, 40]);
   const scaleEnv = useTransform(scrollYProgress, [0.984, 0.994], [1, 1.1]);
 
+  // The "add your words" screen the user was just on — it sits in FRONT at the
+  // very start of the finale, then ZOOMS FORWARD (the camera pushes through it)
+  // and fades, uncovering the card that dollies in from BEHIND. Restores the
+  // continuous dolly the build-step split broke (Kevin 2026-06-29).
+  const wordsZ = useTransform(scrollYProgress, [0.79, 0.84], [0, 950]);
+  const wordsO = useTransform(scrollYProgress, [0.79, 0.82, 0.84], [1, 1, 0]);
+  // Always fully typed (the words are already written by this point).
+  const wordsTyped = useTransform(scrollYProgress, [0, 1], [1, 1]);
+
   return (
     <div ref={ref} className="relative" style={{ height: '450vh', marginTop: '-60vh' }}>
       <div
@@ -147,6 +156,15 @@ export function StudioFlowSection() {
                 </motion.div>
               </motion.div>
             </div>
+          </motion.div>
+
+          {/* The "add your words" screen — sits in front, zooms forward + clears,
+              uncovering the card dollying in from behind it. */}
+          <motion.div
+            style={{ z: wordsZ, opacity: wordsO }}
+            className="pointer-events-none absolute inset-0 flex items-center justify-center will-change-transform"
+          >
+            <WordsCard progress={wordsTyped} />
           </motion.div>
       </div>
     </div>
