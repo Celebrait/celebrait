@@ -87,10 +87,6 @@ const CardViewerPage = lazy(() => import("@/pages/card-viewer"));
 
 // Hero scroll-dolly PROOF OF CONCEPT — isolated, not linked.
 const HeroScrollPocPage = lazy(() => import("@/pages/hero-scroll-poc"));
-// Reveal-beat POC (autoplay + tap-to-open model) — isolated, not linked.
-const RevealBeatPocPage = lazy(() =>
-  import("@/pages/hero-scroll-poc").then((m) => ({ default: m.RevealBeatPocPage })),
-);
 
 // Checkout
 const CheckoutPage = lazy(() => import("@/pages/checkout"));
@@ -130,7 +126,6 @@ function Router() {
         <Switch>
           <Route path="/" component={Landing} />
           <Route path="/hero-poc" component={HeroScrollPocPage} />
-          <Route path="/reveal-poc" component={RevealBeatPocPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/pricing" component={PricingPage} />
           <Route path="/studio-chat">
