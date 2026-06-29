@@ -19,7 +19,7 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { Truck, Sparkles, Zap, MailOpen, Globe } from 'lucide-react';
-import fathersDayFront from '@/assets/fathers-day-front.png';
+import fathersDayFront from '@/assets/fathers-day-front.jpg';
 
 /** Auto-looping envelope-opening mock. Just CSS transforms — full
  *  Lottie/three.js for one section is overkill. The animation runs on

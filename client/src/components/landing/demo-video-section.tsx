@@ -25,8 +25,8 @@ import { Play } from 'lucide-react';
 // at 1440×900 / 2x DPR (puppeteer + headless Chrome, dev OTP login).
 // Re-snap with the same flow if the dashboard chrome changes:
 //   /tmp/snap-studio.mjs (puppeteer-core), saves to
-//   client/src/assets/studio-dashboard-poster.png.
-import studioDashboardPoster from '@/assets/studio-dashboard-poster.png';
+//   client/src/assets/studio-dashboard-poster.jpg.
+import studioDashboardPoster from '@/assets/studio-dashboard-poster.jpg';
 
 export function DemoVideoSection() {
   return (

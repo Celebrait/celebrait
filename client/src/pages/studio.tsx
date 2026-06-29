@@ -42,8 +42,8 @@ import { Card3DViewer } from '@/components/card-3d-viewer';
 // to a brand-new user immediately, rather than showing a blank
 // metaphor card. Swap if Kevin curates a different "first impression"
 // occasion later.
-import heroFrontSrc from '@/assets/fathers-day-front.png';
-import heroInsideSrc from '@/assets/fathers-day-inside-new.png';
+import heroFrontSrc from '@/assets/fathers-day-front.jpg';
+import heroInsideSrc from '@/assets/fathers-day-inside-new.jpg';
 import { useAuth } from '@/hooks/use-auth';
 import { bucketCards, deriveCardTitle } from '@/lib/studio-card-buckets';
 import { getOccasionIcon } from '@/lib/occasion-icon';

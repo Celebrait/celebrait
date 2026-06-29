@@ -41,8 +41,8 @@ import { GestureHints } from '@/components/gesture-hints';
 // stored_images/ so the lander stays in lockstep with what the real
 // product produces. To swap to a different card, copy that card's
 // PNGs over these filenames.
-import heroCardFront from '@/assets/hero-card-front.png';
-import heroCardInside from '@/assets/hero-card-inside.png';
+import heroCardFront from '@/assets/hero-card-front.jpg';
+import heroCardInside from '@/assets/hero-card-inside.jpg';
 import heroPhotoGroup from '@/assets/hero-photo-group.jpg';
 import heroPhotoIndividuals from '@/assets/hero-photo-individuals.jpg';
 

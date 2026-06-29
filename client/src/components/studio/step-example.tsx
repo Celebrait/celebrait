@@ -32,8 +32,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import exampleFront from '@/assets/hero-card-front.png';
-import exampleInside from '@/assets/hero-card-inside.png';
+import exampleFront from '@/assets/hero-card-front.jpg';
+import exampleInside from '@/assets/hero-card-inside.jpg';
 
 interface StepExampleProps {
   /** Small eyebrow label above the card, e.g. "Inside Text Example". */

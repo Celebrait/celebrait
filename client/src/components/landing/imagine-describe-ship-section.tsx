@@ -66,8 +66,8 @@ import { GestureHints } from '@/components/gesture-hints';
 // TODO Kevin: swap to brainstorm-card-front/inside.png once the
 // custom card art is rendered. Until then, points at the hero
 // card 120 placeholders so the section renders end-to-end.
-import brainstormCardFront from '@/assets/hero-card-front.png';
-import brainstormCardInside from '@/assets/hero-card-inside.png';
+import brainstormCardFront from '@/assets/hero-card-front.jpg';
+import brainstormCardInside from '@/assets/hero-card-inside.jpg';
 
 const Card3DViewer = lazy(() =>
   import('@/components/card-3d-viewer').then((m) => ({ default: m.Card3DViewer })),

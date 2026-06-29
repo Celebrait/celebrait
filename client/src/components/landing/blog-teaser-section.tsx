@@ -7,8 +7,8 @@
 
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import fathersDayFront from '@/assets/fathers-day-front.png';
-import fathersDayInside from '@/assets/fathers-day-inside-new.png';
+import fathersDayFront from '@/assets/fathers-day-front.jpg';
+import fathersDayInside from '@/assets/fathers-day-inside-new.jpg';
 
 interface PostTeaser {
   cover: string;
