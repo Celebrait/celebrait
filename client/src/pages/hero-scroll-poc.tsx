@@ -10,13 +10,17 @@
 // Pure DOM + framer-motion: CSS perspective does the dolly; the studio card is
 // a live clone (not a screenshot) so it can animate. Isolated /hero-poc.
 
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import {
   motion,
+  AnimatePresence,
   useScroll,
   useTransform,
   useMotionTemplate,
+  useMotionValue,
+  useInView,
   useReducedMotion,
+  animate,
   easeInOut,
   type MotionValue,
 } from 'framer-motion';
@@ -946,5 +950,141 @@ function ScrollGlyph() {
         transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
       />
     </svg>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// RevealBeat (the new interaction model — POC, route: /reveal-poc)
+//
+// Replaces the scroll-SCRUBBED finale with the robust pattern we settled
+// on (no scroll-jacking — see next_landing_3d_immersive_scroll.md): the
+// beat AUTOPLAYS once when it scrolls into view, then waits for a real
+// tap. Reuses the already-tuned <MagicCard> + <WordsCard> as black boxes,
+// driving their MotionValues from spring animations instead of scroll.
+//
+// Beat 1 (this POC):
+//   • "Add your words" card sits. Card EMERGES from behind it + materialises
+//     (swipe wipe-in) in one motion when the section enters view.
+//   • "Tap to open" → the cover hinges open (open spring, not scroll).
+// Beat 2 (next): scroll on → close → envelope swipe → flick off → make-your-own.
+// ─────────────────────────────────────────────────────────────────────
+export function RevealBeat() {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.5 });
+  const reduced = useReducedMotion();
+
+  // MagicCard's three inputs, now spring-driven instead of scroll-driven.
+  const arrive = useMotionValue(0); // 0 = behind the words, 1 = arrived front
+  const openMv = useMotionValue(0); // cover hinge — driven on tap
+  const replaceMv = useMotionValue(0); // envelope swap — beat 2, stays 0 here
+  const wordsProgress = useMotionValue(1); // words shown fully typed
+
+  const [arrived, setArrived] = useState(false);
+  const [opened, setOpened] = useState(false);
+
+  // Autoplay the arrival once, when the beat scrolls into view.
+  useEffect(() => {
+    if (!inView) return;
+    if (reduced) {
+      arrive.set(1);
+      setArrived(true);
+      return;
+    }
+    const controls = animate(arrive, 1, {
+      duration: 1.15,
+      ease: [0.2, 0.8, 0.2, 1],
+      onComplete: () => setArrived(true),
+    });
+    return () => controls.stop();
+  }, [inView, reduced, arrive]);
+
+  const handleOpen = () => {
+    if (!arrived || opened) return;
+    setOpened(true);
+    if (reduced) openMv.set(1);
+    else animate(openMv, 1, { duration: 0.95, ease: easeInOut });
+  };
+
+  // Card rises out from behind the words + grows + fades up as it materialises.
+  const cardScale = useTransform(arrive, [0, 1], [0.84, 1]);
+  const cardY = useTransform(arrive, [0, 1], [72, 0]);
+  const cardO = useTransform(arrive, [0, 0.35, 1], [0, 1, 1]);
+  // The words step yields — fades + recedes — so the card becomes the hero.
+  const wordsO = useTransform(arrive, [0, 0.55, 1], [1, 0.4, 0]);
+  const wordsScale = useTransform(arrive, [0, 1], [1, 0.94]);
+
+  return (
+    <section
+      ref={ref}
+      className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-24"
+    >
+      <div className="relative">
+        {/* The reveal card — sits BEHIND the words, rises out, then taps open. */}
+        <motion.div
+          style={{ scale: cardScale, y: cardY, opacity: cardO }}
+          className="absolute inset-0 z-10 flex items-center justify-center will-change-transform"
+        >
+          <button
+            type="button"
+            onClick={handleOpen}
+            className="cursor-pointer rounded-[28px] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+            aria-label="Tap to open the card"
+          >
+            <MagicCard swipe={arrive} open={openMv} replace={replaceMv} />
+          </button>
+        </motion.div>
+
+        {/* The "add your words" step — fades + recedes as the card arrives.
+            pointer-events-none so taps reach the card behind it. */}
+        <motion.div
+          style={{ opacity: wordsO, scale: wordsScale }}
+          className="pointer-events-none relative z-20 will-change-transform"
+        >
+          <WordsCard progress={wordsProgress} />
+        </motion.div>
+
+        {/* Tap-to-open hint — appears once arrived, clears on open. */}
+        <AnimatePresence>
+          {arrived && !opened && (
+            <motion.div
+              key="tap-hint"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.4 }}
+              className="pointer-events-none absolute inset-x-0 -bottom-16 z-30 flex justify-center"
+            >
+              <span className="inline-flex items-center rounded-full bg-ink/85 px-4 py-2 text-[13px] font-medium text-white shadow-lg backdrop-blur">
+                Tap to open
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </section>
+  );
+}
+
+/** Isolated preview page for the new reveal beat — route /reveal-poc.
+ *  A scroll spacer above so the beat enters view on scroll (triggering the
+ *  autoplay), and room below to scroll past. */
+export function RevealBeatPocPage() {
+  return (
+    <main className="bg-surface text-ink">
+      <section className="flex min-h-[70vh] flex-col items-center justify-center gap-2 px-6 text-center">
+        <h1 className="text-2xl font-semibold">Reveal beat — POC</h1>
+        <p className="max-w-sm text-sm text-ink-soft">
+          Scroll down. The card should emerge from behind the words and arrive
+          in one motion, then wait for a tap to open.
+        </p>
+        <div className="mt-6 text-stone-400">
+          <ScrollGlyph />
+        </div>
+      </section>
+      <RevealBeat />
+      <section className="flex min-h-screen items-center justify-center px-6 text-sm text-ink-soft">
+        (scroll space below — beat 2, the sweep-out, comes next)
+      </section>
+    </main>
   );
 }
