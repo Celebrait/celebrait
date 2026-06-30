@@ -167,6 +167,11 @@ function LoadedView({
       const el = document.createElement('link');
       el.rel = 'preload';
       el.as = 'image';
+      // MUST match how Three.js loads the texture (crossOrigin='anonymous').
+      // Without this, a cross-origin (R2) image preloaded no-cors poisons the
+      // cache; Three's CORS request then fails ("no ACAO header") → WebGL
+      // context lost → the 3D card never renders.
+      el.crossOrigin = 'anonymous';
       el.href = url;
       document.head.appendChild(el);
       return el;

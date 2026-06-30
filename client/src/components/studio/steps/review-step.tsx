@@ -817,6 +817,10 @@ function RevealView({
       const el = document.createElement('link');
       el.rel = 'preload';
       el.as = 'image';
+      // Match Three.js's crossOrigin='anonymous' loader — otherwise a no-cors
+      // preload poisons the cache for cross-origin (R2) images and the texture
+      // load fails (no ACAO) → WebGL context lost.
+      el.crossOrigin = 'anonymous';
       el.href = url;
       document.head.appendChild(el);
       return el;
