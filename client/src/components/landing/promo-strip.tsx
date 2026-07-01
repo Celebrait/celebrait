@@ -16,7 +16,7 @@ export function PromoStrip() {
     <div className="fixed top-20 left-0 right-0 z-[140] bg-surface border-y border-stone-200/70">
       <div className="max-w-7xl mx-auto h-10 px-6 md:px-10 flex items-center justify-center">
         <p className="text-xs md:text-sm text-ink-soft text-center">
-          Made today, delivered tomorrow. Printed cards from £7.99.{' '}
+          Made today, delivered tomorrow. Printed cards £8.99.{' '}
           <Link
             href="/pricing"
             className="text-brand hover:text-brand-dark font-medium ml-1"

@@ -153,7 +153,7 @@ function EmptyView({ name }: { name: string }) {
             <em className="italic text-brand-dark font-normal">cards.</em>
           </h2>
           <p className="text-base sm:text-lg text-stone-600 leading-relaxed mb-7">
-            Like the one below — built around someone you love. Upload a photo, tell us the moment, and we'll render a card with them in it. Print it, send it digitally, or both.
+            Like the one below — built around someone you love. Upload a photo, tell us the moment, and we'll render a card with them in it. Print it and post it — with a free digital link to share.
           </p>
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-center lg:items-start gap-3 sm:gap-4 justify-center lg:justify-start">
             <Link
@@ -468,7 +468,7 @@ function HeroCarousel({
             <p className="text-sm text-stone-600 mt-0.5">
               {isSent
                 ? 'Track delivery in Orders & delivery.'
-                : 'Choose digital, print, or both.'}
+                : 'Ready to print and post.'}
             </p>
           </div>
           <ArrowRight className="w-5 h-5 text-stone-400 flex-shrink-0 hidden sm:block" />
@@ -779,8 +779,8 @@ const STEPS: Array<{ title: string; body: string }> = [
     body: "Your own words, in our hand. We turn what you type into the inside of the card.",
   },
   {
-    title: 'Send or print',
-    body: 'Share a digital link instantly, or have a printed card posted — to you or direct to them.',
+    title: 'Print & post',
+    body: 'A premium card printed and posted — to you or straight to them — with a free digital link to share.',
   },
 ];
 

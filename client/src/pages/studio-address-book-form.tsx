@@ -536,7 +536,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
         {/* Contact */}
         <FormSection
           title="Contact"
-          subtitle="Email lets you send digital cards. Phone is just for your records."
+          subtitle="Email is where we send their card's digital link. Phone is just for your records."
         >
           <div className="grid sm:grid-cols-2 gap-3">
             <Field label="Email" optional htmlFor="email">
@@ -566,7 +566,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
         {/* Postal address */}
         <FormSection
           title="Postal address"
-          subtitle="For printed cards. Leave blank if you only ever send digital."
+          subtitle="For posting their printed card."
         >
           <div className="space-y-3">
             <Field label="Address line 1" optional htmlFor="addr1">

@@ -190,8 +190,8 @@ export function SendItYourWaySection() {
               Printed and posted.
             </h3>
             <p className="text-base text-ink-soft leading-relaxed mb-8">
-              From £7.99 — printed on premium uncoated stock, posted in a kraft
-              envelope.
+              £8.99 plus postage — printed on premium uncoated stock, posted in
+              a kraft envelope.
             </p>
 
             <div className="space-y-5">

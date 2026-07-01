@@ -801,8 +801,8 @@ function Canvas({
       <div className="w-full max-w-[440px] px-6">
         {!draft.delivery.format ? (
           <div className="space-y-2.5">
-            <p className="mb-1 text-center text-[13px] font-medium text-ink-soft">How do you want to give it?</p>
-            {([['digital', 'Digital card', 'Sent with a link', '£0.99'], ['printed', 'Printed & posted', 'Real card in the post', '£5.99'], ['both', 'Printed + digital', 'Most popular', '£6.49']] as const).map(([k, t, s, p]) => (
+            <p className="mb-1 text-center text-[13px] font-medium text-ink-soft">Your printed card</p>
+            {([['printed', 'Printed & posted', 'A real card in the post — free digital link included', '£8.99']] as const).map(([k, t, s, p]) => (
               <button key={k} onClick={() => onFormat(k)} className="flex w-full items-center justify-between rounded-2xl border border-stone-200 bg-white px-4 py-3.5 text-left transition-colors hover:border-brand">
                 <div><p className="text-[15px] font-medium text-ink">{t}</p><p className="text-[12.5px] text-ink-soft">{s}</p></div>
                 <span className="text-[15px] font-semibold text-brand">{p}</span>

@@ -356,7 +356,7 @@ function SummaryPanel({
               Blank centre with decorative border
             </div>
             <div className="text-[11px] text-stone-500 mt-0.5">
-              Print only — digital needs a message inside.
+              We'll post it to you to handwrite inside.
             </div>
           </div>
         ) : insideMode === 'write' ? (

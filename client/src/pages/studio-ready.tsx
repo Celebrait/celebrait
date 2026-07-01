@@ -71,7 +71,7 @@ function ReadyEmpty() {
       <p className="text-base font-semibold text-ink mb-1">No cards waiting</p>
       <p className="text-sm text-stone-600 mb-6 max-w-sm mx-auto">
         Cards that are finished but not yet sent will show here — ready
-        for you to choose digital, print, or both.
+        for you to print and post.
       </p>
       <Link
         href="/studio/new-card"

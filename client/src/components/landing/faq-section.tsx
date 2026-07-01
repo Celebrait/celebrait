@@ -32,7 +32,7 @@ const FAQS: FaqEntry[] = [
   },
   {
     q: 'Can I print and post the card?',
-    a: "Yes. Premium uncoated 350gsm card, posted in a kraft envelope. £8.99 all-in, including the digital version. Tracked delivery, with overnight available if you order before 2pm.",
+    a: "Yes. Premium uncoated 350gsm card, posted in a kraft envelope. £8.99 plus postage, with a free digital version included. Tracked delivery, with overnight available if you order before 2pm.",
   },
   {
     q: 'How fast is delivery?',
