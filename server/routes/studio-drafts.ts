@@ -15,14 +15,13 @@
 // Nobody should be able to PATCH someone else's draft.
 
 import type { Express, Request, Response } from 'express';
-import path from 'path';
-import { promises as fs } from 'fs';
 import { randomBytes } from 'crypto';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '../db';
 import {
   cards,
   cardAttempts,
+  orders,
   EMPTY_CARD_DRAFT,
   studioOrders,
   type CardDraftState,
@@ -30,7 +29,7 @@ import {
   type CardAttemptListItem,
 } from '@shared/schema';
 import { sendSenderCardOpenedEmail } from '../email-service';
-import { publicImageUrl } from '../image-storage';
+import { publicImageUrl, deleteCardImages } from '../image-storage';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import {
   generateStudioCard,
@@ -59,15 +58,6 @@ function getUserId(req: Request): string | null {
   return typeof id === 'string' && id.length > 0 ? id : null;
 }
 
-// Strip the /images/ prefix to get the path relative to stored_images/.
-// Images are served via express.static('stored_images') at /images, so
-// what's in the DB may be either a bare relative path or already have
-// the /images/ prefix depending on when it was written.
-function imageDiskPath(storedPath: string | null | undefined): string | null {
-  if (!storedPath) return null;
-  const rel = storedPath.startsWith('/images/') ? storedPath.slice('/images/'.length) : storedPath;
-  return path.join(process.cwd(), 'stored_images', rel);
-}
 
 // Server-side mirror of the client's readiness gates. The UI blocks Next
 // until each step is complete, but the server shouldn't trust that — a
@@ -1022,16 +1012,10 @@ export function registerStudioDraftRoutes(app: Express): void {
     if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
 
     try {
-      // Grab the card first so we know which files to clean up AND so
-      // we can enforce ownership before any deletion side effect.
+      // Grab the card first so we can enforce ownership before any
+      // deletion side effect.
       const rows = await db
-        .select({
-          id: cards.id,
-          userId: cards.userId,
-          frontImagePath: cards.frontImagePath,
-          insideImagePath: cards.insideImagePath,
-          printReadyPath: cards.printReadyPath,
-        })
+        .select({ id: cards.id, userId: cards.userId })
         .from(cards)
         .where(eq(cards.id, id))
         .limit(1);
@@ -1040,16 +1024,28 @@ export function registerStudioDraftRoutes(app: Express): void {
       if (!row) return res.status(404).json({ message: 'Card not found' });
       if (row.userId !== userId) return res.status(403).json({ message: 'Not your card' });
 
-      // Best-effort delete on disk — a missing file shouldn't block
-      // the DB delete. Same pattern as /api/photos/:id.
-      const diskPaths = [row.frontImagePath, row.insideImagePath, row.printReadyPath]
-        .map(imageDiskPath)
-        .filter((p): p is string => typeof p === 'string' && p.length > 0);
-      for (const p of diskPaths) {
-        await fs.unlink(p).catch(() => {});
-      }
+      // Erase the actual image files FIRST — every file for this card,
+      // canonical + per-attempt, from R2 (or local disk in dev). This is
+      // the storage half of "right to erasure": a deleted card must not
+      // leave its artwork/photos sitting in the bucket. Best-effort — a
+      // storage hiccup must not block the DB delete.
+      const removed = await deleteCardImages(id);
 
-      await db.delete(cards).where(eq(cards.id, id));
+      // Then remove the card and everything that hangs off it, atomically.
+      // `orders` has a FK to cards (no cascade), so it must go before the
+      // card row or the delete would error; card_attempts + studio_orders
+      // carry user content (tweak text, recipient emails/addresses,
+      // messages) and must be erased too. generation_log is left intact —
+      // it holds only provider/model/cost/timing (no personal data) and is
+      // needed for cost analytics.
+      await db.transaction(async (tx) => {
+        await tx.delete(cardAttempts).where(eq(cardAttempts.cardId, id));
+        await tx.delete(studioOrders).where(eq(studioOrders.cardId, id));
+        await tx.delete(orders).where(eq(orders.cardId, id));
+        await tx.delete(cards).where(eq(cards.id, id));
+      });
+
+      console.log(`[STUDIO] Deleted card ${id} (user ${userId}), ${removed} image file(s) erased`);
       res.json({ success: true });
     } catch (err: any) {
       console.error('[STUDIO] card delete error:', err);

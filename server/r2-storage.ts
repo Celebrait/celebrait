@@ -111,3 +111,56 @@ export async function r2Copy(srcKey: string, destKey: string): Promise<boolean> 
     return false;
   }
 }
+
+/** Delete a single object. S3 DELETE is idempotent — a missing key still
+ *  returns 204 — so this only throws on a real error, not a 404. */
+export async function r2Delete(key: string): Promise<void> {
+  const res = await client().fetch(objectUrl(key), { method: 'DELETE' });
+  if (!res.ok && res.status !== 404) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`R2 delete ${key} failed: ${res.status} ${detail}`);
+  }
+}
+
+function decodeXmlEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+/** List every object key under a prefix (ListObjectsV2, paginated). We parse
+ *  the S3 XML with a regex rather than pulling in an XML lib — keys are our
+ *  own flat `card_<id>_*` filenames, so this stays simple and dependency-free. */
+export async function r2List(prefix: string): Promise<string[]> {
+  const keys: string[] = [];
+  let token: string | undefined;
+  do {
+    const params = new URLSearchParams({ 'list-type': '2', prefix });
+    if (token) params.set('continuation-token', token);
+    const url = `https://${ACCOUNT_ID}.r2.cloudflarestorage.com/${BUCKET}/?${params.toString()}`;
+    const res = await client().fetch(url, { method: 'GET' });
+    if (!res.ok) {
+      throw new Error(`R2 list ${prefix} failed: ${res.status}`);
+    }
+    const xml = await res.text();
+    for (const m of Array.from(xml.matchAll(/<Key>([^<]+)<\/Key>/g))) {
+      keys.push(decodeXmlEntities(m[1]));
+    }
+    token = /<IsTruncated>true<\/IsTruncated>/.test(xml)
+      ? xml.match(/<NextContinuationToken>([^<]+)<\/NextContinuationToken>/)?.[1]
+      : undefined;
+  } while (token);
+  return keys;
+}
+
+/** Delete every object under a prefix. Returns how many were removed.
+ *  NB the trailing `_` in a `card_<id>_` prefix disambiguates card 2 from
+ *  card 20/234 — string-prefix matching alone would not. */
+export async function r2DeleteByPrefix(prefix: string): Promise<number> {
+  const keys = await r2List(prefix);
+  for (const key of keys) await r2Delete(key);
+  return keys.length;
+}

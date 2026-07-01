@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { createCanvas, loadImage } from 'canvas';
-import { isR2Enabled, r2Put, r2Get, r2Copy, r2PublicUrl } from './r2-storage';
+import { isR2Enabled, r2Put, r2Get, r2Copy, r2PublicUrl, r2DeleteByPrefix } from './r2-storage';
 
 const IMAGES_DIR = path.join(process.cwd(), 'stored_images');
 const TEMP_DIR = path.join(process.cwd(), 'temp_images');
@@ -505,6 +505,49 @@ export async function copyStoredFile(
       `[STORAGE] Could not copy ${srcFilename} → ${destFilename}: ${err?.message ?? err}`,
     );
     return false;
+  }
+}
+
+/**
+ * Delete EVERY stored image belonging to a card — the canonical
+ * front/inside/print files AND all per-attempt regen files
+ * (`card_<id>_front_aN.png`, etc.) — from wherever they actually live
+ * (R2 when enabled, otherwise local disk + print/temp dirs).
+ *
+ * Keys/filenames are matched on the `card_<id>_` prefix; the trailing
+ * underscore keeps card 2 from also matching card 20/234.
+ *
+ * This is the storage half of "right to erasure": when a card is
+ * deleted, its images must not linger in the bucket. Best-effort — a
+ * missing file or storage hiccup must never block the DB delete — so it
+ * swallows errors and returns the count removed.
+ */
+export async function deleteCardImages(cardId: number): Promise<number> {
+  const prefix = `card_${cardId}_`;
+  try {
+    if (isR2Enabled()) {
+      return await r2DeleteByPrefix(prefix);
+    }
+    let removed = 0;
+    const dirs = [IMAGES_DIR, TEMP_DIR, path.join(process.cwd(), 'print_files')];
+    for (const dir of dirs) {
+      let files: string[];
+      try {
+        files = await fs.readdir(dir);
+      } catch {
+        continue; // dir may not exist in this environment
+      }
+      for (const file of files) {
+        if (file.startsWith(prefix)) {
+          await fs.unlink(path.join(dir, file)).catch(() => {});
+          removed++;
+        }
+      }
+    }
+    return removed;
+  } catch (err) {
+    console.error(`[STORAGE] deleteCardImages(${cardId}) failed:`, err);
+    return 0;
   }
 }
 
