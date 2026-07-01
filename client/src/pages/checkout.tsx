@@ -1,8 +1,9 @@
 // client/src/pages/checkout.tsx
 //
-// Studio checkout. Product-first: pick Print / Digital / Both, then
-// fill in only the fields that product needs. The interactive front/
-// inside preview leads the page — it's what they're paying for.
+// Studio checkout. Print-led V1 (2026-07-01): one product — a printed
+// card that includes a free digital link — so there's no format choice,
+// just confirm details + pay. The interactive front/inside preview
+// leads the page — it's what they're paying for.
 //
 // Prices come from `shared/pricing.ts` — the same numbers the public
 // /pricing page renders, so checkout can't drift below what we
@@ -18,7 +19,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Loader2, Package, Pencil, Sparkles } from 'lucide-react';
+import { Loader2, Package, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,7 +30,6 @@ import CheckoutLayout from '@/layouts/checkout-layout';
 import {
   tierPriceGBP,
   UK_SHIPPING_STANDARD_GBP,
-  BUNDLE_DISCOUNT_GBP,
 } from '@shared/pricing';
 
 interface CardSummary {
@@ -70,27 +70,29 @@ interface CheckoutResponse {
 type ProductChoice = 'digital' | 'print' | 'both';
 
 // Prices in pence — sourced from shared/pricing.ts so the public
-// /pricing page and checkout can't disagree.
+// /pricing page and checkout can't disagree. Print-led V1: the printed
+// card is the only product and includes a free digital link, so digital
+// is always £0 and there's no bundle discount. Postage is a separate
+// line (placeholder until Prodigi supplies the real quote).
 const PRINT_PRICE = tierPriceGBP('printed');
-const DIGITAL_PRICE = tierPriceGBP('digital');
 const UK_SHIPPING = UK_SHIPPING_STANDARD_GBP;
-const BUNDLE_DISCOUNT = BUNDLE_DISCOUNT_GBP;
 
 function formatGBP(minor: number): string {
   return `£${(minor / 100).toFixed(2)}`;
 }
 
-function totalsFor(choice: ProductChoice) {
-  const printAmount = choice === 'digital' ? 0 : PRINT_PRICE;
-  const digitalAmount = choice === 'print' ? 0 : DIGITAL_PRICE;
-  const shippingAmount = choice === 'digital' ? 0 : UK_SHIPPING;
-  const discount = choice === 'both' ? BUNDLE_DISCOUNT : 0;
+// Always the printed card (+ free digital link) + postage. Kept as a
+// function with an optional arg so existing callers don't need changing.
+function totalsFor(_choice?: ProductChoice) {
+  const printAmount = PRINT_PRICE;
+  const digitalAmount = 0;
+  const shippingAmount = UK_SHIPPING;
   return {
     printAmount,
     digitalAmount,
     shippingAmount,
-    discount,
-    total: printAmount + digitalAmount + shippingAmount - discount,
+    discount: 0,
+    total: printAmount + shippingAmount,
   };
 }
 
@@ -135,21 +137,16 @@ export default function CheckoutPage() {
   const initAppliedRef = useRef(false);
   useEffect(() => {
     if (initAppliedRef.current || !card) return;
-    if (resolvedFormat) setChoice(resolvedFormat);
     if (resolvedDestination) setShipTo(resolvedDestination);
     if (delivery?.fromLine) setGiftMessage(delivery.fromLine);
     initAppliedRef.current = true;
   }, [card, resolvedFormat, resolvedDestination, delivery?.fromLine]);
 
-  // Pre-select from ?product= URL param when coming from the Studio
-  // review step (sender picks the tier there, checkout just confirms).
-  // Falls back to 'both' — the recommended default.
-  const initialChoice: ProductChoice = (() => {
-    if (typeof window === 'undefined') return 'both';
-    const p = new URLSearchParams(window.location.search).get('product');
-    return p === 'digital' || p === 'print' || p === 'both' ? p : 'both';
-  })();
-  const [choice, setChoice] = useState<ProductChoice>(initialChoice);
+  // Print-led V1: the printed card is the only product (it includes a
+  // free digital link). There is no format choice — `choice` is always
+  // 'print'. Kept as state typed as the union so the legacy summary +
+  // ship-to branches below still type-check unchanged.
+  const [choice] = useState<ProductChoice>('print');
   const [previewSide, setPreviewSide] = useState<'front' | 'inside'>('front');
 
   const [customerName, setCustomerName] = useState('');
@@ -344,47 +341,23 @@ export default function CheckoutPage() {
                   the inline product radios (fallback for deep-links
                   to /checkout without a delivery choice on the
                   draft). See isResolved above. */}
-              {isResolved ? (
-                <YourChoiceSummary
-                  cardId={cardId}
-                  insideIsBlank={insideIsBlank}
-                  choice={choice}
-                  shipTo={shipTo}
-                  recipientName={recipientName}
-                  total={totalsFor(choice).total}
-                  onChange={() => setLocation(`/studio/card/${cardId}/give`)}
-                />
-              ) : (
-                <div className="bg-white rounded-2xl border border-stone-200 p-5 md:p-6 space-y-3">
-                  <h2 className="text-sm font-semibold text-ink mb-1">
-                    How would you like to send it?
-                  </h2>
-                  <RadioGroup
-                    value={choice}
-                    onValueChange={(v) => setChoice(v as ProductChoice)}
-                    className="space-y-2.5"
-                  >
-                    <ProductOption
-                      value="digital"
-                      title="Digital"
-                      description="3D share link, sent instantly."
-                      price={totalsFor('digital').total}
-                    />
-                    <ProductOption
-                      value="print"
-                      title="Printed"
-                      description="Square card, posted in the UK."
-                      price={totalsFor('print').total}
-                    />
-                    <ProductOption
-                      value="both"
-                      title="Printed + digital"
-                      description="Instant share + the real thing in the post."
-                      price={totalsFor('both').total}
-                    />
-                  </RadioGroup>
-                </div>
-              )}
+              {/* Print-led V1: one product — a printed card that includes
+                  a free digital link. No format picker. */}
+              <div className="bg-white rounded-2xl border border-stone-200 p-5 md:p-6">
+                <h2 className="text-sm font-semibold text-ink mb-1">
+                  Printed &amp; posted
+                </h2>
+                <p className="text-sm text-stone-600 leading-relaxed">
+                  A premium 350gsm card, posted in the UK — with a free
+                  digital link to share too.
+                </p>
+                <p className="text-lg font-semibold text-ink mt-3">
+                  {formatGBP(totalsFor().total)}{' '}
+                  <span className="text-xs font-normal text-stone-500">
+                    inc. postage
+                  </span>
+                </p>
+              </div>
             </div>
 
             <Section title="Your details">
@@ -589,25 +562,20 @@ export default function CheckoutPage() {
           {/* RIGHT — sticky summary */}
           <aside className="md:sticky md:top-8 md:self-start">
             <div className="bg-white rounded-2xl border border-stone-200 p-5 space-y-4">
-              {includesPrint && (
-                <LineItem
-                  icon={<Package className="w-4 h-4" />}
-                  label="Printed card"
-                  sub="Square, Mohawk / premium stock"
-                  amount={totals.printAmount}
-                />
-              )}
-              {includesDigital && (
-                <LineItem
-                  icon={<Sparkles className="w-4 h-4 text-brand" />}
-                  label="Digital version"
-                  sub="Instant 3D share link"
-                  amount={totals.digitalAmount}
-                />
-              )}
-              {includesPrint && (
-                <LineItem label="UK shipping" amount={totals.shippingAmount} muted />
-              )}
+              <LineItem
+                icon={<Package className="w-4 h-4" />}
+                label="Printed card"
+                sub="Square, Mohawk / premium stock"
+                amount={totals.printAmount}
+              />
+              {/* Always included free with the printed card. */}
+              <LineItem
+                icon={<Sparkles className="w-4 h-4 text-brand" />}
+                label="Digital link"
+                sub="Instant 3D share link — free"
+                amount={totals.digitalAmount}
+              />
+              <LineItem label="UK postage" amount={totals.shippingAmount} muted />
               {totals.discount > 0 && (
                 <LineItem label="Bundle discount" amount={-totals.discount} muted />
               )}
@@ -684,34 +652,6 @@ function PreviewTab({
   );
 }
 
-function ProductOption({
-  value,
-  title,
-  description,
-  price,
-}: {
-  value: string;
-  title: string;
-  description: string;
-  price: number;
-}) {
-  return (
-    <Label
-      htmlFor={`product-${value}`}
-      className="relative flex items-start gap-3 border border-stone-200 rounded-xl p-3.5 cursor-pointer hover:border-stone-400 has-[:checked]:border-brand has-[:checked]:bg-brand/5 transition-colors"
-    >
-      <RadioGroupItem value={value} id={`product-${value}`} className="mt-1 shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="text-sm font-medium text-ink">{title}</p>
-          <p className="text-sm font-semibold text-ink">{formatGBP(price)}</p>
-        </div>
-        <p className="text-xs text-stone-500 mt-0.5">{description}</p>
-      </div>
-    </Label>
-  );
-}
-
 function ShipToOption({
   value,
   title,
@@ -732,88 +672,6 @@ function ShipToOption({
         <p className="text-xs text-stone-500 mt-0.5">{description}</p>
       </div>
     </Label>
-  );
-}
-
-// Summary card shown in the hero second cell when the user has
-// already made the giving choice (came through the Giving Moment, or
-// the blank-inside path which is structural). Replaces the inline
-// product radios — checkout becomes "confirm + pay" instead of "ask
-// the questions again." See next_delivery_destination_usp.md.
-function YourChoiceSummary({
-  insideIsBlank,
-  choice,
-  shipTo,
-  recipientName,
-  total,
-  onChange,
-}: {
-  cardId: number;
-  insideIsBlank: boolean;
-  choice: ProductChoice;
-  shipTo: 'sender' | 'recipient';
-  recipientName: string;
-  total: number;
-  /** Click → back to /studio/card/:id/give to revisit the choice.
-   *  Not rendered in the blank-inside case (no choice was made — it's
-   *  structural). */
-  onChange: () => void;
-}) {
-  const them = recipientName || 'them';
-
-  if (insideIsBlank) {
-    return (
-      <div className="bg-white rounded-2xl border border-stone-200 p-5 md:p-6 space-y-2.5">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-stone-400 font-semibold">
-          Your card has a blank inside
-        </p>
-        <p className="text-sm text-ink leading-relaxed">
-          We'll print it and post it to you — ready for your own
-          handwriting, then give it to {them} yourself.
-        </p>
-        <p className="text-[11px] text-stone-500 pt-1">
-          {formatGBP(total)} · printed, posted in the UK.
-        </p>
-      </div>
-    );
-  }
-
-  const formatLabel =
-    choice === 'both'
-      ? 'Printed card + digital link'
-      : choice === 'print'
-        ? 'Printed card'
-        : 'Digital share link';
-
-  const destinationLine =
-    shipTo === 'recipient'
-      ? choice === 'digital'
-        ? `Sent straight to ${them}`
-        : `Posted straight to ${them}`
-      : choice === 'digital'
-        ? 'Link sent to you, to pass on'
-        : 'Posted to you, to give in person';
-
-  return (
-    <div
-      className="bg-white rounded-2xl border border-stone-200 p-5 md:p-6 space-y-2.5"
-      data-testid="checkout-your-choice"
-    >
-      <p className="text-[10px] uppercase tracking-[0.18em] text-stone-400 font-semibold">
-        Your choice
-      </p>
-      <p className="text-sm font-semibold text-ink leading-snug">{formatLabel}</p>
-      <p className="text-xs text-stone-600 leading-relaxed">{destinationLine}</p>
-      <p className="text-[11px] text-stone-500 pt-1">{formatGBP(total)} total</p>
-      <button
-        type="button"
-        onClick={onChange}
-        className="inline-flex items-center gap-1 text-xs text-brand hover:text-brand-dark font-medium pt-1"
-        data-testid="checkout-change-choice"
-      >
-        <Pencil className="w-3 h-3" strokeWidth={2} /> Change
-      </button>
-    </div>
   );
 }
 
@@ -842,7 +700,7 @@ function LineItem({
         </div>
       </div>
       <span className={`text-sm ${muted ? 'text-stone-500' : 'font-medium text-ink'}`}>
-        {amount < 0 ? `−${formatGBP(-amount)}` : formatGBP(amount)}
+        {amount === 0 ? 'Free' : amount < 0 ? `−${formatGBP(-amount)}` : formatGBP(amount)}
       </span>
     </div>
   );

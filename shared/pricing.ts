@@ -23,7 +23,10 @@
 // The structure can ship now; numbers lock after data.
 
 export type CurrencyCode = 'GBP' | 'ZAR';
-export type TierId = 'free' | 'digital' | 'printed';
+// Print-led V1 (decided 2026-07-01): the printed card is the only paid
+// product and it INCLUDES a free digital link. No standalone 'digital'
+// tier. See next_digital_card_strategy.md.
+export type TierId = 'free' | 'printed';
 
 /** Smallest currency unit (pence for GBP, cents for ZAR). 0 = free. */
 export interface TierPrice {
@@ -68,37 +71,23 @@ export const PRICING_TIERS: PricingTier[] = [
     ctaLabel: 'Start making',
   },
   {
-    id: 'digital',
-    name: 'Digital',
-    tagline: 'For them',
-    blurb: 'Send the gift moment — straight to their inbox.',
-    price: { GBP: 199, ZAR: 4900 },
-    features: [
-      'Everything in Free',
-      '3D opening card view',
-      'Scheduled email delivery',
-      '"Designed by you" signature on the back',
-      'Shareable view link, works anywhere',
-      'See when they opened it',
-      'Link never expires',
-    ],
-    highlight: true,
-    ctaLabel: 'Send digital',
-  },
-  {
     id: 'printed',
-    name: 'Printed',
-    tagline: 'For the post',
-    blurb: 'Premium card delivered. Plus everything digital includes.',
+    name: 'Printed & posted',
+    tagline: 'For them',
+    blurb: 'The real thing in the post — with a free digital link to share too.',
+    // Card price only. UK postage is a separate line at checkout
+    // (UK_SHIPPING_STANDARD_GBP below); overnight is an optional add-on.
     price: { GBP: 899, ZAR: 19900 },
     features: [
-      'Everything in Digital',
       'Premium 350gsm uncoated card',
       'Posted in a kraft envelope',
       'Tracked delivery, 3–5 days',
-      'Print-resolution file',
+      'Free digital link included — 3D opening view, share anywhere',
+      'See when they open it',
+      'Print-resolution file to keep',
     ],
-    ctaLabel: 'Order print',
+    highlight: true,
+    ctaLabel: 'Make & send a card',
   },
 ];
 
@@ -123,15 +112,14 @@ export const OVERNIGHT_DELIVERY = {
 // Numbers stay UK-GBP only for V1 — SA is parked.
 // ─────────────────────────────────────────────────────────────────────
 
-/** Flat UK standard shipping for a single printed card. In minor units
- *  (pence). Real shipping-tier UX (Standard / Express / Tracked) is
- *  V1.5 — see the checkout-robust note's build order. */
+/** Flat UK standard shipping for a single printed card, shown as its own
+ *  line at checkout. In minor units (pence).
+ *
+ *  ⚠️ TODO(Prodigi): this is a PLACEHOLDER. Founder decision 2026-07-01 —
+ *  real postage must be sourced from Prodigi's quote at order time once
+ *  the print provider is wired (server/studio/print-provider.ts is still a
+ *  stub). Until then every printed order uses this flat figure. */
 export const UK_SHIPPING_STANDARD_GBP = 150;
-
-/** Discount applied to a "both" order (digital + printed) — the print
- *  tier already includes the digital share, so the bundle saves the
- *  user from paying twice for what they get once. In minor units. */
-export const BUNDLE_DISCOUNT_GBP = 50;
 
 /** Derive the GBP price of a tier in minor units. Tiny helper so
  *  consumers don't have to remember the price-shape (`.GBP` indexing). */

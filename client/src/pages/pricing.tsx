@@ -1,6 +1,7 @@
 // client/src/pages/pricing.tsx
 //
-// Pricing page — three-tier "Free for me. Paid for them." model,
+// Pricing page — print-led "Free for me. Paid for them." model
+// (Free + one printed card that includes a free digital link),
 // driven by the shared/pricing.ts config so the landing strip,
 // checkout, and any numbers quoted in emails can never drift.
 //
@@ -18,11 +19,12 @@
 //   4. lock numbers after Cost Ledger has ~2 weeks of regen data
 //
 // Overnight delivery is intentionally NOT a tier — it's an add-on
-// under the Printed card (UK-only). A bundle isn't shown either:
-// Printed already includes everything Digital does.
+// under the Printed card (UK-only). The digital share link is
+// included free with the printed card, not sold separately
+// (decided 2026-07-01, next_digital_card_strategy.md).
 
 import { Link } from 'wouter';
-import { Check, Heart, Mail, Truck, Zap } from 'lucide-react';
+import { Check, Heart, Truck, Zap } from 'lucide-react';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { MarketingHeader } from '@/components/landing/marketing-header';
 import { Button } from '@/components/ui/button';
@@ -47,11 +49,6 @@ const TIER_VISUALS: Record<TierId, {
     icon: Heart,
     iconBg: 'bg-accent-coral-light',
     iconColor: 'text-accent-coral-dark',
-  },
-  digital: {
-    icon: Mail,
-    iconBg: 'bg-brand-muted',
-    iconColor: 'text-brand',
   },
   printed: {
     icon: Truck,
@@ -116,7 +113,7 @@ function PriceCard({ tier, authed }: PriceCardProps) {
           {priceLabel}
         </p>
         {tier.id !== 'free' && (
-          <p className="text-xs text-ink-soft mt-1">per card · one-off</p>
+          <p className="text-xs text-ink-soft mt-1">per card · plus postage</p>
         )}
       </div>
 
@@ -205,7 +202,7 @@ export default function PricingPage() {
           </div>
 
           {/* Price tiers */}
-          <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-3xl mx-auto">
             {PRICING_TIERS.map((tier) => (
               <PriceCard key={tier.id} tier={tier} authed={showAuthedTreatment} />
             ))}
@@ -247,8 +244,8 @@ export default function PricingPage() {
               <li>
                 <strong className="text-ink font-semibold">Keep what you make:</strong>{' '}
                 The free tier lets you download the front and inside as images.
-                If you want the gift moment — the 3D opening, the scheduled
-                arrival, the link that never expires — that's Digital.
+                Order the printed card and you also get the gift moment free —
+                the 3D opening view and a private share link that never expires.
               </li>
             </ul>
           </div>

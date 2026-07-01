@@ -30,18 +30,15 @@ import {
 import {
   tierPriceGBP,
   UK_SHIPPING_STANDARD_GBP,
-  BUNDLE_DISCOUNT_GBP,
 } from '@shared/pricing';
 
 // Pricing in pence — sourced from shared/pricing.ts. Client checkout
 // imports the same constants, so client + server totals can't drift.
-// Earlier this file hardcoded 599/99/150 and didn't apply the bundle
-// discount at all — `totalAmount` was 50p under the client's display
-// for "both" orders. See next_checkout_shipping_robust.md.
+// Print-led V1 (2026-07-01): every order is a printed card with a FREE
+// digital link — digital is always £0 and there is no bundle/"both"
+// discount. See next_digital_card_strategy.md.
 const PRINT_PRICE = tierPriceGBP('printed');
-const DIGITAL_PRICE = tierPriceGBP('digital');
 const UK_SHIPPING = UK_SHIPPING_STANDARD_GBP;
-const BUNDLE_DISCOUNT = BUNDLE_DISCOUNT_GBP;
 
 function getUserId(req: Request): string | null {
   const id = (req as any).session?.otpUserId;
@@ -59,8 +56,10 @@ const checkoutSchema = z.object({
   customerEmail: z.string().email(),
   customerName: z.string().min(1),
   customerPhone: z.string().optional(),
-  includesPrint: z.boolean(),
-  includesDigital: z.boolean(),
+  // Print-led V1: every order is print + free digital, forced server-side.
+  // Kept optional so older clients that still send these don't 400.
+  includesPrint: z.boolean().optional(),
+  includesDigital: z.boolean().optional(),
   shipTo: z.enum(['sender', 'recipient']).optional(),
   shippingAddress: shippingAddressSchema.optional(),
   recipientEmail: z.string().email().optional(),
@@ -93,17 +92,16 @@ export function registerStudioCheckoutRoutes(app: Express): void {
       }
       const body = parsed.data;
 
-      if (!body.includesPrint && !body.includesDigital) {
-        return res.status(400).json({ message: 'Order must include print or digital' });
-      }
-      if (body.includesPrint && (!body.shipTo || !body.shippingAddress)) {
+      // Print-led V1: every order is a printed card with a free digital
+      // link. Force the flags server-side regardless of what the client
+      // sent — digital is always included at £0.
+      const includesPrint = true;
+      const includesDigital = true;
+
+      if (!body.shipTo || !body.shippingAddress) {
         return res
           .status(400)
-          .json({ message: 'Print orders need shipTo + shippingAddress' });
-      }
-      if (body.shipTo === 'recipient' && body.includesPrint && !body.recipientEmail) {
-        // Plain-packaging direct-ship still needs a way to notify them.
-        // Tightened later once the recipient comms flow lands.
+          .json({ message: 'Printed orders need shipTo + shippingAddress' });
       }
 
       try {
@@ -133,24 +131,19 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         const recipientName =
           state?.recipient?.name?.trim() || body.customerName;
 
-        const printAmount = body.includesPrint ? PRINT_PRICE : 0;
-        const digitalAmount = body.includesDigital ? DIGITAL_PRICE : 0;
-        const shippingAmount = body.includesPrint ? UK_SHIPPING : 0;
-        // Bundle discount applies when the buyer takes BOTH print and
-        // digital — the print tier already includes the digital share
-        // they get on its own, so this saves them paying twice. The
-        // client shows this as a line item; the server must mirror it
-        // or `totalAmount` lags the displayed total by 50p.
-        const bundleDiscount =
-          body.includesPrint && body.includesDigital ? BUNDLE_DISCOUNT : 0;
-        const totalAmount =
-          printAmount + digitalAmount + shippingAmount - bundleDiscount;
+        // Every order: printed card + free digital link. Digital is £0.
+        // Postage is a separate line (placeholder until Prodigi supplies
+        // the real quote — see UK_SHIPPING_STANDARD_GBP).
+        const printAmount = PRINT_PRICE;
+        const digitalAmount = 0;
+        const shippingAmount = UK_SHIPPING;
+        const totalAmount = printAmount + shippingAmount;
 
         // Mint a share token up-front for digital orders. Payment
         // hasn't confirmed yet, but the token is meaningless without
         // a paid order — we only reveal it once paymentStatus flips
         // to 'paid'.
-        if (body.includesDigital && !card.viewToken) {
+        if (includesDigital && !card.viewToken) {
           await db
             .update(cards)
             .set({ viewToken: generateShareToken() })
@@ -167,8 +160,8 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             customerPhone: body.customerPhone,
             recipientEmail: body.recipientEmail,
             recipientPhone: body.recipientPhone,
-            includesPrint: body.includesPrint,
-            includesDigital: body.includesDigital,
+            includesPrint,
+            includesDigital,
             shipTo: body.shipTo,
             shippingAddress: body.shippingAddress,
             giftMessage: body.giftMessage,
