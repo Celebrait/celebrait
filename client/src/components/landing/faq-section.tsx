@@ -48,11 +48,11 @@ const FAQS: FaqEntry[] = [
   },
   {
     q: 'How do reminders work?',
-    a: "Add the people who matter to your address book once, with their birthdays, anniversaries and any other occasions. We'll email you 21, 7 and 3 days ahead so you never miss a date — and we'll suggest pivoting to digital if you cut it close.",
+    a: "Add the people who matter to your address book once, with their birthdays, anniversaries and any other occasions. We'll email you 21, 7 and 3 days ahead so you never miss a date — and if you've left it late, order before 2pm for next-day delivery.",
   },
   {
-    q: 'Can I send the card digitally instead of print?',
-    a: "Yes — every Celebrait comes with a free private link. Recipients open it in any browser (no app, no signup). They watch the envelope animate open, see the card, and can replay it forever.",
+    q: 'Does my card come with a digital version?',
+    a: "Yes — every printed Celebrait includes a free private link to share too. Recipients open it in any browser (no app, no signup), watch the envelope animate open, and can replay it forever.",
   },
   {
     q: 'Is my photo private?',

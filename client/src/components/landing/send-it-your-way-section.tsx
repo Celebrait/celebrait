@@ -149,13 +149,13 @@ export function SendItYourWaySection() {
             Send it your way
           </p>
           <h2 className="text-3xl md:text-5xl font-semibold text-ink tracking-tight leading-[1.05]">
-            Digital, printed,
+            Printed, posted,
             <br />
-            or both.
+            and shareable.
           </h2>
           <p className="text-lg text-ink-soft mt-6 leading-relaxed max-w-[52ch]">
-            A free private link they can open in any browser, an animated card
-            posted in 350gsm stock, or both. You choose.
+            A premium 350gsm card, posted anywhere in the UK — and every one
+            comes with a free private link to share too.
           </p>
         </div>
 
@@ -169,7 +169,7 @@ export function SendItYourWaySection() {
           >
             <EnvelopeMock />
             <h3 className="text-2xl font-semibold text-ink tracking-tight mt-8 mb-3">
-              A private link, animated.
+              A link to share, too.
             </h3>
             <p className="text-base text-ink-soft leading-relaxed">
               Recipients open the card in any browser — no app, no signup.

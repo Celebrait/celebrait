@@ -31,8 +31,8 @@ const STEPS: Step[] = [
   {
     icon: Send,
     eyebrow: 'Step 03',
-    title: 'Send digital or printed',
-    body: 'A private animated link, or a 350gsm card posted anywhere from £7.99. Often both.',
+    title: 'We print and post it',
+    body: 'A premium 350gsm card, posted across the UK — with a private animated link to share included.',
   },
 ];
 
