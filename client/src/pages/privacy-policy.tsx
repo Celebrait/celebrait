@@ -1,25 +1,6 @@
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-
-// ── Controller details ──────────────────────────────────────────────
-// EDIT THESE before publishing. They appear throughout the policy.
-// A privacy notice must name the data controller and give a contact
-// route; leave nothing as a placeholder when this goes live.
-//
-// ⚠️ TODO(founder + solicitor): fill the four bracketed values. If the
-//    business is a limited company you must also register with the ICO
-//    (ico.org.uk) and pay the annual data-protection fee, then put the
-//    registration number in CONTROLLER.icoNumber.
-const CONTROLLER = {
-  legalName: "[Legal entity name — e.g. Celebrait Ltd]",
-  tradingAs: "Celebrait",
-  address: "[Registered / business address, United Kingdom]",
-  icoNumber: "[ICO registration number — see note]",
-  privacyEmail: "privacy@celebrait.co.uk",
-  website: "https://celebrait.co.uk",
-};
-
-const LAST_UPDATED = "1 July 2026";
+import { CONTROLLER, PRIVACY_LAST_UPDATED as LAST_UPDATED } from "@/lib/legal";
 
 export default function PrivacyPolicy() {
   return (
