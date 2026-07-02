@@ -170,9 +170,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
     next();
   }, (req, res) => {
-    const imagePath = path.join(process.cwd(), 'stored_images', req.path);
-    res.sendFile(imagePath, (err) => {
-      if (err) {
+    // `root` (not a pre-joined absolute path) is what makes sendFile
+    // reject `..` traversal — path.join collapses encoded dot-segments,
+    // which previously let /images/%2e%2e/.env read ANY server file
+    // (security audit 2026-07-02).
+    res.sendFile(req.path, { root: path.join(process.cwd(), 'stored_images') }, (err) => {
+      if (err && !res.headersSent) {
         res.status(404).send('Image not found');
       }
     });
@@ -191,7 +194,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // --- Admin routes ---
 
+  // Admin gate for the two storage routes below. Same DB-backed isAdmin
+  // check the other admin modules use — these two were the ONLY
+  // /api/admin/* routes with no auth at all, letting anyone on the
+  // internet trigger a destructive image cleanup (security audit
+  // 2026-07-02).
+  const requireStorageAdmin = async (req: any, res: any): Promise<boolean> => {
+    try {
+      const userId = req.session?.otpUserId;
+      if (!userId) {
+        res.status(401).json({ message: "Not authenticated" });
+        return false;
+      }
+      const { db } = await import('./db');
+      const { users } = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
+      const [row] = await db
+        .select({ isAdmin: users.isAdmin })
+        .from(users)
+        .where(eq(users.id, String(userId)))
+        .limit(1);
+      if (row?.isAdmin !== true) {
+        res.status(403).json({ message: "Admin access required" });
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("[ADMIN] storage admin check failed:", err);
+      res.status(500).json({ message: "Auth check failed" });
+      return false;
+    }
+  };
+
   app.get("/api/admin/storage/stats", async (req, res) => {
+    if (!(await requireStorageAdmin(req, res))) return;
     try {
       const stats = await getStorageStats();
       res.json({
@@ -205,6 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/admin/storage/cleanup", async (req, res) => {
+    if (!(await requireStorageAdmin(req, res))) return;
     try {
       const config: CleanupConfig = {
         retentionDays: req.body.retentionDays || 90,

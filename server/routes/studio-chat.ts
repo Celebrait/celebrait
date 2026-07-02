@@ -136,9 +136,16 @@ export function registerStudioChatRoutes(app: Express): void {
       if (draftParts.length) contextBits.push(`draft_so_far: { ${draftParts.join(', ')} }`);
       const contextMessage = contextBits.join('\n');
 
+      // Whitelist roles + cap history — a client-supplied role:'system'
+      // turn would override our prompt (security audit 2026-07-02).
+      const safeHistory = history
+        .filter((m) => m.role === 'user' || m.role === 'assistant')
+        .slice(-40)
+        .map((m) => ({ role: m.role, content: String(m.content ?? '').slice(0, 2000) }));
+
       const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
         { role: 'system', content: buildSystemPrompt() },
-        ...history.map((m) => ({ role: m.role, content: m.content })),
+        ...safeHistory,
         { role: 'user', content: contextMessage },
       ];
 

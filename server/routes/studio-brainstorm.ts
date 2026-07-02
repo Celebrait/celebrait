@@ -11,6 +11,8 @@
 
 import type { Express, Request, Response } from 'express';
 import { openai } from '../utils/shared';
+import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
+import { rateLimitHit } from '../simple-rate-limit';
 
 type Role = 'user' | 'assistant';
 interface HistoryMessage {
@@ -151,9 +153,18 @@ Set finalScene to null unless phase is "summary". Keep finalScene CLEAN — no q
 }
 
 export function registerStudioBrainstormRoutes(app: Express): void {
-  app.post('/api/studio/brainstorm', async (req: Request, res: Response) => {
+  // isAuthenticated added 2026-07-02 (security audit): this was the ONLY
+  // LLM endpoint with no auth — an open, unmetered gpt-4o proxy on our
+  // OpenAI bill. Per-user ceiling on top: brainstorming is chatty, but
+  // no human sends 60 turns an hour.
+  app.post('/api/studio/brainstorm', isAuthenticated, async (req: Request, res: Response) => {
     if (!openai) {
       return res.status(503).json({ error: 'OpenAI is not configured' });
+    }
+
+    const userId = (req as any).session?.otpUserId ?? 'unknown';
+    if (rateLimitHit(`brainstorm:user:${userId}`, 60, 60 * 60 * 1000)) {
+      return res.status(429).json({ error: 'Too many requests — take a breather and try again shortly.' });
     }
 
     try {
@@ -203,9 +214,18 @@ export function registerStudioBrainstormRoutes(app: Express): void {
       }
       const contextMessage = contextBits.join('\n');
 
+      // History hardening: whitelist roles (a client-supplied
+      // role:'system' turn would override our prompt), cap turn count
+      // and per-turn size so a crafted payload can't balloon the token
+      // bill (the request body limit is generous for photo uploads).
+      const safeHistory = history
+        .filter((m) => m.role === 'user' || m.role === 'assistant')
+        .slice(-40)
+        .map((m) => ({ role: m.role, content: String(m.content ?? '').slice(0, 2000) }));
+
       const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
         { role: 'system', content: systemPrompt },
-        ...history.map((m) => ({ role: m.role, content: m.content })),
+        ...safeHistory,
         { role: 'user', content: contextMessage },
       ];
 

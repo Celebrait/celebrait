@@ -1,10 +1,12 @@
 import type { Express } from "express";
+import { randomInt } from "crypto";
 import { authStorage } from "./storage";
 import { isAuthenticated } from "./replitAuth";
 import { db } from "../../db";
 import { otpCodes, users } from "@shared/models/auth";
 import { eq, and, gt } from "drizzle-orm";
 import { sendOtpEmail } from "../../email-service";
+import { rateLimitHit, rateLimitClear, clientIp } from "../../simple-rate-limit";
 
 // Local dev bypass: when DEV_AUTH_ACCEPT_ANY_CODE=1, the OTP verify endpoint
 // will accept any of these codes without the user needing to receive a real
@@ -18,8 +20,21 @@ const IS_DEV_BYPASS_ENABLED =
   process.env.DEV_AUTH_ACCEPT_ANY_CODE === "1";
 
 function generateOtp(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  // crypto.randomInt — Math.random() is predictable enough to weaken a
+  // 6-digit code space (security audit 2026-07-02).
+  return randomInt(100000, 1000000).toString();
 }
+
+// ── Abuse ceilings (security audit 2026-07-02) ─────────────────────────
+// The OTP surface previously had NO limits: unlimited verify guesses
+// against a 6-digit code = practical account takeover; unlimited sends =
+// inbox-bombing third parties + Brevo cost abuse. Ceilings are generous
+// for humans, hostile to scripts.
+const SEND_PER_EMAIL_COOLDOWN_MS = 30 * 1000; //   1 send / 30s / email
+const SEND_PER_EMAIL_HOURLY = 6; //   6 sends / hour / email
+const SEND_PER_IP_HOURLY = 30; //  30 sends / hour / IP
+const VERIFY_PER_IP_PER_MIN = 30; //  30 verify attempts / min / IP
+const VERIFY_FAILS_PER_CODE = 5; //   5 wrong guesses → code invalidated
 
 // Register auth-specific routes
 export function registerAuthRoutes(app: Express): void {
@@ -56,6 +71,20 @@ export function registerAuthRoutes(app: Express): void {
       }
 
       const normalizedEmail = email.toLowerCase().trim();
+
+      // Abuse ceilings — per-email cooldown + hourly cap, and a per-IP
+      // cap so one attacker can't spray many emails. 429 with a human
+      // message (the client surfaces `message` directly).
+      const ip = clientIp(req);
+      if (
+        rateLimitHit(`otp-send:email-cd:${normalizedEmail}`, 1, SEND_PER_EMAIL_COOLDOWN_MS) ||
+        rateLimitHit(`otp-send:email-hr:${normalizedEmail}`, SEND_PER_EMAIL_HOURLY, 60 * 60 * 1000) ||
+        rateLimitHit(`otp-send:ip:${ip}`, SEND_PER_IP_HOURLY, 60 * 60 * 1000)
+      ) {
+        return res.status(429).json({
+          message: "Too many code requests — please wait a moment and try again.",
+        });
+      }
 
       // Dev bypass: skip Brevo entirely. The verify endpoint accepts a
       // hardcoded code so there's no need to actually generate/persist
@@ -108,11 +137,27 @@ export function registerAuthRoutes(app: Express): void {
       const normalizedEmail = email.toLowerCase().trim();
       const now = new Date();
 
+      // Per-IP throttle — a 6-digit code must not be brute-forceable.
+      const ip = clientIp(req);
+      if (rateLimitHit(`otp-verify:ip:${ip}`, VERIFY_PER_IP_PER_MIN, 60 * 1000)) {
+        return res.status(429).json({
+          message: "Too many attempts — please wait a minute and try again.",
+        });
+      }
+
       // Dev bypass: accept a hardcoded code so local development doesn't
       // need Brevo configured. Guarded by NODE_ENV !== 'production'.
       const isBypassCode = IS_DEV_BYPASS_ENABLED && DEV_OTP_BYPASS_CODES.has(code);
 
       if (!isBypassCode) {
+        // Wrong-guess lockout: after N failed guesses for this email,
+        // burn any outstanding codes — the attacker must trigger a fresh
+        // send (itself rate-limited) and start over. Counter lives in
+        // memory (10-min window matches the code lifetime) and the codes
+        // are deleted at the threshold, so a process restart clearing the
+        // counter doesn't resurrect a half-guessed code.
+        const failKey = `otp-verify:fails:${normalizedEmail}`;
+
         // Find valid, unused OTP
         const [otp] = await db
           .select()
@@ -128,11 +173,18 @@ export function registerAuthRoutes(app: Express): void {
           .limit(1);
 
         if (!otp) {
+          if (rateLimitHit(failKey, VERIFY_FAILS_PER_CODE, 10 * 60 * 1000)) {
+            await db.delete(otpCodes).where(eq(otpCodes.email, normalizedEmail));
+            return res.status(429).json({
+              message: "Too many incorrect codes — request a new one to continue.",
+            });
+          }
           return res.status(400).json({ message: "Invalid or expired code. Please try again." });
         }
 
-        // Mark OTP as used
+        // Mark OTP as used + reset the failure counter
         await db.update(otpCodes).set({ used: "true" }).where(eq(otpCodes.id, otp.id));
+        rateLimitClear(failKey);
       } else {
         console.log(`[auth] DEV_BYPASS: accepting code for ${normalizedEmail}`);
       }
@@ -164,14 +216,23 @@ export function registerAuthRoutes(app: Express): void {
         user = newUser;
       }
 
-      // Establish session
-      req.session.otpUserId = user.id;
-      req.session.save((err: any) => {
-        if (err) {
-          console.error("Session save error:", err);
+      // Establish session. Regenerate first so the pre-auth session ID is
+      // discarded — otherwise a session ID planted before login (shared
+      // device, injected cookie) would become an authenticated session
+      // (session fixation; security audit 2026-07-02).
+      req.session.regenerate((regenErr: any) => {
+        if (regenErr) {
+          console.error("Session regenerate error:", regenErr);
           return res.status(500).json({ message: "Session error" });
         }
-        res.json({ success: true, user, isNewUser });
+        req.session.otpUserId = user.id;
+        req.session.save((err: any) => {
+          if (err) {
+            console.error("Session save error:", err);
+            return res.status(500).json({ message: "Session error" });
+          }
+          res.json({ success: true, user, isNewUser });
+        });
       });
     } catch (error) {
       console.error("Error verifying OTP:", error);
