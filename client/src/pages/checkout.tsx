@@ -267,7 +267,10 @@ export default function CheckoutPage() {
       </CheckoutLayout>
     );
   }
-  if (!card?.frontImageUrl) {
+  // Must be fully generated — a front-first card at 'front-ready' has a
+  // front image but no inside yet; mirror the server gate (audit
+  // 2026-07-02) so a half-generated card can't be deep-linked to pay.
+  if (!card?.frontImageUrl || card.status !== 'completed') {
     return (
       <CheckoutLayout backHref={backHref}>
         <Centered>

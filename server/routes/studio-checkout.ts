@@ -122,8 +122,14 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         const card = cardRows[0];
         if (!card) return res.status(404).json({ message: 'Card not found' });
         if (card.userId !== userId) return res.status(403).json({ message: 'Not your card' });
-        if (!card.frontImageUrl) {
-          return res.status(400).json({ message: 'Card is not generated yet' });
+        // Must be fully finished — front-first generation passes through
+        // 'front-ready' (front image exists, inside not yet generated),
+        // and only 'completed' guarantees the inside is done too (write
+        // AND blank both generate an inside). Checking frontImageUrl alone
+        // let a half-generated card be bought with no inside (audit
+        // 2026-07-02).
+        if (card.status !== 'completed' || !card.frontImageUrl) {
+          return res.status(400).json({ message: 'Card is not finished generating yet' });
         }
 
         // Derive recipient name for the shipping label.
@@ -564,6 +570,7 @@ async function fireOrderPaidEmails(
     totalAmount: order.totalAmount,
     currency: order.currency,
     orderId: order.id,
+    cardId: order.cardId,
   });
   console.log(
     `[STUDIO-CHECKOUT] sender confirmation ${sent ? 'sent' : 'failed'} → ${order.customerEmail} (order ${order.id})`,

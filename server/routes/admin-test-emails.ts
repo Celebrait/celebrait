@@ -232,11 +232,12 @@ async function dispatchTemplate(
         senderName: vars.senderName,
         recipientName: vars.recipientName,
         occasion: vars.occasion,
-        includesPrint: body.includesPrint ?? false,
+        includesPrint: body.includesPrint ?? true,
         includesDigital: body.includesDigital ?? true,
-        totalAmount: body.totalAmount ?? 199, // £1.99 (matches Digital tier in shared/pricing.ts)
+        totalAmount: body.totalAmount ?? 899, // £8.99 printed card (shared/pricing.ts)
         currency: body.currency ?? 'GBP',
         orderId: body.orderId ?? `test_${cardId ?? 'X'}`,
+        cardId: cardId ?? 1,
         scheduledSendAt: body.scheduledSendAt
           ? new Date(body.scheduledSendAt)
           : null,

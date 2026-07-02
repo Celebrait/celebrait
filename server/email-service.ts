@@ -487,6 +487,11 @@ export async function sendSenderOrderConfirmedEmail(params: {
   totalAmount: number;
   currency: string;
   orderId: string;
+  /** The card the order is for — the CTA links here so the sender can
+   *  view the card + grab the share link. (Previously the CTA used
+   *  orderId as if it were a card id → /studio/card/<uuid> → NaN →
+   *  redirect home; audit 2026-07-02.) */
+  cardId: number;
   /** Null = immediate send (V1 default). Date = scheduled-delivery
    *  case (PR3). When non-null, the digital line says "will be sent
    *  on {date} at 8am" instead of "sent just now". */
@@ -502,6 +507,7 @@ export async function sendSenderOrderConfirmedEmail(params: {
     totalAmount,
     currency,
     orderId,
+    cardId,
     scheduledSendAt,
   } = params;
 
@@ -554,9 +560,9 @@ export async function sendSenderOrderConfirmedEmail(params: {
   `;
 
   const ctaHref = includesDigital
-    ? `${PUBLIC_ORIGIN}/studio/card/${orderId.replace(/^order_?/, '')}`
+    ? `${PUBLIC_ORIGIN}/studio/card/${cardId}`
     : `${PUBLIC_ORIGIN}/studio/orders`;
-  const ctaLabel = includesDigital ? 'View their share link' : 'View your order';
+  const ctaLabel = includesDigital ? 'View your card & share link' : 'View your order';
   const html = chassis({
     preheader,
     bodyHtml: body,
