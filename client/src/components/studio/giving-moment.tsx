@@ -148,7 +148,7 @@ export function GivingMoment({
           <DestinationCard
             icon={<Mail className="w-5 h-5" />}
             title={recipientName ? `Straight to ${recipientName}` : 'Straight to them'}
-            body={`We post it to ${them}, tracked — and the share link goes to them too.`}
+            body={`We post it to ${them}, tracked. Add their email at the next step to send them the digital link too.`}
             selected={destination === 'recipient'}
             onSelect={() => setDestination('recipient')}
             testId="giving-dest-recipient"

@@ -535,11 +535,16 @@ async function fireOrderPaidEmails(
   const occasion = state?.recipient?.occasion?.trim() || null;
   const senderName = order.customerName?.split(' ')[0] || 'Someone';
 
-  // Digital → recipient email with the share link. Prefer the
-  // recipient email captured at checkout; fall back to the sender
-  // so the link reaches somewhere if they picked "send to me".
+  // Digital → recipient email with the share link, ONLY when we actually
+  // have the recipient's address. No fall-back to the sender: sending the
+  // "Hi {recipient}, {sender} sent you a card" template to the SENDER
+  // mis-addresses it and, worse, the sender clicking that token link
+  // fires a false "they opened your card!" notification (audit
+  // 2026-07-02). The sender gets the share link via their own order
+  // confirmation instead (View your card & share link).
+  let digitalSentToRecipient = false;
   if (order.includesDigital && card.viewToken) {
-    const recipientEmail = order.recipientEmail?.trim() || order.customerEmail;
+    const recipientEmail = order.recipientEmail?.trim();
     if (recipientEmail) {
       const shareUrl = `${publicAppOrigin()}/card/${order.cardId}/view?t=${encodeURIComponent(card.viewToken)}`;
       const sent = await sendRecipientCardArrivedEmail({
@@ -556,6 +561,7 @@ async function fireOrderPaidEmails(
       console.log(
         `[STUDIO-CHECKOUT] recipient email ${sent ? 'sent' : 'failed'} → ${recipientEmail} (order ${order.id})`,
       );
+      digitalSentToRecipient = !!sent;
     }
   }
 
@@ -567,6 +573,7 @@ async function fireOrderPaidEmails(
     occasion,
     includesPrint: order.includesPrint,
     includesDigital: order.includesDigital,
+    digitalSentToRecipient,
     totalAmount: order.totalAmount,
     currency: order.currency,
     orderId: order.id,

@@ -161,7 +161,10 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const includesPrint = choice !== 'digital';
-  const includesDigital = choice !== 'print';
+  // Print-led V1: every order is a printed card that INCLUDES a free
+  // digital link — so digital is always part of the order. (The dead
+  // `choice` machinery would compute false here; the model says true.)
+  const includesDigital = true;
   const totals = useMemo(() => totalsFor(choice), [choice]);
 
   // Postcode lookup via postcodes.io — free, no key, fills city on
@@ -185,8 +188,11 @@ export default function CheckoutPage() {
     line1.trim().length > 0 && city.trim().length > 0 && postcode.trim().length >= 5;
   const contactComplete =
     customerName.trim().length > 0 && /.+@.+\..+/.test(customerEmail);
+  // Recipient email is OPTIONAL — a printed card reaches them by post
+  // regardless; if they give it, the recipient also gets the digital
+  // link by email. Valid = blank, or a well-formed address.
   const recipientEmailValid =
-    !(shipTo === 'recipient' && includesDigital) || /.+@.+\..+/.test(recipientEmail);
+    recipientEmail.trim() === '' || /.+@.+\..+/.test(recipientEmail);
   const canPay =
     contactComplete &&
     recipientEmailValid &&
@@ -457,7 +463,7 @@ export default function CheckoutPage() {
                           />
                         </Field>
                         {includesDigital && (
-                          <Field label="Their email (for the digital share link)">
+                          <Field label="Their email (optional — sends them the digital link)">
                             <Input
                               type="email"
                               value={recipientEmail}

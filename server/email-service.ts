@@ -484,6 +484,11 @@ export async function sendSenderOrderConfirmedEmail(params: {
   occasion: string | null;
   includesPrint: boolean;
   includesDigital: boolean;
+  /** Whether the recipient's "your card has arrived" email actually went
+   *  out (true only when the sender supplied the recipient's email). When
+   *  false, we must NOT tell the sender "sent to their inbox" — the link
+   *  is theirs to share via the CTA below. (audit 2026-07-02) */
+  digitalSentToRecipient?: boolean;
   totalAmount: number;
   currency: string;
   orderId: string;
@@ -504,6 +509,7 @@ export async function sendSenderOrderConfirmedEmail(params: {
     occasion,
     includesPrint,
     includesDigital,
+    digitalSentToRecipient = false,
     totalAmount,
     currency,
     orderId,
@@ -524,9 +530,13 @@ export async function sendSenderOrderConfirmedEmail(params: {
       items.push(
         `<li style="margin: 0 0 6px;">Digital — we'll send it to ${escape(recipientName ?? 'them')} on <strong>${dateLabel}</strong> at 8am. We'll ping you the moment they open it.</li>`,
       );
-    } else {
+    } else if (digitalSentToRecipient) {
       items.push(
         `<li style="margin: 0 0 6px;">Digital — sent to ${escape(recipientName ?? 'them')}'s inbox just now. We'll ping you the moment they open it.</li>`,
+      );
+    } else {
+      items.push(
+        `<li style="margin: 0 0 6px;">Digital — a private share link is ready on your card. Tap below to view it and share the link however you like.</li>`,
       );
     }
   }
@@ -538,7 +548,7 @@ export async function sendSenderOrderConfirmedEmail(params: {
 
   const amount = formatMoney(totalAmount, currency);
 
-  const preheader = includesDigital && !scheduledSendAt
+  const preheader = digitalSentToRecipient && !scheduledSendAt
     ? "We've just emailed it to them. We'll let you know when they open it."
     : `Order #${orderId}.`;
 
