@@ -23,6 +23,33 @@ const STATUS_MAP: Record<string, StatusVariant> = {
     className: 'bg-amber-50 text-amber-700 border-amber-200',
     animated: true,
   },
+  // Front-first generation lifecycle — all read as "Generating" to the
+  // user (front done but inside still pending is still in-progress),
+  // except a failed inside which is a real failure to retry.
+  'generating-front': {
+    label: 'Generating',
+    className: 'bg-amber-50 text-amber-700 border-amber-200',
+    animated: true,
+  },
+  'front-ready': {
+    label: 'Generating',
+    className: 'bg-amber-50 text-amber-700 border-amber-200',
+    animated: true,
+  },
+  'generating-inside': {
+    label: 'Generating',
+    className: 'bg-amber-50 text-amber-700 border-amber-200',
+    animated: true,
+  },
+  'inside-ready': {
+    label: 'Generating',
+    className: 'bg-amber-50 text-amber-700 border-amber-200',
+    animated: true,
+  },
+  'inside-failed': {
+    label: 'Failed',
+    className: 'bg-red-50 text-red-700 border-red-200',
+  },
   completed: {
     label: 'Ready',
     className: 'bg-cta-light text-green-800 border-green-200',

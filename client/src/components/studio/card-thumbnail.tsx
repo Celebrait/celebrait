@@ -14,7 +14,12 @@ import { useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { getOccasionIcon } from '@/lib/occasion-icon';
-import { deriveCardTitle } from '@/lib/studio-card-buckets';
+import {
+  deriveCardTitle,
+  isDraftStatus,
+  isGeneratedStatus,
+  isGeneratingStatus,
+} from '@/lib/studio-card-buckets';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,16 +43,16 @@ interface CardThumbnailProps {
 // thankyou" because this copy didn't get the suffix + label fixes.
 export function CardThumbnail({ card }: CardThumbnailProps) {
   const title = deriveCardTitle(card);
-  const isGenerating = card.status === 'generating';
-  const isDraft = card.status === 'draft';
-  // "Ready to send" = generated card with no paid order against it.
+  // Use the shared bucket logic so front-first lifecycle statuses
+  // (generating-front/front-ready/…) read correctly — inline
+  // status==='generating' checks missed them, so a half-generated card
+  // showed a green "Ready to send" chip (audit 2026-07-02).
+  const isGenerating = isGeneratingStatus(card.status);
+  const isUnfinished = isDraftStatus(card.status);
+  // "Ready to send" = fully generated card with no paid order against it.
   // Small chip on the tile nudges the user to go buy it; click still
   // goes to the viewer where the Buy CTA lives.
-  const isReadyToSend =
-    !isDraft &&
-    !isGenerating &&
-    card.status !== 'failed' &&
-    !card.hasPaidOrder;
+  const isReadyToSend = isGeneratedStatus(card.status) && !card.hasPaidOrder;
   // "Just finished" — completed card the sender hasn't yet opened or
   // dismissed the toast for. Layered on TOP of the Ready/Sent split so
   // a freshly-finished unpaid card shows the violet "Just finished"
@@ -70,16 +75,15 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
   // so it's clearly a different state.
   const isOrphanedCompleted =
     !hasImage &&
-    !isGenerating &&
-    !isDraft &&
+    !isUnfinished &&
     (card.status === 'completed' ||
       card.status === 'ready' ||
       card.status === 'paid' ||
       card.status === 'purchased');
   const effectiveStatus = isOrphanedCompleted ? 'archived' : card.status;
-  // Drafts click back into the maker to resume; finished cards go to
-  // their detail/preview page (not built yet — Sprint 4).
-  const href = isDraft ? `/studio/card/${card.id}/edit` : `/studio/card/${card.id}`;
+  // Unfinished cards (draft + any front-first in-progress status) click
+  // back into the maker to resume; finished cards go to their detail page.
+  const href = isUnfinished ? `/studio/card/${card.id}/edit` : `/studio/card/${card.id}`;
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
