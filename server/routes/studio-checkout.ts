@@ -12,7 +12,7 @@
 
 import type { Express, Request, Response } from 'express';
 import { randomBytes } from 'crypto';
-import { eq, desc, and, ne } from 'drizzle-orm';
+import { eq, desc, and, ne, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
 import {
@@ -30,7 +30,10 @@ import { publicImageUrl } from '../image-storage';
 import {
   sendRecipientCardArrivedEmail,
   sendSenderOrderConfirmedEmail,
+  sendSenderPrintShippedEmail,
+  sendSenderPrintDeliveredEmail,
 } from '../email-service';
+import type { PrintProviderStatus } from '../studio/print-provider';
 import {
   tierPriceGBP,
   getShippingTier,
@@ -474,6 +477,110 @@ export function registerStudioCheckoutRoutes(app: Express): void {
       res.status(500).json({ message: 'Webhook handler error' });
     }
   });
+
+  // ── POST /api/webhooks/prodigi/:secret ───────────────────────────
+  // Prodigi's order-status callback. Prodigi has NO signature scheme, so
+  // security is the unguessable secret path segment — register the URL
+  // with PRODIGI_WEBHOOK_SECRET in the segment. Wrong/absent secret → 404
+  // (don't reveal the endpoint exists). Only active when the print
+  // provider is prodigi. Idempotent: applyFulfillmentUpdate only advances
+  // status forward + fires each lifecycle email exactly once.
+  app.post('/api/webhooks/prodigi/:secret', async (req: Request, res: Response) => {
+    const provider = getPrintProvider();
+    if (provider.name !== 'prodigi') {
+      return res.status(404).json({ message: 'Not found' });
+    }
+    const secret = process.env.PRODIGI_WEBHOOK_SECRET;
+    if (!secret || req.params.secret !== secret) {
+      return res.status(404).json({ message: 'Not found' });
+    }
+
+    let status: PrintProviderStatus;
+    try {
+      status = await provider.parseWebhook(
+        req.headers as Record<string, string>,
+        (req as any).rawBody ?? req.body,
+      );
+    } catch (err: any) {
+      console.error('[PRODIGI-WEBHOOK] parse failed:', err?.message ?? err);
+      return res.status(400).json({ message: 'Bad payload' });
+    }
+
+    try {
+      const rows = await db
+        .select()
+        .from(studioOrders)
+        .where(eq(studioOrders.providerOrderId, status.providerOrderId))
+        .limit(1);
+      const order = rows[0];
+      if (!order) {
+        console.warn(
+          '[PRODIGI-WEBHOOK] no order for provider order id',
+          status.providerOrderId,
+        );
+        // 200 so Prodigi doesn't retry forever for an order we don't have.
+        return res.json({ received: true });
+      }
+      await applyFulfillmentUpdate(order, status);
+      res.json({ received: true });
+    } catch (err: any) {
+      console.error('[PRODIGI-WEBHOOK] handler error:', err);
+      res.status(500).json({ message: 'Webhook handler error' });
+    }
+  });
+
+  // ── POST /api/studio/orders/:id/dev-fulfillment ──────────────────
+  // DEV ONLY. Simulate a Prodigi status transition so the whole
+  // fulfilment + email lifecycle (submitted → printed → shipped →
+  // delivered) can be exercised without Prodigi being able to reach
+  // localhost. Body: { status }. Gated to non-production + own order.
+  if (process.env.NODE_ENV !== 'production') {
+    app.post(
+      '/api/studio/orders/:id/dev-fulfillment',
+      isAuthenticated,
+      async (req: Request, res: Response) => {
+        const userId = getUserId(req);
+        if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+        const orderId = req.params.id;
+        const next = String(req.body?.status ?? '');
+        if (!['printed', 'shipped', 'delivered', 'failed'].includes(next)) {
+          return res
+            .status(400)
+            .json({ message: 'status must be printed|shipped|delivered|failed' });
+        }
+        try {
+          const rows = await db
+            .select()
+            .from(studioOrders)
+            .where(eq(studioOrders.id, orderId))
+            .limit(1);
+          const order = rows[0];
+          if (!order) return res.status(404).json({ message: 'Order not found' });
+          if (order.userId !== userId) return res.status(403).json({ message: 'Not your order' });
+
+          await applyFulfillmentUpdate(order, {
+            status: next as PrintProviderStatus['status'],
+            // Give the shipped email real-looking tracking to render.
+            trackingNumber: next === 'shipped' ? 'DEV1234567890GB' : undefined,
+            trackingUrl:
+              next === 'shipped'
+                ? 'https://www.royalmail.com/track-your-item'
+                : undefined,
+          });
+          const after = await db
+            .select({ f: studioOrders.fulfillmentStatus })
+            .from(studioOrders)
+            .where(eq(studioOrders.id, orderId))
+            .limit(1);
+          res.json({ ok: true, fulfillmentStatus: after[0]?.f ?? null });
+        } catch (err: any) {
+          console.error('[STUDIO-CHECKOUT] dev-fulfillment error:', err);
+          res.status(500).json({ message: 'Could not update fulfilment' });
+        }
+      },
+    );
+  }
 }
 
 // ── Shared: mark an order paid + dispatch comms ──────────────────────
@@ -721,6 +828,150 @@ async function fireOrderPaidEmails(
     console.error(
       `[STUDIO-CHECKOUT] address-book backfill failed for order ${order.id}:`,
       abErr,
+    );
+  }
+}
+
+// ── Fulfilment status transitions + lifecycle emails ────────────────
+// Applies a print-provider status update (Prodigi webhook or the dev
+// simulator) to an order. Advances fulfillmentStatus FORWARD only — never
+// downgrades on a late/duplicate webhook — and fires the sender's shipped /
+// delivered email exactly once, on the transition into that state.
+// Best-effort emails: a send failure never rolls back the status.
+const FULFILLMENT_RANK: Record<string, number> = {
+  pending: 0,
+  submitted: 1,
+  printed: 2,
+  shipped: 3,
+  delivered: 4,
+};
+
+export async function applyFulfillmentUpdate(
+  order: typeof studioOrders.$inferSelect,
+  update: Pick<PrintProviderStatus, 'status' | 'trackingNumber' | 'trackingUrl'>,
+): Promise<void> {
+  const next = update.status;
+
+  // Failure is terminal — record it unless we've already delivered.
+  if (next === 'failed') {
+    await db
+      .update(studioOrders)
+      .set({ fulfillmentStatus: 'failed', updatedAt: new Date() })
+      .where(
+        and(
+          eq(studioOrders.id, order.id),
+          ne(studioOrders.fulfillmentStatus, 'delivered'),
+        ),
+      );
+    console.log(`[FULFILMENT] order ${order.id} → failed`);
+    return;
+  }
+
+  const nextRank = FULFILLMENT_RANK[next];
+  if (nextRank === undefined) {
+    console.warn(`[FULFILMENT] unknown status "${next}" for order ${order.id}`);
+    return;
+  }
+
+  // Advance only from a strictly-earlier state. Doing the guard in the
+  // WHERE clause (not from the possibly-stale passed-in row) makes this
+  // race-safe AND downgrade-proof: exactly one caller wins the transition
+  // into `next`, and a late "shipped" after "delivered" matches no rows.
+  const earlierStatuses = Object.entries(FULFILLMENT_RANK)
+    .filter(([, r]) => r < nextRank)
+    .map(([s]) => s);
+
+  const advanced = await db
+    .update(studioOrders)
+    .set({
+      fulfillmentStatus: next,
+      trackingNumber: update.trackingNumber ?? order.trackingNumber,
+      trackingUrl: update.trackingUrl ?? order.trackingUrl,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(studioOrders.id, order.id),
+        inArray(studioOrders.fulfillmentStatus, earlierStatuses),
+      ),
+    )
+    .returning();
+
+  if (advanced.length === 0) {
+    // Already at/past `next` — duplicate or out-of-order webhook. Still
+    // stash tracking if it's newly present.
+    if (
+      (update.trackingNumber && update.trackingNumber !== order.trackingNumber) ||
+      (update.trackingUrl && update.trackingUrl !== order.trackingUrl)
+    ) {
+      await db
+        .update(studioOrders)
+        .set({
+          trackingNumber: update.trackingNumber ?? order.trackingNumber,
+          trackingUrl: update.trackingUrl ?? order.trackingUrl,
+          updatedAt: new Date(),
+        })
+        .where(eq(studioOrders.id, order.id));
+    }
+    return;
+  }
+
+  const fresh = advanced[0];
+  console.log(`[FULFILMENT] order ${order.id} → ${next}`);
+
+  // Only print orders have a physical lifecycle + these emails, and only
+  // shipped/delivered have a sender email.
+  if (!order.includesPrint) return;
+  if (next !== 'shipped' && next !== 'delivered') return;
+
+  // Recipient name from the card draft (for the "X's card" copy).
+  let recipientName: string | null = null;
+  try {
+    const cardRows = await db
+      .select({ conversationData: cards.conversationData })
+      .from(cards)
+      .where(eq(cards.id, order.cardId))
+      .limit(1);
+    const state = (cardRows[0]?.conversationData as CardDraftState | null) ?? null;
+    recipientName = state?.recipient?.name?.trim() || null;
+  } catch {
+    /* non-fatal — email falls back to generic "Your card" copy */
+  }
+  const senderName = order.customerName?.split(' ')[0] || 'there';
+
+  try {
+    if (next === 'shipped') {
+      // Courier + ETA come from what they paid for (the shipping tier);
+      // Prodigi's status doesn't carry a courier name or window.
+      const tier = getShippingTier(
+        (order.shippingTier as ShippingTierId) ?? DEFAULT_SHIPPING_TIER,
+      );
+      const sent = await sendSenderPrintShippedEmail({
+        senderEmail: order.customerEmail,
+        senderName,
+        recipientName,
+        trackingNumber: fresh.trackingNumber || 'Pending',
+        trackingUrl: fresh.trackingUrl || `${publicAppOrigin()}/studio/orders`,
+        courier: tier.carrier,
+        etaWindow: tier.shippingEstimate,
+      });
+      console.log(
+        `[FULFILMENT] shipped email ${sent ? 'sent' : 'failed'} → ${order.customerEmail} (order ${order.id})`,
+      );
+    } else {
+      const sent = await sendSenderPrintDeliveredEmail({
+        senderEmail: order.customerEmail,
+        senderName,
+        recipientName,
+      });
+      console.log(
+        `[FULFILMENT] delivered email ${sent ? 'sent' : 'failed'} → ${order.customerEmail} (order ${order.id})`,
+      );
+    }
+  } catch (err: any) {
+    console.error(
+      `[FULFILMENT] lifecycle email failed for order ${order.id}:`,
+      err?.message ?? err,
     );
   }
 }

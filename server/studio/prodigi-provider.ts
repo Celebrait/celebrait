@@ -32,9 +32,13 @@
 //
 // Webhooks: Prodigi POSTs order status updates to a configured callback
 // URL (CloudEvents-shaped, order under data). It has no signature scheme,
-// so the callback URL itself must be unguessable — register it with a
-// secret path segment. parseWebhook just maps the payload; the route is
-// responsible for the URL secret.
+// so the callback URL itself must be unguessable — register it as
+// /api/webhooks/prodigi/<PRODIGI_WEBHOOK_SECRET>. parseWebhook just maps the
+// payload; the route (studio-checkout.ts) enforces the URL secret and drives
+// the fulfilment transition + shipped/delivered emails.
+//
+//   PRODIGI_WEBHOOK_SECRET — required to activate the webhook route. The
+//                            secret path segment; wrong/absent → 404.
 
 import type {
   PrintProvider,
